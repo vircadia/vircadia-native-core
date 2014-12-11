@@ -29,6 +29,19 @@ const float MAX_FRICTION = 10.0f;
 
 const float DEFAULT_RESTITUTION = 0.0f;
 
+// origin of physics simulation in world frame
+glm::vec3 _worldOffset(0.0f);
+
+// static 
+void ObjectMotionState::setWorldOffset(const glm::vec3& offset) {
+    _worldOffset = offset;
+}
+
+// static 
+const glm::vec3& ObjectMotionState::getWorldOffset() {
+    return _worldOffset;
+}
+
 ObjectMotionState::ObjectMotionState() : 
         _density(DEFAULT_DENSITY), 
         _volume(DEFAULT_VOLUME), 
@@ -107,6 +120,9 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
     if (_sentMoving && !_body->isActive()) {
         return true;
     }
+
+    // NOTE: math in done the simulation-frame, which is NOT necessarily the same 
+    // as the world-frame due to _worldOffset
 
     // compute position error
     glm::vec3 expectedPosition = _sentPosition + dt * (_sentVelocity + (0.5f * dt) * _sentAcceleration);

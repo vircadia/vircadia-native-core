@@ -43,6 +43,14 @@ class OctreeEditPacketSender;
 
 class ObjectMotionState : public btMotionState {
 public:
+    // The WorldOffset is used to keep the positions of objects in the simulation near the origin, to
+    // reduce numerical error when computing vector differences.  In other words: The EntityMotionState 
+    // class translates between the simulation-frame and the world-frame as known by the render pipeline, 
+    // various object trees, etc.  The EntityMotionState class uses a static "worldOffset" to help in
+    // the translations.
+    static void setWorldOffset(const glm::vec3& offset);
+    static const glm::vec3& getWorldOffset();
+
     ObjectMotionState();
     ~ObjectMotionState();
 
@@ -71,7 +79,11 @@ public:
     void getVelocity(glm::vec3& velocityOut) const;
     void getAngularVelocity(glm::vec3& angularVelocityOut) const;
 
+    virtual uint32_t getIncomingDirtyFlags() const = 0;
+    virtual void clearIncomingDirtyFlags(uint32_t flags) = 0;
     void clearOutgoingDirtyFlags(uint32_t flags) { _outgoingDirtyFlags &= ~flags; }
+    virtual void clearConflictingDirtyFlags() = 0;
+
     bool isAtRest() const { return !(_body->isActive()) && _weKnowRecipientHasReceivedNotMoving; }
     virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const;
     virtual void sendUpdate(OctreeEditPacketSender* packetSender) = 0;

@@ -32,14 +32,6 @@ class EntityItem;
 
 class EntityMotionState : public ObjectMotionState {
 public:
-    // The WorldOffset is used to keep the positions of objects in the simulation near the origin, to
-    // reduce numerical error when computing vector differences.  In other words: The EntityMotionState 
-    // class translates between the simulation-frame and the world-frame as known by the render pipeline, 
-    // various object trees, etc.  The EntityMotionState class uses a static "worldOffset" to help in
-    // the translations.
-    static void setWorldOffset(const glm::vec3& offset);
-    static const glm::vec3& getWorldOffset();
-
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
@@ -61,6 +53,10 @@ public:
     void computeShapeInfo(ShapeInfo& info);
 
     void sendUpdate(OctreeEditPacketSender* packetSender);
+
+    uint32_t getIncomingDirtyFlags() const { return _entity->getDirtyFlags(); }
+    void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
+    void clearConflictingDirtyFlags() { _outgoingDirtyFlags &= ~_entity->getDirtyFlags(); }
 
 protected:
     EntityItem* _entity;

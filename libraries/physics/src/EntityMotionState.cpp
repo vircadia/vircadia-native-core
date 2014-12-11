@@ -17,20 +17,6 @@
 #endif // USE_BULLET_PHYSICS
 #include "EntityMotionState.h"
 
-// TODO: store _worldOffset in a more central location -- VoxelTree and others also need to know about it
-// origin of physics simulation in world frame
-glm::vec3 _worldOffset(0.0f);
-
-// static 
-void EntityMotionState::setWorldOffset(const glm::vec3& offset) {
-    _worldOffset = offset;
-}
-
-// static 
-const glm::vec3& getWorldOffset() {
-    return _worldOffset;
-}
-
 EntityMotionState::EntityMotionState(EntityItem* entity) 
     :   _entity(entity),
         _outgoingPhysicsDirtyFlags(0) {
@@ -55,14 +41,12 @@ MotionType EntityMotionState::computeMotionType() const {
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
     btVector3 pos;
-    glmToBullet(_entity->getPositionInMeters() - _worldOffset, pos);
+    glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset(), pos);
     worldTrans.setOrigin(pos);
 
     btQuaternion rot;
     glmToBullet(_entity->getRotation(), rot);
     worldTrans.setRotation(rot);
-
-    applyVelocities();
 }
 
 // This callback is invoked by the physics simulation at the end of each simulation frame...
@@ -72,7 +56,7 @@ void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
     if (! (dirytFlags &  EntityItem::DIRTY_POSITION)) {
         glm::vec3 pos;
         bulletToGLM(worldTrans.getOrigin(), pos);
-        _entity->setPositionInMeters(pos + _worldOffset);
+        _entity->setPositionInMeters(pos + ObjectMotionState::getWorldOffset());
     
         glm::quat rot;
         bulletToGLM(worldTrans.getRotation(), rot);
@@ -122,7 +106,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
 
             btTransform worldTrans = _body->getWorldTransform();
             bulletToGLM(worldTrans.getOrigin(), _sentPosition);
-            properties.setPosition(_sentPosition);
+            properties.setPosition(_sentPosition + ObjectMotionState::getWorldOffset());
         
             bulletToGLM(worldTrans.getRotation(), _sentRotation);
             properties.setRotation(_sentRotation);
@@ -144,7 +128,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
             if (_outgoingPhysicsDirtyFlags & EntityItem::DIRTY_POSITION) {
                 btTransform worldTrans = _body->getWorldTransform();
                 bulletToGLM(worldTrans.getOrigin(), _sentPosition);
-                properties.setPosition(_sentPosition);
+                properties.setPosition(_sentPosition + ObjectMotionState::getWorldOffset());
             
                 bulletToGLM(worldTrans.getRotation(), _sentRotation);
                 properties.setRotation(_sentRotation);
