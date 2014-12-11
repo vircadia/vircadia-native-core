@@ -25,20 +25,11 @@
 #include "Camera.h"
 #include "Util.h"
 #include "world.h"
-#include "renderer/VoxelShader.h"
 #include "PrimitiveRenderer.h"
 
 class ProgramObject;
 
 const int NUM_CHILDREN = 8;
-
-
-struct VoxelShaderVBOData
-{
-    float x, y, z; // position
-    float s; // size
-    unsigned char r,g,b; // color
-};
 
 
 class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public OctreeElementUpdateHook {
@@ -97,8 +88,6 @@ public slots:
     void clearAllNodesBufferIndex();
  
     void setDisableFastVoxelPipeline(bool disableFastVoxelPipeline);
-    void setUseVoxelShader(bool useVoxelShader);
-    void setVoxelsAsPoints(bool voxelsAsPoints);
 
 protected:
     float _treeScale;
@@ -191,14 +180,8 @@ private:
     void initVoxelMemory();
     void cleanupVoxelMemory();
 
-    bool _useVoxelShader;
-    bool _voxelsAsPoints;
-    bool _voxelShaderModeWhenVoxelsAsPointsEnabled;
-
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
     GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
-    VoxelShaderVBOData* _writeVoxelShaderData;
-    VoxelShaderVBOData* _readVoxelShaderData;
 
     GLuint _vboVerticesID;
     GLuint _vboColorsID;

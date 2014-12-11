@@ -92,13 +92,6 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
 
     _viewFrustum = Application::getInstance()->getViewFrustum();
 
-    _useVoxelShader = false;
-    _voxelsAsPoints = false;
-    _voxelShaderModeWhenVoxelsAsPointsEnabled = false;
-
-    _writeVoxelShaderData = NULL;
-    _readVoxelShaderData = NULL;
-
     _readVerticesArray = NULL;
     _writeVerticesArray = NULL;
     _readColorsArray = NULL;
@@ -270,106 +263,30 @@ void VoxelSystem::setMaxVoxels(unsigned long maxVoxels) {
     }
 }
 
-// This is called by the main application thread on both the initialization of the application and when
-// the use voxel shader menu item is chosen
-void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
-    if (_useVoxelShader == useVoxelShader) {
-        return;
-    }
-
-    bool wasInitialized = _initialized;
-    if (wasInitialized) {
-        clearAllNodesBufferIndex();
-        cleanupVoxelMemory();
-    }
-    _useVoxelShader = useVoxelShader;
-    _usePrimitiveRenderer = false;
-    if (wasInitialized) {
-        initVoxelMemory();
-    }
-
-    if (wasInitialized) {
-        forceRedrawEntireTree();
-    }
-}
-
-void VoxelSystem::setVoxelsAsPoints(bool voxelsAsPoints) {
-    if (_voxelsAsPoints == voxelsAsPoints) {
-        return;
-    }
-
-    bool wasInitialized = _initialized;
-
-    // If we're "turning on" Voxels as points, we need to double check that we're in voxel shader mode.
-    // Voxels as points uses the VoxelShader memory model, so if we're not in voxel shader mode,
-    // then set it to voxel shader mode.
-    if (voxelsAsPoints) {
-        Menu::getInstance()->getUseVoxelShader()->setEnabled(false);
-
-        // If enabling this... then do it before checking voxel shader status, that way, if voxel
-        // shader is already enabled, we just start drawing as points.
-        _voxelsAsPoints = true;
-
-        if (!_useVoxelShader) {
-            setUseVoxelShader(true);
-            _voxelShaderModeWhenVoxelsAsPointsEnabled = false;
-        } else {
-            _voxelShaderModeWhenVoxelsAsPointsEnabled = true;
-        }
-    } else {
-        Menu::getInstance()->getUseVoxelShader()->setEnabled(true);
-        // if we're turning OFF voxels as point mode, then we check what the state of voxel shader was when we enabled
-        // voxels as points, if it was OFF, then we return it to that value.
-        if (_voxelShaderModeWhenVoxelsAsPointsEnabled == false) {
-            setUseVoxelShader(false);
-        }
-        // If disabling this... then do it AFTER checking previous voxel shader status, that way, if voxel
-        // shader is was not enabled, we switch back to normal mode before turning off points.
-        _voxelsAsPoints = false;
-    }
-
-    // Set our voxels as points
-    if (wasInitialized) {
-        forceRedrawEntireTree();
-    }
-}
-
 void VoxelSystem::cleanupVoxelMemory() {
     if (_initialized) {
         _readArraysLock.lockForWrite();
         _initialized = false; // no longer initialized
-        if (_useVoxelShader) {
-            // these are used when in VoxelShader mode.
-            glDeleteBuffers(1, &_vboVoxelsID);
-            glDeleteBuffers(1, &_vboVoxelsIndicesID);
+        // Destroy  glBuffers
+        glDeleteBuffers(1, &_vboVerticesID);
+        glDeleteBuffers(1, &_vboColorsID);
 
-            delete[] _writeVoxelShaderData;
-            delete[] _readVoxelShaderData;
+        glDeleteBuffers(1, &_vboIndicesTop);
+        glDeleteBuffers(1, &_vboIndicesBottom);
+        glDeleteBuffers(1, &_vboIndicesLeft);
+        glDeleteBuffers(1, &_vboIndicesRight);
+        glDeleteBuffers(1, &_vboIndicesFront);
+        glDeleteBuffers(1, &_vboIndicesBack);
 
-            _writeVoxelShaderData = _readVoxelShaderData = NULL;
+        delete[] _readVerticesArray;
+        delete[] _writeVerticesArray;
+        delete[] _readColorsArray;
+        delete[] _writeColorsArray;
 
-        } else {
-            // Destroy  glBuffers
-            glDeleteBuffers(1, &_vboVerticesID);
-            glDeleteBuffers(1, &_vboColorsID);
-
-            glDeleteBuffers(1, &_vboIndicesTop);
-            glDeleteBuffers(1, &_vboIndicesBottom);
-            glDeleteBuffers(1, &_vboIndicesLeft);
-            glDeleteBuffers(1, &_vboIndicesRight);
-            glDeleteBuffers(1, &_vboIndicesFront);
-            glDeleteBuffers(1, &_vboIndicesBack);
-
-            delete[] _readVerticesArray;
-            delete[] _writeVerticesArray;
-            delete[] _readColorsArray;
-            delete[] _writeColorsArray;
-
-            _readVerticesArray = NULL;
-            _writeVerticesArray = NULL;
-            _readColorsArray = NULL;
-            _writeColorsArray = NULL;
-        }
+        _readVerticesArray = NULL;
+        _writeVerticesArray = NULL;
+        _readColorsArray = NULL;
+        _writeColorsArray = NULL;
 
         delete _renderer;
         _renderer = 0;
@@ -417,102 +334,55 @@ void VoxelSystem::initVoxelMemory() {
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
 
-    // if _voxelsAsPoints then we must have _useVoxelShader
-    if (_voxelsAsPoints && !_useVoxelShader) {
-        _useVoxelShader = true;
-    }
+    // Global Normals mode uses a technique of not including normals on any voxel vertices, and instead
+    // rendering the voxel faces in 6 passes that use a global call to glNormal3f()
+    setupFaceIndices(_vboIndicesTop,    identityIndicesTop);
+    setupFaceIndices(_vboIndicesBottom, identityIndicesBottom);
+    setupFaceIndices(_vboIndicesLeft,   identityIndicesLeft);
+    setupFaceIndices(_vboIndicesRight,  identityIndicesRight);
+    setupFaceIndices(_vboIndicesFront,  identityIndicesFront);
+    setupFaceIndices(_vboIndicesBack,   identityIndicesBack);
 
-    if (_useVoxelShader) {
-        GLuint* indicesArray = new GLuint[_maxVoxels];
+    // Depending on if we're using per vertex normals, we will need more or less vertex points per voxel
+    int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
+    glGenBuffers(1, &_vboVerticesID);
+    glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
+    glBufferData(GL_ARRAY_BUFFER, vertexPointsPerVoxel * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+    _memoryUsageVBO += vertexPointsPerVoxel * sizeof(GLfloat) * _maxVoxels;
 
-        // populate the indicesArray
-        // this will not change given new voxels, so we can set it all up now
-        for (unsigned long n = 0; n < _maxVoxels; n++) {
-            indicesArray[n] = n;
-        }
+    // VBO for colorsArray
+    glGenBuffers(1, &_vboColorsID);
+    glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
+    glBufferData(GL_ARRAY_BUFFER, vertexPointsPerVoxel * sizeof(GLubyte) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+    _memoryUsageVBO += vertexPointsPerVoxel * sizeof(GLubyte) * _maxVoxels;
 
-        // bind the indices VBO to the actual indices array
-        glGenBuffers(1, &_vboVoxelsIndicesID);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboVoxelsIndicesID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * _maxVoxels, indicesArray, GL_STATIC_DRAW);
-        _memoryUsageVBO += sizeof(GLuint) * _maxVoxels;
+    // we will track individual dirty sections with these arrays of bools
+    _writeVoxelDirtyArray = new bool[_maxVoxels];
+    memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+    _memoryUsageRAM += (sizeof(bool) * _maxVoxels);
 
-        glGenBuffers(1, &_vboVoxelsID);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
-        glBufferData(GL_ARRAY_BUFFER, _maxVoxels * sizeof(VoxelShaderVBOData), NULL, GL_DYNAMIC_DRAW);
-        _memoryUsageVBO += _maxVoxels * sizeof(VoxelShaderVBOData);
+    _readVoxelDirtyArray = new bool[_maxVoxels];
+    memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+    _memoryUsageRAM += (sizeof(bool) * _maxVoxels);
 
-        // delete the indices and normals arrays that are no longer needed
-        delete[] indicesArray;
+    // prep the data structures for incoming voxel data
+    _writeVerticesArray = new GLfloat[vertexPointsPerVoxel * _maxVoxels];
+    _memoryUsageRAM += (sizeof(GLfloat) * vertexPointsPerVoxel * _maxVoxels);
+    _readVerticesArray = new GLfloat[vertexPointsPerVoxel * _maxVoxels];
+    _memoryUsageRAM += (sizeof(GLfloat) * vertexPointsPerVoxel * _maxVoxels);
 
-        // we will track individual dirty sections with these arrays of bools
-        _writeVoxelDirtyArray = new bool[_maxVoxels];
-        memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
-        _memoryUsageRAM += (_maxVoxels * sizeof(bool));
+    _writeColorsArray = new GLubyte[vertexPointsPerVoxel * _maxVoxels];
+    _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
+    _readColorsArray = new GLubyte[vertexPointsPerVoxel * _maxVoxels];
+    _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
 
-        _readVoxelDirtyArray = new bool[_maxVoxels];
-        memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
-        _memoryUsageRAM += (_maxVoxels * sizeof(bool));
-
-        // prep the data structures for incoming voxel data
-        _writeVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
-        _memoryUsageRAM += (sizeof(VoxelShaderVBOData) * _maxVoxels);
-
-        _readVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
-        _memoryUsageRAM += (sizeof(VoxelShaderVBOData) * _maxVoxels);
-        
-    } else {
-
-        // Global Normals mode uses a technique of not including normals on any voxel vertices, and instead
-        // rendering the voxel faces in 6 passes that use a global call to glNormal3f()
-        setupFaceIndices(_vboIndicesTop,    identityIndicesTop);
-        setupFaceIndices(_vboIndicesBottom, identityIndicesBottom);
-        setupFaceIndices(_vboIndicesLeft,   identityIndicesLeft);
-        setupFaceIndices(_vboIndicesRight,  identityIndicesRight);
-        setupFaceIndices(_vboIndicesFront,  identityIndicesFront);
-        setupFaceIndices(_vboIndicesBack,   identityIndicesBack);
-
-        // Depending on if we're using per vertex normals, we will need more or less vertex points per voxel
-        int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
-        glGenBuffers(1, &_vboVerticesID);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-        glBufferData(GL_ARRAY_BUFFER, vertexPointsPerVoxel * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
-        _memoryUsageVBO += vertexPointsPerVoxel * sizeof(GLfloat) * _maxVoxels;
-
-        // VBO for colorsArray
-        glGenBuffers(1, &_vboColorsID);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-        glBufferData(GL_ARRAY_BUFFER, vertexPointsPerVoxel * sizeof(GLubyte) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
-        _memoryUsageVBO += vertexPointsPerVoxel * sizeof(GLubyte) * _maxVoxels;
-
-        // we will track individual dirty sections with these arrays of bools
-        _writeVoxelDirtyArray = new bool[_maxVoxels];
-        memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
-        _memoryUsageRAM += (sizeof(bool) * _maxVoxels);
-
-        _readVoxelDirtyArray = new bool[_maxVoxels];
-        memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
-        _memoryUsageRAM += (sizeof(bool) * _maxVoxels);
-
-        // prep the data structures for incoming voxel data
-        _writeVerticesArray = new GLfloat[vertexPointsPerVoxel * _maxVoxels];
-        _memoryUsageRAM += (sizeof(GLfloat) * vertexPointsPerVoxel * _maxVoxels);
-        _readVerticesArray = new GLfloat[vertexPointsPerVoxel * _maxVoxels];
-        _memoryUsageRAM += (sizeof(GLfloat) * vertexPointsPerVoxel * _maxVoxels);
-
-        _writeColorsArray = new GLubyte[vertexPointsPerVoxel * _maxVoxels];
-        _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
-        _readColorsArray = new GLubyte[vertexPointsPerVoxel * _maxVoxels];
-        _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
-
-        // create our simple fragment shader if we're the first system to init
-        if (!_program.isLinked()) {
-            _program.addShaderFromSourceFile(QGLShader::Vertex,
-                Application::resourcesPath() + "shaders/voxel.vert");
-            _program.addShaderFromSourceFile(QGLShader::Fragment,
-                Application::resourcesPath() + "shaders/voxel.frag");
-            _program.link();
-        }
+    // create our simple fragment shader if we're the first system to init
+    if (!_program.isLinked()) {
+        _program.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/voxel.vert");
+        _program.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/voxel.frag");
+        _program.link();
     }
     _renderer = new PrimitiveRenderer(_maxVoxels);
 
@@ -882,25 +752,18 @@ void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
 
 void VoxelSystem::copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd) {
     int segmentLength = (segmentEnd - segmentStart) + 1;
-    if (_useVoxelShader) {
-        GLsizeiptr segmentSizeBytes = segmentLength * sizeof(VoxelShaderVBOData);
-        void* readDataAt = &_readVoxelShaderData[segmentStart];
-        void* writeDataAt = &_writeVoxelShaderData[segmentStart];
-        memcpy(readDataAt, writeDataAt, segmentSizeBytes);
-    } else {
-        // Depending on if we're using per vertex normals, we will need more or less vertex points per voxel
-        int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
+    // Depending on if we're using per vertex normals, we will need more or less vertex points per voxel
+    int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
 
-        GLsizeiptr segmentSizeBytes = segmentLength * vertexPointsPerVoxel * sizeof(GLfloat);
-        GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * vertexPointsPerVoxel);
-        GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * vertexPointsPerVoxel);
-        memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
+    GLsizeiptr segmentSizeBytes = segmentLength * vertexPointsPerVoxel * sizeof(GLfloat);
+    GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * vertexPointsPerVoxel);
+    GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * vertexPointsPerVoxel);
+    memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
 
-        segmentSizeBytes        = segmentLength * vertexPointsPerVoxel * sizeof(GLubyte);
-        GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * vertexPointsPerVoxel);
-        GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * vertexPointsPerVoxel);
-        memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
-    }
+    segmentSizeBytes        = segmentLength * vertexPointsPerVoxel * sizeof(GLubyte);
+    GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * vertexPointsPerVoxel);
+    GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * vertexPointsPerVoxel);
+    memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
@@ -1101,31 +964,15 @@ void VoxelSystem::updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& 
     if (_initialized && nodeIndex <= _maxVoxels) {
         _writeVoxelDirtyArray[nodeIndex] = true;
         
-        if (_useVoxelShader) {
-            // write in position, scale, and color for the voxel
-            
-            if (_writeVoxelShaderData) {
-                VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
-                writeVerticesAt->x = startVertex.x * TREE_SCALE;
-                writeVerticesAt->y = startVertex.y * TREE_SCALE;
-                writeVerticesAt->z = startVertex.z * TREE_SCALE;
-                writeVerticesAt->s = voxelScale * TREE_SCALE;
-                writeVerticesAt->r = color[RED_INDEX];
-                writeVerticesAt->g = color[GREEN_INDEX];
-                writeVerticesAt->b = color[BLUE_INDEX];
-            }
-        } else {
-            if (_writeVerticesArray && _writeColorsArray) {
-                int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
-                for (int j = 0; j < vertexPointsPerVoxel; j++ ) {
-                    GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * vertexPointsPerVoxel);
-                    GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * vertexPointsPerVoxel);
-                    *(writeVerticesAt+j) = startVertex[j % 3] + (identityVerticesGlobalNormals[j] * voxelScale);
-                    *(writeColorsAt  +j) = color[j % 3];
-                }
+        if (_writeVerticesArray && _writeColorsArray) {
+            int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
+            for (int j = 0; j < vertexPointsPerVoxel; j++ ) {
+                GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * vertexPointsPerVoxel);
+                GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * vertexPointsPerVoxel);
+                *(writeVerticesAt+j) = startVertex[j % 3] + (identityVerticesGlobalNormals[j] * voxelScale);
+                *(writeColorsAt  +j) = color[j % 3];
             }
         }
-    
     }
 }
 
@@ -1253,44 +1100,34 @@ void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex seg
     bool showWarning = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarning, "updateVBOSegment()");
 
-    if (_useVoxelShader) {
-        int segmentLength = (segmentEnd - segmentStart) + 1;
-        GLintptr segmentStartAt = segmentStart * sizeof(VoxelShaderVBOData);
-        GLsizeiptr segmentSizeBytes = segmentLength * sizeof(VoxelShaderVBOData);
-        void* readVerticesFrom = &_readVoxelShaderData[segmentStart];
+    int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
+    int segmentLength = (segmentEnd - segmentStart) + 1;
+    GLintptr   segmentStartAt   = segmentStart * vertexPointsPerVoxel * sizeof(GLfloat);
+    GLsizeiptr segmentSizeBytes = segmentLength * vertexPointsPerVoxel * sizeof(GLfloat);
+    GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * vertexPointsPerVoxel);
 
-        glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
+    {
+        PerformanceWarning warn(showWarning, "updateVBOSegment() : glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);");
+        glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
+    }
+
+    {
+        PerformanceWarning warn(showWarning, "updateVBOSegment() : glBufferSubData() _vboVerticesID);");
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-    } else {
-        int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
-        int segmentLength = (segmentEnd - segmentStart) + 1;
-        GLintptr   segmentStartAt   = segmentStart * vertexPointsPerVoxel * sizeof(GLfloat);
-        GLsizeiptr segmentSizeBytes = segmentLength * vertexPointsPerVoxel * sizeof(GLfloat);
-        GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * vertexPointsPerVoxel);
+    }
 
-        {
-            PerformanceWarning warn(showWarning, "updateVBOSegment() : glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);");
-            glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-        }
+    segmentStartAt          = segmentStart * vertexPointsPerVoxel * sizeof(GLubyte);
+    segmentSizeBytes        = segmentLength * vertexPointsPerVoxel * sizeof(GLubyte);
+    GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * vertexPointsPerVoxel);
 
-        {
-            PerformanceWarning warn(showWarning, "updateVBOSegment() : glBufferSubData() _vboVerticesID);");
-            glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-        }
+    {
+        PerformanceWarning warn(showWarning, "updateVBOSegment() : glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);");
+        glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
+    }
 
-        segmentStartAt          = segmentStart * vertexPointsPerVoxel * sizeof(GLubyte);
-        segmentSizeBytes        = segmentLength * vertexPointsPerVoxel * sizeof(GLubyte);
-        GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * vertexPointsPerVoxel);
-
-        {
-            PerformanceWarning warn(showWarning, "updateVBOSegment() : glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);");
-            glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-        }
-
-        {
-            PerformanceWarning warn(showWarning, "updateVBOSegment() : glBufferSubData() _vboColorsID);");
-            glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
-        }
+    {
+        PerformanceWarning warn(showWarning, "updateVBOSegment() : glBufferSubData() _vboColorsID);");
+        glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
     }
 }
 
@@ -1306,70 +1143,6 @@ void VoxelSystem::render() {
 
     updateVBOs();
 
-    // if not don't... then do...
-    if (_useVoxelShader) {
-        PerformanceWarning warn(showWarnings,"render().. _useVoxelShader openGL..");
-
-
-        //Define this somewhere in your header file
-        #define BUFFER_OFFSET(i) ((void*)(i))
-
-        glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(3, GL_FLOAT, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
-
-        int attributeLocation;
-
-        if (!_voxelsAsPoints) {
-            Application::getInstance()->getVoxelShader().begin();
-            attributeLocation = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
-            glEnableVertexAttribArray(attributeLocation);
-            glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
-        } else {
-            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-
-            glm::vec2 viewDimensions = Application::getInstance()->getViewportDimensions();
-            float viewportWidth = viewDimensions.x;
-            float viewportHeight = viewDimensions.y;
-            glm::vec3 cameraPosition = Application::getInstance()->getViewFrustum()->getPosition();
-            PointShader& pointShader = Application::getInstance()->getPointShader();
-
-            pointShader.begin();
-
-            pointShader.setUniformValue(pointShader.uniformLocation("viewportWidth"), viewportWidth);
-            pointShader.setUniformValue(pointShader.uniformLocation("viewportHeight"), viewportHeight);
-            pointShader.setUniformValue(pointShader.uniformLocation("cameraPosition"), cameraPosition);
-
-            attributeLocation = pointShader.attributeLocation("voxelSizeIn");
-            glEnableVertexAttribArray(attributeLocation);
-            glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
-        }
-
-
-        glEnableClientState(GL_COLOR_ARRAY);
-        glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(4*sizeof(float)));//The starting point of colors
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboVoxelsIndicesID);
-
-        glDrawElements(GL_POINTS, _voxelsInReadArrays, GL_UNSIGNED_INT, BUFFER_OFFSET(0)); //The starting point of the IBO
-
-        // deactivate vertex and color arrays after drawing
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_COLOR_ARRAY);
-
-        // bind with 0 to switch back to normal operation
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-        if (!_voxelsAsPoints) {
-            Application::getInstance()->getVoxelShader().end();
-            glDisableVertexAttribArray(attributeLocation);
-        } else {
-            Application::getInstance()->getPointShader().end();
-            glDisableVertexAttribArray(attributeLocation);
-            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
-        }
-    } else 
     if (!_usePrimitiveRenderer) {
         if (_drawHaze) {
             glEnable(GL_FOG);
