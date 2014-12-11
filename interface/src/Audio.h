@@ -165,7 +165,7 @@ public slots:
 
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
-    void setReverb(bool reverb) { _reverb = reverb; }
+    void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
 
     const AudioStreamStats& getAudioMixerAvatarStreamAudioStats() const { return _audioMixerAvatarStreamAudioStats; }

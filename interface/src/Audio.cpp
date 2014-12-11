@@ -135,8 +135,9 @@ Audio::Audio(QObject* parent) :
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedStereoSamples, this, &Audio::addStereoSamplesToScope, Qt::DirectConnection);
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples, this, &Audio::processReceivedSamples, Qt::DirectConnection);
     
-    // Initialize GVerb
-    initGverb();
+    // create GVerb filters
+    _gverb = createGverbFilter();
+    _gverbLocal = createGverbFilter();
 }
 
 Audio::~Audio() {
@@ -148,6 +149,10 @@ void Audio::init(QGLWidget *parent) {
     _micTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic.svg"));
     _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic-mute.svg"));
     _boxTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/audio-box.svg"));
+    
+    // configure filters
+    configureGverbFilter(_gverb);
+    configureGverbFilter(_gverbLocal);
 }
 
 void Audio::reset() {
@@ -463,12 +468,11 @@ void Audio::start() {
     _sourceGain.initialize();
     _noiseSource.initialize();
     _toneSource.initialize();
-    _sourceGain.setParameters(0.25f,0.0f); 
-    _inputGain.setParameters(1.0f,0.0f);
+    _sourceGain.setParameters(0.25f, 0.0f);
+    _inputGain.setParameters(1.0f, 0.0f);
 }
 
 void Audio::stop() {
-
     _inputFrameBuffer.finalize();
     _inputGain.finalize();
     _sourceGain.finalize();
@@ -546,7 +550,21 @@ void Audio::updateGverbOptions() {
     }
     
     if (reverbChanged) {
-        initGverb();
+        gverb_free(_gverb);
+        _gverb = createGverbFilter();
+        configureGverbFilter(_gverb);
+        gverb_free(_gverbLocal);
+        _gverbLocal = createGverbFilter();
+        configureGverbFilter(_gverbLocal);
+    }
+}
+
+void Audio::setReverb(bool reverb) {
+    _reverb = reverb;
+    
+    if (!_reverb) {
+        gverb_flush(_gverb);
+        gverb_flush(_gverbLocal);
     }
 }
 
@@ -565,8 +583,13 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
     _scriptReverbOptions.setWetLevel(options->getWetLevel());
 
     if (_reverbOptions == &_scriptReverbOptions) {
-        // Apply them to the reverb instance(s)
-        initGverb();
+        // Apply them to the reverb instances
+        gverb_free(_gverb);
+        _gverb = createGverbFilter();
+        configureGverbFilter(_gverb);
+        gverb_free(_gverbLocal);
+        _gverbLocal = createGverbFilter();
+        configureGverbFilter(_gverbLocal);
     }
 }
 
