@@ -157,6 +157,9 @@ void Audio::reset() {
     _toneSource.reset();
     _sourceGain.reset();
     _inputGain.reset();
+    
+    gverb_flush(_gverb);
+    gverb_flush(_gverbLocal);
 }
 
 void Audio::resetStats() {
@@ -530,7 +533,7 @@ void Audio::updateGverbOptions() {
         }
         if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
             _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
-            reverbChanged = true;
+            // Not part of actual filter config, no need to set reverbChanged to true
         }
         
         if (_reverbOptions != &_zoneReverbOptions) {
