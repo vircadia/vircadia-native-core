@@ -139,6 +139,11 @@ Audio::Audio(QObject* parent) :
     initGverb();
 }
 
+Audio::~Audio() {
+    gverb_free(_gverb);
+    gverb_free(_gverbLocal);
+}
+
 void Audio::init(QGLWidget *parent) {
     _micTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic.svg"));
     _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic-mute.svg"));

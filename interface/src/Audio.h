@@ -85,6 +85,7 @@ public:
 
     // setup for audio I/O
     Audio(QObject* parent = 0);
+    ~Audio();
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.0f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
