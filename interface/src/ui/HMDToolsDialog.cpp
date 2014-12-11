@@ -67,12 +67,22 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
 
     // watch for our dialog window moving screens. If it does we want to enforce our rules about
     // what screens we're allowed on
-    QWindow* dialogWindow = windowHandle();
-    connect(dialogWindow, &QWindow::screenChanged, this, &HMDToolsDialog::dialogWindowScreenChanged);
-    connect(dialogWindow, &QWindow::xChanged, this, &HMDToolsDialog::dialogWindowGeometryChanged);
-    connect(dialogWindow, &QWindow::yChanged, this, &HMDToolsDialog::dialogWindowGeometryChanged);
-    connect(dialogWindow, &QWindow::widthChanged, this, &HMDToolsDialog::dialogWindowGeometryChanged);
-    connect(dialogWindow, &QWindow::heightChanged, this, &HMDToolsDialog::dialogWindowGeometryChanged);
+    watchWindow(windowHandle());
+    if (Application::getInstance()->getRunningScriptsWidget()) {
+        watchWindow(Application::getInstance()->getRunningScriptsWidget()->windowHandle());
+    }
+    if (Application::getInstance()->getToolWindow()) {
+        watchWindow(Application::getInstance()->getToolWindow()->windowHandle());
+    }
+    if (Menu::getInstance()->getBandwidthDialog()) {
+        watchWindow(Menu::getInstance()->getBandwidthDialog()->windowHandle());
+    }
+    if (Menu::getInstance()->getOctreeStatsDialog()) {
+        watchWindow(Menu::getInstance()->getOctreeStatsDialog()->windowHandle());
+    }
+    if (Menu::getInstance()->getLodToolsDialog()) {
+        watchWindow(Menu::getInstance()->getLodToolsDialog()->windowHandle());
+    }
     
     // when the application is about to quit, leave HDM mode
     connect(Application::getInstance(), SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
@@ -82,65 +92,14 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
 }
 
 HMDToolsDialog::~HMDToolsDialog() {
+    foreach(HMDWindowWatcher* watcher, _windowWatchers) {
+        delete watcher;
+    }
+    _windowWatchers.clear();
 }
 
 void HMDToolsDialog::applicationWindowScreenChanged(QScreen* screen) {
     _debugDetails->setText(getDebugDetails());
-}
-
-void HMDToolsDialog::dialogWindowGeometryChanged(int arg) {
-    QWindow* dialogWindow = windowHandle();
-    _previousDialogRect = rect();
-    _previousDialogRect = QRect(dialogWindow->mapToGlobal(_previousDialogRect.topLeft()), 
-                                dialogWindow->mapToGlobal(_previousDialogRect.bottomRight()));
-    _previousDialogScreen = dialogWindow->screen();
-}
-
-void HMDToolsDialog::dialogWindowScreenChanged(QScreen* screen) {
-    _debugDetails->setText(getDebugDetails());
-
-    // if we have more than one screen, and a known hmdScreen then try to 
-    // keep our dialog off of the hmdScreen
-    if (QApplication::desktop()->screenCount() > 1) {
-    
-        // we want to use a local variable here because we are not necesarily in HMD mode
-        int hmdScreenNumber = OculusManager::getHMDScreen();
-        if (_hmdScreenNumber >= 0) {
-            QScreen* hmdScreen = QGuiApplication::screens()[hmdScreenNumber];
-            if (screen == hmdScreen) {
-                qDebug() << "HMD Tools: Whoa! What are you doing? You don't want to move me to the HMD Screen!";
-                QWindow* dialogWindow = windowHandle();
-        
-                // try to pick a better screen
-                QScreen* betterScreen = NULL;
-        
-                QWindow* appWindow = Application::getInstance()->getWindow()->windowHandle();
-                QScreen* appScreen = appWindow->screen();
-
-                if (_previousDialogScreen && _previousDialogScreen != hmdScreen) {
-                    // first, if the previous dialog screen is not the HMD screen, then move it there.
-                    betterScreen = appScreen;
-                } else if (appScreen != hmdScreen) {
-                    // second, if the application screen is not the HMD screen, then move it there.
-                    betterScreen = appScreen;
-                } else if (_previousScreen && _previousScreen != hmdScreen) {
-                    // third, if the application screen is the HMD screen, we want to move it to
-                    // the previous screen
-                    betterScreen = _previousScreen;
-                } else {
-                    // last, if we can't use the previous screen the use the primary desktop screen
-                    int desktopPrimaryScreenNumber = QApplication::desktop()->primaryScreen();
-                    QScreen* desktopPrimaryScreen = QGuiApplication::screens()[desktopPrimaryScreenNumber];
-                    betterScreen = desktopPrimaryScreen;
-                }
-
-                if (betterScreen) {
-                    dialogWindow->setScreen(betterScreen);
-                    dialogWindow->setGeometry(_previousDialogRect);
-                }
-            }
-        }
-    }
 }
 
 QString HMDToolsDialog::getDebugDetails() const {
@@ -304,5 +263,79 @@ void HMDToolsDialog::screenCountChanged(int newCount) {
     _debugDetails->setText(getDebugDetails());
 }
 
+void HMDToolsDialog::watchWindow(QWindow* window) {
+    qDebug() << "HMDToolsDialog::watchWindow() window:" << window;
+    if (window && !_windowWatchers.contains(window)) {
+        HMDWindowWatcher* watcher = new HMDWindowWatcher(window, this);
+        _windowWatchers[window] = watcher;
+    }
+}
+
+
+HMDWindowWatcher::HMDWindowWatcher(QWindow* window, HMDToolsDialog* hmdTools) :
+    _window(window),
+    _hmdTools(hmdTools),
+    _previousScreen(NULL)
+{
+    connect(window, &QWindow::screenChanged, this, &HMDWindowWatcher::windowScreenChanged);
+    connect(window, &QWindow::xChanged, this, &HMDWindowWatcher::windowGeometryChanged);
+    connect(window, &QWindow::yChanged, this, &HMDWindowWatcher::windowGeometryChanged);
+    connect(window, &QWindow::widthChanged, this, &HMDWindowWatcher::windowGeometryChanged);
+    connect(window, &QWindow::heightChanged, this, &HMDWindowWatcher::windowGeometryChanged);
+}
+
+HMDWindowWatcher::~HMDWindowWatcher() {
+}
+
+
+void HMDWindowWatcher::windowGeometryChanged(int arg) {
+    _previousRect = _window->geometry();
+    _previousScreen = _window->screen();
+}
+
+void HMDWindowWatcher::windowScreenChanged(QScreen* screen) {
+    // if we have more than one screen, and a known hmdScreen then try to 
+    // keep our dialog off of the hmdScreen
+    if (QApplication::desktop()->screenCount() > 1) {
+    
+        // we want to use a local variable here because we are not necesarily in HMD mode
+        int hmdScreenNumber = OculusManager::getHMDScreen();
+        if (hmdScreenNumber >= 0) {
+            QScreen* hmdScreen = QGuiApplication::screens()[hmdScreenNumber];
+            if (screen == hmdScreen) {
+                qDebug() << "HMD Tools: Whoa! What are you doing? You don't want to move me to the HMD Screen!";
+        
+                // try to pick a better screen
+                QScreen* betterScreen = NULL;
+        
+                QScreen* lastApplicationScreen = _hmdTools->getLastApplicationScreen();
+                QWindow* appWindow = Application::getInstance()->getWindow()->windowHandle();
+                QScreen* appScreen = appWindow->screen();
+
+                if (_previousScreen && _previousScreen != hmdScreen) {
+                    // first, if the previous dialog screen is not the HMD screen, then move it there.
+                    betterScreen = _previousScreen;
+                } else if (appScreen != hmdScreen) {
+                    // second, if the application screen is not the HMD screen, then move it there.
+                    betterScreen = appScreen;
+                } else if (lastApplicationScreen && lastApplicationScreen != hmdScreen) {
+                    // third, if the application screen is the HMD screen, we want to move it to
+                    // the previous screen
+                    betterScreen = lastApplicationScreen;
+                } else {
+                    // last, if we can't use the previous screen the use the primary desktop screen
+                    int desktopPrimaryScreenNumber = QApplication::desktop()->primaryScreen();
+                    QScreen* desktopPrimaryScreen = QGuiApplication::screens()[desktopPrimaryScreenNumber];
+                    betterScreen = desktopPrimaryScreen;
+                }
+
+                if (betterScreen) {
+                    _window->setScreen(betterScreen);
+                    _window->setGeometry(_previousRect);
+                }
+            }
+        }
+    }
+}
 
 

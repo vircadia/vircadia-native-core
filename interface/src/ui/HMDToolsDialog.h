@@ -14,6 +14,8 @@
 
 #include <QDialog>
 
+class HMDWindowWatcher;
+
 class HMDToolsDialog : public QDialog {
     Q_OBJECT
 public:
@@ -23,7 +25,9 @@ public:
 
     QString getDebugDetails() const;
     QScreen* getHMDScreen() const { return _hmdScreen; }
+    QScreen* getLastApplicationScreen() const { return _previousScreen; }
     bool hasHMDScreen() const { return _hmdScreenNumber >= -1; }
+    void watchWindow(QWindow* window);
     
 signals:
     void closed();
@@ -34,8 +38,6 @@ public slots:
     void activateWindowAfterEnterMode();
     void moveWindowAfterLeaveMode();
     void applicationWindowScreenChanged(QScreen* screen);
-    void dialogWindowScreenChanged(QScreen* screen);
-    void dialogWindowGeometryChanged(int arg);
     void aboutToQuit(); 
     void screenCountChanged(int newCount);
     
@@ -60,6 +62,27 @@ private:
     QRect _previousDialogRect;
     QScreen* _previousDialogScreen;
     bool _inHDMMode;
+    
+    QHash<QWindow*, HMDWindowWatcher*> _windowWatchers;
+};
+
+
+class HMDWindowWatcher : public QObject {
+    Q_OBJECT
+public:
+    // Sets up the UI
+    HMDWindowWatcher(QWindow* window, HMDToolsDialog* hmdTools);
+    ~HMDWindowWatcher();
+
+public slots:
+    void windowScreenChanged(QScreen* screen);
+    void windowGeometryChanged(int arg);
+    
+private:
+    QWindow* _window;
+    HMDToolsDialog* _hmdTools;
+    QRect _previousRect;
+    QScreen* _previousScreen;
 };
 
 #endif // hifi_HMDToolsDialog_h
