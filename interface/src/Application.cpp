@@ -415,9 +415,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
 
-    connect(_window, &MainWindow::windowGeometryChanged,
-            _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts

@@ -44,7 +44,6 @@ protected:
 
 public slots:
     void scriptStopped(const QString& scriptName);
-    void setBoundary(const QRect& rect);
 
 private slots:
     void allScriptsStopped();
@@ -61,7 +60,6 @@ private:
     ScriptsTableWidget* _recentlyLoadedScriptsTable;
     QStringList _recentlyLoadedScripts;
     QString _lastStoppedScript;
-    QRect _boundary;
 };
 
 #endif // hifi_RunningScriptsWidget_h

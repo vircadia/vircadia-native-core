@@ -79,7 +79,6 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
 
     // keep track of changes to the number of screens
     connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &HMDToolsDialog::screenCountChanged);
-    
 }
 
 HMDToolsDialog::~HMDToolsDialog() {
