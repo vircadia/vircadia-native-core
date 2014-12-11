@@ -63,7 +63,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
-        // Same font properties as textWidth()
+        // Same font properties as textSize()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
         float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
         

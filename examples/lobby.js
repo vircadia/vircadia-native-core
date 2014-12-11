@@ -323,7 +323,7 @@ function handleLookAt(pickRay) {
                 } else {
                     currentTestLine = allWords[currentTestWord];
                 }
-                var lineLength = Overlays.textWidth(descriptionText, currentTestLine);
+                var lineLength = Overlays.textSize(descriptionText, currentTestLine).width;
                 if (lineLength < textWidth || wordsOnLine == 0) {
                   wordsFormated++;
                   currentTestWord++;
