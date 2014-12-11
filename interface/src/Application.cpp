@@ -372,7 +372,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _glWidget->setMouseTracking(true);
 
     _toolWindow = new ToolWindow();
-    qDebug() << "_toolWindow:" << _toolWindow;
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
     _toolWindow->setWindowTitle("Tools");
 
