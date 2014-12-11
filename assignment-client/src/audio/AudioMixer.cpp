@@ -475,10 +475,20 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
     for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
         AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
         glm::vec3 streamPosition = data->getAvatarAudioStream()->getPosition();
-        if (_audioZones[_zoneReverbSettings[i].zone].contains(streamPosition)) {
+        AABox box = _audioZones[_zoneReverbSettings[i].zone];
+        if (box.contains(streamPosition)) {
             hasReverb = true;
             reverbTime = _zoneReverbSettings[i].reverbTime;
             wetLevel = _zoneReverbSettings[i].wetLevel;
+            
+            // Modulate wet level with distance to wall
+            float MIN_ATTENUATION_DISTANCE = 2.0f;
+            float MAX_ATTENUATION = 0.75f;
+            glm::vec3 distanceToWalls = (box.getDimensions() / 2.0f) - glm::abs(streamPosition - box.calcCenter());
+            float distanceToClosestWall = glm::min(distanceToWalls.x, distanceToWalls.z);
+            if (distanceToClosestWall < MIN_ATTENUATION_DISTANCE) {
+                wetLevel *= 1.0f - MAX_ATTENUATION * (1.0f - distanceToClosestWall / MIN_ATTENUATION_DISTANCE);
+            }
             break;
         }
     }
