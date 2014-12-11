@@ -142,6 +142,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _window(new MainWindow(desktop())),
         _glWidget(new GLCanvas()),
+        _toolWindow(NULL),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _undoStack(),
@@ -1915,8 +1916,6 @@ void Application::init() {
     _deferredLightingEffect.init();
     _glowEffect.init();
     _ambientOcclusionEffect.init();
-    _voxelShader.init();
-    _pointShader.init();
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -1987,8 +1986,6 @@ void Application::init() {
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
-    _voxels.setUseVoxelShader(false);
-    _voxels.setVoxelsAsPoints(false);
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
 
