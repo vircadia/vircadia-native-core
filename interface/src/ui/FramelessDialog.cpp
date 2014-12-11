@@ -9,8 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QScreen>
+#include <QWindow>
+
 #include "Application.h"
 #include "FramelessDialog.h"
+#include "Menu.h"
 
 const int RESIZE_HANDLE_WIDTH = 7;
 
@@ -90,24 +94,47 @@ void FramelessDialog::showEvent(QShowEvent* event) {
 }
 
 void FramelessDialog::resizeAndPosition(bool resizeParent) {
+    QSize parentSize = parentWidget()->size();
+    QRect parentGeometry = parentWidget()->geometry();
+    
+    // If our parent window is on the HMD, then don't use it's geometry, instead use
+    // the "main screen" geometry.
+    HMDToolsDialog* hmdTools = Menu::getInstance()->getHMDToolsDialog();
+    if (hmdTools && hmdTools->hasHMDScreen()) {
+        QScreen* hmdScreen = hmdTools->getHMDScreen();
+        QWindow* appWindow = parentWidget()->windowHandle();
+        QScreen* appScreen = appWindow->screen();
+
+        // if our app's screen is the hmd screen, we don't want to place the
+        // running scripts widget on it. So we need to pick a better screen.
+        // we will use the screen for the HMDTools since it's a guarenteed
+        // better screen.
+        if (appScreen == hmdScreen) {
+            QScreen* betterScreen = hmdTools->windowHandle()->screen();
+            parentGeometry = betterScreen->geometry();
+            parentSize = betterScreen->size();
+        }
+
+    }
+
     // keep full app height or width depending on position
     if (_position == POSITION_LEFT || _position == POSITION_RIGHT) {
-        setFixedHeight(parentWidget()->size().height());
+        setFixedHeight(parentSize.height());
     } else {
-        setFixedWidth(parentWidget()->size().width());
+        setFixedWidth(parentSize.width());
     }
 
     // resize parrent if width is smaller than this dialog
-    if (resizeParent && parentWidget()->size().width() < size().width()) {
-        parentWidget()->resize(size().width(), parentWidget()->size().height());
+    if (resizeParent && parentSize.width() < size().width()) {
+        parentWidget()->resize(size().width(), parentSize.height());
     }
 
     if (_position == POSITION_LEFT || _position == POSITION_TOP) {
         // move to upper left corner
-        move(parentWidget()->geometry().topLeft());
+        move(parentGeometry.topLeft());
     } else if (_position == POSITION_RIGHT) {
         // move to upper right corner
-        QPoint pos = parentWidget()->geometry().topRight();
+        QPoint pos = parentGeometry.topRight();
         pos.setX(pos.x() - size().width());
         move(pos);
     }

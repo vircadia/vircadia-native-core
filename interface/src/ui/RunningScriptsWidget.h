@@ -18,7 +18,6 @@
 #include <QSortFilterProxyModel>
 
 #include "ScriptsModel.h"
-#include "FramelessDialog.h"
 #include "ScriptsTableWidget.h"
 
 namespace Ui {
