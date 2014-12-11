@@ -15,5 +15,3 @@ Script.load("hydraMove.js");
 Script.load("headMove.js");
 Script.load("inspect.js");
 Script.load("lobby.js");
-
-Script.stop();
