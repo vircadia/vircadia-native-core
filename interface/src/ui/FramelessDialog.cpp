@@ -94,29 +94,9 @@ void FramelessDialog::showEvent(QShowEvent* event) {
 }
 
 void FramelessDialog::resizeAndPosition(bool resizeParent) {
-    QSize parentSize = parentWidget()->size();
-    QRect parentGeometry = parentWidget()->geometry();
+    QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
+    QSize parentSize = parentGeometry.size();
     
-    // If our parent window is on the HMD, then don't use it's geometry, instead use
-    // the "main screen" geometry.
-    HMDToolsDialog* hmdTools = Menu::getInstance()->getHMDToolsDialog();
-    if (hmdTools && hmdTools->hasHMDScreen()) {
-        QScreen* hmdScreen = hmdTools->getHMDScreen();
-        QWindow* appWindow = parentWidget()->windowHandle();
-        QScreen* appScreen = appWindow->screen();
-
-        // if our app's screen is the hmd screen, we don't want to place the
-        // running scripts widget on it. So we need to pick a better screen.
-        // we will use the screen for the HMDTools since it's a guarenteed
-        // better screen.
-        if (appScreen == hmdScreen) {
-            QScreen* betterScreen = hmdTools->windowHandle()->screen();
-            parentGeometry = betterScreen->geometry();
-            parentSize = betterScreen->size();
-        }
-
-    }
-
     // keep full app height or width depending on position
     if (_position == POSITION_LEFT || _position == POSITION_RIGHT) {
         setFixedHeight(parentSize.height());

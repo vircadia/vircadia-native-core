@@ -327,6 +327,8 @@ public:
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
+    
+    QRect getDesirableApplicationGeometry();
 
 signals:
 
