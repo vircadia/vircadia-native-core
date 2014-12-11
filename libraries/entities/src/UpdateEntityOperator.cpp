@@ -299,7 +299,6 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
                 }
 
                 // set the entity properties and mark our element as changed.
-                uint32_t oldUpdateFlags = _existingEntity->getUpdateFlags();
                 bool somethingChanged = _existingEntity->setProperties(_properties);
                 if (_wantDebug) {
                     qDebug() << "    *** set properties ***";
@@ -307,7 +306,6 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
             } else {
                 // otherwise, this is an add case.
                 entityTreeElement->addEntityItem(_existingEntity);
-                uint32_t oldUpdateFlags = _existingEntity->getUpdateFlags();
                 bool somethingChanged = _existingEntity->setProperties(_properties); // still need to update the properties!
                 _tree->setContainingElement(_entityItemID, entityTreeElement);
                 if (_wantDebug) {

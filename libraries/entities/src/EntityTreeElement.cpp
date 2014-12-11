@@ -764,7 +764,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 // TODO: Do we need to also do this?
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
-                    uint32_t oldFlags = entityItem->getUpdateFlags();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
