@@ -36,7 +36,16 @@ ObjectMotionState::ObjectMotionState() :
         _restitution(DEFAULT_RESTITUTION), 
         _wasInWorld(false),
         _motionType(MOTION_TYPE_STATIC),
-        _body(NULL) {
+        _body(NULL),
+        _sentMoving(false),
+        _weKnowRecipientHasReceivedNotMoving(false),
+        _outgoingDirtyFlags(0),
+        _sentFrame(0),
+        _sentPosition(0.0f),
+        _sentRotation(),
+        _sentVelocity(0.0f),
+        _sentAngularVelocity(0.0f),
+        _sentAcceleration(0.0f) {
 }
 
 ObjectMotionState::~ObjectMotionState() {
@@ -84,6 +93,46 @@ void ObjectMotionState::getVelocity(glm::vec3& velocityOut) const {
 
 void ObjectMotionState::getAngularVelocity(glm::vec3& angularVelocityOut) const {
     bulletToGLM(_body->getAngularVelocity(), angularVelocityOut);
+}
+
+const float FIXED_SUBSTEP = 1.0f / 60.0f;
+
+bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const {
+    assert(_body);
+    float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP + subStepRemainder;
+    const float DEFAULT_UPDATE_PERIOD = 10.0f;
+    if (dt > DEFAULT_UPDATE_PERIOD) {
+        return !isAtRest();
+    }
+    if (_sentMoving && !_body->isActive()) {
+        return true;
+    }
+
+    // compute position error
+    glm::vec3 expectedPosition = _sentPosition + dt * (_sentVelocity + (0.5f * dt) * _sentAcceleration);
+
+    glm::vec3 position;
+    btTransform worldTrans = _body->getWorldTransform();
+    bulletToGLM(worldTrans.getOrigin(), position);
+    
+    float dx2 = glm::length2(position - expectedPosition);
+    const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
+    if (dx2 > MAX_POSITION_ERROR_SQUARED) {
+        return true;
+    }
+
+    // compute rotation error
+    float spin = glm::length(_sentAngularVelocity);
+    glm::quat expectedRotation = _sentRotation;
+    const float MIN_SPIN = 1.0e-4f;
+    if (spin > MIN_SPIN) {
+        glm::vec3 axis = _sentAngularVelocity / spin;
+        expectedRotation = glm::angleAxis(dt * spin, axis) * _sentRotation;
+    }
+    const float MIN_ROTATION_DOT = 0.98f;
+    glm::quat actualRotation;
+    bulletToGLM(worldTrans.getRotation(), actualRotation);
+    return (glm::dot(actualRotation, expectedRotation) < MIN_ROTATION_DOT);
 }
 
 #endif // USE_BULLET_PHYSICS

@@ -14,8 +14,6 @@
 
 #include <AACube.h>
 
-#include "PhysicsEngineParams.h"
-
 #ifdef USE_BULLET_PHYSICS
 #include "ObjectMotionState.h"
 #else // USE_BULLET_PHYSICS
@@ -62,25 +60,11 @@ public:
 
     void computeShapeInfo(ShapeInfo& info);
 
-    void getBoundingCubes(AACube& oldCube, AACube& newCube);
-
-    bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const;
+    void sendUpdate(OctreeEditPacketSender* packetSender);
 
 protected:
     EntityItem* _entity;
-    AACube _oldBoundingCube;
-
-    bool _sentMoving;
-    bool _notMoving;
-    bool _receivedNotMoving;
-    // TODO: Andrew to talk to Brad about what to do about lost packets ^^^
-
-    uint32_t _sentFrame;
-    glm::vec3 _sentPosition;
-    glm::quat _sentRotation;;
-    glm::vec3 _sentVelocity;
-    glm::vec3 _sentAngularVelocity;
-    glm::vec3 _sentGravity;
+    uint32_t _outgoingPhysicsDirtyFlags;
 };
 
 #endif // hifi_EntityMotionState_h

@@ -10,6 +10,7 @@
 //
 
 #include <EntityItem.h>
+#include <EntityEditPacketSender.h>
 
 #ifdef USE_BULLET_PHYSICS
 #include "BulletUtil.h"
@@ -32,19 +33,8 @@ const glm::vec3& getWorldOffset() {
 
 EntityMotionState::EntityMotionState(EntityItem* entity) 
     :   _entity(entity),
-        _sentMoving(false),
-        _notMoving(true),
-        _recievedNotMoving(false),
-        _sentFrame(0),
-        _sentPosition(0.0f),
-        _sentRotation(),
-        _sentVelocity(0.0f),
-        _sentVelocity(0.0f),
-        _sentAngularVelocity(0.0f),
-        _sentGravity(0.0f)
-{
+        _outgoingPhysicsDirtyFlags(0) {
     assert(entity != NULL);
-    _oldBoundingCube = _entity->getMaximumAACube();
 }
 
 EntityMotionState::~EntityMotionState() {
@@ -78,8 +68,8 @@ void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation frame...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
-    uint32_t updateFlags = _entity->getUpdateFlags();
-    if (! (updateFlags &  EntityItem::UPDATE_POSITION)) {
+    uint32_t dirytFlags = _entity->getDirtyFlags();
+    if (! (dirytFlags &  EntityItem::DIRTY_POSITION)) {
         glm::vec3 pos;
         bulletToGLM(worldTrans.getOrigin(), pos);
         _entity->setPositionInMeters(pos + _worldOffset);
@@ -89,13 +79,14 @@ void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
         _entity->setRotation(rot);
     }
 
-    if (! (updateFlags &  EntityItem::UPDATE_VELOCITY)) {
+    if (! (dirytFlags &  EntityItem::DIRTY_VELOCITY)) {
         glm::vec3 v;
         getVelocity(v);
         _entity->setVelocityInMeters(v);
         getAngularVelocity(v);
         _entity->setAngularVelocity(v);
     }
+    _outgoingDirtyFlags = OUTGOING_DIRTY_PHYSICS_FLAGS;
 }
 #endif // USE_BULLET_PHYSICS
 
@@ -122,48 +113,65 @@ void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
     _entity->computeShapeInfo(info);
 }
 
-void EntityMotionState::getBoundingCubes(AACube& oldCube, AACube& newCube) {
-    oldCube = _oldBoundingCube;
-    newCube = _entity->getMaximumAACube();
-    _oldBoundingCube = newCube;
-}
+void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
+    if (_outgoingPhysicsDirtyFlags) {
+        EntityItemProperties properties = _entity->getProperties();
 
-const float FIXED_SUBSTEP = 1.0f / 60.0f;
-bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const {
-    // TODO: Andrew to test this and make sure it works as expected
-    assert(_body);
-    float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP + subStepRemainder;
-    const float DEFAULT_UPDATE_PERIOD = 10.0f;j
-    if (dt > DEFAULT_UPDATE_PERIOD) {
-        return ! (_notMoving && _recievedNotMoving);
-    }
-    if (_sentMoving && _notMoving) {
-        return true;
-    }
+        if (_outgoingPhysicsDirtyFlags == OUTGOING_DIRTY_PHYSICS_FLAGS) {
+            // common case: physics engine has changed object position/velocity
 
-    // compute position error
-    glm::vec3 expectedPosition = _sentPosition + dt * (_sentVelocity + (0.5f * dt) * _sentGravity);
-
-    glm::vec3 actualPos;
-    btTransform worldTrans = _body->getWorldTransform();
-    bulletToGLM(worldTrans.getOrigin(), actualPos);
+            btTransform worldTrans = _body->getWorldTransform();
+            bulletToGLM(worldTrans.getOrigin(), _sentPosition);
+            properties.setPosition(_sentPosition);
+        
+            bulletToGLM(worldTrans.getRotation(), _sentRotation);
+            properties.setRotation(_sentRotation);
+        
+            if (_body->isActive()) {
+                bulletToGLM(_body->getLinearVelocity(), _sentVelocity);
+                bulletToGLM(_body->getAngularVelocity(), _sentAngularVelocity);
+                bulletToGLM(_body->getGravity(), _sentAcceleration);
+            } else {
+                _sentVelocity = _sentAngularVelocity = _sentAcceleration = glm::vec3(0.0f);
+            }
+            properties.setVelocity(_sentVelocity);
+            properties.setGravity(_sentAcceleration);
+            properties.setAngularVelocity(_sentAngularVelocity);
+        } else {
+            // uncommon case: physics engine change collided with incoming external change
+            // we only send data for flags that are set
     
-    float dx2 = glm::length2(actualPosition - expectedPosition);
-    const MAX_POSITION_ERROR_SQUARED = 0.001; // 0.001 m^2 ~~> 0.03 m
-    if (dx2 > MAX_POSITION_ERROR_SQUARED) {
-        return true;
-    }
+            if (_outgoingPhysicsDirtyFlags & EntityItem::DIRTY_POSITION) {
+                btTransform worldTrans = _body->getWorldTransform();
+                bulletToGLM(worldTrans.getOrigin(), _sentPosition);
+                properties.setPosition(_sentPosition);
+            
+                bulletToGLM(worldTrans.getRotation(), _sentRotation);
+                properties.setRotation(_sentRotation);
+            }
+        
+            if (_outgoingPhysicsDirtyFlags & EntityItem::DIRTY_VELOCITY) {
+                if (_body->isActive()) {
+                    bulletToGLM(_body->getLinearVelocity(), _sentVelocity);
+                    bulletToGLM(_body->getAngularVelocity(), _sentAngularVelocity);
+                    bulletToGLM(_body->getGravity(), _sentAcceleration);
+                } else {
+                    _sentVelocity = _sentAngularVelocity = _sentAcceleration = glm::vec3(0.0f);
+                }
+                properties.setVelocity(_sentVelocity);
+                properties.setAngularVelocity(_sentAngularVelocity);
+                properties.setGravity(_sentAcceleration);
+            }
+        }
+        // TODO: Figure out what LastEdited is used for...
+        //properties.setLastEdited(now);
 
-    // compute rotation error
-    float spin = glm::length(_sentAngularVelocity);
-    glm::quat expectedRotation = _sentRotation;
-    const float MIN_SPIN = 1.0e-4f;
-    if (spin > MIN_SPIN) {
-        glm::vec3 axis = _sentAngularVelocity / spin;
-        expectedRotation = glm::angleAxis(dt * spin, axis) * _sentRotation;
+        glm::vec3 zero(0.0f);
+        _sentMoving = (_sentVelocity == zero && _sentAngularVelocity == zero && _sentAcceleration == zero);
+
+        EntityItemID id(_entity->getID());
+        EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+        entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
     }
-    const float MIN_ROTATION_DOT = 0.98f;
-    glm::quat actualRotation;
-    bulletToGLM(worldTrans.getRotation(), actualRotation);
-    return (glm::dot(actualRotation, expectedRotation) < MIN_ROTATION_DOT);
+    _outgoingPhysicsDirtyFlags = 0;
 }
