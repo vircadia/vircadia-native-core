@@ -347,7 +347,7 @@ private:
     static Locations _lightmapSpecularMapLocations;
     static Locations _lightmapNormalSpecularMapLocations;
     
-    static void initProgram(ProgramObject& program, Locations& locations, int specularTextureUnit = 1);
+    static void initProgram(ProgramObject& program, Locations& locations, bool link = true);
         
     class SkinLocations : public Locations {
     public:
@@ -363,7 +363,7 @@ private:
     static SkinLocations _skinShadowLocations;
     static SkinLocations _skinTranslucentLocations;
 
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
 
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
