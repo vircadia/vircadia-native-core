@@ -10,10 +10,11 @@
 //
 // TODO DONE: make _incomingChanges to be list of MotionState*'s.
 // TODO DONE: make MotionState able to clear incoming flags
-// TODO: make MotionState::setWorldTransform() put itself on _incomingChanges list
-// TODO: make sure incoming and outgoing pipelines are connected
+// TODO DONE: make MotionState::setWorldTransform() put itself on _incomingChanges list
 // TODO: give PhysicsEngine instance an _entityPacketSender
+// TODO: make sure incoming and outgoing pipelines are connected
 // TODO: provide some sort of "reliable" send for "stopped" update
+// TODO: make sure code compiles when BULLET is not found
 
 #include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS
@@ -165,6 +166,7 @@ void PhysicsEngine::init() {
             _dynamicsWorld->addCollisionObject(groundObject);
         }
     }
+    ObjectMotionState::setOutgoingPacketQueue(&_outgoingPackets);
 }
 
 const float FIXED_SUBSTEP = 1.0f / 60.0f;

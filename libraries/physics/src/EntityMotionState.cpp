@@ -68,6 +68,8 @@ void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
     _entity->setAngularVelocity(v);
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
+
+    ObjectMotionState::enqueueOutgoingPacket(this);
 }
 #endif // USE_BULLET_PHYSICS
 

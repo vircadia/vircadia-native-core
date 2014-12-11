@@ -31,6 +31,7 @@ const float DEFAULT_RESTITUTION = 0.0f;
 
 // origin of physics simulation in world frame
 glm::vec3 _worldOffset(0.0f);
+QSet<ObjectMotionState*>* _outgoingPacketQueue;
 
 // static 
 void ObjectMotionState::setWorldOffset(const glm::vec3& offset) {
@@ -40,6 +41,18 @@ void ObjectMotionState::setWorldOffset(const glm::vec3& offset) {
 // static 
 const glm::vec3& ObjectMotionState::getWorldOffset() {
     return _worldOffset;
+}
+
+// static 
+void ObjectMotionState::setOutgoingPacketQueue(QSet<ObjectMotionState*>* outgoing) {
+    assert(outgoing);
+    _outgoingPacketQueue = outgoing;
+}
+
+// static 
+void ObjectMotionState::enqueueOutgoingPacket(ObjectMotionState* state) {
+    assert(_outgoingPacketQueue);
+    _outgoingPacketQueue->insert(state);
 }
 
 ObjectMotionState::ObjectMotionState() : 

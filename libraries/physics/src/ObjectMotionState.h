@@ -51,6 +51,11 @@ public:
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
 
+    // The OutgoingPacketQueue is a QSet of ObjectMotionState*'s that need to send update packets to the EntityServer.
+    // All ObjectMotionState's with outgoing changes put themselves on the list.
+    static void setOutgoingPacketQueue(QSet<ObjectMotionState*>* queue);
+    static void enqueueOutgoingPacket(ObjectMotionState* state);
+
     ObjectMotionState();
     ~ObjectMotionState();
 
