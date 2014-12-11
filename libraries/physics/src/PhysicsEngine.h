@@ -12,23 +12,7 @@
 #ifndef hifi_PhysicsEngine_h
 #define hifi_PhysicsEngine_h
 
-enum PhysicsUpdateFlag {
-    PHYSICS_UPDATE_POSITION = 0x0001,
-    PHYSICS_UPDATE_VELOCITY = 0x0002,
-    PHYSICS_UPDATE_GRAVITY = 0x0004,
-    PHYSICS_UPDATE_MASS = 0x0008,
-    PHYSICS_UPDATE_COLLISION_GROUP = 0x0010,
-    PHYSICS_UPDATE_MOTION_TYPE = 0x0020,
-    PHYSICS_UPDATE_SHAPE = 0x0040
-};
-
 typedef unsigned int uint32_t;
-
-// The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
-// and re-added to the physics engine and "easy" which just updates the body properties.
-const uint32_t PHYSICS_UPDATE_HARD = PHYSICS_UPDATE_MOTION_TYPE | PHYSICS_UPDATE_SHAPE;
-const uint32_t PHYSICS_UPDATE_EASY = PHYSICS_UPDATE_POSITION | PHYSICS_UPDATE_VELOCITY | 
-        PHYSICS_UPDATE_GRAVITY | PHYSICS_UPDATE_MASS | PHYSICS_UPDATE_COLLISION_GROUP;
 
 #ifdef USE_BULLET_PHYSICS
 
@@ -39,6 +23,7 @@ const uint32_t PHYSICS_UPDATE_EASY = PHYSICS_UPDATE_POSITION | PHYSICS_UPDATE_VE
 #include <EntitySimulation.h>
 
 #include "BulletUtil.h"
+#include "ObjectMotionState.h"
 #include "ObjectMotionState.h"
 #include "PositionHashKey.h"
 #include "ShapeManager.h"
@@ -54,30 +39,12 @@ public:
 
     ~PhysicsEngine();
 
-    // override from EntitySimulation
-    /// \param tree pointer to EntityTree which is stored internally
-    void setEntityTree(EntityTree* tree);
-
-    // override from EntitySimulation
-    /// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
-    void updateEntities(QSet<EntityItem*>& entitiesToDelete);
-
-    // override from EntitySimulation
-    /// \param entity pointer to EntityItem to add to the simulation
-    /// \sideeffect the EntityItem::_simulationState member may be updated to indicate membership to internal list
-    void addEntity(EntityItem* entity);
-
-    // override from EntitySimulation
-    /// \param entity pointer to EntityItem to removed from the simulation
-    /// \sideeffect the EntityItem::_simulationState member may be updated to indicate non-membership to internal list
-    void removeEntity(EntityItem* entity);
-
-    // override from EntitySimulation
-    /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
-    void entityChanged(EntityItem* entity);
-
-    // override from EntitySimulation
-    void clearEntities();
+    // overrides from EntitySimulation
+    void updateEntitiesInternal(const quint64& now);
+    void addEntityInternal(EntityItem* entity);
+    void removeEntityInternal(EntityItem* entity);
+    void entityChangedInternal(EntityItem* entity);
+    void clearEntitiesInternal();
 
     virtual void init();
 
@@ -112,6 +79,9 @@ public:
     /// \return true if entity updated
     bool updateObject(ObjectMotionState* motionState, uint32_t flags);
 
+    /// process queue of changed from external sources
+    void relayIncomingChangesToSimulation();
+
     /// \return duration of fixed simulation substep
     float getFixedSubStep() const;
 
@@ -122,7 +92,7 @@ public:
     // Bullet will extrapolate the positions provided to MotionState::setWorldTransform() in an effort to provide 
     // smoother visible motion when the render frame rate does not match that of the simulation loop.  We provide 
     // access to this fraction for improved filtering of update packets to interested parties.
-    float getSubStepRemainder() { _dynamicsWorld->getLocalTimeAccumulation(); }
+    float getSubStepRemainder() { return _dynamicsWorld->getLocalTimeAccumulation(); }
 
 protected:
     void updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
@@ -141,9 +111,11 @@ private:
     btHashMap<PositionHashKey, VoxelObject> _voxels;
 
     // EntitySimulation stuff
-    QSet<EntityItem*> _entities; // all entities that we track
-    QSet<EntityItem*> _incomingPhysics; // entities with pending physics changes by script or packet
-    QSet<EntityItem*> _outgoingPhysics; // entites with pending transform changes by physics simulation
+    QSet<ObjectMotionState*> _entityMotionStates; // all entities that we track
+    QSet<EntityItem*> _incomingEntityChanges; // entities with pending physics changes by script or packet
+    QSet<ObjectMotionState*> _outgoingPhysics; // MotionStates with pending transform changes from physics simulation
+
+    EntityEditPacketSender* _entityPacketSender;
 
     uint32_t _frameCount;
 };
