@@ -12,6 +12,8 @@
 #ifndef hifi_ObjectMotionState_h
 #define hifi_ObjectMotionState_h
 
+#include <EntityItem.h>
+
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
     MOTION_TYPE_DYNAMIC,    // motion according to physical laws
@@ -51,17 +53,8 @@ public:
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
 
-    // The OutgoingPacketQueue is a QSet of ObjectMotionState*'s that need to send update packets to the EntityServer.
-    // All ObjectMotionState's with outgoing changes put themselves on the list.
-    static void setOutgoingPacketQueue(QSet<ObjectMotionState*>* queue);
-    static void enqueueOutgoingPacket(ObjectMotionState* state);
-
     ObjectMotionState();
     ~ObjectMotionState();
-
-    //// these override methods of the btMotionState base class
-    //virtual void getWorldTransform (btTransform &worldTrans) const;
-    //virtual void setWorldTransform (const btTransform &worldTrans);
 
     virtual void applyVelocities() const = 0;
     virtual void applyGravity() const = 0;
@@ -88,7 +81,7 @@ public:
     virtual void clearIncomingDirtyFlags(uint32_t flags) = 0;
     void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
 
-    bool isAtRest() const { return !(_body->isActive()) && _weKnowRecipientHasReceivedNotMoving; }
+    bool doesNotNeedToSendUpdate() const { return !_body->isActive() && _weKnowRecipientHasReceivedNotMoving; }
     virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const;
     virtual void sendUpdate(OctreeEditPacketSender* packetSender) = 0;
 
@@ -111,7 +104,7 @@ protected:
 
     uint32_t _outgoingPacketFlags;
     uint32_t _sentFrame;
-    glm::vec3 _sentPosition;
+    glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
     glm::quat _sentRotation;;
     glm::vec3 _sentVelocity;
     glm::vec3 _sentAngularVelocity;

@@ -38,11 +38,12 @@ public:
 
     ~PhysicsEngine();
 
-    // overrides from EntitySimulation
+    // overrides for EntitySimulation
     void updateEntitiesInternal(const quint64& now);
     void addEntityInternal(EntityItem* entity);
     void removeEntityInternal(EntityItem* entity);
     void entityChangedInternal(EntityItem* entity);
+    void sortEntitiesThatMovedInternal();
     void clearEntitiesInternal();
 
     virtual void init(EntityEditPacketSender* packetSender);

@@ -101,13 +101,14 @@ void EntitySimulation::sortEntitiesThatMoved() {
         }
         ++itemItr;
     }
-    _entitiesToBeSorted.clear();
-
     if (moveOperator.hasMovingEntities()) {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         _entityTree->recurseTreeWithOperator(&moveOperator);
         moveOperator.finish();
     }
+
+    sortEntitiesThatMovedInternal();
+    _entitiesToBeSorted.clear();
 }
 
 void EntitySimulation::addEntity(EntityItem* entity) {
@@ -123,6 +124,10 @@ void EntitySimulation::addEntity(EntityItem* entity) {
         _updateableEntities.insert(entity);
     }
     addEntityInternal(entity);
+
+    // DirtyFlags are used to signal changes to entities that have already been added, 
+    // so we can clear them for this entity which has just been added.
+    entity->clearDirtyFlags();
 }
 
 void EntitySimulation::removeEntity(EntityItem* entity) {
@@ -174,7 +179,6 @@ void EntitySimulation::entityChanged(EntityItem* entity) {
         }
         entityChangedInternal(entity);
     }
-    entity->clearDirtyFlags();
 }
 
 void EntitySimulation::clearEntities() {

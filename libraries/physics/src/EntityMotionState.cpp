@@ -17,9 +17,22 @@
 #endif // USE_BULLET_PHYSICS
 #include "EntityMotionState.h"
 
+QSet<EntityItem*>* _outgoingEntityList;
+
+// static 
+void EntityMotionState::setOutgoingEntityList(QSet<EntityItem*>* list) {
+    assert(list);
+    _outgoingEntityList = list;
+}
+
+// static 
+void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
+    assert(_outgoingEntityList);
+    _outgoingEntityList->insert(entity);
+}
+
 EntityMotionState::EntityMotionState(EntityItem* entity) 
-    :   _entity(entity),
-        _outgoingPhysicsDirtyFlags(0) {
+    :   _entity(entity) {
     assert(entity != NULL);
 }
 
@@ -68,8 +81,7 @@ void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
     _entity->setAngularVelocity(v);
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
-
-    ObjectMotionState::enqueueOutgoingPacket(this);
+    EntityMotionState::enqueueOutgoingEntity(_entity);
 }
 #endif // USE_BULLET_PHYSICS
 
@@ -98,11 +110,12 @@ void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
 #ifdef USE_BULLET_PHYSICS
-    if (_outgoingPhysicsDirtyFlags) {
+    if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
-        if (_outgoingPhysicsDirtyFlags == OUTGOING_DIRTY_PHYSICS_FLAGS) {
-            // common case: physics engine has changed object position/velocity
+        if (_outgoingPacketFlags == OUTGOING_DIRTY_PHYSICS_FLAGS) {
+            // all outgoing physics flags are set
+            // This is the common case: physics engine has changed object position/velocity.
 
             btTransform worldTrans = _body->getWorldTransform();
             bulletToGLM(worldTrans.getOrigin(), _sentPosition);
@@ -122,10 +135,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
             properties.setGravity(_sentAcceleration);
             properties.setAngularVelocity(_sentAngularVelocity);
         } else {
-            // uncommon case: physics engine change collided with incoming external change
-            // we only send data for flags that are set
+            // subset of outgoing physics flags are set
+            // This is an uncommon case: physics engine change collided with incoming external change
+            // we only send data for flags that haven't been cleared.
     
-            if (_outgoingPhysicsDirtyFlags & EntityItem::DIRTY_POSITION) {
+            if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
                 btTransform worldTrans = _body->getWorldTransform();
                 bulletToGLM(worldTrans.getOrigin(), _sentPosition);
                 properties.setPosition(_sentPosition + ObjectMotionState::getWorldOffset());
@@ -134,7 +148,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
                 properties.setRotation(_sentRotation);
             }
         
-            if (_outgoingPhysicsDirtyFlags & EntityItem::DIRTY_VELOCITY) {
+            if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
                 if (_body->isActive()) {
                     bulletToGLM(_body->getLinearVelocity(), _sentVelocity);
                     bulletToGLM(_body->getAngularVelocity(), _sentAngularVelocity);
@@ -156,7 +170,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
         EntityItemID id(_entity->getID());
         EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
         entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        _outgoingPacketFlags = 0;
     }
-    _outgoingPhysicsDirtyFlags = 0;
 #endif // USE_BULLET_PHYSICS
 }

@@ -42,16 +42,23 @@ PhysicsEngine::~PhysicsEngine() {
 
 // begin EntitySimulation overrides
 void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
+    // NOTE: the grand order of operations is:
+    // (1) relay incoming changes
+    // (2) step simulation
+    // (3) synchronize outgoing motion states
+    // (4) send outgoing packets
+
+    // this is step (4)
     QSet<ObjectMotionState*>::iterator stateItr = _outgoingPackets.begin();
     uint32_t frame = getFrameCount();
     float subStepRemainder = getSubStepRemainder();
     while (stateItr != _outgoingPackets.end()) {
         ObjectMotionState* state = *stateItr;
-        if (state->shouldSendUpdate(frame, subStepRemainder)) {
+        if (state->doesNotNeedToSendUpdate()) {
+            stateItr = _outgoingPackets.erase(stateItr);
+        } else if (state->shouldSendUpdate(frame, subStepRemainder)) {
             state->sendUpdate(_entityPacketSender);
             ++stateItr;
-        } else if (state->isAtRest()) {
-            stateItr = _outgoingPackets.erase(stateItr);
         } else {
             ++stateItr;
         }
@@ -63,11 +70,12 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
         EntityMotionState* motionState = new EntityMotionState(entity);
-        _entityMotionStates.insert(motionState);
         if (addObject(motionState)) {
             entity->setPhysicsInfo(static_cast<void*>(motionState));
+            _entityMotionStates.insert(motionState);
         } else {
-            // We failed to add the object to the simulation.  Probably because we couldn't create a shape for it.
+            // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+            qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
             delete motionState;
         }
     }
@@ -81,6 +89,8 @@ void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
         removeObject(motionState);
         entity->setPhysicsInfo(NULL);
         _entityMotionStates.remove(motionState);
+        _incomingChanges.remove(motionState);
+        _outgoingPackets.remove(motionState);
     }
 }
 
@@ -91,6 +101,23 @@ void PhysicsEngine::entityChangedInternal(EntityItem* entity) {
     if (physicsInfo) {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         _incomingChanges.insert(motionState);
+    } else {
+        // try to add this entity again (maybe something changed such that it will work this time)
+        addEntity(entity);
+    }
+}
+
+void PhysicsEngine::sortEntitiesThatMovedInternal() {
+    // entities that have been simulated forward (hence in the _entitiesToBeSorted list) 
+    // also need to be put in the outgoingPackets list
+    QSet<EntityItem*>::iterator entityItr = _entitiesToBeSorted.begin();
+    while (entityItr != _entitiesToBeSorted.end()) {
+        EntityItem* entity = *entityItr;
+        void* physicsInfo = entity->getPhysicsInfo();
+        assert(physicsInfo);
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+        _outgoingPackets.insert(motionState);
+        ++entityItr;
     }
 }
 
@@ -102,6 +129,7 @@ void PhysicsEngine::clearEntitiesInternal() {
     }
     _entityMotionStates.clear();
     _incomingChanges.clear();
+    _outgoingPackets.clear();
 }
 // end EntitySimulation overrides
 
@@ -124,13 +152,16 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             }
         }
 
-        // NOTE: the order of operations is:
-        // (1) relayIncomingChanges()
+        // NOTE: the grand order of operations is:
+        // (1) relay incoming changes
         // (2) step simulation
-        // (3) send outgoing packets
-        // This means incoming changes here (step (1)) should trump corresponding outgoing changes
-        motionState->clearOutgoingPacketFlags(flags); // trump
-        motionState->clearIncomingDirtyFlags(flags); // processed
+        // (3) synchronize outgoing motion states
+        // (4) send outgoing packets
+        //
+        // We're in the middle of step (1) hence incoming changes should trump corresponding 
+        // outgoing changes at this point.
+        motionState->clearOutgoingPacketFlags(flags); // clear outgoing flags that were trumped
+        motionState->clearIncomingDirtyFlags(flags);  // clear incoming flags that were processed
         ++stateItr;
     }
     _incomingChanges.clear();
@@ -171,19 +202,28 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
 
     assert(packetSender);
     _entityPacketSender = packetSender;
-    ObjectMotionState::setOutgoingPacketQueue(&_outgoingPackets);
+    EntityMotionState::setOutgoingEntityList(&_entitiesToBeSorted);
 }
 
 const float FIXED_SUBSTEP = 1.0f / 60.0f;
 
 void PhysicsEngine::stepSimulation() {
+    // NOTE: the grand order of operations is:
+    // (1) relay incoming changes
+    // (2) step simulation
+    // (3) synchronize outgoing motion states
+    // (4) send outgoing packets
+
+    // this is step (1)
+    relayIncomingChangesToSimulation();
+
     const int MAX_NUM_SUBSTEPS = 4;
     const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * FIXED_SUBSTEP;
-
     float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
-    // TODO: Andrew to build a list of outgoingChanges when motionStates are synched, then send the updates out
+
+    // steps (2) and (3) are performed by ThreadSafeDynamicsWorld::stepSimulation())
     int numSubSteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, FIXED_SUBSTEP);
     _frameCount += (uint32_t)numSubSteps;
 }

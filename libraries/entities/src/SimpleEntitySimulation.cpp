@@ -56,6 +56,7 @@ void SimpleEntitySimulation::entityChangedInternal(EntityItem* entity) {
             _movableButStoppedEntities.remove(entity);
         }
     }
+    entity->clearDirtyFlags();
 }
 
 void SimpleEntitySimulation::clearEntitiesInternal() {

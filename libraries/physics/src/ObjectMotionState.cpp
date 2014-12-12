@@ -31,7 +31,6 @@ const float DEFAULT_RESTITUTION = 0.0f;
 
 // origin of physics simulation in world frame
 glm::vec3 _worldOffset(0.0f);
-QSet<ObjectMotionState*>* _outgoingPacketQueue;
 
 // static 
 void ObjectMotionState::setWorldOffset(const glm::vec3& offset) {
@@ -43,17 +42,6 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
     return _worldOffset;
 }
 
-// static 
-void ObjectMotionState::setOutgoingPacketQueue(QSet<ObjectMotionState*>* outgoing) {
-    assert(outgoing);
-    _outgoingPacketQueue = outgoing;
-}
-
-// static 
-void ObjectMotionState::enqueueOutgoingPacket(ObjectMotionState* state) {
-    assert(_outgoingPacketQueue);
-    _outgoingPacketQueue->insert(state);
-}
 
 ObjectMotionState::ObjectMotionState() : 
         _density(DEFAULT_DENSITY), 
@@ -127,24 +115,23 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
     assert(_body);
     float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP + subStepRemainder;
     const float DEFAULT_UPDATE_PERIOD = 10.0f;
-    if (dt > DEFAULT_UPDATE_PERIOD) {
-        return !isAtRest();
-    }
-    if (_sentMoving && !_body->isActive()) {
+    if (dt > DEFAULT_UPDATE_PERIOD || (_sentMoving && !_body->isActive())) {
         return true;
     }
+    // Else we measure the error between current and extrapolated transform (according to expected behavior 
+    // of remote EntitySimulation) and return true if the error is significant.
 
-    // NOTE: math in done the simulation-frame, which is NOT necessarily the same 
-    // as the world-frame due to _worldOffset
+    // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
+    // due to _worldOffset.
 
     // compute position error
-    glm::vec3 expectedPosition = _sentPosition + dt * (_sentVelocity + (0.5f * dt) * _sentAcceleration);
+    glm::vec3 extrapolatedPosition = _sentPosition + dt * (_sentVelocity + (0.5f * dt) * _sentAcceleration);
 
     glm::vec3 position;
     btTransform worldTrans = _body->getWorldTransform();
     bulletToGLM(worldTrans.getOrigin(), position);
     
-    float dx2 = glm::length2(position - expectedPosition);
+    float dx2 = glm::length2(position - extrapolatedPosition);
     const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
         return true;
@@ -152,16 +139,16 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
 
     // compute rotation error
     float spin = glm::length(_sentAngularVelocity);
-    glm::quat expectedRotation = _sentRotation;
+    glm::quat extrapolatedRotation = _sentRotation;
     const float MIN_SPIN = 1.0e-4f;
     if (spin > MIN_SPIN) {
         glm::vec3 axis = _sentAngularVelocity / spin;
-        expectedRotation = glm::angleAxis(dt * spin, axis) * _sentRotation;
+        extrapolatedRotation = glm::angleAxis(dt * spin, axis) * _sentRotation;
     }
     const float MIN_ROTATION_DOT = 0.98f;
     glm::quat actualRotation;
     bulletToGLM(worldTrans.getRotation(), actualRotation);
-    return (glm::dot(actualRotation, expectedRotation) < MIN_ROTATION_DOT);
+    return (glm::dot(actualRotation, extrapolatedRotation) < MIN_ROTATION_DOT);
 }
 
 #endif // USE_BULLET_PHYSICS

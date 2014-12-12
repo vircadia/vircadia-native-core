@@ -31,6 +31,13 @@ class EntityItem;
 
 class EntityMotionState : public ObjectMotionState {
 public:
+
+    // The OutgoingEntityQueue is a pointer to a QSet (owned by an EntitySimulation) of EntityItem*'s 
+    // that have been changed by the physics simulation.
+    // All ObjectMotionState's with outgoing changes put themselves on the list.
+    static void setOutgoingEntityList(QSet<EntityItem*>* list);
+    static void enqueueOutgoingEntity(EntityItem* entity);
+
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
@@ -58,7 +65,6 @@ public:
 
 protected:
     EntityItem* _entity;
-    uint32_t _outgoingPhysicsDirtyFlags;
 };
 
 #endif // hifi_EntityMotionState_h
