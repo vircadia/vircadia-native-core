@@ -12,6 +12,9 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <map>
 #include <time.h>
 
@@ -34,9 +37,10 @@
 #include <EntityEditPacketSender.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
+#include <OctreeQuery.h>
 #include <PacketHeaders.h>
 #include <ScriptEngine.h>
-#include <OctreeQuery.h>
+#include <TextureCache.h>
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
@@ -61,7 +65,6 @@
 #include "renderer/DeferredLightingEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
-#include "renderer/TextureCache.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
@@ -251,7 +254,7 @@ public:
 
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
-    TextureCache* getTextureCache() { return &_textureCache; }
+    TextureCache* getTextureCache() { return _textureCache; }
     DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
@@ -571,7 +574,7 @@ private:
 
     GeometryCache _geometryCache;
     AnimationCache _animationCache;
-    TextureCache _textureCache;
+    TextureCache* _textureCache;
 
     DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;

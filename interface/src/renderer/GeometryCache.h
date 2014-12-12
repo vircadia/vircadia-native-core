@@ -13,7 +13,7 @@
 #define hifi_GeometryCache_h
 
 // include this before QOpenGLBuffer, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 #include <QMap>
 #include <QOpenGLBuffer>

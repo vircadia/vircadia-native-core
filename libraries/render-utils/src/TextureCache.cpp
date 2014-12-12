@@ -10,19 +10,25 @@
 //
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
 
+#include <QEvent>
 #include <QGLWidget>
 #include <QNetworkReply>
 #include <QOpenGLFramebufferObject>
+#include <QResizeEvent>
 #include <QRunnable>
 #include <QThreadPool>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
-#include "Application.h"
 #include "TextureCache.h"
+
+TextureCache* TextureCache::getInstance() {
+    static TextureCache instance;
+    return &instance;
+}
+
 
 TextureCache::TextureCache() :
     _permutationNormalTextureID(0),
@@ -35,7 +41,8 @@ TextureCache::TextureCache() :
     _secondaryFramebufferObject(NULL),
     _tertiaryFramebufferObject(NULL),
     _shadowFramebufferObject(NULL),
-    _frameBufferSize(100, 100)
+    _frameBufferSize(100, 100),
+    _associatedWidget(NULL)
 {
 }
 
@@ -350,9 +357,16 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         &Resource::allReferencesCleared);
 }
 
+void TextureCache::associateWithWidget(QGLWidget* widget) {
+    if (_associatedWidget) {
+        _associatedWidget->removeEventFilter(this);
+    }
+    _associatedWidget = widget;
+    _associatedWidget->installEventFilter(this);
+}
+
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
     QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(_frameBufferSize);
-    Application::getInstance()->getGLWidget()->installEventFilter(this);
     
     glBindTexture(GL_TEXTURE_2D, fbo->texture());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

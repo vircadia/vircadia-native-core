@@ -14,10 +14,11 @@
 
 #include <QImage>
 #include <QMap>
+#include <QGLWidget>
 
 #include <ResourceCache.h>
 
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 class QOpenGLFramebufferObject;
 
@@ -32,9 +33,13 @@ class TextureCache : public ResourceCache {
     Q_OBJECT
     
 public:
+
+    static TextureCache* getInstance();
     
     TextureCache();
     virtual ~TextureCache();
+    
+    void associateWithWidget(QGLWidget* widget);
     
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
@@ -115,6 +120,7 @@ private:
     GLuint _shadowDepthTextureID;
 
     QSize _frameBufferSize;
+    QGLWidget* _associatedWidget;
 };
 
 /// A simple object wrapper for an OpenGL texture.

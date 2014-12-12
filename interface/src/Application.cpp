@@ -177,6 +177,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
+        _textureCache(NULL),
         _audio(),
         _enableProcessVoxelsThread(true),
         _octreeProcessor(),
@@ -194,6 +195,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
+    _textureCache = TextureCache::getInstance();
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -621,10 +623,10 @@ void Application::paintGL() {
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     if (OculusManager::isConnected()) {
-        _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
+        _textureCache->setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
         QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
-        _textureCache.setFrameBufferSize(fbSize);
+        _textureCache->setFrameBufferSize(fbSize);
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -2042,6 +2044,9 @@ void Application::init() {
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
+
+    // make sure our texture cache knows about window size changes    
+    _textureCache->associateWithWidget(getGLWidget());
 }
 
 void Application::closeMirrorView() {
@@ -2772,7 +2777,7 @@ glm::vec3 Application::getSunDirection() {
 
 void Application::updateShadowMap() {
     PerformanceTimer perfTimer("shadowMap");
-    QOpenGLFramebufferObject* fbo = _textureCache.getShadowFramebufferObject();
+    QOpenGLFramebufferObject* fbo = _textureCache->getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -2937,7 +2942,7 @@ void Application::setupWorldLight() {
 }
 
 QImage Application::renderAvatarBillboard() {
-    _textureCache.getPrimaryFramebufferObject()->bind();
+    _textureCache->getPrimaryFramebufferObject()->bind();
 
     // the "glow" here causes an alpha of one
     Glower glower;
@@ -2948,7 +2953,7 @@ QImage Application::renderAvatarBillboard() {
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
 
-    _textureCache.getPrimaryFramebufferObject()->release();
+    _textureCache->getPrimaryFramebufferObject()->release();
 
     return image;
 }
