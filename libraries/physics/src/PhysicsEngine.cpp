@@ -12,9 +12,10 @@
 // TODO DONE: make MotionState able to clear incoming flags
 // TODO DONE: make MotionState::setWorldTransform() put itself on _incomingChanges list
 // TODO DONE: give PhysicsEngine instance an _entityPacketSender
+// TODO DONE: make sure code compiles when BULLET is not found
 // TODO: make sure incoming and outgoing pipelines are connected
 // TODO: provide some sort of "reliable" send for "stopped" update
-// TODO: make sure code compiles when BULLET is not found
+// TODO: test entity updates (second viewer sees physics results from first)
 
 #include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS

@@ -11,8 +11,10 @@
 
 #include <iostream>
 
+#ifdef USE_BULLET_PHYSICS
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
+#endif // USE_BULLET_PHYSICS
 
 #include <DoubleHashKey.h>
 #include <ShapeInfo.h>

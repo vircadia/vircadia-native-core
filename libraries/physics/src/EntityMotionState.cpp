@@ -97,6 +97,7 @@ void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
+#ifdef USE_BULLET_PHYSICS
     if (_outgoingPhysicsDirtyFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
@@ -157,4 +158,5 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
         entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
     }
     _outgoingPhysicsDirtyFlags = 0;
+#endif // USE_BULLET_PHYSICS
 }

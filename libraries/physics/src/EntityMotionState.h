@@ -14,9 +14,8 @@
 
 #include <AACube.h>
 
-#ifdef USE_BULLET_PHYSICS
 #include "ObjectMotionState.h"
-#else // USE_BULLET_PHYSICS
+#ifndef USE_BULLET_PHYSICS
 // ObjectMotionState stubbery
 class ObjectMotionState {
 public:

@@ -19,6 +19,7 @@
 
 #include "ThreadSafeDynamicsWorld.h"
 
+#ifdef USE_BULLET_PHYSICS
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
         btDispatcher* dispatcher,
         btBroadphaseInterface* pairCache,
@@ -87,3 +88,4 @@ int	ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps,
 	clearForces();
 	return subSteps;
 }
+#endif // USE_BULLET_PHYSICS

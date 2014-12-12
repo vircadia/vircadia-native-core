@@ -12,13 +12,11 @@
 #ifndef hifi_ObjectMotionState_h
 #define hifi_ObjectMotionState_h
 
-#ifdef USE_BULLET_PHYSICS
-
-#include <btBulletDynamicsCommon.h>
-#include <glm/glm.hpp>
-#include <EntityItem.h> // for EntityItem::DIRTY_FOO bitmasks
-
-#include "ShapeInfo.h"
+enum MotionType {
+    MOTION_TYPE_STATIC,     // no motion
+    MOTION_TYPE_DYNAMIC,    // motion according to physical laws
+    MOTION_TYPE_KINEMATIC   // keyframed motion
+};
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
 // and re-added to the physics engine and "easy" which just updates the body properties.
@@ -33,11 +31,13 @@ const uint32_t DIRTY_PHYSICS_FLAGS = HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSI
 // These are the outgoing flags that the PhysicsEngine can affect:
 const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY;
 
-enum MotionType {
-    MOTION_TYPE_STATIC,     // no motion
-    MOTION_TYPE_DYNAMIC,    // motion according to physical laws
-    MOTION_TYPE_KINEMATIC   // keyframed motion
-};
+#ifdef USE_BULLET_PHYSICS
+
+#include <btBulletDynamicsCommon.h>
+#include <glm/glm.hpp>
+#include <EntityItem.h> // for EntityItem::DIRTY_FOO bitmasks
+
+#include "ShapeInfo.h"
 
 class OctreeEditPacketSender;
 

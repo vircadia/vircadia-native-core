@@ -18,12 +18,12 @@
 #ifndef hifi_ThreadSafeDynamicsWorld_h
 #define hifi_ThreadSafeDynamicsWorld_h
 
+#ifdef USE_BULLET_PHYSICS
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
 class EntityTree;
 
-ATTRIBUTE_ALIGNED16(class) ThreadSafeDynamicsWorld : public btDiscreteDynamicsWorld
-{
+ATTRIBUTE_ALIGNED16(class) ThreadSafeDynamicsWorld : public btDiscreteDynamicsWorld {
 public:
     BT_DECLARE_ALIGNED_ALLOCATOR();
 
@@ -46,5 +46,14 @@ public:
 private:
     EntityTree* _entities;
 };
+
+#else // USE_BULLET_PHYSICS
+// stubbery for ThreadSafeDynamicsWorld when Bullet not available
+class ThreadSafeDynamicsWorld {
+public:
+    ThreadSafeDynamicsWorld() {}
+};
+
+#endif // USE_BULLET_PHYSICS
 
 #endif // hifi_ThreadSafeDynamicsWorld_h
