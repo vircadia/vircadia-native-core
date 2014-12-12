@@ -1003,6 +1003,7 @@ PropertiesTool = function(opts) {
             type: 'update',
         };
         if (selectionManager.hasSelection()) {
+            data.id = selectionManager.selections[0].id;
             data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
             data.properties.rotation = Quat.safeEulerAngles(data.properties.rotation);
         }

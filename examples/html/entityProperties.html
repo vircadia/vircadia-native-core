@@ -70,6 +70,7 @@
         };
 
         function loaded() {
+            var elID = document.getElementById("property-id");
             var elType = document.getElementById("property-type");
             var elLocked = document.getElementById("property-locked");
             var elVisible = document.getElementById("property-visible");
@@ -159,6 +160,8 @@
                             disableChildren(document.getElementById("properties"), 'input');
                         } else {
                             var properties = data.properties;
+
+                            elID.innerHTML = data.id;
 
                             elType.innerHTML = properties.type;
 
@@ -451,6 +454,14 @@
             <col id="col-label">
             <col>
         </colgroup>
+        <tr>
+            <td class="label">
+                ID
+            </td>
+            <td>
+                <label id="property-id" class="selectable">asdf</label>
+            </td>
+        </tr>
         <tr>
             <td class="label">
                 Type
