@@ -77,10 +77,13 @@
             var elPositionX = document.getElementById("property-pos-x");
             var elPositionY = document.getElementById("property-pos-y");
             var elPositionZ = document.getElementById("property-pos-z");
+            var elMoveSelectionToGrid = document.getElementById("move-selection-to-grid");
+            var elMoveAllToGrid = document.getElementById("move-all-to-grid");
 
             var elDimensionsX = document.getElementById("property-dim-x");
             var elDimensionsY = document.getElementById("property-dim-y");
             var elDimensionsZ = document.getElementById("property-dim-z");
+            var elResetToNaturalDimensions = document.getElementById("reset-to-natural-dimensions");
 
             var elRegistrationX = document.getElementById("property-reg-x");
             var elRegistrationY = document.getElementById("property-reg-y");
@@ -398,6 +401,25 @@
             elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
             elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
 
+            elMoveSelectionToGrid.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "moveSelectionToGrid",
+                }));
+            });
+            elMoveAllToGrid.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "moveAllToGrid",
+                }));
+            });
+            elResetToNaturalDimensions.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "resetToNaturalDimensions",
+                }));
+            });
+
 
             var resizing = false;
             var startX = 0;
@@ -490,6 +512,10 @@
                 <div class="input-area">X <input class="coord" type='number' id="property-pos-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-pos-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-pos-z"></input></div>
+                <div>
+                    <input type="button" id="move-selection-to-grid" value="Selection to Grid">
+                    <input type="button" id="move-all-to-grid" value="All to Grid">
+                </div>
             </td>
         </tr>
 
@@ -508,6 +534,9 @@
                 <div class="input-area">X <input class="coord" type='number' id="property-dim-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-dim-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-dim-z"></input></div>
+                <div>
+                    <input type="button" id="reset-to-natural-dimensions" value="Reset to Natural Dimensions">
+                </div>
             </td>
         </tr>
 
