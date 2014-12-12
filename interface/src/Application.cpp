@@ -2281,13 +2281,14 @@ void Application::updateCursor(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
 
     bool hideMouse = false;
-    bool underMouse = _glWidget->underMouse();
+    bool underMouse = QGuiApplication::topLevelAt(QCursor::pos()) ==
+                      Application::getInstance()->getWindow()->windowHandle();
     
     static const int HIDE_CURSOR_TIMEOUT = 3 * USECS_PER_SECOND; // 3 second
     int elapsed = usecTimestampNow() - _lastMouseMove;
-    if ((elapsed > HIDE_CURSOR_TIMEOUT && underMouse)  ||
+    if ((elapsed > HIDE_CURSOR_TIMEOUT)  ||
         (OculusManager::isConnected() && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode))) {
-        hideMouse = true;
+        hideMouse = underMouse;
     }
     
     setCursorVisible(!hideMouse);
