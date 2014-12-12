@@ -41,8 +41,8 @@ GlowEffect::~GlowEffect() {
 
 QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
     return (_isOddFrame ?
-                Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject():
-                Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject());
+                TextureCache::getInstance()->getSecondaryFramebufferObject():
+                TextureCache::getInstance()->getTertiaryFramebufferObject());
 }
 
 static ProgramObject* createProgram(const QString& name) {
@@ -88,7 +88,7 @@ void GlowEffect::init() {
 }
 
 void GlowEffect::prepare() {
-    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+    TextureCache::getInstance()->getPrimaryFramebufferObject()->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     _isEmpty = true;
@@ -122,7 +122,7 @@ static void maybeRelease(QOpenGLFramebufferObject* fbo) {
 QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     PerformanceTimer perfTimer("glowEffect");
 
-    QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
+    QOpenGLFramebufferObject* primaryFBO = TextureCache::getInstance()->getPrimaryFramebufferObject();
     primaryFBO->release();
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
 
@@ -138,7 +138,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     glDepthMask(GL_FALSE);
 
     QOpenGLFramebufferObject* destFBO = toTexture ?
-        Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject() : NULL;
+        TextureCache::getInstance()->getSecondaryFramebufferObject() : NULL;
     if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
@@ -160,9 +160,9 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     } else {
         // diffuse into the secondary/tertiary (alternating between frames)
         QOpenGLFramebufferObject* oldDiffusedFBO =
-            Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
+            TextureCache::getInstance()->getSecondaryFramebufferObject();
         QOpenGLFramebufferObject* newDiffusedFBO =
-            Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject();
+            TextureCache::getInstance()->getTertiaryFramebufferObject();
         if (_isOddFrame) {
             qSwap(oldDiffusedFBO, newDiffusedFBO);
         }

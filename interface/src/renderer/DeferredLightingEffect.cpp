@@ -37,7 +37,7 @@ void DeferredLightingEffect::init() {
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true, true);
+    TextureCache::getInstance()->setPrimaryDrawBuffers(true, true, true);
     _simpleProgram.bind();
     _simpleProgram.setUniformValue(_glowIntensityLocation, Application::getInstance()->getGlowEffect()->getIntensity());
     glDisable(GL_BLEND);
@@ -46,7 +46,7 @@ void DeferredLightingEffect::bindSimpleProgram() {
 void DeferredLightingEffect::releaseSimpleProgram() {
     glEnable(GL_BLEND);
     _simpleProgram.release();
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false, false);
+    TextureCache::getInstance()->setPrimaryDrawBuffers(true, false, false);
 }
 
 void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks) {
@@ -117,15 +117,15 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare() {
     // clear the normal and specular buffers
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, false);
+    TextureCache::getInstance()->setPrimaryDrawBuffers(false, true, false);
     glClear(GL_COLOR_BUFFER_BIT);
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, false, true);
+    TextureCache::getInstance()->setPrimaryDrawBuffers(false, false, true);
     // clearing to zero alpha for specular causes problems on my Nvidia card; clear to lowest non-zero value instead
     const float MAX_SPECULAR_EXPONENT = 128.0f;
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT);
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false, false);
+    TextureCache::getInstance()->setPrimaryDrawBuffers(true, false, false);
 }
 
 void DeferredLightingEffect::render() {
@@ -138,7 +138,7 @@ void DeferredLightingEffect::render() {
     glDisable(GL_COLOR_MATERIAL);
     glDepthMask(false);
     
-    QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
+    QOpenGLFramebufferObject* primaryFBO = TextureCache::getInstance()->getPrimaryFramebufferObject();
     primaryFBO->release();
     
     QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
@@ -148,13 +148,13 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
     
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
+    glBindTexture(GL_TEXTURE_2D, TextureCache::getInstance()->getPrimaryNormalTextureID());
     
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimarySpecularTextureID());
+    glBindTexture(GL_TEXTURE_2D, TextureCache::getInstance()->getPrimarySpecularTextureID());
     
     glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
+    glBindTexture(GL_TEXTURE_2D, TextureCache::getInstance()->getPrimaryDepthTextureID());
         
     // get the viewport side (left, right, both)
     int viewport[4];
@@ -173,7 +173,7 @@ void DeferredLightingEffect::render() {
     bool shadowsEnabled = Menu::getInstance()->getShadowsEnabled();
     if (shadowsEnabled) {    
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
+        glBindTexture(GL_TEXTURE_2D, TextureCache::getInstance()->getShadowDepthTextureID());
         
         program = &_directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
@@ -188,7 +188,7 @@ void DeferredLightingEffect::render() {
             program->bind();
         }
         program->setUniformValue(locations->shadowScale,
-            1.0f / Application::getInstance()->getTextureCache()->getShadowFramebufferObject()->width());
+            1.0f / TextureCache::getInstance()->getShadowFramebufferObject()->width());
         
     } else {
         program->bind();

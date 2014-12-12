@@ -205,7 +205,7 @@ void MetavoxelSystem::render() {
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        TextureCache::getInstance()->setPrimaryDrawBuffers(true, true);
     
         glDisable(GL_BLEND);
         glEnable(GL_CULL_FACE);
@@ -251,7 +251,7 @@ void MetavoxelSystem::render() {
             glPopMatrix();
         }
         
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        TextureCache::getInstance()->setPrimaryDrawBuffers(true, false);
         
         _baseHeightfieldProgram.release();
         
@@ -348,7 +348,7 @@ void MetavoxelSystem::render() {
     }
     
     if (!_voxelBaseBatches.isEmpty()) {
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        TextureCache::getInstance()->setPrimaryDrawBuffers(true, true);
     
         glEnableClientState(GL_VERTEX_ARRAY);
         glDisable(GL_BLEND);
@@ -383,7 +383,7 @@ void MetavoxelSystem::render() {
         glDisable(GL_ALPHA_TEST);
         glEnable(GL_BLEND);
             
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        TextureCache::getInstance()->setPrimaryDrawBuffers(true, false);
         
         if (!_voxelSplatBatches.isEmpty()) {
             glDepthFunc(GL_LEQUAL);
@@ -463,7 +463,7 @@ void MetavoxelSystem::render() {
     }
     
     if (!_hermiteBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        TextureCache::getInstance()->setPrimaryDrawBuffers(true, true);
         
         glEnableClientState(GL_VERTEX_ARRAY);
         
@@ -486,7 +486,7 @@ void MetavoxelSystem::render() {
         
         glDisableClientState(GL_VERTEX_ARRAY);
         
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        TextureCache::getInstance()->setPrimaryDrawBuffers(true, false);
     }
     _hermiteBatches.clear();
     
@@ -797,7 +797,7 @@ void MetavoxelSystem::applyMaterialEdit(const MetavoxelEditMessage& message, boo
                 Q_ARG(bool, reliable));
             return;
         }
-        QSharedPointer<NetworkTexture> texture = Application::getInstance()->getTextureCache()->getTexture(
+        QSharedPointer<NetworkTexture> texture = TextureCache::getInstance()->getTexture(
             material->getDiffuse(), SPLAT_TEXTURE);
         if (texture->isLoaded()) {
             MetavoxelEditMessage newMessage = message;
@@ -1180,7 +1180,7 @@ void VoxelBuffer::render(bool cursor) {
             for (int i = 0; i < _materials.size(); i++) {
                 const SharedObjectPointer material = _materials.at(i);
                 if (material) {
-                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                    _networkTextures[i] = TextureCache::getInstance()->getTexture(
                         static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }
@@ -2234,7 +2234,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
             for (int i = 0; i < materials.size(); i++) {
                 const SharedObjectPointer& material = materials.at(i);
                 if (material) {
-                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                    _networkTextures[i] = TextureCache::getInstance()->getTexture(
                         static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }

@@ -716,7 +716,7 @@ void Application::paintGL() {
         _glowEffect.prepare();
 
         // Viewport is assigned to the size of the framebuffer
-        QSize size = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->size();
+        QSize size = TextureCache::getInstance()->getPrimaryFramebufferObject()->size();
         glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);

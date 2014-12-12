@@ -1171,7 +1171,7 @@ void VoxelSystem::render() {
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
     if (texture) {
         bindPerlinModulateProgram();
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
+        glBindTexture(GL_TEXTURE_2D, TextureCache::getInstance()->getPermutationNormalTextureID());
     } else {
         _program.bind();
     }
@@ -1179,7 +1179,7 @@ void VoxelSystem::applyScaleAndBindProgram(bool texture) {
     glPushMatrix();
     glScalef(_treeScale, _treeScale, _treeScale);
     
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+    TextureCache::getInstance()->setPrimaryDrawBuffers(true, true);
 }
 
 void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
@@ -1193,7 +1193,7 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
         _program.release();
     }
     
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+    TextureCache::getInstance()->setPrimaryDrawBuffers(true, false);
 }
 
 int VoxelSystem::_nodeCount = 0;
