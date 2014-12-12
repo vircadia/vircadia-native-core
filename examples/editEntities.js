@@ -1030,10 +1030,10 @@ PropertiesTool = function(opts) {
                 selectionManager.saveProperties();
                 var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
                 var diff = { x: 0, y: dY, z: 0 };
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var properties = SelectionManager.savedProperties[SelectionManager.selections[i].id];
+                for (var i = 0; i < selectionManager.selections.length; i++) {
+                    var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
                     var newPosition = Vec3.sum(properties.position, diff);
-                    Entities.editEntity(SelectionManager.selections[i], {
+                    Entities.editEntity(selectionManager.selections[i], {
                         position: newPosition,
                     });
                 }
@@ -1044,13 +1044,13 @@ PropertiesTool = function(opts) {
                     return;
                 }
                 selectionManager.saveProperties();
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var properties = SelectionManager.savedProperties[SelectionManager.selections[i].id];
+                for (var i = 0; i < selectionManager.selections.length; i++) {
+                    var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
                     var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
                     var dY = grid.getOrigin().y - bottomY;
                     var diff = { x: 0, y: dY, z: 0 };
                     var newPosition = Vec3.sum(properties.position, diff);
-                    Entities.editEntity(SelectionManager.selections[i], {
+                    Entities.editEntity(selectionManager.selections[i], {
                         position: newPosition,
                     });
                 }
@@ -1061,9 +1061,9 @@ PropertiesTool = function(opts) {
                     return;
                 }
                 selectionManager.saveProperties();
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var properties = SelectionManager.savedProperties[SelectionManager.selections[i].id];
-                    Entities.editEntity(SelectionManager.selections[i], {
+                for (var i = 0; i < selectionManager.selections.length; i++) {
+                    var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                    Entities.editEntity(selectionManager.selections[i], {
                         dimensions: properties.naturalDimensions,
                     });
                 }
