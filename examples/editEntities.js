@@ -839,9 +839,11 @@ Controller.keyReleaseEvent.connect(function (event) {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
         if (isActive) {
-            cameraManager.focus(selectionManager.worldPosition,
-                                selectionManager.worldDimensions,
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            if (selectionManager.hasSelection()) {
+                cameraManager.focus(selectionManager.worldPosition,
+                                    selectionManager.worldDimensions,
+                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            }
         }
     } else if (event.text == '[') {
         if (isActive) {
