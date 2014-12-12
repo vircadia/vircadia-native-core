@@ -85,6 +85,10 @@
             var elRegistrationY = document.getElementById("property-reg-y");
             var elRegistrationZ = document.getElementById("property-reg-z");
 
+            var elRotationX = document.getElementById("property-rot-x");
+            var elRotationY = document.getElementById("property-rot-y");
+            var elRotationZ = document.getElementById("property-rot-z");
+
             var elLinearVelocityX = document.getElementById("property-lvel-x");
             var elLinearVelocityY = document.getElementById("property-lvel-y");
             var elLinearVelocityZ = document.getElementById("property-lvel-z");
@@ -180,6 +184,10 @@
                             elRegistrationX.value = properties.registrationPoint.x.toFixed(2);
                             elRegistrationY.value = properties.registrationPoint.y.toFixed(2);
                             elRegistrationZ.value = properties.registrationPoint.z.toFixed(2);
+
+                            elRotationX.value = properties.rotation.x.toFixed(2);
+                            elRotationY.value = properties.rotation.y.toFixed(2);
+                            elRotationZ.value = properties.rotation.z.toFixed(2);
 
                             elLinearVelocityX.value = properties.velocity.x.toFixed(2);
                             elLinearVelocityY.value = properties.velocity.y.toFixed(2);
@@ -301,6 +309,12 @@
             elRegistrationX.addEventListener('change', registrationChangeFunction);
             elRegistrationY.addEventListener('change', registrationChangeFunction);
             elRegistrationZ.addEventListener('change', registrationChangeFunction);
+
+            var rotationChangeFunction = createEmitVec3PropertyUpdateFunction(
+                'rotation', elRotationX, elRotationY, elRotationZ);
+            elRotationX.addEventListener('change', rotationChangeFunction);
+            elRotationY.addEventListener('change', rotationChangeFunction);
+            elRotationZ.addEventListener('change', rotationChangeFunction);
 
             var velocityChangeFunction = createEmitVec3PropertyUpdateFunction(
                 'velocity', elLinearVelocityX, elLinearVelocityY, elLinearVelocityZ);
@@ -483,6 +497,15 @@
                 <div class="input-area">X <input class="coord" type='number' id="property-dim-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-dim-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-dim-z"></input></div>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="label">Rotation</td>
+            <td>
+                <div class="input-area">Pitch <input class="coord" type='number' id="property-rot-x"></input></div>
+                <div class="input-area">Yaw <input class="coord" type='number' id="property-rot-y"></input></div>
+                <div class="input-area">Roll <input class="coord" type='number' id="property-rot-z"></input></div>
             </td>
         </tr>
 

@@ -1004,6 +1004,7 @@ PropertiesTool = function(opts) {
         };
         if (selectionManager.hasSelection()) {
             data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+            data.properties.rotation = Quat.safeEulerAngles(data.properties.rotation);
         }
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
@@ -1012,6 +1013,10 @@ PropertiesTool = function(opts) {
         print(data);
         data = JSON.parse(data);
         if (data.type == "update") {
+            if (data.properties.rotation !== undefined) {
+                var rotation = data.properties.rotation;
+                data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+            }
             Entities.editEntity(selectionManager.selections[0], data.properties);
             selectionManager._update();
         }
