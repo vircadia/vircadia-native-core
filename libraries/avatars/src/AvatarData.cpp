@@ -188,7 +188,11 @@ QByteArray AvatarData::toByteArray() {
     // key state
     setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
     // hand state
-    setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
+    bool isFingerPointing = _handState & IS_FINGER_POINTING_FLAG;
+    setSemiNibbleAt(bitItems, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
+    if (isFingerPointing) {
+        setAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT);
+    }
     // faceshift state
     if (_headData->_isFaceshiftConnected) {
         setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
@@ -439,8 +443,9 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         
         // key state, stored as a semi-nibble in the bitItems
         _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
-        // hand state, stored as a semi-nibble in the bitItems
-        _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
+        // hand state, stored as a semi-nibble plus a bit in the bitItems
+        _handState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT) 
+            + oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0;
         
         _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
         _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);

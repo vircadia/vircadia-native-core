@@ -277,43 +277,64 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
         float laserLength = 50.0f;
-        if (_handState == HAND_STATE_LEFT_POINTING ||
-            _handState == HAND_STATE_BOTH_POINTING) {
-            int leftIndex = _skeletonModel.getLeftHandJointIndex();
-            glm::vec3 leftPosition;
-            glm::quat leftRotation;
-            _skeletonModel.getJointPositionInWorldFrame(leftIndex, leftPosition);
-            _skeletonModel.getJointRotationInWorldFrame(leftIndex, leftRotation);
-            glPushMatrix(); {
-                glTranslatef(leftPosition.x, leftPosition.y, leftPosition.z);
-                float angle = glm::degrees(glm::angle(leftRotation));
-                glm::vec3 axis = glm::axis(leftRotation);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glBegin(GL_LINES);
-                glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(0.0f, laserLength, 0.0f);
-                glEnd();
-            } glPopMatrix();
+        glm::vec3 position;
+        glm::quat rotation;
+        bool havePosition, haveRotation;
+
+        if (_handState & LEFT_HAND_POINTING_FLAG) {
+
+            if (_handState & IS_FINGER_POINTING_FLAG) {
+                int leftIndexTip = getJointIndex("LeftHandIndex4");
+                int leftIndexTipJoint = getJointIndex("LeftHandIndex3");
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(leftIndexTip, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(leftIndexTipJoint, rotation);
+            } else {
+                int leftHand = _skeletonModel.getLeftHandJointIndex();
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(leftHand, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(leftHand, rotation);
+            }
+
+            if (havePosition && haveRotation) {
+                glPushMatrix(); {
+                    glTranslatef(position.x, position.y, position.z);
+                    float angle = glm::degrees(glm::angle(rotation));
+                    glm::vec3 axis = glm::axis(rotation);
+                    glRotatef(angle, axis.x, axis.y, axis.z);
+                    glBegin(GL_LINES);
+                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                    glVertex3f(0.0f, 0.0f, 0.0f);
+                    glVertex3f(0.0f, laserLength, 0.0f);
+                    glEnd();
+                } glPopMatrix();
+            }
         }
-        if (_handState == HAND_STATE_RIGHT_POINTING ||
-            _handState == HAND_STATE_BOTH_POINTING) {
-            int rightIndex = _skeletonModel.getRightHandJointIndex();
-            glm::vec3 rightPosition;
-            glm::quat rightRotation;
-            _skeletonModel.getJointPositionInWorldFrame(rightIndex, rightPosition);
-            _skeletonModel.getJointRotationInWorldFrame(rightIndex, rightRotation);
-            glPushMatrix(); {
-                glTranslatef(rightPosition.x, rightPosition.y, rightPosition.z);
-                float angle = glm::degrees(glm::angle(rightRotation));
-                glm::vec3 axis = glm::axis(rightRotation);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glBegin(GL_LINES);
-                glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(0.0f, laserLength, 0.0f);
-                glEnd();
-            } glPopMatrix();
+
+        if (_handState & RIGHT_HAND_POINTING_FLAG) {
+            
+            if (_handState & IS_FINGER_POINTING_FLAG) {
+                int rightIndexTip = getJointIndex("RightHandIndex4");
+                int rightIndexTipJoint = getJointIndex("RightHandIndex3");
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(rightIndexTip, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(rightIndexTipJoint, rotation);
+            } else {
+                int rightHand = _skeletonModel.getRightHandJointIndex();
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(rightHand, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(rightHand, rotation);
+            }
+
+            if (havePosition && haveRotation) {
+                glPushMatrix(); {
+                    glTranslatef(position.x, position.y, position.z);
+                    float angle = glm::degrees(glm::angle(rotation));
+                    glm::vec3 axis = glm::axis(rotation);
+                    glRotatef(angle, axis.x, axis.y, axis.z);
+                    glBegin(GL_LINES);
+                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                    glVertex3f(0.0f, 0.0f, 0.0f);
+                    glVertex3f(0.0f, laserLength, 0.0f);
+                    glEnd();
+                } glPopMatrix();
+            }
         }
     }
     
