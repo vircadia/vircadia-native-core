@@ -445,7 +445,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
         // hand state, stored as a semi-nibble plus a bit in the bitItems
         _handState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT) 
-            + oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0;
+            + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
         
         _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
         _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
