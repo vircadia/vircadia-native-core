@@ -1024,51 +1024,48 @@ PropertiesTool = function(opts) {
             selectionManager._update();
         } else if (data.type == "action") {
             if (data.action == "moveSelectionToGrid") {
-                if (!selectionManager.hasSelection()) {
-                    return;
-                }
-                selectionManager.saveProperties();
-                var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
-                var diff = { x: 0, y: dY, z: 0 };
-                for (var i = 0; i < selectionManager.selections.length; i++) {
-                    var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
-                    var newPosition = Vec3.sum(properties.position, diff);
-                    Entities.editEntity(selectionManager.selections[i], {
-                        position: newPosition,
-                    });
-                }
-                pushCommandForSelections();
-                selectionManager._update();
-            } else if (data.action == "moveAllToGrid") {
-                if (!selectionManager.hasSelection()) {
-                    return;
-                }
-                selectionManager.saveProperties();
-                for (var i = 0; i < selectionManager.selections.length; i++) {
-                    var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
-                    var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
-                    var dY = grid.getOrigin().y - bottomY;
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
                     var diff = { x: 0, y: dY, z: 0 };
-                    var newPosition = Vec3.sum(properties.position, diff);
-                    Entities.editEntity(selectionManager.selections[i], {
-                        position: newPosition,
-                    });
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var newPosition = Vec3.sum(properties.position, diff);
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: newPosition,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
                 }
-                pushCommandForSelections();
-                selectionManager._update();
+            } else if (data.action == "moveAllToGrid") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
+                        var dY = grid.getOrigin().y - bottomY;
+                        var diff = { x: 0, y: dY, z: 0 };
+                        var newPosition = Vec3.sum(properties.position, diff);
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: newPosition,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
             } else if (data.action == "resetToNaturalDimensions") {
-                if (!selectionManager.hasSelection()) {
-                    return;
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        Entities.editEntity(selectionManager.selections[i], {
+                            dimensions: properties.naturalDimensions,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
                 }
-                selectionManager.saveProperties();
-                for (var i = 0; i < selectionManager.selections.length; i++) {
-                    var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
-                    Entities.editEntity(selectionManager.selections[i], {
-                        dimensions: properties.naturalDimensions,
-                    });
-                }
-                pushCommandForSelections();
-                selectionManager._update();
             }
         }
     });
