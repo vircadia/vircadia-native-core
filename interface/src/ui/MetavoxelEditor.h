@@ -386,13 +386,30 @@ private:
     MaterialControl* _materialControl;
 };
 
-/// Allows setting voxel materials by dragging out a box.
-class VoxelMaterialBoxTool : public BoxTool {
+/// Allows sculpting parts of the heightfield.
+class HeightfieldSculptBrushTool : public HeightfieldBrushTool {
     Q_OBJECT
 
 public:
     
-    VoxelMaterialBoxTool(MetavoxelEditor* editor);
+    HeightfieldSculptBrushTool(MetavoxelEditor* editor);
+    
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+
+private:
+    
+    MaterialControl* _materialControl;
+};
+
+/// Allows setting heightfield materials by dragging out a box.
+class HeightfieldMaterialBoxTool : public BoxTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldMaterialBoxTool(MetavoxelEditor* editor);
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
     
@@ -410,13 +427,13 @@ private:
     MaterialControl* _materialControl;
 };
 
-/// Allows setting voxel materials by placing a spanner.
-class VoxelMaterialSpannerTool : public PlaceSpannerTool {
+/// Allows setting heightfield materials by placing a spanner.
+class HeightfieldMaterialSpannerTool : public PlaceSpannerTool {
     Q_OBJECT
 
 public:
     
-    VoxelMaterialSpannerTool(MetavoxelEditor* editor);
+    HeightfieldMaterialSpannerTool(MetavoxelEditor* editor);
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
@@ -429,65 +446,6 @@ protected:
 private:
     
     SharedObjectEditor* _spannerEditor;
-    MaterialControl* _materialControl;
-};
-
-/// Base class for voxel brush tools.
-class VoxelBrushTool : public MetavoxelTool {
-    Q_OBJECT
-
-public:
-    
-    VoxelBrushTool(MetavoxelEditor* editor, const QString& name);
-    
-    virtual bool appliesTo(const AttributePointer& attribute) const;
-     
-    virtual void render();
-
-    virtual bool eventFilter(QObject* watched, QEvent* event);
-
-protected:
-    
-    virtual QVariant createEdit(bool alternate) = 0;
-    
-    QFormLayout* _form;
-    QDoubleSpinBox* _radius;
-    
-    glm::vec3 _position;
-    bool _positionValid;
-};
-
-/// Allows texturing parts of the voxel field.
-class VoxelMaterialBrushTool : public VoxelBrushTool {
-    Q_OBJECT
-    
-public:
-    
-    VoxelMaterialBrushTool(MetavoxelEditor* editor);
-
-protected:
-    
-    virtual QVariant createEdit(bool alternate);
-
-private:
-    
-    MaterialControl* _materialControl;
-};
-
-/// Allows sculpting parts of the voxel field.
-class VoxelSculptBrushTool : public VoxelBrushTool {
-    Q_OBJECT
-
-public:
-    
-    VoxelSculptBrushTool(MetavoxelEditor* editor);
-    
-protected:
-    
-    virtual QVariant createEdit(bool alternate);
-
-private:
-    
     MaterialControl* _materialControl;
 };
 

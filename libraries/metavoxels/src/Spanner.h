@@ -88,7 +88,7 @@ public:
 
     /// Attempts to "sculpt" with the supplied spanner.
     /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+    virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
         const QColor& color);
 
     /// Checks whether this spanner has its own colors.
@@ -583,8 +583,8 @@ public:
     HeightfieldNode* clearAndFetchHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const Box& bounds, SharedObjectPointer& heightfield);
     
-    HeightfieldNode* sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color);
+    HeightfieldNode* setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color);
         
     void read(HeightfieldStreamState& state);
     void write(HeightfieldStreamState& state) const;
@@ -679,7 +679,7 @@ public:
     
     virtual Spanner* clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield);
     
-    virtual Spanner* sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+    virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
         const QColor& color);
         
     virtual bool hasOwnColors() const;

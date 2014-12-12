@@ -123,7 +123,7 @@ Spanner* Spanner::clearAndFetchHeight(const Box& bounds, SharedObjectPointer& he
     return this;
 }
 
-Spanner* Spanner::sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+Spanner* Spanner::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
         const QColor& color) {
     return this;
 }
@@ -2244,8 +2244,36 @@ HeightfieldNode* HeightfieldNode::clearAndFetchHeight(const glm::vec3& translati
     return newNode;
 }
 
-HeightfieldNode* HeightfieldNode::sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color) {
+HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color) {
+    Box bounds = glm::translate(translation) * glm::mat4_cast(rotation) * Box(glm::vec3(), scale);
+    if (!bounds.intersects(spanner->getBounds())) {
+        return this;
+    }
+    if (!isLeaf()) {
+        HeightfieldNode* newNode = this;
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            glm::vec3 nextScale = scale * glm::vec3(0.5f, 1.0f, 0.5f);
+            HeightfieldNode* newChild = _children[i]->setMaterial(translation +
+                rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
+                    i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
+                nextScale, spanner, material, color);
+            if (_children[i] != newChild) {
+                if (newNode == this) {
+                    newNode = new HeightfieldNode(*this);
+                }
+                newNode->setChild(i, HeightfieldNodePointer(newChild));
+            }
+        }
+        if (newNode != this) {
+            newNode->mergeChildren();
+        }
+        return newNode;
+    }
+    if (!_height) {
+        return this;
+    }
+    
     return this;
 }
 
@@ -2353,7 +2381,7 @@ void HeightfieldNode::writeDelta(const HeightfieldNodePointer& reference, Height
         state.base.stream.writeDelta(_height, reference->getHeight());
         state.base.stream.writeDelta(_color, reference->getColor());
         state.base.stream.writeDelta(_material, reference->getMaterial());
-        state.base.stream.writeDelta(_material, reference->getStack());
+        state.base.stream.writeDelta(_stack, reference->getStack());
         
     } else {
         HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
@@ -2853,9 +2881,10 @@ Spanner* Heightfield::clearAndFetchHeight(const Box& bounds, SharedObjectPointer
     return newHeightfield;
 }
 
-Spanner* Heightfield::sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
         const QColor& color) {
-    HeightfieldNode* newRoot = _root->sculptMaterial(spanner, material, color);
+    HeightfieldNode* newRoot = _root->setMaterial(getTranslation(), getRotation(), glm::vec3(getScale(),
+        getScale() * _aspectY, getScale() * _aspectZ), static_cast<Spanner*>(spanner.data()), material, color);
     if (_root == newRoot) {
         return this;
     }

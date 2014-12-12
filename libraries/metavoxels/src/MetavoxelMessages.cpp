@@ -199,16 +199,16 @@ const int VOXEL_BLOCK_SAMPLES = VOXEL_BLOCK_SIZE + 1;
 const int VOXEL_BLOCK_AREA = VOXEL_BLOCK_SAMPLES * VOXEL_BLOCK_SAMPLES;
 const int VOXEL_BLOCK_VOLUME = VOXEL_BLOCK_AREA * VOXEL_BLOCK_SAMPLES;
 
-VoxelMaterialSpannerEdit::VoxelMaterialSpannerEdit(const SharedObjectPointer& spanner,
+HeightfieldMaterialSpannerEdit::HeightfieldMaterialSpannerEdit(const SharedObjectPointer& spanner,
         const SharedObjectPointer& material, const QColor& averageColor) :
     MaterialEdit(material, averageColor),
     spanner(spanner) {
 }
 
-class VoxelMaterialSpannerEditVisitor : public MetavoxelVisitor {
+class HeightfieldMaterialSpannerEditVisitor : public MetavoxelVisitor {
 public:
     
-    VoxelMaterialSpannerEditVisitor(Spanner* spanner, const SharedObjectPointer& material, const QColor& color);
+    HeightfieldMaterialSpannerEditVisitor(Spanner* spanner, const SharedObjectPointer& material, const QColor& color);
 
     virtual int visit(MetavoxelInfo& info);
 
@@ -220,7 +220,7 @@ private:
     float _blockSize;
 };
 
-VoxelMaterialSpannerEditVisitor::VoxelMaterialSpannerEditVisitor(Spanner* spanner,
+HeightfieldMaterialSpannerEditVisitor::HeightfieldMaterialSpannerEditVisitor(Spanner* spanner,
         const SharedObjectPointer& material, const QColor& color) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
         AttributeRegistry::getInstance()->getVoxelHermiteAttribute() <<
@@ -234,7 +234,7 @@ VoxelMaterialSpannerEditVisitor::VoxelMaterialSpannerEditVisitor(Spanner* spanne
     _blockSize(spanner->getVoxelizationGranularity() * VOXEL_BLOCK_SIZE) {
 }
 
-int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
+int HeightfieldMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     Box bounds = info.getBounds();
     if (!bounds.intersects(_spanner->getBounds())) {
         return STOP_RECURSION;
@@ -492,154 +492,20 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    // expand to fit the entire edit
-    Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
-    while (!data.getBounds().contains(spanner->getBounds())) {
-        data.expand();
-    }
-    // make sure it's either 100% transparent or 100% opaque
+void HeightfieldMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // make sure the color is either 100% transparent or 100% opaque
     QColor color = averageColor;
     color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
     
-    // find the bounds of all voxel nodes intersected
-    float nodeSize = VOXEL_BLOCK_SIZE * glm::pow(2.0f, glm::floor(
-        glm::log(spanner->getVoxelizationGranularity()) / glm::log(2.0f)));
-    Box bounds(glm::floor(spanner->getBounds().minimum / nodeSize) * nodeSize,
-        glm::ceil(spanner->getBounds().maximum / nodeSize) * nodeSize);
-    
-    // expand to include edges
-    Box expandedBounds = bounds;
-    float increment = nodeSize / VOXEL_BLOCK_SIZE;
-    expandedBounds.maximum.x += increment;
-    expandedBounds.maximum.z += increment;
-    
-    // get all intersecting spanners
     QVector<SharedObjectPointer> results;
-    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(), expandedBounds, results);
+    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
+        static_cast<Spanner*>(spanner.data())->getBounds(), results);
     
-    // clear/voxelize as appropriate
-    SharedObjectPointer heightfield;
     foreach (const SharedObjectPointer& result, results) {
-        Spanner* newSpanner = static_cast<Spanner*>(result.data())->clearAndFetchHeight(bounds, heightfield);
-        if (newSpanner != result) {
-            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), result, newSpanner);
+        Spanner* newResult = static_cast<Spanner*>(result.data())->setMaterial(spanner, material, color);
+        if (newResult != result) {
+            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), result, newResult);
         }
     }
-    
-    // voxelize the fetched heightfield, if any
-    if (heightfield) {
-        VoxelMaterialSpannerEditVisitor visitor(static_cast<Spanner*>(heightfield.data()), material, color);
-        data.guide(visitor);
-    }
-    
-    VoxelMaterialSpannerEditVisitor visitor(spanner, material, color);
-    data.guide(visitor);
 }
 
-PaintVoxelMaterialEdit::PaintVoxelMaterialEdit(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& averageColor) :
-    MaterialEdit(material, averageColor),
-    position(position),
-    radius(radius) {
-}
-
-class PaintVoxelMaterialEditVisitor : public MetavoxelVisitor {
-public:
-    
-    PaintVoxelMaterialEditVisitor(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& color);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    glm::vec3 _position;
-    float _radius;
-    SharedObjectPointer _material;
-    QColor _color;
-    Box _bounds;
-};
-
-PaintVoxelMaterialEditVisitor::PaintVoxelMaterialEditVisitor(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& color) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
-        AttributeRegistry::getInstance()->getVoxelMaterialAttribute(), QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
-            AttributeRegistry::getInstance()->getVoxelMaterialAttribute()),
-    _position(position),
-    _radius(radius),
-    _material(material),
-    _color(color) {
-    
-    glm::vec3 extents(_radius, _radius, _radius);
-    _bounds = Box(_position - extents, _position + extents);
-}
-
-int PaintVoxelMaterialEditVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_bounds)) {
-        return STOP_RECURSION;
-    }
-    if (!info.isLeaf) {
-        return DEFAULT_ORDER;
-    }
-    VoxelColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
-    VoxelMaterialDataPointer materialPointer = info.inputValues.at(1).getInlineValue<VoxelMaterialDataPointer>();
-    if (!(colorPointer && materialPointer && colorPointer->getSize() == materialPointer->getSize())) {
-        return STOP_RECURSION;
-    }
-    QVector<QRgb> colorContents = colorPointer->getContents();
-    QByteArray materialContents = materialPointer->getContents();
-    QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
-    
-    Box overlap = info.getBounds().getIntersection(_bounds);
-    int size = colorPointer->getSize();
-    int area = size * size;
-    float scale = (size - 1.0f) / info.size;
-    overlap.minimum = (overlap.minimum - info.minimum) * scale;
-    overlap.maximum = (overlap.maximum - info.minimum) * scale;
-    int minX = glm::ceil(overlap.minimum.x);
-    int minY = glm::ceil(overlap.minimum.y);
-    int minZ = glm::ceil(overlap.minimum.z);
-    int sizeX = (int)overlap.maximum.x - minX + 1;
-    int sizeY = (int)overlap.maximum.y - minY + 1;
-    int sizeZ = (int)overlap.maximum.z - minZ + 1;
-    
-    QRgb rgb = _color.rgba();
-    float step = 1.0f / scale;
-    glm::vec3 position(0.0f, 0.0f, info.minimum.z + minZ * step);
-    uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
-    QRgb* colorData = colorContents.data();
-    uchar* materialData = (uchar*)materialContents.data();
-    for (int destZ = minZ * area + minY * size + minX, endZ = destZ + sizeZ * area; destZ != endZ;
-            destZ += area, position.z += step) {
-        position.y = info.minimum.y + minY * step;
-        for (int destY = destZ, endY = destY + sizeY * size; destY != endY; destY += size, position.y += step) {
-            position.x = info.minimum.x + minX * step;
-            for (int destX = destY, endX = destX + sizeX; destX != endX; destX++, position.x += step) {
-                QRgb& color = colorData[destX];
-                if (qAlpha(color) != 0 && glm::distance(position, _position) <= _radius) {
-                    color = rgb;
-                    materialData[destX] = materialIndex;    
-                }
-            }
-        }
-    }
-    VoxelColorDataPointer newColorPointer(new VoxelColorData(colorContents, size));
-    info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
-        encodeInline<VoxelColorDataPointer>(newColorPointer));
-    
-    clearUnusedMaterials(materials, materialContents);
-    VoxelMaterialDataPointer newMaterialPointer(new VoxelMaterialData(materialContents, size, materials));
-    info.outputValues[1] = AttributeValue(_inputs.at(1), encodeInline<VoxelMaterialDataPointer>(newMaterialPointer));
-    
-    return STOP_RECURSION;
-}
-
-void PaintVoxelMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    // make sure it's 100% opaque
-    QColor color = averageColor;
-    color.setAlphaF(1.0f);
-    PaintVoxelMaterialEditVisitor visitor(position, radius, material, color);
-    data.guide(visitor);
-}

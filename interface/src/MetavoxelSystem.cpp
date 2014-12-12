@@ -559,23 +559,13 @@ void MetavoxelSystem::paintHeightfieldMaterial(const glm::vec3& position, float 
     applyMaterialEdit(edit, true);
 }
 
-void MetavoxelSystem::paintVoxelColor(const glm::vec3& position, float radius, const QColor& color) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintVoxelMaterialEdit(position, radius, SharedObjectPointer(), color)) };
+void MetavoxelSystem::setHeightfieldColor(const SharedObjectPointer& spanner, const QColor& color) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner, SharedObjectPointer(), color)) };
     applyEdit(edit, true);
 }
 
-void MetavoxelSystem::paintVoxelMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintVoxelMaterialEdit(position, radius, material)) };
-    applyMaterialEdit(edit, true);
-}
-
-void MetavoxelSystem::setVoxelColor(const SharedObjectPointer& spanner, const QColor& color) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, SharedObjectPointer(), color)) };
-    applyEdit(edit, true);
-}
-
-void MetavoxelSystem::setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, material)) };
+void MetavoxelSystem::setHeightfieldMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner, material)) };
     applyMaterialEdit(edit, true);
 }
 

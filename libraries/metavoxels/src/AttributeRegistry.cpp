@@ -53,7 +53,6 @@ AttributeRegistry::AttributeRegistry() :
     
     const float VOXEL_LOD_THRESHOLD_MULTIPLIER = 16.0f;
     _voxelColorAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
-    _voxelColorAttribute->setUserFacing(true);
     _voxelMaterialAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
     _voxelHermiteAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
 }

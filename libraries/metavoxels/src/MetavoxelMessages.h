@@ -242,37 +242,20 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(PaintHeightfieldMaterialEdit)
 
-/// An edit that sets the materials of voxels within a spanner to a value.
-class VoxelMaterialSpannerEdit : STREAM public MaterialEdit {
+/// An edit that sets the materials of a heightfield within a spanner to a value.
+class HeightfieldMaterialSpannerEdit : STREAM public MaterialEdit {
     STREAMABLE
 
 public:
 
     STREAM SharedObjectPointer spanner;
     
-    VoxelMaterialSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer(),
+    HeightfieldMaterialSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer(),
         const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
-DECLARE_STREAMABLE_METATYPE(VoxelMaterialSpannerEdit)
-
-/// An edit that sets a region of a voxel material.
-class PaintVoxelMaterialEdit : STREAM public MaterialEdit {
-    STREAMABLE
-
-public:
-    
-    STREAM glm::vec3 position;
-    STREAM float radius;
-    
-    PaintVoxelMaterialEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
-        const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
-    
-    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
-};
-
-DECLARE_STREAMABLE_METATYPE(PaintVoxelMaterialEdit)
+DECLARE_STREAMABLE_METATYPE(HeightfieldMaterialSpannerEdit)
 
 #endif // hifi_MetavoxelMessages_h
