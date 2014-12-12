@@ -87,7 +87,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         float scale = MINOR_GRID_DIVISIONS * spacing;
         glScalef(scale, scale, scale);
 
-        Application::getInstance()->getGeometryCache()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS);
+        GeometryCache::getInstance()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS);
     }
     glPopMatrix();
 
@@ -102,7 +102,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         float scale = MAJOR_GRID_DIVISIONS * spacing;
         glScalef(scale, scale, scale);
 
-        Application::getInstance()->getGeometryCache()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS);
+        GeometryCache::getInstance()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS);
     }
     glPopMatrix();
 

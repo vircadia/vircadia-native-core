@@ -353,7 +353,7 @@ void MetavoxelEditor::render() {
     
     _gridProgram.bind();
     
-    Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
+    GeometryCache::getInstance()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
     
     _gridProgram.release();
     

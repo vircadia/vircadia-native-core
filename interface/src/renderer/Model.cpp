@@ -997,7 +997,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     _url = url;
 
     // if so instructed, keep the current geometry until the new one is loaded 
-    _nextBaseGeometry = _nextGeometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
+    _nextBaseGeometry = _nextGeometry = GeometryCache::getInstance()->getGeometry(url, fallback, delayLoad);
     _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
     if (!retainCurrent || !isActive() || _nextGeometry->isLoaded()) {
         applyNextGeometry();

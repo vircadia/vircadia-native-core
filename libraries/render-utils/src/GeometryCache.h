@@ -35,6 +35,8 @@ class GeometryCache : public ResourceCache {
     Q_OBJECT
 
 public:
+
+    static GeometryCache* getInstance();
     
     GeometryCache();
     virtual ~GeometryCache();

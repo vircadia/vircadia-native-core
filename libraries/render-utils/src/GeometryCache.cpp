@@ -21,6 +21,11 @@
 
 #include "GeometryCache.h"
 
+GeometryCache* GeometryCache::getInstance() {
+    static GeometryCache instance;
+    return &instance;
+}
+
 GeometryCache::GeometryCache() {
 }
 

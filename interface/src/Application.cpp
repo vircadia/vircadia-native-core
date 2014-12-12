@@ -3083,7 +3083,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // draw a red sphere
         float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
-        _geometryCache.renderSphere(originSphereRadius, 15, 15);
+        GeometryCache::getInstance()->renderSphere(originSphereRadius, 15, 15);
         
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -3304,12 +3304,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // set the bounds of rear mirror view
     if (billboard) {
-        QSize size = getTextureCache()->getFrameBufferSize();
+        QSize size = TextureCache::getInstance()->getFrameBufferSize();
         glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
         glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());    
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        QSize size = getTextureCache()->getFrameBufferSize();
+        QSize size = TextureCache::getInstance()->getFrameBufferSize();
         float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
