@@ -26,7 +26,6 @@
 
 #include "gpu/Stream.h"
 
-class Model;
 class NetworkGeometry;
 class NetworkMesh;
 class NetworkTexture;
@@ -52,14 +51,6 @@ public:
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
 
-    /// Adds the specified model to the list requiring vertex blends.
-    void noteRequiresBlend(Model* model);
-
-public slots:
-
-    void setBlendedVertices(const QPointer<Model>& model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
-
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -78,9 +69,6 @@ private:
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
-    
-    QList<QPointer<Model> > _modelsRequiringBlends;
-    int _pendingBlenders;
 };
 
 /// Geometry loaded from the network.

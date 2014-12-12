@@ -1149,7 +1149,7 @@ void Blender::run() {
         }
     }
     // post the result to the geometry cache, which will dispatch to the model if still alive
-    QMetaObject::invokeMethod(Application::getInstance()->getGeometryCache(), "setBlendedVertices",
+    QMetaObject::invokeMethod(ModelBlender::getInstance(), "setBlendedVertices",
         Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
         Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
         Q_ARG(const QVector<glm::vec3>&, normals));
@@ -1312,7 +1312,7 @@ void Model::simulateInternal(float deltaTime) {
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        Application::getInstance()->getGeometryCache()->noteRequiresBlend(this);
+        ModelBlender::getInstance()->noteRequiresBlend(this);
     }
 }
 
@@ -2544,3 +2544,43 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
     return meshPartsRendered;
 }
+
+ModelBlender* ModelBlender::getInstance() {
+    static ModelBlender instance;
+    return &instance;
+}
+
+ModelBlender::ModelBlender() :
+    _pendingBlenders(0) {
+}
+
+ModelBlender::~ModelBlender() {
+}
+
+void ModelBlender::noteRequiresBlend(Model* model) {
+    if (_pendingBlenders < QThread::idealThreadCount()) {
+        if (model->maybeStartBlender()) {
+            _pendingBlenders++;
+        }
+        return;
+    }
+    if (!_modelsRequiringBlends.contains(model)) {
+        _modelsRequiringBlends.append(model);
+    }
+}
+
+void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
+        const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (!model.isNull()) {
+        model->setBlendedVertices(blendNumber, geometry, vertices, normals);
+    }
+    _pendingBlenders--;
+    while (!_modelsRequiringBlends.isEmpty()) {
+        Model* nextModel = _modelsRequiringBlends.takeFirst();
+        if (nextModel && nextModel->maybeStartBlender()) {
+            _pendingBlenders++;
+            return;
+        }
+    }
+}
+

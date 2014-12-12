@@ -453,12 +453,35 @@ private:
     static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
 
-
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
+
+/// Handle management of pending models that need blending
+class ModelBlender : public QObject {
+    Q_OBJECT
+
+public:
+
+    static ModelBlender* getInstance();
+    
+    ModelBlender();
+    virtual ~ModelBlender();
+    
+
+    /// Adds the specified model to the list requiring vertex blends.
+    void noteRequiresBlend(Model* model);
+
+public slots:
+    void setBlendedVertices(const QPointer<Model>& model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+
+private:
+    QList<QPointer<Model> > _modelsRequiringBlends;
+    int _pendingBlenders;
+};
 
 
 #endif // hifi_Model_h

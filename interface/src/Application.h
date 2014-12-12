@@ -35,6 +35,7 @@
 
 #include <EntityCollisionSystem.h>
 #include <EntityEditPacketSender.h>
+#include <GeometryCache.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <OctreeQuery.h>
@@ -63,7 +64,6 @@
 #include "entities/EntityTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/DeferredLightingEffect.h"
-#include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
