@@ -76,6 +76,7 @@
 #include "Util.h"
 
 #include "devices/Leapmotion.h"
+#include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -1994,6 +1995,7 @@ void Application::init() {
     _visage.init();
 
     Leapmotion::init();
+    RealSense::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();

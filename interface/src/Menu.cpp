@@ -49,6 +49,7 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
+#include "devices/RealSense.h"
 #include "devices/OculusManager.h"
 
 
@@ -492,6 +493,11 @@ Menu::Menu() :
 
     QMenu* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
+
+#ifdef HAVE_RSSDK
+    QMenu* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
+    addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0, this, SLOT(loadRSSDKFile()));
+#endif
 
     QMenu* networkMenu = developerMenu->addMenu("Network");
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
@@ -1344,6 +1350,10 @@ void Menu::showChat() {
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
+}
+
+void Menu::loadRSSDKFile() {
+    RealSense::getInstance()->loadRSSDKFile();
 }
 
 void Menu::toggleChat() {
