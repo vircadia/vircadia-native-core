@@ -42,7 +42,6 @@
 
 #include "MainWindow.h"
 #include "Audio.h"
-#include "AudioReflector.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -65,9 +64,7 @@
 #include "renderer/DeferredLightingEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
-#include "renderer/PointShader.h"
 #include "renderer/TextureCache.h"
-#include "renderer/VoxelShader.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
@@ -193,7 +190,6 @@ public:
     bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
-    const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
@@ -297,8 +293,6 @@ public:
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
-    VoxelShader& getVoxelShader() { return _voxelShader; }
-    PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
     glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
@@ -327,6 +321,9 @@ public:
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
+    
+    QRect getDesirableApplicationGeometry();
+    RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
 signals:
 
@@ -588,8 +585,6 @@ private:
     DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
-    VoxelShader _voxelShader;
-    PointShader _pointShader;
 
     Audio _audio;
 
@@ -635,7 +630,6 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
 
-    AudioReflector _audioReflector;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;

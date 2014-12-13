@@ -37,6 +37,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QObject>
 #include <QWheelEvent>
+#include <QScreen>
 #include <QSettings>
 #include <QShortcut>
 #include <QTimer>
@@ -141,6 +142,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _window(new MainWindow(desktop())),
         _glWidget(new GLCanvas()),
+        _toolWindow(NULL),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _undoStack(),
@@ -414,9 +416,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
-
-    connect(_window, &MainWindow::windowGeometryChanged,
-            _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
 
     _trayIcon->show();
     
@@ -1917,8 +1916,6 @@ void Application::init() {
     _deferredLightingEffect.init();
     _glowEffect.init();
     _ambientOcclusionEffect.init();
-    _voxelShader.init();
-    _pointShader.init();
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -1989,8 +1986,6 @@ void Application::init() {
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
-    _voxels.setUseVoxelShader(false);
-    _voxels.setVoxelsAsPoints(false);
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
 
@@ -2033,17 +2028,6 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-
-    // set up our audio reflector
-    _audioReflector.setMyAvatar(getAvatar());
-    _audioReflector.setVoxels(_voxels.getTree());
-    _audioReflector.setAudio(getAudio());
-    _audioReflector.setAvatarManager(&_avatarManager);
-
-    connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
-                        &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
 
     connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
         &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
@@ -2297,13 +2281,14 @@ void Application::updateCursor(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
 
     bool hideMouse = false;
-    bool underMouse = _glWidget->underMouse();
+    bool underMouse = QGuiApplication::topLevelAt(QCursor::pos()) ==
+                      Application::getInstance()->getWindow()->windowHandle();
     
     static const int HIDE_CURSOR_TIMEOUT = 3 * USECS_PER_SECOND; // 3 second
     int elapsed = usecTimestampNow() - _lastMouseMove;
-    if ((elapsed > HIDE_CURSOR_TIMEOUT && underMouse)  ||
+    if ((elapsed > HIDE_CURSOR_TIMEOUT)  ||
         (OculusManager::isConnected() && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode))) {
-        hideMouse = true;
+        hideMouse = underMouse;
     }
     
     setCursorVisible(!hideMouse);
@@ -2717,6 +2702,29 @@ bool Application::isHMDMode() const {
     }
 }
 
+QRect Application::getDesirableApplicationGeometry() {
+    QRect applicationGeometry = getWindow()->geometry();
+    
+    // If our parent window is on the HMD, then don't use it's geometry, instead use
+    // the "main screen" geometry.
+    HMDToolsDialog* hmdTools = Menu::getInstance()->getHMDToolsDialog();
+    if (hmdTools && hmdTools->hasHMDScreen()) {
+        QScreen* hmdScreen = hmdTools->getHMDScreen();
+        QWindow* appWindow = getWindow()->windowHandle();
+        QScreen* appScreen = appWindow->screen();
+
+        // if our app's screen is the hmd screen, we don't want to place the
+        // running scripts widget on it. So we need to pick a better screen.
+        // we will use the screen for the HMDTools since it's a guarenteed
+        // better screen.
+        if (appScreen == hmdScreen) {
+            QScreen* betterScreen = hmdTools->windowHandle()->screen();
+            applicationGeometry = betterScreen->geometry();
+        }
+    }
+    return applicationGeometry;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 // loadViewFrustum()
 //
@@ -3063,12 +3071,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
         _geometryCache.renderSphere(originSphereRadius, 15, 15);
-        
-        // draw the audio reflector overlay
-        {
-            PerformanceTimer perfTimer("audio");
-            _audioReflector.render();
-        }
         
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -3997,7 +3999,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
-    scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
 

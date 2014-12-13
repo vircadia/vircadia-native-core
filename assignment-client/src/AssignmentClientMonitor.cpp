@@ -12,6 +12,7 @@
 #include <signal.h>
 
 #include <LogHandler.h>
+#include <ShutdownEventListener.h>
 
 #include "AssignmentClientMonitor.h"
 
@@ -19,23 +20,18 @@ const char* NUM_FORKS_PARAMETER = "-n";
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 
-void signalHandler(int param){
-    // get the qApp and cast it to an AssignmentClientMonitor
-    AssignmentClientMonitor* app = qobject_cast<AssignmentClientMonitor*>(qApp);
-    
-    // tell it to stop the child processes and then go down
-    app->stopChildProcesses();
-    app->quit();
-}
-
 AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, int numAssignmentClientForks) :
     QCoreApplication(argc, argv)
-{
-    // be a signal handler for SIGTERM so we can stop our children when we get it
-    signal(SIGTERM, signalHandler);
-    
+{    
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
+    
+    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
+#ifdef _WIN32
+    installNativeEventFilter(&ShutdownEventListener::getInstance());
+#else
+    ShutdownEventListener::getInstance();
+#endif
     
     _childArguments = arguments();
     
@@ -50,6 +46,10 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, int num
     for (int i = 0; i < numAssignmentClientForks; i++) {
         spawnChildClient();
     }
+}
+
+AssignmentClientMonitor::~AssignmentClientMonitor() {
+    stopChildProcesses();
 }
 
 void AssignmentClientMonitor::stopChildProcesses() {

@@ -47,6 +47,10 @@ var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
 var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
+var LOBBY_PANEL_WALL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/PanelWallForInterface.fbx";
+var LOBBY_BLANK_PANEL_TEXTURE_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Texture.jpg";
+var LOBBY_SHELL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyShellForInterface.fbx";
+
 var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.stereo.raw")
 var currentDrone = null;
 
@@ -62,6 +66,21 @@ function textOverlayPosition() {
                               Vec3.multiply(Quat.getUp(Camera.orientation), TEXT_DISTANCE_DOWN));
 }
 
+var panelLocationOrder = [
+  7, 8, 9, 10, 11, 12, 13,
+  0, 1, 2, 3, 4, 5, 6,
+  14, 15, 16, 17, 18, 19, 20
+];
+
+// Location index is 0-based
+function locationIndexToPanelIndex(locationIndex) {
+  return panelLocationOrder.indexOf(locationIndex) + 1;
+}
+
+// Panel index is 1-based
+function panelIndexToLocationIndex(panelIndex) {
+  return panelLocationOrder[panelIndex - 1];
+}
 
 var MAX_NUM_PANELS = 21;
 var DRONE_VOLUME = 0.3;
@@ -76,14 +95,14 @@ function drawLobby() {
     var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/PanelWall2.fbx",
+      url: LOBBY_PANEL_WALL_URL,
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
       rotation: towardsMe,
       dimensions: panelsDimensions
     };
     
     var orbShellProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.4_LightTag.fbx",
+      url: LOBBY_SHELL_URL,
       position: orbPosition,
       rotation: towardsMe,
       dimensions: orbDimensions,
@@ -143,7 +162,9 @@ function changeLobbyTextures() {
   };
   
   for (var j = 0; j < NUM_PANELS; j++) {
-    textureProp["textures"]["file" + (j + 1)] = "http:" + locations[j].thumbnail_url
+    var panelIndex = locationIndexToPanelIndex(j);
+    textureProp["textures"]["file" + panelIndex] = HIFI_PUBLIC_BUCKET + "images/locations/" 
+      + locations[j].id + "/hifi-location-" + locations[j].id + "_640x360.jpg";
   };
   
   Overlays.editOverlay(panelWall, textureProp);
@@ -193,7 +214,7 @@ function cleanupLobby() {
   panelTexturesReset["textures"] = {};
       
   for (var j = 0; j < MAX_NUM_PANELS; j++) { 
-    panelTexturesReset["textures"]["file" + (j + 1)] = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Texture.jpg";
+    panelTexturesReset["textures"]["file" + (j + 1)] = LOBBY_BLANK_PANEL_TEXTURE_URL;
   };
   
   Overlays.editOverlay(panelWall, panelTexturesReset);
@@ -228,12 +249,13 @@ function actionStartEvent(event) {
       
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
-        var panelIndex = parseInt(panelName.slice(5)) - 1;
-        if (panelIndex < locations.length) {
-          var actionLocation = locations[panelIndex];
+        var panelIndex = parseInt(panelName.slice(5));
+        var locationIndex = panelIndexToLocationIndex(panelIndex);
+        if (locationIndex < locations.length) {
+          var actionLocation = locations[locationIndex];
           
           print("Jumping to " + actionLocation.name + " at " + actionLocation.path 
-            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex);
+            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex + " with location index " + locationIndex);
           
           Window.location = actionLocation;
           maybeCleanupLobby();
@@ -277,9 +299,10 @@ function handleLookAt(pickRay) {
       var panelName = result.extraInfo;
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
-        var panelIndex = parseInt(panelName.slice(5)) - 1;
-        if (panelIndex < locations.length) {
-          var actionLocation = locations[panelIndex];
+        var panelIndex = parseInt(panelName.slice(5));
+        var locationIndex = panelIndexToLocationIndex(panelIndex);
+        if (locationIndex < locations.length) {
+          var actionLocation = locations[locationIndex];
           
           if (actionLocation.description == "") {
               Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: showText });
@@ -300,7 +323,7 @@ function handleLookAt(pickRay) {
                 } else {
                     currentTestLine = allWords[currentTestWord];
                 }
-                var lineLength = Overlays.textWidth(descriptionText, currentTestLine);
+                var lineLength = Overlays.textSize(descriptionText, currentTestLine).width;
                 if (lineLength < textWidth || wordsOnLine == 0) {
                   wordsFormated++;
                   currentTestWord++;
