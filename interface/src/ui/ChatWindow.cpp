@@ -124,7 +124,7 @@ void ChatWindow::showEvent(QShowEvent* event) {
     if (!event->spontaneous()) {
         _ui->messagePlainTextEdit->setFocus();
     }
-    const QRect parentGeometry = parentWidget()->geometry();
+    QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
     int menuBarHeight = Menu::getInstance()->geometry().height();
     int topMargin = titleBarHeight + menuBarHeight;

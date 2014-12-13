@@ -24,6 +24,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+class QIODevice;
+
 class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
@@ -271,6 +273,10 @@ QByteArray writeMapping(const QVariantHash& mapping);
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+
+/// Reads FBX geometry from the supplied model and mapping data.
+/// \exception QString if an error occurs in parsing
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads SVO geometry from the supplied model data.
 FBXGeometry readSVO(const QByteArray& model);

@@ -1309,6 +1309,10 @@ void Menu::bandwidthDetails() {
         connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
 
         _bandwidthDialog->show();
+        
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
+        }
     }
     _bandwidthDialog->raise();
 }
@@ -1394,6 +1398,9 @@ void Menu::toggleConsole() {
 void Menu::toggleToolWindow() {
     QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
     toolWindow->setVisible(!toolWindow->isVisible());
+    if (_hmdToolsDialog) {
+        _hmdToolsDialog->watchWindow(toolWindow->windowHandle());
+    }
 }
 
 void Menu::audioMuteToggled() {
@@ -1416,6 +1423,9 @@ void Menu::octreeStatsDetails() {
                                                  Application::getInstance()->getOcteeSceneStats());
         connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
         _octreeStatsDialog->show();
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
+        }
     }
     _octreeStatsDialog->raise();
 }
@@ -1596,6 +1606,9 @@ void Menu::lodTools() {
         _lodToolsDialog = new LodToolsDialog(Application::getInstance()->getGLWidget());
         connect(_lodToolsDialog, SIGNAL(closed()), SLOT(lodToolsClosed()));
         _lodToolsDialog->show();
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_lodToolsDialog->windowHandle());
+        }
     }
     _lodToolsDialog->raise();
 }

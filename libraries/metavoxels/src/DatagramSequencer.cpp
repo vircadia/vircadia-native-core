@@ -19,7 +19,7 @@
 #include "MetavoxelMessages.h"
 
 // in sequencer parlance, a "packet" may consist of multiple datagrams.  clarify when we refer to actual datagrams
-const int MAX_DATAGRAM_SIZE = 1450;
+const int MAX_DATAGRAM_SIZE = MAX_PACKET_SIZE;
 
 const int DEFAULT_MAX_PACKET_SIZE = 3000;
 
@@ -45,7 +45,8 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* 
     _packetsToWrite(0.0f),
     _slowStartThreshold(DEFAULT_SLOW_START_THRESHOLD),
     _packetRateIncreasePacketNumber(0),
-    _packetRateDecreasePacketNumber(0) {
+    _packetRateDecreasePacketNumber(0),
+    _packetDropCount(0) {
 
     _outgoingPacketStream.setByteOrder(QDataStream::LittleEndian);
     _incomingDatagramStream.setByteOrder(QDataStream::LittleEndian);
@@ -348,11 +349,18 @@ void DatagramSequencer::sendRecordLost(const SendRecord& record) {
         }
     }
     
-    // halve the rate and remember as threshold
-    if (record.packetNumber >= _packetRateDecreasePacketNumber) {
-        _packetsPerGroup = qMax(_packetsPerGroup * 0.5f, 1.0f);
-        _slowStartThreshold = _packetsPerGroup;
-        _packetRateDecreasePacketNumber = _outgoingPacketNumber + 1;
+    // if we've lost three in a row, halve the rate and remember as threshold
+    if (_packetDropCount == 0 || record.packetNumber == _lastPacketDropped + 1) {
+        _packetDropCount++;
+        _lastPacketDropped = record.packetNumber;
+        const int CONSECUTIVE_DROPS_BEFORE_REDUCTION = 3;
+        if (_packetDropCount >= CONSECUTIVE_DROPS_BEFORE_REDUCTION && record.packetNumber >= _packetRateDecreasePacketNumber) {
+            _packetsPerGroup = qMax(_packetsPerGroup * 0.5f, 1.0f);
+            _slowStartThreshold = _packetsPerGroup;
+            _packetRateDecreasePacketNumber = _outgoingPacketNumber + 1;
+        }
+    } else {
+        _packetDropCount = 0;
     }
 }
 
