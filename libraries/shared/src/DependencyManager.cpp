@@ -18,9 +18,7 @@ DependencyManager& DependencyManager::getInstance() {
 
 DependencyManager::~DependencyManager() {
     foreach (Dependency* instance, _instanceHash) {
-        if (instance) {
-            delete instance;
-        }
+        delete instance;
     }
     _instanceHash.clear();
 }
