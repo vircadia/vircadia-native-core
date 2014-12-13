@@ -16,17 +16,10 @@ DependencyManager& DependencyManager::getInstance() {
     return instance;
 }
 
-DependencyManager::DependencyManager() {
-    // Guard against request of ourself
-    // We could set the value to this, but since it doesn't make sense to access
-    // the DependencyManager instance from the outside let's set it to NULL
-    _instanceHash.insert(typeid(DependencyManager).name(), NULL);
-}
-
 DependencyManager::~DependencyManager() {
     foreach (Dependency* instance, _instanceHash) {
         if (instance) {
-            instance->deleteInstance();
+            delete instance;
         }
     }
     _instanceHash.clear();

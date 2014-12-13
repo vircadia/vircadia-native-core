@@ -19,16 +19,24 @@
 
 class DependencyManager {
 public:
+    // Only accessible method.
+    // usage: T* instance = DependencyManager::get<T>();
     template<typename T>
     static T* get();
     
+    // Any class T in the DependencyManager needs to subclass Dependency
+    // They also need to have protected constructor(s) and virtual destructor
+    // As well as declare DependencyManager a friend class
     class Dependency {
-        virtual void deleteInstance() = 0;
+    protected:
+        Dependency() {}
+        virtual ~Dependency() {} // Ensure the proper destruction of the object
         friend DependencyManager;
     };
+    
 private:
     static DependencyManager& getInstance();
-    DependencyManager();
+    DependencyManager() {}
     ~DependencyManager();
     
     typedef QHash<QString, Dependency*> InstanceHash;
