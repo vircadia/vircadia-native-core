@@ -839,9 +839,11 @@ Controller.keyReleaseEvent.connect(function (event) {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
         if (isActive) {
-            cameraManager.focus(selectionManager.worldPosition,
-                                selectionManager.worldDimensions,
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            if (selectionManager.hasSelection()) {
+                cameraManager.focus(selectionManager.worldPosition,
+                                    selectionManager.worldDimensions,
+                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            }
         }
     } else if (event.text == '[') {
         if (isActive) {
@@ -1001,7 +1003,9 @@ PropertiesTool = function(opts) {
             type: 'update',
         };
         if (selectionManager.hasSelection()) {
+            data.id = selectionManager.selections[0].id;
             data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+            data.properties.rotation = Quat.safeEulerAngles(data.properties.rotation);
         }
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
@@ -1010,8 +1014,59 @@ PropertiesTool = function(opts) {
         print(data);
         data = JSON.parse(data);
         if (data.type == "update") {
+            selectionManager.saveProperties();
+            if (data.properties.rotation !== undefined) {
+                var rotation = data.properties.rotation;
+                data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+            }
             Entities.editEntity(selectionManager.selections[0], data.properties);
+            pushCommandForSelections();
             selectionManager._update();
+        } else if (data.type == "action") {
+            if (data.action == "moveSelectionToGrid") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
+                    var diff = { x: 0, y: dY, z: 0 };
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var newPosition = Vec3.sum(properties.position, diff);
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: newPosition,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "moveAllToGrid") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
+                        var dY = grid.getOrigin().y - bottomY;
+                        var diff = { x: 0, y: dY, z: 0 };
+                        var newPosition = Vec3.sum(properties.position, diff);
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: newPosition,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "resetToNaturalDimensions") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        Entities.editEntity(selectionManager.selections[i], {
+                            dimensions: properties.naturalDimensions,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            }
         }
     });
 
