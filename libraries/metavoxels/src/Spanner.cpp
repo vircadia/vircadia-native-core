@@ -1734,7 +1734,7 @@ HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const
         colorContents = QByteArray(baseWidth * baseHeight * DataBlock::COLOR_BYTES, 0xFF); 
     }
     
-    int materialWidth = baseWidth, materialHeight = baseHeight;
+    int materialWidth = colorWidth, materialHeight = colorHeight;
     QByteArray materialContents;
     QVector<SharedObjectPointer> materials;
     if (_material) {
@@ -1744,7 +1744,7 @@ HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const
         materials = _material->getMaterials();
         
     } else {
-        materialContents = QByteArray(baseWidth * baseHeight, 0);
+        materialContents = QByteArray(materialWidth * materialHeight, 0);
     }
     
     int highestX = colorWidth - 1;
@@ -2273,8 +2273,93 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     if (!_height) {
         return this;
     }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;    
+    int highestHeightX = heightWidth - 1;
+    int highestHeightZ = heightHeight - 1;
+    QVector<quint16> newHeightContents = _height->getContents();
     
-    return this;
+    int colorWidth, colorHeight;
+    QByteArray newColorContents;
+    if (_color) {
+        colorWidth = _color->getWidth();
+        colorHeight = _color->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+        newColorContents = _color->getContents();
+        
+    } else {
+        colorWidth = innerHeightWidth + HeightfieldData::SHARED_EDGE;
+        colorHeight = innerHeightHeight + HeightfieldData::SHARED_EDGE;
+        newColorContents = QByteArray(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFF);
+    }
+    int innerColorWidth = colorWidth - HeightfieldData::SHARED_EDGE;
+    int innerColorHeight = colorHeight - HeightfieldData::SHARED_EDGE;
+    
+    int materialWidth, materialHeight;
+    QByteArray newMaterialContents;
+    QVector<SharedObjectPointer> newMaterialMaterials;
+    if (_material) {
+        materialWidth = _material->getWidth();
+        materialHeight = _material->getContents().size() / materialWidth;
+        newMaterialContents = _material->getContents();
+        newMaterialMaterials = _material->getMaterials();
+        
+    } else {
+        materialWidth = colorWidth;
+        materialHeight = colorHeight;
+        newMaterialContents = QByteArray(materialWidth * materialHeight, 0);
+    }
+    int innerMaterialWidth = materialWidth - HeightfieldData::SHARED_EDGE;
+    int innerMaterialHeight = materialHeight - HeightfieldData::SHARED_EDGE;
+    
+    int stackWidth, stackHeight;
+    QVector<QByteArray> newStackContents;
+    QVector<SharedObjectPointer> newStackMaterials;
+    if (_stack) {
+        stackWidth = _stack->getWidth();
+        stackHeight = _stack->getContents().size() / stackWidth;
+        newStackContents = _stack->getContents();
+        newStackMaterials = _stack->getMaterials();
+        
+    } else {
+        stackWidth = innerHeightWidth + HeightfieldData::SHARED_EDGE;
+        stackHeight = innerHeightHeight + HeightfieldData::SHARED_EDGE;
+        newStackContents = QVector<QByteArray>(stackWidth * stackHeight);
+    }
+    int innerStackWidth = stackWidth - HeightfieldData::SHARED_EDGE;
+    int innerStackHeight = stackHeight - HeightfieldData::SHARED_EDGE;
+    
+    glm::mat4 baseInverseTransform = glm::mat4_cast(glm::inverse(rotation)) * glm::translate(-translation);
+    glm::vec3 inverseScale(innerHeightWidth / scale.x, numeric_limits<quint16>::max() / scale.y, innerHeightHeight / scale.z);
+    glm::mat4 inverseTransform = glm::translate(glm::vec3(1.0f, 0.0f, 1.0f)) * glm::scale(inverseScale) * baseInverseTransform;
+    Box transformedBounds = inverseTransform * spanner->getBounds();
+    glm::mat4 transform = glm::inverse(inverseTransform);
+    
+    glm::vec3 start = glm::floor(transformedBounds.minimum);
+    glm::vec3 end = glm::ceil(transformedBounds.maximum);
+    
+    float startX = glm::clamp(start.x, 0.0f, (float)highestHeightX), endX = glm::clamp(end.x, 0.0f, (float)highestHeightX);
+    float startY = glm::clamp(start.y, 0.0f, (float)numeric_limits<quint16>::max());
+    float endY = glm::clamp(end.y, 0.0f, (float)numeric_limits<quint16>::max());
+    float startZ = glm::clamp(start.z, 0.0f, (float)highestHeightZ), endZ = glm::clamp(end.z, 0.0f, (float)highestHeightZ);
+    quint16* lineDest = newHeightContents.data() + (int)startZ * heightWidth + (int)startX;
+    glm::vec3 worldStart = glm::vec3(transform * glm::vec4(startX, startY, startZ, 1.0f));
+    glm::vec3 worldStepX = glm::vec3(transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+    glm::vec3 worldStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+    bool erase = (color.alpha() == 0);
+    for (float z = startZ; z <= endZ; z += 1.0f, worldStart += worldStepZ, lineDest += heightWidth) {
+        quint16* dest = lineDest;
+        glm::vec3 worldPos = worldStart;
+        for (float x = startX; x <= endX; x += 1.0f, dest++, worldPos += worldStepX) {
+            *dest = 32768;
+        }
+    }
+    
+    return new HeightfieldNode(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)),
+        HeightfieldColorPointer(new HeightfieldColor(colorWidth, newColorContents)),
+        HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth, newMaterialContents, newMaterialMaterials)),
+        HeightfieldStackPointer(new HeightfieldStack(stackWidth, newStackContents, newStackMaterials)));
 }
 
 void HeightfieldNode::read(HeightfieldStreamState& state) {

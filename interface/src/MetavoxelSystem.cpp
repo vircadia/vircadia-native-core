@@ -2194,10 +2194,16 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         QVector<quint16> heightContents = node->getHeight()->getContents();
         if (node->getStack()) {
             // clear any height values covered by stacks
+            int stackWidth = node->getStack()->getWidth();
+            int stackHeight = node->getStack()->getContents().size() / stackWidth;
             const QByteArray* src = node->getStack()->getContents().constData();
-            for (quint16* dest = heightContents.data(), *end = dest + heightContents.size(); dest != end; dest++, src++) {
-                if (!src->isEmpty()) {
-                    *dest = 0;
+            quint16* dest = heightContents.data() + (width + 1) * HeightfieldHeight::HEIGHT_BORDER;
+            for (int z = 0; z < stackHeight; z++, dest += width) {
+                quint16* lineDest = dest;
+                for (int x = 0; x < stackWidth; x++, src++, lineDest++) {
+                    if (!src->isEmpty()) {
+                        *lineDest = 0;
+                    }
                 }
             }
         }
