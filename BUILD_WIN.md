@@ -22,8 +22,6 @@ Or you can start a regular command prompt and then run:
 
     "%VS120COMNTOOLS%\vsvars32.bat"
 
-If you experience issues building interface on Visual Studio 2013, try generating the build files with Visual Studio 2010 instead. To do so, download Visual Studio 2010 and run `cmake .. -G "Visual Studio 10"` (Assuming running from %HIFI_DIR%\build).
-
 #####Windows SDK 8.1
 
 If using Visual Studio 2013 and building as a Visual Studio 2013 project you need the Windows 8 SDK which you should already have as part of installing Visual Studio 2013. You should be able to see it at `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`.
