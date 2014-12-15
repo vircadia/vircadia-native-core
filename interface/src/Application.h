@@ -220,8 +220,7 @@ public:
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
     int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
-    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
-    Faceshift* getFaceshift() { return &_faceshift; }
+    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     Visage* getVisage() { return &_visage; }
     DdeFaceTracker* getDDE() { return &_dde; }
     FaceTracker* getActiveFaceTracker();
@@ -532,7 +531,6 @@ private:
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
-    Faceshift _faceshift;
     Visage _visage;
     DdeFaceTracker _dde;
 

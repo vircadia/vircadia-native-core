@@ -24,7 +24,7 @@
 #include "FaceTracker.h"
 
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
-class Faceshift : public FaceTracker {
+class Faceshift : public FaceTracker, public DependencyManager::Dependency {
     Q_OBJECT
 
 public:

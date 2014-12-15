@@ -55,6 +55,7 @@
 #include <AddressManager.h>
 #include <AccountManager.h>
 #include <AudioInjector.h>
+#include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
@@ -1690,8 +1691,10 @@ int Application::getMouseDragStartedY() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
+    Faceshift* faceshift = DependencyManager::get<Faceshift>();
+    
     return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
-            (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift) :
              (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
 }
 
@@ -1976,7 +1979,7 @@ void Application::init() {
 #endif
 
     // initialize our face trackers after loading the menu settings
-    _faceshift.init();
+    DependencyManager::get<Faceshift>()->init();
     _visage.init();
 
     Leapmotion::init();
@@ -2101,13 +2104,13 @@ void Application::updateMouseRay() {
 void Application::updateFaceshift() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-
+    Faceshift* faceshift = DependencyManager::get<Faceshift>();
     //  Update faceshift
-    _faceshift.update();
+    faceshift->update();
 
     //  Copy angular velocity if measured by faceshift, to the head
-    if (_faceshift.isActive()) {
-        _myAvatar->getHead()->setAngularVelocity(_faceshift.getHeadAngularVelocity());
+    if (faceshift->isActive()) {
+        _myAvatar->getHead()->setAngularVelocity(faceshift->getHeadAngularVelocity());
     }
 }
 
@@ -3549,7 +3552,7 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 }
 
 void Application::resetSensors() {
-    _faceshift.reset();
+    DependencyManager::get<Faceshift>()->reset();
     _visage.reset();
     _dde.reset();
 
