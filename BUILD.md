@@ -5,6 +5,7 @@ Dependencies
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
+* [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
 
 #####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
@@ -55,7 +56,7 @@ In the examples below the variable $NAME would be replaced by the name of the de
 
 UNIX
 ===
-In general, as long as external dependencies are placed in OS standard locations, CMake will successfully find them during its run. When possible, you may choose to install depencies from your package manager of choice, or from source. 
+In general, as long as external dependencies are placed in OS standard locations, CMake will successfully find them during its run. When possible, you may choose to install depencies from your package manager of choice, or from source.
 
 ####Linux
 Should you choose not to install Qt5 via a package manager that handles dependencies for you, you may be missing some Qt5 dependencies. On Ubuntu, for example, the following additional packages are required:
@@ -67,7 +68,7 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
     brew tap highfidelity/homebrew-formulas
-    brew install cmake glm openssl
+    brew install cmake glm openssl tbb
     brew install highfidelity/formulas/qt5
     brew link qt5 --force
 
@@ -173,6 +174,9 @@ The recommended route for CMake to find the external dependencies is to place al
             -> bin
             -> include
             -> lib
+        -> tbb
+            -> include
+            -> lib
         -> zlib
            -> include
            -> lib
@@ -201,6 +205,12 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 * Win32 OpenSSL v1.0.1h
 
 Install OpenSSL into the Windows system directory, to make sure that QT uses the version that you've just installed, and not some other version.
+
+#### Intel Threading Building Blocks (TBB)
+
+Download the stable release for Windows from the [Intel Threading Building Blocks website](https://www.threadingbuildingblocks.org/). By default, TBB will install to Program Files. You may also choose to install it to %HIFI_LIB_DIR%\TBB. 
+
+You must run `tbbvars.bat` so that the find module included with this project will be able to find TBB no matter where you installed it. `tbbvars.bat` is located in the 'bin' folder of your TBB install. For a default installation on a 64-bit architechture, tbbvars can be found at `C:/Program Files (x86)/Intel/TBB/bin/tbbvars.bat`.
 
 #### Zlib
 
