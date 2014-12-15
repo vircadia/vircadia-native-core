@@ -25,7 +25,7 @@ macro(LINK_SHARED_DEPENDENCIES)
   endif ()
   
   # we've already linked our Qt modules, but we need to bubble them up to parents
-  list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${${TARGET}_QT_MODULES_TO_LINK}")
+  list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${${TARGET_NAME}_QT_MODULES_TO_LINK}")
   
   # set the property on this target so it can be retreived by targets linking to us
   set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES "${${TARGET_NAME}_LIBRARIES_TO_LINK}")
