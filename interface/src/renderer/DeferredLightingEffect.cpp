@@ -234,6 +234,8 @@ void DeferredLightingEffect::render() {
     
     const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
     float nearRadius = glm::distance(eyePoint, Application::getInstance()->getDisplayViewFrustum()->getNearTopLeft());
+
+    GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
@@ -241,7 +243,7 @@ void DeferredLightingEffect::render() {
         _pointLight.setUniformValue(_pointLightLocations.depthScale, depthScale);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-        
+
         foreach (const PointLight& light, _pointLights) {
             _pointLight.setUniformValue(_pointLightLocations.radius, light.radius);
             glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
@@ -270,7 +272,7 @@ void DeferredLightingEffect::render() {
                 
             } else {
                 glTranslatef(light.position.x, light.position.y, light.position.z);   
-                DependencyManager::get<GeometryCache>()->renderSphere(expandedRadius, 32, 32);
+                geometryCache->renderSphere(expandedRadius, 32, 32);
             }
             
             glPopMatrix();
@@ -323,7 +325,7 @@ void DeferredLightingEffect::render() {
                 glm::vec3 axis = glm::axis(spotRotation);
                 glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
                 glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
-                DependencyManager::get<GeometryCache>()->renderCone(expandedRadius * glm::tan(light.cutoff),
+                geometryCache->renderCone(expandedRadius * glm::tan(light.cutoff),
                     expandedRadius, 32, 1);
             }
             
