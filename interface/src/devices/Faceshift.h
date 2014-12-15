@@ -28,9 +28,6 @@ class Faceshift : public FaceTracker, public DependencyManager::Dependency {
     Q_OBJECT
 
 public:
-    Faceshift();
-    virtual ~Faceshift() {}
-
     void init();
 
     bool isConnectedOrConnecting() const; 
@@ -90,6 +87,9 @@ private slots:
     void readFromSocket();        
     
 private:
+    Faceshift();
+    virtual ~Faceshift() {}
+    friend DependencyManager;
     
     float getBlendshapeCoefficient(int index) const;
     

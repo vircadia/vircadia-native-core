@@ -56,8 +56,6 @@
 #include "avatar/MyAvatar.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
-#include "devices/Visage.h"
-#include "devices/DdeFaceTracker.h"
 #include "entities/EntityTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/DeferredLightingEffect.h"
@@ -99,6 +97,7 @@ class QMouseEvent;
 class QSettings;
 class QWheelEvent;
 
+class FaceTracker;
 class Node;
 class ProgramObject;
 
@@ -220,8 +219,6 @@ public:
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
     int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
-    Visage* getVisage() { return &_visage; }
-    DdeFaceTracker* getDDE() { return &_dde; }
     FaceTracker* getActiveFaceTracker();
     PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
@@ -529,9 +526,6 @@ private:
 
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-
-    Visage _visage;
-    DdeFaceTracker _dde;
 
     PrioVR _prioVR;
 

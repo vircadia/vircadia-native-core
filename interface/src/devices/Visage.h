@@ -16,6 +16,8 @@
 #include <QPair>
 #include <QVector>
 
+#include <DependencyManager.h>
+
 #include "FaceTracker.h"
 
 namespace VisageSDK {
@@ -24,14 +26,10 @@ namespace VisageSDK {
 }
 
 /// Handles input from the Visage webcam feature tracking software.
-class Visage : public FaceTracker {
+class Visage : public FaceTracker, public DependencyManager::Dependency  {
     Q_OBJECT
     
 public:
-    
-    Visage();
-    virtual ~Visage();
-    
     void init();
     
     bool isActive() const { return _active; }
@@ -44,6 +42,9 @@ public slots:
     void updateEnabled();
     
 private:
+    Visage();
+    virtual ~Visage();
+    friend DependencyManager;
 
 #ifdef HAVE_VISAGE
     VisageSDK::VisageTracker2* _tracker;

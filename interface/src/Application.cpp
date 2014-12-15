@@ -77,11 +77,13 @@
 #include "ModelUploader.h"
 #include "Util.h"
 
+#include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+#include "devices/Visage.h"
 
 #include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
@@ -1693,10 +1695,12 @@ int Application::getMouseDragStartedY() const {
 
 FaceTracker* Application::getActiveFaceTracker() {
     Faceshift* faceshift = DependencyManager::get<Faceshift>();
+    Visage* visage = DependencyManager::get<Visage>();
+    DdeFaceTracker* dde = DependencyManager::get<DdeFaceTracker>();
     
-    return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
+    return (dde->isActive() ? static_cast<FaceTracker*>(dde) :
             (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift) :
-             (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
+             (visage->isActive() ? static_cast<FaceTracker*>(visage) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1981,7 +1985,7 @@ void Application::init() {
 
     // initialize our face trackers after loading the menu settings
     DependencyManager::get<Faceshift>()->init();
-    _visage.init();
+    DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
 
@@ -2120,7 +2124,7 @@ void Application::updateVisage() {
     PerformanceWarning warn(showWarnings, "Application::updateVisage()");
 
     //  Update Visage
-    _visage.update();
+    DependencyManager::get<Visage>()->update();
 }
 
 void Application::updateDDE() {
@@ -2128,7 +2132,7 @@ void Application::updateDDE() {
     PerformanceWarning warn(showWarnings, "Application::updateDDE()");
     
     //  Update Cara
-    _dde.update();
+    DependencyManager::get<DdeFaceTracker>()->update();
 }
 
 void Application::updateMyAvatarLookAtPosition() {
@@ -3554,8 +3558,8 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 
 void Application::resetSensors() {
     DependencyManager::get<Faceshift>()->reset();
-    _visage.reset();
-    _dde.reset();
+    DependencyManager::get<Visage>()->reset();
+    DependencyManager::get<DdeFaceTracker>()->reset();
 
     OculusManager::reset();
 
