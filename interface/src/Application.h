@@ -571,7 +571,6 @@ private:
 
 
     AnimationCache _animationCache;
-    TextureCache* _textureCache;
 
     DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;
