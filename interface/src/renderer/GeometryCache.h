@@ -18,6 +18,7 @@
 #include <QMap>
 #include <QOpenGLBuffer>
 
+#include <DependencyManager.h>
 #include <ResourceCache.h>
 
 #include <FBXReader.h>
@@ -31,16 +32,10 @@ class NetworkMesh;
 class NetworkTexture;
 
 /// Stores cached geometry.
-class GeometryCache : public ResourceCache {
+class GeometryCache : public ResourceCache, public DependencyManager::Dependency  {
     Q_OBJECT
 
 public:
-
-    static GeometryCache* getInstance();
-    
-    GeometryCache();
-    virtual ~GeometryCache();
-    
     void renderHemisphere(int slices, int stacks);
     void renderSphere(float radius, int slices, int stacks);
     void renderSquare(int xDivisions, int yDivisions);
@@ -59,6 +54,9 @@ protected:
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
         
 private:
+    GeometryCache();
+    virtual ~GeometryCache();
+    friend class DependencyManager;
     
     typedef QPair<int, int> IntPair;
     typedef QPair<GLuint, GLuint> VerticesIndices;

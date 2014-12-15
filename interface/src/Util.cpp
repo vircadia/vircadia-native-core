@@ -71,22 +71,22 @@ void renderWorldBox() {
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
     glColor3fv(red);
-    GeometryCache::getInstance()->renderSphere(MARKER_RADIUS, 10, 10);
+    DependencyManager::get<GeometryCache>()->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, MARKER_DISTANCE, 0);
     glColor3fv(green);
-    GeometryCache::getInstance()->renderSphere(MARKER_RADIUS, 10, 10);
+    DependencyManager::get<GeometryCache>()->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, 0, MARKER_DISTANCE);
     glColor3fv(blue);
-    GeometryCache::getInstance()->renderSphere(MARKER_RADIUS, 10, 10);
+    DependencyManager::get<GeometryCache>()->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glColor3fv(gray);
     glTranslatef(MARKER_DISTANCE, 0, MARKER_DISTANCE);
-    GeometryCache::getInstance()->renderSphere(MARKER_RADIUS, 10, 10);
+    DependencyManager::get<GeometryCache>()->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
 
 }

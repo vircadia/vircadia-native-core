@@ -23,11 +23,6 @@
 #include "GeometryCache.h"
 #include "TextureCache.h"
 
-GeometryCache* GeometryCache::getInstance() {
-    static GeometryCache instance;
-    return &instance;
-}
-
 GeometryCache::GeometryCache() {
 }
 

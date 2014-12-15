@@ -51,7 +51,7 @@ void DeferredLightingEffect::releaseSimpleProgram() {
 
 void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks) {
     bindSimpleProgram();
-    GeometryCache::getInstance()->renderSphere(radius, slices, stacks); 
+    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks); 
     releaseSimpleProgram();
 }
 
@@ -75,7 +75,7 @@ void DeferredLightingEffect::renderWireCube(float size) {
 
 void DeferredLightingEffect::renderSolidCone(float base, float height, int slices, int stacks) {
     bindSimpleProgram();
-    GeometryCache::getInstance()->renderCone(base, height, slices, stacks);
+    DependencyManager::get<GeometryCache>()->renderCone(base, height, slices, stacks);
     releaseSimpleProgram();
 }
 
@@ -270,7 +270,7 @@ void DeferredLightingEffect::render() {
                 
             } else {
                 glTranslatef(light.position.x, light.position.y, light.position.z);   
-                GeometryCache::getInstance()->renderSphere(expandedRadius, 32, 32);
+                DependencyManager::get<GeometryCache>()->renderSphere(expandedRadius, 32, 32);
             }
             
             glPopMatrix();
@@ -323,7 +323,7 @@ void DeferredLightingEffect::render() {
                 glm::vec3 axis = glm::axis(spotRotation);
                 glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
                 glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
-                GeometryCache::getInstance()->renderCone(expandedRadius * glm::tan(light.cutoff),
+                DependencyManager::get<GeometryCache>()->renderCone(expandedRadius * glm::tan(light.cutoff),
                     expandedRadius, 32, 1);
             }
             

@@ -3080,7 +3080,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // draw a red sphere
         float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
-        GeometryCache::getInstance()->renderSphere(originSphereRadius, 15, 15);
+        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15);
         
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {

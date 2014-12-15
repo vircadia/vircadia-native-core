@@ -471,7 +471,7 @@ void ModelUploader::processCheck() {
                                      QString("ModelUploader::processCheck()"),
                                      QString("Your model is now available in the browser."),
                                      QMessageBox::Ok);
-            GeometryCache::getInstance()->refresh(_url);
+            DependencyManager::get<GeometryCache>()->refresh(_url);
             foreach (const QByteArray& filename, _textureFilenames) {
                 DependencyManager::get<TextureCache>()->refresh(_textureBase + filename);
             }
