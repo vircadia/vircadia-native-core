@@ -19,6 +19,7 @@
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
+#include <ProgramObject.h>
 #include <SharedUtil.h>
 #include <NodeList.h>
 
@@ -26,7 +27,6 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include "renderer/ProgramObject.h"
 #include "VoxelConstants.h"
 #include "VoxelSystem.h"
 

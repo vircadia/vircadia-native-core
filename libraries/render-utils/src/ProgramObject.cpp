@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ProgramObject.h"
 #include <glm/gtc/type_ptr.hpp>
+
+#include "ProgramObject.h"
 
 ProgramObject::ProgramObject(QObject* parent) : QGLShaderProgram(parent) {
 }

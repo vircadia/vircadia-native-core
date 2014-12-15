@@ -13,13 +13,13 @@
 #include <NodeList.h>
 
 #include <GeometryUtil.h>
+#include <ProgramObject.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Menu.h"
 #include "Util.h"
-#include "renderer/ProgramObject.h"
 
 using namespace std;
 

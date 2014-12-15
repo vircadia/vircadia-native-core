@@ -16,10 +16,10 @@
 
 #include <glm/gtc/random.hpp>
 
+#include <ProgramObject.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
-#include "ProgramObject.h"
 #include "RenderUtil.h"
 
 #include "AmbientOcclusionEffect.h"

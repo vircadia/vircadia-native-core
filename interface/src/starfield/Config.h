@@ -13,7 +13,6 @@
 #define hifi_Config_h
 
 #include "InterfaceConfig.h"
-#include "renderer/ProgramObject.h"
 
 #include <cstddef>
 #include <cfloat>
@@ -34,6 +33,8 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
+
+#include <ProgramObject.h>
 
 #include "AngleUtil.h"
 #include "Radix2InplaceSort.h"

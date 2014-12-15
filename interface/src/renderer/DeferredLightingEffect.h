@@ -14,9 +14,8 @@
 
 #include <QVector>
 
+#include <ProgramObject.h>
 #include <SharedUtil.h>
-
-#include "ProgramObject.h"
 
 class PostLightingRenderable;
 

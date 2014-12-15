@@ -66,6 +66,7 @@
 #include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
+#include <ProgramObject.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UserActivityLogger.h>
@@ -85,7 +86,6 @@
 #include "devices/TV3DManager.h"
 #include "devices/Visage.h"
 
-#include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
 

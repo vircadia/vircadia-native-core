@@ -15,10 +15,10 @@
 #include <QOpenGLFramebufferObject>
 
 #include <PerfStat.h>
+#include <ProgramObject.h>
 
 #include "Application.h"
 #include "GlowEffect.h"
-#include "ProgramObject.h"
 #include "RenderUtil.h"
 
 GlowEffect::GlowEffect()

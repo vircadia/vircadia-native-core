@@ -17,11 +17,11 @@
 
 #include <GeometryUtil.h>
 #include <PacketHeaders.h>
+#include <ProgramObject.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
 #include "Camera.h"
-#include "renderer/ProgramObject.h"
 #include "world.h"
 
 #include "Environment.h"
