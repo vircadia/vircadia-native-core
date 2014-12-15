@@ -2244,10 +2244,48 @@ HeightfieldNode* HeightfieldNode::clearAndFetchHeight(const glm::vec3& translati
     return newNode;
 }
 
-HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        Spanner* spanner, const SharedObjectPointer& material, const QColor& color) {
+void HeightfieldNode::getRangeAfterMaterialSet(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const Box& spannerBounds, bool erase, int& minimum, int& maximum) const {
     Box bounds = glm::translate(translation) * glm::mat4_cast(rotation) * Box(glm::vec3(), scale);
-    if (!bounds.intersects(spanner->getBounds())) {
+    if (!bounds.intersects(spannerBounds)) {
+        return;
+    }
+    if (!isLeaf()) {
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            glm::vec3 nextScale = scale * glm::vec3(0.5f, 1.0f, 0.5f);
+            _children[i]->getRangeAfterMaterialSet(translation +
+                rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
+                    i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
+                nextScale, spannerBounds, erase, minimum, maximum);
+        }
+        return;
+    }
+    if (!_height) {
+        return;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
+    
+    glm::mat4 baseInverseTransform = glm::mat4_cast(glm::inverse(rotation)) * glm::translate(-translation);
+    glm::vec3 inverseScale(innerHeightWidth / scale.x, numeric_limits<quint16>::max() / scale.y, innerHeightHeight / scale.z);
+    glm::mat4 inverseTransform = glm::translate(glm::vec3(1.0f, 0.0f, 1.0f)) * glm::scale(inverseScale) * baseInverseTransform;
+    Box transformedBounds = inverseTransform * spannerBounds;
+    
+    glm::vec3 start = glm::floor(transformedBounds.minimum);
+    glm::vec3 end = glm::ceil(transformedBounds.maximum);
+    
+    minimum = qMin(minimum, (int)start.y);
+    maximum = qMax(maximum, (int)end.y);
+}
+
+HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color,
+        float normalizeScale, float normalizeOffset) {
+    Box bounds = glm::translate(translation) * glm::mat4_cast(rotation) * Box(glm::vec3(), scale);
+    bool intersects = bounds.intersects(spanner->getBounds());
+    if (!intersects && normalizeScale == 1.0f && normalizeOffset == 0.0f) {
         return this;
     }
     if (!isLeaf()) {
@@ -2257,7 +2295,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             HeightfieldNode* newChild = _children[i]->setMaterial(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
-                nextScale, spanner, material, color);
+                nextScale, spanner, material, color, normalizeScale, normalizeOffset);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -2280,6 +2318,21 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     int highestHeightX = heightWidth - 1;
     int highestHeightZ = heightHeight - 1;
     QVector<quint16> newHeightContents = _height->getContents();
+    
+    // renormalize if necessary
+    if (normalizeScale != 1.0f || normalizeOffset != 0.0f) {
+        for (quint16* dest = newHeightContents.data(), *end = newHeightContents.data() + newHeightContents.size();
+                dest != end; dest++) {
+            int value = *dest;
+            if (value != 0) {
+                *dest = (value + normalizeOffset) * normalizeScale;
+            }
+        }
+    }
+    if (!intersects) {
+        return new HeightfieldNode(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)),
+            _color, _material, _stack);
+    }
     
     int colorWidth, colorHeight;
     QByteArray newColorContents;
@@ -2340,19 +2393,33 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     glm::vec3 end = glm::ceil(transformedBounds.maximum);
     
     float startX = glm::clamp(start.x, 0.0f, (float)highestHeightX), endX = glm::clamp(end.x, 0.0f, (float)highestHeightX);
-    float startY = glm::clamp(start.y, 0.0f, (float)numeric_limits<quint16>::max());
-    float endY = glm::clamp(end.y, 0.0f, (float)numeric_limits<quint16>::max());
     float startZ = glm::clamp(start.z, 0.0f, (float)highestHeightZ), endZ = glm::clamp(end.z, 0.0f, (float)highestHeightZ);
     quint16* lineDest = newHeightContents.data() + (int)startZ * heightWidth + (int)startX;
-    glm::vec3 worldStart = glm::vec3(transform * glm::vec4(startX, startY, startZ, 1.0f));
+    glm::vec3 worldStart = glm::vec3(transform * glm::vec4(startX, start.y, startZ, 1.0f));
     glm::vec3 worldStepX = glm::vec3(transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+    glm::vec3 worldStepY = glm::vec3(transform * glm::vec4(0.0f, end.y - start.y, 0.0f, 0.0f));
     glm::vec3 worldStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
     bool erase = (color.alpha() == 0);
     for (float z = startZ; z <= endZ; z += 1.0f, worldStart += worldStepZ, lineDest += heightWidth) {
         quint16* dest = lineDest;
         glm::vec3 worldPos = worldStart;
         for (float x = startX; x <= endX; x += 1.0f, dest++, worldPos += worldStepX) {
-            *dest = 32768;
+            glm::vec3 endPos = worldPos + worldStepY;
+            float distance;
+            glm::vec3 normal;
+            if (erase) {
+                if (spanner->intersects(worldPos, endPos, distance, normal)) {
+                    quint16 height = glm::round(glm::mix(start.y, end.y, distance));
+                    if (height <= *dest) {
+                        *dest = height;
+                    }
+                }
+            } else if (spanner->intersects(endPos, worldPos, distance, normal)) {
+                quint16 height = glm::round(glm::mix(end.y, start.y, distance));
+                if (height >= *dest) {
+                    *dest = height;
+                }
+            }
         }
     }
     
@@ -2968,13 +3035,25 @@ Spanner* Heightfield::clearAndFetchHeight(const Box& bounds, SharedObjectPointer
 
 Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
         const QColor& color) {
-    HeightfieldNode* newRoot = _root->setMaterial(getTranslation(), getRotation(), glm::vec3(getScale(),
-        getScale() * _aspectY, getScale() * _aspectZ), static_cast<Spanner*>(spanner.data()), material, color);
-    if (_root == newRoot) {
-        return this;
-    }
+    // first see if we're going to exceed the range limits
+    Spanner* spannerData = static_cast<Spanner*>(spanner.data());
+    int minimumValue = 1, maximumValue = numeric_limits<quint16>::max();
+    _root->getRangeAfterMaterialSet(getTranslation(), getRotation(), glm::vec3(getScale(), getScale() * _aspectY,
+        getScale() * _aspectZ), spannerData->getBounds(), color.alpha() == 0, minimumValue, maximumValue);
+
+    // renormalize if necessary
     Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
-    newHeightfield->setRoot(HeightfieldNodePointer(newRoot));
+    float normalizeScale = 1.0f, normalizeOffset = 0.0f;
+    if (minimumValue < 1 || maximumValue > numeric_limits<quint16>::max()) {
+        normalizeScale = (numeric_limits<quint16>::max() - 1.0f) / (maximumValue - minimumValue);
+        normalizeOffset = 1.0f - minimumValue;
+        newHeightfield->setAspectY(_aspectY / normalizeScale);
+        newHeightfield->setTranslation(getTranslation() - getRotation() *
+            glm::vec3(0.0f, normalizeOffset * _aspectY * getScale() / (numeric_limits<quint16>::max() - 1), 0.0f));
+    }
+    newHeightfield->setRoot(HeightfieldNodePointer(_root->setMaterial(newHeightfield->getTranslation(), getRotation(),
+        glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), spannerData,
+        material, color, normalizeScale, normalizeOffset)));
     return newHeightfield;
 }
 

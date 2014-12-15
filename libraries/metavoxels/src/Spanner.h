@@ -583,8 +583,12 @@ public:
     HeightfieldNode* clearAndFetchHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const Box& bounds, SharedObjectPointer& heightfield);
     
+    void getRangeAfterMaterialSet(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const Box& spannerBounds, bool erase, int& minimum, int& maximum) const;
+        
     HeightfieldNode* setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        Spanner* spanner, const SharedObjectPointer& material, const QColor& color);
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color,
+        float normalizeScale, float normalizeOffset);
         
     void read(HeightfieldStreamState& state);
     void write(HeightfieldStreamState& state) const;
