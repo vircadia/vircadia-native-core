@@ -11,6 +11,7 @@
 
 
 #include "Application.h"
+#include "MainWindow.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
 #include "PreferencesDialog.h"

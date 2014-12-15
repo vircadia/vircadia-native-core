@@ -12,35 +12,21 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
-#include <map>
-#include <time.h>
-
 #include <QApplication>
-#include <QMainWindow>
-#include <QAction>
 #include <QHash>
 #include <QImage>
-#include <QList>
 #include <QPointer>
 #include <QSet>
 #include <QSettings>
 #include <QStringList>
-#include <QHash>
-#include <QTouchEvent>
 #include <QUndoStack>
-#include <QSystemTrayIcon>
 
 #include <EntityCollisionSystem.h>
 #include <EntityEditPacketSender.h>
-#include <NetworkPacket.h>
-#include <NodeList.h>
-#include <PacketHeaders.h>
-#include <ScriptEngine.h>
 #include <OctreeQuery.h>
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
-#include "MainWindow.h"
 #include "Audio.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
@@ -89,17 +75,19 @@
 #include "UndoStackScriptingInterface.h"
 
 
-class QAction;
-class QActionGroup;
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
 class QSettings;
+class QSystemTrayIcon;
+class QTouchEvent;
 class QWheelEvent;
 
 class FaceTracker;
+class MainWindow;
 class Node;
 class ProgramObject;
+class ScriptEngine;
 
 static const float NODE_ADDED_RED   = 0.0f;
 static const float NODE_ADDED_GREEN = 1.0f;

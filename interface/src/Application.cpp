@@ -61,6 +61,7 @@
 #include <HFBackEvent.h>
 #include <LocalVoxelsList.h>
 #include <LogHandler.h>
+#include <MainWindow.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>

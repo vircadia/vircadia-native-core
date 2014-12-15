@@ -12,6 +12,7 @@
 #include "AddressBarDialog.h"
 #include "AddressManager.h"
 #include "Application.h"
+#include "MainWindow.h"
 
 const QString ADDRESSBAR_GO_BUTTON_ICON = "images/address-bar-submit.svg";
 const QString ADDRESSBAR_GO_BUTTON_ACTIVE_ICON = "images/address-bar-submit-active.svg";

@@ -21,6 +21,7 @@
 
 #include <VoxelConstants.h>
 
+#include "MainWindow.h"
 #include "Menu.h"
 #include "devices/OculusManager.h"
 #include "ui/HMDToolsDialog.h"

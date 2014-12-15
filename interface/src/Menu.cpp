@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
+#include <MainWindow.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
 #include <XmppClient.h>

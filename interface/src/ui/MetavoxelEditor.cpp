@@ -37,6 +37,7 @@
 #include <MetavoxelUtil.h>
 
 #include "Application.h"
+#include "MainWindow.h"
 #include "MetavoxelEditor.h"
 
 using namespace std;

@@ -22,6 +22,7 @@
 
 #include "AnimationsDialog.h"
 #include "Application.h"
+#include "MainWindow.h"
 
 AnimationsDialog::AnimationsDialog() :
     QDialog(Application::getInstance()->getWindow()) {

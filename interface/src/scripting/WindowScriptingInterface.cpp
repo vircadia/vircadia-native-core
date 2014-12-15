@@ -17,6 +17,7 @@
 #include <QScriptValue>
 
 #include "Application.h"
+#include "MainWindow.h"
 #include "Menu.h"
 #include "ui/ModelsBrowser.h"
 

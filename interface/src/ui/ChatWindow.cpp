@@ -16,6 +16,8 @@
 #include <QScrollBar>
 #include <QSizePolicy>
 #include <QTimer>
+#include "qtimespan.h"
+
 
 #include <AddressManager.h>
 #include <AccountManager.h>
@@ -23,7 +25,7 @@
 #include "Application.h"
 #include "ChatMessageArea.h"
 #include "FlowLayout.h"
-#include "qtimespan.h"
+#include "MainWindow.h"
 #include "UIUtil.h"
 #include "XmppClient.h"
 
