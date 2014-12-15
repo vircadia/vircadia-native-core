@@ -40,13 +40,13 @@ REGISTER_META_OBJECT(StaticModelRenderer)
 REGISTER_META_OBJECT(HeightfieldRenderer)
 
 MetavoxelSystem::NetworkSimulation::NetworkSimulation(float dropRate, float repeatRate,
-                                                      int minimumDelay, int maximumDelay, int bandwidthLimit) :
-dropRate(dropRate),
-repeatRate(repeatRate),
-minimumDelay(minimumDelay),
-maximumDelay(maximumDelay),
-bandwidthLimit(bandwidthLimit) {
-}
+        int minimumDelay, int maximumDelay, int bandwidthLimit) :
+    dropRate(dropRate),
+    repeatRate(repeatRate),
+    minimumDelay(minimumDelay),
+    maximumDelay(maximumDelay),
+    bandwidthLimit(bandwidthLimit) {
+}    
 
 MetavoxelSystem::~MetavoxelSystem() {
     // kill the updater before we delete our network simulation objects
@@ -59,14 +59,14 @@ void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     
     _voxelBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
-                                                                                new BufferDataAttribute("voxelBuffer"));
+        new BufferDataAttribute("voxelBuffer"));
     _voxelBufferAttribute->setLODThresholdMultiplier(
-                                                     AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
-    
+        AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
+        
     _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-                                                    "shaders/metavoxel_heightfield_base.vert");
+            "shaders/metavoxel_heightfield_base.vert");
     _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-                                                    "shaders/metavoxel_heightfield_base.frag");
+        "shaders/metavoxel_heightfield_base.frag");
     _baseHeightfieldProgram.link();
     
     _baseHeightfieldProgram.bind();
@@ -79,9 +79,9 @@ void MetavoxelSystem::init() {
     loadSplatProgram("heightfield", _splatHeightfieldProgram, _splatHeightfieldLocations);
     
     _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-                                                      "shaders/metavoxel_heightfield_cursor.vert");
+        "shaders/metavoxel_heightfield_cursor.vert");
     _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-                                                      "shaders/metavoxel_cursor.frag");
+        "shaders/metavoxel_cursor.frag");
     _heightfieldCursorProgram.link();
     
     _heightfieldCursorProgram.bind();
@@ -89,17 +89,17 @@ void MetavoxelSystem::init() {
     _heightfieldCursorProgram.release();
     
     _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-                                              "shaders/metavoxel_voxel_base.vert");
+        "shaders/metavoxel_voxel_base.vert");
     _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-                                              "shaders/metavoxel_voxel_base.frag");
+        "shaders/metavoxel_voxel_base.frag");
     _baseVoxelProgram.link();
     
     loadSplatProgram("voxel", _splatVoxelProgram, _splatVoxelLocations);
     
     _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-                                                "shaders/metavoxel_voxel_cursor.vert");
+        "shaders/metavoxel_voxel_cursor.vert");
     _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-                                                "shaders/metavoxel_cursor.frag");
+        "shaders/metavoxel_cursor.frag");
     _voxelCursorProgram.link();
 }
 
@@ -124,16 +124,16 @@ public:
     SimulateVisitor(float deltaTime, const MetavoxelLOD& lod);
     
     virtual int visit(MetavoxelInfo& info);
-    
+
 private:
     
     float _deltaTime;
 };
 
 SimulateVisitor::SimulateVisitor(float deltaTime, const MetavoxelLOD& lod) :
-MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
-                 QVector<AttributePointer>(), lod),
-_deltaTime(deltaTime) {
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
+        QVector<AttributePointer>(), lod),
+    _deltaTime(deltaTime) {
 }
 
 int SimulateVisitor::visit(MetavoxelInfo& info) {
@@ -141,7 +141,7 @@ int SimulateVisitor::visit(MetavoxelInfo& info) {
         return DEFAULT_ORDER;
     }
     static_cast<MetavoxelRenderer*>(info.inputValues.at(0).getInlineValue<
-                                    SharedObjectPointer>().data())->getImplementation()->simulate(*_data, _deltaTime, info, _lod);
+        SharedObjectPointer>().data())->getImplementation()->simulate(*_data, _deltaTime, info, _lod);
     return STOP_RECURSION;
 }
 
@@ -152,7 +152,7 @@ void MetavoxelSystem::simulate(float deltaTime) {
         const float DEFAULT_LOD_THRESHOLD = 0.01f;
         _lod = MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), DEFAULT_LOD_THRESHOLD);
     }
-    
+
     SimulateVisitor simulateVisitor(deltaTime, getLOD());
     guideToAugmented(simulateVisitor);
 }
@@ -166,8 +166,8 @@ public:
 };
 
 RenderVisitor::RenderVisitor(const MetavoxelLOD& lod) :
-MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
-                 QVector<AttributePointer>(), lod) {
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
+        QVector<AttributePointer>(), lod) {
 }
 
 int RenderVisitor::visit(MetavoxelInfo& info) {
@@ -175,7 +175,7 @@ int RenderVisitor::visit(MetavoxelInfo& info) {
         return DEFAULT_ORDER;
     }
     static_cast<MetavoxelRenderer*>(info.inputValues.at(0).getInlineValue<
-                                    SharedObjectPointer>().data())->getImplementation()->render(*_data, info, _lod);
+        SharedObjectPointer>().data())->getImplementation()->render(*_data, info, _lod);
     return STOP_RECURSION;
 }
 
@@ -195,18 +195,18 @@ void MetavoxelSystem::render() {
     // update the frustum
     ViewFrustum* viewFrustum = Application::getInstance()->getDisplayViewFrustum();
     _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
-                 viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
-                 viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
-    
+        viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
+        viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
+   
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor, true);
     
     if (!_heightfieldBaseBatches.isEmpty()) {
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        
+    
         Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
-        
+    
         glDisable(GL_BLEND);
         glEnable(GL_CULL_FACE);
         glEnable(GL_ALPHA_TEST);
@@ -225,7 +225,7 @@ void MetavoxelSystem::render() {
             
             batch.vertexBuffer->bind();
             batch.indexBuffer->bind();
-            
+        
             HeightfieldPoint* point = 0;
             glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
             glTexCoordPointer(2, GL_FLOAT, sizeof(HeightfieldPoint), &point->textureCoord);
@@ -234,7 +234,7 @@ void MetavoxelSystem::render() {
             
             _baseHeightfieldProgram.setUniform(_baseHeightScaleLocation, batch.heightScale);
             _baseHeightfieldProgram.setUniform(_baseColorScaleLocation, batch.colorScale);
-            
+                
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, batch.colorTextureID);
             
@@ -244,10 +244,10 @@ void MetavoxelSystem::render() {
             
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, 0);
-            
+        
             batch.vertexBuffer->release();
             batch.indexBuffer->release();
-            
+        
             glPopMatrix();
         }
         
@@ -275,7 +275,7 @@ void MetavoxelSystem::render() {
                 
                 batch.vertexBuffer->bind();
                 batch.indexBuffer->bind();
-                
+            
                 HeightfieldPoint* point = 0;
                 glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
                 glTexCoordPointer(2, GL_FLOAT, sizeof(HeightfieldPoint), &point->textureCoord);
@@ -283,7 +283,7 @@ void MetavoxelSystem::render() {
                 glBindTexture(GL_TEXTURE_2D, batch.heightTextureID);
                 
                 _splatHeightfieldProgram.setUniformValue(_splatHeightfieldLocations.heightScale,
-                                                         batch.heightScale.x, batch.heightScale.y);
+                    batch.heightScale.x, batch.heightScale.y);
                 _splatHeightfieldProgram.setUniform(_splatHeightfieldLocations.textureScale, batch.textureScale);
                 _splatHeightfieldProgram.setUniform(_splatHeightfieldLocations.splatTextureOffset, batch.splatTextureOffset);
                 
@@ -291,18 +291,18 @@ void MetavoxelSystem::render() {
                 _splatHeightfieldProgram.setUniform(_splatHeightfieldLocations.splatTextureScalesS, batch.splatTextureScalesS);
                 _splatHeightfieldProgram.setUniform(_splatHeightfieldLocations.splatTextureScalesT, batch.splatTextureScalesT);
                 _splatHeightfieldProgram.setUniformValue(
-                                                         _splatHeightfieldLocations.textureValueMinima,
-                                                         (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
-                                                         (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
-                                                         (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
-                                                         (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
+                    _splatHeightfieldLocations.textureValueMinima,
+                    (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
                 _splatHeightfieldProgram.setUniformValue(
-                                                         _splatHeightfieldLocations.textureValueMaxima,
-                                                         (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
-                                                         (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
-                                                         (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
-                                                         (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP);
-                
+                    _splatHeightfieldLocations.textureValueMaxima,
+                    (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP);
+                    
                 glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_2D, batch.materialTextureID);
                 
@@ -312,22 +312,22 @@ void MetavoxelSystem::render() {
                 }
                 
                 glDrawRangeElements(GL_TRIANGLES, 0, batch.vertexCount - 1, batch.indexCount, GL_UNSIGNED_INT, 0);
-                
+             
                 for (int i = 0; i < SPLAT_COUNT; i++) {
                     glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[i]);
                     glBindTexture(GL_TEXTURE_2D, 0);
                 }
-                
+            
                 glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_2D, 0);
-                
+            
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, 0);
-                
+            
                 batch.vertexBuffer->release();
                 batch.indexBuffer->release();
                 
-                glPopMatrix();
+                glPopMatrix();   
             }
             
             _splatHeightfieldProgram.release();
@@ -341,15 +341,15 @@ void MetavoxelSystem::render() {
         
         glDisable(GL_CULL_FACE);
         
-        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);    
+        glDisableClientState(GL_VERTEX_ARRAY);  
         
         _heightfieldBaseBatches.clear();
     }
     
     if (!_voxelBaseBatches.isEmpty()) {
         Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
-        
+    
         glEnableClientState(GL_VERTEX_ARRAY);
         glDisable(GL_BLEND);
         glEnable(GL_CULL_FACE);
@@ -360,7 +360,7 @@ void MetavoxelSystem::render() {
         
         glEnableClientState(GL_COLOR_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
-        
+            
         _baseVoxelProgram.bind();
         
         foreach (const VoxelBatch& batch, _voxelBaseBatches) {
@@ -379,10 +379,10 @@ void MetavoxelSystem::render() {
         }
         
         _baseVoxelProgram.release();
-        
+    
         glDisable(GL_ALPHA_TEST);
         glEnable(GL_BLEND);
-        
+            
         Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         if (!_voxelSplatBatches.isEmpty()) {
@@ -406,25 +406,25 @@ void MetavoxelSystem::render() {
                 glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
                 
                 _splatVoxelProgram.setAttributeBuffer(_splatVoxelLocations.materials,
-                                                      GL_UNSIGNED_BYTE, (qint64)&point->materials, SPLAT_COUNT, sizeof(VoxelPoint));
+                    GL_UNSIGNED_BYTE, (qint64)&point->materials, SPLAT_COUNT, sizeof(VoxelPoint));
                 _splatVoxelProgram.setAttributeBuffer(_splatVoxelLocations.materialWeights,
-                                                      GL_UNSIGNED_BYTE, (qint64)&point->materialWeights, SPLAT_COUNT, sizeof(VoxelPoint));
+                    GL_UNSIGNED_BYTE, (qint64)&point->materialWeights, SPLAT_COUNT, sizeof(VoxelPoint));
                 
                 const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
                 _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureScalesS, batch.splatTextureScalesS);
                 _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureScalesT, batch.splatTextureScalesT);
                 _splatVoxelProgram.setUniformValue(
-                                                   _splatVoxelLocations.textureValueMinima,
-                                                   (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
-                                                   (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
-                                                   (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
-                                                   (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
+                    _splatVoxelLocations.textureValueMinima,
+                    (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
                 _splatVoxelProgram.setUniformValue(
-                                                   _splatVoxelLocations.textureValueMaxima,
-                                                   (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
-                                                   (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
-                                                   (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
-                                                   (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP);
+                    _splatVoxelLocations.textureValueMaxima,
+                    (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP);
                 
                 for (int i = 0; i < SPLAT_COUNT; i++) {
                     glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[i]);
@@ -437,9 +437,9 @@ void MetavoxelSystem::render() {
                     glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[i]);
                     glBindTexture(GL_TEXTURE_2D, 0);
                 }
-                
+            
                 glActiveTexture(GL_TEXTURE0);
-                
+        
                 batch.vertexBuffer->release();
                 batch.indexBuffer->release();
             }
@@ -517,10 +517,10 @@ public:
 };
 
 RayVoxelIntersectionVisitor::RayVoxelIntersectionVisitor(const glm::vec3& origin,
-                                                         const glm::vec3& direction, const MetavoxelLOD& lod) :
-RayIntersectionVisitor(origin, direction, QVector<AttributePointer>() <<
-                       Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), QVector<AttributePointer>(), lod),
-intersectionDistance(FLT_MAX) {
+        const glm::vec3& direction, const MetavoxelLOD& lod) :
+    RayIntersectionVisitor(origin, direction, QVector<AttributePointer>() <<
+        Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), QVector<AttributePointer>(), lod),
+    intersectionDistance(FLT_MAX) {
 }
 
 int RayVoxelIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
@@ -528,7 +528,7 @@ int RayVoxelIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
         return _order;
     }
     const VoxelBuffer* buffer = static_cast<VoxelBuffer*>(
-                                                          info.inputValues.at(0).getInlineValue<BufferDataPointer>().data());
+        info.inputValues.at(0).getInlineValue<BufferDataPointer>().data());
     if (!buffer) {
         return STOP_RECURSION;
     }
@@ -630,7 +630,7 @@ public:
     virtual bool visit(Spanner* spanner);
     
     virtual int visit(MetavoxelInfo& info);
-    
+
 private:
     
     Box _bounds;
@@ -693,17 +693,17 @@ class BufferCursorRenderVisitor : public MetavoxelVisitor {
 public:
     
     BufferCursorRenderVisitor(const AttributePointer& attribute, const Box& bounds);
-    
+
     virtual int visit(MetavoxelInfo& info);
-    
+
 private:
     
     Box _bounds;
 };
 
 BufferCursorRenderVisitor::BufferCursorRenderVisitor(const AttributePointer& attribute, const Box& bounds) :
-MetavoxelVisitor(QVector<AttributePointer>() << attribute),
-_bounds(bounds) {
+    MetavoxelVisitor(QVector<AttributePointer>() << attribute),
+    _bounds(bounds) {
 }
 
 int BufferCursorRenderVisitor::visit(MetavoxelInfo& info) {
@@ -766,11 +766,11 @@ void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius)
 
 class MaterialEditApplier : public SignalHandler {
 public:
-    
+
     MaterialEditApplier(const MetavoxelEditMessage& message, const QSharedPointer<NetworkTexture> texture);
     
     virtual void handle();
-    
+
 protected:
     
     MetavoxelEditMessage _message;
@@ -778,8 +778,8 @@ protected:
 };
 
 MaterialEditApplier::MaterialEditApplier(const MetavoxelEditMessage& message, const QSharedPointer<NetworkTexture> texture) :
-_message(message),
-_texture(texture) {
+    _message(message),
+    _texture(texture) {
 }
 
 void MaterialEditApplier::handle() {
@@ -794,16 +794,16 @@ void MetavoxelSystem::applyMaterialEdit(const MetavoxelEditMessage& message, boo
     if (material && material->getDiffuse().isValid()) {
         if (QThread::currentThread() != thread()) {
             QMetaObject::invokeMethod(this, "applyMaterialEdit", Q_ARG(const MetavoxelEditMessage&, message),
-                                      Q_ARG(bool, reliable));
+                Q_ARG(bool, reliable));
             return;
         }
         QSharedPointer<NetworkTexture> texture = Application::getInstance()->getTextureCache()->getTexture(
-                                                                                                           material->getDiffuse(), SPLAT_TEXTURE);
+            material->getDiffuse(), SPLAT_TEXTURE);
         if (texture->isLoaded()) {
             MetavoxelEditMessage newMessage = message;
             static_cast<MaterialEdit*>(newMessage.edit.data())->averageColor = texture->getAverageColor();
-            applyEdit(newMessage, true);
-            
+            applyEdit(newMessage, true);    
+        
         } else {
             MaterialEditApplier* applier = new MaterialEditApplier(message, texture);
             connect(texture.data(), &Resource::loaded, applier, &SignalHandler::handle);
@@ -818,7 +818,7 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
 }
 
 void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
-    NodeList::getInstance()->eachNode([&visitor, &render](const SharedNodePointer& node) {
+    NodeList::getInstance()->eachNode([&visitor, &render](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -837,9 +837,9 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
 
 void MetavoxelSystem::loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations) {
     program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-                                    "shaders/metavoxel_" + type + "_splat.vert");
+        "shaders/metavoxel_" + type + "_splat.vert");
     program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-                                    "shaders/metavoxel_" + type + "_splat.frag");
+        "shaders/metavoxel_" + type + "_splat.frag");
     program.link();
     
     program.bind();
@@ -859,8 +859,8 @@ void MetavoxelSystem::loadSplatProgram(const char* type, ProgramObject& program,
 }
 
 Throttle::Throttle() :
-_limit(INT_MAX),
-_total(0) {
+    _limit(INT_MAX),
+    _total(0) {
 }
 
 bool Throttle::shouldThrottle(int bytes) {
@@ -881,7 +881,7 @@ bool Throttle::shouldThrottle(int bytes) {
 }
 
 MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater) :
-MetavoxelClient(node, updater) {
+    MetavoxelClient(node, updater) {
 }
 
 void MetavoxelSystemClient::setAugmentedData(const MetavoxelData& data) {
@@ -898,11 +898,11 @@ class ReceiveDelayer : public QObject {
 public:
     
     ReceiveDelayer(const SharedNodePointer& node, const QByteArray& packet);
-    
+
 protected:
-    
+
     virtual void timerEvent(QTimerEvent* event);
-    
+
 private:
     
     SharedNodePointer _node;
@@ -910,8 +910,8 @@ private:
 };
 
 ReceiveDelayer::ReceiveDelayer(const SharedNodePointer& node, const QByteArray& packet) :
-_node(node),
-_packet(packet) {
+    _node(node),
+    _packet(packet) {
 }
 
 void ReceiveDelayer::timerEvent(QTimerEvent* event) {
@@ -956,16 +956,16 @@ public:
     AugmentVisitor(const MetavoxelLOD& lod, const MetavoxelData& previousData);
     
     virtual int visit(MetavoxelInfo& info);
-    
+
 private:
     
     const MetavoxelData& _previousData;
 };
 
 AugmentVisitor::AugmentVisitor(const MetavoxelLOD& lod, const MetavoxelData& previousData) :
-MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
-                 QVector<AttributePointer>(), lod),
-_previousData(previousData) {
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getRendererAttribute(),
+        QVector<AttributePointer>(), lod),
+    _previousData(previousData) {
 }
 
 int AugmentVisitor::visit(MetavoxelInfo& info) {
@@ -973,7 +973,7 @@ int AugmentVisitor::visit(MetavoxelInfo& info) {
         return DEFAULT_ORDER;
     }
     static_cast<MetavoxelRenderer*>(info.inputValues.at(0).getInlineValue<
-                                    SharedObjectPointer>().data())->getImplementation()->augment(*_data, _previousData, info, _lod);
+        SharedObjectPointer>().data())->getImplementation()->augment(*_data, _previousData, info, _lod);
     return STOP_RECURSION;
 }
 
@@ -981,10 +981,10 @@ class Augmenter : public QRunnable {
 public:
     
     Augmenter(const SharedNodePointer& node, const MetavoxelData& data,
-              const MetavoxelData& previousData, const MetavoxelLOD& lod);
+        const MetavoxelData& previousData, const MetavoxelLOD& lod);
     
     virtual void run();
-    
+
 private:
     
     QWeakPointer<Node> _node;
@@ -994,11 +994,11 @@ private:
 };
 
 Augmenter::Augmenter(const SharedNodePointer& node, const MetavoxelData& data,
-                     const MetavoxelData& previousData, const MetavoxelLOD& lod) :
-_node(node),
-_data(data),
-_previousData(previousData),
-_lod(lod) {
+        const MetavoxelData& previousData, const MetavoxelLOD& lod) :
+    _node(node),
+    _data(data),
+    _previousData(previousData),
+    _lod(lod) {
 }
 
 void Augmenter::run() {
@@ -1016,7 +1016,7 @@ void MetavoxelSystemClient::refreshVoxelData() {
     // make it look as if all the colors have changed
     MetavoxelData oldData = getAugmentedData();
     oldData.touch(AttributeRegistry::getInstance()->getVoxelColorAttribute());
-    
+
     QThreadPool::globalInstance()->start(new Augmenter(_node, _data, oldData, _remoteDataLOD));
 }
 
@@ -1029,9 +1029,9 @@ class SendDelayer : public QObject {
 public:
     
     SendDelayer(const SharedNodePointer& node, const QByteArray& data);
-    
+
     virtual void timerEvent(QTimerEvent* event);
-    
+
 private:
     
     SharedNodePointer _node;
@@ -1039,8 +1039,8 @@ private:
 };
 
 SendDelayer::SendDelayer(const SharedNodePointer& node, const QByteArray& data) :
-_node(node),
-_data(data.constData(), data.size()) {
+    _node(node),
+    _data(data.constData(), data.size()) {
 }
 
 void SendDelayer::timerEvent(QTimerEvent* event) {
@@ -1083,21 +1083,21 @@ void VoxelPoint::setNormal(const glm::vec3& normal) {
 }
 
 VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-                         const QMultiHash<VoxelCoord, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials) :
-_vertices(vertices),
-_indices(indices),
-_hermite(hermite),
-_quadIndices(quadIndices),
-_size(size),
-_vertexCount(vertices.size()),
-_indexCount(indices.size()),
-_hermiteCount(hermite.size()),
-_indexBuffer(QOpenGLBuffer::IndexBuffer),
-_materials(materials) {
+        const QMultiHash<VoxelCoord, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials) :
+    _vertices(vertices),
+    _indices(indices),
+    _hermite(hermite),
+    _quadIndices(quadIndices),
+    _size(size),
+    _vertexCount(vertices.size()),
+    _indexCount(indices.size()),
+    _hermiteCount(hermite.size()),
+    _indexBuffer(QOpenGLBuffer::IndexBuffer),
+    _materials(materials) {
 }
 
 bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
-                                           const glm::vec3& direction, float& distance) const {
+        const glm::vec3& direction, float& distance) const {
     float highest = _size - 1.0f;
     glm::vec3 position = entry * highest;
     glm::vec3 floors = glm::floor(position);
@@ -1105,14 +1105,14 @@ bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::ve
     int x = qMin((int)floors.x, max), y = qMin((int)floors.y, max), z = qMin((int)floors.z, max);
     forever {
         for (QMultiHash<VoxelCoord, int>::const_iterator it = _quadIndices.constFind(qRgb(x + 1, y + 1, z + 1));
-             it != _quadIndices.constEnd(); it++) {
+                it != _quadIndices.constEnd(); it++) {
             const int* indices = _indices.constData() + *it;
             if (findRayTriangleIntersection(origin, direction, _vertices.at(indices[0]).vertex,
-                                            _vertices.at(indices[1]).vertex, _vertices.at(indices[2]).vertex, distance) ||
+                    _vertices.at(indices[1]).vertex, _vertices.at(indices[2]).vertex, distance) ||
                 findRayTriangleIntersection(origin, direction, _vertices.at(indices[0]).vertex,
-                                            _vertices.at(indices[2]).vertex, _vertices.at(indices[3]).vertex, distance)) {
-                    return true;
-                }
+                    _vertices.at(indices[2]).vertex, _vertices.at(indices[3]).vertex, distance)) {
+                return true;
+            }
         }
         float xDistance = FLT_MAX, yDistance = FLT_MAX, zDistance = FLT_MAX;
         if (direction.x > 0.0f) {
@@ -1181,7 +1181,7 @@ void VoxelBuffer::render(bool cursor) {
                 const SharedObjectPointer material = _materials.at(i);
                 if (material) {
                     _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
-                                                                                                    static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
+                        static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }
         }
@@ -1216,7 +1216,7 @@ void VoxelBuffer::render(bool cursor) {
         splatBatch.indexBuffer = &_indexBuffer;
         splatBatch.vertexCount = _vertexCount;
         splatBatch.indexCount = _indexCount;
-        
+    
         for (int i = 0; i < _materials.size(); i += SPLAT_COUNT) {
             for (int j = 0; j < SPLAT_COUNT; j++) {
                 int index = i + j;
@@ -1227,7 +1227,7 @@ void VoxelBuffer::render(bool cursor) {
                         splatBatch.splatTextureScalesS[j] = 1.0f / material->getScaleS();
                         splatBatch.splatTextureScalesT[j] = 1.0f / material->getScaleT();
                         splatBatch.splatTextureIDs[j] = texture->getID();
-                        
+                           
                     } else {
                         splatBatch.splatTextureIDs[j] = 0;
                     }
@@ -1256,7 +1256,7 @@ void VoxelBuffer::render(bool cursor) {
 }
 
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
-InlineAttribute<BufferDataPointer>(name) {
+    InlineAttribute<BufferDataPointer>(name) {
 }
 
 bool BufferDataAttribute::merge(void*& parent, void* children[], bool postRead) const {
@@ -1278,17 +1278,17 @@ DefaultMetavoxelRendererImplementation::DefaultMetavoxelRendererImplementation()
 
 class VoxelAugmentVisitor : public MetavoxelVisitor {
 public:
-    
+
     VoxelAugmentVisitor(const MetavoxelLOD& lod);
     
     virtual int visit(MetavoxelInfo& info);
 };
 
 VoxelAugmentVisitor::VoxelAugmentVisitor(const MetavoxelLOD& lod) :
-MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
-                 AttributeRegistry::getInstance()->getVoxelMaterialAttribute() <<
-                 AttributeRegistry::getInstance()->getVoxelHermiteAttribute(), QVector<AttributePointer>() <<
-                 Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), lod) {
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
+        AttributeRegistry::getInstance()->getVoxelMaterialAttribute() <<
+            AttributeRegistry::getInstance()->getVoxelHermiteAttribute(), QVector<AttributePointer>() <<
+                Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), lod) {
 }
 
 class EdgeCrossing {
@@ -1446,9 +1446,9 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     // its properties (color, material, normal) if one is present; as before, boundary edges are excluded
                     int clampedX = qMax(x - 1, 0), clampedY = qMax(y - 1, 0), clampedZ = qMax(z - 1, 0);
                     const QRgb* hermiteBase = hermiteData + clampedZ * hermiteArea + clampedY * hermiteStride +
-                    clampedX * VoxelHermiteData::EDGE_COUNT;
+                        clampedX * VoxelHermiteData::EDGE_COUNT;
                     const char* materialBase = materialData ?
-                    (materialData + clampedZ * area + clampedY * size + clampedX) : NULL;
+                        (materialData + clampedZ * area + clampedY * size + clampedX) : NULL;
                     int crossingCount = 0;
                     if (middleX) {
                         if (alpha0 != alpha1) {
@@ -1650,7 +1650,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         
                         if (displayHermite) {
                             glm::vec3 start = info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) +
-                                                              crossing.point) * scale;
+                                crossing.point) * scale;
                             hermiteSegments.append(start);
                             hermiteSegments.append(start + crossing.normal * scale);
                         }
@@ -1710,18 +1710,18 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     for (int i = 0; i < MAX_ITERATIONS; i++) {
                         glm::vec3 offDiagonals = glm::abs(glm::vec3(d[1][0], d[2][0], d[2][1]));
                         int largestIndex = (offDiagonals[0] > offDiagonals[1]) ? (offDiagonals[0] > offDiagonals[2] ? 0 : 2) :
-                        (offDiagonals[1] > offDiagonals[2] ? 1 : 2);
+                            (offDiagonals[1] > offDiagonals[2] ? 1 : 2);
                         const float DESIRED_PRECISION = 0.00001f;
                         if (offDiagonals[largestIndex] < DESIRED_PRECISION) {
                             break;
                         }
                         int largestJ = (largestIndex == 2) ? 1 : 0;
-                        int largestI = (largestIndex == 0) ? 1 : 2;
+                        int largestI = (largestIndex == 0) ? 1 : 2; 
                         float sjj = d[largestJ][largestJ];
                         float sii = d[largestI][largestI];
                         float angle = glm::atan(2.0f * d[largestJ][largestI], sjj - sii) / 2.0f;
                         glm::quat rotation = glm::angleAxis(angle, largestIndex == 0 ? glm::vec3(0.0f, 0.0f, -1.0f) :
-                                                            (largestIndex == 1 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f)));
+                            (largestIndex == 1 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f)));
                         combinedRotation = glm::normalize(rotation * combinedRotation);
                         glm::mat3 matrix = glm::mat3_cast(combinedRotation);
                         d = matrix * ata * glm::transpose(matrix);
@@ -1735,7 +1735,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     
                     // compute the pseudo-inverse, ataplus, and use to find the minimizing solution
                     glm::mat3 u = glm::mat3_cast(combinedRotation);
-                    glm::mat3 ataplus = glm::transpose(u) * d * u;
+                    glm::mat3 ataplus = glm::transpose(u) * d * u; 
                     glm::vec3 solution = (ataplus * atrans * b) + center;
                     
                     // make sure it doesn't fall beyond the cell boundaries
@@ -1774,7 +1774,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             
                             const glm::vec3& first = vertices.at(index.indices[0]).vertex;
                             glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                                          vertices.at(index3.indices[0]).vertex - first);
+                                vertices.at(index3.indices[0]).vertex - first);
                             
                             if (alpha0 == 0) { // quad faces negative x
                                 indices.append(index3.getClosestIndex(normal = -normal, vertices));
@@ -1800,7 +1800,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             
                             const glm::vec3& first = vertices.at(index.indices[0]).vertex;
                             glm::vec3 normal = glm::cross(vertices.at(index3.indices[0]).vertex - first,
-                                                          vertices.at(index1.indices[0]).vertex - first);
+                                vertices.at(index1.indices[0]).vertex - first);
                             
                             if (alpha0 == 0) { // quad faces negative y
                                 indices.append(index1.getClosestIndex(normal = -normal, vertices));
@@ -1826,7 +1826,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             
                             const glm::vec3& first = vertices.at(index.indices[0]).vertex;
                             glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                                          vertices.at(index3.indices[0]).vertex - first);
+                                vertices.at(index3.indices[0]).vertex - first);
                             
                             if (alpha0 == 0) { // quad faces negative z
                                 indices.append(index3.getClosestIndex(normal = -normal, vertices));
@@ -1861,7 +1861,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
             }
         }
         buffer = new VoxelBuffer(vertices, indices, hermiteSegments, quadIndices, size,
-                                 material ? material->getMaterials() : QVector<SharedObjectPointer>());
+            material ? material->getMaterials() : QVector<SharedObjectPointer>());
     }
     BufferDataPointer pointer(buffer);
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
@@ -1869,14 +1869,14 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
 }
 
 void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
-                                                     MetavoxelInfo& info, const MetavoxelLOD& lod) {
+        MetavoxelInfo& info, const MetavoxelLOD& lod) {
     // copy the previous buffers
     MetavoxelData expandedPrevious = previous;
     while (expandedPrevious.getSize() < data.getSize()) {
         expandedPrevious.expand();
     }
     const AttributePointer& voxelBufferAttribute =
-    Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute();
+        Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute();
     MetavoxelNode* root = expandedPrevious.getRoot(voxelBufferAttribute);
     if (root) {
         data.setRoot(voxelBufferAttribute, root);
@@ -1892,16 +1892,16 @@ public:
     SpannerSimulateVisitor(float deltaTime, const MetavoxelLOD& lod);
     
     virtual bool visit(Spanner* spanner);
-    
+
 private:
     
     float _deltaTime;
 };
 
 SpannerSimulateVisitor::SpannerSimulateVisitor(float deltaTime, const MetavoxelLOD& lod) :
-SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-               QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
-_deltaTime(deltaTime) {
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+    _deltaTime(deltaTime) {
 }
 
 bool SpannerSimulateVisitor::visit(Spanner* spanner) {
@@ -1910,7 +1910,7 @@ bool SpannerSimulateVisitor::visit(Spanner* spanner) {
 }
 
 void DefaultMetavoxelRendererImplementation::simulate(MetavoxelData& data, float deltaTime,
-                                                      MetavoxelInfo& info, const MetavoxelLOD& lod) {
+        MetavoxelInfo& info, const MetavoxelLOD& lod) {
     SpannerSimulateVisitor spannerSimulateVisitor(deltaTime, lod);
     data.guide(spannerSimulateVisitor);
 }
@@ -1921,7 +1921,7 @@ public:
     BufferRenderVisitor(const AttributePointer& attribute);
     
     virtual int visit(MetavoxelInfo& info);
-    
+
 private:
     
     int _order;
@@ -1929,15 +1929,15 @@ private:
 };
 
 BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute) :
-MetavoxelVisitor(QVector<AttributePointer>() << attribute),
-_order(encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
-_containmentDepth(INT_MAX) {
+    MetavoxelVisitor(QVector<AttributePointer>() << attribute),
+    _order(encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
+    _containmentDepth(INT_MAX) {
 }
 
 int BufferRenderVisitor::visit(MetavoxelInfo& info) {
     if (_containmentDepth >= _depth) {
         Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
-                                                                                                                               info.getBounds());
+            info.getBounds());
         if (intersection == Frustum::NO_INTERSECTION) {
             return STOP_RECURSION;
         }
@@ -2007,12 +2007,12 @@ void CuboidRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor
 }
 
 StaticModelRenderer::StaticModelRenderer() :
-_model(new Model(this)) {
+    _model(new Model(this)) {
 }
 
 void StaticModelRenderer::init(Spanner* spanner) {
     SpannerRenderer::init(spanner);
-    
+
     _model->init();
     
     StaticModel* staticModel = static_cast<StaticModel*>(spanner);
@@ -2035,7 +2035,7 @@ void StaticModelRenderer::simulate(float deltaTime) {
         bounds = Box(extents.minimum, extents.maximum);
     }
     static_cast<StaticModel*>(_spanner)->setBounds(glm::translate(_model->getTranslation()) *
-                                                   glm::mat4_cast(_model->getRotation()) * glm::scale(_model->getScale()) * bounds);
+        glm::mat4_cast(_model->getRotation()) * glm::scale(_model->getScale()) * bounds);
     _model->simulate(deltaTime);
 }
 
@@ -2251,7 +2251,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     if (cursor) {
         bufferPair.first.bind();
         bufferPair.second.bind();
-        
+    
         glPushMatrix();
         glTranslatef(translation.x, translation.y, translation.z);
         glm::vec3 axis = glm::axis(rotation);
@@ -2286,7 +2286,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     baseBatch.heightScale = glm::vec4(1.0f / width, 1.0f / height, (innerWidth - 1) / -2.0f, (innerHeight - 1) / -2.0f);
     baseBatch.colorTextureID = _colorTextureID;
     baseBatch.colorScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
-    Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);
+    Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);    
     
     if (!_networkTextures.isEmpty()) {
         HeightfieldSplatBatch splatBatch;
@@ -2331,3 +2331,4 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
 }
 
 QHash<HeightfieldNodeRenderer::IntPair, HeightfieldNodeRenderer::BufferPair> HeightfieldNodeRenderer::_bufferPairs;
+
