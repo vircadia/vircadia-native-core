@@ -2,7 +2,7 @@
 
 * [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
 * [Qt](http://qt-project.org/downloads) ~> 5.3.0
-* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
+* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
