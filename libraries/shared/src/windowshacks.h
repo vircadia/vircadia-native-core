@@ -20,7 +20,7 @@
 // needed to make sure windows doesn't go to crazy with its defines
 #define WINDOWS_LEAN_AND_MEAN
 
-#undef NOMINMAX
+//#undef NOMINMAX
 
 #include <cmath>
 inline double roundf(double value) {
