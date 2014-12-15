@@ -18,7 +18,7 @@
 
 #include <ResourceCache.h>
 
-#include <gpu/GPUConfig.h>
+#include "InterfaceConfig.h"
 
 class QOpenGLFramebufferObject;
 

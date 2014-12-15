@@ -12,9 +12,6 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <map>
 #include <time.h>
 
