@@ -21,11 +21,6 @@
 
 #include "AddressManager.h"
 
-AddressManager& AddressManager::getInstance() {
-    static AddressManager sharedInstance;
-    return sharedInstance;
-}
-
 AddressManager::AddressManager() :
     _currentDomain(),
     _positionGetter(NULL),
@@ -46,6 +41,27 @@ const QUrl AddressManager::currentAddress() const {
     hifiURL.setPath(currentPath());
     
     return hifiURL;
+}
+
+const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
+const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
+
+void AddressManager::loadSettings(const QString& lookupString) {
+    if (lookupString.isEmpty()) {
+        QSettings settings;
+        settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
+        handleLookupString(settings.value(SETTINGS_CURRENT_ADDRESS_KEY).toString());
+    } else {
+        handleLookupString(lookupString);
+    }
+}
+
+void AddressManager::storeCurrentAddress() {
+    QSettings settings;
+
+    settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
+    settings.setValue(SETTINGS_CURRENT_ADDRESS_KEY, currentAddress());
+    settings.endGroup();
 }
 
 const QString AddressManager::currentPath(bool withOrientation) const {

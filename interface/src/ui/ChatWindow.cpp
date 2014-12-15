@@ -171,7 +171,7 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
     } else if (event->type() == QEvent::MouseButtonRelease) {
         QVariant userVar = sender->property("user");
         if (userVar.isValid()) {
-            AddressManager::getInstance().goToUser(userVar.toString());
+            DependencyManager::get<AddressManager>()->goToUser(userVar.toString());
             return true;
         }
     }

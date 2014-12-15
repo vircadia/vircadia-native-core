@@ -19,7 +19,7 @@ LocationScriptingInterface* LocationScriptingInterface::getInstance() {
 }
 
 QScriptValue LocationScriptingInterface::locationGetter(QScriptContext* context, QScriptEngine* engine) {
-    return engine->newQObject(&AddressManager::getInstance());
+    return engine->newQObject(DependencyManager::get<AddressManager>());
 }
 
 QScriptValue LocationScriptingInterface::locationSetter(QScriptContext* context, QScriptEngine* engine) {
@@ -28,11 +28,11 @@ QScriptValue LocationScriptingInterface::locationSetter(QScriptContext* context,
     
     if (argumentVariant.canConvert(QMetaType::QVariantMap)) {
         // this argument is a variant map, so we'll assume it's an address map
-        QMetaObject::invokeMethod(&AddressManager::getInstance(), "goToAddressFromObject",
+        QMetaObject::invokeMethod(DependencyManager::get<AddressManager>(), "goToAddressFromObject",
                                   Q_ARG(const QVariantMap&, argumentVariant.toMap()));
     } else {
         // just try and convert the argument to a string, should be a hifi:// address
-        QMetaObject::invokeMethod(&AddressManager::getInstance(), "handleLookupString",
+        QMetaObject::invokeMethod(DependencyManager::get<AddressManager>(), "handleLookupString",
                                   Q_ARG(const QString&, argumentVariant.toString()));
     }
     

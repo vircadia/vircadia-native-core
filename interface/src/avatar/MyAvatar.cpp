@@ -102,7 +102,7 @@ MyAvatar::MyAvatar() :
     _skeletonModel.buildRagdoll();
     
     // connect to AddressManager signal for location jumps
-    connect(&AddressManager::getInstance(), &AddressManager::locationChangeRequired, this, &MyAvatar::goToLocation);
+    connect(DependencyManager::get<AddressManager>(), &AddressManager::locationChangeRequired, this, &MyAvatar::goToLocation);
 }
 
 MyAvatar::~MyAvatar() {

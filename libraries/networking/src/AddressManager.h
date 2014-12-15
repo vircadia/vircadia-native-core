@@ -17,6 +17,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <DependencyManager.h>
+
 #include "AccountManager.h"
 
 const QString HIFI_URL_SCHEME = "hifi";
@@ -25,7 +27,7 @@ const QString DEFAULT_HIFI_ADDRESS = "hifi://sandbox";
 typedef const glm::vec3& (*PositionGetter)();
 typedef glm::quat (*OrientationGetter)();
 
-class AddressManager : public QObject {
+class AddressManager : public QObject, public DependencyManager::Dependency {
     Q_OBJECT
     Q_PROPERTY(bool isConnected READ isConnected)
     Q_PROPERTY(QUrl href READ currentAddress)
@@ -34,8 +36,6 @@ class AddressManager : public QObject {
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString domainID READ getDomainID)
 public:
-    static AddressManager& getInstance();
-    
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
     
@@ -49,6 +49,10 @@ public:
     
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
+    
+    void loadSettings(const QString& lookupString = QString());
+    
+    friend class DependencyManager;
     
 public slots:
     void handleLookupString(const QString& lookupString);
@@ -64,12 +68,13 @@ signals:
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
+protected:
+    AddressManager();
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
+    void storeCurrentAddress();
 private:
-    AddressManager();
-    
     void setDomainHostnameAndName(const QString& hostname, const QString& domainName = QString());
     
     const JSONCallbackParameters& apiCallbackParameters();

@@ -121,8 +121,8 @@ void AddressBarDialog::showEvent(QShowEvent* event) {
 void AddressBarDialog::accept() {
     if (!_addressLineEdit->text().isEmpty()) {
         _goButton->setIcon(QIcon(Application::resourcesPath() + ADDRESSBAR_GO_BUTTON_ACTIVE_ICON));
-        AddressManager& addressManager = AddressManager::getInstance();
-        connect(&addressManager, &AddressManager::lookupResultsFinished, this, &QDialog::hide);
-        addressManager.handleLookupString(_addressLineEdit->text());
+        AddressManager* addressManager = DependencyManager::get<AddressManager>();
+        connect(addressManager, &AddressManager::lookupResultsFinished, this, &QDialog::hide);
+        addressManager->handleLookupString(_addressLineEdit->text());
     }
 }

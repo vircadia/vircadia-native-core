@@ -304,17 +304,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
     
-    AddressManager& addressManager = AddressManager::getInstance();
+    AddressManager* addressManager = DependencyManager::get<AddressManager>();
     
     // use our MyAvatar position and quat for address manager path
-    addressManager.setPositionGetter(getPositionForPath);
-    addressManager.setOrientationGetter(getOrientationForPath);
+    addressManager->setPositionGetter(getPositionForPath);
+    addressManager->setOrientationGetter(getOrientationForPath);
     
     // handle domain change signals from AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
+    connect(addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
             this, &Application::changeDomainHostname);
     
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
+    connect(addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &domainHandler, &DomainHandler::setIceServerHostnameAndID);
 
     _settings = new QSettings(this);
@@ -841,7 +841,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         
         if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toString());
+            DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
         }
         
         return false;
@@ -1953,21 +1953,12 @@ void Application::init() {
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
     int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+    QString addressLookupString;
     if (urlIndex != -1) {
-        AddressManager::getInstance().handleLookupString(arguments().value(urlIndex + 1));
-    } else {
-        // check if we have a URL in settings to load to jump back to
-        // we load this separate from the other settings so we don't double lookup a URL
-        QSettings* interfaceSettings = lockSettings();
-        QVariant addressVariant = interfaceSettings->value(SETTINGS_ADDRESS_KEY);
-        
-        QString addressString = addressVariant.isNull()
-            ? DEFAULT_HIFI_ADDRESS : addressVariant.toUrl().toString();
-        
-        unlockSettings();
-        
-        AddressManager::getInstance().handleLookupString(addressString);
+        addressLookupString = arguments().value(urlIndex + 1);
     }
+    
+    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
     
     qDebug() << "Loaded settings";
     
@@ -3615,7 +3606,7 @@ void Application::updateWindowTitle(){
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + AddressManager::getInstance().getCurrentDomain() + connectionStatus + buildVersion;
+        + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.getAccountInfo().hasBalance()) {
@@ -3646,7 +3637,7 @@ void Application::updateLocationInServer() {
 
         QJsonObject locationObject;
         
-        QString pathString = AddressManager::getInstance().currentPath();
+        QString pathString = DependencyManager::get<AddressManager>()->currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
         const QString PATH_KEY_IN_LOCATION = "path";
@@ -4189,7 +4180,7 @@ void Application::uploadAttachment() {
 void Application::openUrl(const QUrl& url) {
     if (!url.isEmpty()) {
         if (url.scheme() == HIFI_URL_SCHEME) {
-            AddressManager::getInstance().handleLookupString(url.toString());
+            DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);

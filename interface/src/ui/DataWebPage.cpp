@@ -36,7 +36,7 @@ bool DataWebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkReques
         return true;
     } else {
         // this is a hifi URL - have the AddressManager handle it
-        QMetaObject::invokeMethod(&AddressManager::getInstance(), "handleLookupString",
+        QMetaObject::invokeMethod(DependencyManager::get<AddressManager>(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, request.url().toString()));
         return false;
     }

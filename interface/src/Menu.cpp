@@ -155,9 +155,9 @@ Menu::Menu() :
     connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
     
     // connect to signal of account manager so we can tell user when the user/place they looked at is offline
-    AddressManager& addressManager = AddressManager::getInstance();
-    connect(&addressManager, &AddressManager::lookupResultIsOffline, this, &Menu::displayAddressOfflineMessage);
-    connect(&addressManager, &AddressManager::lookupResultIsNotFound, this, &Menu::displayAddressNotFoundMessage);
+    AddressManager* addressManager = DependencyManager::get<AddressManager>();
+    connect(addressManager, &AddressManager::lookupResultIsOffline, this, &Menu::displayAddressOfflineMessage);
+    connect(addressManager, &AddressManager::lookupResultIsNotFound, this, &Menu::displayAddressNotFoundMessage);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
@@ -763,8 +763,6 @@ void Menu::saveSettings(QSettings* settings) {
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
-    
-    settings->setValue(SETTINGS_ADDRESS_KEY, AddressManager::getInstance().currentAddress());
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
@@ -1198,7 +1196,7 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
+        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>());
         _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
     }
     
@@ -1242,7 +1240,7 @@ void Menu::nameLocation() {
     
     if (!_newLocationDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
+        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>());
         _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
     }
     
