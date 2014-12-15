@@ -473,7 +473,7 @@ void ModelUploader::processCheck() {
                                      QMessageBox::Ok);
             GeometryCache::getInstance()->refresh(_url);
             foreach (const QByteArray& filename, _textureFilenames) {
-                TextureCache::getInstance()->refresh(_textureBase + filename);
+                DependencyManager::get<TextureCache>()->refresh(_textureBase + filename);
             }
             deleteLater();
             break;

@@ -25,12 +25,6 @@
 
 #include "TextureCache.h"
 
-TextureCache* TextureCache::getInstance() {
-    static TextureCache instance;
-    return &instance;
-}
-
-
 TextureCache::TextureCache() :
     _permutationNormalTextureID(0),
     _whiteTextureID(0),

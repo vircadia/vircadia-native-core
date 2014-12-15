@@ -749,7 +749,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     }
 
 
-    /*TextureCache::getInstance()->setPrimaryDrawBuffers(
+    /*DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(
         mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE);
@@ -789,7 +789,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
 
     // render translucent meshes afterwards
-    //TextureCache::getInstance()->setPrimaryDrawBuffers(false, true, true);
+    //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, true, true);
     {
         GLenum buffers[2];
         int bufferCount = 0;
@@ -814,7 +814,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     GLBATCH(glDepthMask)(false);
     GLBATCH(glDepthFunc)(GL_LEQUAL);
     
-    //TextureCache::getInstance()->setPrimaryDrawBuffers(true);
+    //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true);
     {
         GLenum buffers[1];
         int bufferCount = 0;
@@ -1705,7 +1705,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         }
 
 
-        /*TextureCache::getInstance()->setPrimaryDrawBuffers(
+        /*DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(
             mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
             mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
             mode == DEFAULT_RENDER_MODE);
@@ -1745,7 +1745,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
 
         // render translucent meshes afterwards
-        //TextureCache::getInstance()->setPrimaryDrawBuffers(false, true, true);
+        //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, true, true);
         {
             GLenum buffers[2];
             int bufferCount = 0;
@@ -1770,7 +1770,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         GLBATCH(glDepthMask)(false);
         GLBATCH(glDepthFunc)(GL_LEQUAL);
     
-        //TextureCache::getInstance()->setPrimaryDrawBuffers(true);
+        //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true);
         {
             GLenum buffers[1];
             int bufferCount = 0;
@@ -2446,7 +2446,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     if (showDiffuse && diffuseMap) {
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
                     } else {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, TextureCache::getInstance()->getWhiteTextureID());
+                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getWhiteTextureID());
                     }
 
                     if (locations->texcoordMatrices >= 0) {
@@ -2464,7 +2464,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         GLBATCH(glActiveTexture)(GL_TEXTURE1);
                         Texture* normalMap = networkPart.normalTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !normalMap ?
-                            TextureCache::getInstance()->getBlueTextureID() : normalMap->getID());
+                            DependencyManager::get<TextureCache>()->getBlueTextureID() : normalMap->getID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
                 
@@ -2472,7 +2472,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
                         Texture* specularMap = networkPart.specularTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !specularMap ?
-                            TextureCache::getInstance()->getWhiteTextureID() : specularMap->getID());
+                            DependencyManager::get<TextureCache>()->getWhiteTextureID() : specularMap->getID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
 
@@ -2493,7 +2493,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                     Texture* emissiveMap = networkPart.emissiveTexture.data();
                     GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
-                        TextureCache::getInstance()->getWhiteTextureID() : emissiveMap->getID());
+                        DependencyManager::get<TextureCache>()->getWhiteTextureID() : emissiveMap->getID());
                     GLBATCH(glActiveTexture)(GL_TEXTURE0);
                 }
 

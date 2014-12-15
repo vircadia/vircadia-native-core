@@ -98,7 +98,7 @@ void AmbientOcclusionEffect::render() {
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
     
-    glBindTexture(GL_TEXTURE_2D, TextureCache::getInstance()->getPrimaryDepthTextureID());
+    glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimaryDepthTextureID());
     
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
@@ -116,7 +116,7 @@ void AmbientOcclusionEffect::render() {
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_X_INDEX = 0;
     const int VIEWPORT_WIDTH_INDEX = 2;
-    QOpenGLFramebufferObject* primaryFBO = TextureCache::getInstance()->getPrimaryFramebufferObject();
+    QOpenGLFramebufferObject* primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject();
     float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
     
@@ -141,7 +141,7 @@ void AmbientOcclusionEffect::render() {
     glActiveTexture(GL_TEXTURE0);
     
     // now render secondary to primary with 4x4 blur
-    TextureCache::getInstance()->getPrimaryFramebufferObject()->bind();
+    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
     
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);

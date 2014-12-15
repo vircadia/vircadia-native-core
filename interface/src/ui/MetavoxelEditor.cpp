@@ -916,7 +916,7 @@ void MaterialControl::updateTexture() {
         _texture.clear();
         return;
     }
-    _texture = TextureCache::getInstance()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
+    _texture = DependencyManager::get<TextureCache>()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
     if (_texture) {
         if (_texture->isLoaded()) {
             textureLoaded();
