@@ -108,7 +108,7 @@ void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
     _entity->computeShapeInfo(info);
 }
 
-void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
+void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
 #ifdef USE_BULLET_PHYSICS
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
@@ -165,12 +165,22 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender) {
         //properties.setLastEdited(now);
 
         glm::vec3 zero(0.0f);
-        _sentMoving = (_sentVelocity == zero && _sentAngularVelocity == zero && _sentAcceleration == zero);
+        _sentMoving = !(_sentVelocity == zero && _sentAngularVelocity == zero && _sentAcceleration == zero);
+        // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
+        if (_sentMoving) {
+            _numNonMovingUpdates = 0;
+        } else {
+            _numNonMovingUpdates++;
+        }
 
         EntityItemID id(_entity->getID());
         EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
         entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
-        _outgoingPacketFlags = 0;
+
+        // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
+        // to the full set.  These flags may be momentarily cleared by incoming external changes.  
+        _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
+        _sentFrame = frame;
     }
 #endif // USE_BULLET_PHYSICS
 }

@@ -58,7 +58,7 @@ public:
 
     void computeShapeInfo(ShapeInfo& info);
 
-    void sendUpdate(OctreeEditPacketSender* packetSender);
+    void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
 
     uint32_t getIncomingDirtyFlags() const { return _entity->getDirtyFlags(); }
     void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }

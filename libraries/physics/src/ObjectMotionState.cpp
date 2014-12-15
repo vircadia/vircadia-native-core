@@ -52,8 +52,8 @@ ObjectMotionState::ObjectMotionState() :
         _motionType(MOTION_TYPE_STATIC),
         _body(NULL),
         _sentMoving(false),
-        _weKnowRecipientHasReceivedNotMoving(false),
-        _outgoingPacketFlags(0),
+        _numNonMovingUpdates(0),
+        _outgoingPacketFlags(DIRTY_PHYSICS_FLAGS),
         _sentFrame(0),
         _sentPosition(0.0f),
         _sentRotation(),
@@ -109,20 +109,47 @@ void ObjectMotionState::getAngularVelocity(glm::vec3& angularVelocityOut) const 
     bulletToGLM(_body->getAngularVelocity(), angularVelocityOut);
 }
 
+// RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
+// we alwasy resend packets for objects that have stopped moving up to some max limit.
+const int MAX_NUM_NON_MOVING_UPDATES = 5;
+
+bool ObjectMotionState::doesNotNeedToSendUpdate() const { 
+    return !_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES;
+}
+
 const float FIXED_SUBSTEP = 1.0f / 60.0f;
 
 bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const {
     assert(_body);
     float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP + subStepRemainder;
-    const float DEFAULT_UPDATE_PERIOD = 10.0f;
-    if (dt > DEFAULT_UPDATE_PERIOD || (_sentMoving && !_body->isActive())) {
-        return true;
+    bool isActive = _body->isActive();
+
+    if (isActive) {
+        const float MAX_UPDATE_PERIOD_FOR_ACTIVE_THINGS = 10.0f;
+        if (dt > MAX_UPDATE_PERIOD_FOR_ACTIVE_THINGS) {
+            return true;
+        }
+    } else if (_sentMoving) { 
+        if (!isActive) {
+            // this object just went inactive so send an update immediately
+            return true;
+        }
+    } else {
+        const float NON_MOVING_UPDATE_PERIOD = 1.0f;
+        if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
+            // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets we repeat these
+            // at a faster rate than the MAX period above, and only send a limited number of them.
+            return true;
+        }
     }
+
     // Else we measure the error between current and extrapolated transform (according to expected behavior 
     // of remote EntitySimulation) and return true if the error is significant.
 
     // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
+
+    // TODO: Andrew to reconcile Bullet and legacy damping coefficients.
 
     // compute position error
     glm::vec3 extrapolatedPosition = _sentPosition + dt * (_sentVelocity + (0.5f * dt) * _sentAcceleration);
@@ -131,7 +158,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
     btTransform worldTrans = _body->getWorldTransform();
     bulletToGLM(worldTrans.getOrigin(), position);
     
-    float dx2 = glm::length2(position - extrapolatedPosition);
+    float dx2 = glm::distance2(position, extrapolatedPosition);
     const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
         return true;

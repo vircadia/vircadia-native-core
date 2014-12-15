@@ -13,9 +13,9 @@
 // TODO DONE: make MotionState::setWorldTransform() put itself on _incomingChanges list
 // TODO DONE: give PhysicsEngine instance an _entityPacketSender
 // TODO DONE: make sure code compiles when BULLET is not found
-// TODO: make sure incoming and outgoing pipelines are connected
-// TODO: provide some sort of "reliable" send for "stopped" update
+// TODO DONE: make sure incoming and outgoing pipelines are connected
 // TODO: test entity updates (second viewer sees physics results from first)
+// TODO: provide some sort of "reliable" send for "stopped" update
 
 #include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS
@@ -57,7 +57,7 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
         if (state->doesNotNeedToSendUpdate()) {
             stateItr = _outgoingPackets.erase(stateItr);
         } else if (state->shouldSendUpdate(frame, subStepRemainder)) {
-            state->sendUpdate(_entityPacketSender);
+            state->sendUpdate(_entityPacketSender, frame);
             ++stateItr;
         } else {
             ++stateItr;

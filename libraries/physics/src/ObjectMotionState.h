@@ -81,9 +81,9 @@ public:
     virtual void clearIncomingDirtyFlags(uint32_t flags) = 0;
     void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
 
-    bool doesNotNeedToSendUpdate() const { return !_body->isActive() && _weKnowRecipientHasReceivedNotMoving; }
+    bool doesNotNeedToSendUpdate() const;
     virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const;
-    virtual void sendUpdate(OctreeEditPacketSender* packetSender) = 0;
+    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
     virtual MotionType computeMotionType() const = 0;
 
@@ -100,7 +100,7 @@ protected:
     btRigidBody* _body;
 
     bool _sentMoving;   // true if last update was moving
-    bool _weKnowRecipientHasReceivedNotMoving;
+    int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
 
     uint32_t _outgoingPacketFlags;
     uint32_t _sentFrame;
