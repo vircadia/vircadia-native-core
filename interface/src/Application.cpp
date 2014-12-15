@@ -77,6 +77,7 @@
 #include "ModelUploader.h"
 #include "Util.h"
 
+#include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"

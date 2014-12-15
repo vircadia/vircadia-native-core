@@ -18,6 +18,7 @@
 #include <SharedUtil.h>
 
 #include "Application.h"
+#include "Faceshift.h"
 #include "Visage.h"
 
 // this has to go after our normal includes, because its definition of HANDLE conflicts with Qt's

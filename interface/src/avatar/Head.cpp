@@ -11,6 +11,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <DependencyManager.h>
+#include <devices/Faceshift.h>
 #include <NodeList.h>
 
 #include "Application.h"

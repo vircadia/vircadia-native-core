@@ -54,7 +54,6 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "devices/Faceshift.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"

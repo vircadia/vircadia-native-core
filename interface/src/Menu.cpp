@@ -38,6 +38,7 @@
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "devices/Faceshift.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
