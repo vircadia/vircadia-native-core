@@ -15,12 +15,6 @@
 #define hifi_windowshacks_h
 
 #ifdef WIN32
-// apparently needed to get M_PI and other defines from cmath/math.h
-#define _USE_MATH_DEFINES
-// needed to make sure windows doesn't go to crazy with its defines
-#define WINDOWS_LEAN_AND_MEAN
-
-//#undef NOMINMAX
 
 #include <cmath>
 inline double roundf(double value) {
