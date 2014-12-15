@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
+#include <gpu/GPUConfig.h>
+
 #include <cmath>
 
 #include <QNetworkReply>
@@ -17,9 +20,8 @@
 
 #include <SharedUtil.h>
 
-#include "TextureCache.h"
-
 #include "GeometryCache.h"
+#include "TextureCache.h"
 
 GeometryCache* GeometryCache::getInstance() {
     static GeometryCache instance;
