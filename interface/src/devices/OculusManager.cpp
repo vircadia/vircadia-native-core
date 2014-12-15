@@ -449,7 +449,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
         Application::getInstance()->getGlowEffect()->prepare();
     } else {
-        Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+        DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
@@ -555,8 +555,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
         glBindTexture(GL_TEXTURE_2D, fbo->texture());
     } else {
-        Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->texture());
+        DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
+        glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->texture());
     }
 
     // restore our normal viewport

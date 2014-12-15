@@ -63,7 +63,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
             glScalef(dimensions.x, dimensions.y, dimensions.z);
             //Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
             if (_isSolid) {
-                Application::getInstance()->getGeometryCache()->renderSphere(1.0f, SLICES, SLICES); 
+                DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES); 
             } else {
                 glutWireSphere(1.0f, SLICES, SLICES);
             }

@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 #include <cstring>
 #include <cmath>
 #include <iostream> // to load voxels from file
@@ -874,7 +873,6 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
         if (node->getShouldRender()) {
             glm::vec3 startVertex = node->getCorner();
             float voxelScale = node->getScale();
-            nodeColor const & color = node->getColor();
 
             glBufferIndex nodeIndex = GLBUFFER_INDEX_UNKNOWN;
             if (reuseIndex && node->isKnownBufferIndex()) {
@@ -1172,7 +1170,7 @@ void VoxelSystem::render() {
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
     if (texture) {
         bindPerlinModulateProgram();
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
+        glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPermutationNormalTextureID());
     } else {
         _program.bind();
     }
@@ -1180,7 +1178,7 @@ void VoxelSystem::applyScaleAndBindProgram(bool texture) {
     glPushMatrix();
     glScalef(_treeScale, _treeScale, _treeScale);
     
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
 }
 
 void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
@@ -1194,7 +1192,7 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
         _program.release();
     }
     
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false);
 }
 
 int VoxelSystem::_nodeCount = 0;

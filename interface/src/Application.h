@@ -34,9 +34,9 @@
 #include <EntityEditPacketSender.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
+#include <OctreeQuery.h>
 #include <PacketHeaders.h>
 #include <ScriptEngine.h>
-#include <OctreeQuery.h>
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
@@ -54,11 +54,8 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "devices/Faceshift.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
-#include "devices/Visage.h"
-#include "devices/DdeFaceTracker.h"
 #include "entities/EntityTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/DeferredLightingEffect.h"
@@ -100,6 +97,7 @@ class QMouseEvent;
 class QSettings;
 class QWheelEvent;
 
+class FaceTracker;
 class Node;
 class ProgramObject;
 
@@ -220,10 +218,7 @@ public:
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
     int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
-    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
-    Faceshift* getFaceshift() { return &_faceshift; }
-    Visage* getVisage() { return &_visage; }
-    DdeFaceTracker* getDDE() { return &_dde; }
+    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     FaceTracker* getActiveFaceTracker();
     PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
@@ -254,9 +249,7 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
-    TextureCache* getTextureCache() { return &_textureCache; }
     DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
@@ -532,10 +525,6 @@ private:
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
-    Faceshift _faceshift;
-    Visage _visage;
-    DdeFaceTracker _dde;
-
     PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
@@ -578,9 +567,7 @@ private:
     QSet<int> _keysPressed;
 
 
-    GeometryCache _geometryCache;
     AnimationCache _animationCache;
-    TextureCache _textureCache;
 
     DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;

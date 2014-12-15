@@ -114,7 +114,7 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
             glPushMatrix();
             glTranslatef(position.x, position.y, position.z);
             glColor3f(0.0f, 1.0f, 0.0f);
-            Application::getInstance()->getGeometryCache()->renderSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
+            DependencyManager::get<GeometryCache>()->renderSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
             glPopMatrix();
         }
     }
@@ -179,7 +179,7 @@ void Hand::renderHandTargets(bool isMine) {
             Avatar::renderJointConnectingCone(root, offsetFromPalm, PALM_DISK_RADIUS, 0.0f);
             glPushMatrix();
             glTranslatef(root.x, root.y, root.z);
-            Application::getInstance()->getGeometryCache()->renderSphere(PALM_BALL_RADIUS, 20.0f, 20.0f);
+            DependencyManager::get<GeometryCache>()->renderSphere(PALM_BALL_RADIUS, 20.0f, 20.0f);
             glPopMatrix();
         }
     }

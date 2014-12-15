@@ -16,7 +16,7 @@
 #include <QUrl>
 
 #include "Base3DOverlay.h"
-#include "../../renderer/TextureCache.h"
+#include "renderer/TextureCache.h"
 
 class BillboardOverlay : public Base3DOverlay {
     Q_OBJECT
