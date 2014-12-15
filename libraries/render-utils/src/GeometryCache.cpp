@@ -19,8 +19,8 @@
 #include <QThreadPool>
 
 #include <SharedUtil.h>
-#include <TextureCache.h>
 
+#include "TextureCache.h"
 #include "GeometryCache.h"
 
 GeometryCache::GeometryCache() {

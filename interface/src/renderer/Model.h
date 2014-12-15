@@ -16,16 +16,16 @@
 #include <QObject>
 #include <QUrl>
 
-#include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
 #include <DependencyManager.h>
+#include <GeometryCache.h>
 #include <GeometryUtil.h>
 #include <PhysicsEntity.h>
 #include <TextureCache.h>
+#include <Transform.h>
 
 #include "AnimationHandle.h"
-#include "GeometryCache.h"
 #include "InterfaceConfig.h"
 #include "JointState.h"
 #include "ProgramObject.h"

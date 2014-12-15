@@ -1,7 +1,7 @@
 set(TARGET_NAME render-utils)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(Widgets OpenGL Network)
+setup_hifi_library(Widgets OpenGL Network Script)
 
 include_glm()
 
