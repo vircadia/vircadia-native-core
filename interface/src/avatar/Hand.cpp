@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <gpu/GPUConfig.h> // hack to get windows to build
+
 #include <QImage>
 
 #include <NodeList.h>
