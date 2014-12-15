@@ -34,9 +34,9 @@
 #include <EntityEditPacketSender.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
+#include <OctreeQuery.h>
 #include <PacketHeaders.h>
 #include <ScriptEngine.h>
-#include <OctreeQuery.h>
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
@@ -249,9 +249,7 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
-    TextureCache* getTextureCache() { return &_textureCache; }
     DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
@@ -569,9 +567,7 @@ private:
     QSet<int> _keysPressed;
 
 
-    GeometryCache _geometryCache;
     AnimationCache _animationCache;
-    TextureCache _textureCache;
 
     DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;

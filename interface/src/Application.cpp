@@ -194,7 +194,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -621,10 +620,10 @@ void Application::paintGL() {
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     if (OculusManager::isConnected()) {
-        _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
+        DependencyManager::get<TextureCache>()->setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
         QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
-        _textureCache.setFrameBufferSize(fbSize);
+        DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -714,7 +713,7 @@ void Application::paintGL() {
         _glowEffect.prepare();
 
         // Viewport is assigned to the size of the framebuffer
-        QSize size = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->size();
+        QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
         glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
@@ -2042,6 +2041,9 @@ void Application::init() {
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
+
+    // make sure our texture cache knows about window size changes    
+    DependencyManager::get<TextureCache>()->associateWithWidget(getGLWidget());
 }
 
 void Application::closeMirrorView() {
@@ -2772,7 +2774,7 @@ glm::vec3 Application::getSunDirection() {
 
 void Application::updateShadowMap() {
     PerformanceTimer perfTimer("shadowMap");
-    QOpenGLFramebufferObject* fbo = _textureCache.getShadowFramebufferObject();
+    QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -2937,7 +2939,7 @@ void Application::setupWorldLight() {
 }
 
 QImage Application::renderAvatarBillboard() {
-    _textureCache.getPrimaryFramebufferObject()->bind();
+    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
 
     // the "glow" here causes an alpha of one
     Glower glower;
@@ -2948,7 +2950,7 @@ QImage Application::renderAvatarBillboard() {
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
 
-    _textureCache.getPrimaryFramebufferObject()->release();
+    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
 
     return image;
 }
@@ -3078,7 +3080,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // draw a red sphere
         float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
-        _geometryCache.renderSphere(originSphereRadius, 15, 15);
+        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15);
         
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -3299,12 +3301,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // set the bounds of rear mirror view
     if (billboard) {
-        QSize size = getTextureCache()->getFrameBufferSize();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
         glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());    
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        QSize size = getTextureCache()->getFrameBufferSize();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);

@@ -19,6 +19,7 @@
 #include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
+#include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <PhysicsEntity.h>
 
@@ -453,12 +454,33 @@ private:
     static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
 
-
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
+
+/// Handle management of pending models that need blending
+class ModelBlender : public QObject, public DependencyManager::Dependency  {
+    Q_OBJECT
+
+public:
+
+    /// Adds the specified model to the list requiring vertex blends.
+    void noteRequiresBlend(Model* model);
+
+public slots:
+    void setBlendedVertices(const QPointer<Model>& model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+
+private:
+    ModelBlender();
+    virtual ~ModelBlender();
+    friend class DependencyManager;
+
+    QList<QPointer<Model> > _modelsRequiringBlends;
+    int _pendingBlenders;
+};
 
 
 #endif // hifi_Model_h
