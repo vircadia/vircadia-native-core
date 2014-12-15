@@ -171,46 +171,50 @@ public:
     void removeVoxel(glm::vec3 position, float scale);
 
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
+    bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
 
-    GLCanvas* getGLWidget() { return _glWidget; }
-    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
+    GLCanvas* getGLWidget() { return DependencyManager::get<GLCanvas>(); } // TODO: remove
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
-    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
-    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     EntityTreeRenderer* getEntities() { return &_entities; }
-    bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
+    Environment* getEnvironment() { return &_environment; }
+    PrioVR* getPrioVR() { return &_prioVR; }
+    QUndoStack* getUndoStack() { return &_undoStack; }
+    MainWindow* getWindow() { return _window; }
+    
+    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelTree* getClipboard() { return &_clipboard; }
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
-    Environment* getEnvironment() { return &_environment; }
+    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
+    bool getImportSucceded() { return _importSucceded; }
+    
     bool isMousePressed() const { return _mousePressed; }
-    bool isMouseHidden() const { return _glWidget->cursor().shape() == Qt::BlankCursor; }
+    bool isMouseHidden() const { return DependencyManager::get<GLCanvas>()->cursor().shape() == Qt::BlankCursor; }
     void setCursorVisible(bool visible);
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
     int getMouseX() const;
     int getMouseY() const;
-    int getTrueMouseX() const { return _glWidget->mapFromGlobal(QCursor::pos()).x(); }
-    int getTrueMouseY() const { return _glWidget->mapFromGlobal(QCursor::pos()).y(); }
+    int getTrueMouseX() const { return DependencyManager::get<GLCanvas>()->mapFromGlobal(QCursor::pos()).x(); }
+    int getTrueMouseY() const { return DependencyManager::get<GLCanvas>()->mapFromGlobal(QCursor::pos()).y(); }
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
     int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
+    
     FaceTracker* getActiveFaceTracker();
-    PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
-    QUndoStack* getUndoStack() { return &_undoStack; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
@@ -230,7 +234,6 @@ public:
 
     void saveSettings();
 
-    MainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
@@ -278,7 +281,8 @@ public:
 
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
+    glm::vec2 getViewportDimensions() const { return glm::vec2(DependencyManager::get<GLCanvas>()->getDeviceWidth(),
+                                                               DependencyManager::get<GLCanvas>()->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
@@ -456,7 +460,6 @@ private:
     int sendNackPackets();
 
     MainWindow* _window;
-    GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
     ToolWindow* _toolWindow;
 

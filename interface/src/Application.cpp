@@ -146,7 +146,6 @@ QString& Application::resourcesPath() {
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _window(new MainWindow(desktop())),
-        _glWidget(new GLCanvas()),
         _toolWindow(NULL),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
@@ -195,7 +194,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-
+    GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -365,16 +365,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     ResourceCache::setRequestLimit(3);
 
-    _window->setCentralWidget(_glWidget);
+    _window->setCentralWidget(glCanvas);
 
     restoreSizeAndPosition();
 
     _window->setVisible(true);
-    _glWidget->setFocusPolicy(Qt::StrongFocus);
-    _glWidget->setFocus();
+    glCanvas->setFocusPolicy(Qt::StrongFocus);
+    glCanvas->setFocus();
 
     // enable mouse tracking; otherwise, we only get drag events
-    _glWidget->setMouseTracking(true);
+    glCanvas->setMouseTracking(true);
 
     _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
@@ -393,7 +393,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     checkVersion();
 
-    _overlays.init(_glWidget); // do this before scripts load
+    _overlays.init(glCanvas); // do this before scripts load
 
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
@@ -483,8 +483,6 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
-
-    delete _glWidget;
 }
 
 void Application::saveSettings() {
@@ -624,7 +622,7 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
+        QSize fbSize = DependencyManager::get<GLCanvas>()->getDeviceSize() * getRenderResolutionScale();
         _textureCache.setFrameBufferSize(fbSize);
     }
 
@@ -1048,7 +1046,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+                        GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+                        TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
@@ -1060,7 +1059,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+                        GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+                        TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
 
                 } else {
@@ -1506,7 +1506,7 @@ void Application::idle() {
         {
             PerformanceTimer perfTimer("updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
-            _glWidget->updateGL();
+            DependencyManager::get<GLCanvas>()->updateGL();
         }
         {
             PerformanceTimer perfTimer("rest");
@@ -1532,13 +1532,14 @@ void Application::idle() {
 
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
+    GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
         Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
         glm::compMax(glm::abs(glm::ivec2(getMouseX() - getMouseDragStartedX(),
                                          getMouseY() - getMouseDragStartedY())))
         <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-        && _bandwidthMeter.isWithinArea(getMouseX(), getMouseY(), _glWidget->width(), _glWidget->height())) {
+        && _bandwidthMeter.isWithinArea(getMouseX(), getMouseY(), glCanvas->width(), glCanvas->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1567,7 +1568,8 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->getDeviceWidth(),_glWidget->getDeviceHeight());
+    GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+    resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1592,7 +1594,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+    resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
@@ -1654,8 +1657,9 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 
 bool Application::mouseOnScreen() const {
     if (OculusManager::isConnected()) {
-        return getMouseX() >= 0 && getMouseX() <= _glWidget->getDeviceWidth() &&
-               getMouseY() >= 0 && getMouseY() <= _glWidget->getDeviceHeight();
+        GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+        return getMouseX() >= 0 && getMouseX() <= glCanvas->getDeviceWidth() &&
+               getMouseY() >= 0 && getMouseY() <= glCanvas->getDeviceHeight();
     }
     return true;
 }
@@ -1774,7 +1778,8 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
     QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/voxels.svo");
 
-    QString fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), suggestedName,
+    QString fileNameString = QFileDialog::getSaveFileName(DependencyManager::get<GLCanvas>(),
+                                                          tr("Export Voxels"), suggestedName,
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
@@ -2029,9 +2034,9 @@ void Application::init() {
 
     _metavoxels.init();
 
-    _audio.init(_glWidget);
-
-    _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
+    GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+    _audio.init(glCanvas);
+    _rearMirrorTools = new RearMirrorTools(glCanvas, _mirrorViewRect, _settings);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
@@ -2913,8 +2918,9 @@ void Application::updateShadowMap() {
     }
     
     fbo->release();
-
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    
+    GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+    glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
@@ -2944,7 +2950,9 @@ QImage Application::renderAvatarBillboard() {
     Glower glower;
 
     const int BILLBOARD_SIZE = 64;
-    renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    renderRearViewMirror(QRect(0, DependencyManager::get<GLCanvas>()->getDeviceHeight() - BILLBOARD_SIZE,
+                               BILLBOARD_SIZE, BILLBOARD_SIZE),
+                         true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
@@ -3239,8 +3247,9 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
-    float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;
+    GLCanvas* glCanvas = DependencyManager::get<GLCanvas>();
+    float horizontalScale = glCanvas->getDeviceWidth() / 2.0f;
+    float verticalScale   = glCanvas->getDeviceHeight() / 2.0f;
 
     // -1,-1 is 0,windowHeight
     // 1,1 is windowWidth,0
@@ -3259,7 +3268,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     // -1,-1                   1,-1
 
     glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
+        ((projectedPoint.y + 1.0) * -verticalScale) + glCanvas->getDeviceHeight());
 
     return screenPoint;
 }
@@ -3570,7 +3579,7 @@ void Application::resetSensors() {
     QScreen* currentScreen = _window->windowHandle()->screen();
     QWindow* mainWindow = _window->windowHandle();
     QPoint windowCenter = mainWindow->geometry().center();
-    _glWidget->cursor().setPos(currentScreen, windowCenter);
+    DependencyManager::get<GLCanvas>()->cursor().setPos(currentScreen, windowCenter);
     
     _myAvatar->reset();
 
@@ -4251,7 +4260,8 @@ void Application::setPreviousScriptLocation(const QString& previousScriptLocatio
 
 void Application::loadDialog() {
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"),
+    QString fileNameString = QFileDialog::getOpenFileName(DependencyManager::get<GLCanvas>(),
+                                                          tr("Open Script"),
                                                           getPreviousScriptLocation(),
                                                           tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
@@ -4287,7 +4297,7 @@ void Application::loadScriptURLDialog() {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(_glWidget, getLogger());
+        _logDialog = new LogDialog(DependencyManager::get<GLCanvas>(), getLogger());
     }
 
     if (_logDialog->isVisible()) {
@@ -4347,7 +4357,7 @@ void Application::parseVersionXml() {
     }
 
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
+        new UpdateDialog(DependencyManager::get<GLCanvas>(), releaseNotes, latestVersion, downloadUrl);
     }
     sender->deleteLater();
 }
@@ -4380,7 +4390,7 @@ void Application::takeSnapshot() {
     }
 
     if (!_snapshotShareDialog) {
-        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
+        _snapshotShareDialog = new SnapshotShareDialog(fileName, DependencyManager::get<GLCanvas>());
     }
     _snapshotShareDialog->show();
 }
