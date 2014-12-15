@@ -9,9 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Grid3DOverlay.h"
+#include <PathUtils.h>
 
 #include "Application.h"
+#include "Grid3DOverlay.h"
 
 ProgramObject Grid3DOverlay::_gridProgram;
 
@@ -36,7 +37,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
     }
 
     if (!_gridProgram.isLinked()) {
-        if (!_gridProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/grid.frag")) {
+        if (!_gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag")) {
             qDebug() << "Failed to compile: " + _gridProgram.log();
             return;
         }

@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
+#include <PathUtils.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
 #include <XmppClient.h>
@@ -246,7 +247,7 @@ Menu::Menu() :
     connect(&xmppClient, &QXmppClient::connected, this, &Menu::toggleChat);
     connect(&xmppClient, &QXmppClient::disconnected, this, &Menu::toggleChat);
 
-    QDir::setCurrent(Application::resourcesPath());
+    QDir::setCurrent(PathUtils::resourcesPath());
     // init chat window to listen chat
     _chatWindow = new ChatWindow(Application::getInstance()->getWindow());
 #endif

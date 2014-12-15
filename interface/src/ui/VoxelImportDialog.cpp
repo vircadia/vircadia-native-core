@@ -18,6 +18,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include <PathUtils.h>
+
 #include "Application.h"
 
 #include "VoxelImportDialog.h"
@@ -64,7 +66,7 @@ QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
             break;
     }
 
-    return QIcon(Application::resourcesPath() + "icons/" + typeString + ".svg");
+    return QIcon(PathUtils::resourcesPath() + "icons/" + typeString + ".svg");
 }
 
 QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
@@ -72,21 +74,21 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
 
     if (info.isDir()) {
         if (info.absoluteFilePath() == QDir::homePath()) {
-            return QIcon(Application::resourcesPath() + "icons/home.svg");
+            return QIcon(PathUtils::resourcesPath() + "icons/home.svg");
         } else if (info.absoluteFilePath() == QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)) {
-            return QIcon(Application::resourcesPath() + "icons/desktop.svg");
+            return QIcon(PathUtils::resourcesPath() + "icons/desktop.svg");
         } else if (info.absoluteFilePath() == QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)) {
-            return QIcon(Application::resourcesPath() + "icons/documents.svg");
+            return QIcon(PathUtils::resourcesPath() + "icons/documents.svg");
         }
-        return QIcon(Application::resourcesPath() + "icons/folder.svg");
+        return QIcon(PathUtils::resourcesPath() + "icons/folder.svg");
     }
 
-    QFileInfo iconFile(Application::resourcesPath() + "icons/" + iconsMap[ext]);
+    QFileInfo iconFile(PathUtils::resourcesPath() + "icons/" + iconsMap[ext]);
     if (iconFile.exists() && iconFile.isFile()) {
         return QIcon(iconFile.filePath());
     }
 
-    return QIcon(Application::resourcesPath() + "icons/file.svg");
+    return QIcon(PathUtils::resourcesPath() + "icons/file.svg");
 }
 
 QString HiFiIconProvider::type(const QFileInfo &info) const {
@@ -307,16 +309,16 @@ void VoxelImportDialog::setLayout() {
     widget = findChild<QWidget*>("treeView");
     widget->setAttribute(Qt::WA_MacShowFocusRect, false);
     
-    QFile styleSheet(Application::resourcesPath() + "styles/import_dialog.qss");
+    QFile styleSheet(PathUtils::resourcesPath() + "styles/import_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
-        QDir::setCurrent(Application::resourcesPath());
+        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 
 }
 
 void VoxelImportDialog::setImportTypes() {
-    QFile config(Application::resourcesPath() + "config/config.json");
+    QFile config(PathUtils::resourcesPath() + "config/config.json");
     config.open(QFile::ReadOnly | QFile::Text);
     QJsonDocument document = QJsonDocument::fromJson(config.readAll());
     if (!document.isNull() && !document.isEmpty()) {

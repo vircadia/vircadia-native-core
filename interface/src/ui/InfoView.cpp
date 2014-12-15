@@ -9,13 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InfoView.h"
 #include <QApplication>
-#include "Application.h"
 
 #include <QtWebKitWidgets/QWebFrame>
 #include <QtWebKit/QWebElement>
 #include <QDesktopWidget>
+
+#include <PathUtils.h>
+
+#include "Application.h"
+#include "InfoView.h"
 
 #define SETTINGS_VERSION_KEY "info-version"
 #define MAX_DIALOG_HEIGHT_RATIO 0.9
@@ -25,7 +28,7 @@ InfoView::InfoView(bool forced, QString path) :
 {
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
         
-    QString absPath = QFileInfo(Application::resourcesPath() + path).absoluteFilePath();
+    QString absPath = QFileInfo(PathUtils::resourcesPath() + path).absoluteFilePath();
     QUrl url = QUrl::fromLocalFile(absPath);
     
     load(url);

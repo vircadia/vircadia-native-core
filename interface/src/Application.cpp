@@ -65,6 +65,7 @@
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
@@ -133,15 +134,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
-QString& Application::resourcesPath() {
-#ifdef Q_OS_MAC
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
-#else
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
-#endif
-    return staticResourcePath;
-}
-
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _window(new MainWindow(desktop())),
@@ -195,7 +187,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _aboutToQuit(false)
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
+    QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
@@ -213,7 +205,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _applicationStartupTime = startup_time;
 
-    QFontDatabase::addApplicationFont(Application::resourcesPath() + "styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
@@ -4369,7 +4361,7 @@ void Application::skipVersion(QString latestVersion) {
 
 void Application::takeSnapshot() {
     QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
+    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 

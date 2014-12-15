@@ -12,6 +12,8 @@
 #include <QScreen>
 #include <QWindow>
 
+#include <PathUtils.h>
+
 #include "Application.h"
 #include "FramelessDialog.h"
 #include "Menu.h"
@@ -80,10 +82,10 @@ bool FramelessDialog::eventFilter(QObject* sender, QEvent* event) {
 }
 
 void FramelessDialog::setStyleSheetFile(const QString& fileName) {
-    QFile globalStyleSheet(Application::resourcesPath() + "styles/global.qss");
-    QFile styleSheet(Application::resourcesPath() + fileName);
+    QFile globalStyleSheet(PathUtils::resourcesPath() + "styles/global.qss");
+    QFile styleSheet(PathUtils::resourcesPath() + fileName);
     if (styleSheet.open(QIODevice::ReadOnly) && globalStyleSheet.open(QIODevice::ReadOnly) ) {
-        QDir::setCurrent(Application::resourcesPath());
+        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(globalStyleSheet.readAll() + styleSheet.readAll());
     }
 }

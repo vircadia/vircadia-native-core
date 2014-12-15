@@ -19,6 +19,7 @@
 
 #include <AddressManager.h>
 #include <AccountManager.h>
+#include <PathUtils.h>
 
 #include "Application.h"
 #include "ChatMessageArea.h"
@@ -92,9 +93,9 @@ ChatWindow::ChatWindow(QWidget* parent) :
     connect(&_trayIcon, SIGNAL(messageClicked()), this, SLOT(notificationClicked()));
 #endif // HAVE_QXMPP
 
-    QDir mentionSoundsDir(Application::resourcesPath() + mentionSoundsPath);
+    QDir mentionSoundsDir(PathUtils::resourcesPath() + mentionSoundsPath);
     _mentionSounds = mentionSoundsDir.entryList(QDir::Files);
-    _trayIcon.setIcon(QIcon( Application::resourcesPath() + "/images/hifi-logo.svg"));
+    _trayIcon.setIcon(QIcon( PathUtils::resourcesPath() + "/images/hifi-logo.svg"));
 }
 
 ChatWindow::~ChatWindow() {
@@ -385,7 +386,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
 
             if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
                 // get random sound
-                QFileInfo inf = QFileInfo(Application::resourcesPath()  +
+                QFileInfo inf = QFileInfo(PathUtils::resourcesPath()  +
                                           mentionSoundsPath +
                                           _mentionSounds.at(rand() % _mentionSounds.size()));
                 _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));

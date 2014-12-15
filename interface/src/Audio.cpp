@@ -37,6 +37,7 @@
 #include <AudioInjector.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <SharedUtil.h>
 #include <StDev.h>
 #include <UUID.h>
@@ -140,9 +141,9 @@ Audio::Audio(QObject* parent) :
 }
 
 void Audio::init(QGLWidget *parent) {
-    _micTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic.svg"));
-    _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic-mute.svg"));
-    _boxTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/audio-box.svg"));
+    _micTextureId = parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
+    _muteTextureId = parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
+    _boxTextureId = parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
 }
 
 void Audio::reset() {

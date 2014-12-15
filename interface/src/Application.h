@@ -138,7 +138,6 @@ class Application : public QApplication {
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
-    static QString& resourcesPath();
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
 

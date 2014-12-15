@@ -16,6 +16,7 @@
 
 #include <glm/gtc/random.hpp>
 
+#include <PathUtils.h>
 #include <ProgramObject.h>
 #include <SharedUtil.h>
 
@@ -30,9 +31,9 @@ const int ROTATION_HEIGHT = 4;
 void AmbientOcclusionEffect::init() {
     
     _occlusionProgram = new ProgramObject();
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath()
                                                + "shaders/ambient_occlusion.vert");
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath()
                                                + "shaders/ambient_occlusion.frag");
     _occlusionProgram->link();
     
@@ -82,8 +83,8 @@ void AmbientOcclusionEffect::init() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     _blurProgram = new ProgramObject();
-    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/ambient_occlusion.vert");
-    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/occlusion_blur.frag");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/ambient_occlusion.vert");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/occlusion_blur.frag");
     _blurProgram->link();
     
     _blurProgram->bind();

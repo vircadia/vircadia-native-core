@@ -13,10 +13,11 @@
 #include <QLabel>
 #include <QScrollBar>
 
-#include "Application.h"
-#include "ScriptHighlighting.h"
+#include <PathUtils.h>
 
+#include "Application.h"
 #include "JSConsole.h"
+#include "ScriptHighlighting.h"
 
 const int NO_CURRENT_HISTORY_COMMAND = -1;
 const int MAX_HISTORY_SIZE = 64;
@@ -41,9 +42,9 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     _ui->promptTextEdit->setWordWrapMode(QTextOption::NoWrap);
     _ui->promptTextEdit->installEventFilter(this);
 
-    QFile styleSheet(Application::resourcesPath() + "styles/console.qss");
+    QFile styleSheet(PathUtils::resourcesPath() + "styles/console.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
-        QDir::setCurrent(Application::resourcesPath());
+        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 

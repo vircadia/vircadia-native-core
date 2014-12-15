@@ -21,6 +21,7 @@
 
 #include <glm/glm.hpp>
 
+#include <PathUtils.h>
 #include <SharedUtil.h>
 #include <UserActivityLogger.h>
 
@@ -136,8 +137,8 @@ void OculusManager::connect() {
         if (!_programInitialized) {
             // Shader program
             _programInitialized = true;
-            _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/oculus.vert");
-            _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/oculus.frag");
+            _program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/oculus.vert");
+            _program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/oculus.frag");
             _program.link();
 
             // Uniforms

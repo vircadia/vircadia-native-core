@@ -14,6 +14,7 @@
 
 #include <QOpenGLFramebufferObject>
 
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <ProgramObject.h>
 
@@ -47,7 +48,7 @@ QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
 
 static ProgramObject* createProgram(const QString& name) {
     ProgramObject* program = new ProgramObject();
-    program->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/" + name + ".frag");
+    program->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/" + name + ".frag");
     program->link();
     
     program->bind();

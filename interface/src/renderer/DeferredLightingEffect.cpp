@@ -14,13 +14,15 @@
 
 #include <QOpenGLFramebufferObject>
 
+#include <PathUtils.h>
+
 #include "Application.h"
 #include "DeferredLightingEffect.h"
 #include "RenderUtil.h"
 
 void DeferredLightingEffect::init() {
-    _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/simple.vert");
-    _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/simple.frag");
+    _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/simple.vert");
+    _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/simple.frag");
     _simpleProgram.link();
     
     _simpleProgram.bind();
@@ -394,9 +396,9 @@ void DeferredLightingEffect::render() {
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* name, bool limited, ProgramObject& program, LightLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         (limited ? "shaders/deferred_light_limited.vert" : "shaders/deferred_light.vert"));
-    program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + name);
+    program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + name);
     program.link();
     
     program.bind();

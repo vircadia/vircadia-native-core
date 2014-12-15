@@ -15,10 +15,10 @@
 #include <QTextBlock>
 #include <QtGui>
 
+#include <PathUtils.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
-
 #include "ui/LogDialog.h"
 
 const int TOP_BAR_HEIGHT = 46;
@@ -44,9 +44,9 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog
     setWindowTitle("Log");
     setAttribute(Qt::WA_DeleteOnClose);
 
-    QFile styleSheet(Application::resourcesPath() + "styles/log_dialog.qss");
+    QFile styleSheet(PathUtils::resourcesPath() + "styles/log_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
-        QDir::setCurrent(Application::resourcesPath());
+        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 

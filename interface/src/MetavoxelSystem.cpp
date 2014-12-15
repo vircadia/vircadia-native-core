@@ -26,6 +26,7 @@
 
 #include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
+#include <PathUtils.h>
 #include <ScriptCache.h>
 
 #include "Application.h"
@@ -63,9 +64,9 @@ void MetavoxelSystem::init() {
     _voxelBufferAttribute->setLODThresholdMultiplier(
         AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
         
-    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
             "shaders/metavoxel_heightfield_base.vert");
-    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_heightfield_base.frag");
     _baseHeightfieldProgram.link();
     
@@ -78,9 +79,9 @@ void MetavoxelSystem::init() {
     
     loadSplatProgram("heightfield", _splatHeightfieldProgram, _splatHeightfieldLocations);
     
-    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         "shaders/metavoxel_heightfield_cursor.vert");
-    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_cursor.frag");
     _heightfieldCursorProgram.link();
     
@@ -88,17 +89,17 @@ void MetavoxelSystem::init() {
     _heightfieldCursorProgram.setUniformValue("heightMap", 0);
     _heightfieldCursorProgram.release();
     
-    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         "shaders/metavoxel_voxel_base.vert");
-    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_voxel_base.frag");
     _baseVoxelProgram.link();
     
     loadSplatProgram("voxel", _splatVoxelProgram, _splatVoxelLocations);
     
-    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         "shaders/metavoxel_voxel_cursor.vert");
-    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_cursor.frag");
     _voxelCursorProgram.link();
 }
@@ -836,9 +837,9 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
 }
 
 void MetavoxelSystem::loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         "shaders/metavoxel_" + type + "_splat.vert");
-    program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_" + type + "_splat.frag");
     program.link();
     
