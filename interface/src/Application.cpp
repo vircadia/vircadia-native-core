@@ -55,6 +55,7 @@
 #include <AddressManager.h>
 #include <AccountManager.h>
 #include <AudioInjector.h>
+#include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
@@ -76,10 +77,13 @@
 #include "ModelUploader.h"
 #include "Util.h"
 
+#include "devices/DdeFaceTracker.h"
+#include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+#include "devices/Visage.h"
 
 #include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
@@ -1690,9 +1694,13 @@ int Application::getMouseDragStartedY() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
-            (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
-             (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
+    Faceshift* faceshift = DependencyManager::get<Faceshift>();
+    Visage* visage = DependencyManager::get<Visage>();
+    DdeFaceTracker* dde = DependencyManager::get<DdeFaceTracker>();
+    
+    return (dde->isActive() ? static_cast<FaceTracker*>(dde) :
+            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift) :
+             (visage->isActive() ? static_cast<FaceTracker*>(visage) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1976,8 +1984,8 @@ void Application::init() {
 #endif
 
     // initialize our face trackers after loading the menu settings
-    _faceshift.init();
-    _visage.init();
+    DependencyManager::get<Faceshift>()->init();
+    DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
 
@@ -2101,13 +2109,13 @@ void Application::updateMouseRay() {
 void Application::updateFaceshift() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-
+    Faceshift* faceshift = DependencyManager::get<Faceshift>();
     //  Update faceshift
-    _faceshift.update();
+    faceshift->update();
 
     //  Copy angular velocity if measured by faceshift, to the head
-    if (_faceshift.isActive()) {
-        _myAvatar->getHead()->setAngularVelocity(_faceshift.getHeadAngularVelocity());
+    if (faceshift->isActive()) {
+        _myAvatar->getHead()->setAngularVelocity(faceshift->getHeadAngularVelocity());
     }
 }
 
@@ -2116,7 +2124,7 @@ void Application::updateVisage() {
     PerformanceWarning warn(showWarnings, "Application::updateVisage()");
 
     //  Update Visage
-    _visage.update();
+    DependencyManager::get<Visage>()->update();
 }
 
 void Application::updateDDE() {
@@ -2124,7 +2132,7 @@ void Application::updateDDE() {
     PerformanceWarning warn(showWarnings, "Application::updateDDE()");
     
     //  Update Cara
-    _dde.update();
+    DependencyManager::get<DdeFaceTracker>()->update();
 }
 
 void Application::updateMyAvatarLookAtPosition() {
@@ -3549,9 +3557,9 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 }
 
 void Application::resetSensors() {
-    _faceshift.reset();
-    _visage.reset();
-    _dde.reset();
+    DependencyManager::get<Faceshift>()->reset();
+    DependencyManager::get<Visage>()->reset();
+    DependencyManager::get<DdeFaceTracker>()->reset();
 
     OculusManager::reset();
 

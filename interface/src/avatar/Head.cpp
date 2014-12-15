@@ -10,6 +10,9 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <DependencyManager.h>
+#include <devices/Faceshift.h>
+#include <devices/DdeFaceTracker.h>
 #include <NodeList.h>
 
 #include "Application.h"
@@ -75,11 +78,13 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
             FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            if ((_isFaceshiftConnected = faceTracker)) {
+            DdeFaceTracker* dde = DependencyManager::get<DdeFaceTracker>();
+            Faceshift* faceshift = DependencyManager::get<Faceshift>();
+            
+            if ((_isFaceshiftConnected = (faceshift == faceTracker))) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-                _isFaceshiftConnected = true;
-            } else if (Application::getInstance()->getDDE()->isActive()) {
-                faceTracker = Application::getInstance()->getDDE();
+            } else if (dde->isActive()) {
+                faceTracker = dde;
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             }            
         }
@@ -196,14 +201,14 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         _mouth2 = glm::mix(_audioJawOpen * MMMM_POWER, _mouth2, MMMM_PERIOD + randFloat() * MMMM_RANDOM_PERIOD);
         _mouth4 = glm::mix(_audioJawOpen, _mouth4, SMILE_PERIOD + randFloat() * SMILE_RANDOM_PERIOD);
         
-        Application::getInstance()->getFaceshift()->updateFakeCoefficients(_leftEyeBlink,
-                                                                           _rightEyeBlink,
-            _browAudioLift,
-            _audioJawOpen,
-            _mouth2,
-            _mouth3,
-            _mouth4,
-            _blendshapeCoefficients);
+        DependencyManager::get<Faceshift>()->updateFakeCoefficients(_leftEyeBlink,
+                                                                    _rightEyeBlink,
+                                                                    _browAudioLift,
+                                                                    _audioJawOpen,
+                                                                    _mouth2,
+                                                                    _mouth3,
+                                                                    _mouth4,
+                                                                    _blendshapeCoefficients);
     } else {
         _saccade = glm::vec3();
     }

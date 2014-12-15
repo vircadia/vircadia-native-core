@@ -31,12 +31,16 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <XmppClient.h>
+#include <DependencyManager.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
+#include <XmppClient.h>
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "devices/Faceshift.h"
+#include "devices/OculusManager.h"
+#include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -49,7 +53,6 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
-#include "devices/OculusManager.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -432,12 +435,12 @@ Menu::Menu() :
                                            MenuOption::Faceshift,
                                            0,
                                            true,
-                                           appInstance->getFaceshift(),
+                                           DependencyManager::get<Faceshift>(),
                                            SLOT(setTCPEnabled(bool)));
 #endif
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Visage, 0, false,
-            appInstance->getVisage(), SLOT(updateEnabled()));
+            DependencyManager::get<Visage>(), SLOT(updateEnabled()));
 #endif
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
