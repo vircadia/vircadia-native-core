@@ -12,14 +12,14 @@
 #ifndef hifi_TextureCache_h
 #define hifi_TextureCache_h
 
+#include <gpu/GPUConfig.h>
+
 #include <QImage>
 #include <QMap>
 #include <QGLWidget>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
-
-#include "InterfaceConfig.h"
 
 class QOpenGLFramebufferObject;
 
