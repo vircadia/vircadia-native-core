@@ -15,6 +15,8 @@
 #include <map>
 #include <time.h>
 
+#include <gpu/GPUConfig.h>
+
 #include <QApplication>
 #include <QMainWindow>
 #include <QAction>
@@ -37,6 +39,7 @@
 #include <OctreeQuery.h>
 #include <PacketHeaders.h>
 #include <ScriptEngine.h>
+#include <TextureCache.h>
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
@@ -61,7 +64,6 @@
 #include "renderer/DeferredLightingEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
-#include "renderer/TextureCache.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"

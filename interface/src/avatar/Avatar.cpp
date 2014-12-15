@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include <gpu/GPUConfig.h>
+
 #include <QDesktopWidget>
 #include <QWindow>
 
@@ -25,6 +27,7 @@
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <TextureCache.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -36,7 +39,6 @@
 #include "Recorder.h"
 #include "world.h"
 #include "devices/OculusManager.h"
-#include "renderer/TextureCache.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;
