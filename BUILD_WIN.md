@@ -8,38 +8,9 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 ###Visual Studio
 
 Currently building on Windows has been tested using the following compilers:
-* Visual Studio C++ 2010 Express
 * Visual Studio 2013
 
 (If anyone can test using Visual Studio 2013 Express then please update this document)
-
-####Windows SDK 7.1
-
-If using Visual Studio 2010, or using Visual Studio 2013 but building as a Visual Studio 2010 project, you need [Microsoft Windows SDK for Windows 7 and .NET Framework 4](http://www.microsoft.com/en-us/download/details.aspx?id=8279).
-
-NOTE: If using Visual Studio C++ 2010 Express, you need to follow a specific install order. See below before installing the Windows SDK.
-
-#####Windows SDK 8.1
-
-If using Visual Studio 2013 and building as a Visual Studio 2013 project you need the Windows 8 SDK which you should already have as part of installing Visual Studio 2013. You should be able to see it at `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`.
-
-####Visual Studio C++ 2010 Express
-
-Visual Studio C++ 2010 Express can be downloaded [here](http://www.visualstudio.com/en-us/downloads#d-2010-express).
-
-The following patches/service packs are also required:
-* [VS2010 SP1](http://www.microsoft.com/en-us/download/details.aspx?id=23691)
-* [VS2010 SP1 Compiler Update](http://www.microsoft.com/en-us/download/details.aspx?id=4422)
-
-IMPORTANT: Use the following install order:
-Visual Studio C++ 2010 Express
-Windows SDK 7.1
-VS2010 SP1
-VS2010 SP1 Compiler Update
-
-If you get an error while installing the VS2010 SP1 Compiler update saying that you don't have the Windows SDK installed, then uninstall all of the above and start again in the correct order.
-
-Some of the build instructions will ask you to start a Visual Studio Command Prompt. You should have a shortcut in your Start menu called "Open Visual Studio Command Prompt (2010)" which will do so.
 
 ####Visual Studio 2013
 
@@ -53,6 +24,10 @@ Or you can start a regular command prompt and then run:
 
 If you experience issues building interface on Visual Studio 2013, try generating the build files with Visual Studio 2010 instead. To do so, download Visual Studio 2010 and run `cmake .. -G "Visual Studio 10"` (Assuming running from %HIFI_DIR%\build).
 
+#####Windows SDK 8.1
+
+If using Visual Studio 2013 and building as a Visual Studio 2013 project you need the Windows 8 SDK which you should already have as part of installing Visual Studio 2013. You should be able to see it at `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`.
+
 ###Qt
 You can use the online installer or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.
 
@@ -60,15 +35,13 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 
 * Download the online installer [here](http://qt-project.org/downloads)
     * When it asks you to select components, ONLY select the following:
-        * Qt > Qt 5.2.0 > **msvc2010 32-bit OpenGL**
+        * Qt > Qt 5.3.2 > **msvc2013 32-bit OpenGL**
 
-* Download the offline installer [here](http://download.qt-project.org/official_releases/qt/5.2/5.2.0/qt-windows-opensource-5.2.0-msvc2010_opengl-x86-offline.exe)
+* Download the offline installer [here](http://download.qt-project.org/official_releases/qt/5.3/5.3.2/qt-opensource-windows-x86-msvc2013_opengl-5.3.2.exe)
 
 Once Qt is installed, you need to manually configure the following:
-* Make sure the Qt runtime DLLs are loadable. You must do this before you attempt to build because some tools for the build depend on Qt. E.g., add to the PATH: `Qt\5.2.0\msvc2010_opengl\bin\`. 
-* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.2.0\msvc2010_opengl` directory.
-
-If building as a Visual Studio 2013 project, download and configure the msvc2013 version of Qt instead.
+* Make sure the Qt runtime DLLs are loadable. You must do this before you attempt to build because some tools for the build depend on Qt. E.g., add to the PATH: `Qt\5.3.2\msvc2013_opengl\bin\`. 
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.3.2\msvc2013_opengl` directory.
 
 ###External Libraries
 
@@ -128,7 +101,7 @@ Install OpenSSL into the Windows system directory, to make sure that QT uses the
 
 Download the stable release for Windows from the [Intel Threading Building Blocks website](https://www.threadingbuildingblocks.org/). By default, TBB will install to Program Files. You may also choose to install it to %HIFI_LIB_DIR%\TBB. 
 
-You must run `tbbvars.bat` so that the find module included with this project will be able to find TBB no matter where you installed it. `tbbvars.bat` is located in the 'bin' folder of your TBB install. For a default installation on a 64-bit architechture, tbbvars can be found at `C:/Program Files (x86)/Intel/TBB/bin/tbbvars.bat`.
+You must run `tbbvars.bat` before running cmake so that the find module included with this project will be able to find TBB no matter where you installed it. `tbbvars.bat` is located in the 'bin' folder of your TBB install. For a default installation on a 64-bit architechture, tbbvars can be found at `C:/Program Files (x86)/Intel/TBB/bin/tbbvars.bat`.
 
 ###Zlib
 

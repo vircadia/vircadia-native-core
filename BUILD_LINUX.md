@@ -15,4 +15,4 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 
 Install Intel TBB from your package manager of choice, or from source (available at the [TBB Website](https://www.threadingbuildingblocks.org/)).
 
-You must run `tbbvars` so that the find module included with this project will be able to find the correct version of TBB. `tbbvars` is located in the 'bin' folder of your TBB install.
+You must run `tbbvars` before running cmake that the find module included with this project will be able to find the correct version of TBB. `tbbvars` is located in the 'bin' folder of your TBB install.
