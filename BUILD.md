@@ -7,6 +7,11 @@
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
 
+### OS Specific Build Guides
+* [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
+* [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
+* [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
+
 ###CMake
 Hifi uses CMake to generate build files and project files for your platform.
 
