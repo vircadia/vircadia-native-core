@@ -63,6 +63,12 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 
     libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack-dev
 
+##### Intel Threading Building Blocks (TBB)
+
+Install Intel TBB from your package manager of choice, or from source (available at the [TBB Website](https://www.threadingbuildingblocks.org/)).
+
+You must run `tbbvars` so that the find module included with this project will be able to find the correct version of TBB. `tbbvars` is located in the 'bin' folder of your TBB install.
+
 ####OS X
 #####Package Managers
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
