@@ -40,6 +40,7 @@
 #include "AccountManager.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
+#include "devices/RealSense.h"
 #include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
@@ -53,8 +54,6 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
-#include "devices/RealSense.h"
-#include "devices/OculusManager.h"
 
 
 Menu* Menu::_instance = NULL;
