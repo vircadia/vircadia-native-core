@@ -12,6 +12,8 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
+#include <gpu/GPUConfig.h>
+
 #include <QBitArray>
 #include <QObject>
 #include <QUrl>
@@ -27,7 +29,6 @@
 #include <Transform.h>
 
 #include "AnimationHandle.h"
-#include "InterfaceConfig.h"
 #include "JointState.h"
 
 class QScriptEngine;
