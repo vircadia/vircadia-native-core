@@ -205,7 +205,7 @@ void MetavoxelSystem::render() {
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
     
         glDisable(GL_BLEND);
         glEnable(GL_CULL_FACE);
@@ -251,7 +251,7 @@ void MetavoxelSystem::render() {
             glPopMatrix();
         }
         
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false);
         
         _baseHeightfieldProgram.release();
         
@@ -348,7 +348,7 @@ void MetavoxelSystem::render() {
     }
     
     if (!_voxelBaseBatches.isEmpty()) {
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
     
         glEnableClientState(GL_VERTEX_ARRAY);
         glDisable(GL_BLEND);
@@ -383,7 +383,7 @@ void MetavoxelSystem::render() {
         glDisable(GL_ALPHA_TEST);
         glEnable(GL_BLEND);
             
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false);
         
         if (!_voxelSplatBatches.isEmpty()) {
             glDepthFunc(GL_LEQUAL);
@@ -463,7 +463,7 @@ void MetavoxelSystem::render() {
     }
     
     if (!_hermiteBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
         
         glEnableClientState(GL_VERTEX_ARRAY);
         
@@ -486,7 +486,7 @@ void MetavoxelSystem::render() {
         
         glDisableClientState(GL_VERTEX_ARRAY);
         
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false);
     }
     _hermiteBatches.clear();
     
@@ -797,7 +797,7 @@ void MetavoxelSystem::applyMaterialEdit(const MetavoxelEditMessage& message, boo
                 Q_ARG(bool, reliable));
             return;
         }
-        QSharedPointer<NetworkTexture> texture = Application::getInstance()->getTextureCache()->getTexture(
+        QSharedPointer<NetworkTexture> texture = DependencyManager::get<TextureCache>()->getTexture(
             material->getDiffuse(), SPLAT_TEXTURE);
         if (texture->isLoaded()) {
             MetavoxelEditMessage newMessage = message;
@@ -1177,10 +1177,11 @@ void VoxelBuffer::render(bool cursor) {
         
         if (!_materials.isEmpty()) {
             _networkTextures.resize(_materials.size());
+            TextureCache* textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < _materials.size(); i++) {
                 const SharedObjectPointer material = _materials.at(i);
                 if (material) {
-                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                    _networkTextures[i] = textureCache->getTexture(
                         static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }
@@ -2188,13 +2189,15 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         bufferPair.second.release();
     }
     if (_heightTextureID == 0) {
+        // we use non-aligned data for the various layers
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    
         glGenTextures(1, &_heightTextureID);
         glBindTexture(GL_TEXTURE_2D, _heightTextureID);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         const QVector<quint16>& heightContents = node->getHeight()->getContents();
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0,
             GL_RED, GL_UNSIGNED_SHORT, heightContents.constData());
@@ -2229,10 +2232,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                 
             const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
             _networkTextures.resize(materials.size());
+            TextureCache* textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < materials.size(); i++) {
                 const SharedObjectPointer& material = materials.at(i);
                 if (material) {
-                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                    _networkTextures[i] = textureCache->getTexture(
                         static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }
@@ -2241,6 +2245,9 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &ZERO_VALUE);
         }
         glBindTexture(GL_TEXTURE_2D, 0);
+        
+        // restore the default alignment; it's what Qt uses for image storage
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     }
     
     if (cursor) {

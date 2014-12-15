@@ -466,17 +466,19 @@ void ModelUploader::processCheck() {
     _timer.stop();
     
     switch (reply->error()) {
-        case QNetworkReply::NoError:
+        case QNetworkReply::NoError: {
             QMessageBox::information(NULL,
                                      QString("ModelUploader::processCheck()"),
                                      QString("Your model is now available in the browser."),
                                      QMessageBox::Ok);
-            Application::getInstance()->getGeometryCache()->refresh(_url);
+            DependencyManager::get<GeometryCache>()->refresh(_url);
+            TextureCache* textureCache = DependencyManager::get<TextureCache>();
             foreach (const QByteArray& filename, _textureFilenames) {
-                Application::getInstance()->getTextureCache()->refresh(_textureBase + filename);
+                textureCache->refresh(_textureBase + filename);
             }
             deleteLater();
             break;
+        }
         case QNetworkReply::ContentNotFoundError:
             if (--_numberOfChecks) {
                 _timer.start(TIMEOUT);

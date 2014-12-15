@@ -14,7 +14,9 @@
 
 #include <QImage>
 #include <QMap>
+#include <QGLWidget>
 
+#include <DependencyManager.h>
 #include <ResourceCache.h>
 
 #include "InterfaceConfig.h"
@@ -28,13 +30,12 @@ typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
-class TextureCache : public ResourceCache {
+class TextureCache : public ResourceCache, public DependencyManager::Dependency {
     Q_OBJECT
     
 public:
-    
-    TextureCache();
-    virtual ~TextureCache();
+
+    void associateWithWidget(QGLWidget* widget);
     
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
@@ -93,7 +94,9 @@ protected:
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
         
 private:
-    
+    TextureCache();
+    virtual ~TextureCache();
+    friend class DependencyManager;
     friend class DilatableNetworkTexture;
     
     QOpenGLFramebufferObject* createFramebufferObject();
@@ -115,6 +118,7 @@ private:
     GLuint _shadowDepthTextureID;
 
     QSize _frameBufferSize;
+    QGLWidget* _associatedWidget;
 };
 
 /// A simple object wrapper for an OpenGL texture.

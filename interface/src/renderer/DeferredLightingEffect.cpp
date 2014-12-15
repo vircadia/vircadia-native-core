@@ -37,7 +37,7 @@ void DeferredLightingEffect::init() {
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true, true);
+    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true, true);
     _simpleProgram.bind();
     _simpleProgram.setUniformValue(_glowIntensityLocation, Application::getInstance()->getGlowEffect()->getIntensity());
     glDisable(GL_BLEND);
@@ -46,12 +46,12 @@ void DeferredLightingEffect::bindSimpleProgram() {
 void DeferredLightingEffect::releaseSimpleProgram() {
     glEnable(GL_BLEND);
     _simpleProgram.release();
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false, false);
+    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false, false);
 }
 
 void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks) {
     bindSimpleProgram();
-    Application::getInstance()->getGeometryCache()->renderSphere(radius, slices, stacks); 
+    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks); 
     releaseSimpleProgram();
 }
 
@@ -75,7 +75,7 @@ void DeferredLightingEffect::renderWireCube(float size) {
 
 void DeferredLightingEffect::renderSolidCone(float base, float height, int slices, int stacks) {
     bindSimpleProgram();
-    Application::getInstance()->getGeometryCache()->renderCone(base, height, slices, stacks);
+    DependencyManager::get<GeometryCache>()->renderCone(base, height, slices, stacks);
     releaseSimpleProgram();
 }
 
@@ -117,15 +117,16 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare() {
     // clear the normal and specular buffers
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, false);
+    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    textureCache->setPrimaryDrawBuffers(false, true, false);
     glClear(GL_COLOR_BUFFER_BIT);
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, false, true);
+    textureCache->setPrimaryDrawBuffers(false, false, true);
     // clearing to zero alpha for specular causes problems on my Nvidia card; clear to lowest non-zero value instead
     const float MAX_SPECULAR_EXPONENT = 128.0f;
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT);
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false, false);
+    textureCache->setPrimaryDrawBuffers(true, false, false);
 }
 
 void DeferredLightingEffect::render() {
@@ -137,8 +138,10 @@ void DeferredLightingEffect::render() {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_COLOR_MATERIAL);
     glDepthMask(false);
+
+    TextureCache* textureCache = DependencyManager::get<TextureCache>();
     
-    QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
+    QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
     
     QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
@@ -148,13 +151,13 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
     
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryNormalTextureID());
     
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimarySpecularTextureID());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimarySpecularTextureID());
     
     glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryDepthTextureID());
         
     // get the viewport side (left, right, both)
     int viewport[4];
@@ -173,7 +176,7 @@ void DeferredLightingEffect::render() {
     bool shadowsEnabled = Menu::getInstance()->getShadowsEnabled();
     if (shadowsEnabled) {    
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
+        glBindTexture(GL_TEXTURE_2D, textureCache->getShadowDepthTextureID());
         
         program = &_directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
@@ -188,7 +191,7 @@ void DeferredLightingEffect::render() {
             program->bind();
         }
         program->setUniformValue(locations->shadowScale,
-            1.0f / Application::getInstance()->getTextureCache()->getShadowFramebufferObject()->width());
+            1.0f / textureCache->getShadowFramebufferObject()->width());
         
     } else {
         program->bind();
@@ -234,6 +237,8 @@ void DeferredLightingEffect::render() {
     
     const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
     float nearRadius = glm::distance(eyePoint, Application::getInstance()->getDisplayViewFrustum()->getNearTopLeft());
+
+    GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
@@ -241,7 +246,7 @@ void DeferredLightingEffect::render() {
         _pointLight.setUniformValue(_pointLightLocations.depthScale, depthScale);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-        
+
         foreach (const PointLight& light, _pointLights) {
             _pointLight.setUniformValue(_pointLightLocations.radius, light.radius);
             glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
@@ -270,7 +275,7 @@ void DeferredLightingEffect::render() {
                 
             } else {
                 glTranslatef(light.position.x, light.position.y, light.position.z);   
-                Application::getInstance()->getGeometryCache()->renderSphere(expandedRadius, 32, 32);
+                geometryCache->renderSphere(expandedRadius, 32, 32);
             }
             
             glPopMatrix();
@@ -323,7 +328,7 @@ void DeferredLightingEffect::render() {
                 glm::vec3 axis = glm::axis(spotRotation);
                 glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
                 glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
-                Application::getInstance()->getGeometryCache()->renderCone(expandedRadius * glm::tan(light.cutoff),
+                geometryCache->renderCone(expandedRadius * glm::tan(light.cutoff),
                     expandedRadius, 32, 1);
             }
             

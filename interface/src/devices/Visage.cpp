@@ -11,12 +11,14 @@
 
 #include <QHash>
 
+
+#include <DependencyManager.h>
+#include <FBXReader.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 
-#include <FBXReader.h>
-
 #include "Application.h"
+#include "Faceshift.h"
 #include "Visage.h"
 
 // this has to go after our normal includes, because its definition of HANDLE conflicts with Qt's
@@ -119,7 +121,7 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getActionUnitNameMap() 
 const float TRANSLATION_SCALE = 20.0f;
 
 void Visage::init() {
-    connect(Application::getInstance()->getFaceshift(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
+    connect(DependencyManager::get<Faceshift>(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
     updateEnabled();
 }
 
@@ -171,7 +173,7 @@ void Visage::reset() {
 void Visage::updateEnabled() {
     setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Visage) &&
         !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
-            Application::getInstance()->getFaceshift()->isConnectedOrConnecting()));
+            DependencyManager::get<Faceshift>()->isConnectedOrConnecting()));
 }
 
 void Visage::setEnabled(bool enabled) {
