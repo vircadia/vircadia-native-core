@@ -1,6 +1,6 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only OS X specific instructions are found in this file.
 
-####Homebrew
+###Homebrew
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
     brew tap highfidelity/homebrew-formulas
@@ -12,7 +12,7 @@ We have a [homebrew formulas repository](https://github.com/highfidelity/homebre
 
 *Our [qt5 homebrew formula](https://raw.github.com/highfidelity/homebrew-formulas/master/qt5.rb) is for a patched version of Qt 5.3.x stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
 
-####Xcode
+###Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
 
     cmake .. -GXcode

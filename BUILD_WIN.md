@@ -1,11 +1,11 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Windows specific instructions are found in this file.
 
-####Windows Dependencies
+###Windows Dependencies
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
 * [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 
-####Visual Studio
+###Visual Studio
 
 Currently building on Windows has been tested using the following compilers:
 * Visual Studio C++ 2010 Express
@@ -13,17 +13,17 @@ Currently building on Windows has been tested using the following compilers:
 
 (If anyone can test using Visual Studio 2013 Express then please update this document)
 
-#####Windows SDK 7.1
+####Windows SDK 7.1
 
 If using Visual Studio 2010, or using Visual Studio 2013 but building as a Visual Studio 2010 project, you need [Microsoft Windows SDK for Windows 7 and .NET Framework 4](http://www.microsoft.com/en-us/download/details.aspx?id=8279).
 
 NOTE: If using Visual Studio C++ 2010 Express, you need to follow a specific install order. See below before installing the Windows SDK.
 
-######Windows SDK 8.1
+#####Windows SDK 8.1
 
 If using Visual Studio 2013 and building as a Visual Studio 2013 project you need the Windows 8 SDK which you should already have as part of installing Visual Studio 2013. You should be able to see it at `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`.
 
-#####Visual Studio C++ 2010 Express
+####Visual Studio C++ 2010 Express
 
 Visual Studio C++ 2010 Express can be downloaded [here](http://www.visualstudio.com/en-us/downloads#d-2010-express).
 
@@ -41,7 +41,7 @@ If you get an error while installing the VS2010 SP1 Compiler update saying that 
 
 Some of the build instructions will ask you to start a Visual Studio Command Prompt. You should have a shortcut in your Start menu called "Open Visual Studio Command Prompt (2010)" which will do so.
 
-#####Visual Studio 2013
+####Visual Studio 2013
 
 You can use the Community or Professional editions of Visual Studio 2013.
 
@@ -53,7 +53,7 @@ Or you can start a regular command prompt and then run:
 
 If you experience issues building interface on Visual Studio 2013, try generating the build files with Visual Studio 2010 instead. To do so, download Visual Studio 2010 and run `cmake .. -G "Visual Studio 10"` (Assuming running from %HIFI_DIR%\build).
 
-####Qt
+###Qt
 You can use the online installer or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.
 
 NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules.
@@ -70,7 +70,7 @@ Once Qt is installed, you need to manually configure the following:
 
 If building as a Visual Studio 2013 project, download and configure the msvc2013 version of Qt instead.
 
-####External Libraries
+###External Libraries
 
 CMake will need to know where the headers and libraries for required external dependencies are. 
 
@@ -104,7 +104,7 @@ For many of the external libraries where precompiled binaries are readily availa
 
 As with the Qt libraries, you will need to make sure that directories containing DLL'S are in your path. Where possible, you can use static builds of the external dependencies to avoid this requirement.
 
-#### OpenSSL
+###OpenSSL
 
 QT will use OpenSSL if it's available, but it doesn't install it, so you must install it separately.
 
@@ -124,13 +124,13 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 
 Install OpenSSL into the Windows system directory, to make sure that QT uses the version that you've just installed, and not some other version.
 
-#### Intel Threading Building Blocks (TBB)
+###Intel Threading Building Blocks (TBB)
 
 Download the stable release for Windows from the [Intel Threading Building Blocks website](https://www.threadingbuildingblocks.org/). By default, TBB will install to Program Files. You may also choose to install it to %HIFI_LIB_DIR%\TBB. 
 
 You must run `tbbvars.bat` so that the find module included with this project will be able to find TBB no matter where you installed it. `tbbvars.bat` is located in the 'bin' folder of your TBB install. For a default installation on a 64-bit architechture, tbbvars can be found at `C:/Program Files (x86)/Intel/TBB/bin/tbbvars.bat`.
 
-#### Zlib
+###Zlib
 
 Download the compiled DLL from the [zlib website](http://www.zlib.net/). Extract to %HIFI_LIB_DIR%\zlib.
 
@@ -144,25 +144,25 @@ Add to the PATH: `%HIFI_LIB_DIR%\zlib`
 Important! This should be added at the beginning of the path, not the end. That's because your 
 system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version. If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
 
-#### freeglut
+###freeglut
 
 Download the binary package: `freeglut-MSVC-2.8.1-1.mp.zip`. Extract to %HIFI_LIB_DIR%\freeglut.
 
 Add to the PATH: `%HIFI_LIB_DIR%\freeglut\bin`
 
-#### GLEW
+###GLEW
 
 Download the binary package: `glew-1.10.0-win32.zip`. Extract to %HIFI_LIB_DIR%\glew (you'll need to rename the default directory name).
 
 Add to the PATH: `%HIFI_LIB_DIR%\glew\bin\Release\Win32`
 
-#### GLM
+###GLM
 
 This package contains only headers, so there's nothing to add to the PATH.
 
 Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
 
-#### Build High Fidelity using Visual Studio
+###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
 
     cmake .. -DZLIB_LIBRARY=%ZLIB_LIBRARY% -DZLIB_INCLUDE_DIR=%ZLIB_INCLUDE_DIR% -G "Visual Studio 10"
@@ -171,10 +171,10 @@ If you're using Visual Studio 2013 then pass "Visual Studio 12" instead of "Visu
 
 Open %HIFI_DIR%\build\hifi.sln and compile.
 
-####Running Interface
+###Running Interface
 If you need to debug Interface, you can run interface from within Visual Studio (see the section below). You can also run Interface by launching it from command line or File Explorer from %HIFI_DIR%\build\interface\Debug\interface.exe
 
-####Debugging Interface
+###Debugging Interface
 * In the Solution Explorer, right click interface and click Set as StartUp Project
 * Set the "Working Directory" for the Interface debugging sessions to the Debug output directory so that your application can load resources. Do this: right click interface and click Properties, choose Debugging from Configuration Properties, set Working Directory to .\Debug
 * Now you can run and debug interface through Visual Studio
