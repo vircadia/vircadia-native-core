@@ -2324,7 +2324,8 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
     bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
     bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
     bool dontReduceMaterialSwitches = Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
-                            
+
+    TextureCache* textureCache = DependencyManager::get<TextureCache>();
     QString lastMaterialID;
     int meshPartsRendered = 0;
     updateVisibleJointStates();
@@ -2446,7 +2447,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     if (showDiffuse && diffuseMap) {
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
                     } else {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getWhiteTextureID());
+                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, textureCache->getWhiteTextureID());
                     }
 
                     if (locations->texcoordMatrices >= 0) {
@@ -2464,7 +2465,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         GLBATCH(glActiveTexture)(GL_TEXTURE1);
                         Texture* normalMap = networkPart.normalTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !normalMap ?
-                            DependencyManager::get<TextureCache>()->getBlueTextureID() : normalMap->getID());
+                            textureCache->getBlueTextureID() : normalMap->getID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
                 
@@ -2472,7 +2473,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
                         Texture* specularMap = networkPart.specularTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !specularMap ?
-                            DependencyManager::get<TextureCache>()->getWhiteTextureID() : specularMap->getID());
+                            textureCache->getWhiteTextureID() : specularMap->getID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
 
@@ -2493,7 +2494,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                     Texture* emissiveMap = networkPart.emissiveTexture.data();
                     GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
-                        DependencyManager::get<TextureCache>()->getWhiteTextureID() : emissiveMap->getID());
+                        textureCache->getWhiteTextureID() : emissiveMap->getID());
                     GLBATCH(glActiveTexture)(GL_TEXTURE0);
                 }
 

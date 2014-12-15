@@ -122,7 +122,8 @@ static void maybeRelease(QOpenGLFramebufferObject* fbo) {
 QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     PerformanceTimer perfTimer("glowEffect");
 
-    QOpenGLFramebufferObject* primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject();
+    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
 
@@ -138,7 +139,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     glDepthMask(GL_FALSE);
 
     QOpenGLFramebufferObject* destFBO = toTexture ?
-        DependencyManager::get<TextureCache>()->getSecondaryFramebufferObject() : NULL;
+        textureCache->getSecondaryFramebufferObject() : NULL;
     if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
@@ -160,9 +161,9 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     } else {
         // diffuse into the secondary/tertiary (alternating between frames)
         QOpenGLFramebufferObject* oldDiffusedFBO =
-            DependencyManager::get<TextureCache>()->getSecondaryFramebufferObject();
+            textureCache->getSecondaryFramebufferObject();
         QOpenGLFramebufferObject* newDiffusedFBO =
-            DependencyManager::get<TextureCache>()->getTertiaryFramebufferObject();
+            textureCache->getTertiaryFramebufferObject();
         if (_isOddFrame) {
             qSwap(oldDiffusedFBO, newDiffusedFBO);
         }

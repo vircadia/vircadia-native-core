@@ -1177,10 +1177,11 @@ void VoxelBuffer::render(bool cursor) {
         
         if (!_materials.isEmpty()) {
             _networkTextures.resize(_materials.size());
+            TextureCache* textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < _materials.size(); i++) {
                 const SharedObjectPointer material = _materials.at(i);
                 if (material) {
-                    _networkTextures[i] = DependencyManager::get<TextureCache>()->getTexture(
+                    _networkTextures[i] = textureCache->getTexture(
                         static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }
@@ -2231,10 +2232,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                 
             const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
             _networkTextures.resize(materials.size());
+            TextureCache* textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < materials.size(); i++) {
                 const SharedObjectPointer& material = materials.at(i);
                 if (material) {
-                    _networkTextures[i] = DependencyManager::get<TextureCache>()->getTexture(
+                    _networkTextures[i] = textureCache->getTexture(
                         static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }

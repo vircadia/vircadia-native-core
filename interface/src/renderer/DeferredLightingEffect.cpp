@@ -117,15 +117,16 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare() {
     // clear the normal and specular buffers
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, true, false);
+    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    textureCache->setPrimaryDrawBuffers(false, true, false);
     glClear(GL_COLOR_BUFFER_BIT);
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, false, true);
+    textureCache->setPrimaryDrawBuffers(false, false, true);
     // clearing to zero alpha for specular causes problems on my Nvidia card; clear to lowest non-zero value instead
     const float MAX_SPECULAR_EXPONENT = 128.0f;
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT);
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false, false);
+    textureCache->setPrimaryDrawBuffers(true, false, false);
 }
 
 void DeferredLightingEffect::render() {
@@ -137,8 +138,10 @@ void DeferredLightingEffect::render() {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_COLOR_MATERIAL);
     glDepthMask(false);
+
+    TextureCache* textureCache = DependencyManager::get<TextureCache>();
     
-    QOpenGLFramebufferObject* primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject();
+    QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
     
     QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
@@ -148,13 +151,13 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
     
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimaryNormalTextureID());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryNormalTextureID());
     
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimarySpecularTextureID());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimarySpecularTextureID());
     
     glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimaryDepthTextureID());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryDepthTextureID());
         
     // get the viewport side (left, right, both)
     int viewport[4];
@@ -173,7 +176,7 @@ void DeferredLightingEffect::render() {
     bool shadowsEnabled = Menu::getInstance()->getShadowsEnabled();
     if (shadowsEnabled) {    
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getShadowDepthTextureID());
+        glBindTexture(GL_TEXTURE_2D, textureCache->getShadowDepthTextureID());
         
         program = &_directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
@@ -188,7 +191,7 @@ void DeferredLightingEffect::render() {
             program->bind();
         }
         program->setUniformValue(locations->shadowScale,
-            1.0f / DependencyManager::get<TextureCache>()->getShadowFramebufferObject()->width());
+            1.0f / textureCache->getShadowFramebufferObject()->width());
         
     } else {
         program->bind();
