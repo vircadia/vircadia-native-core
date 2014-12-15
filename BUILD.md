@@ -38,7 +38,7 @@ Any variables that need to be set for CMake to find dependencies can be set as E
 
 For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
 
-    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.1/lib/cmake
+    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.3.2/lib/cmake
 
 ####Finding Dependencies
 You can point our [Cmake find modules](cmake/modules/) to the correct version of dependencies by setting one of the three following variables to the location of the correct version of the dependency.
