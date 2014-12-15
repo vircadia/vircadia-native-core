@@ -31,9 +31,10 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <XmppClient.h>
+#include <DependencyManager.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
+#include <XmppClient.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -432,7 +433,7 @@ Menu::Menu() :
                                            MenuOption::Faceshift,
                                            0,
                                            true,
-                                           appInstance->getFaceshift(),
+                                           DependencyManager::get<Faceshift>(),
                                            SLOT(setTCPEnabled(bool)));
 #endif
 #ifdef HAVE_VISAGE
