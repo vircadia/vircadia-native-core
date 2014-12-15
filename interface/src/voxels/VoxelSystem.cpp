@@ -874,7 +874,6 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
         if (node->getShouldRender()) {
             glm::vec3 startVertex = node->getCorner();
             float voxelScale = node->getScale();
-            nodeColor const & color = node->getColor();
 
             glBufferIndex nodeIndex = GLBUFFER_INDEX_UNKNOWN;
             if (reuseIndex && node->isKnownBufferIndex()) {

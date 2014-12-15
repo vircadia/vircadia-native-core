@@ -17,6 +17,17 @@ body {
     user-select: none;
 }
 
+.selectable {
+    -webkit-touch-callout: text;
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+
+    cursor: text;
+}
+
 .color-box {
     display: inline-block;
     width: 20px;
