@@ -21,7 +21,7 @@ const DeviceTracker::Name RealSense::NAME = "RealSense";
 // the side: true = right
 // the finger & the bone:
 //             finger in [0..4] : bone in  [0..3] a finger phalange
-//             [-1]   up the hand branch : bone in [0..2] <=> [ hand, forearm, arm]
+//             [-1]   up the hand branch : bone in [0..1] <=> [ hand, forearm]
 MotionTracker::Index evalRealSenseJointIndex(bool isRightSide, int finger, int bone) {
 
     MotionTracker::Index offset = 1                           // start after root
@@ -116,6 +116,7 @@ void RealSense::initSession(bool playback, QString filename) {
         _handData->Release();
         _handController->Release();
         _session->Release();
+        _config->Release();
     }
     _manager = _session->CreateSenseManager();
     if (playback) {
@@ -139,15 +140,20 @@ void RealSense::initSession(bool playback, QString filename) {
         }
         _properlyInitialized = true;
     }
+
+    _config = _handController->CreateActiveConfiguration();
+    _config->EnableStabilizer(true);
+    _config->SetTrackingMode(PXCHandData::TRACKING_MODE_FULL_HAND);
+    _config->ApplyChanges();
 }
 
 #ifdef HAVE_RSSDK
 glm::quat quatFromPXCPoint4DF32(const PXCPoint4DF32& basis) {
-    return glm::quat(basis.w, basis.x, basis.y, basis.z);
+    return glm::normalize(glm::quat(basis.w, basis.x, basis.y, basis.z) * glm::quat(glm::vec3(0, M_PI, 0)));
 }
 
 glm::vec3 vec3FromPXCPoint3DF32(const PXCPoint3DF32& vec) {
-    return glm::vec3(vec.x, vec.y, vec.z);
+    return glm::vec3(-vec.x, vec.y, -vec.z);
 }
 #endif
 
