@@ -95,6 +95,12 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 
 Install OpenSSL into the Windows system directory, to make sure that QT uses the version that you've just installed, and not some other version.
 
+###Intel Threading Building Blocks (TBB)
+
+Download the zip from the [TBB website](https://www.threadingbuildingblocks.org/). 
+
+We recommend you extract it to %HIFI_LIB_DIR%\tbb. This will help our FindTBB cmake module find what it needs. You can place it wherever you like on your machine if you specify TBB_ROOT_DIR as an environment variable or a variable passed when cmake is run.
+
 ###Zlib
 
 Download the compiled DLL from the [zlib website](http://www.zlib.net/). Extract to %HIFI_LIB_DIR%\zlib.
