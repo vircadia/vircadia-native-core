@@ -16,6 +16,7 @@
 #include <QString>
 
 #include <typeinfo>
+#include <assert.h>
 
 class DependencyManager {
 public:
@@ -56,7 +57,9 @@ T* DependencyManager::get() {
 
     // Found no instance in hash so we create one.
     T* newInstance = new T();
-    getInstanceHash().insert(typeId, dynamic_cast<Dependency*>(newInstance));
+    instance = dynamic_cast<Dependency*>(newInstance);
+    assert(instance != NULL); // If this triggers, check that T is derived from Dependency
+    getInstanceHash().insert(typeId, instance);
     return newInstance;
 }
 
