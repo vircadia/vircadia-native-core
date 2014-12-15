@@ -19,6 +19,8 @@
 #include <fsbinarystream.h>
 #endif
 
+#include <DependencyManager.h>
+
 #include "FaceTracker.h"
 
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
@@ -27,6 +29,7 @@ class Faceshift : public FaceTracker {
 
 public:
     Faceshift();
+    virtual ~Faceshift() {}
 
     void init();
 
