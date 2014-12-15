@@ -1149,7 +1149,7 @@ void Blender::run() {
         }
     }
     // post the result to the geometry cache, which will dispatch to the model if still alive
-    QMetaObject::invokeMethod(ModelBlender::getInstance(), "setBlendedVertices",
+    QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>(), "setBlendedVertices",
         Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
         Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
         Q_ARG(const QVector<glm::vec3>&, normals));
@@ -1312,7 +1312,7 @@ void Model::simulateInternal(float deltaTime) {
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        ModelBlender::getInstance()->noteRequiresBlend(this);
+        DependencyManager::get<ModelBlender>()->noteRequiresBlend(this);
     }
 }
 
@@ -2543,11 +2543,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
     }
 
     return meshPartsRendered;
-}
-
-ModelBlender* ModelBlender::getInstance() {
-    static ModelBlender instance;
-    return &instance;
 }
 
 ModelBlender::ModelBlender() :

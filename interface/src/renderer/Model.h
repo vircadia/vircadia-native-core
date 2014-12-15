@@ -19,6 +19,7 @@
 #include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
+#include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <PhysicsEntity.h>
 
@@ -460,16 +461,10 @@ Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
 /// Handle management of pending models that need blending
-class ModelBlender : public QObject {
+class ModelBlender : public QObject, public DependencyManager::Dependency  {
     Q_OBJECT
 
 public:
-
-    static ModelBlender* getInstance();
-    
-    ModelBlender();
-    virtual ~ModelBlender();
-    
 
     /// Adds the specified model to the list requiring vertex blends.
     void noteRequiresBlend(Model* model);
@@ -479,6 +474,10 @@ public slots:
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
 private:
+    ModelBlender();
+    virtual ~ModelBlender();
+    friend class DependencyManager;
+
     QList<QPointer<Model> > _modelsRequiringBlends;
     int _pendingBlenders;
 };
