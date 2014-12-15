@@ -104,7 +104,6 @@ void EntitySimulation::sortEntitiesThatMoved() {
     if (moveOperator.hasMovingEntities()) {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         _entityTree->recurseTreeWithOperator(&moveOperator);
-        moveOperator.finish();
     }
 
     sortEntitiesThatMovedInternal();

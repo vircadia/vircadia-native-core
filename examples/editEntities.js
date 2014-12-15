@@ -159,8 +159,8 @@ var toolBar = (function () {
             visible: false
         });
 
-        menuItemWidth = Math.max(Overlays.textWidth(loadURLMenuItem, "Model URL"),
-            Overlays.textWidth(loadFileMenuItem, "Model File")) + 20;
+        menuItemWidth = Math.max(Overlays.textSize(loadURLMenuItem, "Model URL").width,
+            Overlays.textSize(loadFileMenuItem, "Model File").width) + 20;
         Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
         Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
@@ -212,6 +212,28 @@ var toolBar = (function () {
         Overlays.editOverlay(loadURLMenuItem, { visible: active });
         Overlays.editOverlay(loadFileMenuItem, { visible: active });
     }
+
+
+    that.setActive = function(active) {
+        if (active != isActive) {
+            isActive = active;
+            if (!isActive) {
+                entityListTool.setVisible(false);
+                gridTool.setVisible(false);
+                grid.setEnabled(false);
+                propertiesTool.setVisible(false);
+                selectionManager.clearSelections();
+                cameraManager.disable();
+            } else {
+                cameraManager.enable();
+                entityListTool.setVisible(true);
+                gridTool.setVisible(true);
+                propertiesTool.setVisible(true);
+                grid.setEnabled(true);
+            }
+        }
+        toolBar.selectTool(activeButton, active);
+    };
 
     var RESIZE_INTERVAL = 50;
     var RESIZE_TIMEOUT = 20000;
@@ -288,21 +310,7 @@ var toolBar = (function () {
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
         if (activeButton === toolBar.clicked(clickedOverlay)) {
-            isActive = !isActive;
-            if (!isActive) {
-                entityListTool.setVisible(false);
-                gridTool.setVisible(false);
-                grid.setEnabled(false);
-                propertiesTool.setVisible(false);
-                selectionManager.clearSelections();
-                cameraManager.disable();
-            } else {
-                cameraManager.enable();
-                entityListTool.setVisible(true);
-                gridTool.setVisible(true);
-                grid.setEnabled(true);
-                propertiesTool.setVisible(true);
-            }
+            that.setActive(!isActive);
             return true;
         }
 
@@ -666,7 +674,6 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
-    Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
@@ -693,7 +700,6 @@ function cleanupModelMenus() {
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
     Menu.removeMenuItem("File", "Import Models");
-    Menu.removeMenuItem("Developer", "Debug Ryans Rotation Problems");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
@@ -815,6 +821,13 @@ function handeMenuEvent(menuItem) {
 
 Menu.menuItemEvent.connect(handeMenuEvent);
 
+Controller.keyPressEvent.connect(function(event) {
+    if (event.text == 'w' || event.text == 'a' || event.text == 's' || event.text == 'd'
+        || event.text == 'UP' || event.text == 'DOWN' || event.text == 'LEFT' || event.text == 'RIGHT') {
+       toolBar.setActive(false);
+    }
+});
+
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
     if (event.text == "`") {
@@ -826,9 +839,11 @@ Controller.keyReleaseEvent.connect(function (event) {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
         if (isActive) {
-            cameraManager.focus(selectionManager.worldPosition,
-                                selectionManager.worldDimensions,
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            if (selectionManager.hasSelection()) {
+                cameraManager.focus(selectionManager.worldPosition,
+                                    selectionManager.worldDimensions,
+                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            }
         }
     } else if (event.text == '[') {
         if (isActive) {
@@ -988,7 +1003,9 @@ PropertiesTool = function(opts) {
             type: 'update',
         };
         if (selectionManager.hasSelection()) {
+            data.id = selectionManager.selections[0].id;
             data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+            data.properties.rotation = Quat.safeEulerAngles(data.properties.rotation);
         }
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
@@ -997,8 +1014,59 @@ PropertiesTool = function(opts) {
         print(data);
         data = JSON.parse(data);
         if (data.type == "update") {
+            selectionManager.saveProperties();
+            if (data.properties.rotation !== undefined) {
+                var rotation = data.properties.rotation;
+                data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+            }
             Entities.editEntity(selectionManager.selections[0], data.properties);
+            pushCommandForSelections();
             selectionManager._update();
+        } else if (data.type == "action") {
+            if (data.action == "moveSelectionToGrid") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
+                    var diff = { x: 0, y: dY, z: 0 };
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var newPosition = Vec3.sum(properties.position, diff);
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: newPosition,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "moveAllToGrid") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
+                        var dY = grid.getOrigin().y - bottomY;
+                        var diff = { x: 0, y: dY, z: 0 };
+                        var newPosition = Vec3.sum(properties.position, diff);
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: newPosition,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "resetToNaturalDimensions") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        Entities.editEntity(selectionManager.selections[i], {
+                            dimensions: properties.naturalDimensions,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            }
         }
     });
 

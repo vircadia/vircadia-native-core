@@ -123,7 +123,6 @@ public:
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
-    QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
     bool getShadowsEnabled() const;
 
@@ -304,7 +303,6 @@ private:
     float _avatarLODIncreaseFPS;
     float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
-    QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;

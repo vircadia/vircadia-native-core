@@ -9,19 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
+#include <gpu/GPUConfig.h>
+
 #include <cmath>
 
 #include <QNetworkReply>
 #include <QRunnable>
 #include <QThreadPool>
 
-#include "Application.h"
-#include "GeometryCache.h"
-#include "Model.h"
-#include "world.h"
+#include <SharedUtil.h>
 
-GeometryCache::GeometryCache() :
-    _pendingBlenders(0) {
+#include "GeometryCache.h"
+#include "TextureCache.h"
+
+GeometryCache::GeometryCache() {
 }
 
 GeometryCache::~GeometryCache() {
@@ -505,33 +507,6 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }
 
-void GeometryCache::noteRequiresBlend(Model* model) {
-    if (_pendingBlenders < QThread::idealThreadCount()) {
-        if (model->maybeStartBlender()) {
-            _pendingBlenders++;
-        }
-        return;
-    }
-    if (!_modelsRequiringBlends.contains(model)) {
-        _modelsRequiringBlends.append(model);
-    }
-}
-
-void GeometryCache::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
-        const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (!model.isNull()) {
-        model->setBlendedVertices(blendNumber, geometry, vertices, normals);
-    }
-    _pendingBlenders--;
-    while (!_modelsRequiringBlends.isEmpty()) {
-        Model* nextModel = _modelsRequiringBlends.takeFirst();
-        if (nextModel && nextModel->maybeStartBlender()) {
-            _pendingBlenders++;
-            return;
-        }
-    }
-}
-
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad),
@@ -724,6 +699,7 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
 
 void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
     if (_meshes.size() > 0) {
+        TextureCache* textureCache = DependencyManager::get<TextureCache>();
         for (int i = 0; i < _meshes.size(); i++) {
             NetworkMesh& mesh = _meshes[i];
             for (int j = 0; j < mesh.parts.size(); j++) {
@@ -732,19 +708,19 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                 QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
                 if (part.diffuseTextureName == name) {
                     part.diffuseTexture =
-                    Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                    textureCache->getTexture(url, DEFAULT_TEXTURE,
                                                                               _geometry.meshes[i].isEye, QByteArray());
                     part.diffuseTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.normalTextureName == name) {
-                    part.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                    part.normalTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
                                                                                                    false, QByteArray());
                     part.normalTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.specularTextureName == name) {
-                    part.specularTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                    part.specularTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
                                                                                                      false, QByteArray());
                     part.specularTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.emissiveTextureName == name) {
-                    part.emissiveTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                    part.emissiveTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
                                                                                                      false, QByteArray());
                     part.emissiveTexture->setLoadPriorities(_loadPriorities);
                 }
@@ -841,14 +817,14 @@ void GeometryReader::run() {
 
         if (urlValid) {
             // Let's read the binaries from the network
-            QByteArray fileBinary = _reply->readAll();
-            if (fileBinary.isEmpty() || fileBinary.isNull()) {
-                throw QString("Read File binary is empty?!");
-            }
-
             FBXGeometry fbxgeo;
             if (_url.path().toLower().endsWith(".svo")) {
+                QByteArray fileBinary = _reply->readAll();
+                if (fileBinary.isEmpty() || fileBinary.isNull()) {
+                    throw QString("Read File binary is empty?!");
+                }    
                 fbxgeo = readSVO(fileBinary);
+                
             } else if (_url.path().toLower().endsWith(".fbx")) {
                 bool grabLightmaps = true;
                 float lightmapLevel = 1.0f;
@@ -860,7 +836,7 @@ void GeometryReader::run() {
                 } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
                     lightmapLevel = 3.5f;
                 }
-                fbxgeo = readFBX(fileBinary, _mapping, grabLightmaps, lightmapLevel);
+                fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {
@@ -937,6 +913,8 @@ void NetworkGeometry::reinsert() {
 
 void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
+
+    TextureCache* textureCache = DependencyManager::get<TextureCache>();
     
     foreach (const FBXMesh& mesh, _geometry.meshes) {
         NetworkMesh networkMesh;
@@ -945,28 +923,28 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
         foreach (const FBXMeshPart& part, mesh.parts) {
             NetworkMeshPart networkPart;
             if (!part.diffuseTexture.filename.isEmpty()) {
-                networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(
+                networkPart.diffuseTexture = textureCache->getTexture(
                     _textureBase.resolved(QUrl(part.diffuseTexture.filename)), DEFAULT_TEXTURE,
                     mesh.isEye, part.diffuseTexture.content);
                 networkPart.diffuseTextureName = part.diffuseTexture.name;
                 networkPart.diffuseTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.normalTexture.filename.isEmpty()) {
-                networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(
+                networkPart.normalTexture = textureCache->getTexture(
                     _textureBase.resolved(QUrl(part.normalTexture.filename)), NORMAL_TEXTURE,
                     false, part.normalTexture.content);
                 networkPart.normalTextureName = part.normalTexture.name;
                 networkPart.normalTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.specularTexture.filename.isEmpty()) {
-                networkPart.specularTexture = Application::getInstance()->getTextureCache()->getTexture(
+                networkPart.specularTexture = textureCache->getTexture(
                     _textureBase.resolved(QUrl(part.specularTexture.filename)), SPECULAR_TEXTURE,
                     false, part.specularTexture.content);
                 networkPart.specularTextureName = part.specularTexture.name;
                 networkPart.specularTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.emissiveTexture.filename.isEmpty()) {
-                networkPart.emissiveTexture = Application::getInstance()->getTextureCache()->getTexture(
+                networkPart.emissiveTexture = textureCache->getTexture(
                     _textureBase.resolved(QUrl(part.emissiveTexture.filename)), EMISSIVE_TEXTURE,
                     false, part.emissiveTexture.content);
                 networkPart.emissiveTextureName = part.emissiveTexture.name;

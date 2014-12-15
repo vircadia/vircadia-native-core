@@ -228,8 +228,6 @@ public:
     float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
-    AACube getOldMaximumAACube() const { return _oldMaximumAACube; }
-    void setOldMaximumAACube(const AACube& cube) { _oldMaximumAACube = cube; }
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     static const QString DEFAULT_SCRIPT;
@@ -356,7 +354,6 @@ protected:
     // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
     // to a non-NULL value when the EntityItem has a representation in the physics engine.
     void* _physicsInfo; // only set by EntitySimulation
-    AACube _oldMaximumAACube;   // remember this so we know where the entity used to live in the tree
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation

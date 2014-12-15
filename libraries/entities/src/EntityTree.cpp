@@ -80,7 +80,6 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 /// Adds a new entity item to the tree
 void EntityTree::postAddEntity(EntityItem* entity) {
     assert(entity);
-    entity->setOldMaximumAACube(entity->getMaximumAACube());
     // check to see if we need to simulate this entity..
     if (_simulation) {
         _simulation->addEntity(entity);
@@ -134,7 +133,6 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
         uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
-        entity->setOldMaximumAACube(entity->getMaximumAACube());
         _isDirty = true;
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
