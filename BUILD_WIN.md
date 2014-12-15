@@ -138,9 +138,7 @@ Be careful with glm. For the folder other libraries would normally call 'include
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
 
-    cmake .. -DZLIB_LIBRARY=%ZLIB_LIBRARY% -DZLIB_INCLUDE_DIR=%ZLIB_INCLUDE_DIR% -G "Visual Studio 10"
-
-If you're using Visual Studio 2013 then pass "Visual Studio 12" instead of "Visual Studio 10" (yes, 12, not 13).
+    cmake .. -DZLIB_LIBRARY=%ZLIB_LIBRARY% -DZLIB_INCLUDE_DIR=%ZLIB_INCLUDE_DIR% -G "Visual Studio 12"
 
 Open %HIFI_DIR%\build\hifi.sln and compile.
 
