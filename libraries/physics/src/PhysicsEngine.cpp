@@ -14,8 +14,9 @@
 // TODO DONE: give PhysicsEngine instance an _entityPacketSender
 // TODO DONE: make sure code compiles when BULLET is not found
 // TODO DONE: make sure incoming and outgoing pipelines are connected
+// TODO DONE: provide some sort of "reliable" send for "stopped" update
 // TODO: test entity updates (second viewer sees physics results from first)
-// TODO: provide some sort of "reliable" send for "stopped" update
+// TODO: reconcile hifi damping with bullet damping for improved ballistic predictions
 
 #include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS
