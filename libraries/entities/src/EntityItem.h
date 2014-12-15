@@ -86,7 +86,7 @@ public:
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
     void setLastEdited(quint64 lastEdited) 
-        { _lastEdited = _lastSimulated = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
+        { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
 

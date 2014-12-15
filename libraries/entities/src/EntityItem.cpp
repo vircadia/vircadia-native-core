@@ -458,7 +458,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
-            _lastSimulated = _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
+            _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
+            _lastSimulated = now;
             if (wantDebug) {
                 qDebug() << "_lastUpdated =" << _lastUpdated;
                 qDebug() << "_lastEdited=" << _lastEdited;
@@ -619,8 +620,6 @@ void EntityItem::simulate(const quint64& now) {
         }
     }
 
-    _lastSimulated = now;
-
     if (wantDebug) {
         qDebug() << "     ********** EntityItem::update() .... SETTING _lastSimulated=" << _lastSimulated;
     }
@@ -730,6 +729,8 @@ void EntityItem::simulate(const quint64& now) {
             }
         }
     }
+
+    _lastSimulated = now;
 }
 
 bool EntityItem::isMoving() const {
@@ -819,6 +820,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
+        if (getDirtyFlags() & EntityItem::DIRTY_POSITION) {
+            _lastSimulated = usecTimestampNow();
+        }
     }
     
     return somethingChanged;
