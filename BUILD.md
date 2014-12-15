@@ -1,7 +1,7 @@
 Dependencies
 ===
 * [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
-* [Qt](http://qt-project.org/downloads) ~> 5.2.0
+* [Qt](http://qt-project.org/downloads) ~> 5.3.0
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.2
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
@@ -80,7 +80,7 @@ You must run `tbbvars` so that the find module included with this project will b
 
 We have a [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) that you can use/tap to install some of the dependencies. In the code block above qt5 is installed from a formula in this repository.
 
-*Our [qt5 homebrew formula](https://raw.github.com/highfidelity/homebrew-formulas/master/qt5.rb) is for a patched version of Qt 5.2.0 stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
+*Our [qt5 homebrew formula](https://raw.github.com/highfidelity/homebrew-formulas/master/qt5.rb) is for a patched version of Qt 5.3.x stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
 
 #####Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
