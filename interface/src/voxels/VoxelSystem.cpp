@@ -14,6 +14,8 @@
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
 
+#include <gpu/GPUConfig.h>
+
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
@@ -23,7 +25,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "Menu.h"
 #include "renderer/ProgramObject.h"
 #include "VoxelConstants.h"
