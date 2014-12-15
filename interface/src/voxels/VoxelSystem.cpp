@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h> // include this first
-
 #include <cstring>
 #include <cmath>
 #include <iostream> // to load voxels from file
@@ -25,6 +23,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Application.h"
+#include "InterfaceConfig.h"
 #include "Menu.h"
 #include "renderer/ProgramObject.h"
 #include "VoxelConstants.h"
