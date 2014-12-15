@@ -14,7 +14,6 @@
 
 #include <QtCore/QCoreApplication>
 
-#include "ShutdownEventListener.h"
 #include "ThreadedAssignment.h"
 
 class QSharedMemory;
@@ -34,7 +33,6 @@ private slots:
 private:
     Assignment _requestAssignment;
     static SharedAssignmentPointer _currentAssignment;
-    ShutdownEventListener _shutdownEventListener;
     QString _assignmentServerHostname;
     HifiSockAddr _assignmentServerSocket;
     QSharedMemory* _localASPortSharedMem;

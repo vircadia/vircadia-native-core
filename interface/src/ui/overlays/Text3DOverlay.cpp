@@ -16,12 +16,14 @@
 #include "ui/TextRenderer.h"
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
+const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const float DEFAULT_MARGIN = 0.1f;
 const int FIXED_FONT_POINT_SIZE = 40;
 const float LINE_SCALE_RATIO = 1.2f;
 
 Text3DOverlay::Text3DOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
+    _backgroundAlpha(DEFAULT_BACKGROUND_ALPHA),
     _lineHeight(0.1f),
     _leftMargin(DEFAULT_MARGIN),
     _topMargin(DEFAULT_MARGIN),
@@ -35,6 +37,7 @@ Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     Planar3DOverlay(text3DOverlay),
     _text(text3DOverlay->_text),
     _backgroundColor(text3DOverlay->_backgroundColor),
+    _backgroundAlpha(text3DOverlay->_backgroundAlpha),
     _lineHeight(text3DOverlay->_lineHeight),
     _leftMargin(text3DOverlay->_leftMargin),
     _topMargin(text3DOverlay->_topMargin),
@@ -88,8 +91,8 @@ void Text3DOverlay::render(RenderArgs* args) {
 
         const float MAX_COLOR = 255.0f;
         xColor backgroundColor = getBackgroundColor();
-        float alpha = getAlpha();
-        glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
+        glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
+            getBackgroundAlpha());
 
         glm::vec2 dimensions = getDimensions();
         glm::vec2 halfDimensions = dimensions * 0.5f;
@@ -105,7 +108,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
-        // Same font properties as textWidth()
+        // Same font properties as textSize()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
         float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
         
@@ -124,6 +127,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
         glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
+        float alpha = getAlpha();
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
         foreach(QString thisLine, lines) {
@@ -166,6 +170,10 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
         }
     }
 
+    if (properties.property("backgroundAlpha").isValid()) {
+        _backgroundAlpha = properties.property("backgroundAlpha").toVariant().toFloat();
+    }
+
     if (properties.property("lineHeight").isValid()) {
         setLineHeight(properties.property("lineHeight").toVariant().toFloat());
     }
@@ -200,6 +208,9 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
     if (property == "backgroundColor") {
         return xColorToScriptValue(_scriptEngine, _backgroundColor);
     }
+    if (property == "backgroundAlpha") {
+        return _backgroundAlpha;
+    }
     if (property == "lineHeight") {
         return _lineHeight;
     }
@@ -225,11 +236,23 @@ Text3DOverlay* Text3DOverlay::createClone() const {
     return new Text3DOverlay(this);;
 }
 
-float Text3DOverlay::textWidth(const QString& text) const {
+QSizeF Text3DOverlay::textSize(const QString& text) const {
+
     QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
-    float scaleFactor = _lineHeight * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
-    return scaleFactor * (float)fontMetrics.width(qPrintable(text));
-}
+    const float TEXT_SCALE_ADJUST = 1.02f;  // Experimentally detemined for the specified font
+    const int TEXT_HEIGHT_ADJUST = -6;
+    float scaleFactor = _lineHeight * TEXT_SCALE_ADJUST * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
 
+    QStringList lines = text.split(QRegExp("\r\n|\r|\n"));
+
+    float width = 0.0f;
+    for (int i = 0; i < lines.count(); i += 1) {
+        width = std::max(width, scaleFactor * (float)fontMetrics.width(qPrintable(lines[i])));
+    }
+
+    float height = lines.count() * scaleFactor * (float)(fontMetrics.height() + TEXT_HEIGHT_ADJUST);
+
+    return QSizeF(width, height);
+}
 

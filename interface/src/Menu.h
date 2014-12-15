@@ -123,7 +123,6 @@ public:
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
-    QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
     bool getShadowsEnabled() const;
 
@@ -304,7 +303,6 @@ private:
     float _avatarLODIncreaseFPS;
     float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
-    QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
@@ -367,6 +365,7 @@ namespace MenuOption {
     const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
     const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
+    const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -378,6 +377,7 @@ namespace MenuOption {
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayHermiteData = "Display Hermite Data";
     const QString DisplayModelBounds = "Display Model Bounds";
+    const QString DisplayModelTriangles = "Display Model Triangles";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayTimingDetails = "Display Timing Details";

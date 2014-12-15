@@ -19,15 +19,15 @@
 #include <fsbinarystream.h>
 #endif
 
+#include <DependencyManager.h>
+
 #include "FaceTracker.h"
 
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
-class Faceshift : public FaceTracker {
+class Faceshift : public FaceTracker, public DependencyManager::Dependency {
     Q_OBJECT
 
 public:
-    Faceshift();
-
     void init();
 
     bool isConnectedOrConnecting() const; 
@@ -87,6 +87,9 @@ private slots:
     void readFromSocket();        
     
 private:
+    Faceshift();
+    virtual ~Faceshift() {}
+    friend DependencyManager;
     
     float getBlendshapeCoefficient(int index) const;
     

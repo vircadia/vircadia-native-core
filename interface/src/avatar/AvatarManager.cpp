@@ -68,10 +68,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
-    Application* applicationInstance = Application::getInstance();
-    glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
-    glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
-
+    
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
@@ -87,7 +84,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (!shouldKillAvatar(sharedAvatar)) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->simulate(deltaTime);
-            avatar->setMouseRay(mouseOrigin, mouseDirection);
             ++avatarIterator;
         } else {
             // the mixer that owned this avatar is gone, give it to the vector of fades and kill it

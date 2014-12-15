@@ -355,7 +355,7 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
 
 
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, 
-                                const glm::vec3& direction, float& distance, BoxFace& face) const {
+                                const glm::vec3& direction, float& distance, BoxFace& face) {
 
     bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face);
     if (intersects) {

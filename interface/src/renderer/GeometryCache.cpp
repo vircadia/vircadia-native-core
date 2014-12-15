@@ -829,28 +829,44 @@ void GeometryReader::run() {
         return;
     }
     try {
-        std::string urlname = _url.path().toLower().toStdString();
-        FBXGeometry fbxgeo;
-        if (_url.path().toLower().endsWith(".svo")) {
-            fbxgeo = readSVO(_reply->readAll());
-        } else {
-            bool grabLightmaps = true;
-            float lightmapLevel = 1.0f;
-            // HACK: For monday 12/01/2014 we need to kill lighmaps loading in starchamber...
-            if (_url.path().toLower().endsWith("loungev4_11-18.fbx")) {
-                grabLightmaps = false;
-            } else if (_url.path().toLower().endsWith("apt8_reboot.fbx")) {
-                lightmapLevel = 4.0f;
-            } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
-                lightmapLevel = 3.5f;
-            }
-            fbxgeo = readFBX(_reply->readAll(), _mapping, grabLightmaps, lightmapLevel);
+        if (!_reply) {
+            throw QString("Reply is NULL ?!");
         }
-        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
+        std::string urlname = _url.path().toLower().toStdString();
+        bool urlValid = true;
+        urlValid &= !urlname.empty();
+        urlValid &= !_url.path().isEmpty();
+        urlValid &= _url.path().toLower().endsWith(".fbx")
+                    || _url.path().toLower().endsWith(".svo");
 
+        if (urlValid) {
+            // Let's read the binaries from the network
+            FBXGeometry fbxgeo;
+            if (_url.path().toLower().endsWith(".svo")) {
+                QByteArray fileBinary = _reply->readAll();
+                if (fileBinary.isEmpty() || fileBinary.isNull()) {
+                    throw QString("Read File binary is empty?!");
+                }    
+                fbxgeo = readSVO(fileBinary);
+                
+            } else if (_url.path().toLower().endsWith(".fbx")) {
+                bool grabLightmaps = true;
+                float lightmapLevel = 1.0f;
+                // HACK: For monday 12/01/2014 we need to kill lighmaps loading in starchamber...
+                if (_url.path().toLower().endsWith("loungev4_11-18.fbx")) {
+                    grabLightmaps = false;
+                } else if (_url.path().toLower().endsWith("apt8_reboot.fbx")) {
+                    lightmapLevel = 4.0f;
+                } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
+                    lightmapLevel = 3.5f;
+                }
+                fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
+            }
+            QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
+        } else {
+            throw QString("url is invalid");
+        }
 
-      //      _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
-        
     } catch (const QString& error) {
         qDebug() << "Error reading " << _url << ": " << error;
         QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));

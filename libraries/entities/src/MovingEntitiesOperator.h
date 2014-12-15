@@ -17,7 +17,6 @@ public:
     EntityItem* entity;
     AACube oldCube;
     AACube newCube;
-    AABox oldCubeClamped;
     AABox newCubeClamped;
     EntityTreeElement* oldContainingElement;
     AACube oldContainingElementCube;
@@ -38,7 +37,7 @@ public:
     MovingEntitiesOperator(EntityTree* tree);
     ~MovingEntitiesOperator();
 
-    void addEntityToMoveList(EntityItem* entity, const AACube& oldCube, const AACube& newCube);
+    void addEntityToMoveList(EntityItem* entity, const AACube& newCube);
     virtual bool preRecursion(OctreeElement* element);
     virtual bool postRecursion(OctreeElement* element);
     virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);

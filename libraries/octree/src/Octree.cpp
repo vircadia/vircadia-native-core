@@ -46,7 +46,7 @@ Octree::Octree(bool shouldReaverage) :
     _isDirty(true),
     _shouldReaverage(shouldReaverage),
     _stopImport(false),
-    _lock(),
+    _lock(QReadWriteLock::Recursive),
     _isViewing(false),
     _isServer(false)
 {
@@ -693,13 +693,14 @@ public:
     BoxFace& face;
     void** intersectedObject;
     bool found;
+    bool precisionPicking;
 };
 
 bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     if (element->findRayIntersection(args->origin, args->direction, keepSearching, 
-                            args->element, args->distance, args->face, args->intersectedObject)) {
+                            args->element, args->distance, args->face, args->intersectedObject, args->precisionPicking)) {
         args->found = true;
     }
     return keepSearching;
@@ -707,8 +708,9 @@ bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     OctreeElement*& element, float& distance, BoxFace& face, void** intersectedObject,
-                                    Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, intersectedObject, false};
+                                    Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
+    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, 
+                        intersectedObject, false, precisionPicking};
     distance = FLT_MAX;
 
     bool gotLock = false;
@@ -726,6 +728,10 @@ bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     }
 
     recurseTreeWithOperation(findRayIntersectionOp, &args);
+    
+    if (args.found) {
+        args.distance *= (float)(TREE_SCALE); // scale back up to meters
+    }
 
     if (gotLock) {
         unlock();

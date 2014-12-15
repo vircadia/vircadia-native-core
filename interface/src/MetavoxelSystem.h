@@ -22,9 +22,11 @@
 #include <MetavoxelClientManager.h>
 
 #include "renderer/ProgramObject.h"
+#include "renderer/TextureCache.h"
 
 class HeightfieldBaseLayerBatch;
 class HeightfieldSplatBatch;
+class HermiteBatch;
 class Model;
 class VoxelBatch;
 class VoxelSplatBatch;
@@ -88,6 +90,10 @@ public:
     void addVoxelBaseBatch(const VoxelBatch& batch) { _voxelBaseBatches.append(batch); }
     void addVoxelSplatBatch(const VoxelSplatBatch& batch) { _voxelSplatBatches.append(batch); }
     
+    void addHermiteBatch(const HermiteBatch& batch) { _hermiteBatches.append(batch); }
+
+    Q_INVOKABLE void deleteTextures(int heightTextureID, int colorTextureID, int materialTextureID) const;
+        
 signals:
 
     void rendering();
@@ -120,6 +126,7 @@ private:
     QVector<HeightfieldSplatBatch> _heightfieldSplatBatches;
     QVector<VoxelBatch> _voxelBaseBatches;
     QVector<VoxelSplatBatch> _voxelSplatBatches;
+    QVector<HermiteBatch> _hermiteBatches;
     
     ProgramObject _baseHeightfieldProgram;
     int _baseHeightScaleLocation;
@@ -209,6 +216,13 @@ public:
     glm::vec4 splatTextureScalesS;
     glm::vec4 splatTextureScalesT;
     int materialIndex;
+};
+
+/// A batch containing Hermite data for debugging.
+class HermiteBatch {
+public:
+    QOpenGLBuffer* vertexBuffer;
+    int vertexCount;
 };
 
 /// Generic abstract base class for objects that handle a signal.
@@ -380,7 +394,7 @@ public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
 };
 
 /// Renders cuboids.
@@ -391,7 +405,7 @@ public:
     
     Q_INVOKABLE CuboidRenderer();
     
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
 };
 
 /// Renders static models.
@@ -404,7 +418,7 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 private slots:
@@ -426,26 +440,29 @@ class HeightfieldRenderer : public SpannerRenderer {
 public:
     
     Q_INVOKABLE HeightfieldRenderer();
-    virtual ~HeightfieldRenderer();
     
-    virtual void init(Spanner* spanner);
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
+};
 
-private slots:
-
-    void applyHeight(const HeightfieldHeightPointer& height);
-    void applyColor(const HeightfieldColorPointer& color);
-    void applyMaterial(const HeightfieldMaterialPointer& material);
-
+/// Renders a single quadtree node.
+class HeightfieldNodeRenderer : public AbstractHeightfieldNodeRenderer {
+public:
+    
+    HeightfieldNodeRenderer();
+    virtual ~HeightfieldNodeRenderer();
+    
+    void render(const HeightfieldNodePointer& node, const glm::vec3& translation,
+        const glm::quat& rotation, const glm::vec3& scale, bool cursor);
+    
 private:
-    
+
     GLuint _heightTextureID;
     GLuint _colorTextureID;
     GLuint _materialTextureID;
     QVector<NetworkTexturePointer> _networkTextures;
     
-    typedef QPair<int, int> IntPair;
-    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
+    typedef QPair<int, int> IntPair;    
+    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;
     static QHash<IntPair, BufferPair> _bufferPairs;
 };
 

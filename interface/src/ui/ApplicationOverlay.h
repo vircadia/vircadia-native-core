@@ -15,14 +15,13 @@
 class Overlays;
 class QOpenGLFramebufferObject;
 
-const float MAGNIFY_WIDTH = 160.0f;
-const float MAGNIFY_HEIGHT = 80.0f;
-const float MAGNIFY_MULT = 4.0f;
+const float MAGNIFY_WIDTH = 220.0f;
+const float MAGNIFY_HEIGHT = 100.0f;
+const float MAGNIFY_MULT = 2.0f;
 
 // Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
 public:
-
     ApplicationOverlay();
     ~ApplicationOverlay();
 
@@ -30,16 +29,25 @@ public:
     void displayOverlayTexture();
     void displayOverlayTextureOculus(Camera& whichCamera);
     void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
-    void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
-    void getClickLocation(int &x, int &y) const;
+    
+    void computeOculusPickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
-
-
-    // Getters
-    QOpenGLFramebufferObject* getFramebufferObject();
-    float getAlpha() const { return _alpha; }
-  
+    
+    // Converter from one frame of reference to another.
+    // Frame of reference:
+    // Screen: Position on the screen (x,y)
+    // Spherical: Pitch and yaw that gives the position on the sphere we project on (yaw,pitch)
+    // Overlay: Position on the overlay (x,y)
+    // (x,y) in Overlay are similar than (x,y) in Screen except they can be outside of the bound of te screen.
+    // This allows for picking outside of the screen projection in 3D.
+    glm::vec2 screenToSpherical(glm::vec2 screenPos) const;
+    glm::vec2 sphericalToScreen(glm::vec2 sphericalPos) const;
+    glm::vec2 sphericalToOverlay(glm::vec2 sphericalPos) const;
+    glm::vec2 overlayToSpherical(glm::vec2 overlayPos) const;
+    glm::vec2 screenToOverlay(glm::vec2 screenPos) const;
+    glm::vec2 overlayToScreen(glm::vec2 overlayPos) const;
+    
 private:
     // Interleaved vertex data
     struct TextureVertex {
@@ -48,31 +56,54 @@ private:
     };
 
     typedef QPair<GLuint, GLuint> VerticesIndices;
-
-    void renderPointers();
+    class TexturedHemisphere {
+    public:
+        TexturedHemisphere();
+        ~TexturedHemisphere();
+        
+        void bind();
+        void release();
+        void bindTexture();
+        void releaseTexture();
+        
+        void buildFramebufferObject();
+        void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
+        void render();
+        
+    private:
+        void cleanupVBO();
+        
+        GLuint _vertices;
+        GLuint _indices;
+        QOpenGLFramebufferObject* _framebufferObject;
+        VerticesIndices _vbo;
+    };
+    
+    void renderPointers();;
+    void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) const;
+    
     void renderControllerPointers();
     void renderPointersOculus(const glm::vec3& eyePos);
-    void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
+    
     void renderAudioMeter();
     void renderStatsAndLogs();
-    void renderTexturedHemisphere();
     void renderDomainConnectionStatusBorder();
 
-    QOpenGLFramebufferObject* _framebufferObject;
-    float _trailingAudioLoudness;
-    float _textureFov;
+    TexturedHemisphere _overlays;
     
-    enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS = RIGHT_CONTROLLER + 1 };
-    bool _reticleActive[NUMBER_OF_MAGNIFIERS];
-    int _mouseX[NUMBER_OF_MAGNIFIERS];
-    int _mouseY[NUMBER_OF_MAGNIFIERS];
-    bool _magActive[NUMBER_OF_MAGNIFIERS];
-    int _magX[NUMBER_OF_MAGNIFIERS];
-    int _magY[NUMBER_OF_MAGNIFIERS];
-    float _magSizeMult[NUMBER_OF_MAGNIFIERS];
+    float _textureFov;
+    float _textureAspectRatio;
+    
+    enum Reticles { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICLES };
+    bool _reticleActive[NUMBER_OF_RETICLES];
+    QPoint _reticlePosition[NUMBER_OF_RETICLES];
+    bool _magActive[NUMBER_OF_RETICLES];
+    float _magSizeMult[NUMBER_OF_RETICLES];
+    quint64 _lastMouseMove;
     
     float _alpha;
-    float _oculusuiRadius;
+    float _oculusUIRadius;
+    float _trailingAudioLoudness;
 
     GLuint _crosshairTexture;
 };

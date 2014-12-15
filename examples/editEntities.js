@@ -51,8 +51,8 @@ var toolWidth = 50;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
-var allowLargeModels = false;
-var allowSmallModels = false;
+var allowLargeModels = true;
+var allowSmallModels = true;
 var wantEntityGlow = false;
 
 var SPAWN_DISTANCE = 1;
@@ -140,29 +140,27 @@ var toolBar = (function () {
         menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
 
         loadURLMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
         loadFileMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset + menuItemHeight,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
-        menuItemWidth = Math.max(Overlays.textWidth(loadURLMenuItem, "Model URL"),
-            Overlays.textWidth(loadFileMenuItem, "Model File")) + 20;
+        menuItemWidth = Math.max(Overlays.textSize(loadURLMenuItem, "Model URL").width,
+            Overlays.textSize(loadFileMenuItem, "Model File").width) + 20;
         Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
         Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
@@ -214,6 +212,28 @@ var toolBar = (function () {
         Overlays.editOverlay(loadURLMenuItem, { visible: active });
         Overlays.editOverlay(loadFileMenuItem, { visible: active });
     }
+
+
+    that.setActive = function(active) {
+        if (active != isActive) {
+            isActive = active;
+            if (!isActive) {
+                entityListTool.setVisible(false);
+                gridTool.setVisible(false);
+                grid.setEnabled(false);
+                propertiesTool.setVisible(false);
+                selectionManager.clearSelections();
+                cameraManager.disable();
+            } else {
+                cameraManager.enable();
+                entityListTool.setVisible(true);
+                gridTool.setVisible(true);
+                propertiesTool.setVisible(true);
+                grid.setEnabled(true);
+            }
+        }
+        toolBar.selectTool(activeButton, active);
+    };
 
     var RESIZE_INTERVAL = 50;
     var RESIZE_TIMEOUT = 20000;
@@ -290,21 +310,7 @@ var toolBar = (function () {
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
         if (activeButton === toolBar.clicked(clickedOverlay)) {
-            isActive = !isActive;
-            if (!isActive) {
-                entityListTool.setVisible(false);
-                gridTool.setVisible(false);
-                grid.setEnabled(false);
-                propertiesTool.setVisible(false);
-                selectionManager.clearSelections();
-                cameraManager.disable();
-            } else {
-                cameraManager.enable();
-                entityListTool.setVisible(true);
-                gridTool.setVisible(true);
-                grid.setEnabled(true);
-                propertiesTool.setVisible(true);
-            }
+            that.setActive(!isActive);
             return true;
         }
 
@@ -465,7 +471,7 @@ function rayPlaneIntersection(pickRay, point, normal) {
 function findClickedEntity(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
 
-    var foundIntersection = Entities.findRayIntersection(pickRay);
+    var foundIntersection = Entities.findRayIntersection(pickRay, true); // want precision picking
 
     if (!foundIntersection.accurate) {
         return null;
@@ -476,7 +482,6 @@ function findClickedEntity(event) {
         var identify = Entities.identifyEntity(foundEntity);
         if (!identify.isKnownID) {
             print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
-            selectionManager.clearSelections();
             return null;
         }
         foundEntity = identify;
@@ -485,74 +490,18 @@ function findClickedEntity(event) {
     return { pickRay: pickRay, entityID: foundEntity };
 }
 
+var mouseHasMovedSincePress = false;
 
 function mousePressEvent(event) {
+    mouseHasMovedSincePress = false;
+
     if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         return;
     }
     if (isActive) {
-        var entitySelected = false;
         if (cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
             // Event handled; do nothing.
             return;
-        } else {
-            var result = findClickedEntity(event);
-            if (result === null) {
-                selectionManager.clearSelections();
-                return;
-            }
-            var pickRay = result.pickRay;
-            var foundEntity = result.entityID;
-
-            var properties = Entities.getEntityProperties(foundEntity);
-            if (isLocked(properties)) {
-                print("Model locked " + properties.id);
-            } else {
-                var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
-
-                print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
-                //                P         P - Model
-                //               /|         A - Palm
-                //              / | d       B - unit vector toward tip
-                //             /  |         X - base of the perpendicular line
-                //            A---X----->B  d - distance fom axis
-                //              x           x - distance from A
-                //
-                //            |X-A| = (P-A).B
-                //            X == A + ((P-A).B)B
-                //            d = |P-X|
-
-                var A = pickRay.origin;
-                var B = Vec3.normalize(pickRay.direction);
-                var P = properties.position;
-
-                var x = Vec3.dot(Vec3.subtract(P, A), B);
-                var X = Vec3.sum(A, Vec3.multiply(B, x));
-                var d = Vec3.length(Vec3.subtract(P, X));
-                var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
-
-                var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
-
-                var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                                && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-                if (0 < x && sizeOK) {
-                    entitySelected = true;
-                    selectedEntityID = foundEntity;
-                    orientation = MyAvatar.orientation;
-                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-
-                    if (!event.isShifted) {
-                        selectionManager.clearSelections();
-                    }
-                    selectionManager.addEntity(foundEntity);
-
-                    print("Model selected: " + foundEntity.id);
-                }
-            }
-        }
-        if (entitySelected) {
-            selectionDisplay.select(selectedEntityID, event);
         }
     } else if (Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED)) {
         var result = findClickedEntity(event);
@@ -572,6 +521,7 @@ function mousePressEvent(event) {
 var highlightedEntityID = { isKnownID: false };
 
 function mouseMoveEvent(event) {
+    mouseHasMovedSincePress = true;
     if (isActive) {
         // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
         if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
@@ -615,6 +565,76 @@ function mouseReleaseEvent(event) {
     }
 
     cameraManager.mouseReleaseEvent(event);
+
+    if (!mouseHasMovedSincePress) {
+        mouseClickEvent(event);
+    }
+}
+
+function mouseClickEvent(event) {
+    if (!isActive) {
+        return;
+    }
+
+    var result = findClickedEntity(event);
+    if (result === null) {
+        if (!event.isShifted) {
+            selectionManager.clearSelections();
+        }
+        return;
+    }
+    var pickRay = result.pickRay;
+    var foundEntity = result.entityID;
+
+    var properties = Entities.getEntityProperties(foundEntity);
+    if (isLocked(properties)) {
+        print("Model locked " + properties.id);
+    } else {
+        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+        print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
+        //                P         P - Model
+        //               /|         A - Palm
+        //              / | d       B - unit vector toward tip
+        //             /  |         X - base of the perpendicular line
+        //            A---X----->B  d - distance fom axis
+        //              x           x - distance from A
+        //
+        //            |X-A| = (P-A).B
+        //            X == A + ((P-A).B)B
+        //            d = |P-X|
+
+        var A = pickRay.origin;
+        var B = Vec3.normalize(pickRay.direction);
+        var P = properties.position;
+
+        var x = Vec3.dot(Vec3.subtract(P, A), B);
+        var X = Vec3.sum(A, Vec3.multiply(B, x));
+        var d = Vec3.length(Vec3.subtract(P, X));
+        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
+                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+        if (0 < x && sizeOK) {
+            entitySelected = true;
+            selectedEntityID = foundEntity;
+            orientation = MyAvatar.orientation;
+            intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+
+            if (!event.isShifted) {
+                selectionManager.clearSelections();
+            }
+
+            var toggle = event.isShifted;
+            selectionManager.addEntity(foundEntity, toggle);
+
+            print("Model selected: " + foundEntity.id);
+            selectionDisplay.select(selectedEntityID, event);
+        }
+    }
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
@@ -626,6 +646,7 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 // exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
 // added it.
 var modelMenuAddedDelete = false;
+var originalLightsArePickable = Entities.getLightsArePickable();
 function setupModelMenus() {
     print("setupModelMenus()");
     // adj our menuitems
@@ -643,18 +664,21 @@ function setupModelMenus() {
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L",
-                        afterItem: "Paste Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S",
-                        afterItem: "Allow Select Large Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
+                        afterItem: "Paste Models", isCheckable: true, isChecked: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
+                        afterItem: "Allow Selecting of Large Models", isCheckable: true, isChecked: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
+                        afterItem: "Allow Selecting of Small Models", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
-    Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
+
+    Entities.setLightsArePickable(false);
 }
 
 setupModelMenus(); // do this when first running our script.
@@ -669,13 +693,13 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", "Model List...");
     Menu.removeMenuItem("Edit", "Paste Models");
-    Menu.removeMenuItem("Edit", "Allow Select Large Models");
-    Menu.removeMenuItem("Edit", "Allow Select Small Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
 
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
     Menu.removeMenuItem("File", "Import Models");
-    Menu.removeMenuItem("Developer", "Debug Ryans Rotation Problems");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
@@ -694,6 +718,7 @@ Script.scriptEnding.connect(function() {
     if (exportMenu) {
         exportMenu.close();
     }
+    Entities.setLightsArePickable(originalLightsArePickable);
 });
 
 // Do some stuff regularly, like check for placement of various overlays
@@ -704,10 +729,12 @@ Script.update.connect(function (deltaTime) {
 });
 
 function handeMenuEvent(menuItem) {
-    if (menuItem == "Allow Select Small Models") {
-        allowSmallModels = Menu.isOptionChecked("Allow Select Small Models");
-    } else if (menuItem == "Allow Select Large Models") {
-        allowLargeModels = Menu.isOptionChecked("Allow Select Large Models");
+    if (menuItem == "Allow Selecting of Small Models") {
+        allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
+    } else if (menuItem == "Allow Selecting of Large Models") {
+        allowLargeModels = Menu.isOptionChecked("Allow Selecting of Large Models");
+    } else if (menuItem == "Allow Selecting of Lights") {
+        Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem == "Delete") {
         if (SelectionManager.hasSelection()) {
             print("  Delete Entities");
@@ -794,6 +821,13 @@ function handeMenuEvent(menuItem) {
 
 Menu.menuItemEvent.connect(handeMenuEvent);
 
+Controller.keyPressEvent.connect(function(event) {
+    if (event.text == 'w' || event.text == 'a' || event.text == 's' || event.text == 'd'
+        || event.text == 'UP' || event.text == 'DOWN' || event.text == 'LEFT' || event.text == 'RIGHT') {
+       toolBar.setActive(false);
+    }
+});
+
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
     if (event.text == "`") {
@@ -805,9 +839,11 @@ Controller.keyReleaseEvent.connect(function (event) {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
         if (isActive) {
-            cameraManager.focus(selectionManager.worldPosition,
-                                selectionManager.worldDimensions,
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            if (selectionManager.hasSelection()) {
+                cameraManager.focus(selectionManager.worldPosition,
+                                    selectionManager.worldDimensions,
+                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            }
         }
     } else if (event.text == '[') {
         if (isActive) {
@@ -967,7 +1003,9 @@ PropertiesTool = function(opts) {
             type: 'update',
         };
         if (selectionManager.hasSelection()) {
+            data.id = selectionManager.selections[0].id;
             data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+            data.properties.rotation = Quat.safeEulerAngles(data.properties.rotation);
         }
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
@@ -976,8 +1014,59 @@ PropertiesTool = function(opts) {
         print(data);
         data = JSON.parse(data);
         if (data.type == "update") {
+            selectionManager.saveProperties();
+            if (data.properties.rotation !== undefined) {
+                var rotation = data.properties.rotation;
+                data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+            }
             Entities.editEntity(selectionManager.selections[0], data.properties);
+            pushCommandForSelections();
             selectionManager._update();
+        } else if (data.type == "action") {
+            if (data.action == "moveSelectionToGrid") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
+                    var diff = { x: 0, y: dY, z: 0 };
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var newPosition = Vec3.sum(properties.position, diff);
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: newPosition,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "moveAllToGrid") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
+                        var dY = grid.getOrigin().y - bottomY;
+                        var diff = { x: 0, y: dY, z: 0 };
+                        var newPosition = Vec3.sum(properties.position, diff);
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: newPosition,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "resetToNaturalDimensions") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        Entities.editEntity(selectionManager.selections[i], {
+                            dimensions: properties.naturalDimensions,
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            }
         }
     });
 

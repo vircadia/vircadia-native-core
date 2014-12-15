@@ -18,12 +18,11 @@
 class ShutdownEventListener : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
-    ShutdownEventListener(QObject* parent = NULL);
+    static ShutdownEventListener& getInstance();
 
     virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result);
-
-signals:
-    void receivedCloseEvent();
+private:
+    ShutdownEventListener(QObject* parent = 0);
 };
 
 #endif // hifi_ShutdownEventListener_h

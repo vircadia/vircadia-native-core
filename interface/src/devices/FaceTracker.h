@@ -23,8 +23,8 @@ class FaceTracker : public QObject {
     Q_OBJECT
     
 public:
-    
     FaceTracker();
+    virtual ~FaceTracker() {}
     
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
     const glm::quat& getHeadRotation() const { return _headRotation; }

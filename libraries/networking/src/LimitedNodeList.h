@@ -33,7 +33,7 @@
 #include "Node.h"
 #include "UUIDHasher.h"
 
-const int MAX_PACKET_SIZE = 1500;
+const int MAX_PACKET_SIZE = 1450;
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
 

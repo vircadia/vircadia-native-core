@@ -29,6 +29,7 @@
 #include <LogUtils.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <ShutdownEventListener.h>
 #include <UUID.h>
 
 #include "DomainServerNodeData.h"
@@ -41,7 +42,6 @@ const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
-    _shutdownEventListener(this),
     _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _httpsManager(NULL),
     _allAssignments(),
@@ -70,8 +70,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _settingsManager.setupConfigMap(arguments());
     
-    installNativeEventFilter(&_shutdownEventListener);
-    connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
+    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
+#ifdef _WIN32
+    installNativeEventFilter(&ShutdownEventListener::getInstance());
+#else
+    ShutdownEventListener::getInstance();
+#endif
     
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");

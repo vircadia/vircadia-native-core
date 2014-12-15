@@ -11,6 +11,7 @@
 #include <limits>
 #include <typeinfo>
 #include <Application.h>
+#include <devices/OculusManager.h>
 #include <Menu.h>
 #include <QScriptValueIterator>
 
@@ -244,6 +245,11 @@ void Overlays::deleteOverlay(unsigned int id) {
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
+    glm::vec2 pointCopy = point;
+    if (OculusManager::isConnected()) {
+        pointCopy = Application::getInstance()->getApplicationOverlay().screenToOverlay(point);
+    }
+    
     QReadLocker lock(&_lock);
     QMapIterator<unsigned int, Overlay*> i(_overlays2D);
     i.toBack();
@@ -251,7 +257,8 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         i.previous();
         unsigned int thisID = i.key();
         Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value());
-        if (thisOverlay->getVisible() && thisOverlay->isLoaded() && thisOverlay->getBounds().contains(point.x, point.y, false)) {
+        if (thisOverlay->getVisible() && thisOverlay->isLoaded() &&
+            thisOverlay->getBounds().contains(pointCopy.x, pointCopy.y, false)) {
             return thisID;
         }
     }
@@ -425,19 +432,19 @@ bool Overlays::isLoaded(unsigned int id) {
     return thisOverlay->isLoaded();
 }
 
-float Overlays::textWidth(unsigned int id, const QString& text) const {
+QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
     Overlay* thisOverlay = _overlays2D[id];
     if (thisOverlay) {
         if (typeid(*thisOverlay) == typeid(TextOverlay)) {
-            return static_cast<TextOverlay*>(thisOverlay)->textWidth(text);
+            return static_cast<TextOverlay*>(thisOverlay)->textSize(text);
         }
     } else {
         thisOverlay = _overlays3D[id];
         if (thisOverlay) {
             if (typeid(*thisOverlay) == typeid(Text3DOverlay)) {
-                return static_cast<Text3DOverlay*>(thisOverlay)->textWidth(text);
+                return static_cast<Text3DOverlay*>(thisOverlay)->textSize(text);
             }
         }
     }
-    return 0.0f;
+    return QSizeF(0.0f, 0.0f);
 }

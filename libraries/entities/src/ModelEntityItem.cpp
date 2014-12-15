@@ -373,25 +373,11 @@ bool ModelEntityItem::isAnimatingSomething() const {
             !getAnimationURL().isEmpty();
 }
 
-EntityItem::SimulationState ModelEntityItem::computeSimulationState() const {
-    EntityItem::SimulationState baseClassState = EntityItem::computeSimulationState();
-    
-    // if the base class is static, then consider our animation state, and upgrade to changing if
-    // we are animating. If the base class has a higher simulation state than static, then
-    // use the base class state.
-    if (baseClassState == EntityItem::Static) {
-        if (isAnimatingSomething()) {
-            return EntityItem::Moving;
-        }
-    }
-    return baseClassState;
+bool ModelEntityItem::needsToCallUpdate() const {
+    return isAnimatingSomething() ?  true : EntityItem::needsToCallUpdate();
 }
 
-void ModelEntityItem::update(const quint64& updateTime) {
-    EntityItem::update(updateTime); // let our base class handle it's updates...
-
-    quint64 now = updateTime;
-    
+void ModelEntityItem::update(const quint64& now) {
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
@@ -400,6 +386,7 @@ void ModelEntityItem::update(const quint64& updateTime) {
     } else {
         _lastAnimated = now;
     }
+    EntityItem::update(now); // let our base class handle it's updates...
 }
 
 void ModelEntityItem::debugDump() const {
@@ -408,6 +395,11 @@ void ModelEntityItem::debugDump() const {
     qDebug() << "    position:" << getPosition() * (float)TREE_SCALE;
     qDebug() << "    dimensions:" << getDimensions() * (float)TREE_SCALE;
     qDebug() << "    model URL:" << getModelURL();
+}
+
+void ModelEntityItem::setAnimationURL(const QString& url) { 
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationURL = url; 
 }
 
 void ModelEntityItem::setAnimationSettings(const QString& value) { 
@@ -461,6 +453,17 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
     }
 
     _animationSettings = value; 
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+}
+
+void ModelEntityItem::setAnimationIsPlaying(bool value) {
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationLoop.setRunning(value); 
+}
+
+void ModelEntityItem::setAnimationFPS(float value) {
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationLoop.setFPS(value); 
 }
 
 QString ModelEntityItem::getAnimationSettings() const { 

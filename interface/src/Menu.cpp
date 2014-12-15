@@ -31,12 +31,16 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <XmppClient.h>
+#include <DependencyManager.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
+#include <XmppClient.h>
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "devices/Faceshift.h"
+#include "devices/OculusManager.h"
+#include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -49,7 +53,6 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
-#include "devices/OculusManager.h"
 
 
 Menu* Menu::_instance = NULL;
@@ -432,12 +435,12 @@ Menu::Menu() :
                                            MenuOption::Faceshift,
                                            0,
                                            true,
-                                           appInstance->getFaceshift(),
+                                           DependencyManager::get<Faceshift>(),
                                            SLOT(setTCPEnabled(bool)));
 #endif
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Visage, 0, false,
-            appInstance->getVisage(), SLOT(updateEnabled()));
+            DependencyManager::get<Visage>(), SLOT(updateEnabled()));
 #endif
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
@@ -835,6 +838,14 @@ void Menu::handleViewFrustumOffsetKeyModifier(int key) {
     const float VIEW_FRUSTUM_OFFSET_UP_DELTA = 0.05f;
 
     switch (key) {
+        case Qt::Key_QuoteDbl:
+            _viewFrustumOffset.yaw = 0.0f;
+            _viewFrustumOffset.pitch = 0.0f;
+            _viewFrustumOffset.roll = 0.0f;
+            _viewFrustumOffset.up = 0.0f;
+            _viewFrustumOffset.distance = 0.0f;
+            break;
+
         case Qt::Key_BracketLeft:
             _viewFrustumOffset.yaw -= VIEW_FRUSTUM_OFFSET_DELTA;
             break;
@@ -1295,6 +1306,10 @@ void Menu::bandwidthDetails() {
         connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
 
         _bandwidthDialog->show();
+        
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
+        }
     }
     _bandwidthDialog->raise();
 }
@@ -1376,6 +1391,9 @@ void Menu::toggleConsole() {
 void Menu::toggleToolWindow() {
     QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
     toolWindow->setVisible(!toolWindow->isVisible());
+    if (_hmdToolsDialog) {
+        _hmdToolsDialog->watchWindow(toolWindow->windowHandle());
+    }
 }
 
 void Menu::audioMuteToggled() {
@@ -1398,6 +1416,9 @@ void Menu::octreeStatsDetails() {
                                                  Application::getInstance()->getOcteeSceneStats());
         connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
         _octreeStatsDialog->show();
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
+        }
     }
     _octreeStatsDialog->raise();
 }
@@ -1578,6 +1599,9 @@ void Menu::lodTools() {
         _lodToolsDialog = new LodToolsDialog(Application::getInstance()->getGLWidget());
         connect(_lodToolsDialog, SIGNAL(closed()), SLOT(lodToolsClosed()));
         _lodToolsDialog->show();
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_lodToolsDialog->windowHandle());
+        }
     }
     _lodToolsDialog->raise();
 }

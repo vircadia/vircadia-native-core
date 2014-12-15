@@ -19,6 +19,7 @@
 
 
 class Model;
+class EntitySimulation;
 
 class NewlyCreatedEntityHook {
 public:
@@ -78,13 +79,19 @@ public:
 
     // The newer API...
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
-    void addEntityItem(EntityItem* entityItem);
+    void postAddEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    // use this method if you only know the entityID
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    // use this method if you have a pointer to the entity (avoid an extra entity lookup)
+    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties);
+
     void deleteEntity(const EntityItemID& entityID);
     void deleteEntities(QSet<EntityItemID> entityIDs);
-    void removeEntityFromSimulationLists(const EntityItemID& entityID);
+    void removeEntityFromSimulation(EntityItem* entity);
 
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(const QUuid& id);
@@ -137,18 +144,16 @@ public:
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
-    void updateEntityState(EntityItem* entity);
-    void clearEntityState(EntityItem* entity);
-
     void entityChanged(EntityItem* entity);
 
-    void trackDeletedEntity(const EntityItemID& entityID);
+    void trackDeletedEntity(EntityItem* entity);
 
-    void emitAddingEntity(const EntityItemID& entityItemID);
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
-    QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
-    
+    bool getLightsArePickable() const { return _lightsArePickable; }
+    void setLightsArePickable(bool value) { _lightsArePickable = value; }
+    void setSimulation(EntitySimulation* simulation);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
@@ -157,10 +162,8 @@ signals:
 
 private:
 
-    void updateChangedEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
-    void updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
-    void updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
-
+    bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+            EntityTreeElement* containingElement);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
@@ -177,10 +180,8 @@ private:
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
-    QList<EntityItem*> _movingEntities; // entities that need to be updated
-    QList<EntityItem*> _mortalEntities; // entities that need to be checked for expiry
-
-    QSet<EntityItem*> _changedEntities; // entities that have changed in the last frame
+    bool _lightsArePickable;
+    EntitySimulation* _simulation;
 };
 
 #endif // hifi_EntityTree_h

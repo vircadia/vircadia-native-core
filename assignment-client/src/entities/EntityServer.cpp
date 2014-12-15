@@ -11,6 +11,7 @@
 
 #include <QTimer>
 #include <EntityTree.h>
+#include <SimpleEntitySimulation.h>
 
 #include "EntityServer.h"
 #include "EntityServerConsts.h"
@@ -20,7 +21,8 @@ const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
 const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
-EntityServer::EntityServer(const QByteArray& packet) : OctreeServer(packet) {
+EntityServer::EntityServer(const QByteArray& packet) 
+    :   OctreeServer(packet), _entitySimulation(NULL) {
     // nothing special to do here...
 }
 
@@ -36,6 +38,12 @@ OctreeQueryNode* EntityServer::createOctreeQueryNode() {
 Octree* EntityServer::createTree() {
     EntityTree* tree = new EntityTree(true);
     tree->addNewlyCreatedHook(this);
+    if (!_entitySimulation) {
+        SimpleEntitySimulation* simpleSimulation = new SimpleEntitySimulation();
+        simpleSimulation->setEntityTree(tree);
+        tree->setSimulation(simpleSimulation);
+        _entitySimulation = simpleSimulation;
+    }
     return tree;
 }
 

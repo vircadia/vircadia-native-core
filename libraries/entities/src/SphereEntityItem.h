@@ -56,6 +56,11 @@ public:
     // TODO: implement proper contains for 3D ellipsoid
     //virtual bool contains(const glm::vec3& point) const;
     
+    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject, bool precisionPicking) const;
+
 protected:
     virtual void recalculateCollisionShape();
 

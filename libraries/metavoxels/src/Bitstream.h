@@ -99,9 +99,11 @@ public:
     
     int takePersistentID(P value) { return _persistentIDs.take(value); }
     
-    void removePersistentValue(V value) { int id = _valueIDs.take(value); _persistentValues.remove(id); }
+    int removePersistentValue(V value) { int id = _valueIDs.take(value); _persistentValues.remove(id); return id; }
     
     V takePersistentValue(int id) { V value = _persistentValues.take(id); _valueIDs.remove(value); return value; }
+    
+    void insertPersistentValue(int id, V value) { _valueIDs.insert(value, id); _persistentValues.insert(id, value); }
     
     void copyPersistentMappings(const RepeatedValueStreamer& other);
     void clearPersistentMappings();
@@ -289,6 +291,7 @@ public:
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
         QHash<int, SharedObjectPointer> sharedObjectValues;
+        QVector<SharedObjectPointer> subdividedObjects;
     };
 
     /// Performs all of the various lazily initializations (of object streamers, etc.)  If multiple threads need to use
@@ -342,6 +345,12 @@ public:
     /// Returns a reference to the underlying data stream.
     QDataStream& getUnderlying() { return _underlying; }
 
+    /// Sets the context pointer.
+    void setContext(void* context) { _context = context; }
+
+    /// Returns the context pointer.
+    void* getContext() const { return _context; }
+
     /// Substitutes the supplied metaobject for the given class name's default mapping.  This is mostly useful for testing the
     /// process of mapping between different types, but may in the future be used for permanently renaming classes.
     void addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject);
@@ -368,6 +377,9 @@ public:
     /// Resets to the initial state.
     void reset();
 
+    /// Adds a subdivided object, which will be added to the read mappings and used as a reference if persisted.
+    void addSubdividedObject(const SharedObjectPointer& object) { _subdividedObjects.append(object); }
+    
     /// Returns the set of transient mappings gathered during writing and resets them.
     WriteMappings getAndResetWriteMappings();
 
@@ -562,11 +574,15 @@ private:
     MetadataType _metadataType;
     GenericsMode _genericsMode;
 
+    void* _context;
+
     RepeatedValueStreamer<const ObjectStreamer*, const ObjectStreamer*, ObjectStreamerPointer> _objectStreamerStreamer;
     RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeStreamerPointer> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
+    
+    QVector<SharedObjectPointer> _subdividedObjects;
     
     WeakSharedObjectHash _sharedObjectReferences;
 
@@ -1123,6 +1139,18 @@ public:
 private:
     
     QVector<StreamerPropertyPair> _properties;
+};
+
+/// A streamer that maps to a local shared object class.  Shared objects can write extra, non-property data.
+class SharedObjectStreamer : public MappedObjectStreamer {
+public:
+    
+    SharedObjectStreamer(const QMetaObject* metaObject, const QVector<StreamerPropertyPair>& properties);
+    
+    virtual void write(Bitstream& out, const QObject* object) const;
+    virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
+    virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
+    virtual QObject* readRawDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
 };
 
 typedef QPair<TypeStreamerPointer, QByteArray> StreamerNamePair;

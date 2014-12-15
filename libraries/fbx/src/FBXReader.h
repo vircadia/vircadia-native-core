@@ -24,6 +24,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+class QIODevice;
+
 class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
@@ -149,6 +151,7 @@ public:
     QVector<FBXCluster> clusters;
 
     Extents meshExtents;
+    glm::mat4 modelTransform;
 
     bool isEye;
     
@@ -163,6 +166,22 @@ class FBXAnimationFrame {
 public:
     
     QVector<glm::quat> rotations;
+};
+
+/// A light in an FBX document.
+class FBXLight {
+public:
+    QString name;
+    Transform transform;
+    float intensity;
+    glm::vec3 color;
+
+    FBXLight() :
+        name(),
+        transform(),
+        intensity(1.0f),
+        color(1.0f)
+    {}
 };
 
 Q_DECLARE_METATYPE(FBXAnimationFrame)
@@ -254,6 +273,10 @@ QByteArray writeMapping(const QVariantHash& mapping);
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+
+/// Reads FBX geometry from the supplied model and mapping data.
+/// \exception QString if an error occurs in parsing
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads SVO geometry from the supplied model data.
 FBXGeometry readSVO(const QByteArray& model);

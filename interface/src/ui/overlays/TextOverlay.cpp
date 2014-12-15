@@ -19,6 +19,7 @@
 
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
+    _backgroundAlpha(DEFAULT_BACKGROUND_ALPHA),
     _leftMargin(DEFAULT_MARGIN),
     _topMargin(DEFAULT_MARGIN),
     _fontSize(DEFAULT_FONTSIZE)
@@ -29,6 +30,7 @@ TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
     Overlay2D(textOverlay),
     _text(textOverlay->_text),
     _backgroundColor(textOverlay->_backgroundColor),
+    _backgroundAlpha(textOverlay->_backgroundAlpha),
     _leftMargin(textOverlay->_leftMargin),
     _topMargin(textOverlay->_topMargin),
     _fontSize(textOverlay->_fontSize)
@@ -63,11 +65,10 @@ void TextOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-
     const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
-    float alpha = getAlpha();
-    glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
+    glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
+        getBackgroundAlpha());
 
     glBegin(GL_QUADS);
         glVertex2f(_bounds.left(), _bounds.top());
@@ -76,7 +77,7 @@ void TextOverlay::render(RenderArgs* args) {
         glVertex2f(_bounds.left(), _bounds.bottom());
     glEnd();
 
-    // Same font properties as textWidth()
+    // Same font properties as textSize()
     TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
@@ -85,6 +86,7 @@ void TextOverlay::render(RenderArgs* args) {
     int y = _bounds.top() + _topMargin + topAdjust;
     
     glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
+    float alpha = getAlpha();
     QStringList lines = _text.split("\n");
     int lineOffset = 0;
     foreach(QString thisLine, lines) {
@@ -125,6 +127,10 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
         }
     }
 
+    if (properties.property("backgroundAlpha").isValid()) {
+        _backgroundAlpha = properties.property("backgroundAlpha").toVariant().toFloat();
+    }
+
     if (properties.property("leftMargin").isValid()) {
         setLeftMargin(properties.property("leftMargin").toVariant().toInt());
     }
@@ -150,6 +156,9 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
     if (property == "backgroundColor") {
         return xColorToScriptValue(_scriptEngine, _backgroundColor);
     }
+    if (property == "backgroundAlpha") {
+        return _backgroundAlpha;
+    }
     if (property == "leftMargin") {
         return _leftMargin;
     }
@@ -160,8 +169,20 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
     return Overlay2D::getProperty(property);
 }
 
-float TextOverlay::textWidth(const QString& text) const {
+QSizeF TextOverlay::textSize(const QString& text) const {
+
     QFont font(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
-    return fontMetrics.width(qPrintable(text));
+    const int TEXT_HEIGHT_ADJUST = -2;  // Experimentally determined for the specified font
+
+    QStringList lines = text.split(QRegExp("\r\n|\r|\n"));
+
+    int width = 0;
+    for (int i = 0; i < lines.count(); i += 1) {
+        width = std::max(width, fontMetrics.width(qPrintable(lines[i])));
+    }
+
+    int height = lines.count() * (fontMetrics.height() + TEXT_HEIGHT_ADJUST);
+
+    return QSizeF(width, height);
 }

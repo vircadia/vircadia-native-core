@@ -37,6 +37,7 @@ public:
     float getBottomMargin() const { return _bottomMargin; }
     bool getIsFacingAvatar() const { return _isFacingAvatar; }
     xColor getBackgroundColor();
+    float getBackgroundAlpha() const { return _backgroundAlpha; }
 
     // setters
     void setText(const QString& text) { _text = text; }
@@ -50,7 +51,7 @@ public:
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
-    float textWidth(const QString& text) const;  // Meters
+    QSizeF textSize(const QString& test) const;  // Meters
 
     virtual Text3DOverlay* createClone() const;
 
@@ -59,6 +60,7 @@ private:
 
     QString _text;
     xColor _backgroundColor;
+    float _backgroundAlpha;
     float _lineHeight;
     float _leftMargin;
     float _topMargin;

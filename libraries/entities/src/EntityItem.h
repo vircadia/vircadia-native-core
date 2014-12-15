@@ -41,15 +41,18 @@ class EntityTreeElementExtraEncodeData;
 class EntityItem  {
 
 public:
-    enum EntityUpdateFlags {
-        UPDATE_POSITION = 0x0001,
-        UPDATE_VELOCITY = 0x0002,
-        UPDATE_MASS = 0x0004,
-        UPDATE_COLLISION_GROUP = 0x0008,
-        UPDATE_MOTION_TYPE = 0x0010,
-        UPDATE_SHAPE = 0x0020,
-        UPDATE_LIFETIME = 0x0040
-        //UPDATE_APPEARANCE = 0x8000,
+    enum EntityDirtyFlags {
+        DIRTY_POSITION = 0x0001,
+        DIRTY_VELOCITY = 0x0002,
+        DIRTY_MASS = 0x0004,
+        DIRTY_COLLISION_GROUP = 0x0008,
+        DIRTY_MOTION_TYPE = 0x0010,
+        DIRTY_SHAPE = 0x0020,
+        DIRTY_LIFETIME = 0x0040,
+        DIRTY_UPDATEABLE = 0x0080,
+        // add new simulation-relevant flags above
+        // all other flags below
+        DIRTY_SCRIPT = 0x8000
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -77,12 +80,12 @@ public:
     /// has changed. This will be called with properties change or when new data is loaded from a stream
     virtual void somethingChangedNotification() { }
 
-    quint64 getLastUpdated() const { return _lastUpdated; } /// Last simulated time of this entity universal usecs
+    quint64 getLastSimulated() const { return _lastSimulated; } /// Last simulated time of this entity universal usecs
 
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
     void setLastEdited(quint64 lastEdited) 
-        { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
+        { _lastEdited = _lastSimulated = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
 
@@ -121,19 +124,21 @@ public:
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
-    virtual void update(const quint64& now);
+
+    // perform update
+    virtual void update(const quint64& now) { _lastUpdated = now; }
     
-    typedef enum SimulationState_t {
-        Static,
-        Mortal,
-        Moving
-    } SimulationState;
+    // perform linear extrapolation for SimpleEntitySimulation
+    void simulate(const quint64& now);
     
-    // computes the SimulationState that the entity SHOULD be in.  
-    // Use getSimulationState() to find the state under which it is currently categorized.
-    virtual SimulationState computeSimulationState() const; 
+    virtual bool needsToCallUpdate() const { return false; }
 
     virtual void debugDump() const;
+    
+    virtual bool supportsDetailedRayIntersection() const { return false; }
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
@@ -155,7 +160,7 @@ public:
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
+    virtual void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
@@ -216,6 +221,7 @@ public:
     /// age of this entity in seconds
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     bool lifetimeHasExpired() const;
+    quint64 getExpiry() const;
 
     // position, size, and bounds related helpers
     float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
@@ -273,7 +279,7 @@ public:
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
 
-    // updateFoo() methods to be used when changes need to be accumulated in the _updateFlags
+    // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
     void updatePositionInMeters(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
@@ -288,20 +294,14 @@ public:
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
+    void updateScript(const QString& value);
 
-    uint32_t getUpdateFlags() const { return _updateFlags; }
-    void clearUpdateFlags() { _updateFlags = 0; }
-
-#ifdef USE_BULLET_PHYSICS
-    EntityMotionState* getMotionState() const { return _motionState; }
-    virtual EntityMotionState* createMotionState() { return NULL; }
-    void destroyMotionState();
-#endif // USE_BULLET_PHYSICS
-    SimulationState getSimulationState() const { return _simulationState; }
+    uint32_t getDirtyFlags() const { return _dirtyFlags; }
+    void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }
     
+    bool isMoving() const;
+
 protected:
-    friend class EntityTree;
-    void setSimulationState(SimulationState state) { _simulationState = state; }
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
     virtual void recalculateCollisionShape();
@@ -310,7 +310,8 @@ protected:
     QUuid _id;
     uint32_t _creatorTokenID;
     bool _newlyCreated;
-    quint64 _lastUpdated;
+    quint64 _lastSimulated; // last time this entity called simulate() 
+    quint64 _lastUpdated; // last time this entity called update()
     quint64 _lastEdited; // this is the last official local or remote edit time
     quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
     quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
@@ -325,12 +326,12 @@ protected:
     float _mass;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
-    float _damping;
+    float _damping; // timescale
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
-    float _angularDamping;
+    float _angularDamping; // timescale
     bool _visible;
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
@@ -344,11 +345,9 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
-    SimulationState _simulationState;   // only set by EntityTree
 
-    // UpdateFlags are set whenever a property changes that requires the change to be communicated to other
-    // data structures.  It is the responsibility of the EntityTree to relay changes entity and clear flags.
-    uint32_t _updateFlags;
+    // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
+    uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 };
 
 
