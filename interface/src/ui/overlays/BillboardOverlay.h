@@ -15,9 +15,8 @@
 #include <QScopedPointer>
 #include <QUrl>
 
-#include <TextureCache.h>
-
 #include "Base3DOverlay.h"
+#include "renderer/TextureCache.h"
 
 class BillboardOverlay : public Base3DOverlay {
     Q_OBJECT
