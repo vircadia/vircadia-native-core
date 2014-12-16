@@ -2039,7 +2039,7 @@ void Application::init() {
     DependencyManager::get<TextureCache>()->associateWithWidget(getGLWidget());
 
     // initialize the GlowEffect with our widget
-    DependencyManager::get<GlowEffect>()->init(getGLWidget());
+    DependencyManager::get<GlowEffect>()->init(getGLWidget(), Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
 }
 
 void Application::closeMirrorView() {

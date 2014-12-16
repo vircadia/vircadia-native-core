@@ -21,14 +21,15 @@
 #include <RenderUtil.h>
 #include <TextureCache.h>
 
-#include "Menu.h"
 #include "GlowEffect.h"
 
 GlowEffect::GlowEffect()
     : _initialized(false),
       _isOddFrame(false),
       _isFirstFrame(true),
-      _intensity(0.0f) {
+      _intensity(0.0f),
+      _widget(NULL),
+      _enabled(false) {
 }
 
 GlowEffect::~GlowEffect() {
@@ -60,7 +61,7 @@ static ProgramObject* createProgram(const QString& name) {
     return program;
 }
 
-void GlowEffect::init(QGLWidget* widget) {
+void GlowEffect::init(QGLWidget* widget, bool enabled) {
     if (_initialized) {
         qDebug("[ERROR] GlowEffeect is already initialized.");
         return;
@@ -89,6 +90,7 @@ void GlowEffect::init(QGLWidget* widget) {
 
     _initialized = true;
     _widget = widget;
+    _enabled = enabled;
 }
 
 int GlowEffect::getDeviceWidth() const {
@@ -153,7 +155,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
 
     QOpenGLFramebufferObject* destFBO = toTexture ?
         textureCache->getSecondaryFramebufferObject() : NULL;
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || _isEmpty) {
+    if (!_enabled || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
             QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);          
@@ -232,6 +234,10 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     _isFirstFrame = false;
     
     return destFBO;
+}
+
+void GlowEffect::toggleGlowEffect(bool enabled) {
+    _enabled = enabled;
 }
 
 Glower::Glower(float amount) {
