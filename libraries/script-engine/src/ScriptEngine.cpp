@@ -20,7 +20,6 @@
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AudioInjector.h>
-#include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <Bitstream.h>
 #include <CollisionInfo.h>
