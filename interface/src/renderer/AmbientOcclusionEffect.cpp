@@ -18,10 +18,10 @@
 
 #include <PathUtils.h>
 #include <ProgramObject.h>
+#include <RenderUtil.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
-#include "RenderUtil.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "renderer/GlowEffect.h"

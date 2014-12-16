@@ -15,10 +15,10 @@
 #include <QOpenGLFramebufferObject>
 
 #include <PathUtils.h>
+#include <RenderUtil.h>
 
 #include "Application.h"
 #include "DeferredLightingEffect.h"
-#include "RenderUtil.h"
 #include "renderer/GlowEffect.h"
 
 void DeferredLightingEffect::init() {

@@ -18,10 +18,11 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <ProgramObject.h>
+#include <RenderUtil.h>
+#include <TextureCache.h>
 
-#include "Application.h"
+#include "Menu.h"
 #include "GlowEffect.h"
-#include "RenderUtil.h"
 
 GlowEffect::GlowEffect()
     : _initialized(false),
