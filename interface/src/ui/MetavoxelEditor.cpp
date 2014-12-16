@@ -354,7 +354,7 @@ void MetavoxelEditor::render() {
     
     _gridProgram.bind();
     
-    Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
+    DependencyManager::get<GeometryCache>()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
     
     _gridProgram.release();
     
@@ -917,7 +917,7 @@ void MaterialControl::updateTexture() {
         _texture.clear();
         return;
     }
-    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
+    _texture = DependencyManager::get<TextureCache>()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
     if (_texture) {
         if (_texture->isLoaded()) {
             textureLoaded();

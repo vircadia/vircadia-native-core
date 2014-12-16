@@ -62,7 +62,7 @@ public:
     float getNextOutputFrameLoudness() const;
 
     int samplesAvailable() const;
-    int framesAvailable() const { return samplesAvailable() / _numFrameSamples; }
+    int framesAvailable() const { return (_numFrameSamples == 0) ? 0 : samplesAvailable() / _numFrameSamples; }
 
     int getNumFrameSamples() const { return _numFrameSamples; }
 
