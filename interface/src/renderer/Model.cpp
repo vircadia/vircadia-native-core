@@ -31,7 +31,6 @@
 #include <SphereShape.h>
 
 #include "AnimationHandle.h"
-#include "Menu.h"
 #include "Model.h"
 
 
@@ -64,7 +63,9 @@ Model::Model(QObject* parent) :
     _meshGroupsKnown(false) {
     
     // we may have been created in the network thread, but we live in the main thread
-    moveToThread(_viewState->getMainThread());
+    if (_viewState) {
+        moveToThread(_viewState->getMainThread());
+    }
 }
 
 Model::~Model() {
@@ -720,6 +721,9 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     
 bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
+    if (!_viewState) {
+        return false;
+    }
 
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     _renderBatch.clear();
@@ -2329,9 +2333,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
                                         Locations* locations, SkinLocations* skinLocations) {
     PROFILE_RANGE(__FUNCTION__);
-    bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
-    bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
-    bool dontReduceMaterialSwitches = Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
+    bool dontCullOutOfViewMeshParts = false; // Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
+    bool cullTooSmallMeshParts = true; // !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
+    bool dontReduceMaterialSwitches = false; // Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
 
     TextureCache* textureCache = DependencyManager::get<TextureCache>();
     GlowEffect* glowEffect = DependencyManager::get<GlowEffect>();
@@ -2373,7 +2377,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                                 args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
                 if (shouldRender && cullTooSmallMeshParts) {
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
-                    shouldRender = Menu::getInstance()->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(), 
+                    shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);
                     if (!shouldRender) {
                         args->_meshesTooSmall++;

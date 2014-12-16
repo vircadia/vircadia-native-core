@@ -191,6 +191,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
+    Model::setViewStateInterface(this); // The model class will sometimes need to know view state details from us
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -429,8 +431,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
-    
-    Model::setViewStateInterface(this); // The model class will sometimes need to know view state details from us
 }
 
 void Application::aboutToQuit() {
@@ -2937,6 +2937,10 @@ void Application::setupWorldLight() {
     glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
+}
+
+bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
+    return Menu::getInstance()->shouldRenderMesh(largestDimension, distanceToCamera);
 }
 
 QImage Application::renderAvatarBillboard() {
