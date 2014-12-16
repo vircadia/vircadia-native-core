@@ -32,7 +32,6 @@
 #include "Application.h"
 #include "MetavoxelSystem.h"
 #include "renderer/Model.h"
-#include "renderer/RenderUtil.h"
 
 REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
