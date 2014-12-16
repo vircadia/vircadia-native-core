@@ -19,9 +19,7 @@
 #include <glm/gtx/norm.hpp>
 
 #include <CapsuleShape.h>
-#include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
-#include <GlowEffect.h>
 #include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 #include <PathUtils.h>
@@ -31,6 +29,8 @@
 #include <SphereShape.h>
 
 #include "AnimationHandle.h"
+#include "DeferredLightingEffect.h"
+#include "GlowEffect.h"
 #include "Model.h"
 
 

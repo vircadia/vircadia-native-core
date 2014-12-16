@@ -21,16 +21,18 @@
 #include <AABox.h>
 #include <AnimationCache.h>
 #include <DependencyManager.h>
-#include <GeometryCache.h>
 #include <GeometryUtil.h>
-#include <JointState.h>
+#include <gpu/Stream.h>
+#include <gpu/Batch.h>
 #include <PhysicsEntity.h>
-#include <ProgramObject.h>
-#include <TextureCache.h>
 #include <Transform.h>
-#include <ViewStateInterface.h>
 
 #include "AnimationHandle.h"
+#include "GeometryCache.h"
+#include "JointState.h"
+#include "ProgramObject.h"
+#include "TextureCache.h"
+#include "ViewStateInterface.h"
 
 class QScriptEngine;
 
@@ -38,8 +40,6 @@ class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
 
-#include "gpu/Stream.h"
-#include "gpu/Batch.h"
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {

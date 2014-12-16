@@ -12,9 +12,9 @@
 #ifndef hifi_ModelOverlay_h
 #define hifi_ModelOverlay_h
 
-#include "Base3DOverlay.h"
+#include <Model.h>
 
-#include "../../renderer/Model.h"
+#include "Base3DOverlay.h"
 
 class ModelOverlay : public Base3DOverlay {
     Q_OBJECT
