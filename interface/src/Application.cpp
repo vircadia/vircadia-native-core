@@ -2051,7 +2051,7 @@ void Application::init() {
     DependencyManager::get<TextureCache>()->associateWithWidget(glCanvas.data());
 
     // initialize the GlowEffect with our widget
-    DependencyManager::get<GlowEffect>()->init(glCanvas,
+    DependencyManager::get<GlowEffect>()->init(glCanvas.data(),
                                                Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
 }
 
@@ -4032,7 +4032,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
-    scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>());
+    scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);

@@ -12,7 +12,6 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-#include <QGLWidget>
 #include <QOpenGLFramebufferObject>
 #include <QWindow>
 
@@ -157,7 +156,6 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
 
     QOpenGLFramebufferObject* destFBO = toTexture ?
         textureCache->getSecondaryFramebufferObject() : NULL;
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     if (!_enabled || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
@@ -165,7 +163,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         } else {
             maybeBind(destFBO);
             if (!destFBO) {
-                glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
+                glViewport(0, 0, getDeviceWidth(), getDeviceHeight());
             }
             glEnable(GL_TEXTURE_2D);
             glDisable(GL_LIGHTING);
@@ -212,8 +210,9 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         }
         maybeBind(destFBO);
         if (!destFBO) {
-            glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
-        _addSeparateProgram->bind();      
+            glViewport(0, 0, getDeviceWidth(), getDeviceHeight());
+        }
+        _addSeparateProgram->bind();
         renderFullscreenQuad();
         _addSeparateProgram->release();
         maybeRelease(destFBO);

@@ -46,7 +46,7 @@ QSharedPointer<T> DependencyManager::get() {
     static T* instance = new T();
     
     if (instance) {
-        if (dynamic_cast<QObject*>(instance)) { // If this is a QOject, call deleteLater for destruction
+        if (dynamic_cast<QObject*>(instance) != NULL) { // If this is a QOject, call deleteLater for destruction
             sharedPointer = QSharedPointer<T>(instance, &T::deleteLater);
         } else { // Otherwise use custom deleter to avoid issues between private destructor and QSharedPointer
             sharedPointer = QSharedPointer<T>(instance, &T::customDeleter);

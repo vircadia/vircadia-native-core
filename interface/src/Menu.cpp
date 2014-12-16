@@ -427,7 +427,7 @@ Menu::Menu() :
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true, 
-                                            DependencyManager::get<GlowEffect>(), SLOT(toggleGlowEffect(bool)));
+                                            DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
