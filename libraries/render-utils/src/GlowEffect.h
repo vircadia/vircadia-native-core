@@ -12,6 +12,8 @@
 #ifndef hifi_GlowEffect_h
 #define hifi_GlowEffect_h
 
+#include <gpu/GPUConfig.h>
+
 #include <QObject>
 #include <QGLWidget>
 #include <QStack>
