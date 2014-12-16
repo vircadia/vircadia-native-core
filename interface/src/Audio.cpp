@@ -32,7 +32,6 @@
 #include <QtCore/QBuffer>
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
-#include <QSvgRenderer>
 
 #include <glm/glm.hpp>
 
@@ -40,7 +39,6 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include <StDev.h>
 #include <UUID.h>
 
 #include "Menu.h"

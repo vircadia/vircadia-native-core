@@ -1362,7 +1362,7 @@ void Menu::toggleToolWindow() {
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     if (muteAction) {
-        muteAction->setChecked(DependencyManager::get<Audio>()->getMuted());
+        muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
     }
 }
 
