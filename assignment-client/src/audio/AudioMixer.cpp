@@ -273,8 +273,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
 
         // Mono input to stereo output (item 1 above)
         int OUTPUT_SAMPLES_PER_INPUT_SAMPLE = 2;
-        int inputSampleCount = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
-        int maxOutputIndex = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+        int inputSampleCount = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
+        int maxOutputIndex = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
 
         // attenuation and fade applied to all samples (item 2 above)
         float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
@@ -352,7 +352,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
 
        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
 
-        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
+        for (int s = 0; s < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; s++) {
             _preMixSamples[s] = glm::clamp(_preMixSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
@@ -416,13 +416,13 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         AudioFilterHSF1s& penumbraFilter = listenerNodeData->getListenerSourcePairData(streamUUID)->getPenumbraFilter();
  
         // set the gain on both filter channels
-        penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
-        penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
-        penumbraFilter.render(_preMixSamples, _preMixSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+        penumbraFilter.setParameters(0, 0, AudioConstants::SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
+        penumbraFilter.setParameters(0, 1, AudioConstants::SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
+        penumbraFilter.render(_preMixSamples, _preMixSamples, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / 2);
     }
     
     // Actually mix the _preMixSamples into the _mixSamples here.
-    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
+    for (int s = 0; s < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; s++) {
         _mixSamples[s] = glm::clamp(_mixSamples[s] + _preMixSamples[s], MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
     }
 
@@ -797,8 +797,8 @@ void AudioMixer::run() {
                         mixDataAt  += sizeof(quint16);
                         
                         // pack mixed audio samples
-                        memcpy(mixDataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                        mixDataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+                        memcpy(mixDataAt, _mixSamples, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        mixDataAt += AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                     } else {
                         // pack header
                         int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
@@ -810,7 +810,7 @@ void AudioMixer::run() {
                         mixDataAt += sizeof(quint16);
 
                         // pack number of silent audio samples
-                        quint16 numSilentSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+                        quint16 numSilentSamples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
                         memcpy(mixDataAt, &numSilentSamples, sizeof(quint16));
                         mixDataAt += sizeof(quint16);
                     }
