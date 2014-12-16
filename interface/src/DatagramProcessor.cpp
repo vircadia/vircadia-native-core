@@ -144,7 +144,7 @@ void DatagramProcessor::processDatagrams() {
                 }
                 case PacketTypeNoisyMute:
                 case PacketTypeMuteEnvironment: {
-                    bool mute = !DependencyManager::get<Audio>()->getMuted();
+                    bool mute = !DependencyManager::get<Audio>()->isMuted();
                     
                     if (incomingType == PacketTypeMuteEnvironment) {
                         glm::vec3 position;

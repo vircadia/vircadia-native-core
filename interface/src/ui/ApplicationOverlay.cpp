@@ -14,8 +14,9 @@
 #include <QOpenGLFramebufferObject>
 #include <PerfStat.h>
 
-#include "audio/AudioScope.h"
 #include "audio/AudioIOStatsRenderer.h"
+#include "audio/AudioScope.h"
+#include "audio/AudioToolBox.h"
 #include "Application.h"
 #include "ApplicationOverlay.h"
 #include "devices/OculusManager.h"
@@ -828,7 +829,7 @@ void ApplicationOverlay::renderAudioMeter() {
         renderCollisionOverlay(glWidget->width(), glWidget->height(), magnitude, 1.0f);
     }
 
-    audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
+    DependencyManager::get<AudioToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
     
     DependencyManager::get<AudioScope>()->render(glWidget->width(), glWidget->height());
     DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, glWidget->width(), glWidget->height());

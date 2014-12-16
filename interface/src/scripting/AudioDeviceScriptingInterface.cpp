@@ -89,5 +89,5 @@ void AudioDeviceScriptingInterface::toggleMute() {
 }
 
 bool AudioDeviceScriptingInterface::getMuted() {
-    return DependencyManager::get<Audio>()->getMuted();
+    return DependencyManager::get<Audio>()->isMuted();
 }

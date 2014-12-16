@@ -99,12 +99,7 @@ public:
     
     bool getCollisionFlashesScreen() { return _collisionFlashesScreen; }
     
-    bool getMuted() { return _muted; }
-    
-    void init(QGLWidget *parent = 0);
-    bool mousePressEvent(int x, int y);
-    
-    void renderToolBox(int x, int y, bool boxed);
+    bool isMuted() { return _muted; }
     
     const AudioIOStats& getStats() const { return _stats; }
 
@@ -224,12 +219,6 @@ private:
     AudioEffectOptions* _reverbOptions;
     ty_gverb* _gverbLocal;
     ty_gverb* _gverb;
-    GLuint _micTextureId;
-    GLuint _muteTextureId;
-    GLuint _boxTextureId;
-    QRect _iconBounds;
-    float _iconColor;
-    qint64 _iconPulseTimeReference;
     
     // Process procedural audio by
     //  1. Echo to the local procedural output device
