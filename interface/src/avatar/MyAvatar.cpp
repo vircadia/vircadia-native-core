@@ -1662,11 +1662,8 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
         //  Base frequency is modified upward by the angle of the collision
         //  Noise is a function of the angle of collision
         //  Duration of the sound is a function of both base frequency and velocity of impact
-        DependencyManager::get<Audio>()->startCollisionSound(
-            std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.0f),
-            frequency * (1.0f + velocityTangentToCollision / velocityTowardCollision),
-            std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.0f),
-            1.0f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, false);
+        
+        // COLLISION SOUND API in Audio has been removed
     }
 }
 

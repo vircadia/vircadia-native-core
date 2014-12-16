@@ -49,7 +49,6 @@ public:
     void updateCollisionWithEntities(EntityItem* Entity);
     void updateCollisionWithAvatars(EntityItem* Entity);
     void queueEntityPropertiesUpdate(EntityItem* Entity);
-    void updateCollisionSound(EntityItem* Entity, const glm::vec3 &penetration, float frequency);
 
 signals:
     void entityCollisionWithVoxel(const EntityItemID& entityItemID, const VoxelDetail& voxel, const Collision& collision);

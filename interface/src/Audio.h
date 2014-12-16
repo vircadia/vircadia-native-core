@@ -87,9 +87,6 @@ public:
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
-    
-    virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
-    virtual void startDrumSound(float volume, float frequency, float duration, float decay);
 
     void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& settings) { _receivedAudioStream.setSettings(settings); }
 
