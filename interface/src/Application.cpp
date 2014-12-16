@@ -54,7 +54,9 @@
 
 #include <AddressManager.h>
 #include <AccountManager.h>
+#include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
+#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
 #include <GlowEffect.h>
@@ -108,6 +110,7 @@
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
+
 
 
 using namespace std;
@@ -1914,8 +1917,8 @@ void Application::init() {
 
     _environment.init();
 
-    _deferredLightingEffect.init(this);
-    _ambientOcclusionEffect.init(this);
+    DependencyManager::get<DeferredLightingEffect>()->init(this);
+    DependencyManager::get<AmbientOcclusionEffect>()->init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -3070,7 +3073,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
-    _deferredLightingEffect.prepare();
+    DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
         // draw a red sphere
@@ -3113,7 +3116,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
             PerformanceTimer perfTimer("ambientOcclusion");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... AmbientOcclusion...");
-            _ambientOcclusionEffect.render();
+            DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
 
@@ -3130,7 +3133,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     {
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
-        _deferredLightingEffect.render();
+        DependencyManager::get<DeferredLightingEffect>()->render();
     }
 
     {

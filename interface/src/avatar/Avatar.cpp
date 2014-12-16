@@ -22,6 +22,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/vector_query.hpp>
 
+#include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
 #include <GlowEffect.h>
 #include <NodeList.h>
@@ -364,7 +365,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             glm::quat orientation = getOrientation();
             foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
-                Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position - direction * distance,
+                DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
                     distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,
                     LIGHT_EXPONENT, LIGHT_CUTOFF);
             }

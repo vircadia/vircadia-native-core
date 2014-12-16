@@ -14,14 +14,16 @@
 
 #include <QVector>
 
-#include <ProgramObject.h>
+#include <DependencyManager.h>
 #include <SharedUtil.h>
-#include <ViewStateInterface.h>
+
+#include "ProgramObject.h"
+#include "ViewStateInterface.h"
 
 class PostLightingRenderable;
 
 /// Handles deferred lighting for the bits that require it (voxels, metavoxels...)
-class DeferredLightingEffect {
+class DeferredLightingEffect: public DependencyManager::Dependency {
 public:
     
     void init(ViewStateInterface* viewState);
@@ -69,6 +71,9 @@ public:
     void render();
 
 private:
+    DeferredLightingEffect() { }
+    virtual ~DeferredLightingEffect() { }
+    friend class DependencyManager;
 
     class LightLocations {
     public:

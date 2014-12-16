@@ -10,18 +10,28 @@
 //
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
+
+
+// TODO: remove these once we migrate away from GLUT calls
+#if defined(__APPLE__)
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
 #include <QOpenGLFramebufferObject>
 
-#include <GeometryCache.h>
 #include <GLMHelpers.h>
-#include <GlowEffect.h>
 #include <PathUtils.h>
-#include <RenderUtil.h>
-#include <TextureCache.h>
+
 
 #include "DeferredLightingEffect.h"
+#include "GeometryCache.h"
+#include "GlowEffect.h"
+#include "RenderUtil.h"
+#include "TextureCache.h"
+
 
 void DeferredLightingEffect::init(ViewStateInterface* viewState) {
     _viewState = viewState;

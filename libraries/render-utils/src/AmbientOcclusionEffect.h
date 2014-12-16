@@ -12,19 +12,24 @@
 #ifndef hifi_AmbientOcclusionEffect_h
 #define hifi_AmbientOcclusionEffect_h
 
-#include <ViewStateInterface.h>
+#include <DependencyManager.h>
+
+#include "ViewStateInterface.h"
 
 class ProgramObject;
 
 /// A screen space ambient occlusion effect.  See John Chapman's tutorial at
 /// http://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html for reference.
-class AmbientOcclusionEffect {
+class AmbientOcclusionEffect: public DependencyManager::Dependency {
 public:
     
     void init(ViewStateInterface* viewState);
     void render();
     
 private:
+    AmbientOcclusionEffect() {}
+    virtual ~AmbientOcclusionEffect() {}
+    friend class DependencyManager;
 
     ProgramObject* _occlusionProgram;
     int _nearLocation;

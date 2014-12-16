@@ -21,6 +21,7 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
 #include <SharedUtil.h>
 
@@ -470,7 +471,7 @@ void MetavoxelSystem::render() {
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         glNormal3f(0.0f, 1.0f, 0.0f);
         
-        Application::getInstance()->getDeferredLightingEffect()->bindSimpleProgram();
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
         
         foreach (const HermiteBatch& batch, _hermiteBatches) {
             batch.vertexBuffer->bind();
@@ -482,7 +483,7 @@ void MetavoxelSystem::render() {
             batch.vertexBuffer->release();
         }
         
-        Application::getInstance()->getDeferredLightingEffect()->releaseSimpleProgram();
+        DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
         
         glDisableClientState(GL_VERTEX_ARRAY);
         
@@ -1981,7 +1982,7 @@ void SphereRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
-    Application::getInstance()->getDeferredLightingEffect()->renderSolidSphere(sphere->getScale(), 32, 32);
+    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(sphere->getScale(), 32, 32);
     
     glPopMatrix();
 }
@@ -2002,7 +2003,7 @@ void CuboidRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     glScalef(1.0f, cuboid->getAspectY(), cuboid->getAspectZ());
     
-    Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(cuboid->getScale() * 2.0f);
+    DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(cuboid->getScale() * 2.0f);
     
     glPopMatrix();
 }

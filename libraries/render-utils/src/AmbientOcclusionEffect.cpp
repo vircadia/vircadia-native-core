@@ -10,20 +10,20 @@
 //
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 #include <QOpenGLFramebufferObject>
 
 #include <glm/gtc/random.hpp>
 
-#include <GlowEffect.h>
 #include <PathUtils.h>
-#include <ProgramObject.h>
-#include <RenderUtil.h>
 #include <SharedUtil.h>
-#include <TextureCache.h>
 
 #include "AmbientOcclusionEffect.h"
+#include "GlowEffect.h"
+#include "ProgramObject.h"
+#include "RenderUtil.h"
+#include "TextureCache.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;

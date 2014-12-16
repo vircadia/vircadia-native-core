@@ -17,6 +17,7 @@
 #include <glm/gtx/norm.hpp>
 
 #include <CapsuleShape.h>
+#include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
 #include <GlowEffect.h>
 #include <PathUtils.h>
@@ -493,7 +494,7 @@ bool Model::renderTriangleProxies() {
                 glPushMatrix();
                     glTranslatef(center.x, center.y, center.z);
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
-                    Application::getInstance()->getDeferredLightingEffect()->renderWireCube(1.0f);
+                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f);
                 glPopMatrix();
             }
 

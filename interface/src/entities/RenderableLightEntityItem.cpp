@@ -15,6 +15,7 @@
 
 #include "InterfaceConfig.h"
 
+#include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 #include <LightEntityItem.h>
 
@@ -65,30 +66,30 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
 
     if (!disableLights) {
         if (_isSpotlight) {
-            Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position, largestDiameter / 2.0f, 
+            DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f, 
                 ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation,
                 direction, exponent, cutoff);
         } else {
-            Application::getInstance()->getDeferredLightingEffect()->addPointLight(position, largestDiameter / 2.0f, 
+            DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f, 
                 ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);
         }
     }
-    bool wantDebug = false;
-    if (wantDebug) {
-        glColor4f(diffuseR, diffuseG, diffuseB, 1.0f);
-        glPushMatrix();
-            glTranslatef(position.x, position.y, position.z);
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glPushMatrix();
-                glm::vec3 positionToCenter = center - position;
-                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
-                glScalef(dimensions.x, dimensions.y, dimensions.z);
-                Application::getInstance()->getDeferredLightingEffect()->renderWireSphere(0.5f, 15, 15);
-            glPopMatrix();
+#ifdef WANT_DEBUG
+    glColor4f(diffuseR, diffuseG, diffuseB, 1.0f);
+    glPushMatrix();
+        glTranslatef(position.x, position.y, position.z);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        glPushMatrix();
+            glm::vec3 positionToCenter = center - position;
+            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+
+            glScalef(dimensions.x, dimensions.y, dimensions.z);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireSphere(0.5f, 15, 15);
         glPopMatrix();
-    }
+    glPopMatrix();
+#endif
 };
 
 bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

@@ -62,7 +62,6 @@ void Sphere3DOverlay::render(RenderArgs* args) {
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            //Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
             if (_isSolid) {
                 DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES); 
             } else {

@@ -62,8 +62,6 @@
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "entities/EntityTreeRenderer.h"
-#include "renderer/AmbientOcclusionEffect.h"
-#include "renderer/DeferredLightingEffect.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
@@ -250,7 +248,6 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
@@ -568,10 +565,6 @@ private:
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     QSet<int> _keysPressed;
-
-
-    DeferredLightingEffect _deferredLightingEffect;
-    AmbientOcclusionEffect _ambientOcclusionEffect;
 
     Audio _audio;
 
