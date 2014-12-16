@@ -83,7 +83,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot() {
 }
 
 QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     QImage shot = glCanvas->grabFrameBuffer();
     
     Avatar* avatar = Application::getInstance()->getAvatar();

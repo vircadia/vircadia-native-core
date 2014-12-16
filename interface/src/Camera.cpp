@@ -95,7 +95,7 @@ void Camera::setFarClip(float f) {
 }
 
 PickRay Camera::computePickRay(float x, float y) {
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     return computeViewPickRay(x / glCanvas->width(), y / glCanvas->height());
 }
 

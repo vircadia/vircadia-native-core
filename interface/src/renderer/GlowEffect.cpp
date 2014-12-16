@@ -139,7 +139,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
 
     QOpenGLFramebufferObject* destFBO = toTexture ?
         Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject() : NULL;
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {

@@ -215,7 +215,7 @@ void PrioVR::renderCalibrationCountdown() {
     static TextRenderer* textRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY, 18, QFont::Bold,
         false, TextRenderer::OUTLINE_EFFECT, 2);
     QByteArray text = "Assume T-Pose in " + QByteArray::number(secondsRemaining) + "...";
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     textRenderer->draw((glCanvas->width() - textRenderer->computeWidth(text.constData())) / 2,
                        glCanvas->height() / 2,
                        text);

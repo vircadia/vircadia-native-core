@@ -215,7 +215,7 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
     Application::getInstance()->getVoxels()->setMaxVoxels(ui.maxVoxelsSpin->value());
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
     Menu::getInstance()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());

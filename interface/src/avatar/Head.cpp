@@ -77,8 +77,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
             FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            QSharedPointer<DdeFaceTracker> dde = DependencyManager::get<DdeFaceTracker>();
-            QSharedPointer<Faceshift> faceshift = DependencyManager::get<Faceshift>();
+            DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
+            Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
             
             if ((_isFaceshiftConnected = (faceshift == faceTracker))) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();

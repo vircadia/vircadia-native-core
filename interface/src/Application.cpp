@@ -1047,7 +1047,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
                         TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
                 } else {
@@ -1060,7 +1060,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
                         TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
 
@@ -1533,7 +1533,7 @@ void Application::idle() {
 
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
         Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
@@ -1569,7 +1569,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -1595,7 +1595,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -1658,7 +1658,7 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 
 bool Application::mouseOnScreen() const {
     if (OculusManager::isConnected()) {
-        QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
         return getMouseX() >= 0 && getMouseX() <= glCanvas->getDeviceWidth() &&
                getMouseY() >= 0 && getMouseY() <= glCanvas->getDeviceHeight();
     }
@@ -1700,9 +1700,9 @@ int Application::getMouseDragStartedY() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    QSharedPointer<Faceshift> faceshift = DependencyManager::get<Faceshift>();
-    QSharedPointer<Visage> visage = DependencyManager::get<Visage>();
-    QSharedPointer<DdeFaceTracker> dde = DependencyManager::get<DdeFaceTracker>();
+    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
+    Visage::SharedPointer visage = DependencyManager::get<Visage>();
+    DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
     
     return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
             (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) :
@@ -2035,7 +2035,7 @@ void Application::init() {
 
     _metavoxels.init();
 
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     _audio.init(glCanvas.data());
     _rearMirrorTools = new RearMirrorTools(glCanvas.data(), _mirrorViewRect, _settings);
 
@@ -2116,7 +2116,7 @@ void Application::updateMouseRay() {
 void Application::updateFaceshift() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-    Faceshift* faceshift = DependencyManager::get<Faceshift>().data();
+    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
     //  Update faceshift
     faceshift->update();
 
@@ -2920,7 +2920,7 @@ void Application::updateShadowMap() {
     
     fbo->release();
     
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -3248,7 +3248,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     float horizontalScale = glCanvas->getDeviceWidth() / 2.0f;
     float verticalScale   = glCanvas->getDeviceHeight() / 2.0f;
 
