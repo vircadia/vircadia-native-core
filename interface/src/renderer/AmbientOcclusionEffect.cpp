@@ -21,15 +21,15 @@
 #include <ProgramObject.h>
 #include <RenderUtil.h>
 #include <SharedUtil.h>
-
-#include "Application.h"
+#include <TextureCache.h>
 
 #include "AmbientOcclusionEffect.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
     
-void AmbientOcclusionEffect::init() {
+void AmbientOcclusionEffect::init(ViewStateInterface* viewState) {
+    _viewState = viewState; // we will use this for view state services
     
     _occlusionProgram = new ProgramObject();
     _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath()
@@ -111,8 +111,7 @@ void AmbientOcclusionEffect::render() {
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    Application::getInstance()->computeOffAxisFrustum(
-        left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);

@@ -1914,8 +1914,8 @@ void Application::init() {
 
     _environment.init();
 
-    _deferredLightingEffect.init();
-    _ambientOcclusionEffect.init();
+    _deferredLightingEffect.init(this);
+    _ambientOcclusionEffect.init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -3233,6 +3233,14 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     } else if (TV3DManager::isConnected()) {
         TV3DManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);    
     }
+}
+
+bool Application::getShadowsEnabled() { 
+    return Menu::getInstance()->getShadowsEnabled(); 
+}
+
+bool Application::getCascadeShadowsEnabled() { 
+    return Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows); 
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {

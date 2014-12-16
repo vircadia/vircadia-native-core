@@ -14,14 +14,17 @@
 
 #include <QOpenGLFramebufferObject>
 
+#include <GeometryCache.h>
+#include <GLMHelpers.h>
 #include <GlowEffect.h>
 #include <PathUtils.h>
 #include <RenderUtil.h>
+#include <TextureCache.h>
 
-#include "Application.h"
 #include "DeferredLightingEffect.h"
 
-void DeferredLightingEffect::init() {
+void DeferredLightingEffect::init(ViewStateInterface* viewState) {
+    _viewState = viewState;
     _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/simple.vert");
     _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/simple.frag");
     _simpleProgram.link();
@@ -176,19 +179,18 @@ void DeferredLightingEffect::render() {
    
     ProgramObject* program = &_directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
-    bool shadowsEnabled = Menu::getInstance()->getShadowsEnabled();
-    if (shadowsEnabled) {    
+    bool shadowsEnabled = _viewState->getShadowsEnabled();
+    if (shadowsEnabled) {
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D, textureCache->getShadowDepthTextureID());
         
         program = &_directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+        if (_viewState->getCascadeShadowsEnabled()) {
             program = &_directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
             _directionalLightCascadedShadowMap.bind();
-            _directionalLightCascadedShadowMap.setUniform(locations->shadowDistances,
-                Application::getInstance()->getShadowDistances());
+            _directionalLightCascadedShadowMap.setUniform(locations->shadowDistances, _viewState->getShadowDistances());
         
         } else {
             program->bind();
@@ -202,8 +204,7 @@ void DeferredLightingEffect::render() {
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    Application::getInstance()->computeOffAxisFrustum(
-        left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     program->setUniformValue(locations->nearLocation, nearVal);
     float depthScale = (farVal - nearVal) / farVal;
     program->setUniformValue(locations->depthScale, depthScale);
@@ -238,8 +239,8 @@ void DeferredLightingEffect::render() {
     // enlarge the scales slightly to account for tesselation
     const float SCALE_EXPANSION = 0.05f;
     
-    const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
-    float nearRadius = glm::distance(eyePoint, Application::getInstance()->getDisplayViewFrustum()->getNearTopLeft());
+    const glm::vec3& eyePoint = _viewState->getCurrentViewFrustum()->getPosition();
+    float nearRadius = glm::distance(eyePoint, _viewState->getCurrentViewFrustum()->getNearTopLeft());
 
     GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
     

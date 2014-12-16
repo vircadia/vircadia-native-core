@@ -42,6 +42,7 @@
 #include <ScriptEngine.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
+#include <ViewStateInterface.h>
 #include <VoxelEditPacketSender.h>
 
 #include "MainWindow.h"
@@ -128,7 +129,7 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
 
-class Application : public QApplication {
+class Application : public QApplication, public ViewStateInterface {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -276,11 +277,15 @@ public:
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
-    const glm::vec3& getShadowDistances() const { return _shadowDistances; }
+    virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+    virtual void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
+    virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
+    virtual bool getShadowsEnabled();
+    virtual bool getCascadeShadowsEnabled();
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 

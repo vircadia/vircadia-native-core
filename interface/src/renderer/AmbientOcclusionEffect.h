@@ -12,6 +12,8 @@
 #ifndef hifi_AmbientOcclusionEffect_h
 #define hifi_AmbientOcclusionEffect_h
 
+#include <ViewStateInterface.h>
+
 class ProgramObject;
 
 /// A screen space ambient occlusion effect.  See John Chapman's tutorial at
@@ -19,8 +21,7 @@ class ProgramObject;
 class AmbientOcclusionEffect {
 public:
     
-    void init();
-    
+    void init(ViewStateInterface* viewState);
     void render();
     
 private:
@@ -38,6 +39,7 @@ private:
     int _blurScaleLocation;
     
     GLuint _rotationTextureID;
+    ViewStateInterface* _viewState;
 };
 
 #endif // hifi_AmbientOcclusionEffect_h
