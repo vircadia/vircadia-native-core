@@ -16,16 +16,18 @@
 #include <NodeList.h>
 #include <Util.h>
 
+#include "Audio.h"
 #include "AudioIOStats.h"
 
 #include "AudioIOStatsRenderer.h"
 
-AudioIOStatsRenderer::AudioIOStatsRenderer(const AudioIOStats* stats) :
-    _stats(stats),
+AudioIOStatsRenderer::AudioIOStatsRenderer() :
+    _stats(NULL),
     _isEnabled(false),
     _shouldShowInjectedStreams(false)
 {
-    
+    // grab the stats object from the audio I/O singleton
+    _stats = &DependencyManager::get<Audio>()->getStats();
 }
 
 #ifdef _WIN32

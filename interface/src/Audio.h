@@ -105,6 +105,8 @@ public:
     bool mousePressEvent(int x, int y);
     
     void renderToolBox(int x, int y, bool boxed);
+    
+    const AudioIOStats& getStats() const { return _stats; }
 
     float getInputRingBufferMsecsAvailable() const;
     float getAudioOutputMsecsUnplayed() const;

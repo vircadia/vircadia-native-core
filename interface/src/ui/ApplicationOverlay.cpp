@@ -15,6 +15,7 @@
 #include <PerfStat.h>
 
 #include "audio/AudioScope.h"
+#include "audio/AudioIOStatsRenderer.h"
 #include "Application.h"
 #include "ApplicationOverlay.h"
 #include "devices/OculusManager.h"
@@ -830,8 +831,7 @@ void ApplicationOverlay::renderAudioMeter() {
     audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
     
     DependencyManager::get<AudioScope>()->render(glWidget->width(), glWidget->height());
-
-    audio->renderStats(WHITE_TEXT, glWidget->width(), glWidget->height());
+    DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, glWidget->width(), glWidget->height());
 
     glBegin(GL_QUADS);
     if (isClipping) {

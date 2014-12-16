@@ -14,18 +14,22 @@
 
 #include <QObject>
 
+#include <DependencyManager.h>
+
 class AudioIOStats;
 class AudioStreamStats;
 
-class AudioIOStatsRenderer : public QObject {
+class AudioIOStatsRenderer : public QObject, public DependencyManager::Dependency {
     Q_OBJECT
 public:
-    AudioIOStatsRenderer(const AudioIOStats* audioIOStats);
-    
     void render(const float* color, int width, int height);
+    
+    friend class DependencyManager;
 public slots:
     void toggle() { _isEnabled = !_isEnabled; }
     void toggleShowInjectedStreams() { _shouldShowInjectedStreams = !_shouldShowInjectedStreams; }
+protected:
+    AudioIOStatsRenderer();
 private:
     // audio stats methods for rendering
     void renderAudioStreamStats(const AudioStreamStats* streamStats, int horizontalOffset, int& verticalOffset,
