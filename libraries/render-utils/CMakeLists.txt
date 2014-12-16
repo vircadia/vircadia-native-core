@@ -26,6 +26,7 @@ else (APPLE)
 
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}")
   endif()
 endif (APPLE)
 
