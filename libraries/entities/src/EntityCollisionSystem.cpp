@@ -31,19 +31,16 @@ EntityCollisionSystem::EntityCollisionSystem()
     :   SimpleEntitySimulation(), 
         _packetSender(NULL),
         _voxels(NULL),
-        _audio(NULL),
         _avatars(NULL),
         _collisions(MAX_COLLISIONS_PER_Entity) {
 }
 
 void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
-        EntityTree* entities, VoxelTree* voxels, AbstractAudioInterface* audio,
-        AvatarHashMap* avatars) {
+        EntityTree* entities, VoxelTree* voxels, AvatarHashMap* avatars) {
     assert(entities);
     setEntityTree(entities);
     _packetSender = packetSender;
     _voxels = voxels;
-    _audio = audio;
     _avatars = avatars;
 }
 

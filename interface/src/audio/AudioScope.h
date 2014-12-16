@@ -62,7 +62,6 @@ private:
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
     QByteArray _scopeLastFrame;
-    QMutex _guard;
 };
 
 #endif // hifi_AudioScope_h

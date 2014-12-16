@@ -38,8 +38,7 @@ Q_OBJECT
 public:
     EntityCollisionSystem();
 
-    void init(EntityEditPacketSender* packetSender, EntityTree* entities, VoxelTree* voxels, 
-                                AbstractAudioInterface* audio = NULL, AvatarHashMap* _avatars = NULL);
+    void init(EntityEditPacketSender* packetSender, EntityTree* entities, VoxelTree* voxels, AvatarHashMap* _avatars = NULL);
                                 
     ~EntityCollisionSystem();
 

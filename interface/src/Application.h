@@ -187,7 +187,6 @@ public:
     GLCanvas* getGLWidget() { return _glWidget; }
     bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
-    Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
@@ -572,8 +571,6 @@ private:
     DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
-
-    Audio _audio;
 
     bool _enableProcessVoxelsThread;
     OctreePacketProcessor _octreeProcessor;

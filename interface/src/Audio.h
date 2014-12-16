@@ -15,6 +15,21 @@
 #include <fstream>
 #include <vector>
 
+#include <QAudio>
+#include <QAudioInput>
+#include <QElapsedTimer>
+#include <QGLWidget>
+#include <QtCore/QObject>
+#include <QtCore/QVector>
+#include <QtMultimedia/QAudioFormat>
+#include <QVector>
+#include <QByteArray>
+
+#include <AbstractAudioInterface.h>
+#include <AudioRingBuffer.h>
+#include <DependencyManager.h>
+#include <StDev.h>
+
 #include "InterfaceConfig.h"
 #include "AudioStreamStats.h"
 #include "Recorder.h"
@@ -27,23 +42,9 @@
 #include "AudioSourceNoise.h"
 #include "AudioGain.h"
 
-#include <QAudio>
-#include <QAudioInput>
-#include <QElapsedTimer>
-#include <QGLWidget>
-#include <QtCore/QObject>
-#include <QtCore/QVector>
-#include <QtMultimedia/QAudioFormat>
-#include <QVector>
-#include <QByteArray>
-
-#include <AbstractAudioInterface.h>
-#include <StDev.h>
-
 #include "MixedProcessedAudioStream.h"
 #include "AudioEffectOptions.h"
-#include <AudioRingBuffer.h>
-#include <StDev.h>
+
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -66,7 +67,7 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
-class Audio : public AbstractAudioInterface {
+class Audio : public AbstractAudioInterface, public DependencyManager::Dependency {
     Q_OBJECT
 public:
 
@@ -81,10 +82,8 @@ public:
     private:
         MixedProcessedAudioStream& _receivedAudioStream;
     };
-
-
-    // setup for audio I/O
-    Audio(QObject* parent = 0);
+    
+    const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.0f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
@@ -118,6 +117,8 @@ public:
     float getAudioOutputAverageMsecsUnplayed() const { return (float)_audioOutputMsecsUnplayedStats.getWindowAverage(); }
     
     void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
+    
+    friend class DependencyManager;
 
 public slots:
     void start();
@@ -166,6 +167,10 @@ signals:
     void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    
+protected:
+    // setup for audio I/O
+    Audio();
 private:
     void outputFormatChanged();
 

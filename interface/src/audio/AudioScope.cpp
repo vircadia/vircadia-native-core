@@ -71,7 +71,6 @@ void AudioScope::reallocateScope(int frames) {
     if (_framesPerScope != frames) {
         _framesPerScope = frames;
         _samplesPerScope = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * _framesPerScope;
-        QMutexLocker lock(&_guard);
         freeScope();
         allocateScope();
     }
@@ -114,7 +113,6 @@ void AudioScope::render(int width, int height) {
     renderBackground(backgroundColor, x, y, w, h);
     renderGrid(gridColor, x, y, w, h, gridRows, gridCols);
     
-    QMutexLocker lock(&_guard);
     renderLineStrip(inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
     renderLineStrip(outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
     renderLineStrip(outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
@@ -222,7 +220,6 @@ int AudioScope::addBufferToScope(QByteArray* byteArray, int frameOffset, const i
     // Temporary variable receives sample value
     float sample;
     
-    QMutexLocker lock(&_guard);
     // Short int pointer to mapped samples in byte array
     int16_t* destination = (int16_t*) byteArray->data();
     
@@ -235,8 +232,7 @@ int AudioScope::addBufferToScope(QByteArray* byteArray, int frameOffset, const i
 }
 
 int AudioScope::addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples) {
-    
-    QMutexLocker lock(&_guard);
+                                                                                                                                                                                                                                    
     // Short int pointer to mapped samples in byte array
     int16_t* destination = (int16_t*)byteArray->data();
     

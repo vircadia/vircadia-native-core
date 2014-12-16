@@ -177,7 +177,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _audio(),
         _enableProcessVoxelsThread(true),
         _octreeProcessor(),
         _voxelHideShowThread(&_voxels),
@@ -249,9 +248,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
-
-    _audio.moveToThread(audioThread);
-    connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
+    
+    Audio* audioIO = DependencyManager::get<Audio>();
+    audioIO->moveToThread(audioThread);
+    connect(audioThread, &QThread::started, audioIO, &Audio::start);
 
     audioThread->start();
     
@@ -423,7 +423,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
-    AudioScriptingInterface::getInstance().setLocalAudioInterface(&_audio);
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO);
     
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
@@ -464,13 +464,15 @@ Application::~Application() {
     
     // kill any audio injectors that are still around
     AudioScriptingInterface::getInstance().stopAllInjectors();
+    
+    Audio* audioIO = DependencyManager::get<Audio>();
 
     // stop the audio process
-    QMetaObject::invokeMethod(&_audio, "stop");
+    QMetaObject::invokeMethod(audioIO, "stop");
     
     // ask the audio thread to quit and wait until it is done
-    _audio.thread()->quit();
-    _audio.thread()->wait();
+    audioIO->thread()->quit();
+    audioIO->thread()->wait();
     
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
@@ -1293,10 +1295,11 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             _mousePressed = true;
             
             if (mouseOnScreen()) {
-                if (_audio.mousePressEvent(getMouseX(), getMouseY())) {
-                    // stop propagation
-                    return;
-                }
+                // TODO: MOVE THE AUDIO CONTROLS TO SEP OBJECT
+//                if (_audio.mousePressEvent(getMouseX(), getMouseY())) {
+//                    // stop propagation
+//                    return;
+//                }
                 
                 if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
                     // stop propagation
@@ -1948,7 +1951,6 @@ void Application::init() {
     _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
-    _audio.setReceivedAudioStreamSettings(Menu::getInstance()->getReceivedAudioStreamSettings());
     
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -1991,7 +1993,7 @@ void Application::init() {
     _entities.setViewFrustum(getViewFrustum());
 
     EntityTree* entityTree = _entities.getTree();
-    _entityCollisionSystem.init(&_entityEditSender, entityTree, _voxels.getTree(), &_audio, &_avatarManager);
+    _entityCollisionSystem.init(&_entityEditSender, entityTree, _voxels.getTree(), &_avatarManager);
     entityTree->setSimulation(&_entityCollisionSystem);
 
     // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface
@@ -2018,7 +2020,8 @@ void Application::init() {
 
     _metavoxels.init();
 
-    _audio.init(_glWidget);
+    // TODO: MOVE AUDIO CONTROLS TO SEP OBJECT
+//    _audio.init(_glWidget);
 
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
 
@@ -2026,9 +2029,6 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-
-    connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
-        &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
@@ -2416,7 +2416,7 @@ void Application::update(float deltaTime) {
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
 
-            QMetaObject::invokeMethod(&_audio, "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
 }
@@ -3566,7 +3566,7 @@ void Application::resetSensors() {
     
     _myAvatar->reset();
 
-    QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -3729,7 +3729,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
-        QMetaObject::invokeMethod(&_audio, "audioMixerKilled");
+        QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "audioMixerKilled");
     }
 
     if (node->getType() == NodeType::VoxelServer) {

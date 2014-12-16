@@ -245,7 +245,7 @@ void PreferencesDialog::savePreferences() {
     streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
 
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
-    Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
+    DependencyManager::get<Audio>()->setReceivedAudioStreamSettings(streamSettings);
 
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());

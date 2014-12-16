@@ -59,8 +59,8 @@ static const int MUTE_ICON_SIZE = 24;
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
-Audio::Audio(QObject* parent) :
-    AbstractAudioInterface(parent),
+Audio::Audio() :
+    AbstractAudioInterface(),
     _audioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
