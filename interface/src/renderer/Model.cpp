@@ -18,6 +18,7 @@
 
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
+#include <GlowEffect.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEntity.h>
@@ -32,8 +33,6 @@
 #include "gpu/GLBackend.h"
 #define GLBATCH( call ) batch._##call
 //#define GLBATCH( call ) call
-
-#include "renderer/GlowEffect.h"
 
 using namespace std;
 

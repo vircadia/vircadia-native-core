@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
+#include <GlowEffect.h>
 #include <PathUtils.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
@@ -54,8 +55,6 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
-#include "renderer/GlowEffect.h"
-
 
 Menu* Menu::_instance = NULL;
 

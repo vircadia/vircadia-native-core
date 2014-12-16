@@ -13,6 +13,7 @@
 #define hifi_GlowEffect_h
 
 #include <QObject>
+#include <QGLWidget>
 #include <QStack>
 
 #include <DependencyManager.h>

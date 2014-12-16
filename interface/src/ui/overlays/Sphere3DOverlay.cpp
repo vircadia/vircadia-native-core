@@ -12,11 +12,12 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+
+#include <GlowEffect.h>
 #include <SharedUtil.h>
 
 #include "Sphere3DOverlay.h"
 #include "Application.h"
-#include "renderer/GlowEffect.h"
 
 Sphere3DOverlay::Sphere3DOverlay() {
 }

@@ -11,8 +11,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <DependencyManager.h>
-#include <devices/Faceshift.h>
-#include <devices/DdeFaceTracker.h>
+#include <GlowEffect.h>
 #include <NodeList.h>
 
 #include "Application.h"
@@ -21,8 +20,9 @@
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
+#include "devices/DdeFaceTracker.h"
+#include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
-#include "renderer/GlowEffect.h"
 
 using namespace std;
 

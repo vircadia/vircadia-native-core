@@ -12,12 +12,13 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+
+#include <GlowEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 
 #include "Application.h"
 #include "Cube3DOverlay.h"
-#include "renderer/GlowEffect.h"
 
 Cube3DOverlay::Cube3DOverlay() : _borderSize(0) {
 }

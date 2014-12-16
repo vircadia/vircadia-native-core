@@ -21,12 +21,12 @@
 
 #include <glm/glm.hpp>
 
+#include <GlowEffect.h>
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <UserActivityLogger.h>
 
 #include "Application.h"
-#include "renderer/GlowEffect.h"
 
 #ifdef HAVE_LIBOVR
 

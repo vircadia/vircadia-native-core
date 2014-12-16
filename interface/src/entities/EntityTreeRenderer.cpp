@@ -18,6 +18,7 @@
 #include "InterfaceConfig.h"
 
 #include <BoxEntityItem.h>
+#include <GlowEffect.h>
 #include <ModelEntityItem.h>
 #include <MouseEvent.h>
 #include <PerfStat.h>
@@ -36,14 +37,10 @@
 #include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
 
-#include "renderer/GlowEffect.h"
-
 
 QThread* EntityTreeRenderer::getMainThread() {
     return Application::getInstance()->getEntities()->thread();
 }
-
-
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts) :
     OctreeRenderer(),

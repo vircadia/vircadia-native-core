@@ -15,11 +15,12 @@
 
 #include <glm/glm.hpp>
 
+#include <GlowEffect.h>
+
 #include "Application.h"
 
 #include "TV3DManager.h"
 #include "Menu.h"
-#include "renderer/GlowEffect.h"
 
 int TV3DManager::_screenWidth = 1;
 int TV3DManager::_screenHeight = 1;

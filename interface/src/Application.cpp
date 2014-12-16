@@ -57,6 +57,7 @@
 #include <AudioInjector.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
+#include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <LocalVoxelsList.h>
@@ -90,7 +91,6 @@
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
 
-#include "renderer/GlowEffect.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"

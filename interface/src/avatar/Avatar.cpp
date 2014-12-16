@@ -23,6 +23,7 @@
 #include <glm/gtx/vector_query.hpp>
 
 #include <GeometryUtil.h>
+#include <GlowEffect.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
@@ -40,7 +41,6 @@
 #include "Recorder.h"
 #include "world.h"
 #include "devices/OculusManager.h"
-#include "renderer/GlowEffect.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;

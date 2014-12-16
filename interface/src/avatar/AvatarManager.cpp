@@ -15,6 +15,7 @@
 
 #include <glm/gtx/string_cast.hpp>
 
+#include <GlowEffect.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
 #include <UUID.h>
@@ -25,7 +26,6 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 
-#include "renderer/GlowEffect.h"
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key

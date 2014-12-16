@@ -14,12 +14,12 @@
 
 #include <QOpenGLFramebufferObject>
 
+#include <GlowEffect.h>
 #include <PathUtils.h>
 #include <RenderUtil.h>
 
 #include "Application.h"
 #include "DeferredLightingEffect.h"
-#include "renderer/GlowEffect.h"
 
 void DeferredLightingEffect::init() {
     _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/simple.vert");

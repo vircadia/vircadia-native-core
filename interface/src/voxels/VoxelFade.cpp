@@ -11,11 +11,11 @@
 
 #include "InterfaceConfig.h"
 
+#include <GlowEffect.h>
 #include <VoxelConstants.h>
 
 #include "Application.h"
 #include "VoxelFade.h"
-#include "renderer/GlowEffect.h"
 
 const float VoxelFade::FADE_OUT_START =  0.5f;
 const float VoxelFade::FADE_OUT_END   =  0.05f;

@@ -12,16 +12,18 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
+#include <QGLWidget>
 #include <QOpenGLFramebufferObject>
 #include <QWindow>
 
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <ProgramObject.h>
-#include <RenderUtil.h>
-#include <TextureCache.h>
 
 #include "GlowEffect.h"
+#include "ProgramObject.h"
+#include "RenderUtil.h"
+#include "TextureCache.h"
+
 
 GlowEffect::GlowEffect()
     : _initialized(false),

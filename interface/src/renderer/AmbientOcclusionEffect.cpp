@@ -16,6 +16,7 @@
 
 #include <glm/gtc/random.hpp>
 
+#include <GlowEffect.h>
 #include <PathUtils.h>
 #include <ProgramObject.h>
 #include <RenderUtil.h>
@@ -24,7 +25,6 @@
 #include "Application.h"
 
 #include "AmbientOcclusionEffect.h"
-#include "renderer/GlowEffect.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
