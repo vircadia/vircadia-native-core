@@ -57,8 +57,6 @@ public:
     /// clears the tree
     virtual void clear();
 
-    static QThread* getMainThread();
-    
     /// if a renderable entity item needs a model, we will allocate it for them
     Q_INVOKABLE Model* allocateModel(const QString& url);
     

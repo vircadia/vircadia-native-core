@@ -29,10 +29,6 @@
 #include "RenderableTextEntityItem.h"
 
 
-QThread* EntityTreeRenderer::getMainThread() {
-    return Application::getInstance()->getEntities()->thread();
-}
-
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts) :
     OctreeRenderer(),
     _wantScripts(wantScripts),
