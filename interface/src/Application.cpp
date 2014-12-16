@@ -77,6 +77,8 @@
 #include "ModelUploader.h"
 #include "Util.h"
 
+#include "audio/AudioToolBox.h"
+
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
@@ -1295,11 +1297,10 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             _mousePressed = true;
             
             if (mouseOnScreen()) {
-                // TODO: MOVE THE AUDIO CONTROLS TO SEP OBJECT
-//                if (_audio.mousePressEvent(getMouseX(), getMouseY())) {
-//                    // stop propagation
-//                    return;
-//                }
+                if (DependencyManager::get<AudioToolBox>()->mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
                 
                 if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
                     // stop propagation
@@ -2019,10 +2020,7 @@ void Application::init() {
     _entityClipboardRenderer.setTree(&_entityClipboard);
 
     _metavoxels.init();
-
-    // TODO: MOVE AUDIO CONTROLS TO SEP OBJECT
-//    _audio.init(_glWidget);
-
+    
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
