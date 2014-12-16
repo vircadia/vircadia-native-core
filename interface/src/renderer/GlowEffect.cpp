@@ -139,15 +139,15 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
 
     QOpenGLFramebufferObject* destFBO = toTexture ?
         Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject() : NULL;
+    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
     if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
-            QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);          
+            QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
         } else {
             maybeBind(destFBO);
             if (!destFBO) {
-                glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
-                    Application::getInstance()->getGLWidget()->getDeviceHeight());
+                glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
             }
             glEnable(GL_TEXTURE_2D);
             glDisable(GL_LIGHTING);
@@ -194,9 +194,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         }
         maybeBind(destFBO);
         if (!destFBO) {
-            glViewport(0, 0,
-                Application::getInstance()->getGLWidget()->getDeviceWidth(),
-                Application::getInstance()->getGLWidget()->getDeviceHeight());
+            glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
         }
         _addSeparateProgram->bind();      
         renderFullscreenQuad();

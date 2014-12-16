@@ -24,8 +24,9 @@
 #include "FaceTracker.h"
 
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
-class Faceshift : public FaceTracker, public DependencyManager::Dependency {
+class Faceshift : public FaceTracker {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
     void init();
@@ -89,7 +90,6 @@ private slots:
 private:
     Faceshift();
     virtual ~Faceshift() {}
-    friend DependencyManager;
     
     float getBlendshapeCoefficient(int index) const;
     

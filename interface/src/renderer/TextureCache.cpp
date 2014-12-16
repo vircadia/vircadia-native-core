@@ -352,7 +352,7 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
 
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
     QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(_frameBufferSize);
-    Application::getInstance()->getGLWidget()->installEventFilter(this);
+    DependencyManager::get<GLCanvas>()->installEventFilter(this);
     
     glBindTexture(GL_TEXTURE_2D, fbo->texture());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

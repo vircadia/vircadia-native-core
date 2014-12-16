@@ -173,7 +173,6 @@ public:
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
     bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
 
-    GLCanvas* getGLWidget() { return DependencyManager::get<GLCanvas>(); } // TODO: remove
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }

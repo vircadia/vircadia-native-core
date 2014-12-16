@@ -56,8 +56,8 @@ Stats::Stats():
         _metavoxelReceiveProgress(0),
         _metavoxelReceiveTotal(0)
 {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-    resetWidth(glWidget->width(), 0);
+    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    resetWidth(glCanvas->width(), 0);
 }
 
 void Stats::toggleExpanded() {
@@ -67,7 +67,7 @@ void Stats::toggleExpanded() {
 // called on mouse click release
 // check for clicks over stats  in order to expand or contract them
 void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset) {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
+    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
 
     if (0 != glm::compMax(glm::abs(glm::ivec2(mouseX - mouseDragStartedX, mouseY - mouseDragStartedY)))) {
         // not worried about dragging on stats
@@ -114,7 +114,7 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
     // top-right stats click
     lines = _expanded ? 11 : 3;
     statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    statsWidth = glWidget->width() - statsX;
+    statsWidth = glCanvas->width() - statsX;
     if (mouseX > statsX && mouseX < statsX + statsWidth  && mouseY > statsY && mouseY < statsY + statsHeight) {
         toggleExpanded();
         return;
@@ -122,8 +122,8 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
 }
 
 void Stats::resetWidth(int width, int horizontalOffset) {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-    int extraSpace = glWidget->width() - horizontalOffset -2
+    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    int extraSpace = glCanvas->width() - horizontalOffset -2
                    - STATS_GENERAL_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
                    - STATS_GEO_MIN_WIDTH
@@ -147,7 +147,7 @@ void Stats::resetWidth(int width, int horizontalOffset) {
             _pingStatsWidth += (int) extraSpace / panels;
         }
         _geoStatsWidth += (int) extraSpace / panels;
-        _voxelStatsWidth += glWidget->width() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
+        _voxelStatsWidth += glCanvas->width() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
     }
 }
 
@@ -198,7 +198,7 @@ void Stats::display(
         int bytesPerSecond, 
         int voxelPacketsToProcess) 
 {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
+    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
 
     unsigned int backgroundColor = 0x33333399;
     int verticalOffset = 0, lines = 0;
@@ -210,7 +210,7 @@ void Stats::display(
     std::stringstream voxelStats;
 
     if (_lastHorizontalOffset != horizontalOffset) {
-        resetWidth(glWidget->width(), horizontalOffset);
+        resetWidth(glCanvas->width(), horizontalOffset);
         _lastHorizontalOffset = horizontalOffset;
     }
 
@@ -478,7 +478,7 @@ void Stats::display(
 
     lines = _expanded ? 14 : 3;
 
-    drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset,
+    drawBackground(backgroundColor, horizontalOffset, 0, glCanvas->width() - horizontalOffset,
         lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
