@@ -204,7 +204,7 @@ void AudioInjector::injectToMixer() {
             _loudness = 0.0f;
             for (int i = 0; i < bytesToCopy; i += sizeof(int16_t)) {
                 _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + _currentSendPosition + i)) /
-                (MAX_SAMPLE_VALUE / 2.0f);
+                (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
             }
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
 
@@ -243,7 +243,7 @@ void AudioInjector::injectToMixer() {
             if (_currentSendPosition != bytesToCopy && _currentSendPosition < _audioData.size()) {
                 // not the first packet and not done
                 // sleep for the appropriate time
-                int usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000;
+                int usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000;
                 
                 if (usecToSleep > 0) {
                     usleep(usecToSleep);

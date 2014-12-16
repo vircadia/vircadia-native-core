@@ -31,10 +31,10 @@
 #include <StDev.h>
 
 #include "InterfaceConfig.h"
+#include "audio/AudioIOStats.h"
 #include "AudioStreamStats.h"
 #include "Recorder.h"
 #include "RingBufferHistory.h"
-#include "MovingMinMaxAvg.h"
 #include "AudioRingBuffer.h"
 #include "AudioFormat.h"
 #include "AudioBuffer.h"
@@ -59,9 +59,6 @@ extern "C" {
 #endif
 
 static const int NUM_AUDIO_CHANNELS = 2;
-
-static const int MAX_16_BIT_AUDIO_SAMPLE = 32767;
-
 
 class QAudioInput;
 class QAudioOutput;
@@ -108,44 +105,34 @@ public:
     bool mousePressEvent(int x, int y);
     
     void renderToolBox(int x, int y, bool boxed);
-    void renderStats(const float* color, int width, int height);
 
     float getInputRingBufferMsecsAvailable() const;
-    float getInputRingBufferAverageMsecsAvailable() const { return (float)_inputRingBufferMsecsAvailableStats.getWindowAverage(); }
-
     float getAudioOutputMsecsUnplayed() const;
-    float getAudioOutputAverageMsecsUnplayed() const { return (float)_audioOutputMsecsUnplayedStats.getWindowAverage(); }
     
     void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
     
+    static const float CALLBACK_ACCELERATOR_RATIO;
     friend class DependencyManager;
-
 public slots:
     void start();
     void stop();
     void addReceivedAudioToStream(const QByteArray& audioByteArray);
-    void parseAudioStreamStatsPacket(const QByteArray& packet);
     void parseAudioEnvironmentData(const QByteArray& packet);
     void handleAudioInput();
     void reset();
-    void resetStats();
     void audioMixerKilled();
     void toggleMute();
     void toggleAudioNoiseReduction();
     void toggleAudioSourceInject();
     void selectAudioSourcePinkNoise();
     void selectAudioSourceSine440();
-   
-    void toggleStats();
-    void toggleStatsShowInjectedStreams();
+    
     void toggleStereoInput();
   
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
 
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
-
-    void sendDownstreamAudioStatsPacket();
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
     bool switchOutputToAudioDevice(const QString& outputDeviceName);
@@ -158,9 +145,6 @@ public slots:
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
     void setReverb(bool reverb) { _reverb = reverb; }
     void setReverbOptions(const AudioEffectOptions* options);
-
-    const AudioStreamStats& getAudioMixerAvatarStreamAudioStats() const { return _audioMixerAvatarStreamAudioStats; }
-    const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamAudioStatsMap() const { return _audioMixerInjectedStreamAudioStatsMap; }
 
 signals:
     bool muteToggled();
@@ -263,14 +247,9 @@ private:
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
 
     // Callback acceleration dependent calculations
-    static const float CALLBACK_ACCELERATOR_RATIO;
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
     float calculateDeviceToNetworkInputRatio(int numBytes) const;
-
-    // audio stats methods for rendering
-    void renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
-        float scale, float rotation, int font, const float* color, bool isDownstreamStats = false);
 
     // Input framebuffer
     AudioBufferFloat32 _inputFrameBuffer;
@@ -288,32 +267,14 @@ private:
     // Tone source
     bool _toneSourceEnabled;
     AudioSourceTone _toneSource;
-    
-#ifdef _WIN32
-    static const unsigned int STATS_WIDTH = 1500;
-#else
-    static const unsigned int STATS_WIDTH = 650;
-#endif
-    static const unsigned int STATS_HEIGHT_PER_LINE = 20;
-    bool _statsEnabled;
-    bool _statsShowInjectedStreams;
-
-    AudioStreamStats _audioMixerAvatarStreamAudioStats;
-    QHash<QUuid, AudioStreamStats> _audioMixerInjectedStreamAudioStatsMap;
 
     quint16 _outgoingAvatarAudioSequenceNumber;
-    
-    MovingMinMaxAvg<float> _audioInputMsecsReadStats;
-    MovingMinMaxAvg<float> _inputRingBufferMsecsAvailableStats;
-
-    MovingMinMaxAvg<float> _audioOutputMsecsUnplayedStats;
-
-    quint64 _lastSentAudioPacket;
-    MovingMinMaxAvg<quint64> _packetSentTimeGaps;
 
     AudioOutputIODevice _audioOutputIODevice;
     
     WeakRecorderPointer _recorder;
+    
+    AudioIOStats _stats;
 };
 
 

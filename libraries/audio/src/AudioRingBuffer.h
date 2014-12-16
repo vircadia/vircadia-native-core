@@ -12,21 +12,12 @@
 #ifndef hifi_AudioRingBuffer_h
 #define hifi_AudioRingBuffer_h
 
-#include <limits>
-#include <stdint.h>
-
 #include "AudioConstants.h"
 
 #include <QtCore/QIODevice>
 
 #include <SharedUtil.h>
 #include <NodeData.h>
-
-const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL
-                                                        / (float)AudioConstants::SAMPLE_RATE) * USECS_PER_SECOND);
-
-const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
-const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const int DEFAULT_RING_BUFFER_FRAME_CAPACITY = 10;
 

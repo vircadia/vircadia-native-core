@@ -51,9 +51,6 @@
 
 static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
-static const int FRAMES_AVAILABLE_STATS_WINDOW_SECONDS = 10;
-static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.0f / AudioConstants::NETWORK_FRAME_MSECS);
-
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
 
@@ -105,15 +102,9 @@ Audio::Audio() :
     _iconPulseTimeReference(usecTimestampNow()),
     _noiseSourceEnabled(false),
     _toneSourceEnabled(true),
-    _statsEnabled(false),
-    _statsShowInjectedStreams(false),
     _outgoingAvatarAudioSequenceNumber(0),
-    _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AudioConstants::NETWORK_FRAME_MSECS * CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
-    _inputRingBufferMsecsAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
-    _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
-    _lastSentAudioPacket(0),
-    _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS),
-    _audioOutputIODevice(_receivedAudioStream)
+    _audioOutputIODevice(_receivedAudioStream),
+    _stats(&_receivedAudioStream)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
@@ -134,29 +125,16 @@ void Audio::init(QGLWidget *parent) {
 
 void Audio::reset() {
     _receivedAudioStream.reset();
-    resetStats();
+    _stats.reset();
     _noiseSource.reset();
     _toneSource.reset();
     _sourceGain.reset();
     _inputGain.reset();
 }
 
-void Audio::resetStats() {
-    _receivedAudioStream.resetStats();
-
-    _audioMixerAvatarStreamAudioStats = AudioStreamStats();
-    _audioMixerInjectedStreamAudioStatsMap.clear();
-
-    _audioInputMsecsReadStats.reset();
-    _inputRingBufferMsecsAvailableStats.reset();
-
-    _audioOutputMsecsUnplayedStats.reset();
-    _packetSentTimeGaps.reset();
-}
-
 void Audio::audioMixerKilled() {
     _outgoingAvatarAudioSequenceNumber = 0;
-    resetStats();
+    _stats.reset();
 }
 
 
@@ -573,12 +551,12 @@ void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAu
             if (j == sample) {
                 // left channel
                 int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction),
-                                         MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                                         AudioConstants::MIN_SAMPLE_VALUE, AudioConstants::MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)lResult;
             } else if (j == (sample + 1)) {
                 // right channel
                 int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction),
-                                         MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                                         AudioConstants::MIN_SAMPLE_VALUE, AudioConstants::MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)rResult;
             } else {
                 // ignore channels above 2
@@ -674,7 +652,7 @@ void Audio::handleAudioInput() {
     _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
     
     float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
-    _audioInputMsecsReadStats.update(audioInputMsecsRead);
+    _stats.updateInputMsecsRead(audioInputMsecsRead);
 
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
 
@@ -744,7 +722,7 @@ void Audio::handleAudioInput() {
                     measuredDcOffset += networkAudioSamples[i];
                     networkAudioSamples[i] -= (int16_t) _dcOffset;
                     thisSample = fabsf(networkAudioSamples[i]);
-                    if (thisSample >= ((float)MAX_16_BIT_AUDIO_SAMPLE * CLIPPING_THRESHOLD)) {
+                    if (thisSample >= ((float)AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD)) {
                         _timeSinceLastClip = 0.0f;
                     }
                     loudness += thisSample;
@@ -895,16 +873,7 @@ void Audio::handleAudioInput() {
                 currentPacketPtr += numNetworkBytes;
             }
 
-            // first time this is 0
-            if (_lastSentAudioPacket == 0) {
-                _lastSentAudioPacket = usecTimestampNow();
-            } else {
-                quint64 now = usecTimestampNow();
-                quint64 gap = now - _lastSentAudioPacket;
-                _packetSentTimeGaps.update(gap);
-
-                _lastSentAudioPacket = now;
-            }
+            _stats.sentPacket();
 
             int packetBytes = currentPacketPtr - audioDataPacket;
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
@@ -972,36 +941,6 @@ void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
 }
 
-void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
-
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const char* dataAt = packet.constData() + numBytesPacketHeader;
-
-    // parse the appendFlag, clear injected audio stream stats if 0
-    quint8 appendFlag = *(reinterpret_cast<const quint16*>(dataAt));
-    dataAt += sizeof(quint8);
-    if (!appendFlag) {
-        _audioMixerInjectedStreamAudioStatsMap.clear();
-    }
-
-    // parse the number of stream stats structs to follow
-    quint16 numStreamStats = *(reinterpret_cast<const quint16*>(dataAt));
-    dataAt += sizeof(quint16);
-
-    // parse the stream stats
-    AudioStreamStats streamStats;
-    for (quint16 i = 0; i < numStreamStats; i++) {
-        memcpy(&streamStats, dataAt, sizeof(AudioStreamStats));
-        dataAt += sizeof(AudioStreamStats);
-
-        if (streamStats._streamType == PositionalAudioStream::Microphone) {
-            _audioMixerAvatarStreamAudioStats = streamStats;
-        } else {
-            _audioMixerInjectedStreamAudioStatsMap[streamStats._streamIdentifier] = streamStats;
-        }
-    }
-}
-
 void Audio::parseAudioEnvironmentData(const QByteArray &packet) {
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const char* dataAt = packet.constData() + numBytesPacketHeader;
@@ -1022,44 +961,6 @@ void Audio::parseAudioEnvironmentData(const QByteArray &packet) {
         _receivedAudioStream.clearReverb();
     }
 }
-
-void Audio::sendDownstreamAudioStatsPacket() {
-
-    // since this function is called every second, we'll sample for some of our stats here
-    _inputRingBufferMsecsAvailableStats.update(getInputRingBufferMsecsAvailable());
-    _audioOutputMsecsUnplayedStats.update(getAudioOutputMsecsUnplayed());
-
-    // also, call _receivedAudioStream's per-second callback
-    _receivedAudioStream.perSecondCallbackForUpdatingStats();
-
-    char packet[MAX_PACKET_SIZE];
-
-    // pack header
-    int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeAudioStreamStats);
-    char* dataAt = packet + numBytesPacketHeader;
-
-    // pack append flag
-    quint8 appendFlag = 0;
-    memcpy(dataAt, &appendFlag, sizeof(quint8));
-    dataAt += sizeof(quint8);
-
-    // pack number of stats packed
-    quint16 numStreamStatsToPack = 1;
-    memcpy(dataAt, &numStreamStatsToPack, sizeof(quint16));
-    dataAt += sizeof(quint16);
-
-    // pack downstream audio stream stats
-    AudioStreamStats stats = _receivedAudioStream.getAudioStreamStats();
-    memcpy(dataAt, &stats, sizeof(AudioStreamStats));
-    dataAt += sizeof(AudioStreamStats);
-    
-    // send packet
-    NodeList* nodeList = NodeList::getInstance();
-    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-    nodeList->writeDatagram(packet, dataAt - packet, audioMixer);
-}
-
-
 
 bool Audio::mousePressEvent(int x, int y) {
     if (_iconBounds.contains(x, y)) {
@@ -1161,14 +1062,17 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
 
             _lastInputLoudness = 0;
             
-            monoInput[i] = glm::clamp(monoInput[i] + collisionSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            monoInput[i] = glm::clamp(monoInput[i] + collisionSample,
+                                      AudioConstants::MIN_SAMPLE_VALUE,
+                                      AudioConstants::MAX_SAMPLE_VALUE);
             
             _lastInputLoudness += fabsf(monoInput[i]);
             _lastInputLoudness /= numSamples;
-            _lastInputLoudness /= MAX_SAMPLE_VALUE;
+            _lastInputLoudness /= AudioConstants::MAX_SAMPLE_VALUE;
             
             _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
-                                                  MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                                                    AudioConstants::MIN_SAMPLE_VALUE,
+                                                    AudioConstants::MAX_SAMPLE_VALUE);
 
             _collisionSoundMagnitude *= _collisionSoundDuration;
         }
@@ -1192,14 +1096,17 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
 
             _lastInputLoudness = 0;
             
-            monoInput[i] = glm::clamp(monoInput[i] + collisionSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            monoInput[i] = glm::clamp(monoInput[i] + collisionSample,
+                                      AudioConstants::MIN_SAMPLE_VALUE,
+                                      AudioConstants::MAX_SAMPLE_VALUE);
             
             _lastInputLoudness += fabsf(monoInput[i]);
             _lastInputLoudness /= numSamples;
-            _lastInputLoudness /= MAX_SAMPLE_VALUE;
+            _lastInputLoudness /= AudioConstants::MAX_SAMPLE_VALUE;
             
             _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
-                                                  MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                                                    AudioConstants::MIN_SAMPLE_VALUE,
+                                                    AudioConstants::MAX_SAMPLE_VALUE);
 
             _drumSoundVolume *= (1.0f - _drumSoundDecay);
         }
@@ -1330,213 +1237,6 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     glEnd();
 
     glDisable(GL_TEXTURE_2D);
-}
-
-void Audio::toggleStats() {
-    _statsEnabled = !_statsEnabled;
-}
-
-void Audio::toggleStatsShowInjectedStreams() {
-    _statsShowInjectedStreams = !_statsShowInjectedStreams;
-}
-
-void Audio::renderStats(const float* color, int width, int height) {
-    if (!_statsEnabled) {
-        return;
-    }
-
-    const int linesWhenCentered = _statsShowInjectedStreams ? 34 : 27;
-    const int CENTERED_BACKGROUND_HEIGHT = STATS_HEIGHT_PER_LINE * linesWhenCentered;
-
-    int lines = _statsShowInjectedStreams ? _audioMixerInjectedStreamAudioStatsMap.size() * 7 + 27 : 27;
-    int statsHeight = STATS_HEIGHT_PER_LINE * lines;
-
-
-    static const float backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 0.6f };
-
-    int x = std::max((width - (int)STATS_WIDTH) / 2, 0);
-    int y = std::max((height - CENTERED_BACKGROUND_HEIGHT) / 2, 0);
-    int backgroundHeight = statsHeight;
-    
-    glColor4fv(backgroundColor);
-    glBegin(GL_QUADS);
-    
-    glVertex2i(x, y);
-    glVertex2i(x + STATS_WIDTH, y);
-    glVertex2i(x + STATS_WIDTH, y + backgroundHeight);
-    glVertex2i(x , y + backgroundHeight);
-    
-    glEnd();
-    glColor4f(1, 1, 1, 1);
-
-    int horizontalOffset = x + 5;
-    int verticalOffset = y;
-    
-    float scale = 0.10f;
-    float rotation = 0.0f;
-    int font = 2;
-
-
-    char latencyStatString[512];
-
-    const float BUFFER_SEND_INTERVAL_MSECS = BUFFER_SEND_INTERVAL_USECS / (float)USECS_PER_MSEC;
-
-    float audioInputBufferLatency = 0.0f, inputRingBufferLatency = 0.0f, networkRoundtripLatency = 0.0f, mixerRingBufferLatency = 0.0f, outputRingBufferLatency = 0.0f, audioOutputBufferLatency = 0.0f;
-
-    AudioStreamStats downstreamAudioStreamStats = _receivedAudioStream.getAudioStreamStats();
-    SharedNodePointer audioMixerNodePointer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
-    if (!audioMixerNodePointer.isNull()) {
-        audioInputBufferLatency = _audioInputMsecsReadStats.getWindowAverage();
-        inputRingBufferLatency = getInputRingBufferAverageMsecsAvailable();
-        networkRoundtripLatency = audioMixerNodePointer->getPingMs();
-        mixerRingBufferLatency = _audioMixerAvatarStreamAudioStats._framesAvailableAverage * BUFFER_SEND_INTERVAL_MSECS;
-        outputRingBufferLatency = downstreamAudioStreamStats._framesAvailableAverage * BUFFER_SEND_INTERVAL_MSECS;
-        audioOutputBufferLatency = _audioOutputMsecsUnplayedStats.getWindowAverage();
-    }
-    float totalLatency = audioInputBufferLatency + inputRingBufferLatency + networkRoundtripLatency + mixerRingBufferLatency + outputRingBufferLatency + audioOutputBufferLatency;
-
-    sprintf(latencyStatString, "     Audio input buffer: %7.2fms    - avg msecs of samples read to the input ring buffer in last 10s", audioInputBufferLatency);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
-
-    sprintf(latencyStatString, "      Input ring buffer: %7.2fms    - avg msecs of samples in input ring buffer in last 10s", inputRingBufferLatency);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
-
-    sprintf(latencyStatString, "       Network to mixer: %7.2fms    - half of last ping value calculated by the node list", networkRoundtripLatency / 2.0f);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
-
-    sprintf(latencyStatString, " AudioMixer ring buffer: %7.2fms    - avg msecs of samples in audio mixer's ring buffer in last 10s", mixerRingBufferLatency);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
-
-    sprintf(latencyStatString, "      Network to client: %7.2fms    - half of last ping value calculated by the node list", networkRoundtripLatency / 2.0f);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
-    
-    sprintf(latencyStatString, "     Output ring buffer: %7.2fms    - avg msecs of samples in output ring buffer in last 10s", outputRingBufferLatency);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
-
-    sprintf(latencyStatString, "    Audio output buffer: %7.2fms    - avg msecs of samples in audio output buffer in last 10s", audioOutputBufferLatency);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
-    
-    sprintf(latencyStatString, "                  TOTAL: %7.2fms\n", totalLatency);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, latencyStatString, color);
-
-
-    verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
-
-    char clientUpstreamMicLabelString[] = "Upstream Mic Audio Packets Sent Gaps (by client):";
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, clientUpstreamMicLabelString, color);
-
-    char stringBuffer[512];
-    sprintf(stringBuffer, "  Inter-packet timegaps (overall) | min: %9s, max: %9s, avg: %9s",
-        formatUsecTime(_packetSentTimeGaps.getMin()).toLatin1().data(),
-        formatUsecTime(_packetSentTimeGaps.getMax()).toLatin1().data(),
-        formatUsecTime(_packetSentTimeGaps.getAverage()).toLatin1().data());
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
-
-    sprintf(stringBuffer, " Inter-packet timegaps (last 30s) | min: %9s, max: %9s, avg: %9s",
-        formatUsecTime(_packetSentTimeGaps.getWindowMin()).toLatin1().data(),
-        formatUsecTime(_packetSentTimeGaps.getWindowMax()).toLatin1().data(),
-        formatUsecTime(_packetSentTimeGaps.getWindowAverage()).toLatin1().data());
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
-
-    verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
-
-    char upstreamMicLabelString[] = "Upstream mic audio stats (received and reported by audio-mixer):";
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamMicLabelString, color);
-
-    renderAudioStreamStats(_audioMixerAvatarStreamAudioStats, horizontalOffset, verticalOffset, scale, rotation, font, color);
-
-
-    verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
-
-    char downstreamLabelString[] = "Downstream mixed audio stats:";
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, downstreamLabelString, color);
-
-    renderAudioStreamStats(downstreamAudioStreamStats, horizontalOffset, verticalOffset, scale, rotation, font, color, true);
-
-
-    if (_statsShowInjectedStreams) {
-
-        foreach(const AudioStreamStats& injectedStreamAudioStats, _audioMixerInjectedStreamAudioStatsMap) {
-
-            verticalOffset += STATS_HEIGHT_PER_LINE;    // blank line
-
-            char upstreamInjectedLabelString[512];
-            sprintf(upstreamInjectedLabelString, "Upstream injected audio stats:      stream ID: %s",
-                injectedStreamAudioStats._streamIdentifier.toString().toLatin1().data());
-            verticalOffset += STATS_HEIGHT_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, upstreamInjectedLabelString, color);
-
-            renderAudioStreamStats(injectedStreamAudioStats, horizontalOffset, verticalOffset, scale, rotation, font, color);
-        }
-    }
-}
-
-void Audio::renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
-    float scale, float rotation, int font, const float* color, bool isDownstreamStats) {
-    
-    char stringBuffer[512];
-
-    sprintf(stringBuffer, "                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)",
-        streamStats._packetStreamStats.getLostRate() * 100.0f,
-        streamStats._packetStreamStats._lost,
-        streamStats._packetStreamWindowStats.getLostRate() * 100.0f,
-        streamStats._packetStreamWindowStats._lost);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
-
-    if (isDownstreamStats) {
-
-        const float BUFFER_SEND_INTERVAL_MSECS = BUFFER_SEND_INTERVAL_USECS / (float)USECS_PER_MSEC;
-        sprintf(stringBuffer, "                Ringbuffer frames | desired: %u, avg_available(10s): %u+%d, available: %u+%d",
-            streamStats._desiredJitterBufferFrames,
-            streamStats._framesAvailableAverage,
-            (int)(getAudioOutputAverageMsecsUnplayed() / BUFFER_SEND_INTERVAL_MSECS),
-            streamStats._framesAvailable,
-            (int)(getAudioOutputMsecsUnplayed() / BUFFER_SEND_INTERVAL_MSECS));
-    } else {
-        sprintf(stringBuffer, "                Ringbuffer frames | desired: %u, avg_available(10s): %u, available: %u",
-            streamStats._desiredJitterBufferFrames,
-            streamStats._framesAvailableAverage,
-            streamStats._framesAvailable);
-    }
-    
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
-
-    sprintf(stringBuffer, "                 Ringbuffer stats | starves: %u, prev_starve_lasted: %u, frames_dropped: %u, overflows: %u",
-        streamStats._starveCount,
-        streamStats._consecutiveNotMixedCount,
-        streamStats._framesDropped,
-        streamStats._overflowCount);
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
-
-    sprintf(stringBuffer, "  Inter-packet timegaps (overall) | min: %9s, max: %9s, avg: %9s",
-        formatUsecTime(streamStats._timeGapMin).toLatin1().data(),
-        formatUsecTime(streamStats._timeGapMax).toLatin1().data(),
-        formatUsecTime(streamStats._timeGapAverage).toLatin1().data());
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
-
-    sprintf(stringBuffer, " Inter-packet timegaps (last 30s) | min: %9s, max: %9s, avg: %9s",
-        formatUsecTime(streamStats._timeGapWindowMin).toLatin1().data(),
-        formatUsecTime(streamStats._timeGapWindowMax).toLatin1().data(),
-        formatUsecTime(streamStats._timeGapWindowAverage).toLatin1().data());
-    verticalOffset += STATS_HEIGHT_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
 }
 
 void Audio::outputFormatChanged() {
@@ -1689,12 +1389,6 @@ float Audio::getAudioOutputMsecsUnplayed() const {
     int bytesAudioOutputUnplayed = _audioOutput->bufferSize() - _audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_outputFormat.bytesForDuration(USECS_PER_MSEC);
     return msecsAudioOutputUnplayed;
-}
-
-float Audio::getInputRingBufferMsecsAvailable() const {
-    int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * sizeof(int16_t);
-    float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
-    return  msecsInInputRingBuffer;
 }
 
 qint64 Audio::AudioOutputIODevice::readData(char * data, qint64 maxSize) {

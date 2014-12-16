@@ -13,6 +13,7 @@
 #define hifi_AudioConstants_h
 
 #include <limits>
+#include <math.h>
 #include <stdint.h>
 
 namespace AudioConstants {
@@ -26,6 +27,7 @@ namespace AudioConstants {
     const int NETWORK_FRAME_SAMPLES_PER_CHANNEL = NETWORK_FRAME_BYTES_PER_CHANNEL / sizeof(AudioSample);
     const float NETWORK_FRAME_MSECS = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL
         / (float) AudioConstants::SAMPLE_RATE) * 1000.0;
+    const unsigned int NETWORK_FRAME_USECS = floorf(NETWORK_FRAME_MSECS * 1000.0);
     const int MIN_SAMPLE_VALUE = std::numeric_limits<AudioSample>::min();
     const int MAX_SAMPLE_VALUE = std::numeric_limits<AudioSample>::max();
 }

@@ -354,7 +354,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
 
         for (int s = 0; s < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; s++) {
             _preMixSamples[s] = glm::clamp(_preMixSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
-                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                                            AudioConstants::MIN_SAMPLE_VALUE,
+                                           AudioConstants::MAX_SAMPLE_VALUE);
         }
     }
 
@@ -423,7 +424,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
     
     // Actually mix the _preMixSamples into the _mixSamples here.
     for (int s = 0; s < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; s++) {
-        _mixSamples[s] = glm::clamp(_mixSamples[s] + _preMixSamples[s], MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        _mixSamples[s] = glm::clamp(_mixSamples[s] + _preMixSamples[s], AudioConstants::MIN_SAMPLE_VALUE,
+                                    AudioConstants::MAX_SAMPLE_VALUE);
     }
 
     return 1;
@@ -700,7 +702,7 @@ void AudioMixer::run() {
 
     char clientMixBuffer[MAX_PACKET_SIZE];
     
-    int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
+    int usecToSleep = AudioConstants::NETWORK_FRAME_USECS;
     
     const int TRAILING_AVERAGE_FRAMES = 100;
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
@@ -719,7 +721,7 @@ void AudioMixer::run() {
         }
         
         _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-            + (usecToSleep * CURRENT_FRAME_RATIO / (float) BUFFER_SEND_INTERVAL_USECS);
+            + (usecToSleep * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
         
         float lastCutoffRatio = _performanceThrottlingRatio;
         bool hasRatioChanged = false;
@@ -841,7 +843,7 @@ void AudioMixer::run() {
             break;
         }
 
-        usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000; // ns to us
+        usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000; // ns to us
 
         if (usecToSleep > 0) {
             usleep(usecToSleep);
