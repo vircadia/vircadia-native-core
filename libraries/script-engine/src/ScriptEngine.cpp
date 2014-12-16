@@ -94,7 +94,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _quatLibrary(),
     _vec3Library(),
     _uuidLibrary(),
-    _animationCache(this),
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
@@ -256,7 +255,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-    registerGlobalObject("AnimationCache", &_animationCache);
+    registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>());
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 

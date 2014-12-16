@@ -249,7 +249,6 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    AnimationCache* getAnimationCache() { return &_animationCache; }
     DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
@@ -565,8 +564,6 @@ private:
 
     QSet<int> _keysPressed;
 
-
-    AnimationCache _animationCache;
 
     DeferredLightingEffect _deferredLightingEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
