@@ -12,18 +12,8 @@
 #ifndef hifi_RenderableSphereEntityItem_h
 #define hifi_RenderableSphereEntityItem_h
 
-#include <glm/glm.hpp>
-#include <stdint.h>
-
-#include <EntityTree.h>
-#include <Octree.h>
-#include <OctreePacketData.h>
-#include <OctreeRenderer.h>
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
-#include <ViewFrustum.h>
-
 #include <SphereEntityItem.h>
+class RenderArgs;
 
 class RenderableSphereEntityItem : public SphereEntityItem  {
 public:

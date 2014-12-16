@@ -18,6 +18,7 @@
 #include <EntityTree.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <Model.h>
+#include <MouseEvent.h>
 #include <Octree.h>
 #include <OctreePacketData.h>
 #include <OctreeRenderer.h>
@@ -25,6 +26,8 @@
 #include <RenderArgs.h>
 #include <SharedUtil.h>
 #include <ViewFrustum.h>
+
+class ScriptEngine;
 
 
 class EntityScriptDetails {

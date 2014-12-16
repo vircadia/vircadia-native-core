@@ -11,18 +11,12 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <FBXReader.h>
+#include <gpu/GPUConfig.h>
 
-#include "InterfaceConfig.h"
-
-#include <BoxEntityItem.h>
 #include <DeferredLightingEffect.h>
-#include <ModelEntityItem.h>
 #include <PerfStat.h>
 
-
 #include "Menu.h"
-#include "EntityTreeRenderer.h"
 #include "RenderableModelEntityItem.h"
 
 EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
