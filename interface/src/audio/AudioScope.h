@@ -41,7 +41,7 @@ public:
     
 public slots:
     void toggleScope();
-    void toggleScopePause();
+    void toggleScopePause() { _isPaused = !_isPaused; }
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
@@ -52,8 +52,8 @@ public slots:
 protected:
     AudioScope();
 private:
-    bool _scopeEnabled;
-    bool _scopeEnabledPause;
+    bool _isEnabled;
+    bool _isPaused;
     int _scopeInputOffset;
     int _scopeOutputOffset;
     int _framesPerScope;

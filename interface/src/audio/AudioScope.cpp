@@ -23,8 +23,8 @@ static const unsigned int MULTIPLIER_SCOPE_HEIGHT = 20;
 static const unsigned int SCOPE_HEIGHT = 2 * 15 * MULTIPLIER_SCOPE_HEIGHT;
 
 AudioScope::AudioScope() :
-    _scopeEnabled(false),
-    _scopeEnabledPause(false),
+    _isEnabled(false),
+    _isPaused(false),
     _scopeInputOffset(0),
     _scopeOutputOffset(0),
     _framesPerScope(DEFAULT_FRAMES_PER_SCOPE),
@@ -38,16 +38,12 @@ AudioScope::AudioScope() :
 }
 
 void AudioScope::toggleScope() {
-    _scopeEnabled = !_scopeEnabled;
-    if (_scopeEnabled) {
+    _isEnabled = !_isEnabled;
+    if (_isEnabled) {
         allocateScope();
     } else {
         freeScope();
     }
-}
-
-void AudioScope::toggleScopePause() {
-    _scopeEnabledPause = !_scopeEnabledPause;
 }
 
 void AudioScope::selectAudioScopeFiveFrames() {
@@ -98,8 +94,9 @@ void AudioScope::freeScope() {
 
 void AudioScope::render(int width, int height) {
     
-    if (!_scopeEnabled)
+    if (!_isEnabled) {
         return;
+    }
     
     static const float backgroundColor[4] = { 0.4f, 0.4f, 0.4f, 0.6f };
     static const float gridColor[4] = { 0.7f, 0.7f, 0.7f, 1.0f };
@@ -218,7 +215,7 @@ void AudioScope::renderLineStrip(const float* color, int x, int y, int n, int of
 
 int AudioScope::addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamplesPerChannel,
                             unsigned int sourceChannel, unsigned int sourceNumberOfChannels, float fade) {
-    if (!_scopeEnabled || _scopeEnabledPause) {
+    if (!_isEnabled || _isPaused) {
         return 0;
     }
     
@@ -263,7 +260,7 @@ int AudioScope::addSilenceToScope(QByteArray* byteArray, int frameOffset, int si
 const int STEREO_FACTOR = 2;
 
 void AudioScope::addStereoSilenceToScope(int silentSamplesPerChannel) {
-    if (!_scopeEnabled || _scopeEnabledPause) {
+    if (!_isEnabled || _isPaused) {
         return;
     }
     addSilenceToScope(_scopeOutputLeft, _scopeOutputOffset, silentSamplesPerChannel);
@@ -271,7 +268,7 @@ void AudioScope::addStereoSilenceToScope(int silentSamplesPerChannel) {
 }
 
 void AudioScope::addStereoSamplesToScope(const QByteArray& samples) {
-    if (!_scopeEnabled || _scopeEnabledPause) {
+    if (!_isEnabled || _isPaused) {
         return;
     }
     const int16_t* samplesData = reinterpret_cast<const int16_t*>(samples.data());
