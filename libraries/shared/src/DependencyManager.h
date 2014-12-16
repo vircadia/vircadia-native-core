@@ -12,55 +12,48 @@
 #ifndef hifi_DependencyManager_h
 #define hifi_DependencyManager_h
 
-#include <QHash>
-#include <QString>
+#include <QSharedPointer>
 
 #include <typeinfo>
-#include <assert.h>
+
+#define SINGLETON_DEPENDENCY(T)\
+public:\
+    typedef QSharedPointer<T> SharedPointer;\
+private:\
+    void customDeleter() { delete this; }\
+    friend class DependencyManager;
+
+class QObject;
 
 class DependencyManager {
 public:
     // Only accessible method.
     // usage: T* instance = DependencyManager::get<T>();
     template<typename T>
-    static T* get();
-    
-    // Any class T in the DependencyManager needs to subclass Dependency
-    // They also need to have protected constructor(s) and virtual destructor
-    // As well as declare DependencyManager a friend class
-    class Dependency {
-    protected:
-        Dependency() {}
-        virtual ~Dependency() {} // Ensure the proper destruction of the object
-        friend DependencyManager;
-    };
+    static QSharedPointer<T> get();
     
 private:
     static DependencyManager& getInstance();
     DependencyManager() {}
     ~DependencyManager();
     
-    typedef QHash<QString, Dependency*> InstanceHash;
-    static InstanceHash& getInstanceHash() { return getInstance()._instanceHash; }
-    InstanceHash _instanceHash;
+    static void noDelete(void*) {}
 };
 
 template <typename T>
-T* DependencyManager::get() {
-    const QString& typeId = typeid(T).name();
+QSharedPointer<T> DependencyManager::get() {
+    static QSharedPointer<T> sharedPointer;
+    static T* instance = new T();
     
-    // Search the hash for global instance
-    Dependency* instance = getInstanceHash().value(typeId, NULL);
     if (instance) {
-        return dynamic_cast<T*>(instance);
+        if (dynamic_cast<QObject*>(instance)) { // If this is a QOject, call deleteLater for destruction
+            sharedPointer = QSharedPointer<T>(instance, &T::deleteLater);
+        } else { // Otherwise use custom deleter to avoid issues between private destructor and QSharedPointer
+            sharedPointer = QSharedPointer<T>(instance, &T::customDeleter);
+        }
+        instance = NULL;
     }
-
-    // Found no instance in hash so we create one.
-    T* newInstance = new T();
-    instance = dynamic_cast<Dependency*>(newInstance);
-    assert(instance != NULL); // If this triggers, check that T is derived from Dependency
-    getInstanceHash().insert(typeId, instance);
-    return newInstance;
+    return sharedPointer;
 }
 
 #endif // hifi_DependencyManager_h
