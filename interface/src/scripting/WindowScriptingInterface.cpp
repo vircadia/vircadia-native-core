@@ -201,7 +201,6 @@ void WindowScriptingInterface::showNonBlockingForm(const QString& title, QScript
     
     // what should we do if someone calls us while we still think we have a dialog showing???
     if (_nonBlockingFormActive) {
-
         qDebug() << "Show Non-Blocking Form called when form already active.";
         return;
     }
