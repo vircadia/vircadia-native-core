@@ -120,6 +120,7 @@ public slots:
     void stop();
     void addReceivedAudioToStream(const QByteArray& audioByteArray);
     void parseAudioEnvironmentData(const QByteArray& packet);
+    void parseAudioStreamStatsPacket(const QByteArray& packet) { _stats.parseAudioStreamStatsPacket(packet); }
     void handleAudioInput();
     void reset();
     void audioMixerKilled();

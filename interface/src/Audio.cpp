@@ -1382,6 +1382,12 @@ int Audio::calculateNumberOfFrameSamples(int numBytes) const {
     return frameSamples;
 }
 
+float Audio::getInputRingBufferMsecsAvailable() const {
+    int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * sizeof(int16_t);
+    float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
+    return  msecsInInputRingBuffer;
+}
+
 float Audio::getAudioOutputMsecsUnplayed() const {
     if (!_audioOutput) {
         return 0.0f;

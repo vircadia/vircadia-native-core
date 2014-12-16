@@ -38,6 +38,7 @@
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
@@ -610,18 +611,19 @@ Menu::Menu() :
         audioScopeFramesGroup->addAction(twentyFrames);
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
-
+    
+    AudioIOStatsRenderer* statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                            Qt::CTRL | Qt::Key_A,
-                                            false,
-                                            audioIO,
-                                            SLOT(toggleStats()));
+                                           Qt::CTRL | Qt::Key_A,
+                                           false,
+                                           statsRenderer,
+                                           SLOT(toggle()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
                                             0,
                                             false,
-                                            audioIO,
-                                            SLOT(toggleStatsShowInjectedStreams()));
+                                            statsRenderer,
+                                            SLOT(toggleShowInjectedStreams()));
 
     connect(audioIO, SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
