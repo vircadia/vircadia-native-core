@@ -18,8 +18,10 @@
 #include <DependencyManager.h>
 
 /// customized canvas that simply forwards requests/events to the singleton application
-class GLCanvas : public QGLWidget, public DependencyManager::Dependency {
+class GLCanvas : public QGLWidget {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(GLCanvas)
+    
 public:
     bool isThrottleRendering() const;
     
@@ -60,8 +62,9 @@ private slots:
     
 private:
     GLCanvas();
-    ~GLCanvas();
-    friend class DependencyManager;
+    ~GLCanvas() {
+        qDebug() << "Deleting GLCanvas";
+    }
 };
 
 #endif // hifi_GLCanvas_h

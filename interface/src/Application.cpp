@@ -194,7 +194,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-    QSharedPointer<GLCanvas> glCanvas = DependencyManager::get<GLCanvas>();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -442,7 +442,6 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
-    DependencyManager::get<GLCanvas>()->setParent(NULL);
     
     _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);

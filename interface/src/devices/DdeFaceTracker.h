@@ -20,7 +20,7 @@
 
 class DdeFaceTracker : public FaceTracker {
     Q_OBJECT
-    SINGLETON_DEPENDENCY
+    SINGLETON_DEPENDENCY(DdeFaceTracker)
     
 public:
     //initialization
