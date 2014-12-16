@@ -229,7 +229,6 @@ private slots:
     void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
-    void muteEnvironment();
     void changeVSync();
 
 private:

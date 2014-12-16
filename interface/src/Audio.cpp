@@ -992,6 +992,25 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
     }
 }
 
+void Audio::sendMuteEnvironmentPacket() {
+    QByteArray mutePacket = byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
+    QDataStream mutePacketStream(&mutePacket, QIODevice::Append);
+    
+    const float MUTE_RADIUS = 50;
+    
+    mutePacketStream.writeBytes(reinterpret_cast<const char *>(&Application::getInstance()->getAvatar()->getPosition()),
+                                sizeof(glm::vec3));
+    mutePacketStream.writeBytes(reinterpret_cast<const char *>(&MUTE_RADIUS), sizeof(float));
+    
+    // grab our audio mixer from the NodeList, if it exists
+    SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    
+    if (audioMixer) {
+        // send off this mute packet
+        NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
+    }
+}
+
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio

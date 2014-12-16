@@ -150,6 +150,7 @@ public slots:
     void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
     void addStereoSamplesToScope(const QByteArray& samples);
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
+    void sendMuteEnvironmentPacket();
 
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
