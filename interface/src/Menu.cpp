@@ -153,11 +153,6 @@ Menu::Menu() :
     // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
     connect(&accountManager, &AccountManager::profileChanged, this, &Menu::toggleLoginMenuItem);
     connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
-    
-    // connect to signal of account manager so we can tell user when the user/place they looked at is offline
-    AddressManager* addressManager = DependencyManager::get<AddressManager>();
-    connect(addressManager, &AddressManager::lookupResultIsOffline, this, &Menu::displayAddressOfflineMessage);
-    connect(addressManager, &AddressManager::lookupResultIsNotFound, this, &Menu::displayAddressNotFoundMessage);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
@@ -1144,16 +1139,6 @@ void Menu::toggleAddressBar() {
     if (!_addressBarDialog->isVisible()) {
         _addressBarDialog->show();
     }
-}
-
-void Menu::displayAddressOfflineMessage() {
-    QMessageBox::information(Application::getInstance()->getWindow(), "Address offline",
-                             "That user or place is currently offline.");
-}
-
-void Menu::displayAddressNotFoundMessage() {
-    QMessageBox::information(Application::getInstance()->getWindow(), "Address not found",
-                             "There is no address information for that user or place.");
 }
 
 void Menu::muteEnvironment() {

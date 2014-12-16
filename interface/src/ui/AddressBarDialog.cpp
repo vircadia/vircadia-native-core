@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QMessageBox>
+
 #include "AddressBarDialog.h"
 #include "AddressManager.h"
 #include "Application.h"
@@ -21,6 +23,11 @@ AddressBarDialog::AddressBarDialog() :
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
     setupUI();
+    
+    AddressManager* addressManager = DependencyManager::get<AddressManager>();
+    
+    connect(addressManager, &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
+    connect(addressManager, &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
 }
 
 void AddressBarDialog::setupUI() {
@@ -125,4 +132,14 @@ void AddressBarDialog::accept() {
         connect(addressManager, &AddressManager::lookupResultsFinished, this, &QDialog::hide);
         addressManager->handleLookupString(_addressLineEdit->text());
     }
+}
+
+void AddressBarDialog::displayAddressOfflineMessage() {
+    QMessageBox::information(Application::getInstance()->getWindow(), "Address offline",
+                             "That user or place is currently offline.");
+}
+
+void AddressBarDialog::displayAddressNotFoundMessage() {
+    QMessageBox::information(Application::getInstance()->getWindow(), "Address not found",
+                             "There is no address information for that user or place.");
 }
