@@ -27,6 +27,8 @@
 #include <Functiondiscoverykeys_devpkey.h>
 #endif
 
+#include <AudioConstants.h>
+
 #include <QtCore/QBuffer>
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
@@ -47,12 +49,10 @@
 
 #include "Audio.h"
 
-static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
-
 static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
 static const int FRAMES_AVAILABLE_STATS_WINDOW_SECONDS = 10;
-static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.0f / AUDIO_CALLBACK_MSECS);
+static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.0f / AudioConstants::NETWORK_FRAME_MSECS);
 
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
@@ -103,22 +103,12 @@ Audio::Audio(QObject* parent) :
     _gverb(NULL),
     _iconColor(1.0f),
     _iconPulseTimeReference(usecTimestampNow()),
-    _scopeEnabled(false),
-    _scopeEnabledPause(false),
-    _scopeInputOffset(0),
-    _scopeOutputOffset(0),
-    _framesPerScope(DEFAULT_FRAMES_PER_SCOPE),
-    _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
     _noiseSourceEnabled(false),
     _toneSourceEnabled(true),
-    _scopeInput(0),
-    _scopeOutputLeft(0),
-    _scopeOutputRight(0),
-    _scopeLastFrame(),
     _statsEnabled(false),
     _statsShowInjectedStreams(false),
     _outgoingAvatarAudioSequenceNumber(0),
-    _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AUDIO_CALLBACK_MSECS * CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AudioConstants::NETWORK_FRAME_MSECS * CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _inputRingBufferMsecsAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _lastSentAudioPacket(0),
@@ -126,13 +116,13 @@ Audio::Audio(QObject* parent) :
     _audioOutputIODevice(_receivedAudioStream)
 {
     // clear the array of locally injected samples
-    memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+    memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
     // Create the noise sample array
     _noiseSampleFrames = new float[NUMBER_OF_NOISE_SAMPLE_FRAMES];
     
-    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedSilence, this, &Audio::addStereoSilenceToScope, Qt::DirectConnection);
-    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade, this, &Audio::addLastFrameRepeatedWithFadeToScope, Qt::DirectConnection);
-    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedStereoSamples, this, &Audio::addStereoSamplesToScope, Qt::DirectConnection);
+//    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedSilence, this, &Audio::addStereoSilenceToScope, Qt::DirectConnection);
+//    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade, this, &Audio::addLastFrameRepeatedWithFadeToScope, Qt::DirectConnection);
+//    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedStereoSamples, this, &Audio::addStereoSamplesToScope, Qt::DirectConnection);
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples, this, &Audio::processReceivedSamples, Qt::DirectConnection);
     
     // Initialize GVerb
@@ -324,10 +314,10 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
             }
         }
 
-        if (audioDevice.supportedSampleRates().contains(SAMPLE_RATE * 2)) {
+        if (audioDevice.supportedSampleRates().contains(AudioConstants::SAMPLE_RATE * 2)) {
             // use 48, which is a sample downsample, upsample
             adjustedAudioFormat = desiredAudioFormat;
-            adjustedAudioFormat.setSampleRate(SAMPLE_RATE * 2);
+            adjustedAudioFormat.setSampleRate(AudioConstants::SAMPLE_RATE * 2);
 
             // return the nearest in case it needs 2 channels
             adjustedAudioFormat = audioDevice.nearestFormat(adjustedAudioFormat);
@@ -425,7 +415,7 @@ void linearResampling(const int16_t* sourceSamples, int16_t* destinationSamples,
 void Audio::start() {
 
     // set up the desired audio format
-    _desiredInputFormat.setSampleRate(SAMPLE_RATE);
+    _desiredInputFormat.setSampleRate(AudioConstants::SAMPLE_RATE);
     _desiredInputFormat.setSampleSize(16);
     _desiredInputFormat.setCodec("audio/pcm");
     _desiredInputFormat.setSampleType(QAudioFormat::SignedInt);
@@ -654,7 +644,7 @@ void Audio::handleAudioInput() {
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio(_numInputCallbackBytes);
 
-    int inputSamplesRequired = (int)((float)NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+    int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
@@ -694,8 +684,12 @@ void Audio::handleAudioInput() {
         int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
         _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
 
-        const int numNetworkBytes = _isStereoInput ? NETWORK_BUFFER_LENGTH_BYTES_STEREO : NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
-        const int numNetworkSamples = _isStereoInput ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+        const int numNetworkBytes = _isStereoInput
+            ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
+            : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+        const int numNetworkSamples = _isStereoInput
+            ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
+            : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
 
         // zero out the monoAudioSamples array and the locally injected audio
         memset(networkAudioSamples, 0, numNetworkBytes);
@@ -745,10 +739,11 @@ void Audio::handleAudioInput() {
                 float measuredDcOffset = 0.0f;
                 //  Increment the time since the last clip
                 if (_timeSinceLastClip >= 0.0f) {
-                    _timeSinceLastClip += (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE;
+                    _timeSinceLastClip += (float) AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL
+                        / (float) AudioConstants::SAMPLE_RATE;
                 }
                 
-                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
                     measuredDcOffset += networkAudioSamples[i];
                     networkAudioSamples[i] -= (int16_t) _dcOffset;
                     thisSample = fabsf(networkAudioSamples[i]);
@@ -762,7 +757,7 @@ void Audio::handleAudioInput() {
                     }
                 }
                 
-                measuredDcOffset /= NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                measuredDcOffset /= AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
                 if (_dcOffset == 0.0f) {
                     // On first frame, copy over measured offset
                     _dcOffset = measuredDcOffset;
@@ -770,7 +765,7 @@ void Audio::handleAudioInput() {
                     _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
                 }
                 
-                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                _lastInputLoudness = fabs(loudness / AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 if (_quietestFrame > _lastInputLoudness) {
                     _quietestFrame = _lastInputLoudness;
@@ -818,18 +813,18 @@ void Audio::handleAudioInput() {
                         }
                     }
                     if (!_noiseGateOpen) {
-                        memset(networkAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+                        memset(networkAudioSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
                         _lastInputLoudness = 0;
                     }
                 }
             } else {
                 float loudness = 0.0f;
                 
-                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; i++) {
+                for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
                     loudness += fabsf(networkAudioSamples[i]);
                 }
                 
-                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                _lastInputLoudness = fabs(loudness / AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
             }
         } else {
             // our input loudness is 0, since we're muted
@@ -837,14 +832,14 @@ void Audio::handleAudioInput() {
         }
         
         if (!_isStereoInput && _proceduralAudioOutput) {
-            processProceduralAudio(networkAudioSamples, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            processProceduralAudio(networkAudioSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
         }
 
-        if (!_isStereoInput && _scopeEnabled && !_scopeEnabledPause) {
-            unsigned int numMonoAudioChannels = 1;
-            unsigned int monoAudioChannel = 0;
-            _scopeInputOffset = addBufferToScope(_scopeInput, _scopeInputOffset, networkAudioSamples, NETWORK_SAMPLES_PER_FRAME, monoAudioChannel, numMonoAudioChannels);
-        }
+//        if (!_isStereoInput && _scopeEnabled && !_scopeEnabledPause) {
+//            unsigned int numMonoAudioChannels = 1;
+//            unsigned int monoAudioChannel = 0;
+//            _scopeInputOffset = addBufferToScope(_scopeInput, _scopeInputOffset, networkAudioSamples, NETWORK_SAMPLES_PER_FRAME, monoAudioChannel, numMonoAudioChannels);
+//        }
 
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -926,45 +921,6 @@ void Audio::handleAudioInput() {
         }
         delete[] inputAudioSamples;
     }
-}
-
-const int STEREO_FACTOR = 2;
-
-void Audio::addStereoSilenceToScope(int silentSamplesPerChannel) {
-    if (!_scopeEnabled || _scopeEnabledPause) {
-        return;
-    }
-    addSilenceToScope(_scopeOutputLeft, _scopeOutputOffset, silentSamplesPerChannel);
-    _scopeOutputOffset = addSilenceToScope(_scopeOutputRight, _scopeOutputOffset, silentSamplesPerChannel);
-}
-
-void Audio::addStereoSamplesToScope(const QByteArray& samples) {
-    if (!_scopeEnabled || _scopeEnabledPause) {
-        return;
-    }
-    const int16_t* samplesData = reinterpret_cast<const int16_t*>(samples.data());
-    int samplesPerChannel = samples.size() / sizeof(int16_t) / STEREO_FACTOR;
-
-    addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, samplesData, samplesPerChannel, 0, STEREO_FACTOR);
-    _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, samplesData, samplesPerChannel, 1, STEREO_FACTOR);
-
-    _scopeLastFrame = samples.right(NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-}
-
-void Audio::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
-    const int16_t* lastFrameData = reinterpret_cast<const int16_t*>(_scopeLastFrame.data());
-
-    int samplesRemaining = samplesPerChannel;
-    int indexOfRepeat = 0;
-    do {
-        int samplesToWriteThisIteration = std::min(samplesRemaining, (int)NETWORK_SAMPLES_PER_FRAME);
-       float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
-        addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 0, STEREO_FACTOR, fade);
-        _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 1, STEREO_FACTOR, fade);
-
-        samplesRemaining -= samplesToWriteThisIteration;
-        indexOfRepeat++;
-    } while (samplesRemaining > 0);
 }
 
 void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
@@ -1150,9 +1106,9 @@ void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
 
     // zero out the locally injected audio in preparation for audio procedural sounds
     // This is correlated to numSamples, so it really needs to be numSamples * sizeof(sample)
-    memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+    memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
     // add procedural effects to the appropriate input samples
-    addProceduralSounds(monoInput, NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    addProceduralSounds(monoInput, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
         
     if (!_proceduralOutputDevice) {
         _proceduralOutputDevice = _proceduralAudioOutput->start();
@@ -1160,13 +1116,13 @@ void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
         
     // send whatever procedural sounds we want to locally loop back to the _proceduralOutputDevice
     QByteArray proceduralOutput;
-    proceduralOutput.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * _outputFormat.sampleRate() *
+    proceduralOutput.resize(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * _outputFormat.sampleRate() *
         _outputFormat.channelCount() * sizeof(int16_t) / (_desiredInputFormat.sampleRate() *
             _desiredInputFormat.channelCount()));
         
     linearResampling(_localProceduralSamples,
         reinterpret_cast<int16_t*>(proceduralOutput.data()),
-        NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+        AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
         proceduralOutput.size() / sizeof(int16_t),
         _desiredInputFormat, _outputFormat);
         
@@ -1230,7 +1186,7 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
     const float MAX_DURATION = 2.0f;
     const float MIN_AUDIBLE_VOLUME = 0.001f;
     const float NOISE_MAGNITUDE = 0.02f;
-    float frequency = (_drumSoundFrequency / SAMPLE_RATE) * TWO_PI;
+    float frequency = (_drumSoundFrequency / AudioConstants::SAMPLE_RATE) * TWO_PI;
     if (_drumSoundVolume > 0.0f) {
         for (int i = 0; i < numSamples; i++) {
             t = (float) _drumSoundSample + (float) i;
@@ -1254,7 +1210,7 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
             _drumSoundVolume *= (1.0f - _drumSoundDecay);
         }
         _drumSoundSample += numSamples;
-        _drumSoundDuration = glm::clamp(_drumSoundDuration - (AUDIO_CALLBACK_MSECS / 1000.0f), 0.0f, MAX_DURATION);
+        _drumSoundDuration = glm::clamp(_drumSoundDuration - (AudioConstants::NETWORK_FRAME_MSECS / 1000.0f), 0.0f, MAX_DURATION);
         if (_drumSoundDuration == 0.0f || (_drumSoundVolume < MIN_AUDIBLE_VOLUME)) {
             _drumSoundVolume = 0.0f;
         }
@@ -1382,120 +1338,12 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     glDisable(GL_TEXTURE_2D);
 }
 
-void Audio::toggleScope() {
-    _scopeEnabled = !_scopeEnabled;
-    if (_scopeEnabled) {
-        allocateScope();
-    } else {
-        freeScope();
-    }
-}
-
-void Audio::toggleScopePause() {
-    _scopeEnabledPause = !_scopeEnabledPause;
-}
-
 void Audio::toggleStats() {
     _statsEnabled = !_statsEnabled;
 }
 
 void Audio::toggleStatsShowInjectedStreams() {
     _statsShowInjectedStreams = !_statsShowInjectedStreams;
-}
-
-void Audio::selectAudioScopeFiveFrames() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioScopeFiveFrames)) {
-        reallocateScope(5);
-    }
-}
-
-void Audio::selectAudioScopeTwentyFrames() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioScopeTwentyFrames)) {
-        reallocateScope(20);
-    }
-}
-
-void Audio::selectAudioScopeFiftyFrames() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioScopeFiftyFrames)) {
-        reallocateScope(50);
-    }
-}
-
-void Audio::allocateScope() {
-    _scopeInputOffset = 0;
-    _scopeOutputOffset = 0;
-    int num = _samplesPerScope * sizeof(int16_t);
-    _scopeInput = new QByteArray(num, 0);
-    _scopeOutputLeft = new QByteArray(num, 0);
-    _scopeOutputRight = new QByteArray(num, 0);
-}
-
-void Audio::reallocateScope(int frames) {
-    if (_framesPerScope != frames) {
-        _framesPerScope = frames;
-        _samplesPerScope = NETWORK_SAMPLES_PER_FRAME * _framesPerScope;
-        QMutexLocker lock(&_guard);
-        freeScope();
-        allocateScope();
-    }
-}
-
-void Audio::freeScope() {
-    if (_scopeInput) {
-        delete _scopeInput;
-        _scopeInput = 0;
-    }
-    if (_scopeOutputLeft) {
-        delete _scopeOutputLeft;
-        _scopeOutputLeft = 0;
-    }
-    if (_scopeOutputRight) {
-        delete _scopeOutputRight;
-        _scopeOutputRight = 0;
-    }
-}
-
-int Audio::addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamplesPerChannel,
-    unsigned int sourceChannel, unsigned int sourceNumberOfChannels, float fade) {
-    if (!_scopeEnabled || _scopeEnabledPause) {
-        return 0;
-    }
-    
-    // Temporary variable receives sample value
-    float sample;
-
-    QMutexLocker lock(&_guard);
-    // Short int pointer to mapped samples in byte array
-    int16_t* destination = (int16_t*) byteArray->data();
-
-    for (int i = 0; i < sourceSamplesPerChannel; i++) {
-        sample = (float)source[i * sourceNumberOfChannels + sourceChannel];
-        destination[frameOffset] = sample / (float) MAX_16_BIT_AUDIO_SAMPLE * (float)SCOPE_HEIGHT / 2.0f;
-        frameOffset = (frameOffset == _samplesPerScope - 1) ? 0 : frameOffset + 1;
-    }
-    return frameOffset;
-}
-
-int Audio::addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples) {
-
-    QMutexLocker lock(&_guard);
-    // Short int pointer to mapped samples in byte array
-    int16_t* destination = (int16_t*)byteArray->data();
-
-    if (silentSamples >= _samplesPerScope) {
-        memset(destination, 0, byteArray->size());
-        return frameOffset;
-    }
-
-    int samplesToBufferEnd = _samplesPerScope - frameOffset;
-    if (silentSamples > samplesToBufferEnd) {
-        memset(destination + frameOffset, 0, samplesToBufferEnd * sizeof(int16_t));
-        memset(destination, 0, silentSamples - samplesToBufferEnd * sizeof(int16_t));
-    } else {
-        memset(destination + frameOffset, 0, silentSamples * sizeof(int16_t));
-    }
-
-    return (frameOffset + silentSamples) % _samplesPerScope;
 }
 
 void Audio::renderStats(const float* color, int width, int height) {
@@ -1514,10 +1362,18 @@ void Audio::renderStats(const float* color, int width, int height) {
 
     int x = std::max((width - (int)STATS_WIDTH) / 2, 0);
     int y = std::max((height - CENTERED_BACKGROUND_HEIGHT) / 2, 0);
-    int w = STATS_WIDTH;
-    int h = statsHeight;
-    renderBackground(backgroundColor, x, y, w, h);
-
+    int backgroundHeight = statsHeight;
+    
+    glColor4fv(backgroundColor);
+    glBegin(GL_QUADS);
+    
+    glVertex2i(x, y);
+    glVertex2i(x + STATS_WIDTH, y);
+    glVertex2i(x + STATS_WIDTH, y + backgroundHeight);
+    glVertex2i(x , y + backgroundHeight);
+    
+    glEnd();
+    glColor4f(1, 1, 1, 1);
 
     int horizontalOffset = x + 5;
     int verticalOffset = y;
@@ -1689,132 +1545,9 @@ void Audio::renderAudioStreamStats(const AudioStreamStats& streamStats, int hori
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, stringBuffer, color);
 }
 
-
-void Audio::renderScope(int width, int height) {
-
-    if (!_scopeEnabled)
-        return;
-
-    static const float backgroundColor[4] = { 0.4f, 0.4f, 0.4f, 0.6f };
-    static const float gridColor[4] = { 0.7f, 0.7f, 0.7f, 1.0f };
-    static const float inputColor[4] = { 0.3f, 1.0f, 0.3f, 1.0f };
-    static const float outputLeftColor[4] = { 1.0f, 0.3f, 0.3f, 1.0f };
-    static const float outputRightColor[4] = { 0.3f, 0.3f, 1.0f, 1.0f };
-    static const int gridRows = 2;
-    int gridCols = _framesPerScope;
-
-    int x = (width - (int)SCOPE_WIDTH) / 2;
-    int y = (height - (int)SCOPE_HEIGHT) / 2;
-    int w = (int)SCOPE_WIDTH;
-    int h = (int)SCOPE_HEIGHT;
-
-    renderBackground(backgroundColor, x, y, w, h);
-    renderGrid(gridColor, x, y, w, h, gridRows, gridCols);
-
-    QMutexLocker lock(&_guard);
-    renderLineStrip(inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
-    renderLineStrip(outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
-    renderLineStrip(outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
-}
-
-void Audio::renderBackground(const float* color, int x, int y, int width, int height) {
-
-    glColor4fv(color);
-    glBegin(GL_QUADS);
-
-    glVertex2i(x, y);
-    glVertex2i(x + width, y);
-    glVertex2i(x + width, y + height);
-    glVertex2i(x , y + height);
-
-    glEnd();
-    glColor4f(1, 1, 1, 1); 
-}
-
-void Audio::renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols) {
-
-    glColor4fv(color);
-    glBegin(GL_LINES);
-
-    int dx = width / cols;
-    int dy = height / rows;
-    int tx = x;
-    int ty = y;
-
-    // Draw horizontal grid lines
-    for (int i = rows + 1; --i >= 0; ) {
-        glVertex2i(x, ty);
-        glVertex2i(x + width, ty);
-        ty += dy;
-    }
-    // Draw vertical grid lines
-    for (int i = cols + 1; --i >= 0; ) {
-        glVertex2i(tx, y);
-        glVertex2i(tx, y + height);
-        tx += dx;
-    }
-    glEnd();
-    glColor4f(1, 1, 1, 1); 
-}
-
-void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray) {
-
-    glColor4fv(color);
-    glBegin(GL_LINE_STRIP);
-
-    int16_t sample;
-    int16_t* samples = ((int16_t*) byteArray->data()) + offset;
-    int numSamplesToAverage = _framesPerScope / DEFAULT_FRAMES_PER_SCOPE;
-    int count = (n - offset) / numSamplesToAverage;
-    int remainder = (n - offset) % numSamplesToAverage;
-    y += SCOPE_HEIGHT / 2;
-
-    // Compute and draw the sample averages from the offset position
-    for (int i = count; --i >= 0; ) {
-        sample = 0;
-        for (int j = numSamplesToAverage; --j >= 0; ) {
-            sample += *samples++;
-        }
-        sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
-    }
-
-    // Compute and draw the sample average across the wrap boundary
-    if (remainder != 0) {
-        sample = 0;
-        for (int j = remainder; --j >= 0; ) {
-            sample += *samples++;
-        }
-    
-        samples = (int16_t*) byteArray->data();
-
-        for (int j = numSamplesToAverage - remainder; --j >= 0; ) {
-            sample += *samples++;
-        }
-        sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
-    } else {
-        samples = (int16_t*) byteArray->data();
-    }
-
-    // Compute and draw the sample average from the beginning to the offset
-    count = (offset - remainder) / numSamplesToAverage;
-    for (int i = count; --i >= 0; ) {
-        sample = 0;
-        for (int j = numSamplesToAverage; --j >= 0; ) {
-            sample += *samples++;
-        }
-        sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
-    }
-    glEnd();
-    glColor4f(1, 1, 1, 1); 
-}
-
-
 void Audio::outputFormatChanged() {
     int outputFormatChannelCountTimesSampleRate = _outputFormat.channelCount() * _outputFormat.sampleRate();
-    _outputFrameSize = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * outputFormatChannelCountTimesSampleRate / _desiredOutputFormat.sampleRate();
+    _outputFrameSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * outputFormatChannelCountTimesSampleRate / _desiredOutputFormat.sampleRate();
     _receivedAudioStream.outputFormatChanged(outputFormatChannelCountTimesSampleRate);
 }
 
@@ -1934,9 +1667,9 @@ const float Audio::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
 int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const {
-    int numInputCallbackBytes = (int)(((NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL 
+    int numInputCallbackBytes = (int)(((AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
         * format.channelCount()
-        * (format.sampleRate() / SAMPLE_RATE))
+        * (format.sampleRate() / AudioConstants::SAMPLE_RATE))
         / CALLBACK_ACCELERATOR_RATIO) + 0.5f);
 
     return numInputCallbackBytes;
@@ -1945,7 +1678,7 @@ int Audio::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const
 float Audio::calculateDeviceToNetworkInputRatio(int numBytes) const {
     float inputToNetworkInputRatio = (int)((_numInputCallbackBytes 
         * CALLBACK_ACCELERATOR_RATIO
-        / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL) + 0.5f);
+        / AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL) + 0.5f);
 
     return inputToNetworkInputRatio;
 }

@@ -376,7 +376,7 @@ void Player::setAudionInjectorPosition() {
     int SAMPLE_SIZE = 2; // 16 bits
     int CHANNEL_COUNT = 1;
     int FRAME_SIZE = SAMPLE_SIZE * CHANNEL_COUNT;
-    int currentAudioFrame = elapsed() * FRAME_SIZE * (SAMPLE_RATE / MSEC_PER_SEC);
+    int currentAudioFrame = elapsed() * FRAME_SIZE * (AudioConstants::SAMPLE_RATE / MSEC_PER_SEC);
     _injector->setCurrentSendPosition(currentAudioFrame);
 }
 

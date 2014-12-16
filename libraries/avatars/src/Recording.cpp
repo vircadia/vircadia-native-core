@@ -771,7 +771,7 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     // Cut down audio if necessary
     int SAMPLE_SIZE = 2; // 16 bits
     int MSEC_PER_SEC = 1000;
-    int audioLength = recording->getLength() * SAMPLE_SIZE * (SAMPLE_RATE / MSEC_PER_SEC);
+    int audioLength = recording->getLength() * SAMPLE_SIZE * (AudioConstants::SAMPLE_RATE / MSEC_PER_SEC);
     audioArray.chop(audioArray.size() - audioLength);
     
     recording->addAudioPacket(audioArray);

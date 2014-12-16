@@ -109,11 +109,7 @@ public:
     bool mousePressEvent(int x, int y);
     
     void renderToolBox(int x, int y, bool boxed);
-    void renderScope(int width, int height);
     void renderStats(const float* color, int width, int height);
-    
-    int getNetworkSampleRate() { return SAMPLE_RATE; }
-    int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
 
     float getInputRingBufferMsecsAvailable() const;
     float getInputRingBufferAverageMsecsAvailable() const { return (float)_inputRingBufferMsecsAvailableStats.getWindowAverage(); }
@@ -138,17 +134,11 @@ public slots:
     void toggleAudioSourceInject();
     void selectAudioSourcePinkNoise();
     void selectAudioSourceSine440();
-    void toggleScope();
-    void toggleScopePause();
+   
     void toggleStats();
     void toggleStatsShowInjectedStreams();
     void toggleStereoInput();
-    void selectAudioScopeFiveFrames();
-    void selectAudioScopeTwentyFrames();
-    void selectAudioScopeFiftyFrames();
-    void addStereoSilenceToScope(int silentSamplesPerChannel);
-    void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
-    void addStereoSamplesToScope(const QByteArray& samples);
+  
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
 
@@ -185,12 +175,12 @@ private:
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
-    int16_t _localProceduralSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
+    int16_t _localProceduralSamples[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL];
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     int _outputFrameSize;
-    int16_t _outputProcessingBuffer[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
+    int16_t _outputProcessingBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
@@ -275,37 +265,9 @@ private:
     int calculateNumberOfFrameSamples(int numBytes) const;
     float calculateDeviceToNetworkInputRatio(int numBytes) const;
 
-    // Audio scope methods for allocation/deallocation
-    void allocateScope();
-    void freeScope();
-    void reallocateScope(int frames);
-
-    // Audio scope methods for data acquisition
-    int addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamples,
-        unsigned int sourceChannel, unsigned int sourceNumberOfChannels, float fade = 1.0f);
-    int addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples);
-
-    // Audio scope methods for rendering
-    void renderBackground(const float* color, int x, int y, int width, int height);
-    void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
-    void renderLineStrip(const float* color, int x, int  y, int n, int offset, const QByteArray* byteArray);
-
     // audio stats methods for rendering
     void renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
         float scale, float rotation, int font, const float* color, bool isDownstreamStats = false);
-    
-    // Audio scope data
-    static const unsigned int NETWORK_SAMPLES_PER_FRAME = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-    static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
-    static const unsigned int SCOPE_WIDTH = NETWORK_SAMPLES_PER_FRAME * DEFAULT_FRAMES_PER_SCOPE;
-    static const unsigned int MULTIPLIER_SCOPE_HEIGHT = 20;
-    static const unsigned int SCOPE_HEIGHT = 2 * 15 * MULTIPLIER_SCOPE_HEIGHT;
-    bool _scopeEnabled;
-    bool _scopeEnabledPause;
-    int _scopeInputOffset;
-    int _scopeOutputOffset;
-    int _framesPerScope;
-    int _samplesPerScope;
 
     // Input framebuffer
     AudioBufferFloat32 _inputFrameBuffer;
@@ -324,12 +286,6 @@ private:
     bool _toneSourceEnabled;
     AudioSourceTone _toneSource;
     
-    
-    QMutex _guard;
-    QByteArray* _scopeInput;
-    QByteArray* _scopeOutputLeft;
-    QByteArray* _scopeOutputRight;
-    QByteArray _scopeLastFrame;
 #ifdef _WIN32
     static const unsigned int STATS_WIDTH = 1500;
 #else

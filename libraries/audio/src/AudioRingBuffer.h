@@ -15,20 +15,15 @@
 #include <limits>
 #include <stdint.h>
 
+#include "AudioConstants.h"
+
 #include <QtCore/QIODevice>
 
 #include <SharedUtil.h>
 #include <NodeData.h>
 
-const int SAMPLE_RATE = 24000;
-
-const int NETWORK_BUFFER_LENGTH_BYTES_STEREO = 1024;
-const int NETWORK_BUFFER_LENGTH_SAMPLES_STEREO = NETWORK_BUFFER_LENGTH_BYTES_STEREO / sizeof(int16_t);
-const int NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL = 512;
-const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL / sizeof(int16_t);
-
-const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-    / (float)SAMPLE_RATE) * USECS_PER_SECOND);
+const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL
+                                                        / (float)AudioConstants::SAMPLE_RATE) * USECS_PER_SECOND);
 
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();

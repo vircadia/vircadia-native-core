@@ -83,7 +83,7 @@ void AudioInjector::injectAudio() {
     if (_options.secondOffset > 0.0f) {
         
         // convert the offset into a number of bytes
-        int byteOffset = (int) floorf(SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+        int byteOffset = (int) floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
         byteOffset *= sizeof(int16_t);
         
         _currentSendPosition = byteOffset;
@@ -197,7 +197,7 @@ void AudioInjector::injectToMixer() {
         quint16 outgoingInjectedAudioSequenceNumber = 0;
         while (_currentSendPosition < _audioData.size() && !_shouldStop) {
             
-            int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
+            int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
                                        _audioData.size() - _currentSendPosition);
             
             //  Measure the loudness of this frame
