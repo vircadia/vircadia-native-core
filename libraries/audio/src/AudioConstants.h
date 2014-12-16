@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 namespace AudioConstants {
-    const int SAMPLE_RATE = 2400;
+    const int SAMPLE_RATE = 24000;
     
     typedef int16_t AudioSample;
     
