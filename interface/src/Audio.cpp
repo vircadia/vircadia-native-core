@@ -64,8 +64,6 @@ Audio::Audio() :
     _numOutputCallbackBytes(0),
     _loopbackAudioOutput(NULL),
     _loopbackOutputDevice(NULL),
-    _proceduralAudioOutput(NULL),
-    _proceduralOutputDevice(NULL),
     _inputRingBuffer(0),
     _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, InboundAudioStream::Settings()),
     _isStereoInput(false),
@@ -83,11 +81,6 @@ Audio::Audio() :
     _audioSourceInjectEnabled(false),
     _noiseGateFramesToClose(0),
     _totalInputAudioSamples(0),
-    _collisionSoundMagnitude(0.0f),
-    _collisionSoundFrequency(0.0f),
-    _collisionSoundNoise(0.0f),
-    _collisionSoundDuration(0.0f),
-    _proceduralEffectSample(0),
     _muted(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
@@ -793,10 +786,6 @@ void Audio::handleAudioInput() {
             _lastInputLoudness = 0;
         }
         
-        if (!_isStereoInput && _proceduralAudioOutput) {
-            processProceduralAudio(networkAudioSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-        }
-        
         emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL));
 
@@ -976,35 +965,6 @@ void Audio::toggleStereoInput() {
     }
 }
 
-void Audio::processProceduralAudio(int16_t* monoInput, int numSamples) {
-
-    // zero out the locally injected audio in preparation for audio procedural sounds
-    // This is correlated to numSamples, so it really needs to be numSamples * sizeof(sample)
-    memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
-    // add procedural effects to the appropriate input samples
-    addProceduralSounds(monoInput, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-        
-    if (!_proceduralOutputDevice) {
-        _proceduralOutputDevice = _proceduralAudioOutput->start();
-    }
-        
-    // send whatever procedural sounds we want to locally loop back to the _proceduralOutputDevice
-    QByteArray proceduralOutput;
-    proceduralOutput.resize(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * _outputFormat.sampleRate() *
-        _outputFormat.channelCount() * sizeof(int16_t) / (_desiredInputFormat.sampleRate() *
-            _desiredInputFormat.channelCount()));
-        
-    linearResampling(_localProceduralSamples,
-        reinterpret_cast<int16_t*>(proceduralOutput.data()),
-        AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
-        proceduralOutput.size() / sizeof(int16_t),
-        _desiredInputFormat, _outputFormat);
-        
-    if (_proceduralOutputDevice) {
-        _proceduralOutputDevice->write(proceduralOutput);
-    }
-}
-
 void Audio::toggleAudioSourceInject() {
     _audioSourceInjectEnabled = !_audioSourceInjectEnabled;
 }
@@ -1017,101 +977,6 @@ void Audio::selectAudioSourcePinkNoise() {
 void Audio::selectAudioSourceSine440() {
     _toneSourceEnabled = Menu::getInstance()->isOptionChecked(MenuOption::AudioSourceSine440);
     _noiseSourceEnabled = !_toneSourceEnabled;
-}
-
-//  Take a pointer to the acquired microphone input samples and add procedural sounds
-void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
-    float sample;
-    const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
-    const float COLLISION_SOUND_MAX_VOLUME = 1000.0f;
-    const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
-    const float DOWN_TWO_OCTAVES = 4.0f;
-    const float DOWN_FOUR_OCTAVES = 16.0f;
-    float t;
-    if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
-        for (int i = 0; i < numSamples; i++) {
-            t = (float) _proceduralEffectSample + (float) i;
-
-            sample = sinf(t * _collisionSoundFrequency)
-                + sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES)
-                + sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
-            sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
-
-            int16_t collisionSample = (int16_t) sample;
-
-            _lastInputLoudness = 0;
-            
-            monoInput[i] = glm::clamp(monoInput[i] + collisionSample,
-                                      AudioConstants::MIN_SAMPLE_VALUE,
-                                      AudioConstants::MAX_SAMPLE_VALUE);
-            
-            _lastInputLoudness += fabsf(monoInput[i]);
-            _lastInputLoudness /= numSamples;
-            _lastInputLoudness /= AudioConstants::MAX_SAMPLE_VALUE;
-            
-            _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
-                                                    AudioConstants::MIN_SAMPLE_VALUE,
-                                                    AudioConstants::MAX_SAMPLE_VALUE);
-
-            _collisionSoundMagnitude *= _collisionSoundDuration;
-        }
-    }
-    _proceduralEffectSample += numSamples;
-
-    //  Add a drum sound
-    const float MAX_VOLUME = 32000.0f;
-    const float MAX_DURATION = 2.0f;
-    const float MIN_AUDIBLE_VOLUME = 0.001f;
-    const float NOISE_MAGNITUDE = 0.02f;
-    float frequency = (_drumSoundFrequency / AudioConstants::SAMPLE_RATE) * TWO_PI;
-    if (_drumSoundVolume > 0.0f) {
-        for (int i = 0; i < numSamples; i++) {
-            t = (float) _drumSoundSample + (float) i;
-            sample = sinf(t * frequency);
-            sample += ((randFloat() - 0.5f) * NOISE_MAGNITUDE);
-            sample *= _drumSoundVolume * MAX_VOLUME;
-
-            int16_t collisionSample = (int16_t) sample;
-
-            _lastInputLoudness = 0;
-            
-            monoInput[i] = glm::clamp(monoInput[i] + collisionSample,
-                                      AudioConstants::MIN_SAMPLE_VALUE,
-                                      AudioConstants::MAX_SAMPLE_VALUE);
-            
-            _lastInputLoudness += fabsf(monoInput[i]);
-            _lastInputLoudness /= numSamples;
-            _lastInputLoudness /= AudioConstants::MAX_SAMPLE_VALUE;
-            
-            _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
-                                                    AudioConstants::MIN_SAMPLE_VALUE,
-                                                    AudioConstants::MAX_SAMPLE_VALUE);
-
-            _drumSoundVolume *= (1.0f - _drumSoundDecay);
-        }
-        _drumSoundSample += numSamples;
-        _drumSoundDuration = glm::clamp(_drumSoundDuration - (AudioConstants::NETWORK_FRAME_MSECS / 1000.0f), 0.0f, MAX_DURATION);
-        if (_drumSoundDuration == 0.0f || (_drumSoundVolume < MIN_AUDIBLE_VOLUME)) {
-            _drumSoundVolume = 0.0f;
-        }
-    }
-}
-
-//  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound.
-void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen) {
-    _collisionSoundMagnitude = magnitude;
-    _collisionSoundFrequency = frequency;
-    _collisionSoundNoise = noise;
-    _collisionSoundDuration = duration;
-    _collisionFlashesScreen = flashScreen;
-}
-
-void Audio::startDrumSound(float volume, float frequency, float duration, float decay) {
-    _drumSoundVolume = volume;
-    _drumSoundFrequency = frequency;
-    _drumSoundDuration = duration;
-    _drumSoundDecay = decay;
-    _drumSoundSample = 0;
 }
 
 bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) {
@@ -1203,11 +1068,6 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
         _loopbackOutputDevice = NULL;
         delete _loopbackAudioOutput;
         _loopbackAudioOutput = NULL;
-
-        _proceduralOutputDevice = NULL;
-        delete _proceduralAudioOutput;
-        _proceduralAudioOutput = NULL;
-        _outputAudioDeviceName = "";
     }
 
     if (!outputDeviceInfo.isNull()) {
@@ -1231,9 +1091,6 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 
             // setup a loopback audio output device
             _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-        
-            // setup a procedural audio output device
-            _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
             _timeSinceLastReceived.start();
 

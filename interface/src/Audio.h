@@ -95,10 +95,6 @@ public:
 
     int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
     
-    float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
-    
-    bool getCollisionFlashesScreen() { return _collisionFlashesScreen; }
-    
     bool isMuted() { return _muted; }
     
     const AudioIOStats& getStats() const { return _stats; }
@@ -170,8 +166,6 @@ private:
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
-    QAudioOutput* _proceduralAudioOutput;
-    QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
@@ -198,20 +192,6 @@ private:
     int _noiseGateFramesToClose;
     int _totalInputAudioSamples;
     
-    float _collisionSoundMagnitude;
-    float _collisionSoundFrequency;
-    float _collisionSoundNoise;
-    float _collisionSoundDuration;
-    bool _collisionFlashesScreen;
-    
-    // Drum sound generator
-    float _drumSoundVolume;
-    float _drumSoundFrequency;
-    float _drumSoundDuration;
-    float _drumSoundDecay;
-    int _drumSoundSample;
-    
-    int _proceduralEffectSample;
     bool _muted;
     bool _localEcho;
     bool _reverb;
@@ -220,11 +200,6 @@ private:
     AudioEffectOptions* _reverbOptions;
     ty_gverb* _gverbLocal;
     ty_gverb* _gverb;
-    
-    // Process procedural audio by
-    //  1. Echo to the local procedural output device
-    //  2. Mix with the audio input
-    void processProceduralAudio(int16_t* monoInput, int numSamples);
 
     // Adds Reverb
     void initGverb();
@@ -232,9 +207,6 @@ private:
     void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
-    
-    // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
-    void addProceduralSounds(int16_t* monoInput, int numSamples);
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);

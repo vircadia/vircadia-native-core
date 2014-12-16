@@ -767,16 +767,6 @@ void ApplicationOverlay::renderAudioMeter() {
     GLCanvas* glWidget = application->getGLWidget();
     Audio* audio = DependencyManager::get<Audio>();
 
-    //  Display a single screen-size quad to create an alpha blended 'collision' flash
-    if (audio->getCollisionFlashesScreen()) {
-        float collisionSoundMagnitude = audio->getCollisionSoundMagnitude();
-        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
-        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
-            renderCollisionOverlay(glWidget->width(), glWidget->height(),
-                audio->getCollisionSoundMagnitude());
-        }
-    }
-
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
     const int AUDIO_METER_INSET = 2;
