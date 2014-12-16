@@ -17,10 +17,7 @@
 #if defined(__APPLE__)
 #include <GLUT/glut.h>
 #elif defined(WIN32)
-#include <windowshacks.h>
-#include <GL/glew.h>
-#include <GL/glut.h>
-#include <GL/wglew.h>
+    // nothing?
 #else
 #include <GL/glut.h>
 #endif
