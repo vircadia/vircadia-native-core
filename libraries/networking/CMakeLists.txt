@@ -10,8 +10,9 @@ if (WIN32)
   target_link_libraries(${TARGET_NAME} ws2_32.lib)
 endif ()
 
-# find OpenSSL
+# find required dependencies
 find_package(OpenSSL REQUIRED)
+find_package(TBB REQUIRED)
 
 if (APPLE AND ${OPENSSL_INCLUDE_DIR} STREQUAL "/usr/include")
   # this is a user on OS X using system OpenSSL, which is going to throw warnings since they're deprecating for their common crypto
@@ -22,7 +23,10 @@ endif ()
 include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 
 # append OpenSSL to our list of libraries to link
-list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${OPENSSL_LIBRARIES}")
+list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${OPENSSL_LIBRARIES}" "${TBB_LIBRARIES}")
+
+# append libcuckoo includes to our list of includes to bubble
+list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${TBB_INCLUDE_DIRS}")
 
 # call macro to link our dependencies and bubble them up via a property on our target
 link_shared_dependencies()

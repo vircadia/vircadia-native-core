@@ -68,7 +68,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         int expectedInt = (int)expected;
 
         // check if the gap between incoming and expected is reasonable, taking possible rollover into consideration
-        int absGap = std::abs(incomingInt - expectedInt);
+        int absGap = abs(incomingInt - expectedInt);
         if (absGap >= UINT16_RANGE - MAX_REASONABLE_SEQUENCE_GAP) {
             // rollover likely occurred between incoming and expected.
             // correct the larger of the two so that it's within [-UINT16_RANGE, -1] while the other remains within [0, UINT16_RANGE-1]
