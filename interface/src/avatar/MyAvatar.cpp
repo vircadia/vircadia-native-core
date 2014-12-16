@@ -1641,30 +1641,7 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
-    //  consider whether to have the collision make a sound
-    const float AUDIBLE_COLLISION_THRESHOLD = 0.02f;
-    const float COLLISION_LOUDNESS = 1.0f;
-    const float DURATION_SCALING = 0.004f;
-    const float NOISE_SCALING = 0.1f;
-    glm::vec3 velocity = _velocity;
-    glm::vec3 gravity = getGravity();
-
-    if (glm::length(gravity) > EPSILON) {
-        //  If gravity is on, remove the effect of gravity on velocity for this
-        //  frame, so that we are not constantly colliding with the surface
-        velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
-    }
-    float velocityTowardCollision = glm::dot(velocity, glm::normalize(penetration));
-    float velocityTangentToCollision = glm::length(velocity) - velocityTowardCollision;
-
-    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
-        //  Volume is proportional to collision velocity
-        //  Base frequency is modified upward by the angle of the collision
-        //  Noise is a function of the angle of collision
-        //  Duration of the sound is a function of both base frequency and velocity of impact
-        
-        // COLLISION SOUND API in Audio has been removed
-    }
+    // COLLISION SOUND API in Audio has been removed
 }
 
 bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float heightA,

@@ -38,12 +38,11 @@
 #include <AudioInjector.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PositionalAudioStream.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 
-#include "Menu.h"
-#include "Util.h"
-#include "PositionalAudioStream.h"
+#include "Application.h"
 
 #include "Audio.h"
 
@@ -516,9 +515,9 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat, bool noEcho) {
+void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-    float dryFraction = (noEcho) ? 0.0f : (1.0f - wetFraction);
+    float dryFraction = (!_shouldEchoLocally) ? 0.0f : (1.0f - wetFraction);
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
@@ -546,11 +545,10 @@ void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAu
 }
 
 void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
-    bool hasEcho = Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio);
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasLocalReverb = (_reverb || _receivedAudioStream.hasReverb()) &&
-                          !Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio);
-    if (_muted || !_audioOutput || (!hasEcho && !hasLocalReverb)) {
+                          !_shouldEchoToServer;
+    if (_muted || !_audioOutput || (!_shouldEchoLocally && !hasLocalReverb)) {
         return;
     }
     
@@ -578,7 +576,7 @@ void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
         int numLoopbackSamples = loopBackByteArray.size() / sizeof(int16_t);
         updateGverbOptions();
-        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat, !hasEcho);
+        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat);
     }
     
     if (_loopbackOutputDevice) {

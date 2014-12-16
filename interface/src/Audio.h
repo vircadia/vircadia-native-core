@@ -119,6 +119,9 @@ public slots:
     void selectAudioSourcePinkNoise();
     void selectAudioSourceSine440();
     
+    void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
+    void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
+    
     void toggleStereoInput();
   
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
@@ -190,7 +193,9 @@ private:
     int _totalInputAudioSamples;
     
     bool _muted;
-    bool _localEcho;
+    bool _shouldEchoLocally;
+    bool _shouldEchoToServer;
+    
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
@@ -201,7 +206,7 @@ private:
     // Adds Reverb
     void initGverb();
     void updateGverbOptions();
-    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
+    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
