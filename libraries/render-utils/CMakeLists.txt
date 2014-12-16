@@ -24,6 +24,9 @@ else (APPLE)
     find_package(GLEW REQUIRED)
     include_directories(${GLEW_INCLUDE_DIRS})
 
+    find_package(GLUT REQUIRED)
+    include_directories(SYSTEM "${GLUT_INCLUDE_DIRS}")
+
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
     target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}")

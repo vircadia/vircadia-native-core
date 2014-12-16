@@ -17,7 +17,7 @@
 #if defined(__APPLE__)
 #include <GLUT/glut.h>
 #elif defined(WIN32)
-    // nothing?
+#include <GL/glut.h>
 #else
 #include <GL/glut.h>
 #endif
