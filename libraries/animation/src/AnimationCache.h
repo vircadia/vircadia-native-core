@@ -15,30 +15,31 @@
 #include <QScriptEngine>
 #include <QScriptValue>
 
-#include <ResourceCache.h>
-
+#include <DependencyManager.h>
 #include <FBXReader.h>
+#include <ResourceCache.h>
 
 class Animation;
 
 typedef QSharedPointer<Animation> AnimationPointer;
 
 /// Scriptable interface for FBX animation loading.
-class AnimationCache : public ResourceCache {
+class AnimationCache : public ResourceCache, public DependencyManager::Dependency  {
     Q_OBJECT
 
 public:
-
-    AnimationCache(QObject* parent = NULL);
-
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
-    
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
 protected:
     
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+                const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+private:
+    AnimationCache(QObject* parent = NULL);
+    virtual ~AnimationCache() { }
+    friend class DependencyManager;
+
 };
 
 Q_DECLARE_METATYPE(AnimationPointer)
