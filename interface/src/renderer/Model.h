@@ -23,13 +23,13 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
+#include <JointState.h>
 #include <PhysicsEntity.h>
 #include <ProgramObject.h>
 #include <TextureCache.h>
 #include <Transform.h>
 
 #include "AnimationHandle.h"
-#include "JointState.h"
 
 class QScriptEngine;
 
