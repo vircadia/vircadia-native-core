@@ -146,7 +146,7 @@ void MyAvatar::update(float deltaTime) {
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
     //  Get audio loudness data from audio input device
-    Audio* audio = Application::getInstance()->getAudio();
+    Audio* audio = DependencyManager::get<Audio>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
@@ -544,7 +544,7 @@ void MyAvatar::startRecording() {
     if (!_recorder) {
         _recorder = RecorderPointer(new Recorder(this));
     }
-    Application::getInstance()->getAudio()->setRecorder(_recorder);
+    DependencyManager::get<Audio>()->setRecorder(_recorder);
     _recorder->startRecording();
     
 }
@@ -1662,7 +1662,7 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
         //  Base frequency is modified upward by the angle of the collision
         //  Noise is a function of the angle of collision
         //  Duration of the sound is a function of both base frequency and velocity of impact
-        Application::getInstance()->getAudio()->startCollisionSound(
+        DependencyManager::get<Audio>()->startCollisionSound(
             std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.0f),
             frequency * (1.0f + velocityTangentToCollision / velocityTowardCollision),
             std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.0f),

@@ -27,9 +27,9 @@ AudioDeviceScriptingInterface::AudioDeviceScriptingInterface() {
 bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
     bool result;
     QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "switchInputToAudioDevice",
-                        Qt::BlockingQueuedConnection,
-                        Q_RETURN_ARG(bool, result),
-                        Q_ARG(const QString&, deviceName));
+                              Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(bool, result),
+                              Q_ARG(const QString&, deviceName));
 
     return result;
 }
@@ -37,9 +37,9 @@ bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
 bool AudioDeviceScriptingInterface::setOutputDevice(const QString& deviceName) {
     bool result;
     QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "switchOutputToAudioDevice",
-                        Qt::BlockingQueuedConnection,
-                        Q_RETURN_ARG(bool, result),
-                        Q_ARG(const QString&, deviceName));
+                              Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(bool, result),
+                              Q_ARG(const QString&, deviceName));
 
     return result;
 }

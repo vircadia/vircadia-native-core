@@ -38,6 +38,7 @@
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "audio/AudioScope.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "devices/Visage.h"
@@ -525,81 +526,83 @@ Menu::Menu() :
                                   SLOT(cycleFrustumRenderMode()));
     updateFrustumRenderModeAction();
 
-
+    Audio* audioIO = DependencyManager::get<Audio>();
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
                                            true,
-                                           appInstance->getAudio(),
+                                           audioIO,
                                            SLOT(toggleAudioNoiseReduction()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
-                                           appInstance->getAudio(), SLOT(toggleStereoInput()));
+                                           audioIO, SLOT(toggleStereoInput()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
                                            Qt::CTRL | Qt::Key_M,
                                            false,
-                                           appInstance->getAudio(),
+                                           audioIO,
                                            SLOT(toggleMute()));
     addActionToQMenuAndActionHash(audioDebugMenu,
                                   MenuOption::MuteEnvironment,
                                   0,
-                                  appInstance->getAudio(),
+                                  audioIO,
                                   SLOT(sendMuteEnvironmentPacket()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
                                            0,
                                            false,
-                                           appInstance->getAudio(),
+                                           audioIO,
                                            SLOT(toggleAudioSourceInject()));
     QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
     {
         QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
                                                                0,
                                                                false,
-                                                               appInstance->getAudio(),
+                                                               audioIO,
                                                                SLOT(selectAudioSourcePinkNoise()));
         
         QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
                                                                     0,
                                                                     true,
-                                                                    appInstance->getAudio(),
+                                                                    audioIO,
                                                                     SLOT(selectAudioSourceSine440()));
 
         QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
         audioSourceGroup->addAction(pinkNoise);
         audioSourceGroup->addAction(sine440);
     }
+    
+    AudioScope* scope = DependencyManager::get<AudioScope>();
 
     QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleScope()));
+                                           scope,
+                                           SLOT(toggle()));
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
                                            false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleScopePause()));
+                                           scope,
+                                           SLOT(togglePause()));
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
     {
         QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
                                                0,
                                                true,
-                                               appInstance->getAudio(),
+                                               scope,
                                                SLOT(selectAudioScopeFiveFrames()));
 
         QAction *twentyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeTwentyFrames,
                                                0,
                                                false,
-                                               appInstance->getAudio(),
+                                               scope,
                                                SLOT(selectAudioScopeTwentyFrames()));
 
         QAction *fiftyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiftyFrames,
                                                0,
                                                false,
-                                               appInstance->getAudio(),
+                                               scope,
                                                SLOT(selectAudioScopeFiftyFrames()));
 
         QActionGroup* audioScopeFramesGroup = new QActionGroup(audioScopeMenu);
@@ -611,16 +614,16 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
                                             Qt::CTRL | Qt::Key_A,
                                             false,
-                                            appInstance->getAudio(),
+                                            audioIO,
                                             SLOT(toggleStats()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
                                             0,
                                             false,
-                                            appInstance->getAudio(),
+                                            audioIO,
                                             SLOT(toggleStatsShowInjectedStreams()));
 
-    connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    connect(audioIO, SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
     QMenu* experimentalOptionsMenu = developerMenu->addMenu("Experimental");
     addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::StringHair, 0, false);
@@ -1357,7 +1360,7 @@ void Menu::toggleToolWindow() {
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     if (muteAction) {
-        muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
+        muteAction->setChecked(DependencyManager::get<Audio>()->getMuted());
     }
 }
 

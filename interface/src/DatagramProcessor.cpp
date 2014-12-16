@@ -54,13 +54,14 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeMixedAudio:
                 case PacketTypeSilentAudioFrame: {
                     if (incomingType == PacketTypeAudioStreamStats) {
-                        QMetaObject::invokeMethod(&application->_audio, "parseAudioStreamStatsPacket", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "parseAudioStreamStatsPacket",
+                                                  Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else if (incomingType == PacketTypeAudioEnvironment) {
-                        QMetaObject::invokeMethod(&application->_audio, "parseAudioEnvironmentData", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "parseAudioEnvironmentData", Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else {
-                        QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToStream", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "addReceivedAudioToStream", Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     }
                     
@@ -143,7 +144,7 @@ void DatagramProcessor::processDatagrams() {
                 }
                 case PacketTypeNoisyMute:
                 case PacketTypeMuteEnvironment: {
-                    bool mute = !Application::getInstance()->getAudio()->getMuted();
+                    bool mute = !DependencyManager::get<Audio>()->getMuted();
                     
                     if (incomingType == PacketTypeMuteEnvironment) {
                         glm::vec3 position;
@@ -158,7 +159,7 @@ void DatagramProcessor::processDatagrams() {
                     }
                     
                     if (mute) {
-                        Application::getInstance()->getAudio()->toggleMute();
+                        DependencyManager::get<Audio>()->toggleMute();
                         if (incomingType == PacketTypeMuteEnvironment) {
                             AudioScriptingInterface::getInstance().environmentMuted();
                         } else {

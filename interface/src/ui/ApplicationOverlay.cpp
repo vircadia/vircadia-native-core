@@ -763,7 +763,7 @@ void ApplicationOverlay::renderAudioMeter() {
     Application* application = Application::getInstance();
 
     GLCanvas* glWidget = application->getGLWidget();
-    Audio* audio = application->getAudio();
+    Audio* audio = DependencyManager::get<Audio>();
 
     //  Display a single screen-size quad to create an alpha blended 'collision' flash
     if (audio->getCollisionFlashesScreen()) {

@@ -40,8 +40,8 @@ public:
     friend class DependencyManager;
     
 public slots:
-    void toggleScope();
-    void toggleScopePause() { _isPaused = !_isPaused; }
+    void toggle();
+    void togglePause() { _isPaused = !_isPaused; }
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
