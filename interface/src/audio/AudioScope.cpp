@@ -15,6 +15,8 @@
 
 #include <AudioConstants.h>
 
+#include "Audio.h"
+
 #include "AudioScope.h"
 
 static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
@@ -34,7 +36,13 @@ AudioScope::AudioScope() :
     _scopeOutputRight(NULL),
     _scopeLastFrame()
 {
-    
+    Audio* audioIO = DependencyManager::get<Audio>();
+    connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedSilence,
+            this, &AudioScope::addStereoSilenceToScope);
+    connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade,
+            this, &AudioScope::addLastFrameRepeatedWithFadeToScope);
+    connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedStereoSamples,
+            this, &AudioScope::addStereoSamplesToScope);
 }
 
 void AudioScope::toggle() {
@@ -283,10 +291,12 @@ void AudioScope::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
     int indexOfRepeat = 0;
     do {
         int samplesToWriteThisIteration = std::min(samplesRemaining, (int) AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-//        float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
-//        addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 0, STEREO_FACTOR, fade);
-//        _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, lastFrameData, samplesToWriteThisIteration, 1, STEREO_FACTOR, fade);
-//        
+        float fade = calculateRepeatedFrameFadeFactor(indexOfRepeat);
+        addBufferToScope(_scopeOutputLeft, _scopeOutputOffset, lastFrameData,
+                         samplesToWriteThisIteration, 0, STEREO_FACTOR, fade);
+        _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset,
+                                              lastFrameData, samplesToWriteThisIteration, 1, STEREO_FACTOR, fade);
+        
         samplesRemaining -= samplesToWriteThisIteration;
         indexOfRepeat++;
     } while (samplesRemaining > 0);

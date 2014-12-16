@@ -20,8 +20,7 @@ AudioDeviceScriptingInterface* AudioDeviceScriptingInterface::getInstance() {
 
 AudioDeviceScriptingInterface::AudioDeviceScriptingInterface() {
     connect(DependencyManager::get<Audio>(), &Audio::muteToggled,
-            AudioDeviceScriptingInterface::getInstance(),
-            &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
+            this, &AudioDeviceScriptingInterface::muteToggled);
 }
 
 bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {

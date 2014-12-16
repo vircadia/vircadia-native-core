@@ -120,9 +120,6 @@ Audio::Audio() :
     // Create the noise sample array
     _noiseSampleFrames = new float[NUMBER_OF_NOISE_SAMPLE_FRAMES];
     
-//    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedSilence, this, &Audio::addStereoSilenceToScope, Qt::DirectConnection);
-//    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade, this, &Audio::addLastFrameRepeatedWithFadeToScope, Qt::DirectConnection);
-//    connect(&_receivedAudioStream, &MixedProcessedAudioStream::addedStereoSamples, this, &Audio::addStereoSamplesToScope, Qt::DirectConnection);
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples, this, &Audio::processReceivedSamples, Qt::DirectConnection);
     
     // Initialize GVerb
