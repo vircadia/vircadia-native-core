@@ -12,6 +12,8 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
+#include <gpu/GPUConfig.h>
+
 #include <QApplication>
 #include <QHash>
 #include <QImage>
@@ -23,8 +25,15 @@
 
 #include <EntityCollisionSystem.h>
 #include <EntityEditPacketSender.h>
+#include <GeometryCache.h>
+#include <NetworkPacket.h>
+#include <NodeList.h>
 #include <OctreeQuery.h>
+#include <PacketHeaders.h>
+#include <ScriptEngine.h>
+#include <TextureCache.h>
 #include <ViewFrustum.h>
+#include <ViewStateInterface.h>
 #include <VoxelEditPacketSender.h>
 
 #include "Audio.h"
@@ -43,11 +52,6 @@
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "entities/EntityTreeRenderer.h"
-#include "renderer/AmbientOcclusionEffect.h"
-#include "renderer/DeferredLightingEffect.h"
-#include "renderer/GeometryCache.h"
-#include "renderer/GlowEffect.h"
-#include "renderer/TextureCache.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
@@ -115,7 +119,7 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
 
-class Application : public QApplication {
+class Application : public QApplication, public ViewStateInterface {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -124,7 +128,6 @@ class Application : public QApplication {
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
-    static QString& resourcesPath();
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
 
@@ -224,7 +227,7 @@ public:
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
-    const Transform& getViewTransform() const { return _viewTransform; }
+    virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
@@ -239,9 +242,6 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    AnimationCache* getAnimationCache() { return &_animationCache; }
-    DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
-    GlowEffect* getGlowEffect() { return &_glowEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
@@ -249,7 +249,8 @@ public:
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
-    void setupWorldLight();
+    virtual void setupWorldLight();
+    virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
     QImage renderAvatarBillboard();
 
@@ -268,11 +269,16 @@ public:
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
-    const glm::vec3& getShadowDistances() const { return _shadowDistances; }
+    virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+    virtual void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
+    virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
+    virtual bool getShadowsEnabled();
+    virtual bool getCascadeShadowsEnabled();
+    virtual QThread* getMainThread() { return thread(); }
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
@@ -555,13 +561,6 @@ private:
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     QSet<int> _keysPressed;
-
-
-    AnimationCache _animationCache;
-
-    DeferredLightingEffect _deferredLightingEffect;
-    GlowEffect _glowEffect;
-    AmbientOcclusionEffect _ambientOcclusionEffect;
 
     Audio _audio;
 

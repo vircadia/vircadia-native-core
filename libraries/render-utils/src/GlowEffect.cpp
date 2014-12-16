@@ -10,22 +10,28 @@
 //
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
+#include <QGLWidget>
 #include <QOpenGLFramebufferObject>
+#include <QWindow>
 
+#include <PathUtils.h>
 #include <PerfStat.h>
 
-#include "Application.h"
 #include "GlowEffect.h"
 #include "ProgramObject.h"
 #include "RenderUtil.h"
+#include "TextureCache.h"
+
 
 GlowEffect::GlowEffect()
     : _initialized(false),
       _isOddFrame(false),
       _isFirstFrame(true),
-      _intensity(0.0f) {
+      _intensity(0.0f),
+      _widget(NULL),
+      _enabled(false) {
 }
 
 GlowEffect::~GlowEffect() {
@@ -47,7 +53,7 @@ QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
 
 static ProgramObject* createProgram(const QString& name) {
     ProgramObject* program = new ProgramObject();
-    program->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/" + name + ".frag");
+    program->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/" + name + ".frag");
     program->link();
     
     program->bind();
@@ -57,7 +63,7 @@ static ProgramObject* createProgram(const QString& name) {
     return program;
 }
 
-void GlowEffect::init() {
+void GlowEffect::init(QGLWidget* widget, bool enabled) {
     if (_initialized) {
         qDebug("[ERROR] GlowEffeect is already initialized.");
         return;
@@ -85,7 +91,18 @@ void GlowEffect::init() {
     _diffusionScaleLocation = _diffuseProgram->uniformLocation("diffusionScale");
 
     _initialized = true;
+    _widget = widget;
+    _enabled = enabled;
 }
+
+int GlowEffect::getDeviceWidth() const {
+    return _widget->width() * (_widget->windowHandle() ? _widget->windowHandle()->devicePixelRatio() : 1.0f);
+}
+
+int GlowEffect::getDeviceHeight() const {
+    return _widget->height() * (_widget->windowHandle() ? _widget->windowHandle()->devicePixelRatio() : 1.0f);
+}
+
 
 void GlowEffect::prepare() {
     DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
@@ -141,7 +158,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     QOpenGLFramebufferObject* destFBO = toTexture ?
         textureCache->getSecondaryFramebufferObject() : NULL;
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || _isEmpty) {
+    if (!_enabled || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
             QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
@@ -196,7 +213,6 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         maybeBind(destFBO);
         if (!destFBO) {
             glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
-        }
         _addSeparateProgram->bind();      
         renderFullscreenQuad();
         _addSeparateProgram->release();
@@ -222,11 +238,15 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     return destFBO;
 }
 
+void GlowEffect::toggleGlowEffect(bool enabled) {
+    _enabled = enabled;
+}
+
 Glower::Glower(float amount) {
-    Application::getInstance()->getGlowEffect()->begin(amount);
+    DependencyManager::get<GlowEffect>()->begin(amount);
 }
 
 Glower::~Glower() {
-    Application::getInstance()->getGlowEffect()->end();
+    DependencyManager::get<GlowEffect>()->end();
 }
 

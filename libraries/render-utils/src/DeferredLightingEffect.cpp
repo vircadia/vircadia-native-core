@@ -10,17 +10,35 @@
 //
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
+
+
+// TODO: remove these once we migrate away from GLUT calls
+#if defined(__APPLE__)
+#include <GLUT/glut.h>
+#elif defined(WIN32)
+#include <GL/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
 #include <QOpenGLFramebufferObject>
 
-#include "Application.h"
-#include "DeferredLightingEffect.h"
-#include "RenderUtil.h"
+#include <GLMHelpers.h>
+#include <PathUtils.h>
 
-void DeferredLightingEffect::init() {
-    _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/simple.vert");
-    _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/simple.frag");
+
+#include "DeferredLightingEffect.h"
+#include "GeometryCache.h"
+#include "GlowEffect.h"
+#include "RenderUtil.h"
+#include "TextureCache.h"
+
+
+void DeferredLightingEffect::init(ViewStateInterface* viewState) {
+    _viewState = viewState;
+    _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/simple.vert");
+    _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/simple.frag");
     _simpleProgram.link();
     
     _simpleProgram.bind();
@@ -39,7 +57,7 @@ void DeferredLightingEffect::init() {
 void DeferredLightingEffect::bindSimpleProgram() {
     DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true, true);
     _simpleProgram.bind();
-    _simpleProgram.setUniformValue(_glowIntensityLocation, Application::getInstance()->getGlowEffect()->getIntensity());
+    _simpleProgram.setUniformValue(_glowIntensityLocation, DependencyManager::get<GlowEffect>()->getIntensity());
     glDisable(GL_BLEND);
 }
 
@@ -144,7 +162,7 @@ void DeferredLightingEffect::render() {
     QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
     
-    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
+    QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT);
     
@@ -173,19 +191,18 @@ void DeferredLightingEffect::render() {
    
     ProgramObject* program = &_directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
-    bool shadowsEnabled = Menu::getInstance()->getShadowsEnabled();
-    if (shadowsEnabled) {    
+    bool shadowsEnabled = _viewState->getShadowsEnabled();
+    if (shadowsEnabled) {
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D, textureCache->getShadowDepthTextureID());
         
         program = &_directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
+        if (_viewState->getCascadeShadowsEnabled()) {
             program = &_directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
             _directionalLightCascadedShadowMap.bind();
-            _directionalLightCascadedShadowMap.setUniform(locations->shadowDistances,
-                Application::getInstance()->getShadowDistances());
+            _directionalLightCascadedShadowMap.setUniform(locations->shadowDistances, _viewState->getShadowDistances());
         
         } else {
             program->bind();
@@ -199,8 +216,7 @@ void DeferredLightingEffect::render() {
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    Application::getInstance()->computeOffAxisFrustum(
-        left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     program->setUniformValue(locations->nearLocation, nearVal);
     float depthScale = (farVal - nearVal) / farVal;
     program->setUniformValue(locations->depthScale, depthScale);
@@ -235,8 +251,8 @@ void DeferredLightingEffect::render() {
     // enlarge the scales slightly to account for tesselation
     const float SCALE_EXPANSION = 0.05f;
     
-    const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
-    float nearRadius = glm::distance(eyePoint, Application::getInstance()->getDisplayViewFrustum()->getNearTopLeft());
+    const glm::vec3& eyePoint = _viewState->getCurrentViewFrustum()->getPosition();
+    float nearRadius = glm::distance(eyePoint, _viewState->getCurrentViewFrustum()->getNearTopLeft());
 
     GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     
@@ -394,9 +410,9 @@ void DeferredLightingEffect::render() {
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* name, bool limited, ProgramObject& program, LightLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         (limited ? "shaders/deferred_light_limited.vert" : "shaders/deferred_light.vert"));
-    program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + name);
+    program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + name);
     program.link();
     
     program.bind();

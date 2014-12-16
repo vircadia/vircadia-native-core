@@ -12,26 +12,29 @@
 #ifndef hifi_GlowEffect_h
 #define hifi_GlowEffect_h
 
+#include <gpu/GPUConfig.h>
+
 #include <QObject>
+#include <QGLWidget>
 #include <QStack>
+
+#include <DependencyManager.h>
 
 class QOpenGLFramebufferObject;
 
 class ProgramObject;
 
 /// A generic full screen glow effect.
-class GlowEffect : public QObject {
+class GlowEffect : public QObject, public DependencyManager::Dependency  {
     Q_OBJECT
     
 public:
-    GlowEffect();
-    ~GlowEffect();
-    
+   
     /// Returns a pointer to the framebuffer object that the glow effect is *not* using for persistent state
     /// (either the secondary or the tertiary).
     QOpenGLFramebufferObject* getFreeFramebufferObject() const;
     
-    void init();
+    void init(QGLWidget* widget, bool enabled);
     
     /// Prepares the glow effect for rendering the current frame.  To be called before rendering the scene.
     void prepare();
@@ -51,7 +54,16 @@ public:
     /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
     QOpenGLFramebufferObject* render(bool toTexture = false);
 
+public slots:
+    void toggleGlowEffect(bool enabled);
+
 private:
+    GlowEffect();
+    virtual ~GlowEffect();
+    friend class DependencyManager;
+
+    int getDeviceWidth() const;
+    int getDeviceHeight() const;
 
     bool _initialized;
 
@@ -69,6 +81,8 @@ private:
     
     float _intensity;
     QStack<float> _intensityStack;
+    QGLWidget* _widget;
+    bool _enabled;
 };
 
 /// RAII-style glow handler.  Applies glow when in scope.

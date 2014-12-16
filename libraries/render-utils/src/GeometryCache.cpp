@@ -20,8 +20,8 @@
 
 #include <SharedUtil.h>
 
-#include "GeometryCache.h"
 #include "TextureCache.h"
+#include "GeometryCache.h"
 
 GeometryCache::GeometryCache() {
 }

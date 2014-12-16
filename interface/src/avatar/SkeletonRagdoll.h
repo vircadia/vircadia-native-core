@@ -14,9 +14,8 @@
 
 #include <QVector>
 
+#include <JointState.h>
 #include <Ragdoll.h>
-
-#include "../renderer/JointState.h"
 
 class MuscleConstraint;
 class Model;

@@ -12,6 +12,8 @@
 #include "InterfaceConfig.h"
 
 #include <QOpenGLFramebufferObject>
+
+#include <PathUtils.h>
 #include <PerfStat.h>
 
 #include "Application.h"
@@ -380,7 +382,7 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     if (_crosshairTexture == 0) {
-        _crosshairTexture = glCanvas->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
+        _crosshairTexture = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/sixense-reticle.png"));
     }
     
     //draw the mouse pointer
@@ -515,7 +517,7 @@ void ApplicationOverlay::renderPointers() {
 
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
-        _crosshairTexture = glCanvas->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
+        _crosshairTexture = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/sixense-reticle.png"));
     }
     glEnable(GL_TEXTURE_2D);
     

@@ -11,6 +11,8 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
+#include "InterfaceConfig.h"
+
 #include <vector>
 
 #include <QAction>
@@ -22,9 +24,8 @@
 #include <AvatarData.h>
 #include <AudioScriptingInterface.h>
 #include <HandData.h>
+#include <Model.h>
 
-#include "InterfaceConfig.h"
-#include "renderer/Model.h"
 #include "world.h"
 
 

@@ -12,23 +12,27 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
+#include <gpu/GPUConfig.h>
+
 #include <QBitArray>
 #include <QObject>
 #include <QUrl>
 
-#include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
+#include <gpu/Stream.h>
+#include <gpu/Batch.h>
 #include <PhysicsEntity.h>
+#include <Transform.h>
 
 #include "AnimationHandle.h"
 #include "GeometryCache.h"
-#include "InterfaceConfig.h"
 #include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
+#include "ViewStateInterface.h"
 
 class QScriptEngine;
 
@@ -36,14 +40,14 @@ class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
 
-#include "gpu/Stream.h"
-#include "gpu/Batch.h"
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
+
+    static void setViewStateInterface(ViewStateInterface* viewState) { _viewState = viewState; }
 
     Model(QObject* parent = NULL);
     virtual ~Model();
@@ -453,6 +457,9 @@ private:
 
     static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
+
+
+    static ViewStateInterface* _viewState;
 
 };
 
