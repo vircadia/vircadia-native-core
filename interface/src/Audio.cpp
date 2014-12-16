@@ -804,7 +804,7 @@ void Audio::handleAudioInput() {
             if (_lastInputLoudness == 0) {
                 packetType = PacketTypeSilentAudioFrame;
             } else {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
+                if (_shouldEchoToServer) {
                     packetType = PacketTypeMicrophoneAudioWithEcho;
                 } else {
                     packetType = PacketTypeMicrophoneAudioNoEcho;
@@ -968,13 +968,13 @@ void Audio::toggleAudioSourceInject() {
 }
 
 void Audio::selectAudioSourcePinkNoise() {
-    _noiseSourceEnabled = Menu::getInstance()->isOptionChecked(MenuOption::AudioSourcePinkNoise);
-    _toneSourceEnabled = !_noiseSourceEnabled;
+    _noiseSourceEnabled = true;
+    _toneSourceEnabled = false;
 }
  
 void Audio::selectAudioSourceSine440() {
-    _toneSourceEnabled = Menu::getInstance()->isOptionChecked(MenuOption::AudioSourceSine440);
-    _noiseSourceEnabled = !_toneSourceEnabled;
+    _toneSourceEnabled = true;
+    _noiseSourceEnabled = false;
 }
 
 bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) {
