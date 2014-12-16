@@ -21,10 +21,11 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "AvatarManager.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 
-#include "AvatarManager.h"
+#include "renderer/GlowEffect.h"
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key

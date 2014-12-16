@@ -33,6 +33,8 @@
 #define GLBATCH( call ) batch._##call
 //#define GLBATCH( call ) call
 
+#include "renderer/GlowEffect.h"
+
 using namespace std;
 
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
@@ -2327,6 +2329,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
     bool dontReduceMaterialSwitches = Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
 
     TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    GlowEffect* glowEffect = DependencyManager::get<GlowEffect>();
     QString lastMaterialID;
     int meshPartsRendered = 0;
     updateVisibleJointStates();
@@ -2431,7 +2434,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
                     glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
                     if (!(translucent && alphaThreshold == 0.0f)) {
-                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
+                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = glowEffect->getIntensity());
                     }
                     glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);

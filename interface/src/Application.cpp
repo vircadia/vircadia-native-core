@@ -90,6 +90,8 @@
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
 
+#include "renderer/GlowEffect.h"
+
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
@@ -702,7 +704,7 @@ void Application::paintGL() {
         TV3DManager::display(*whichCamera);
 
     } else {
-        _glowEffect.prepare();
+        DependencyManager::get<GlowEffect>()->prepare();
 
         // Viewport is assigned to the size of the framebuffer
         QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
@@ -721,7 +723,7 @@ void Application::paintGL() {
             renderRearViewMirror(_mirrorViewRect);       
         }
 
-        _glowEffect.render();
+        DependencyManager::get<GlowEffect>()->render();
 
         {
             PerformanceTimer perfTimer("renderOverlay");
@@ -1913,7 +1915,6 @@ void Application::init() {
     _environment.init();
 
     _deferredLightingEffect.init();
-    _glowEffect.init();
     _ambientOcclusionEffect.init();
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
@@ -2036,6 +2037,9 @@ void Application::init() {
 
     // make sure our texture cache knows about window size changes    
     DependencyManager::get<TextureCache>()->associateWithWidget(getGLWidget());
+
+    // initialize the GlowEffect with our widget
+    DependencyManager::get<GlowEffect>()->init(getGLWidget());
 }
 
 void Application::closeMirrorView() {

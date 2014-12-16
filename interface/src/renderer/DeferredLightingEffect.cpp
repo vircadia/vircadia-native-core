@@ -19,6 +19,7 @@
 #include "Application.h"
 #include "DeferredLightingEffect.h"
 #include "RenderUtil.h"
+#include "renderer/GlowEffect.h"
 
 void DeferredLightingEffect::init() {
     _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/simple.vert");
@@ -41,7 +42,7 @@ void DeferredLightingEffect::init() {
 void DeferredLightingEffect::bindSimpleProgram() {
     DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true, true);
     _simpleProgram.bind();
-    _simpleProgram.setUniformValue(_glowIntensityLocation, Application::getInstance()->getGlowEffect()->getIntensity());
+    _simpleProgram.setUniformValue(_glowIntensityLocation, DependencyManager::get<GlowEffect>()->getIntensity());
     glDisable(GL_BLEND);
 }
 
@@ -146,7 +147,7 @@ void DeferredLightingEffect::render() {
     QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
     
-    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
+    QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT);
     

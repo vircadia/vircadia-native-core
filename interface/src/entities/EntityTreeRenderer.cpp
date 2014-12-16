@@ -36,6 +36,8 @@
 #include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
 
+#include "renderer/GlowEffect.h"
+
 
 QThread* EntityTreeRenderer::getMainThread() {
     return Application::getInstance()->getEntities()->thread();

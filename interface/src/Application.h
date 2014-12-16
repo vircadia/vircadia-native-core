@@ -63,7 +63,6 @@
 #include "entities/EntityTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/DeferredLightingEffect.h"
-#include "renderer/GlowEffect.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
@@ -252,7 +251,6 @@ public:
 
     AnimationCache* getAnimationCache() { return &_animationCache; }
     DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
-    GlowEffect* getGlowEffect() { return &_glowEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
@@ -571,7 +569,6 @@ private:
     AnimationCache _animationCache;
 
     DeferredLightingEffect _deferredLightingEffect;
-    GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
 
     Audio _audio;

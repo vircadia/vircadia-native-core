@@ -22,6 +22,7 @@
 #include "Menu.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
+#include "renderer/GlowEffect.h"
 
 using namespace std;
 
@@ -331,7 +332,7 @@ void Head::addLeanDeltas(float sideways, float forward) {
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
 
-    Application::getInstance()->getGlowEffect()->begin();
+    DependencyManager::get<GlowEffect>()->begin();
     
     glLineWidth(2.0);
     glBegin(GL_LINES);
@@ -345,7 +346,7 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
     glEnd();
     
-    Application::getInstance()->getGlowEffect()->end();
+    DependencyManager::get<GlowEffect>()->end();
 }
 
 

@@ -13,6 +13,7 @@
 #include "InterfaceConfig.h"
 
 #include <QOpenGLFramebufferObject>
+#include <QWindow>
 
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -58,7 +59,7 @@ static ProgramObject* createProgram(const QString& name) {
     return program;
 }
 
-void GlowEffect::init() {
+void GlowEffect::init(QGLWidget* widget) {
     if (_initialized) {
         qDebug("[ERROR] GlowEffeect is already initialized.");
         return;
@@ -86,7 +87,17 @@ void GlowEffect::init() {
     _diffusionScaleLocation = _diffuseProgram->uniformLocation("diffusionScale");
 
     _initialized = true;
+    _widget = widget;
 }
+
+int GlowEffect::getDeviceWidth() const {
+    return _widget->width() * (_widget->windowHandle() ? _widget->windowHandle()->devicePixelRatio() : 1.0f);
+}
+
+int GlowEffect::getDeviceHeight() const {
+    return _widget->height() * (_widget->windowHandle() ? _widget->windowHandle()->devicePixelRatio() : 1.0f);
+}
+
 
 void GlowEffect::prepare() {
     DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
@@ -148,8 +159,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         } else {
             maybeBind(destFBO);
             if (!destFBO) {
-                glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
-                    Application::getInstance()->getGLWidget()->getDeviceHeight());
+                glViewport(0, 0, getDeviceWidth(), getDeviceHeight());
             }
             glEnable(GL_TEXTURE_2D);
             glDisable(GL_LIGHTING);
@@ -196,9 +206,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         }
         maybeBind(destFBO);
         if (!destFBO) {
-            glViewport(0, 0,
-                Application::getInstance()->getGLWidget()->getDeviceWidth(),
-                Application::getInstance()->getGLWidget()->getDeviceHeight());
+            glViewport(0, 0, getDeviceWidth(), getDeviceHeight());
         }
         _addSeparateProgram->bind();      
         renderFullscreenQuad();
@@ -226,10 +234,10 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
 }
 
 Glower::Glower(float amount) {
-    Application::getInstance()->getGlowEffect()->begin(amount);
+    DependencyManager::get<GlowEffect>()->begin(amount);
 }
 
 Glower::~Glower() {
-    Application::getInstance()->getGlowEffect()->end();
+    DependencyManager::get<GlowEffect>()->end();
 }
 

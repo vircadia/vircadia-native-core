@@ -11,6 +11,7 @@
 #include "../../Menu.h"
 
 #include "ModelOverlay.h"
+#include "renderer/GlowEffect.h"
 
 ModelOverlay::ModelOverlay()
     : _model(),

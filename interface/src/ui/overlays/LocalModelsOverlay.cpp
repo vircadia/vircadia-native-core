@@ -12,6 +12,7 @@
 #include "Application.h"
 
 #include "LocalModelsOverlay.h"
+#include "renderer/GlowEffect.h"
 
 LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer) :
     Volume3DOverlay(),

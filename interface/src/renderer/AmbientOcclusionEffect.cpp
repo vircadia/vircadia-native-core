@@ -24,6 +24,7 @@
 #include "RenderUtil.h"
 
 #include "AmbientOcclusionEffect.h"
+#include "renderer/GlowEffect.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
@@ -105,7 +106,7 @@ void AmbientOcclusionEffect::render() {
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
     // render with the occlusion shader to the secondary/tertiary buffer
-    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
+    QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     
     float left, right, bottom, top, nearVal, farVal;

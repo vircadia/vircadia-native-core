@@ -18,6 +18,7 @@
 #include <Application.h>
 
 #include "LocalVoxelsOverlay.h"
+#include "renderer/GlowEffect.h"
 #include "voxels/VoxelSystem.h"
 
 QMap<QString, WeakVoxelSystemPointer> LocalVoxelsOverlay::_voxelSystemMap;
