@@ -20,11 +20,6 @@
 class AudioScope : public QObject, public DependencyManager::Dependency {
     Q_OBJECT
 public:
-    // Audio scope methods for data acquisition
-    int addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamples,
-                         unsigned int sourceChannel, unsigned int sourceNumberOfChannels, float fade = 1.0f);
-    int addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples);
-    
     // Audio scope methods for rendering
     static void renderBackground(const float* color, int x, int y, int width, int height);
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
@@ -45,13 +40,22 @@ public slots:
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
-    void addStereoSilenceToScope(int silentSamplesPerChannel);
-    void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
-    void addStereoSamplesToScope(const QByteArray& samples);
     
 protected:
     AudioScope();
+    
+private slots:
+    void addStereoSilenceToScope(int silentSamplesPerChannel);
+    void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
+    void addStereoSamplesToScope(const QByteArray& samples);
+    void addInputToScope(const QByteArray& inputSamples);
+    
 private:
+    // Audio scope methods for data acquisition
+    int addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamples,
+                         unsigned int sourceChannel, unsigned int sourceNumberOfChannels, float fade = 1.0f);
+    int addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples);
+    
     bool _isEnabled;
     bool _isPaused;
     int _scopeInputOffset;

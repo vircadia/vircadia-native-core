@@ -164,9 +164,7 @@ public slots:
 
 signals:
     bool muteToggled();
-    void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
-    void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
-    void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    void inputReceived(const QByteArray& inputSamples);
     
 protected:
     // setup for audio I/O

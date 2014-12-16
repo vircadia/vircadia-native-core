@@ -43,6 +43,7 @@ AudioScope::AudioScope() :
             this, &AudioScope::addLastFrameRepeatedWithFadeToScope);
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedStereoSamples,
             this, &AudioScope::addStereoSamplesToScope);
+    connect(audioIO, &Audio::inputReceived, this, &AudioScope::addInputToScope);
 }
 
 void AudioScope::toggle() {
@@ -300,4 +301,17 @@ void AudioScope::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
         samplesRemaining -= samplesToWriteThisIteration;
         indexOfRepeat++;
     } while (samplesRemaining > 0);
+}
+
+void AudioScope::addInputToScope(const QByteArray& inputSamples) {
+    if (!_isEnabled || _isPaused) {
+        return;
+    }
+    
+    const int INPUT_AUDIO_CHANNEL = 0;
+    const int NUM_INPUT_CHANNELS = 1;
+    
+    _scopeInputOffset = addBufferToScope(_scopeInput, _scopeInputOffset,
+                                         reinterpret_cast<const int16_t*>(inputSamples.data()),
+                                         inputSamples.size() / sizeof(int16_t), INPUT_AUDIO_CHANNEL, NUM_INPUT_CHANNELS);
 }

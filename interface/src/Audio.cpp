@@ -831,12 +831,9 @@ void Audio::handleAudioInput() {
         if (!_isStereoInput && _proceduralAudioOutput) {
             processProceduralAudio(networkAudioSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
         }
-
-//        if (!_isStereoInput && _scopeEnabled && !_scopeEnabledPause) {
-//            unsigned int numMonoAudioChannels = 1;
-//            unsigned int monoAudioChannel = 0;
-//            _scopeInputOffset = addBufferToScope(_scopeInput, _scopeInputOffset, networkAudioSamples, NETWORK_SAMPLES_PER_FRAME, monoAudioChannel, numMonoAudioChannels);
-//        }
+        
+        emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
+                                      AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL));
 
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
