@@ -584,7 +584,7 @@ public:
         const Box& bounds, SharedObjectPointer& heightfield);
     
     void getRangeAfterMaterialSet(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const Box& spannerBounds, bool erase, int& minimum, int& maximum) const;
+        const Box& spannerBounds, int& minimum, int& maximum) const;
         
     HeightfieldNode* setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         Spanner* spanner, const SharedObjectPointer& material, const QColor& color,
