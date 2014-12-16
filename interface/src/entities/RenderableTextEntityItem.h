@@ -13,7 +13,6 @@
 #define hifi_RenderableTextEntityItem_h
 
 #include <TextEntityItem.h>
-class RenderArgs;
 
 class RenderableTextEntityItem : public TextEntityItem  {
 public:

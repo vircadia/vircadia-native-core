@@ -13,7 +13,6 @@
 #define hifi_RenderableSphereEntityItem_h
 
 #include <SphereEntityItem.h>
-class RenderArgs;
 
 class RenderableSphereEntityItem : public SphereEntityItem  {
 public:

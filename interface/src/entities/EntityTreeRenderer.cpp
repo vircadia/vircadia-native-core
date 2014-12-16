@@ -9,27 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <gpu/GPUConfig.h>
+
 #include <glm/gtx/quaternion.hpp>
 
 #include <QScriptSyntaxCheckResult>
  
-#include <FBXReader.h>
-
-#include "InterfaceConfig.h"
-
-#include <BoxEntityItem.h>
 #include <GlowEffect.h>
-#include <ModelEntityItem.h>
-#include <MouseEvent.h>
+#include <NetworkAccessManager.h>
 #include <PerfStat.h>
-#include <RenderArgs.h>
-
 
 #include "Menu.h"
-#include "NetworkAccessManager.h"
 #include "EntityTreeRenderer.h"
-
-#include "devices/OculusManager.h"
 
 #include "RenderableBoxEntityItem.h"
 #include "RenderableLightEntityItem.h"

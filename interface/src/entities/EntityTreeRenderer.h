@@ -12,23 +12,13 @@
 #ifndef hifi_EntityTreeRenderer_h
 #define hifi_EntityTreeRenderer_h
 
-#include <glm/glm.hpp>
-#include <stdint.h>
-
 #include <EntityTree.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
-#include <Model.h>
 #include <MouseEvent.h>
-#include <Octree.h>
-#include <OctreePacketData.h>
 #include <OctreeRenderer.h>
-#include <PacketHeaders.h>
-#include <RenderArgs.h>
-#include <SharedUtil.h>
-#include <ViewFrustum.h>
 
+class Model;
 class ScriptEngine;
-
 
 class EntityScriptDetails {
 public:

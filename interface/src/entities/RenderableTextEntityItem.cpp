@@ -14,7 +14,6 @@
 #include <gpu/GPUConfig.h>
 #include <PerfStat.h>
 
-#include "EntityTreeRenderer.h"
 #include "RenderableTextEntityItem.h"
 #include "ui/TextRenderer.h"
 

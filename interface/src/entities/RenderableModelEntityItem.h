@@ -18,7 +18,6 @@
 #include <ModelEntityItem.h>
 
 class Model;
-class RenderArgs;
 
 class RenderableModelEntityItem : public ModelEntityItem  {
 public:

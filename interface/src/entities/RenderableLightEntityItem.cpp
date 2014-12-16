@@ -11,20 +11,14 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <FBXReader.h>
-
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
-#include <LightEntityItem.h>
-
 
 #include "Application.h"
 #include "Menu.h"
-#include "EntityTreeRenderer.h"
 #include "RenderableLightEntityItem.h"
-
 
 EntityItem* RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableLightEntityItem(entityID, properties);
