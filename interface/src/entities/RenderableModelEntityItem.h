@@ -16,17 +16,14 @@
 #include <stdint.h>
 
 #include <EntityTree.h>
+#include <Model.h>
+#include <ModelEntityItem.h>
 #include <Octree.h>
 #include <OctreePacketData.h>
 #include <OctreeRenderer.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <ViewFrustum.h>
-
-#include "renderer/Model.h"
-
-#include <ModelEntityItem.h>
-#include <BoxEntityItem.h>
 
 class RenderableModelEntityItem : public ModelEntityItem  {
 public:

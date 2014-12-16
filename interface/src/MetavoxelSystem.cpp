@@ -23,6 +23,7 @@
 
 #include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
+#include <Model.h>
 #include <SharedUtil.h>
 
 #include <MetavoxelMessages.h>
@@ -32,7 +33,6 @@
 
 #include "Application.h"
 #include "MetavoxelSystem.h"
-#include "renderer/Model.h"
 
 REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
