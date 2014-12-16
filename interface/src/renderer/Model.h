@@ -28,6 +28,7 @@
 #include <ProgramObject.h>
 #include <TextureCache.h>
 #include <Transform.h>
+#include <ViewStateInterface.h>
 
 #include "AnimationHandle.h"
 
@@ -45,6 +46,8 @@ class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
+
+    static void setViewStateInterface(ViewStateInterface* viewState) { _viewState = viewState; }
 
     Model(QObject* parent = NULL);
     virtual ~Model();
@@ -454,6 +457,9 @@ private:
 
     static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
+
+
+    static ViewStateInterface* _viewState;
 
 };
 

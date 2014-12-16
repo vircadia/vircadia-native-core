@@ -232,7 +232,7 @@ public:
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
-    const Transform& getViewTransform() const { return _viewTransform; }
+    virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
@@ -255,7 +255,7 @@ public:
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
-    void setupWorldLight();
+    virtual void setupWorldLight();
 
     QImage renderAvatarBillboard();
 
@@ -283,6 +283,7 @@ public:
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
     virtual bool getShadowsEnabled();
     virtual bool getCascadeShadowsEnabled();
+    virtual QThread* getMainThread() { return thread(); }
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 

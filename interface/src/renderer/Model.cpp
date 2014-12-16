@@ -22,6 +22,8 @@
 #include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
 #include <GlowEffect.h>
+#include <gpu/Batch.h>
+#include <gpu/GLBackend.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEntity.h>
@@ -29,11 +31,10 @@
 #include <SphereShape.h>
 
 #include "AnimationHandle.h"
-#include "Application.h"
+#include "Menu.h"
 #include "Model.h"
 
-#include "gpu/Batch.h"
-#include "gpu/GLBackend.h"
+
 #define GLBATCH( call ) batch._##call
 //#define GLBATCH( call ) call
 
@@ -63,7 +64,7 @@ Model::Model(QObject* parent) :
     _meshGroupsKnown(false) {
     
     // we may have been created in the network thread, but we live in the main thread
-    moveToThread(Application::getInstance()->thread());
+    moveToThread(_viewState->getMainThread());
 }
 
 Model::~Model() {
@@ -108,6 +109,8 @@ Model::SkinLocations Model::_skinSpecularMapLocations;
 Model::SkinLocations Model::_skinNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
+
+ViewStateInterface* Model::_viewState = NULL;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -727,7 +730,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
     }
-    _transforms[0] = Application::getInstance()->getViewTransform();
+    _transforms[0] = _viewState->getViewTransform();
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
     _transforms[0].preTranslate(-_translation);
 
@@ -870,7 +873,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     }
 
     // restore all the default material settings
-    Application::getInstance()->setupWorldLight();
+    _viewState->setupWorldLight();
     
     if (args) {
         args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
@@ -1670,7 +1673,7 @@ void Model::setupBatchTransform(gpu::Batch& batch) {
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
     }
-    _transforms[0] = Application::getInstance()->getViewTransform();
+    _transforms[0] = _viewState->getViewTransform();
     _transforms[0].preTranslate(-_translation);
     batch.setViewTransform(_transforms[0]);
 }
@@ -1830,7 +1833,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     }
 
     // restore all the default material settings
-    Application::getInstance()->setupWorldLight();
+    _viewState->setupWorldLight();
     
 }
 

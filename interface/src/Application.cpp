@@ -429,6 +429,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
+    
+    Model::setViewStateInterface(this); // The model class will sometimes need to know view state details from us
 }
 
 void Application::aboutToQuit() {

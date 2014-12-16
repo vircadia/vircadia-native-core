@@ -14,6 +14,9 @@
 
 #include <ViewFrustum.h>
 
+class Transform;
+class QThread;
+
 /// Interface provided by Application to other objects that need access to the current view state details
 class ViewStateInterface {
 public:
@@ -30,6 +33,10 @@ public:
 
     virtual bool getShadowsEnabled() = 0;
     virtual bool getCascadeShadowsEnabled() = 0;
+
+    virtual QThread* getMainThread() = 0;
+    virtual const Transform& getViewTransform() const = 0;
+    virtual void setupWorldLight() = 0;
 };
 
 
