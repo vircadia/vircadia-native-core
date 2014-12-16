@@ -2333,9 +2333,6 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
                                         Locations* locations, SkinLocations* skinLocations) {
     PROFILE_RANGE(__FUNCTION__);
-    bool dontCullOutOfViewMeshParts = false; // Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
-    bool cullTooSmallMeshParts = true; // !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
-    bool dontReduceMaterialSwitches = false; // Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
 
     TextureCache* textureCache = DependencyManager::get<TextureCache>();
     GlowEffect* glowEffect = DependencyManager::get<GlowEffect>();
@@ -2373,9 +2370,8 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
             args->_meshesConsidered++;
 
             if (args->_viewFrustum) {
-                shouldRender = dontCullOutOfViewMeshParts || 
-                                args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
-                if (shouldRender && cullTooSmallMeshParts) {
+                shouldRender = args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+                if (shouldRender) {
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
                     shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);
@@ -2433,7 +2429,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                 GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
                 
             } else {
-                if (dontReduceMaterialSwitches || lastMaterialID != part.materialID) {
+                if (lastMaterialID != part.materialID) {
                     const bool wantDebug = false;
                     if (wantDebug) {
                         qDebug() << "Material Changed ---------------------------------------------";
