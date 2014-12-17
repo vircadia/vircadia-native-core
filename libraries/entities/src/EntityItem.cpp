@@ -368,10 +368,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         createdFromBuffer -= clockSkew;
         
         if (createdFromBuffer < _created) {
-            // the server claims that this entity has an older creation time
-            // so we accept it and clear _lastEdited
+            // the server claims that this entity has an older creation time so we accept it
             _created = createdFromBuffer;
-            _lastEdited = 0;
+            _lastEdited = _created;
         }
 
         if (wantDebug) {
