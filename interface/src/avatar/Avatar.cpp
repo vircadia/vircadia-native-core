@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include <gpu/GPUConfig.h>
+
 #include <QDesktopWidget>
 #include <QWindow>
 
@@ -20,11 +22,15 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/vector_query.hpp>
 
+#include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
+#include <GlowEffect.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <TextureCache.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -36,7 +42,6 @@
 #include "Recorder.h"
 #include "world.h"
 #include "devices/OculusManager.h"
-#include "renderer/TextureCache.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;
@@ -360,7 +365,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             glm::quat orientation = getOrientation();
             foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
-                Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position - direction * distance,
+                DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
                     distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,
                     LIGHT_EXPONENT, LIGHT_CUTOFF);
             }
@@ -394,7 +399,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                 } else {
                     glTranslatef(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
                 }
-                Application::getInstance()->getGeometryCache()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15); 
+                DependencyManager::get<GeometryCache>()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15); 
                 glPopMatrix();
             }
         }
@@ -422,7 +427,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
-                Application::getInstance()->getGeometryCache()->renderSphere(sphereRadius, 15, 15); 
+                DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15); 
 
                 glPopMatrix();
             }
@@ -913,13 +918,13 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
+    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_head.fst");
     getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_body.fst");
+    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
     _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
 }
 

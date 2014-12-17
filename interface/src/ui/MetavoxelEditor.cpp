@@ -35,6 +35,7 @@
 #include <AttributeRegistry.h>
 #include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
+#include <PathUtils.h>
 
 #include "Application.h"
 #include "MetavoxelEditor.h"
@@ -145,7 +146,7 @@ MetavoxelEditor::MetavoxelEditor() :
         return;
     }
         
-    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/grid.frag");
+    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag");
     _gridProgram.link();
 }
 
@@ -353,7 +354,7 @@ void MetavoxelEditor::render() {
     
     _gridProgram.bind();
     
-    Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
+    DependencyManager::get<GeometryCache>()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
     
     _gridProgram.release();
     
@@ -916,7 +917,7 @@ void MaterialControl::updateTexture() {
         _texture.clear();
         return;
     }
-    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
+    _texture = DependencyManager::get<TextureCache>()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
     if (_texture) {
         if (_texture->isLoaded()) {
             textureLoaded();

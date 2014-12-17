@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <gpu/GPUConfig.h>
+
 #include <QMetaType>
 #include <QRunnable>
 #include <QThreadPool>
@@ -18,17 +20,20 @@
 
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
+#include <gpu/Batch.h>
+#include <gpu/GLBackend.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEntity.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 
 #include "AnimationHandle.h"
-#include "Application.h"
+#include "DeferredLightingEffect.h"
+#include "GlowEffect.h"
 #include "Model.h"
 
-#include "gpu/Batch.h"
-#include "gpu/GLBackend.h"
+
 #define GLBATCH( call ) batch._##call
 //#define GLBATCH( call ) call
 
@@ -58,7 +63,9 @@ Model::Model(QObject* parent) :
     _meshGroupsKnown(false) {
     
     // we may have been created in the network thread, but we live in the main thread
-    moveToThread(Application::getInstance()->thread());
+    if (_viewState) {
+        moveToThread(_viewState->getMainThread());
+    }
 }
 
 Model::~Model() {
@@ -103,6 +110,8 @@ Model::SkinLocations Model::_skinSpecularMapLocations;
 Model::SkinLocations Model::_skinNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
+
+ViewStateInterface* Model::_viewState = NULL;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -222,109 +231,109 @@ void Model::initJointTransforms() {
 
 void Model::init() {
     if (!_program.isLinked()) {
-        _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model.vert");
-        _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model.frag");
+        _program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/model.vert");
+        _program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/model.frag");
 
         initProgram(_program, _locations);
         
         _normalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_normal_map.vert");
+            PathUtils::resourcesPath() + "shaders/model_normal_map.vert");
         _normalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_normal_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_normal_map.frag");
 
         initProgram(_normalMapProgram, _normalMapLocations);
         
         _specularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model.vert");
+            PathUtils::resourcesPath() + "shaders/model.vert");
         _specularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_specular_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_specular_map.frag");
 
         initProgram(_specularMapProgram, _specularMapLocations);
         
         _normalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_normal_map.vert");
+            PathUtils::resourcesPath() + "shaders/model_normal_map.vert");
         _normalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_normal_specular_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_normal_specular_map.frag");
 
         initProgram(_normalSpecularMapProgram, _normalSpecularMapLocations);
         
         _translucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model.vert");
+            PathUtils::resourcesPath() + "shaders/model.vert");
         _translucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_translucent.frag");
+            PathUtils::resourcesPath() + "shaders/model_translucent.frag");
 
         initProgram(_translucentProgram, _translucentLocations);
 
         // Lightmap
-        _lightmapProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_lightmap.vert");
-        _lightmapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model_lightmap.frag");
+        _lightmapProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/model_lightmap.vert");
+        _lightmapProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/model_lightmap.frag");
 
         initProgram(_lightmapProgram, _lightmapLocations);
 
         _lightmapNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_lightmap_normal_map.vert");
+            PathUtils::resourcesPath() + "shaders/model_lightmap_normal_map.vert");
         _lightmapNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_lightmap_normal_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_lightmap_normal_map.frag");
 
         initProgram(_lightmapNormalMapProgram, _lightmapNormalMapLocations);
         
         _lightmapSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_lightmap.vert");
+            PathUtils::resourcesPath() + "shaders/model_lightmap.vert");
         _lightmapSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_lightmap_specular_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_lightmap_specular_map.frag");
 
         initProgram(_lightmapSpecularMapProgram, _lightmapSpecularMapLocations);
         
         _lightmapNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_lightmap_normal_map.vert");
+            PathUtils::resourcesPath() + "shaders/model_lightmap_normal_map.vert");
         _lightmapNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_lightmap_normal_specular_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_lightmap_normal_specular_map.frag");
 
         initProgram(_lightmapNormalSpecularMapProgram, _lightmapNormalSpecularMapLocations);
         // end lightmap
 
         
-        _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_shadow.vert");
+        _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/model_shadow.vert");
         _shadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_shadow.frag");
+            PathUtils::resourcesPath() + "shaders/model_shadow.frag");
 
-        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/skin_model.vert");
-        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model.frag");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/skin_model.vert");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/model.frag");
 
         initSkinProgram(_skinProgram, _skinLocations);
         
         _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
+            PathUtils::resourcesPath() + "shaders/skin_model_normal_map.vert");
         _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_normal_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_normal_map.frag");
 
         initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);
         
         _skinSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model.vert");
+            PathUtils::resourcesPath() + "shaders/skin_model.vert");
         _skinSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_specular_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_specular_map.frag");
 
         initSkinProgram(_skinSpecularMapProgram, _skinSpecularMapLocations);
         
         _skinNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
+            PathUtils::resourcesPath() + "shaders/skin_model_normal_map.vert");
         _skinNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_normal_specular_map.frag");
+            PathUtils::resourcesPath() + "shaders/model_normal_specular_map.frag");
 
         initSkinProgram(_skinNormalSpecularMapProgram, _skinNormalSpecularMapLocations);
         
         _skinShadowProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_shadow.vert");
+            PathUtils::resourcesPath() + "shaders/skin_model_shadow.vert");
         _skinShadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_shadow.frag");
+            PathUtils::resourcesPath() + "shaders/model_shadow.frag");
 
         initSkinProgram(_skinShadowProgram, _skinShadowLocations);
         
         _skinTranslucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model.vert");
+            PathUtils::resourcesPath() + "shaders/skin_model.vert");
         _skinTranslucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_translucent.frag");
+            PathUtils::resourcesPath() + "shaders/model_translucent.frag");
 
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
     }
@@ -491,7 +500,7 @@ bool Model::renderTriangleProxies() {
                 glPushMatrix();
                     glTranslatef(center.x, center.y, center.z);
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
-                    Application::getInstance()->getDeferredLightingEffect()->renderWireCube(1.0f);
+                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f);
                 glPopMatrix();
             }
 
@@ -712,6 +721,9 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     
 bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
+    if (!_viewState) {
+        return false;
+    }
 
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     _renderBatch.clear();
@@ -722,7 +734,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
     }
-    _transforms[0] = Application::getInstance()->getViewTransform();
+    _transforms[0] = _viewState->getViewTransform();
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
     _transforms[0].preTranslate(-_translation);
 
@@ -749,7 +761,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     }
 
 
-    /*Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
+    /*DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(
         mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE);
@@ -789,7 +801,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
 
     // render translucent meshes afterwards
-    //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+    //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, true, true);
     {
         GLenum buffers[2];
         int bufferCount = 0;
@@ -814,7 +826,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     GLBATCH(glDepthMask)(false);
     GLBATCH(glDepthFunc)(GL_LEQUAL);
     
-    //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
+    //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true);
     {
         GLenum buffers[1];
         int bufferCount = 0;
@@ -865,7 +877,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     }
 
     // restore all the default material settings
-    Application::getInstance()->setupWorldLight();
+    _viewState->setupWorldLight();
     
     if (args) {
         args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
@@ -997,7 +1009,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     _url = url;
 
     // if so instructed, keep the current geometry until the new one is loaded 
-    _nextBaseGeometry = _nextGeometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
+    _nextBaseGeometry = _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
     _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
     if (!retainCurrent || !isActive() || _nextGeometry->isLoaded()) {
         applyNextGeometry();
@@ -1149,7 +1161,7 @@ void Blender::run() {
         }
     }
     // post the result to the geometry cache, which will dispatch to the model if still alive
-    QMetaObject::invokeMethod(Application::getInstance()->getGeometryCache(), "setBlendedVertices",
+    QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>(), "setBlendedVertices",
         Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
         Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
         Q_ARG(const QVector<glm::vec3>&, normals));
@@ -1312,7 +1324,7 @@ void Model::simulateInternal(float deltaTime) {
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        Application::getInstance()->getGeometryCache()->noteRequiresBlend(this);
+        DependencyManager::get<ModelBlender>()->noteRequiresBlend(this);
     }
 }
 
@@ -1665,7 +1677,7 @@ void Model::setupBatchTransform(gpu::Batch& batch) {
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
     }
-    _transforms[0] = Application::getInstance()->getViewTransform();
+    _transforms[0] = _viewState->getViewTransform();
     _transforms[0].preTranslate(-_translation);
     batch.setViewTransform(_transforms[0]);
 }
@@ -1705,7 +1717,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         }
 
 
-        /*Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
+        /*DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(
             mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
             mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
             mode == DEFAULT_RENDER_MODE);
@@ -1745,7 +1757,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
 
         // render translucent meshes afterwards
-        //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+        //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, true, true);
         {
             GLenum buffers[2];
             int bufferCount = 0;
@@ -1770,7 +1782,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         GLBATCH(glDepthMask)(false);
         GLBATCH(glDepthFunc)(GL_LEQUAL);
     
-        //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
+        //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true);
         {
             GLenum buffers[1];
             int bufferCount = 0;
@@ -1825,7 +1837,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     }
 
     // restore all the default material settings
-    Application::getInstance()->setupWorldLight();
+    _viewState->setupWorldLight();
     
 }
 
@@ -2321,10 +2333,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
                                         Locations* locations, SkinLocations* skinLocations) {
     PROFILE_RANGE(__FUNCTION__);
-    bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
-    bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
-    bool dontReduceMaterialSwitches = Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
-                            
+
+    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    GlowEffect* glowEffect = DependencyManager::get<GlowEffect>();
     QString lastMaterialID;
     int meshPartsRendered = 0;
     updateVisibleJointStates();
@@ -2359,11 +2370,10 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
             args->_meshesConsidered++;
 
             if (args->_viewFrustum) {
-                shouldRender = dontCullOutOfViewMeshParts || 
-                                args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
-                if (shouldRender && cullTooSmallMeshParts) {
+                shouldRender = args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+                if (shouldRender) {
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
-                    shouldRender = Menu::getInstance()->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(), 
+                    shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);
                     if (!shouldRender) {
                         args->_meshesTooSmall++;
@@ -2419,7 +2429,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                 GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
                 
             } else {
-                if (dontReduceMaterialSwitches || lastMaterialID != part.materialID) {
+                if (lastMaterialID != part.materialID) {
                     const bool wantDebug = false;
                     if (wantDebug) {
                         qDebug() << "Material Changed ---------------------------------------------";
@@ -2429,7 +2439,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
                     glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
                     if (!(translucent && alphaThreshold == 0.0f)) {
-                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
+                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = glowEffect->getIntensity());
                     }
                     glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
@@ -2446,7 +2456,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     if (showDiffuse && diffuseMap) {
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
                     } else {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getWhiteTextureID());
+                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, textureCache->getWhiteTextureID());
                     }
 
                     if (locations->texcoordMatrices >= 0) {
@@ -2464,7 +2474,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         GLBATCH(glActiveTexture)(GL_TEXTURE1);
                         Texture* normalMap = networkPart.normalTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !normalMap ?
-                            Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
+                            textureCache->getBlueTextureID() : normalMap->getID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
                 
@@ -2472,7 +2482,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
                         Texture* specularMap = networkPart.specularTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !specularMap ?
-                            Application::getInstance()->getTextureCache()->getWhiteTextureID() : specularMap->getID());
+                            textureCache->getWhiteTextureID() : specularMap->getID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
 
@@ -2493,7 +2503,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                     Texture* emissiveMap = networkPart.emissiveTexture.data();
                     GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
-                        Application::getInstance()->getTextureCache()->getWhiteTextureID() : emissiveMap->getID());
+                        textureCache->getWhiteTextureID() : emissiveMap->getID());
                     GLBATCH(glActiveTexture)(GL_TEXTURE0);
                 }
 
@@ -2544,3 +2554,38 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
     return meshPartsRendered;
 }
+
+ModelBlender::ModelBlender() :
+    _pendingBlenders(0) {
+}
+
+ModelBlender::~ModelBlender() {
+}
+
+void ModelBlender::noteRequiresBlend(Model* model) {
+    if (_pendingBlenders < QThread::idealThreadCount()) {
+        if (model->maybeStartBlender()) {
+            _pendingBlenders++;
+        }
+        return;
+    }
+    if (!_modelsRequiringBlends.contains(model)) {
+        _modelsRequiringBlends.append(model);
+    }
+}
+
+void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
+        const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (!model.isNull()) {
+        model->setBlendedVertices(blendNumber, geometry, vertices, normals);
+    }
+    _pendingBlenders--;
+    while (!_modelsRequiringBlends.isEmpty()) {
+        Model* nextModel = _modelsRequiringBlends.takeFirst();
+        if (nextModel && nextModel->maybeStartBlender()) {
+            _pendingBlenders++;
+            return;
+        }
+    }
+}
+

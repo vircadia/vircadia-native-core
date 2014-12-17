@@ -12,22 +12,27 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
+#include <gpu/GPUConfig.h>
+
 #include <QBitArray>
 #include <QObject>
 #include <QUrl>
 
-#include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
+#include <DependencyManager.h>
 #include <GeometryUtil.h>
+#include <gpu/Stream.h>
+#include <gpu/Batch.h>
 #include <PhysicsEntity.h>
+#include <Transform.h>
 
 #include "AnimationHandle.h"
 #include "GeometryCache.h"
-#include "InterfaceConfig.h"
 #include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
+#include "ViewStateInterface.h"
 
 class QScriptEngine;
 
@@ -35,14 +40,14 @@ class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
 
-#include "gpu/Stream.h"
-#include "gpu/Batch.h"
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
+
+    static void setViewStateInterface(ViewStateInterface* viewState) { _viewState = viewState; }
 
     Model(QObject* parent = NULL);
     virtual ~Model();
@@ -454,11 +459,35 @@ private:
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
 
 
+    static ViewStateInterface* _viewState;
+
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
+
+/// Handle management of pending models that need blending
+class ModelBlender : public QObject, public DependencyManager::Dependency  {
+    Q_OBJECT
+
+public:
+
+    /// Adds the specified model to the list requiring vertex blends.
+    void noteRequiresBlend(Model* model);
+
+public slots:
+    void setBlendedVertices(const QPointer<Model>& model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+
+private:
+    ModelBlender();
+    virtual ~ModelBlender();
+    friend class DependencyManager;
+
+    QList<QPointer<Model> > _modelsRequiringBlends;
+    int _pendingBlenders;
+};
 
 
 #endif // hifi_Model_h

@@ -10,29 +10,31 @@
 //
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 #include <QOpenGLFramebufferObject>
 
 #include <glm/gtc/random.hpp>
 
+#include <PathUtils.h>
 #include <SharedUtil.h>
 
-#include "Application.h"
+#include "AmbientOcclusionEffect.h"
+#include "GlowEffect.h"
 #include "ProgramObject.h"
 #include "RenderUtil.h"
-
-#include "AmbientOcclusionEffect.h"
+#include "TextureCache.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
     
-void AmbientOcclusionEffect::init() {
+void AmbientOcclusionEffect::init(ViewStateInterface* viewState) {
+    _viewState = viewState; // we will use this for view state services
     
     _occlusionProgram = new ProgramObject();
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath()
                                                + "shaders/ambient_occlusion.vert");
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath()
                                                + "shaders/ambient_occlusion.frag");
     _occlusionProgram->link();
     
@@ -82,8 +84,8 @@ void AmbientOcclusionEffect::init() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     _blurProgram = new ProgramObject();
-    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/ambient_occlusion.vert");
-    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/occlusion_blur.frag");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/ambient_occlusion.vert");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/occlusion_blur.frag");
     _blurProgram->link();
     
     _blurProgram->bind();
@@ -98,25 +100,24 @@ void AmbientOcclusionEffect::render() {
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
     
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
+    glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimaryDepthTextureID());
     
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
     // render with the occlusion shader to the secondary/tertiary buffer
-    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
+    QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    Application::getInstance()->computeOffAxisFrustum(
-        left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_X_INDEX = 0;
     const int VIEWPORT_WIDTH_INDEX = 2;
-    QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
+    QOpenGLFramebufferObject* primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject();
     float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
     
@@ -141,7 +142,7 @@ void AmbientOcclusionEffect::render() {
     glActiveTexture(GL_TEXTURE0);
     
     // now render secondary to primary with 4x4 blur
-    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
     
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);

@@ -12,11 +12,12 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+
+#include <GlowEffect.h>
 #include <SharedUtil.h>
 
 #include "Sphere3DOverlay.h"
 #include "Application.h"
-#include "renderer/GlowEffect.h"
 
 Sphere3DOverlay::Sphere3DOverlay() {
 }
@@ -61,9 +62,8 @@ void Sphere3DOverlay::render(RenderArgs* args) {
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            //Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
             if (_isSolid) {
-                Application::getInstance()->getGeometryCache()->renderSphere(1.0f, SLICES, SLICES); 
+                DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES); 
             } else {
                 glutWireSphere(1.0f, SLICES, SLICES);
             }

@@ -12,10 +12,11 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+
+#include <GlowEffect.h>
 #include <SharedUtil.h>
 
 #include "Rectangle3DOverlay.h"
-#include "renderer/GlowEffect.h"
 
 Rectangle3DOverlay::Rectangle3DOverlay() {
 }
