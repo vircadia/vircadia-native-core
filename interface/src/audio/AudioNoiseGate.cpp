@@ -9,23 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <float.h>
 #include <string.h>
 
 #include <AudioConstants.h>
 
 #include "AudioNoiseGate.h"
 
-const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 const float AudioNoiseGate::CLIPPING_THRESHOLD = 0.90f;
 
-AudioNoiseGate::AudioNoiseGate() {
-    // Create the noise sample array
-    _sampleFrames = new float[NUMBER_OF_NOISE_SAMPLE_FRAMES];
-}
-
-AudioNoiseGate::~AudioNoiseGate() {
-    delete[] _sampleFrames;
+AudioNoiseGate::AudioNoiseGate() :
+    _inputFrameCounter(0),
+    _lastLoudness(0.0f),
+    _quietestFrame(std::numeric_limits<float>::max()),
+    _loudestFrame(0.0f),
+    _timeSinceLastClip(-1.0f),
+    _dcOffset(0.0f),
+    _measuredFloor(0.0f),
+    _sampleCounter(0),
+    _isOpen(false),
+    _framesToClose(0)
+{
+    
 }
 
 void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
@@ -112,7 +116,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     float averageOfAllSampleFrames = 0.0f;
     _sampleFrames[_sampleCounter++] = _lastLoudness;
     if (_sampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
-        float smallestSample = FLT_MAX;
+        float smallestSample = std::numeric_limits<float>::max();
         for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i += NOISE_GATE_FRAMES_TO_AVERAGE) {
             float thisAverage = 0.0f;
             for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {

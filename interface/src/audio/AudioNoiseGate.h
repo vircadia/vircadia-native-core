@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
+
 class AudioNoiseGate {
 public:
     AudioNoiseGate();
@@ -35,7 +37,7 @@ private:
     float _timeSinceLastClip;
     float _dcOffset;
     float _measuredFloor;
-    float* _sampleFrames;
+    float _sampleFrames[NUMBER_OF_NOISE_SAMPLE_FRAMES];
     int _sampleCounter;
     bool _isOpen;
     int _framesToClose;
