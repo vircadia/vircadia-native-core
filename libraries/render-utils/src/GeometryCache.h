@@ -38,7 +38,7 @@ class GeometryCache : public ResourceCache  {
 
 public:
     void renderHemisphere(int slices, int stacks);
-    void renderSphere(float radius, int slices, int stacks);
+    void renderSphere(float radius, int slices, int stacks, bool solid = true);
     void renderSquare(int xDivisions, int yDivisions);
     void renderHalfCylinder(int slices, int stacks);
     void renderCone(float base, float height, int slices, int stacks);

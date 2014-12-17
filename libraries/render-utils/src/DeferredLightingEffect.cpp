@@ -68,7 +68,7 @@ void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int sta
 
 void DeferredLightingEffect::renderWireSphere(float radius, int slices, int stacks) {
     bindSimpleProgram();
-    glutWireSphere(radius, slices, stacks);
+    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks, false); 
     releaseSimpleProgram();
 }
 

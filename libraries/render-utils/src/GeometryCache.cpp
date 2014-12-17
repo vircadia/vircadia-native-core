@@ -119,7 +119,7 @@ const int NUM_COORDS_PER_VERTEX = 3;
 const int NUM_BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
 const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
-void GeometryCache::renderSphere(float radius, int slices, int stacks) {
+void GeometryCache::renderSphere(float radius, int slices, int stacks, bool solid) {
     VerticesIndices& vbo = _sphereVBOs[IntPair(slices, stacks)];
     int vertices = slices * (stacks - 1) + 2;    
     int indices = slices * stacks * NUM_VERTICES_PER_TRIANGULATED_QUAD;
@@ -211,7 +211,11 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
 
     glPushMatrix();
     glScalef(radius, radius, radius);
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    if (solid) {
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    } else {
+        glDrawRangeElementsEXT(GL_LINES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    }
     glPopMatrix();
 
     glDisableClientState(GL_VERTEX_ARRAY);
