@@ -25,17 +25,6 @@ macro(SETUP_HIFI_PROJECT)
   # add the executable, include additional optional sources
   add_executable(${TARGET_NAME} ${TARGET_SRCS} "${AUTOMTC_SRC}")
   
-  set(QT_MODULES_TO_LINK ${ARGN})
-  list(APPEND QT_MODULES_TO_LINK Core)
-  
-  find_package(Qt5 COMPONENTS ${QT_MODULES_TO_LINK} REQUIRED)
-  
-  foreach(QT_MODULE ${QT_MODULES_TO_LINK})    
-    target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
-    
-    # add the actual path to the Qt module to our LIBRARIES_TO_LINK variable
-    get_target_property(QT_LIBRARY_LOCATION Qt5::${QT_MODULE} LOCATION)
-    list(APPEND ${TARGET_NAME}_QT_MODULES_TO_LINK ${QT_LIBRARY_LOCATION})
-  endforeach()
-  
+  set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
+  list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)
 endmacro()
