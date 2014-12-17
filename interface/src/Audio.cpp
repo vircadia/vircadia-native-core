@@ -638,6 +638,12 @@ void Audio::handleAudioInput() {
         memset(networkAudioSamples, 0, numNetworkBytes);
 
         if (!_muted) {
+            
+            //  Increment the time since the last clip
+            if (_timeSinceLastClip >= 0.0f) {
+                _timeSinceLastClip += (float) numNetworkSamples / (float) AudioConstants::SAMPLE_RATE;
+            }
+            
             // we aren't muted, downsample the input audio
             linearResampling((int16_t*) inputAudioSamples, networkAudioSamples,
                              inputSamplesRequired,  numNetworkSamples,
@@ -646,8 +652,13 @@ void Audio::handleAudioInput() {
             // only impose the noise gate and perform tone injection if we are sending mono audio
             if (!_isStereoInput && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
+                
+                // if we performed the noise gate we can get values from it instead of enumerating the samples again
                 _lastInputLoudness = _inputGate.getLastLoudness();
-                _timeSinceLastClip = _inputGate.getTimeSinceLastClip();
+                
+                if (_inputGate.clippedInLastFrame()) {
+                    _timeSinceLastClip = 0.0f;
+                }
             } else {
                 float loudness = 0.0f;
                 
@@ -660,8 +671,9 @@ void Audio::handleAudioInput() {
                     }
                 }
                 
-                _lastInputLoudness = fabs(loudness / numNetworkSamples);
+                 _lastInputLoudness = fabs(loudness / numNetworkSamples);
             }
+
         } else {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;

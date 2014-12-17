@@ -22,7 +22,7 @@ public:
     
     void gateSamples(int16_t* samples, int numSamples);
     
-    float getTimeSinceLastClip() const { return _timeSinceLastClip; }
+    bool clippedInLastFrame() const { return _didClipInLastFrame; }
     float getMeasuredFloor() const { return _measuredFloor; }
     float getLastLoudness() const { return _lastLoudness; }
     
@@ -33,7 +33,7 @@ private:
     float _lastLoudness;
     float _quietestFrame;
     float _loudestFrame;
-    float _timeSinceLastClip;
+    bool _didClipInLastFrame;
     float _dcOffset;
     float _measuredFloor;
     float _sampleFrames[NUMBER_OF_NOISE_SAMPLE_FRAMES];

@@ -22,7 +22,7 @@ AudioNoiseGate::AudioNoiseGate() :
     _lastLoudness(0.0f),
     _quietestFrame(std::numeric_limits<float>::max()),
     _loudestFrame(0.0f),
-    _timeSinceLastClip(-1.0f),
+    _didClipInLastFrame(false),
     _dcOffset(0.0f),
     _measuredFloor(0.0f),
     _sampleCounter(0),
@@ -66,19 +66,15 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //  Check clipping, adjust DC offset, and check if should open noise gate
     //
     float measuredDcOffset = 0.0f;
-    //  Increment the time since the last clip
-    if (_timeSinceLastClip >= 0.0f) {
-        _timeSinceLastClip += (float) AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL
-        / (float) AudioConstants::SAMPLE_RATE;
-    }
+    _didClipInLastFrame = false;
     
-    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
+    for (int i = 0; i < numSamples; i++) {
         measuredDcOffset += samples[i];
         samples[i] -= (int16_t) _dcOffset;
         thisSample = fabsf(samples[i]);
         
-        if (thisSample >= ((float)AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD)) {
-            _timeSinceLastClip = 0.0f;
+        if (thisSample >= ((float) AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD)) {
+            _didClipInLastFrame = true;
         }
         
         loudness += thisSample;
@@ -88,7 +84,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         }
     }
     
-    measuredDcOffset /= AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+    measuredDcOffset /= numSamples;
     if (_dcOffset == 0.0f) {
         // On first frame, copy over measured offset
         _dcOffset = measuredDcOffset;
@@ -96,7 +92,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
     }
     
-    _lastLoudness = fabs(loudness / AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    _lastLoudness = fabs(loudness / numSamples);
     
     if (_quietestFrame > _lastLoudness) {
         _quietestFrame = _lastLoudness;
@@ -143,7 +139,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         }
     }
     if (!_isOpen) {
-        memset(samples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
+        memset(samples, 0, numSamples * sizeof(int16_t));
         _lastLoudness = 0;
     }
 }
