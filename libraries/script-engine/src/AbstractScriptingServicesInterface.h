@@ -12,8 +12,6 @@
 #ifndef hifi_AbstractScriptingServicesInterface_h
 #define hifi_AbstractScriptingServicesInterface_h
 
-//#include <ViewFrustum.h>
-
 class AbstractControllerScriptingInterface;
 class Transform;
 class ScriptEngine;
