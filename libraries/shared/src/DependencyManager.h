@@ -42,9 +42,7 @@ public:
 private:
     static DependencyManager& getInstance();
     DependencyManager() {}
-    ~DependencyManager();
-    
-    static void noDelete(void*) {}
+    ~DependencyManager(); 
 };
 
 template <typename T>
