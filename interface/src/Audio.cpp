@@ -46,8 +46,6 @@
 
 #include "Audio.h"
 
-static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
-
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
 Audio::Audio() :
@@ -68,21 +66,11 @@ Audio::Audio() :
     _isStereoInput(false),
     _averagedLatency(0.0),
     _lastInputLoudness(0),
-    _inputFrameCounter(0),
-    _quietestFrame(std::numeric_limits<float>::max()),
-    _loudestFrame(0.0f),
-    _timeSinceLastClip(-1.0),
-    _dcOffset(0),
-    _noiseGateMeasuredFloor(0),
-    _noiseGateSampleCounter(0),
-    _noiseGateOpen(false),
-    _noiseGateEnabled(true),
-    _audioSourceInjectEnabled(false),
-    _noiseGateFramesToClose(0),
-    _totalInputAudioSamples(0),
     _muted(false),
     _shouldEchoLocally(false),
     _shouldEchoToServer(false),
+    _isNoiseGateEnabled(true),
+    _audioSourceInjectEnabled(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
     _gverbLocal(NULL),
@@ -91,12 +79,11 @@ Audio::Audio() :
     _toneSourceEnabled(true),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_receivedAudioStream),
-    _stats(&_receivedAudioStream)
+    _stats(&_receivedAudioStream),
+    _inputGate()
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
-    // Create the noise sample array
-    _noiseSampleFrames = new float[NUMBER_OF_NOISE_SAMPLE_FRAMES];
     
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples, this, &Audio::processReceivedSamples, Qt::DirectConnection);
     
@@ -586,6 +573,8 @@ void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     }
 }
 
+const float CLIPPING_THRESHOLD = 0.90f;
+
 void Audio::handleAudioInput() {
     static char audioDataPacket[MAX_PACKET_SIZE];
 
@@ -655,131 +644,24 @@ void Audio::handleAudioInput() {
                              inputSamplesRequired,  numNetworkSamples,
                              _inputFormat, _desiredInputFormat);
             
-            // only impose the noise gate and perform tone injection if we sending mono audio
-            if (!_isStereoInput) {
-                
-                //
-                //  Impose Noise Gate
-                //
-                //  The Noise Gate is used to reject constant background noise by measuring the noise
-                //  floor observed at the microphone and then opening the 'gate' to allow microphone
-                //  signals to be transmitted when the microphone samples average level exceeds a multiple
-                //  of the noise floor.
-                //
-                //  NOISE_GATE_HEIGHT:  How loud you have to speak relative to noise background to open the gate.
-                //                      Make this value lower for more sensitivity and less rejection of noise.
-                //  NOISE_GATE_WIDTH:   The number of samples in an audio frame for which the height must be exceeded
-                //                      to open the gate.
-                //  NOISE_GATE_CLOSE_FRAME_DELAY:  Once the noise is below the gate height for the frame, how many frames
-                //                      will we wait before closing the gate.
-                //  NOISE_GATE_FRAMES_TO_AVERAGE:  How many audio frames should we average together to compute noise floor.
-                //                      More means better rejection but also can reject continuous things like singing.
-                // NUMBER_OF_NOISE_SAMPLE_FRAMES:  How often should we re-evaluate the noise floor?
-                
-                
-                float loudness = 0;
-                float thisSample = 0;
-                int samplesOverNoiseGate = 0;
-                
-                const float NOISE_GATE_HEIGHT = 7.0f;
-                const int NOISE_GATE_WIDTH = 5;
-                const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
-                const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
-                const float DC_OFFSET_AVERAGING = 0.99f;
-                const float CLIPPING_THRESHOLD = 0.90f;
-                
-                //
-                //  Check clipping, adjust DC offset, and check if should open noise gate
-                //
-                float measuredDcOffset = 0.0f;
-                //  Increment the time since the last clip
-                if (_timeSinceLastClip >= 0.0f) {
-                    _timeSinceLastClip += (float) AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL
-                        / (float) AudioConstants::SAMPLE_RATE;
-                }
-                
-                for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-                    measuredDcOffset += networkAudioSamples[i];
-                    networkAudioSamples[i] -= (int16_t) _dcOffset;
-                    thisSample = fabsf(networkAudioSamples[i]);
-                    if (thisSample >= ((float)AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD)) {
-                        _timeSinceLastClip = 0.0f;
-                    }
-                    loudness += thisSample;
-                    //  Noise Reduction:  Count peaks above the average loudness
-                    if (_noiseGateEnabled && (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT))) {
-                        samplesOverNoiseGate++;
-                    }
-                }
-                
-                measuredDcOffset /= AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
-                if (_dcOffset == 0.0f) {
-                    // On first frame, copy over measured offset
-                    _dcOffset = measuredDcOffset;
-                } else {
-                    _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
-                }
-                
-                _lastInputLoudness = fabs(loudness / AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-                if (_quietestFrame > _lastInputLoudness) {
-                    _quietestFrame = _lastInputLoudness;
-                }
-                if (_loudestFrame < _lastInputLoudness) {
-                    _loudestFrame = _lastInputLoudness;
-                }
-                
-                const int FRAMES_FOR_NOISE_DETECTION = 400;
-                if (_inputFrameCounter++ > FRAMES_FOR_NOISE_DETECTION) {
-                    _quietestFrame = std::numeric_limits<float>::max();
-                    _loudestFrame = 0.0f;
-                    _inputFrameCounter = 0;
-                }
-                
-                //  If Noise Gate is enabled, check and turn the gate on and off
-                if (!_audioSourceInjectEnabled && _noiseGateEnabled) {
-                    float averageOfAllSampleFrames = 0.0f;
-                    _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
-                    if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
-                        float smallestSample = FLT_MAX;
-                        for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i += NOISE_GATE_FRAMES_TO_AVERAGE) {
-                            float thisAverage = 0.0f;
-                            for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {
-                                thisAverage += _noiseSampleFrames[j];
-                                averageOfAllSampleFrames += _noiseSampleFrames[j];
-                            }
-                            thisAverage /= NOISE_GATE_FRAMES_TO_AVERAGE;
-                            
-                            if (thisAverage < smallestSample) {
-                                smallestSample = thisAverage;
-                            }
-                        }
-                        averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
-                        _noiseGateMeasuredFloor = smallestSample;
-                        _noiseGateSampleCounter = 0;
-                        
-                    }
-                    if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
-                        _noiseGateOpen = true;
-                        _noiseGateFramesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
-                    } else {
-                        if (--_noiseGateFramesToClose == 0) {
-                            _noiseGateOpen = false;
-                        }
-                    }
-                    if (!_noiseGateOpen) {
-                        memset(networkAudioSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
-                        _lastInputLoudness = 0;
-                    }
-                }
+            // only impose the noise gate and perform tone injection if we are sending mono audio
+            if (!_isStereoInput && _isNoiseGateEnabled) {
+                _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
+                _lastInputLoudness = _inputGate.getLastLoudness();
+                _timeSinceLastClip = _inputGate.getTimeSinceLastClip();
             } else {
                 float loudness = 0.0f;
                 
-                for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-                    loudness += fabsf(networkAudioSamples[i]);
+                for (int i = 0; i < numNetworkSamples; i++) {
+                    float thisSample = fabsf(networkAudioSamples[i]);
+                    loudness += thisSample;
+                    
+                    if (thisSample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD)) {
+                        _timeSinceLastClip = 0.0f;
+                    }
                 }
                 
-                _lastInputLoudness = fabs(loudness / AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                _lastInputLoudness = fabs(loudness / numNetworkSamples);
             }
         } else {
             // our input loudness is 0, since we're muted
@@ -941,10 +823,6 @@ void Audio::parseAudioEnvironmentData(const QByteArray &packet) {
 void Audio::toggleMute() {
     _muted = !_muted;
     muteToggled();
-}
-
-void Audio::toggleAudioNoiseReduction() {
-    _noiseGateEnabled = !_noiseGateEnabled;
 }
 
 void Audio::setIsStereoInput(bool isStereoInput) {

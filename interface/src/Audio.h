@@ -32,6 +32,7 @@
 
 #include "InterfaceConfig.h"
 #include "audio/AudioIOStats.h"
+#include "audio/AudioNoiseGate.h"
 #include "AudioStreamStats.h"
 #include "Recorder.h"
 #include "RingBufferHistory.h"
@@ -82,11 +83,9 @@ public:
     
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
 
-    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.0f); }
+    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _inputGate.getMeasuredFloor(), 0.0f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
-
-    void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
 
     void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& settings) { _receivedAudioStream.setSettings(settings); }
 
@@ -116,10 +115,12 @@ public slots:
     void reset();
     void audioMixerKilled();
     void toggleMute();
-    void toggleAudioNoiseReduction();
+    
     void toggleAudioSourceInject();
     void selectAudioSourcePinkNoise();
     void selectAudioSourceSine440();
+    
+    void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
     
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
@@ -179,24 +180,14 @@ private:
     QElapsedTimer _timeSinceLastReceived;
     float _averagedLatency;
     float _lastInputLoudness;
-    int _inputFrameCounter;
-    float _quietestFrame;
-    float _loudestFrame;
     float _timeSinceLastClip;
-    float _dcOffset;
-    float _noiseGateMeasuredFloor;
-    float* _noiseSampleFrames;
-    int _noiseGateSampleCounter;
-    bool _noiseGateOpen;
-    bool _noiseGateEnabled;
-    bool _audioSourceInjectEnabled;
-    
-    int _noiseGateFramesToClose;
     int _totalInputAudioSamples;
     
     bool _muted;
     bool _shouldEchoLocally;
     bool _shouldEchoToServer;
+    bool _isNoiseGateEnabled;
+    bool _audioSourceInjectEnabled;
     
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;
@@ -244,6 +235,8 @@ private:
     WeakRecorderPointer _recorder;
     
     AudioIOStats _stats;
+    
+    AudioNoiseGate _inputGate;
 };
 
 
