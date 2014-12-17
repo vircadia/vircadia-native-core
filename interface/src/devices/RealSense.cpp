@@ -62,10 +62,10 @@ RealSense* RealSense::getInstance() {
 
 RealSense::RealSense() :
      MotionTracker(),
-    _active(false),
-    _handData(NULL)
+    _active(false)
 {
 #ifdef HAVE_RSSDK
+    _handData = NULL;
     _session = PXCSession_Create();
     initSession(false, NULL);
 
