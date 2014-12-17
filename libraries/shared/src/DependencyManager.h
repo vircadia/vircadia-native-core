@@ -16,10 +16,12 @@
 
 #include <typeinfo>
 
-#define SINGLETON_DEPENDENCY(T)\
+#define SINGLETON_DEPENDENCY(T, NEED_SET)\
 public:\
     typedef QSharedPointer<T> SharedPointer;\
+    typedef QWeakPointer<T> WeakPointer;\
 private:\
+    static constexpr bool REQUIRE_SET = NEED_SET;\
     void customDeleter() {\
         QObject* thisObject = dynamic_cast<QObject*>(this);\
         if (thisObject) {\
@@ -34,20 +36,50 @@ class QObject;
 
 class DependencyManager {
 public:
-    // Only accessible method.
-    // usage: T* instance = DependencyManager::get<T>();
+    // usage:
+    //     T* instance = DependencyManager::get<T>();
+    //     T* instance = DependencyManager::set<T>(Args... args);
+    //     T* instance = DependencyManager::destroy<T>();
     template<typename T>
     static QSharedPointer<T> get();
     
+    template<typename T, typename ...Args>
+    static QSharedPointer<T> set(Args&&... args);
+    
+    template<typename T>
+    static void destroy();
+    
 private:
-    static DependencyManager& getInstance();
-    DependencyManager() {}
-    ~DependencyManager(); 
+    template<typename T>
+    static QSharedPointer<T>& storage();
 };
 
 template <typename T>
 QSharedPointer<T> DependencyManager::get() {
-    static QSharedPointer<T> sharedPointer = QSharedPointer<T>(new T(), &T::customDeleter);
+    static bool requireSet = !T::REQUIRE_SET;
+    if (requireSet) {
+        set<T>();
+        requireSet = false;
+    }
+    
+    return storage<T>();
+}
+
+template <typename T, typename ...Args>
+QSharedPointer<T> DependencyManager::set(Args&&... args) {
+    QSharedPointer<T> instance(new T(args...), &T::customDeleter);
+    storage<T>().swap(instance);
+    return storage<T>();
+}
+
+template <typename T>
+void DependencyManager::destroy() {
+    storage<T>().clear();
+}
+
+template<typename T>
+QSharedPointer<T>& DependencyManager::storage() {
+    static QSharedPointer<T> sharedPointer;
     return sharedPointer;
 }
 

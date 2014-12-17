@@ -10,11 +10,3 @@
 //
 
 #include "DependencyManager.h"
-
-DependencyManager& DependencyManager::getInstance() {
-    static DependencyManager instance;
-    return instance;
-}
-
-DependencyManager::~DependencyManager() {
-}
