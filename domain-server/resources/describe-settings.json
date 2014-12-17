@@ -77,6 +77,33 @@
     ]
   },
   {
+    "name": "scripts",
+    "label": "Scripts",
+    "settings": [
+      {
+        "name": "persistent_scripts",
+        "type": "table",
+        "label": "Persistent Scripts",
+        "help": "Add the URLs for scripts that you would like to ensure are always running in your domain.",
+        "columns": [
+          {
+            "name": "url",
+            "label": "Script URL"
+          },
+          {
+            "name": "num_instances",
+            "label": "# instances",
+            "default": 1
+          },
+          {
+            "name": "pool",
+            "label": "Pool"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "name": "audio_env",
     "label": "Audio Environment",
     "assignment-types": [0],

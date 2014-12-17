@@ -100,9 +100,9 @@ private:
     
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
-    void createScriptedAssignmentsFromList(const QVariantList& configList);
     void createStaticAssignmentsForType(Assignment::Type type, const QVariantList& configList);
     void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
+    void populateStaticScriptedAssignmentsFromSettings();
     
     SharedAssignmentPointer matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
