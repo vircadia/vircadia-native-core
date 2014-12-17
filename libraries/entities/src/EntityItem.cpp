@@ -53,14 +53,13 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _creatorTokenID = entityItemID.creatorTokenID;
 
     // init values with defaults before calling setProperties
-    //uint64_t now = usecTimestampNow();
     _lastEdited = 0;
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
     
     _lastSimulated = 0;
     _lastUpdated = 0;
-    _created = 0; // TODO: when do we actually want to make this "now"
+    _created = usecTimestampNow();
     _changedOnServer = 0;
 
     _position = glm::vec3(0,0,0);
@@ -100,17 +99,17 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
     _type = EntityTypes::Unknown;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _lastSimulated = 0;
-    _lastUpdated = 0;
-    _created = properties.getCreated();
+    quint64 now = usecTimestampNow();
+    _created = properties.getCreated() < now ? properties.getCreated() : now;
+    _lastEdited = _lastEditedFromRemote = _lastSimulated = _lastUpdated = _lastEditedFromRemoteInRemoteTime = _created;
     _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
+    if (_lastEdited == 0) {
+        _lastEdited = _created;
+    }
 }
 
 EntityItem::~EntityItem() {
@@ -142,7 +141,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
                                             EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const {
-                                            
     // ALL this fits...
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
@@ -372,7 +370,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += sizeof(createdFromBuffer);
         createdFromBuffer -= clockSkew;
         
-        _created = createdFromBuffer; // TODO: do we ever want to discard this???
+        if (createdFromBuffer < _created) {
+            _created = createdFromBuffer;
+            _lastEdited = 0;
+        }
 
         if (wantDebug) {
             quint64 lastEdited = getLastEdited();
@@ -390,8 +391,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint64 lastEditedFromBuffer = 0;
         quint64 lastEditedFromBufferAdjusted = 0;
 
-        // BOOKMARK: TODO: figure out if we can catch remote updates to EntityItems and build a list in the Tree 
-        // that is then relayed to the physics engine (and other data structures that cache EntityItem data)
         // TODO: we could make this encoded as a delta from _created
         // _lastEdited
         memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
@@ -423,14 +422,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (fromSameServerEdit) {
             // If this is from the same sever packet, then check against any local changes since we got
             // the most recent packet from this server time
-            if (_lastEdited > _lastEditedFromRemote) {
+            if (_lastEdited >= _lastEditedFromRemote) {
                 ignoreServerPacket = true;
             }
         } else {
             // If this isn't from the same sever packet, then honor our skew adjusted times...
             // If we've changed our local tree more recently than the new data from this packet
             // then we will not be changing our values, instead we just read and skip the data
-            if (_lastEdited > lastEditedFromBufferAdjusted) {
+            if (_lastEdited >= lastEditedFromBufferAdjusted) {
                 ignoreServerPacket = true;
             }
         }
@@ -446,7 +445,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 qDebug() << "USING NEW data from server!!! ****************";
             }
 
-            _lastEdited = lastEditedFromBufferAdjusted;
+            // don't allow _lastEdited to be in the future
+            _lastEdited = lastEditedFromBufferAdjusted < now ? lastEditedFromBufferAdjusted : now;
             _lastEditedFromRemote = now;
             _lastEditedFromRemoteInRemoteTime = lastEditedFromBuffer;
             
@@ -783,10 +783,13 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
 
     // handle the setting of created timestamps for the basic new entity case
     if (forceCopy) {
+        quint64 now = usecTimestampNow();
         if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
-            _created = usecTimestampNow();
+            _created = now;
         } else if (properties.getCreated() != USE_EXISTING_CREATED_TIME) {
-            _created = properties.getCreated();
+            quint64 created = properties.getCreated();
+            // don't allow _created to be in the future
+            _created = created < now ? created : now;
         }
     }
 
@@ -813,13 +816,14 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed
         bool wantDebug = false;
+        uint64_t now = usecTimestampNow();
         if (wantDebug) {
-            uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
             qDebug() << "EntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
-        setLastEdited(properties._lastEdited);
+        // don't allow _lastEdited to be in the future
+        setLastEdited( properties._lastEdited < now ? properties._lastEdited : now);
         if (getDirtyFlags() & EntityItem::DIRTY_POSITION) {
             _lastSimulated = usecTimestampNow();
         }

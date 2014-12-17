@@ -113,64 +113,57 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
-        if (_outgoingPacketFlags == OUTGOING_DIRTY_PHYSICS_FLAGS) {
-            // all outgoing physics flags are set
-            // This is the common case: physics engine has changed object position/velocity.
-
+        if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
             bulletToGLM(worldTrans.getOrigin(), _sentPosition);
             properties.setPosition(_sentPosition + ObjectMotionState::getWorldOffset());
         
             bulletToGLM(worldTrans.getRotation(), _sentRotation);
             properties.setRotation(_sentRotation);
-        
+        }
+    
+        if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
             if (_body->isActive()) {
                 bulletToGLM(_body->getLinearVelocity(), _sentVelocity);
                 bulletToGLM(_body->getAngularVelocity(), _sentAngularVelocity);
-                bulletToGLM(_body->getGravity(), _sentAcceleration);
+
+                // if the speeds are very small we zero them out
+                const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 4.0e-6f; // 2mm/sec
+                bool zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
+                if (zeroSpeed) {
+                    _sentVelocity = glm::vec3(0.0f);
+                }
+                const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
+                bool zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
+                if (zeroSpin) {
+                    _sentAngularVelocity = glm::vec3(0.0f);
+                }
+
+                _sentMoving = ! (zeroSpeed && zeroSpin);
             } else {
-                _sentVelocity = _sentAngularVelocity = _sentAcceleration = glm::vec3(0.0f);
+                _sentVelocity = _sentAngularVelocity = glm::vec3(0.0f);
+                _sentMoving = false;
             }
             properties.setVelocity(_sentVelocity);
+            bulletToGLM(_body->getGravity(), _sentAcceleration);
             properties.setGravity(_sentAcceleration);
             properties.setAngularVelocity(_sentAngularVelocity);
-        } else {
-            // subset of outgoing physics flags are set
-            // This is an uncommon case: physics engine change collided with incoming external change
-            // we only send data for flags that haven't been cleared.
-    
-            if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
-                btTransform worldTrans = _body->getWorldTransform();
-                bulletToGLM(worldTrans.getOrigin(), _sentPosition);
-                properties.setPosition(_sentPosition + ObjectMotionState::getWorldOffset());
-            
-                bulletToGLM(worldTrans.getRotation(), _sentRotation);
-                properties.setRotation(_sentRotation);
-            }
-        
-            if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
-                if (_body->isActive()) {
-                    bulletToGLM(_body->getLinearVelocity(), _sentVelocity);
-                    bulletToGLM(_body->getAngularVelocity(), _sentAngularVelocity);
-                    bulletToGLM(_body->getGravity(), _sentAcceleration);
-                } else {
-                    _sentVelocity = _sentAngularVelocity = _sentAcceleration = glm::vec3(0.0f);
-                }
-                properties.setVelocity(_sentVelocity);
-                properties.setAngularVelocity(_sentAngularVelocity);
-                properties.setGravity(_sentAcceleration);
-            }
         }
-        // TODO: Figure out what LastEdited is used for...
-        //properties.setLastEdited(now);
 
-        glm::vec3 zero(0.0f);
-        _sentMoving = !(_sentVelocity == zero && _sentAngularVelocity == zero && _sentAcceleration == zero);
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
         if (_sentMoving) {
             _numNonMovingUpdates = 0;
         } else {
             _numNonMovingUpdates++;
+        }
+        if (_numNonMovingUpdates <= 1) {
+            // we only update lastEdited when we're sending new physics data 
+            // (i.e. NOT when we just simulate the positions forward, nore when we resend non-moving data)
+            quint64 lastSimulated = _entity->getLastSimulated();
+            _entity->setLastEdited(lastSimulated);
+            properties.setLastEdited(lastSimulated);
+        } else {
+            properties.setLastEdited(_entity->getLastEdited());
         }
 
         EntityItemID id(_entity->getID());

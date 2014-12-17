@@ -95,8 +95,8 @@ enum EntityPropertyList {
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 
-const quint64 UNKNOWN_CREATED_TIME = (quint64)(-1);
-const quint64 USE_EXISTING_CREATED_TIME = (quint64)(-2);
+const quint64 UNKNOWN_CREATED_TIME = 0;
+const quint64 USE_EXISTING_CREATED_TIME = 1;
 
 
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
