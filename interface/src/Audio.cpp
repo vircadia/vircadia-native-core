@@ -573,8 +573,6 @@ void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     }
 }
 
-const float CLIPPING_THRESHOLD = 0.90f;
-
 void Audio::handleAudioInput() {
     static char audioDataPacket[MAX_PACKET_SIZE];
 
