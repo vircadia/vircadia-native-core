@@ -32,7 +32,7 @@ enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_T
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(TextureCache)
+    SINGLETON_DEPENDENCY(TextureCache, false)
     
 public:
 

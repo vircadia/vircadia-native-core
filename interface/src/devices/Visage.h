@@ -28,7 +28,7 @@ namespace VisageSDK {
 /// Handles input from the Visage webcam feature tracking software.
 class Visage : public FaceTracker  {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(Visage)
+    SINGLETON_DEPENDENCY(Visage, false)
     
 public:
     void init();

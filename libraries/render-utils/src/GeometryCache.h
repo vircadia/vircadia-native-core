@@ -34,7 +34,7 @@ class NetworkTexture;
 /// Stores cached geometry.
 class GeometryCache : public ResourceCache  {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(GeometryCache)
+    SINGLETON_DEPENDENCY(GeometryCache, false)
 
 public:
     void renderHemisphere(int slices, int stacks);

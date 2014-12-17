@@ -24,7 +24,7 @@ class PostLightingRenderable;
 
 /// Handles deferred lighting for the bits that require it (voxels, metavoxels...)
 class DeferredLightingEffect {
-    SINGLETON_DEPENDENCY(DeferredLightingEffect)
+    SINGLETON_DEPENDENCY(DeferredLightingEffect, false)
     
 public:
     
