@@ -650,7 +650,7 @@ void Audio::handleAudioInput() {
                              _inputFormat, _desiredInputFormat);
             
             // only impose the noise gate and perform tone injection if we are sending mono audio
-            if (!_isStereoInput && _isNoiseGateEnabled) {
+            if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
                 
                 // if we performed the noise gate we can get values from it instead of enumerating the samples again
@@ -671,12 +671,13 @@ void Audio::handleAudioInput() {
                     }
                 }
                 
-                 _lastInputLoudness = fabs(loudness / numNetworkSamples);
+                _lastInputLoudness = fabs(loudness / numNetworkSamples);
             }
 
         } else {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
+            _timeSinceLastClip = 0.0f;
         }
         
         emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),

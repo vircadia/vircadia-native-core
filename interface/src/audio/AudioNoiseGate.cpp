@@ -62,9 +62,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
     const float DC_OFFSET_AVERAGING = 0.99f;
     
-    //
     //  Check clipping, adjust DC offset, and check if should open noise gate
-    //
     float measuredDcOffset = 0.0f;
     _didClipInLastFrame = false;
     
