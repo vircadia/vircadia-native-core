@@ -19,7 +19,6 @@ const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 class AudioNoiseGate {
 public:
     AudioNoiseGate();
-    ~AudioNoiseGate();
     
     void gateSamples(int16_t* samples, int numSamples);
     
