@@ -239,7 +239,7 @@ void RealSense::update() {
 }
 
 void RealSense::loadRSSDKFile() {
-    QString fileNameString = QFileDialog::getOpenFileName(Application::getInstance()->getGLWidget(), tr("Open RSSDK clip"),
+    QString fileNameString = QFileDialog::getOpenFileName(Application::getInstance()->getWindow(), tr("Open RSSDK clip"),
         NULL,
         tr("RSSDK Recordings (*.rssdk)"));
     if (!fileNameString.isEmpty()) {
