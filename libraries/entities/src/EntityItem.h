@@ -317,9 +317,9 @@ protected:
     bool _newlyCreated;
     quint64 _lastSimulated; // last time this entity called simulate() 
     quint64 _lastUpdated; // last time this entity called update()
-    quint64 _lastEdited; // this is the last official local or remote edit time
-    quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
-    quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
+    quint64 _lastEdited; // last official local or remote edit time
+    quint64 _lastEditedFromRemote; // last time we received and edit from the server
+    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
     quint64 _created;
     quint64 _changedOnServer;
 
