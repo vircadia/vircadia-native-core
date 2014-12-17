@@ -536,9 +536,9 @@ Menu::Menu() :
                                            SLOT(toggleAudioNoiseReduction()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
-                                           audioIO, SLOT(toggleLocalEcho()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
                                            audioIO, SLOT(toggleServerEcho()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
+                                           audioIO, SLOT(toggleLocalEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
                                            audioIO, SLOT(toggleStereoInput()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,

@@ -94,6 +94,8 @@ public:
     
     bool isMuted() { return _muted; }
     
+    void setIsStereoInput(bool isStereoInput);
+    
     const AudioIOStats& getStats() const { return _stats; }
 
     float getInputRingBufferMsecsAvailable() const;
@@ -122,7 +124,7 @@ public slots:
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
     
-    void toggleStereoInput();
+    void toggleStereoInput() { setIsStereoInput(!_isStereoInput); }
   
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();

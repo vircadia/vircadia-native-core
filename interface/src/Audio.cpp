@@ -81,6 +81,8 @@ Audio::Audio() :
     _noiseGateFramesToClose(0),
     _totalInputAudioSamples(0),
     _muted(false),
+    _shouldEchoLocally(false),
+    _shouldEchoToServer(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
     _gverbLocal(NULL),
@@ -945,19 +947,16 @@ void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
 }
 
-void Audio::toggleStereoInput() {
-    int oldChannelCount = _desiredInputFormat.channelCount();
-    QAction* stereoAudioOption = Menu::getInstance()->getActionForOption(MenuOption::StereoAudio);
-
-    if (stereoAudioOption->isChecked()) {
-        _desiredInputFormat.setChannelCount(2);
-        _isStereoInput = true;
-    } else {
-        _desiredInputFormat.setChannelCount(1);
-        _isStereoInput = false;
-    }
-    
-    if (oldChannelCount != _desiredInputFormat.channelCount()) {
+void Audio::setIsStereoInput(bool isStereoInput) {
+    if (isStereoInput != _isStereoInput) {
+        _isStereoInput = isStereoInput;
+        
+        if (_isStereoInput) {
+            _desiredInputFormat.setChannelCount(2);
+        } else {
+            _desiredInputFormat.setChannelCount(1);
+        }
+        
         // change in channel count for desired input format, restart the input device
         switchInputToAudioDevice(_inputAudioDeviceName);
     }
