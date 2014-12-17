@@ -109,9 +109,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
-    if (_lastEdited == 0) {
-        _lastEdited = _created;
-    }
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
@@ -424,14 +421,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (fromSameServerEdit) {
             // If this is from the same sever packet, then check against any local changes since we got
             // the most recent packet from this server time
-            if (_lastEdited >= _lastEditedFromRemote) {
+            if (_lastEdited > _lastEditedFromRemote) {
                 ignoreServerPacket = true;
             }
         } else {
             // If this isn't from the same sever packet, then honor our skew adjusted times...
             // If we've changed our local tree more recently than the new data from this packet
             // then we will not be changing our values, instead we just read and skip the data
-            if (_lastEdited >= lastEditedFromBufferAdjusted) {
+            if (_lastEdited > lastEditedFromBufferAdjusted) {
                 ignoreServerPacket = true;
             }
         }
