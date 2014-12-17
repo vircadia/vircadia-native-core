@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <gpu/GPUConfig.h>
+
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QFont>
@@ -18,7 +20,6 @@
 #include <QStringList>
 #include <QWindow>
 
-#include "InterfaceConfig.h"
 #include "TextRenderer.h"
 
 #include "glm/glm.hpp"

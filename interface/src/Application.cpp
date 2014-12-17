@@ -73,6 +73,7 @@
 #include <ProgramObject.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
+#include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -109,7 +110,6 @@
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
-#include "ui/TextRenderer.h"
 
 
 

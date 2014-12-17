@@ -13,9 +13,9 @@
 
 #include <gpu/GPUConfig.h>
 #include <PerfStat.h>
+#include <TextRenderer.h>
 
 #include "RenderableTextEntityItem.h"
-#include "ui/TextRenderer.h"
 
 const int FIXED_FONT_POINT_SIZE = 40;
 const float LINE_SCALE_RATIO = 1.2f;
