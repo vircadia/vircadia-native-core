@@ -18,6 +18,7 @@
 #include <ModelEntityItem.h>
 
 class Model;
+class EntityTreeRenderer;
 
 class RenderableModelEntityItem : public ModelEntityItem  {
 public:
