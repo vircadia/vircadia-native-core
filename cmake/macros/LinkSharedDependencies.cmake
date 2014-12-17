@@ -27,9 +27,6 @@ macro(LINK_SHARED_DEPENDENCIES)
   if (${TARGET_NAME}_DEPENDENCY_QT_MODULES)
     list(REMOVE_DUPLICATES ${TARGET_NAME}_DEPENDENCY_QT_MODULES)
     
-    message(${TARGET_NAME})
-    message(${${TARGET_NAME}_DEPENDENCY_QT_MODULES})
-    
     # find these Qt modules and link them to our own target
     find_package(Qt5 COMPONENTS ${${TARGET_NAME}_DEPENDENCY_QT_MODULES} REQUIRED)
   
