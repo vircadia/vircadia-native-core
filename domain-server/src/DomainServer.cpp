@@ -233,6 +233,9 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     parseAssignmentConfigs(parsedTypes);
 
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
+    
+    // check for scripts the user wants to persist from their domain-server config
+    populateStaticScriptedAssignmentsFromSettings();
 
     LimitedNodeList* nodeList = LimitedNodeList::createInstance(domainServerPort, domainServerDTLSPort);
     
@@ -451,8 +454,6 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
 
             if (assignmentType != Assignment::AgentType) {
                 createStaticAssignmentsForType(assignmentType, assignmentList);
-            } else {
-                createScriptedAssignmentsFromList(assignmentList);
             }
 
             excludedTypes.insert(assignmentType);
@@ -468,35 +469,37 @@ void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment
     _allAssignments.insert(newAssignment->getUUID(), SharedAssignmentPointer(newAssignment));
 }
 
-void DomainServer::createScriptedAssignmentsFromList(const QVariantList &configList) {
-    foreach(const QVariant& configVariant, configList) {
-        if (configVariant.canConvert(QMetaType::QVariantMap)) {
-            QVariantMap configMap = configVariant.toMap();
-
-            // make sure we were passed a URL, otherwise this is an invalid scripted assignment
-            const QString  ASSIGNMENT_URL_KEY = "url";
-            QString assignmentURL = configMap[ASSIGNMENT_URL_KEY].toString();
-
-            if (!assignmentURL.isEmpty()) {
-                // check the json for a pool
-                const QString ASSIGNMENT_POOL_KEY = "pool";
-                QString assignmentPool = configMap[ASSIGNMENT_POOL_KEY].toString();
-
-                // check for a number of instances, if not passed then default is 1
-                const QString ASSIGNMENT_INSTANCES_KEY = "instances";
-                int numInstances = configMap[ASSIGNMENT_INSTANCES_KEY].toInt();
-                numInstances = (numInstances == 0 ? 1 : numInstances);
-
-                qDebug() << "Adding a static scripted assignment from" << assignmentURL;
-
-                for (int i = 0; i < numInstances; i++) {
+void DomainServer::populateStaticScriptedAssignmentsFromSettings() {
+    const QString PERSISTENT_SCRIPTS_KEY_PATH = "scripts.persistent_scripts";
+    const QVariant* persistentScriptsVariant = valueForKeyPath(_settingsManager.getSettingsMap(), PERSISTENT_SCRIPTS_KEY_PATH);
+    
+    if (persistentScriptsVariant) {
+        QVariantList persistentScriptsList = persistentScriptsVariant->toList();
+        foreach(const QVariant& persistentScriptVariant, persistentScriptsList) {
+            QVariantMap persistentScript = persistentScriptVariant.toMap();
+            
+            const QString PERSISTENT_SCRIPT_URL_KEY = "url";
+            const QString PERSISTENT_SCRIPT_NUM_INSTANCES_KEY = "num_instances";
+            const QString PERSISTENT_SCRIPT_POOL_KEY = "pool";
+            
+            if (persistentScript.contains(PERSISTENT_SCRIPT_URL_KEY)) {
+                // check how many instances of this script to add
+                
+                int numInstances = persistentScript[PERSISTENT_SCRIPT_NUM_INSTANCES_KEY].toInt();
+                QString scriptURL = persistentScript[PERSISTENT_SCRIPT_URL_KEY].toString();
+                
+                QString scriptPool = persistentScript.value(PERSISTENT_SCRIPT_POOL_KEY).toString();
+                
+                qDebug() << "Adding" << numInstances << "of persistent script at URL" << scriptURL << "- pool" << scriptPool;
+                
+                for (int i = 0; i < numInstances; ++i) {
                     // add a scripted assignment to the queue for this instance
                     Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
                                                                   Assignment::AgentType,
-                                                                  assignmentPool);
-                    scriptAssignment->setPayload(assignmentURL.toUtf8());
-
-                    // scripts passed on CL or via JSON are static - so they are added back to the queue if the node dies
+                                                                  scriptPool);
+                    scriptAssignment->setPayload(scriptURL.toUtf8());
+                    
+                    // add it to static hash so we know we have to keep giving it back out
                     addStaticAssignmentToAssignmentHash(scriptAssignment);
                 }
             }
