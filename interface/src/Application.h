@@ -36,6 +36,7 @@
 #include <AbstractViewStateInterface.h>
 #include <EntityCollisionSystem.h>
 #include <EntityEditPacketSender.h>
+#include <EntityTreeRenderer.h>
 #include <GeometryCache.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
@@ -62,7 +63,6 @@
 #include "avatar/MyAvatar.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
-#include "entities/EntityTreeRenderer.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
