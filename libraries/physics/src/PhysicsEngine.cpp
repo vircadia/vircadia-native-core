@@ -191,8 +191,7 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         for (int i = 0; i < 3; ++i) {
             btVector3 normal(0.0f, 0.0f, 0.0f);
             normal[i] = 1.0f;
-            //btCollisionShape* plane = new btStaticPlaneShape(normal, 0.0f);
-            btCollisionShape* plane = new btStaticPlaneShape(normal, 0.5f);
+            btCollisionShape* plane = new btStaticPlaneShape(normal, 0.0f);
 
             btCollisionObject* groundObject = new btCollisionObject();
             groundObject->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
