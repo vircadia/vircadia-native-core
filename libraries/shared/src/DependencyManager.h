@@ -20,7 +20,14 @@
 public:\
     typedef QSharedPointer<T> SharedPointer;\
 private:\
-    void customDeleter() { delete this; }\
+    void customDeleter() {\
+        QObject* thisObject = dynamic_cast<QObject*>(this);\
+        if (thisObject) {\
+            thisObject->deleteLater();\
+        } else {\
+            delete this;\
+        }\
+    }\
     friend class DependencyManager;
 
 class QObject;
@@ -35,24 +42,12 @@ public:
 private:
     static DependencyManager& getInstance();
     DependencyManager() {}
-    ~DependencyManager();
-    
-    static void noDelete(void*) {}
+    ~DependencyManager(); 
 };
 
 template <typename T>
 QSharedPointer<T> DependencyManager::get() {
-    static QSharedPointer<T> sharedPointer;
-    static T* instance = new T();
-    
-    if (instance) {
-        if (dynamic_cast<QObject*>(instance) != NULL) { // If this is a QOject, call deleteLater for destruction
-            sharedPointer = QSharedPointer<T>(instance, &T::deleteLater);
-        } else { // Otherwise use custom deleter to avoid issues between private destructor and QSharedPointer
-            sharedPointer = QSharedPointer<T>(instance, &T::customDeleter);
-        }
-        instance = NULL;
-    }
+    static QSharedPointer<T> sharedPointer = QSharedPointer<T>(new T(), &T::customDeleter);
     return sharedPointer;
 }
 
