@@ -12,22 +12,15 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-
-// TODO: remove these once we migrate away from GLUT calls
-#if defined(__APPLE__)
-#include <GLUT/glut.h>
-#elif defined(WIN32)
-#include <GL/glut.h>
-#else
-#include <GL/glut.h>
-#endif
+#include <gpu/GLUTConfig.h> // TODO - we need to get rid of this ASAP
 
 #include <QOpenGLFramebufferObject>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
+#include <ViewFrustum.h>
 
-
+#include "AbstractViewStateInterface.h"
 #include "DeferredLightingEffect.h"
 #include "GeometryCache.h"
 #include "GlowEffect.h"
@@ -35,7 +28,7 @@
 #include "TextureCache.h"
 
 
-void DeferredLightingEffect::init(ViewStateInterface* viewState) {
+void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     _viewState = viewState;
     _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/simple.vert");
     _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/simple.frag");

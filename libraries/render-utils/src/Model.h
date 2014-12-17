@@ -32,8 +32,8 @@
 #include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
-#include "ViewStateInterface.h"
 
+class AbstractViewStateInterface;
 class QScriptEngine;
 
 class Shape;
@@ -47,7 +47,7 @@ class Model : public QObject, public PhysicsEntity {
     
 public:
 
-    static void setViewStateInterface(ViewStateInterface* viewState) { _viewState = viewState; }
+    static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
     Model(QObject* parent = NULL);
     virtual ~Model();
@@ -459,7 +459,7 @@ private:
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
 
 
-    static ViewStateInterface* _viewState;
+    static AbstractViewStateInterface* _viewState;
 
 };
 

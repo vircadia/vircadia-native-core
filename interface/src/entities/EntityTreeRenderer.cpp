@@ -11,16 +11,21 @@
 
 #include <gpu/GPUConfig.h>
 
+#include <gpu/GLUTConfig.h> // TODO - we need to get rid of this ASAP
+
 #include <glm/gtx/quaternion.hpp>
 
+#include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
- 
+
+#include <AbstractScriptingServicesInterface.h>
+#include <AbstractViewStateInterface.h>
 #include <GlowEffect.h>
+#include <Model.h>
 #include <NetworkAccessManager.h>
 #include <PerfStat.h>
-#include <ViewStateInterface.h>
+#include <ScriptEngine.h>
 
-#include "Application.h"
 #include "EntityTreeRenderer.h"
 
 #include "RenderableBoxEntityItem.h"
@@ -30,12 +35,14 @@
 #include "RenderableTextEntityItem.h"
 
 
-EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, ViewStateInterface* viewState) :
+EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
+                                            AbstractScriptingServicesInterface* scriptingServices) :
     OctreeRenderer(),
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
+    _scriptingServices(scriptingServices),
     _displayElementChildProxies(false),
     _displayModelBounds(false),
     _displayModelElementProxy(false),
@@ -70,13 +77,13 @@ void EntityTreeRenderer::init() {
 
     if (_wantScripts) {
         _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities",
-                                        Application::getInstance()->getControllerScriptingInterface());
-        Application::getInstance()->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
+                                        _scriptingServices->getControllerScriptingInterface());
+        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.    
-    glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition();
+    glm::vec3 avatarPosition = _viewState->getAvatarPosition();
     _lastAvatarPosition = avatarPosition + glm::vec3(1.0f, 1.0f, 1.0f);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
@@ -233,7 +240,7 @@ void EntityTreeRenderer::update() {
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree) {
         _tree->lockForWrite(); // so that our scripts can do edits if they want
-        glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float) TREE_SCALE;
+        glm::vec3 avatarPosition = _viewState->getAvatarPosition() / (float) TREE_SCALE;
         
         if (avatarPosition != _lastAvatarPosition) {
             float radius = 1.0f / (float) TREE_SCALE; // for now, assume 1 meter radius

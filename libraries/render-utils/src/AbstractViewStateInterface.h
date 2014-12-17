@@ -1,5 +1,5 @@
 //
-//  ViewStateInterface.h
+//  AbstractViewStateInterface.h
 //  interface/src/renderer
 //
 //  Created by Brad Hefta-Gaub on 12/16/14.
@@ -9,16 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ViewStateInterface_h
-#define hifi_ViewStateInterface_h
+#ifndef hifi_AbstractViewStateInterface_h
+#define hifi_AbstractViewStateInterface_h
 
-#include <ViewFrustum.h>
+#include <glm/glm.hpp>
 
 class Transform;
 class QThread;
+class ViewFrustum;
+class PickRay;
 
 /// Interface provided by Application to other objects that need access to the current view state details
-class ViewStateInterface {
+class AbstractViewStateInterface {
 public:
     
     /// Returns the shadow distances for the current view state
@@ -41,7 +43,9 @@ public:
     virtual float getSizeScale() const = 0;
     virtual int getBoundaryLevelAdjust() const = 0;
     virtual PickRay computePickRay(float x, float y) = 0;
+
+    virtual const glm::vec3& getAvatarPosition() const = 0;
 };
 
 
-#endif // hifi_ViewStateInterface_h
+#endif // hifi_AbstractViewStateInterface_h

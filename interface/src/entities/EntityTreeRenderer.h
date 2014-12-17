@@ -19,6 +19,8 @@
 
 class Model;
 class ScriptEngine;
+class AbstractViewStateInterface;
+class AbstractScriptingServicesInterface;
 
 class EntityScriptDetails {
 public:
@@ -30,7 +32,8 @@ public:
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
     Q_OBJECT
 public:
-    EntityTreeRenderer(bool wantScripts, ViewStateInterface* viewState);
+    EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
+                                AbstractScriptingServicesInterface* scriptingServices);
     virtual ~EntityTreeRenderer();
 
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
@@ -141,7 +144,8 @@ private:
 
     bool _lastMouseEventValid;
     MouseEvent _lastMouseEvent;
-    ViewStateInterface* _viewState;
+    AbstractViewStateInterface* _viewState;
+    AbstractScriptingServicesInterface* _scriptingServices;
     bool _displayElementChildProxies;
     bool _displayModelBounds;
     bool _displayModelElementProxy;

@@ -155,9 +155,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _entities(true, this),
+        _entities(true, this, this),
         _entityCollisionSystem(),
-        _entityClipboardRenderer(false, this),
+        _entityClipboardRenderer(false, this, this),
         _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
@@ -191,7 +191,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-    Model::setViewStateInterface(this); // The model class will sometimes need to know view state details from us
+    Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
