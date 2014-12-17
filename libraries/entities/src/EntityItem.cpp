@@ -650,7 +650,7 @@ void EntityItem::simulate(const quint64& now) {
         }
     }
 
-    if (hasVelocity()) {
+    if (hasVelocity() || hasGravity()) {
         glm::vec3 position = getPosition();
         glm::vec3 velocity = getVelocity();
         glm::vec3 newPosition = position + (velocity * timeElapsed);
@@ -731,7 +731,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::isMoving() const {
-    return hasVelocity() || hasAngularVelocity();
+    return hasVelocity() (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity();
 }
 
 bool EntityItem::lifetimeHasExpired() const { 
