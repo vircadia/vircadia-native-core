@@ -2389,8 +2389,8 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     Box transformedBounds = inverseTransform * spanner->getBounds();
     glm::mat4 transform = glm::inverse(inverseTransform);
     
-    glm::vec3 start = glm::floor(transformedBounds.minimum);
-    glm::vec3 end = glm::ceil(transformedBounds.maximum);
+    glm::vec3 start = glm::ceil(transformedBounds.maximum);
+    glm::vec3 end = glm::floor(transformedBounds.minimum);
     
     float stepX = (float)innerHeightWidth / qMax(innerHeightWidth, qMax(innerColorWidth, innerMaterialWidth));
     float stepZ = (float)innerHeightHeight / qMax(innerHeightHeight, qMax(innerColorHeight, innerMaterialHeight));
@@ -2399,25 +2399,25 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     float startZ = glm::clamp(start.z, 0.0f, (float)highestHeightZ), endZ = glm::clamp(end.z, 0.0f, (float)highestHeightZ);
     glm::vec3 worldStart = glm::vec3(transform * glm::vec4(startX, start.y, startZ, 1.0f));
     glm::vec3 worldStepX = glm::vec3(transform * glm::vec4(stepX, 0.0f, 0.0f, 0.0f));
-    glm::vec3 worldStepY = glm::vec3(transform * glm::vec4(0.0f, end.y - start.y, 0.0f, 0.0f));
+    glm::vec3 worldStepY = glm::vec3(transform * glm::vec4(0.0f, start.y - end.y, 0.0f, 0.0f));
     glm::vec3 worldStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, stepZ, 0.0f));
     float voxelStep = scale.x / innerHeightWidth;
     float voxelScale = scale.y / (numeric_limits<quint16>::max() * voxelStep);
     glm::vec3 voxelStepY = glm::vec3(transform * glm::vec4(0.0f, 1.0f / voxelScale, 0.0f, 0.0f));
-    int newTop = end.y * voxelScale;
-    int newBottom = start.y * voxelScale;
+    int newTop = start.y * voxelScale;
+    int newBottom = end.y * voxelScale;
     char r = color.red(), g = color.green(), b = color.blue(), a = color.alpha();
     bool erase = (a == 0);
     uchar materialIndex = getMaterialIndex(material, newMaterialMaterials, newMaterialContents);
     bool hasOwnColors = spanner->hasOwnColors();
     bool hasOwnMaterials = spanner->hasOwnMaterials();
     QHash<int, int> materialMappings;
-    for (float z = startZ; z <= endZ; z += stepZ, worldStart += worldStepZ) {
+    for (float z = startZ; z >= endZ; z -= stepZ, worldStart -= worldStepZ) {
         quint16* heightDest = newHeightContents.data() + (int)z * heightWidth;
         glm::vec3 worldPos = worldStart;
-        for (float x = startX; x <= endX; x += stepX, worldPos += worldStepX) {
+        for (float x = startX; x >= endX; x -= stepX, worldPos -= worldStepX) {
             quint16* heightLineDest = heightDest + (int)x;
-            glm::vec3 endPos = worldPos + worldStepY;
+            glm::vec3 endPos = worldPos - worldStepY;
             float distance;
             glm::vec3 normal;
             
@@ -2443,49 +2443,83 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 char* entryDest = stackDest->data() + offset;
                 glm::vec3 pos = glm::vec3(transform * glm::vec4(x, 0.0f, z, 1.0f)) + voxelStepY * (float)newTop;
                 for (int y = newTop; y >= newBottom; y--, entryDest += HeightfieldStack::ENTRY_BYTES, pos -= voxelStepY) {
-                    if (!spanner->contains(pos)) {
-                        continue;
-                    }
-                    if (hasOwnColors && !erase) {
-                        QRgb spannerColor = spanner->getColorAt(pos);
-                        entryDest[0] = qRed(spannerColor);
-                        entryDest[1] = qGreen(spannerColor);
-                        entryDest[2] = qBlue(spannerColor);
-                        entryDest[3] = qAlpha(spannerColor);
-                        
-                    } else {
-                        entryDest[0] = r;
-                        entryDest[1] = g;
-                        entryDest[2] = b;
-                        entryDest[3] = a;
-                    }
-                    if (hasOwnMaterials && !erase) {
-                        int index = spanner->getMaterialAt(pos);
-                        if (index != 0) {
-                            int& mapping = materialMappings[index];
-                            if (mapping == 0) {
-                                mapping = getMaterialIndex(spanner->getMaterials().at(index - 1),
-                                    newMaterialMaterials, newMaterialContents);
-                            }
-                            index = mapping;
+                    if (spanner->contains(pos)) {
+                        if (hasOwnColors && !erase) {
+                            QRgb spannerColor = spanner->getColorAt(pos);
+                            entryDest[0] = qRed(spannerColor);
+                            entryDest[1] = qGreen(spannerColor);
+                            entryDest[2] = qBlue(spannerColor);
+                            entryDest[3] = qAlpha(spannerColor);
+                            
+                        } else {
+                            entryDest[0] = r;
+                            entryDest[1] = g;
+                            entryDest[2] = b;
+                            entryDest[3] = a;
                         }
-                        entryDest[4] = index;
+                        if (hasOwnMaterials && !erase) {
+                            int index = spanner->getMaterialAt(pos);
+                            if (index != 0) {
+                                int& mapping = materialMappings[index];
+                                if (mapping == 0) {
+                                    mapping = getMaterialIndex(spanner->getMaterials().at(index - 1),
+                                        newMaterialMaterials, newMaterialContents);
+                                }
+                                index = mapping;
+                            }
+                            entryDest[4] = index;
+                            
+                        } else {
+                            entryDest[4] = materialIndex;
+                        }
+                    }
+                    int nextStackX = (int)stackX + 1;
+                    if (nextStackX <= innerStackWidth) {
+                        QByteArray* nextStackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)nextStackX;
                         
-                    } else {
-                        entryDest[4] = materialIndex;
+                    }
+                    if (entryDest != stackDest->data()) {
+                        bool previousSet = ((entryDest - HeightfieldStack::ENTRY_BYTES)[3] != 0);
+                        bool currentSet = (entryDest[3] != 0);
+                        if (previousSet == currentSet) {
+                            entryDest[9] = entryDest[10] = entryDest[11] = entryDest[12] = 0;
+                        } else {
+                            bool intersects;
+                            if (erase == previousSet) {
+                                if ((intersects = spanner->intersects(pos - voxelStepY, pos, distance, normal))) {
+                                    distance = 1.0f - distance;
+                                }
+                            } else {
+                                intersects = spanner->intersects(pos, pos - voxelStepY, distance, normal); 
+                            }
+                            if (intersects) {
+                                if (erase) {
+                                    normal = -normal;
+                                }
+                                entryDest[9] = normal.x * numeric_limits<qint8>::max();
+                                entryDest[10] = normal.y * numeric_limits<qint8>::max();
+                                entryDest[11] = normal.z * numeric_limits<qint8>::max();
+                                entryDest[12] = distance * numeric_limits<quint8>::max();       
+                            }
+                        }
+                    }
+                    int nextStackZ = (int)stackZ + 1;
+                    if (nextStackZ <= innerStackHeight) {
+                        QByteArray* nextStackDest = newStackContents.data() + (int)nextStackZ * stackWidth + (int)stackX;
+                        
                     }
                 }
             }
             
             if (erase) {
-                if (spanner->intersects(worldPos, endPos, distance, normal)) {
-                    quint16 height = glm::round(glm::mix(start.y, end.y, distance));
+                if (spanner->intersects(endPos, worldPos, distance, normal)) {
+                    quint16 height = glm::round(glm::mix(end.y, start.y, distance));
                     if (height <= *heightLineDest) {
                         *heightLineDest = height;
                     }
                 }
-            } else if (spanner->intersects(endPos, worldPos, distance, normal)) {
-                quint16 height = glm::round(glm::mix(end.y, start.y, distance));
+            } else if (spanner->intersects(worldPos, endPos, distance, normal)) {
+                quint16 height = glm::round(glm::mix(start.y, end.y, distance));
                 if (height >= *heightLineDest) {
                     *heightLineDest = height;
                     
