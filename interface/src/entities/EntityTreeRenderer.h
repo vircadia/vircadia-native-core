@@ -30,7 +30,7 @@ public:
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
     Q_OBJECT
 public:
-    EntityTreeRenderer(bool wantScripts);
+    EntityTreeRenderer(bool wantScripts, ViewStateInterface* viewState);
     virtual ~EntityTreeRenderer();
 
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
@@ -100,17 +100,22 @@ public slots:
     void entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, const Collision& collision);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
+    // optional slots that can be wired to menu items
+    void setDisplayElementChildProxies(bool value) { _displayElementChildProxies = value; }
+    void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
+    void setDisplayModelElementProxy(bool value) { _displayModelElementProxy = value; }
+    void setDontDoPrecisionPicking(bool value) { _dontDoPrecisionPicking = value; }
     
 protected:
     virtual Octree* createTree() { return new EntityTree(true); }
 
 private:
+    void renderElementProxy(EntityTreeElement* entityTreeElement);
     void checkAndCallPreload(const EntityItemID& entityID);
     void checkAndCallUnload(const EntityItemID& entityID);
 
     QList<Model*> _releasedModels;
     void renderProxies(const EntityItem* entity, RenderArgs* args);
-    PickRay computePickRay(float x, float y);
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
                                                                 bool precisionPicking);
 
@@ -136,6 +141,12 @@ private:
 
     bool _lastMouseEventValid;
     MouseEvent _lastMouseEvent;
+    ViewStateInterface* _viewState;
+    bool _displayElementChildProxies;
+    bool _displayModelBounds;
+    bool _displayModelElementProxy;
+    bool _dontDoPrecisionPicking;
+    
 };
 
 #endif // hifi_EntityTreeRenderer_h

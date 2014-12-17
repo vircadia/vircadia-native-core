@@ -285,6 +285,9 @@ public:
     virtual bool getShadowsEnabled();
     virtual bool getCascadeShadowsEnabled();
     virtual QThread* getMainThread() { return thread(); }
+    virtual float getSizeScale() const;
+    virtual int getBoundaryLevelAdjust() const;
+    virtual PickRay computePickRay(float x, float y);
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 

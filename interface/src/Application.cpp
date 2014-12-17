@@ -155,9 +155,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _entities(true),
+        _entities(true, this),
         _entityCollisionSystem(),
-        _entityClipboardRenderer(false),
+        _entityClipboardRenderer(false, this),
         _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
@@ -2941,6 +2941,18 @@ void Application::setupWorldLight() {
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
     return Menu::getInstance()->shouldRenderMesh(largestDimension, distanceToCamera);
+}
+
+float Application::getSizeScale() const { 
+    return Menu::getInstance()->getVoxelSizeScale();
+}
+
+int Application::getBoundaryLevelAdjust() const { 
+    return Menu::getInstance()->getBoundaryLevelAdjust();
+}
+
+PickRay Application::computePickRay(float x, float y) {
+    return getCamera()->computePickRay(x, y);
 }
 
 QImage Application::renderAvatarBillboard() {
