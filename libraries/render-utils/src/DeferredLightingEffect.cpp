@@ -135,7 +135,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare() {
     // clear the normal and specular buffers
-    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
     textureCache->setPrimaryDrawBuffers(false, true, false);
     glClear(GL_COLOR_BUFFER_BIT);
     textureCache->setPrimaryDrawBuffers(false, false, true);
@@ -157,7 +157,7 @@ void DeferredLightingEffect::render() {
     glDisable(GL_COLOR_MATERIAL);
     glDepthMask(false);
 
-    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
     
     QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
@@ -254,7 +254,7 @@ void DeferredLightingEffect::render() {
     const glm::vec3& eyePoint = _viewState->getCurrentViewFrustum()->getPosition();
     float nearRadius = glm::distance(eyePoint, _viewState->getCurrentViewFrustum()->getNearTopLeft());
 
-    GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();

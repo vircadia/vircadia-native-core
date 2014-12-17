@@ -25,8 +25,9 @@ class QOpenGLFramebufferObject;
 class ProgramObject;
 
 /// A generic full screen glow effect.
-class GlowEffect : public QObject, public DependencyManager::Dependency  {
+class GlowEffect : public QObject  {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(GlowEffect)
     
 public:
    
@@ -60,7 +61,6 @@ public slots:
 private:
     GlowEffect();
     virtual ~GlowEffect();
-    friend class DependencyManager;
 
     int getDeviceWidth() const;
     int getDeviceHeight() const;

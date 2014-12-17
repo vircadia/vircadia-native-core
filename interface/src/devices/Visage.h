@@ -26,8 +26,9 @@ namespace VisageSDK {
 }
 
 /// Handles input from the Visage webcam feature tracking software.
-class Visage : public FaceTracker, public DependencyManager::Dependency  {
+class Visage : public FaceTracker  {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(Visage)
     
 public:
     void init();
@@ -44,7 +45,6 @@ public slots:
 private:
     Visage();
     virtual ~Visage();
-    friend DependencyManager;
 
 #ifdef HAVE_VISAGE
     VisageSDK::VisageTracker2* _tracker;

@@ -23,7 +23,9 @@
 class PostLightingRenderable;
 
 /// Handles deferred lighting for the bits that require it (voxels, metavoxels...)
-class DeferredLightingEffect: public DependencyManager::Dependency {
+class DeferredLightingEffect {
+    SINGLETON_DEPENDENCY(DeferredLightingEffect)
+    
 public:
     
     void init(ViewStateInterface* viewState);
@@ -73,7 +75,6 @@ public:
 private:
     DeferredLightingEffect() { }
     virtual ~DeferredLightingEffect() { }
-    friend class DependencyManager;
 
     class LightLocations {
     public:
