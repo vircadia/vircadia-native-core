@@ -18,6 +18,7 @@
 #include "EntityTreeElement.h"
 #include "LightEntityItem.h"
 
+bool LightEntityItem::_lightsArePickable = false;
 
 EntityItem* LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new LightEntityItem(entityID, properties);

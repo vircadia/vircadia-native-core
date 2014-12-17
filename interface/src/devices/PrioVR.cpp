@@ -14,11 +14,11 @@
 
 #include <FBXReader.h>
 #include <PerfStat.h>
+#include <TextRenderer.h>
 
 #include "Application.h"
 #include "PrioVR.h"
 #include "scripting/JoystickScriptingInterface.h"
-#include "ui/TextRenderer.h"
 
 #ifdef HAVE_PRIOVR
 const unsigned int SERIAL_LIST[] = { 0x00000001, 0x00000000, 0x00000008, 0x00000009, 0x0000000A,

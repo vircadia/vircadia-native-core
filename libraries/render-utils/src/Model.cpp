@@ -27,7 +27,9 @@
 #include <PhysicsEntity.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
+#include <ViewFrustum.h>
 
+#include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
 #include "GlowEffect.h"
@@ -111,7 +113,7 @@ Model::SkinLocations Model::_skinNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
 
-ViewStateInterface* Model::_viewState = NULL;
+AbstractViewStateInterface* Model::_viewState = NULL;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);

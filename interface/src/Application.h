@@ -23,8 +23,11 @@
 #include <QStringList>
 #include <QUndoStack>
 
+#include <AbstractScriptingServicesInterface.h>
+#include <AbstractViewStateInterface.h>
 #include <EntityCollisionSystem.h>
 #include <EntityEditPacketSender.h>
+#include <EntityTreeRenderer.h>
 #include <GeometryCache.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
@@ -33,7 +36,6 @@
 #include <ScriptEngine.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
-#include <ViewStateInterface.h>
 #include <VoxelEditPacketSender.h>
 
 #include "Audio.h"
@@ -51,7 +53,6 @@
 #include "avatar/MyAvatar.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
-#include "entities/EntityTreeRenderer.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
@@ -119,7 +120,7 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
 
-class Application : public QApplication, public ViewStateInterface {
+class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -177,6 +178,7 @@ public:
     bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
 
     MyAvatar* getAvatar() { return _myAvatar; }
+    const MyAvatar* getAvatar() const { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -242,7 +244,9 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
+
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
     void resetProfile(const QString& username);
@@ -279,6 +283,10 @@ public:
     virtual bool getShadowsEnabled();
     virtual bool getCascadeShadowsEnabled();
     virtual QThread* getMainThread() { return thread(); }
+    virtual float getSizeScale() const;
+    virtual int getBoundaryLevelAdjust() const;
+    virtual PickRay computePickRay(float x, float y);
+    virtual const glm::vec3& getAvatarPosition() const { return getAvatar()->getPosition(); }
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
@@ -303,9 +311,6 @@ public:
     bool isVSyncOn() const;
     bool isVSyncEditable() const;
     bool isAboutToQuit() const { return _aboutToQuit; }
-
-
-    void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
     // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that

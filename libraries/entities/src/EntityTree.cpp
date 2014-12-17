@@ -22,7 +22,6 @@
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
     _fbxService(NULL),
-    _lightsArePickable(true),
     _simulation(NULL)
 {
     _rootElement = createNewElement();

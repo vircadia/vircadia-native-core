@@ -11,18 +11,12 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <FBXReader.h>
-
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 #include <DependencyManager.h>
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
-#include <SphereEntityItem.h>
 
-
-#include "Menu.h"
-#include "EntityTreeRenderer.h"
 #include "RenderableSphereEntityItem.h"
 
 EntityItem* RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
