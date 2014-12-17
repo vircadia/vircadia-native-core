@@ -21,6 +21,8 @@
 
 #include <glm/glm.hpp>
 
+#include <GlowEffect.h>
+#include <PathUtils.h>
 #include <SharedUtil.h>
 #include <UserActivityLogger.h>
 
@@ -136,8 +138,8 @@ void OculusManager::connect() {
         if (!_programInitialized) {
             // Shader program
             _programInitialized = true;
-            _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/oculus.vert");
-            _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/oculus.frag");
+            _program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/oculus.vert");
+            _program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/oculus.frag");
             _program.link();
 
             // Uniforms
@@ -447,7 +449,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
    
     //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
-        Application::getInstance()->getGlowEffect()->prepare();
+        DependencyManager::get<GlowEffect>()->prepare();
     } else {
         DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -552,7 +554,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
   
     //Bind the output texture from the glow shader. If glow effect is disabled, we just grab the texture
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
-        QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
+        QOpenGLFramebufferObject* fbo = DependencyManager::get<GlowEffect>()->render(true);
         glBindTexture(GL_TEXTURE_2D, fbo->texture());
     } else {
         DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();

@@ -15,7 +15,6 @@
 #define hifi_windowshacks_h
 
 #ifdef WIN32
-#undef NOMINMAX
 
 #include <cmath>
 inline double roundf(double value) {

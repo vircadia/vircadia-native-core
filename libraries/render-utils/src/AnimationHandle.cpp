@@ -10,11 +10,11 @@
 //
 
 #include "AnimationHandle.h"
-#include "Application.h"
+#include "Model.h"
 
 void AnimationHandle::setURL(const QUrl& url) {
     if (_url != url) {
-        _animation = Application::getInstance()->getAnimationCache()->getAnimation(_url = url);
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(_url = url);
         _jointMappings.clear();
     }
 }

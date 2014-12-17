@@ -14,11 +14,12 @@
 #include <QPushButton>
 #include <QPixmap>
 
+#include <PathUtils.h>
+
 #include "Application.h"
 #include "Menu.h"
 #include "AccountManager.h"
 #include "ui_loginDialog.h"
-
 #include "LoginDialog.h"
 
 const QString FORGOT_PASSWORD_URL = "https://data.highfidelity.io/users/password/new";
@@ -30,8 +31,8 @@ LoginDialog::LoginDialog(QWidget* parent) :
     _ui->setupUi(this);
     _ui->errorLabel->hide();
     _ui->emailLineEdit->setFocus();
-    _ui->logoLabel->setPixmap(QPixmap(Application::resourcesPath() + "images/hifi-logo.svg"));
-    _ui->loginButton->setIcon(QIcon(Application::resourcesPath() + "images/login.svg"));
+    _ui->logoLabel->setPixmap(QPixmap(PathUtils::resourcesPath() + "images/hifi-logo.svg"));
+    _ui->loginButton->setIcon(QIcon(PathUtils::resourcesPath() + "images/login.svg"));
     _ui->infoLabel->setVisible(false);
     _ui->errorLabel->setVisible(false);
 

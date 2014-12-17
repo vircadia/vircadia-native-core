@@ -121,9 +121,6 @@ public:
 
     static int expectedBytes();
 
-    static bool encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& details,
-                        unsigned char* bufferOut, int sizeIn, int& sizeOut);
-
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
 
     // perform update

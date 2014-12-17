@@ -18,11 +18,11 @@
 #include <glm/glm.hpp>
 
 #include <QGLWidget>
+
+#include <ProgramObject.h>
 #include <SharedUtil.h>
 
 #include "Base3DOverlay.h"
-
-#include "renderer/ProgramObject.h"
 
 class Grid3DOverlay : public Base3DOverlay {
     Q_OBJECT

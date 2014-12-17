@@ -12,9 +12,10 @@
 #ifndef hifi_SkeletonModel_h
 #define hifi_SkeletonModel_h
 
-#include "renderer/Model.h"
 
 #include <CapsuleShape.h>
+#include <Model.h>
+
 #include "SkeletonRagdoll.h"
 
 class Avatar;

@@ -10,29 +10,31 @@
 //
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 #include <QOpenGLFramebufferObject>
 
 #include <glm/gtc/random.hpp>
 
+#include <PathUtils.h>
 #include <SharedUtil.h>
 
-#include "Application.h"
+#include "AmbientOcclusionEffect.h"
+#include "GlowEffect.h"
 #include "ProgramObject.h"
 #include "RenderUtil.h"
-
-#include "AmbientOcclusionEffect.h"
+#include "TextureCache.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
     
-void AmbientOcclusionEffect::init() {
+void AmbientOcclusionEffect::init(ViewStateInterface* viewState) {
+    _viewState = viewState; // we will use this for view state services
     
     _occlusionProgram = new ProgramObject();
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath()
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath()
                                                + "shaders/ambient_occlusion.vert");
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath()
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath()
                                                + "shaders/ambient_occlusion.frag");
     _occlusionProgram->link();
     
@@ -82,8 +84,8 @@ void AmbientOcclusionEffect::init() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     _blurProgram = new ProgramObject();
-    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/ambient_occlusion.vert");
-    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/occlusion_blur.frag");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/ambient_occlusion.vert");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/occlusion_blur.frag");
     _blurProgram->link();
     
     _blurProgram->bind();
@@ -104,13 +106,12 @@ void AmbientOcclusionEffect::render() {
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
     // render with the occlusion shader to the secondary/tertiary buffer
-    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
+    QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    Application::getInstance()->computeOffAxisFrustum(
-        left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);

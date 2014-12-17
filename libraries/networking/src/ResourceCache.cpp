@@ -28,9 +28,13 @@ ResourceCache::ResourceCache(QObject* parent) :
 }
 
 ResourceCache::~ResourceCache() {
-    // make sure our unused resources know we're out of commission
-    foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
-        resource->setCache(NULL);
+    // the unused resources may themselves reference resources that will be added to the unused
+    // list on destruction, so keep clearing until there are no references left
+    while (!_unusedResources.isEmpty()) {
+        foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
+            resource->setCache(NULL);
+        }
+        _unusedResources.clear();
     }
 }
 

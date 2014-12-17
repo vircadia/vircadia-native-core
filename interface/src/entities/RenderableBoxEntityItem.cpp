@@ -16,6 +16,7 @@
 #include "InterfaceConfig.h"
 
 #include <BoxEntityItem.h>
+#include <DeferredLightingEffect.h>
 #include <ModelEntityItem.h>
 #include <PerfStat.h>
 
@@ -53,7 +54,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
                 glm::vec3 positionToCenter = center - position;
                 glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
                 glScalef(dimensions.x, dimensions.y, dimensions.z);
-                Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
+                DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
             glPopMatrix();
         glPopMatrix();
     } else {
@@ -90,7 +91,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
                         getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
         
-        Application::getInstance()->getDeferredLightingEffect()->bindSimpleProgram();
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
         
         glPushMatrix();
             glTranslatef(position.x, position.y, position.z);
@@ -105,7 +106,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glPopMatrix();
         glPopMatrix();
 
-        Application::getInstance()->getDeferredLightingEffect()->releaseSimpleProgram();
+        DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
         
         glDisableClientState(GL_VERTEX_ARRAY);  // disable vertex arrays
         glDisableClientState(GL_NORMAL_ARRAY);

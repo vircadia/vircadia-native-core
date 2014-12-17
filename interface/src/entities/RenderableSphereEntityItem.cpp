@@ -15,6 +15,8 @@
 
 #include "InterfaceConfig.h"
 
+#include <DependencyManager.h>
+#include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 #include <SphereEntityItem.h>
 
@@ -22,7 +24,6 @@
 #include "Menu.h"
 #include "EntityTreeRenderer.h"
 #include "RenderableSphereEntityItem.h"
-
 
 EntityItem* RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableSphereEntityItem(entityID, properties);
@@ -51,7 +52,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            Application::getInstance()->getDeferredLightingEffect()->renderSolidSphere(0.5f, 15, 15);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, 15, 15);
         glPopMatrix();
     glPopMatrix();
 };
