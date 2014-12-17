@@ -23,7 +23,7 @@ const DeviceTracker::Name RealSense::NAME = "RealSense";
 //             finger in [0..4] : bone in  [0..3] a finger phalange
 //             [-1]   up the hand branch : bone in [0..1] <=> [ hand, forearm]
 MotionTracker::Index evalRealSenseJointIndex(bool isRightSide, int finger, int bone) {
-
+#ifdef HAVE_RSSDK
     MotionTracker::Index offset = 1                           // start after root
         + (int(isRightSide) * PXCHandData::NUMBER_OF_JOINTS)  // then offset for side
         + PALMROOT_NUM_JOINTS;                                // then add the arm/forearm/hand chain
@@ -34,6 +34,9 @@ MotionTracker::Index evalRealSenseJointIndex(bool isRightSide, int finger, int b
         // or go back up for the correct root bone
         return offset - 1 - bone;
     }
+#else
+    return -1;
+#endif // HAVE_RSSDK
 }
 
 // static
@@ -62,6 +65,7 @@ RealSense::RealSense() :
     _active(false),
     _handData(NULL)
 {
+#ifdef HAVE_RSSDK
     _session = PXCSession_Create();
     initSession(false, NULL);
 
@@ -103,13 +107,17 @@ RealSense::RealSense() :
             }
         }
     }
+#endif // HAVE_RSSDK
 }
 
 RealSense::~RealSense() {
+#ifdef HAVE_RSSDK
     _manager->Release();
+#endif // HAVE_RSSDK
 }
 
 void RealSense::initSession(bool playback, QString filename) {
+#ifdef HAVE_RSSDK
     _active = false;
     _properlyInitialized = false;
     if (_handData != NULL) {
@@ -145,6 +153,7 @@ void RealSense::initSession(bool playback, QString filename) {
     _config->EnableStabilizer(true);
     _config->SetTrackingMode(PXCHandData::TRACKING_MODE_FULL_HAND);
     _config->ApplyChanges();
+#endif // HAVE_RSSDK
 }
 
 #ifdef HAVE_RSSDK
@@ -155,7 +164,7 @@ glm::quat quatFromPXCPoint4DF32(const PXCPoint4DF32& basis) {
 glm::vec3 vec3FromPXCPoint3DF32(const PXCPoint3DF32& vec) {
     return glm::vec3(-vec.x, vec.y, -vec.z);
 }
-#endif
+#endif // HAVE_RSSDK
 
 void RealSense::update() {
 #ifdef HAVE_RSSDK
