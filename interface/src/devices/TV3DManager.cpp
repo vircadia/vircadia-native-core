@@ -15,6 +15,8 @@
 
 #include <glm/glm.hpp>
 
+#include <GlowEffect.h>
+
 #include "Application.h"
 
 #include "TV3DManager.h"
@@ -103,7 +105,7 @@ void TV3DManager::display(Camera& whichCamera) {
     applicationOverlay.renderOverlay(true);
     const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
 
-    Application::getInstance()->getGlowEffect()->prepare();
+    DependencyManager::get<GlowEffect>()->prepare();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -169,7 +171,7 @@ void TV3DManager::display(Camera& whichCamera) {
     // reset the viewport to how we started
     glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
-    Application::getInstance()->getGlowEffect()->render();
+    DependencyManager::get<GlowEffect>()->render();
 }
 
 void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,

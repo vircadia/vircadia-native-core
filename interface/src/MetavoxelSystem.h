@@ -20,9 +20,8 @@
 #include <glm/glm.hpp>
 
 #include <MetavoxelClientManager.h>
-
-#include "renderer/ProgramObject.h"
-#include "renderer/TextureCache.h"
+#include <ProgramObject.h>
+#include <TextureCache.h>
 
 class HeightfieldBaseLayerBatch;
 class HeightfieldSplatBatch;

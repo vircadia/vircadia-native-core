@@ -10,7 +10,7 @@
 //
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 #include <QEvent>
 #include <QGLWidget>

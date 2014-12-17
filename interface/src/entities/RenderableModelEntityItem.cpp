@@ -16,6 +16,7 @@
 #include "InterfaceConfig.h"
 
 #include <BoxEntityItem.h>
+#include <DeferredLightingEffect.h>
 #include <ModelEntityItem.h>
 #include <PerfStat.h>
 
@@ -191,7 +192,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
                     glPushMatrix();
                         glTranslatef(position.x, position.y, position.z);
-                        Application::getInstance()->getDeferredLightingEffect()->renderWireCube(size);
+                        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size);
                     glPopMatrix();
                 }
             } else {
@@ -199,7 +200,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
                 glPushMatrix();
                     glTranslatef(position.x, position.y, position.z);
-                    Application::getInstance()->getDeferredLightingEffect()->renderWireCube(size);
+                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size);
                 glPopMatrix();
             }
         }
@@ -208,7 +209,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        Application::getInstance()->getDeferredLightingEffect()->renderWireCube(size);
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size);
         glPopMatrix();
     }
 }

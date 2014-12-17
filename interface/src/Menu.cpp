@@ -32,6 +32,8 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
+#include <GlowEffect.h>
+#include <PathUtils.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
 #include <XmppClient.h>
@@ -54,7 +56,6 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
-
 
 Menu* Menu::_instance = NULL;
 
@@ -247,7 +248,7 @@ Menu::Menu() :
     connect(&xmppClient, &QXmppClient::connected, this, &Menu::toggleChat);
     connect(&xmppClient, &QXmppClient::disconnected, this, &Menu::toggleChat);
 
-    QDir::setCurrent(Application::resourcesPath());
+    QDir::setCurrent(PathUtils::resourcesPath());
     // init chat window to listen chat
     _chatWindow = new ChatWindow(Application::getInstance()->getWindow());
 #endif
@@ -425,7 +426,8 @@ Menu::Menu() :
                                            true,
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true, 
+                                            DependencyManager::get<GlowEffect>(), SLOT(toggleGlowEffect(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));

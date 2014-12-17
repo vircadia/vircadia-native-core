@@ -285,7 +285,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 
 QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
-AnimationCache ModelEntityItem::_animationCache;
 
 // This class/instance will cleanup the animations once unloaded.
 class EntityAnimationsBookkeeper {
@@ -309,7 +308,7 @@ Animation* ModelEntityItem::getAnimation(const QString& url) {
     
     // if we don't already have this model then create it and initialize it
     if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
-        animation = _animationCache.getAnimation(url);
+        animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
         _loadedAnimations[url] = animation;
     } else {
         animation = _loadedAnimations[url];
