@@ -468,8 +468,9 @@ Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
 /// Handle management of pending models that need blending
-class ModelBlender : public QObject, public DependencyManager::Dependency  {
+class ModelBlender : public QObject  {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(ModelBlender)
 
 public:
 
@@ -483,7 +484,6 @@ public slots:
 private:
     ModelBlender();
     virtual ~ModelBlender();
-    friend class DependencyManager;
 
     QList<QPointer<Model> > _modelsRequiringBlends;
     int _pendingBlenders;

@@ -22,6 +22,8 @@ class ScriptEngine;
 class AbstractViewStateInterface;
 class AbstractScriptingServicesInterface;
 
+class ScriptEngine;
+
 class EntityScriptDetails {
 public:
     QString scriptText;

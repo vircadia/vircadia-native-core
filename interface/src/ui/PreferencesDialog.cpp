@@ -11,6 +11,7 @@
 
 
 #include "Application.h"
+#include "MainWindow.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
 #include "PreferencesDialog.h"
@@ -214,8 +215,8 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
     Application::getInstance()->getVoxels()->setMaxVoxels(ui.maxVoxelsSpin->value());
-    Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
-                                         Application::getInstance()->getGLWidget()->height());
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
     Menu::getInstance()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
@@ -247,8 +248,7 @@ void PreferencesDialog::savePreferences() {
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
     Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
 
-    Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
-                                         Application::getInstance()->getGLWidget()->height());
+    Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
     Application::getInstance()->bumpSettings();
 }

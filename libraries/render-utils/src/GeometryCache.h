@@ -32,8 +32,9 @@ class NetworkMesh;
 class NetworkTexture;
 
 /// Stores cached geometry.
-class GeometryCache : public ResourceCache, public DependencyManager::Dependency  {
+class GeometryCache : public ResourceCache  {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(GeometryCache)
 
 public:
     void renderHemisphere(int slices, int stacks);
@@ -56,7 +57,6 @@ protected:
 private:
     GeometryCache();
     virtual ~GeometryCache();
-    friend class DependencyManager;
     
     typedef QPair<int, int> IntPair;
     typedef QPair<GLuint, GLuint> VerticesIndices;

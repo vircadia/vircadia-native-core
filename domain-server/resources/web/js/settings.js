@@ -363,7 +363,8 @@ function makeTableInputs(setting) {
   
   _.each(setting.columns, function(col) {
     html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
-             <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' value=''>\
+             <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
+             value='" + (col.default ? col.default : "") + "'>\
              </td>"
   })
     
@@ -389,8 +390,9 @@ function badgeSidebarForDifferences(changedElement) {
   
   // badge for any settings we have that are not the same or are not present in initialValues
   for (var setting in panelJSON) {
-    if (!_.isEqual(panelJSON[setting], initialPanelJSON[setting]) 
-        && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting))) {
+    if ((!_.has(initialPanelJSON, setting) && panelJSON[setting] !== "") || 
+      (!_.isEqual(panelJSON[setting], initialPanelJSON[setting]) 
+      && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting)))) {
       badgeValue += 1
     }
   }
