@@ -71,7 +71,6 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
 
 EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID,
                                                     const EntityItemProperties& properties) {
-                            
     EntityItem* newEntityItem = NULL;
     EntityTypeFactory factory = NULL;
     if (entityType >= 0 && entityType <= LAST) {
@@ -129,7 +128,12 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         
         EntityItemID tempEntityID(actualID);
         EntityItemProperties tempProperties;
-        tempProperties.setCreated(usecTimestampNow()); // this is temporary...
+
+        // we set the Creation and Edit times to 'now', but if the server submits an earlier Creation time 
+        // then it will be accepted 
+        quint64 now = usecTimestampNow();
+        tempProperties.setCreated(now);
+        tempProperties.setLastEdited(now);
 
         return constructEntityItem(entityType, tempEntityID, tempProperties);
     }
