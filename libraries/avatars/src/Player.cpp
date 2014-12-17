@@ -63,7 +63,7 @@ void Player::startPlaying() {
     
     if (!isPaused()) {
         _currentContext.globalTimestamp = usecTimestampNow();
-        _currentContext.domain = NodeList::getInstance()->getDomainHandler().getHostname();
+        _currentContext.domain = DependencyManager::get<NodeList>()->getDomainHandler().getHostname();
         _currentContext.position = _avatar->getPosition();
         _currentContext.orientation = _avatar->getOrientation();
         _currentContext.scale = _avatar->getTargetScale();

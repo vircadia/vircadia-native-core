@@ -934,7 +934,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
 }
 
 void ApplicationOverlay::renderDomainConnectionStatusBorder() {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
         GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();

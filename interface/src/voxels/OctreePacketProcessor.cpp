@@ -51,7 +51,7 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
             
             // TODO: this does not look correct, the goal is to test the packet version for the piggyback, but
             //       this is testing the version and hash of the original packet
-            if (!NodeList::getInstance()->packetVersionAndHashMatch(packet)) {
+            if (!DependencyManager::get<NodeList>()->packetVersionAndHashMatch(packet)) {
                 return; // bail since piggyback data doesn't match our versioning
             }
         } else {

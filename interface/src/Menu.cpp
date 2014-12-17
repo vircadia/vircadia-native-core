@@ -708,7 +708,7 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->updateWindowTitle();
 
     // notify that a settings has changed
-    connect(&NodeList::getInstance()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
+    connect(&DependencyManager::get<NodeList>()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
 
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
@@ -1175,11 +1175,11 @@ void Menu::muteEnvironment() {
     QByteArray mutePacket(packet, packetSize);
 
     // grab our audio mixer from the NodeList, if it exists
-    SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    SharedNodePointer audioMixer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AudioMixer);
 
     if (audioMixer) {
         // send off this mute packet
-        NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
+        DependencyManager::get<NodeList>()->writeDatagram(mutePacket, audioMixer);
     }
 
     free(packet);
@@ -1234,7 +1234,7 @@ void Menu::nameLocation() {
         return;
     }
     
-    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     if (domainHandler.getUUID().isNull()) {
         const QString UNREGISTERED_DOMAIN_MESSAGE = "This domain is not registered with High Fidelity."
             "\n\nYou cannot create a global location in an unregistered domain.";

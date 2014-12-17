@@ -52,7 +52,7 @@ bool OctreeEditPacketSender::serversExist() const {
     bool hasServers = false;
     bool atLeastOneJurisdictionMissing = false; // assume the best
     
-    NodeList::getInstance()->eachNodeBreakable([&](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNodeBreakable([&](const SharedNodePointer& node){
         if (node->getType() == getMyNodeType() && node->getActiveSocket()) {
             
             QUuid nodeUUID = node->getUUID();
@@ -85,7 +85,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                                                size_t length, qint64 satoshiCost) {
 
     bool wantDebug = false;
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType()
             && ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))
@@ -192,7 +192,7 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, size_t le
     // for a different server... So we need to actually manage multiple queued packets... one
     // for each server
     
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
@@ -245,7 +245,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
     // for each server
     _packetsQueueLock.lock();
 
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
@@ -380,7 +380,7 @@ void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
         // retrieve packet from history
         const QByteArray* packet = sentPacketHistory.getPacket(sequenceNumber);
         if (packet) {
-            const SharedNodePointer& node = NodeList::getInstance()->nodeWithUUID(sendingNodeUUID);
+            const SharedNodePointer& node = DependencyManager::get<NodeList>()->nodeWithUUID(sendingNodeUUID);
             queuePacketForSending(node, *packet);
         }
     }

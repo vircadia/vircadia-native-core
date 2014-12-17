@@ -670,7 +670,7 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     // Fake context
     RecordingContext& context = recording->getContext();
     context.globalTimestamp = usecTimestampNow();
-    context.domain = NodeList::getInstance()->getDomainHandler().getHostname();
+    context.domain = DependencyManager::get<NodeList>()->getDomainHandler().getHostname();
     context.position = glm::vec3(144.5f, 3.3f, 181.3f);
     context.orientation = glm::angleAxis(glm::radians(-92.5f), glm::vec3(0, 1, 0));;
     context.scale = baseFrame._scale;

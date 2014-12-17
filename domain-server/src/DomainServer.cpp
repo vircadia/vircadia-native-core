@@ -262,8 +262,8 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
         nodeList->setSessionUUID(idValueVariant->toString());
     }
 
-    connect(nodeList, &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
-    connect(nodeList, &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
+    connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
+    connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
 
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
@@ -368,8 +368,10 @@ void DomainServer::setupAutomaticNetworking() {
         iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
         
         // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
-        connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
-        connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+        connect(nodeList.data(), &LimitedNodeList::localSockAddrChanged,
+                this, &DomainServer::sendHeartbeatToIceServer);
+        connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+                this, &DomainServer::sendHeartbeatToIceServer);
         
         // attempt to update our public socket now, this will send a heartbeat once we get public socket
         requestCurrentPublicSocketViaSTUN();
@@ -400,7 +402,8 @@ void DomainServer::setupAutomaticNetworking() {
                 dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
                 
                 // send public socket changes to the data server so nodes can find us at our new IP
-                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
+                connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+                        this, &DomainServer::performIPAddressUpdate);
                 
                 // attempt to update our sockets now
                 requestCurrentPublicSocketViaSTUN();
@@ -995,7 +998,7 @@ void DomainServer::readAvailableDatagrams() {
 
 void DomainServer::setupPendingAssignmentCredits() {
     // enumerate the NodeList to find the assigned nodes
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         
         if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
@@ -1155,7 +1158,7 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     // add the number of currently connected agent users
     int numConnectedAuthedUsers = 0;
     
-    NodeList::getInstance()->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
         if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
             ++numConnectedAuthedUsers;
         }
@@ -1471,7 +1474,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonObject assignedNodesJSON;
 
             // enumerate the NodeList to find the assigned nodes
-            NodeList::getInstance()->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
+            DependencyManager::get<NodeList>()->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
                 DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
                 
                 if (!nodeData->getAssignmentUUID().isNull()) {
@@ -2066,7 +2069,7 @@ void DomainServer::addStaticAssignmentsToQueue() {
         // add any of the un-matched static assignments to the queue
         
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        if (!NodeList::getInstance()->nodeWithUUID(staticAssignment->data()->getUUID())) {
+        if (!DependencyManager::get<NodeList>()->nodeWithUUID(staticAssignment->data()->getUUID())) {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             refreshStaticAssignmentAndAddToQueue(*staticAssignment);
         }

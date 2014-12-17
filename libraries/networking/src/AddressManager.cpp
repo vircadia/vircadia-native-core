@@ -35,7 +35,7 @@ AddressManager::AddressManager() :
 }
 
 bool AddressManager::isConnected() {
-    return NodeList::getInstance()->getDomainHandler().isConnected();
+    return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
 }
 
 const QUrl AddressManager::currentAddress() const {
@@ -73,7 +73,7 @@ const QString AddressManager::currentPath(bool withOrientation) const {
 }
 
 QString AddressManager::getDomainID() const {
-    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    const QUuid& domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
     return domainID.isNull() ? "" : uuidStringWithoutCurlyBraces(domainID);
 }
 

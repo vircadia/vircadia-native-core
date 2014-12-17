@@ -93,7 +93,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     }
 
     // create a NodeList as an unassigned client
-    NodeList* nodeList = NodeList::createInstance(NodeType::Unassigned);
+    auto nodeList = DependencyManager::set<NodeList, char>(NodeType::Unassigned);
     
     quint16 assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
 
@@ -136,7 +136,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
 void AssignmentClient::sendAssignmentRequest() {
     if (!_currentAssignment) {
         
-        NodeList* nodeList = NodeList::getInstance();
+        auto nodeList = DependencyManager::get<NodeList>();
         
         if (_assignmentServerHostname == "localhost") {
             // we want to check again for the local domain-server port in case the DS has restarted
@@ -173,7 +173,7 @@ void AssignmentClient::sendAssignmentRequest() {
 }
 
 void AssignmentClient::readPendingDatagrams() {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
@@ -260,7 +260,7 @@ void AssignmentClient::assignmentCompleted() {
 
     qDebug("Assignment finished or never started - waiting for new assignment.");
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     // have us handle incoming NodeList datagrams again
     disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment.data(), 0);

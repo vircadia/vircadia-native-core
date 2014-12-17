@@ -32,7 +32,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     if (_isFinished) {
         aboutToFinish();
         
-        NodeList* nodeList = NodeList::getInstance();
+        auto nodeList = DependencyManager::get<NodeList>();
         
         // if we have a datagram processing thread, quit it and wait on it to make sure that
         // the node socket is back on the same thread as the NodeList
@@ -43,7 +43,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             _datagramProcessingThread->wait();
             
             // set node socket parent back to NodeList
-            nodeList->getNodeSocket().setParent(nodeList);
+            nodeList->getNodeSocket().setParent(nodeList.data());
         }
         
         // move the NodeList back to the QCoreApplication instance's thread
@@ -57,7 +57,7 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     // change the logging target name while the assignment is running
     LogHandler::getInstance().setTargetName(targetName);
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(nodeType);
     
     // this is a temp fix for Qt 5.3 - rebinding the node socket gives us readyRead for the socket on this thread
@@ -68,7 +68,7 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
     QTimer* silentNodeRemovalTimer = new QTimer(this);
-    connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
     silentNodeRemovalTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     
     if (shouldSendStats) {
@@ -80,7 +80,7 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
 }
 
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObject) {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     float packetsPerSecond, bytesPerSecond;
     nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
@@ -98,15 +98,15 @@ void ThreadedAssignment::sendStatsPacket() {
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
-    if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+    if (DependencyManager::get<NodeList>()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         setFinished(true);
     } else {
-        NodeList::getInstance()->sendDomainServerCheckIn();
+        DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
     }
 }
 
 bool ThreadedAssignment::readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr) {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     if (nodeList->getNodeSocket().hasPendingDatagrams()) {
         destinationByteArray.resize(nodeList->getNodeSocket().pendingDatagramSize());

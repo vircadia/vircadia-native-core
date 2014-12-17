@@ -496,7 +496,7 @@ void MetavoxelSystem::render() {
 }
 
 void MetavoxelSystem::refreshVoxelData() {
-    NodeList::getInstance()->eachNode([](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -819,7 +819,7 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
 }
 
 void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
-    NodeList::getInstance()->eachNode([&visitor, &render](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&visitor, &render](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -1045,7 +1045,7 @@ SendDelayer::SendDelayer(const SharedNodePointer& node, const QByteArray& data) 
 }
 
 void SendDelayer::timerEvent(QTimerEvent* event) {
-    NodeList::getInstance()->writeDatagram(_data, _node);
+    DependencyManager::get<NodeList>()->writeDatagram(_data, _node);
     deleteLater();
 }
 
@@ -1068,7 +1068,7 @@ void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
             delayer->startTimer(delay);
             
         } else {
-            NodeList::getInstance()->writeDatagram(data, _node);
+            DependencyManager::get<NodeList>()->writeDatagram(data, _node);
         }
         Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
     }

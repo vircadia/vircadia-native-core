@@ -239,8 +239,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _nodeThread->setPriority(QThread::TimeCriticalPriority);
 
     // put the NodeList and datagram processing on the node thread
-    NodeList* nodeList = NodeList::createInstance(NodeType::Agent, listenPort);
-
+    auto nodeList = DependencyManager::set<NodeList, char, unsigned short>(NodeType::Agent, listenPort);
+    
     nodeList->moveToThread(_nodeThread);
     _datagramProcessor.moveToThread(_nodeThread);
 
@@ -272,13 +272,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
-    connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
-    connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
-    connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
+    connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
+    connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
+    connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
+    connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -340,7 +340,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     silentNodeTimer->moveToThread(_nodeThread);
 
@@ -812,7 +812,7 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         }
 
         // Perform the broadcast for one type
-        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, NodeSet() << type);
+        int nReceivingNodes = DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
 
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
@@ -1449,7 +1449,7 @@ void Application::dropEvent(QDropEvent *event) {
 }
 
 void Application::sendPingPackets() {
-    QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
+    QByteArray pingPacket = DependencyManager::get<NodeList>()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
                                << NodeType::VoxelServer << NodeType::EntityServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
@@ -1475,7 +1475,7 @@ void Application::timer() {
     _timerStart.start();
 
     // ask the node list to check in with the domain server
-    NodeList::getInstance()->sendDomainServerCheckIn();
+    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 }
 
 void Application::idle() {
@@ -1994,7 +1994,7 @@ void Application::init() {
     Leapmotion::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
-    NodeList::getInstance()->sendDomainServerCheckIn();
+    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
@@ -2464,7 +2464,7 @@ int Application::sendNackPackets() {
     char packet[MAX_PACKET_SIZE];
 
     // iterates thru all nodes in NodeList
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     nodeList->eachNode([&](const SharedNodePointer& node){
         
@@ -2563,7 +2563,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     nodeList->eachNode([&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are serverType
@@ -3636,7 +3636,7 @@ void Application::uploadModel(ModelType modelType) {
 void Application::updateWindowTitle(){
 
     QString buildVersion = " (build " + applicationVersion() + ")";
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
@@ -3663,7 +3663,7 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     
     if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
 
@@ -3689,14 +3689,14 @@ void Application::updateLocationInServer() {
 }
 
 void Application::changeDomainHostname(const QString &newDomainHostname) {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     if (!nodeList->getDomainHandler().isCurrentHostname(newDomainHostname)) {
         // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
         _myAvatar->sendKillAvatar();
         
         // call the domain hostname change as a queued connection on the nodelist
-        QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
+        QMetaObject::invokeMethod(&DependencyManager::get<NodeList>()->getDomainHandler(), "setHostname",
                                   Q_ARG(const QString&, newDomainHostname));
     }
 }
@@ -3733,7 +3733,7 @@ void Application::domainChanged(const QString& domainHostname) {
 
 void Application::connectedToDomain(const QString& hostname) {
     AccountManager& accountManager = AccountManager::getInstance();
-    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    const QUuid& domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
     
     if (accountManager.isLoggedIn() && !domainID.isNull()) {
         // update our data-server with the domain-server we're logged in with
@@ -4063,8 +4063,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
 
-    NodeList* nodeList = NodeList::getInstance();
-    connect(nodeList, &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
 
     scriptEngine->moveToThread(workerThread);
 

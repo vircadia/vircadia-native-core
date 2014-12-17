@@ -218,7 +218,7 @@ void Stats::display(
 
     // we need to take one avatar out so we don't include ourselves
     int totalAvatars = Application::getInstance()->getAvatarManager().size() - 1;
-    int totalServers = NodeList::getInstance()->size();
+    int totalServers = DependencyManager::get<NodeList>()->size();
 
     lines = _expanded ? 5 : 3;
     int columnOneWidth = _generalStatsWidth;
@@ -318,7 +318,7 @@ void Stats::display(
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingVoxelMax = -1;
 
-        NodeList* nodeList = NodeList::getInstance();
+        auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
 
@@ -423,7 +423,7 @@ void Stats::display(
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarBodyYaw, color);
 
     if (_expanded) {
-        SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AvatarMixer);
+        SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
                     roundf(avatarMixer->getAverageKilobitsPerSecond()),

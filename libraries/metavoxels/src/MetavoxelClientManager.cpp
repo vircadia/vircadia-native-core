@@ -34,8 +34,10 @@ MetavoxelClientManager::~MetavoxelClientManager() {
 }
 
 void MetavoxelClientManager::init() {
-    connect(NodeList::getInstance(), &NodeList::nodeAdded, this, &MetavoxelClientManager::maybeAttachClient);
-    connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &MetavoxelClientManager::maybeDeleteClient);
+    connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeAdded,
+            this, &MetavoxelClientManager::maybeAttachClient);
+    connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled,
+            this, &MetavoxelClientManager::maybeDeleteClient);
 }
 
 SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(const glm::vec3& origin,
@@ -43,7 +45,7 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
     SharedObjectPointer closestSpanner;
     float closestDistance = FLT_MAX;
     
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
@@ -185,7 +187,7 @@ MetavoxelClient* MetavoxelClientManager::createClient(const SharedNodePointer& n
 }
 
 void MetavoxelClientManager::guide(MetavoxelVisitor& visitor) {
-    NodeList::getInstance()->eachNode([&visitor](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&visitor](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());

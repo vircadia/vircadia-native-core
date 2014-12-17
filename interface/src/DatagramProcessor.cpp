@@ -34,9 +34,9 @@ void DatagramProcessor::processDatagrams() {
     static QByteArray incomingPacket;
     
     Application* application = Application::getInstance();
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
-    while (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams()) {
+    while (DependencyManager::get<NodeList>()->getNodeSocket().hasPendingDatagrams()) {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
         nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
@@ -102,7 +102,7 @@ void DatagramProcessor::processDatagrams() {
                         qDebug("got an Octree data or erase message, sequence:%d flightTime:%d", sequence, flightTime);
                     }
                     
-                    SharedNodePointer matchedNode = NodeList::getInstance()->sendingNodeForPacket(incomingPacket);
+                    SharedNodePointer matchedNode = DependencyManager::get<NodeList>()->sendingNodeForPacket(incomingPacket);
                     
                     if (matchedNode) {
                         // add this packet to our list of voxel packets and process them on the voxel processing

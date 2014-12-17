@@ -48,7 +48,7 @@ void NodeBounds::draw() {
     glm::vec3 selectedCenter;
     float selectedScale = 0;
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->eachNode([&](const SharedNodePointer& node){
         NodeType_t nodeType = node->getType();
         

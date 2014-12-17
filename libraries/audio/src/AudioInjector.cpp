@@ -229,7 +229,7 @@ void AudioInjector::injectToMixer() {
                    _audioData.data() + _currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
-            NodeList* nodeList = NodeList::getInstance();
+            auto nodeList = DependencyManager::get<NodeList>();
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
             
             // send off this audio packet

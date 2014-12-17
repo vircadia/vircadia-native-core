@@ -18,7 +18,7 @@ AvatarHashMap::AvatarHashMap() :
     _avatarHash(),
     _lastOwnerSessionUUID()
 {
-    connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
+    connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
 

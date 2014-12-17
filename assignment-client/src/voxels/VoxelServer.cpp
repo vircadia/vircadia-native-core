@@ -74,7 +74,7 @@ int VoxelServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNod
         envPacketLength += getEnvironmentData(i)->getBroadcastData(_tempOutputBuffer + envPacketLength);
     }
 
-    NodeList::getInstance()->writeDatagram((char*) _tempOutputBuffer, envPacketLength, SharedNodePointer(node));
+    DependencyManager::get<NodeList>()->writeDatagram((char*) _tempOutputBuffer, envPacketLength, SharedNodePointer(node));
     queryNode->packetSent(_tempOutputBuffer, envPacketLength);
     packetsSent = 1;
 
@@ -98,5 +98,5 @@ void VoxelServer::readAdditionalConfiguration(const QJsonObject& settingsSection
     }
     qDebug("Sending environments=%s", debug::valueOf(_sendEnvironments));
     
-    NodeList::getInstance()->addNodeTypeToInterestSet(NodeType::AnimationServer);
+    DependencyManager::get<NodeList>()->addNodeTypeToInterestSet(NodeType::AnimationServer);
 }

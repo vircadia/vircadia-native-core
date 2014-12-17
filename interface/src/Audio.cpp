@@ -847,7 +847,7 @@ void Audio::handleAudioInput() {
             _scopeInputOffset = addBufferToScope(_scopeInput, _scopeInputOffset, networkAudioSamples, NETWORK_SAMPLES_PER_FRAME, monoAudioChannel, numMonoAudioChannels);
         }
 
-        NodeList* nodeList = NodeList::getInstance();
+        auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
         if (_recorder && _recorder.data()->isRecording()) {
@@ -1086,7 +1086,7 @@ void Audio::sendDownstreamAudioStatsPacket() {
     dataAt += sizeof(AudioStreamStats);
     
     // send packet
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
     nodeList->writeDatagram(packet, dataAt - packet, audioMixer);
 }
@@ -1516,7 +1516,7 @@ void Audio::renderStats(const float* color, int width, int height) {
     float audioInputBufferLatency = 0.0f, inputRingBufferLatency = 0.0f, networkRoundtripLatency = 0.0f, mixerRingBufferLatency = 0.0f, outputRingBufferLatency = 0.0f, audioOutputBufferLatency = 0.0f;
 
     AudioStreamStats downstreamAudioStreamStats = _receivedAudioStream.getAudioStreamStats();
-    SharedNodePointer audioMixerNodePointer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    SharedNodePointer audioMixerNodePointer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AudioMixer);
     if (!audioMixerNodePointer.isNull()) {
         audioInputBufferLatency = _audioInputMsecsReadStats.getWindowAverage();
         inputRingBufferLatency = getInputRingBufferAverageMsecsAvailable();
