@@ -30,7 +30,7 @@ macro(LINK_SHARED_DEPENDENCIES)
     # find these Qt modules and link them to our own target
     find_package(Qt5 COMPONENTS ${${TARGET_NAME}_DEPENDENCY_QT_MODULES} REQUIRED)
   
-    foreach(QT_MODULE ${QT_MODULES_TO_LINK})
+    foreach(QT_MODULE ${${TARGET_NAME}_DEPENDENCY_QT_MODULES})
       target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
     endforeach()
   endif ()
