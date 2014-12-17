@@ -195,7 +195,7 @@ Grid = function(opts) {
         Overlays.editOverlay(gridOverlay, {
             position: { x: origin.y, y: origin.y, z: -origin.y },
             visible: that.visible && that.enabled,
-            minorGridSpacing: minorGridSpacing,
+            minorGridWidth: minorGridSpacing,
             majorGridEvery: majorGridEvery,
                 color: gridColor,
                 alpha: gridAlpha,
