@@ -19,6 +19,7 @@
 #include <OpenGL/glext.h>
 
 #elif defined(WIN32)
+#include <windowshacks.h>
 #include <GL/glew.h>
 #include <GL/wglew.h>
 

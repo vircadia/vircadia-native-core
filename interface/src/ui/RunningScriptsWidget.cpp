@@ -21,6 +21,8 @@
 #include <QTableWidgetItem>
 #include <QWindow>
 
+#include <PathUtils.h>
+
 #include "Application.h"
 #include "Menu.h"
 #include "ScriptsModel.h"
@@ -109,7 +111,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         QPushButton* closeButton = new QPushButton(row);
         closeButton->setFlat(true);
         closeButton->setIcon(
-            QIcon(QPixmap(Application::resourcesPath() + "images/kill-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
+            QIcon(QPixmap(PathUtils::resourcesPath() + "images/kill-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
         closeButton->setSizePolicy(QSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred));
         closeButton->setStyleSheet("border: 0;");
         closeButton->setCursor(Qt::PointingHandCursor);

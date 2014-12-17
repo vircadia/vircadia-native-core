@@ -54,9 +54,12 @@
 
 #include <AddressManager.h>
 #include <AccountManager.h>
+#include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
+#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
+#include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <LocalVoxelsList.h>
@@ -65,7 +68,9 @@
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
+#include <ProgramObject.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UserActivityLogger.h>
@@ -85,9 +90,9 @@
 #include "devices/TV3DManager.h"
 #include "devices/Visage.h"
 
-#include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
+
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -105,6 +110,7 @@
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
+
 
 
 using namespace std;
@@ -131,15 +137,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     if (!logMessage.isEmpty()) {
         Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
-}
-
-QString& Application::resourcesPath() {
-#ifdef Q_OS_MAC
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
-#else
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
-#endif
-    return staticResourcePath;
 }
 
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
@@ -194,8 +191,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
+    Model::setViewStateInterface(this); // The model class will sometimes need to know view state details from us
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
+    QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
@@ -213,7 +212,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _applicationStartupTime = startup_time;
 
-    QFontDatabase::addApplicationFont(Application::resourcesPath() + "styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
@@ -710,7 +709,7 @@ void Application::paintGL() {
         TV3DManager::display(*whichCamera);
 
     } else {
-        _glowEffect.prepare();
+        DependencyManager::get<GlowEffect>()->prepare();
 
         // Viewport is assigned to the size of the framebuffer
         QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
@@ -729,7 +728,7 @@ void Application::paintGL() {
             renderRearViewMirror(_mirrorViewRect);       
         }
 
-        _glowEffect.render();
+        DependencyManager::get<GlowEffect>()->render();
 
         {
             PerformanceTimer perfTimer("renderOverlay");
@@ -1920,9 +1919,8 @@ void Application::init() {
 
     _environment.init();
 
-    _deferredLightingEffect.init();
-    _glowEffect.init();
-    _ambientOcclusionEffect.init();
+    DependencyManager::get<DeferredLightingEffect>()->init(this);
+    DependencyManager::get<AmbientOcclusionEffect>()->init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -2044,6 +2042,9 @@ void Application::init() {
 
     // make sure our texture cache knows about window size changes    
     DependencyManager::get<TextureCache>()->associateWithWidget(getGLWidget());
+
+    // initialize the GlowEffect with our widget
+    DependencyManager::get<GlowEffect>()->init(getGLWidget(), Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
 }
 
 void Application::closeMirrorView() {
@@ -2938,6 +2939,10 @@ void Application::setupWorldLight() {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
+bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
+    return Menu::getInstance()->shouldRenderMesh(largestDimension, distanceToCamera);
+}
+
 QImage Application::renderAvatarBillboard() {
     DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
 
@@ -3074,7 +3079,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
-    _deferredLightingEffect.prepare();
+    DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
         // draw a red sphere
@@ -3117,7 +3122,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
             PerformanceTimer perfTimer("ambientOcclusion");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... AmbientOcclusion...");
-            _ambientOcclusionEffect.render();
+            DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
 
@@ -3134,7 +3139,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     {
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
-        _deferredLightingEffect.render();
+        DependencyManager::get<DeferredLightingEffect>()->render();
     }
 
     {
@@ -3237,6 +3242,14 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     } else if (TV3DManager::isConnected()) {
         TV3DManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);    
     }
+}
+
+bool Application::getShadowsEnabled() { 
+    return Menu::getInstance()->getShadowsEnabled(); 
+}
+
+bool Application::getCascadeShadowsEnabled() { 
+    return Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows); 
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
@@ -4007,7 +4020,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
-    scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
+    scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>());
     scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
@@ -4369,7 +4382,7 @@ void Application::skipVersion(QString latestVersion) {
 
 void Application::takeSnapshot() {
     QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
+    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 

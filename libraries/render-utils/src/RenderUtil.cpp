@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 #include "RenderUtil.h"
 
 void renderFullscreenQuad(float sMin, float sMax, float tMin, float tMax) {

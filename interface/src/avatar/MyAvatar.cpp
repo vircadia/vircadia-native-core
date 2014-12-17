@@ -22,6 +22,7 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AnimationHandle.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
@@ -40,7 +41,6 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
-#include "renderer/AnimationHandle.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;

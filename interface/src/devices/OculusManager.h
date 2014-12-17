@@ -17,7 +17,8 @@
 #include <OVR.h>
 #endif
 
-#include "renderer/ProgramObject.h"
+#include <ProgramObject.h>
+
 #include "ui/overlays/Text3DOverlay.h"
 
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;

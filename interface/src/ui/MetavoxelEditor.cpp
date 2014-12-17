@@ -35,6 +35,7 @@
 #include <AttributeRegistry.h>
 #include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
+#include <PathUtils.h>
 
 #include "Application.h"
 #include "MetavoxelEditor.h"
@@ -144,7 +145,7 @@ MetavoxelEditor::MetavoxelEditor() :
         return;
     }
         
-    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/grid.frag");
+    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag");
     _gridProgram.link();
 }
 
