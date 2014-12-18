@@ -764,8 +764,6 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
 }
 
 void ApplicationOverlay::renderAudioMeter() {
-
-    Application* application = Application::getInstance();
     
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     Audio::SharedPointer audio = DependencyManager::get<Audio>();

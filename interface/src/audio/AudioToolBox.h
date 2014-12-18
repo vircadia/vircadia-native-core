@@ -14,7 +14,8 @@
 
 #include <DependencyManager.h>
 
-class AudioToolBox : public DependencyManager::Dependency {
+class AudioToolBox : public QObject {
+    SINGLETON_DEPENDENCY(AudioToolBox)
 public:
     void render(int x, int y, bool boxed);
     

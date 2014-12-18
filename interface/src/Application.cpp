@@ -251,9 +251,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
     
-    Audio::Pointer audioIO = DependencyManager::get<Audio>();
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
     audioIO->moveToThread(audioThread);
-    connect(audioThread, &QThread::started, audioIO, &Audio::start);
+    connect(audioThread, &QThread::started, audioIO.data(), &Audio::start);
 
     audioThread->start();
     
@@ -306,17 +306,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
     
-    AddressManager* addressManager = DependencyManager::get<AddressManager>();
+    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
     
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter(getPositionForPath);
     addressManager->setOrientationGetter(getOrientationForPath);
     
     // handle domain change signals from AddressManager
-    connect(addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
+    connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredToHostname,
             this, &Application::changeDomainHostname);
     
-    connect(addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
+    connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &domainHandler, &DomainHandler::setIceServerHostnameAndID);
 
     _settings = new QSettings(this);
@@ -425,7 +425,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
-    AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO);
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
     
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
@@ -468,10 +468,10 @@ Application::~Application() {
     // kill any audio injectors that are still around
     AudioScriptingInterface::getInstance().stopAllInjectors();
     
-    Audio* audioIO = DependencyManager::get<Audio>();
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
 
     // stop the audio process
-    QMetaObject::invokeMethod(audioIO, "stop");
+    QMetaObject::invokeMethod(audioIO.data(), "stop");
     
     // ask the audio thread to quit and wait until it is done
     audioIO->thread()->quit();
@@ -2424,7 +2424,7 @@ void Application::update(float deltaTime) {
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
 
-            QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
 }
@@ -3602,7 +3602,7 @@ void Application::resetSensors() {
     
     _myAvatar->reset();
 
-    QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "reset", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -3765,7 +3765,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
-        QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "audioMixerKilled");
+        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "audioMixerKilled");
     }
 
     if (node->getType() == NodeType::VoxelServer) {

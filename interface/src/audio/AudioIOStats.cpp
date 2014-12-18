@@ -97,7 +97,7 @@ void AudioIOStats::parseAudioStreamStatsPacket(const QByteArray& packet) {
 
 void AudioIOStats::sendDownstreamAudioStatsPacket() {
     
-    Audio::Pointer audioIO = DependencyManager::get<Audio>();
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
     
     // since this function is called every second, we'll sample for some of our stats here
     _inputRingBufferMsecsAvailableStats.update(audioIO->getInputRingBufferMsecsAvailable());

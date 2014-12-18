@@ -11,7 +11,9 @@
 
 #include "InterfaceConfig.h"
 
-#include "Application.h"
+#include <GLCanvas.h>
+#include <PathUtils.h>
+
 #include "Audio.h"
 
 #include "AudioToolBox.h"
@@ -22,10 +24,10 @@ const int MUTE_ICON_SIZE = 24;
 AudioToolBox::AudioToolBox() :
     _iconPulseTimeReference(usecTimestampNow())
 {
-    Application* app = Application::getInstance();
-    _micTextureId = app->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/mic.svg"));
-    _muteTextureId = app->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/mic-mute.svg"));
-    _boxTextureId = app->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/audio-box.svg"));
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    _micTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
+    _muteTextureId = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
+    _boxTextureId = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
 }
 
 bool AudioToolBox::mousePressEvent(int x, int y) {
@@ -40,7 +42,7 @@ void AudioToolBox::render(int x, int y, bool boxed) {
     
     glEnable(GL_TEXTURE_2D);
     
-    Audio* audioIO = DependencyManager::get<Audio>();
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
     
     if (boxed) {
         bool isClipping = ((audioIO->getTimeSinceLastClip() > 0.0f) && (audioIO->getTimeSinceLastClip() < 1.0f));

@@ -36,14 +36,14 @@ AudioScope::AudioScope() :
     _scopeOutputRight(NULL),
     _scopeLastFrame()
 {
-    Audio* audioIO = DependencyManager::get<Audio>();
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedSilence,
             this, &AudioScope::addStereoSilenceToScope);
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade,
             this, &AudioScope::addLastFrameRepeatedWithFadeToScope);
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedStereoSamples,
             this, &AudioScope::addStereoSamplesToScope);
-    connect(audioIO, &Audio::inputReceived, this, &AudioScope::addInputToScope);
+    connect(audioIO.data(), &Audio::inputReceived, this, &AudioScope::addInputToScope);
 }
 
 void AudioScope::toggle() {

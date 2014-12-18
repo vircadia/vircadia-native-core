@@ -530,48 +530,48 @@ Menu::Menu() :
                                   SLOT(cycleFrustumRenderMode()));
     updateFrustumRenderModeAction();
 
-    Audio::Pointer audioIO = DependencyManager::get<Audio>();
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
                                            true,
-                                           audioIO,
+                                           audioIO.data(),
                                            SLOT(toggleAudioNoiseReduction()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
-                                           audioIO, SLOT(toggleServerEcho()));
+                                           audioIO.data(), SLOT(toggleServerEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
-                                           audioIO, SLOT(toggleLocalEcho()));
+                                           audioIO.data(), SLOT(toggleLocalEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
-                                           audioIO, SLOT(toggleStereoInput()));
+                                           audioIO.data(), SLOT(toggleStereoInput()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
                                            Qt::CTRL | Qt::Key_M,
                                            false,
-                                           audioIO,
+                                           audioIO.data(),
                                            SLOT(toggleMute()));
     addActionToQMenuAndActionHash(audioDebugMenu,
                                   MenuOption::MuteEnvironment,
                                   0,
-                                  audioIO,
+                                  audioIO.data(),
                                   SLOT(sendMuteEnvironmentPacket()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
                                            0,
                                            false,
-                                           audioIO,
+                                           audioIO.data(),
                                            SLOT(toggleAudioSourceInject()));
     QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
     {
         QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
                                                                0,
                                                                false,
-                                                               audioIO,
+                                                               audioIO.data(),
                                                                SLOT(selectAudioSourcePinkNoise()));
         
         QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
                                                                     0,
                                                                     true,
-                                                                    audioIO,
+                                                                    audioIO.data(),
                                                                     SLOT(selectAudioSourceSine440()));
 
         QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
@@ -579,7 +579,7 @@ Menu::Menu() :
         audioSourceGroup->addAction(sine440);
     }
     
-    AudioScope::Pointer scope = DependencyManager::get<AudioScope>();
+    AudioScope::SharedPointer scope = DependencyManager::get<AudioScope>();
 
     QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
@@ -596,19 +596,19 @@ Menu::Menu() :
         QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
                                                0,
                                                true,
-                                               scope,
+                                               scope.data(),
                                                SLOT(selectAudioScopeFiveFrames()));
 
         QAction *twentyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeTwentyFrames,
                                                0,
                                                false,
-                                               scope,
+                                               scope.data(),
                                                SLOT(selectAudioScopeTwentyFrames()));
 
         QAction *fiftyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiftyFrames,
                                                0,
                                                false,
-                                               scope,
+                                               scope.data(),
                                                SLOT(selectAudioScopeFiftyFrames()));
 
         QActionGroup* audioScopeFramesGroup = new QActionGroup(audioScopeMenu);
@@ -617,20 +617,20 @@ Menu::Menu() :
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
     
-    AudioIOStatsRenderer* statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
+    AudioIOStatsRenderer::SharedPointer statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
                                            Qt::CTRL | Qt::Key_A,
                                            false,
-                                           statsRenderer,
+                                           statsRenderer.data(),
                                            SLOT(toggle()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
                                             0,
                                             false,
-                                            statsRenderer,
+                                            statsRenderer.data(),
                                             SLOT(toggleShowInjectedStreams()));
 
-    connect(audioIO, SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
     QMenu* experimentalOptionsMenu = developerMenu->addMenu("Experimental");
     addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::StringHair, 0, false);
@@ -1166,7 +1166,7 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>());
+        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
         _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
     }
     
@@ -1210,7 +1210,7 @@ void Menu::nameLocation() {
     
     if (!_newLocationDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>());
+        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
         _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
     }
     

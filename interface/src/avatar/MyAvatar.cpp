@@ -102,7 +102,8 @@ MyAvatar::MyAvatar() :
     _skeletonModel.buildRagdoll();
     
     // connect to AddressManager signal for location jumps
-    connect(DependencyManager::get<AddressManager>(), &AddressManager::locationChangeRequired, this, &MyAvatar::goToLocation);
+    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
+            this, &MyAvatar::goToLocation);
 }
 
 MyAvatar::~MyAvatar() {
@@ -146,7 +147,7 @@ void MyAvatar::update(float deltaTime) {
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
     //  Get audio loudness data from audio input device
-    Audio* audio = DependencyManager::get<Audio>();
+    Audio::SharedPointer audio = DependencyManager::get<Audio>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
