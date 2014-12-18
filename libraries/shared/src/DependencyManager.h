@@ -16,27 +16,23 @@
 
 #include <typeinfo>
 
-#define SINGLETON_DEPENDENCY(T, NEED_SET)\
-public:\
-    typedef QSharedPointer<T> SharedPointer;\
-    typedef QWeakPointer<T> WeakPointer;\
-private:\
-    static const bool REQUIRE_SET = NEED_SET;\
-    void customDeleter() {\
-        QObject* thisObject = dynamic_cast<QObject*>(this);\
-        if (thisObject) {\
-            thisObject->deleteLater();\
-        } else {\
-            delete this;\
-        }\
-    }\
+#define SINGLETON_DEPENDENCY \
+private: \
+    virtual void customDeleter() { \
+        QObject* thisObject = dynamic_cast<QObject*>(this); \
+        if (thisObject) { \
+            thisObject->deleteLater(); \
+        } else { \
+            delete this; \
+        } \
+    } \
     friend class DependencyManager;
 
 class QObject;
 
 // usage:
 //     T* instance = DependencyManager::get<T>();
-//     T* instance = DependencyManager::set<T, Type1, Type2, ...>(Args... args);
+//     T* instance = DependencyManager::set<T>(Args... args);
 //     T* instance = DependencyManager::destroy<T>();
 class DependencyManager {
 public:
@@ -56,12 +52,6 @@ private:
 
 template <typename T>
 QSharedPointer<T> DependencyManager::get() {
-    static bool requireSet = !T::REQUIRE_SET;
-    if (requireSet) {
-        set<T>();
-        requireSet = false;
-    }
-    
     return storage<T>();
 }
 
