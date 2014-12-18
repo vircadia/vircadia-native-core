@@ -69,10 +69,9 @@ namespace PingType {
 
 class LimitedNodeList : public QObject {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(LimitedNodeList, true);
+    
 public:
-    static LimitedNodeList* createInstance(unsigned short socketListenPort = 0, unsigned short dtlsPort = 0);
-    static LimitedNodeList* getInstance();
-
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
     
@@ -179,10 +178,9 @@ signals:
     
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
+    
 protected:
-    static std::auto_ptr<LimitedNodeList> _sharedInstance;
-
-    LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort);
+    LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     

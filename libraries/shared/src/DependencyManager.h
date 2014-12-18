@@ -21,7 +21,7 @@ public:\
     typedef QSharedPointer<T> SharedPointer;\
     typedef QWeakPointer<T> WeakPointer;\
 private:\
-    static constexpr bool REQUIRE_SET = NEED_SET;\
+    static const bool REQUIRE_SET = NEED_SET;\
     void customDeleter() {\
         QObject* thisObject = dynamic_cast<QObject*>(this);\
         if (thisObject) {\
@@ -34,12 +34,12 @@ private:\
 
 class QObject;
 
+// usage:
+//     T* instance = DependencyManager::get<T>();
+//     T* instance = DependencyManager::set<T, Type1, Type2, ...>(Args... args);
+//     T* instance = DependencyManager::destroy<T>();
 class DependencyManager {
 public:
-    // usage:
-    //     T* instance = DependencyManager::get<T>();
-    //     T* instance = DependencyManager::set<T>(Args... args);
-    //     T* instance = DependencyManager::destroy<T>();
     template<typename T>
     static QSharedPointer<T> get();
     
