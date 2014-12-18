@@ -5,11 +5,15 @@ setup_hifi_library(Widgets OpenGL Network Script)
 
 include_glm()
 
-link_hifi_libraries(shared gpu)
+link_hifi_libraries(fbx shared gpu)
 
-if (WIN32)
+if (APPLE)
+  find_library(GLUT GLUT)
+  target_link_libraries(${TARGET_NAME} GLUT)
+else ()
   find_package(GLUT REQUIRED)
   include_directories(SYSTEM "${GLUT_INCLUDE_DIRS}")
+  target_link_libraries(${TARGET_NAME} ${GLUT_LIBRARIES})
 endif ()
 
 # call macro to link our dependencies and bubble them up via a property on our target
