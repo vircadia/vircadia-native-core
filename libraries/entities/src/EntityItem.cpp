@@ -730,7 +730,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::isMoving() const {
-    return hasVelocity() (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity();
+    return hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity();
 }
 
 bool EntityItem::lifetimeHasExpired() const { 
