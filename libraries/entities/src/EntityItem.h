@@ -74,12 +74,13 @@ public:
     virtual EntityItemProperties getProperties() const;
     
     /// returns true if something changed
-    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    virtual bool setProperties(const EntityItemProperties& properties);
 
     /// Override this in your derived class if you'd like to be informed when something about the state of the entity
     /// has changed. This will be called with properties change or when new data is loaded from a stream
     virtual void somethingChangedNotification() { }
 
+    void recordCreationTime();    // set _created to 'now'
     quint64 getLastSimulated() const { return _lastSimulated; } /// Last simulated time of this entity universal usecs
 
      /// Last edited time of this entity universal usecs
