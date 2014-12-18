@@ -1826,6 +1826,8 @@ HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const
     return newNode;
 }
 
+const float HERMITE_GRANULARITY = 1.0f / numeric_limits<quint8>::max();
+
 void HeightfieldNode::getRangeAfterHeightPaint(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& position, float radius, float height, float& minimum, float& maximum) const {
     if (!_height) {
@@ -1882,6 +1884,14 @@ void HeightfieldNode::getRangeAfterHeightPaint(const glm::vec3& translation, con
             }
         }
         lineDest += heightWidth;
+    }
+    
+    // make sure we increment in multiples of the voxel size
+    float voxelStep = scale.x / innerHeightWidth;
+    float newScaleY = (maximum - minimum + 1.0f) * scale.y / numeric_limits<quint16>::max();
+    float newSteps = newScaleY / voxelStep;
+    if (glm::abs(newSteps - glm::round(newSteps)) > HERMITE_GRANULARITY) {
+        minimum -= (voxelStep * glm::ceil(newSteps) - newScaleY) * numeric_limits<quint16>::max() / scale.y;
     }
 }
 
@@ -2010,6 +2020,14 @@ void HeightfieldNode::getRangeAfterEdit(const glm::vec3& translation, const glm:
     
     minimum = qMin(minimum, start.y);
     maximum = qMax(maximum, end.y);
+    
+    // make sure we increment in multiples of the voxel size
+    float voxelStep = scale.x / innerHeightWidth;
+    float newScaleY = (maximum - minimum + 1.0f) * scale.y / numeric_limits<quint16>::max();
+    float newSteps = newScaleY / voxelStep;
+    if (glm::abs(newSteps - glm::round(newSteps)) > HERMITE_GRANULARITY) {
+        minimum -= (voxelStep * glm::ceil(newSteps) - newScaleY) * numeric_limits<quint16>::max() / scale.y;
+    }
 }
 
 HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
