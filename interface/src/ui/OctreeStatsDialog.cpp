@@ -248,8 +248,8 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
     QLocale locale(QLocale::English);
     
     NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    nodeList->eachNode([&](const SharedNodePointer& node){
+        
         // only send to the NodeTypes that are NodeType_t_VOXEL_SERVER
         if (node->getType() == serverType) {
             serverCount++;
@@ -420,7 +420,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
             serverDetails << linkDetails.str();
             _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
         } // is VOXEL_SERVER
-    }
+    });
 }
 
 void OctreeStatsDialog::reject() {
