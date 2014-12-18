@@ -177,8 +177,10 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     }
     
     glPushMatrix(); {
+        const float NEAR_CLIP = -10000;
+        const float FAR_CLIP = 10000;
         glLoadIdentity();
-        gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
+        glOrtho(0, glWidget->width(), glWidget->height(), 0, NEAR_CLIP, FAR_CLIP);
         
         renderAudioMeter();
         
@@ -1081,7 +1083,7 @@ void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
         delete _framebufferObject;
     }
     
-    _framebufferObject = new QOpenGLFramebufferObject(size);
+    _framebufferObject = new QOpenGLFramebufferObject(size, QOpenGLFramebufferObject::Depth);
     bindTexture();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

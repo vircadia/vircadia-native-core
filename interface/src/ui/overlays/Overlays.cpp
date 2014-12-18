@@ -92,6 +92,17 @@ void Overlays::render2D() {
     foreach(Overlay* thisOverlay, _overlays2D) {
         thisOverlay->render(&args);
     }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    foreach(Overlay* thisOverlay, _overlays3D) {
+        Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay);
+        if (overlay3D->getDrawOnApplicationOverlay()) {
+            thisOverlay->render(&args);
+        }
+    }
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
 }
 
 void Overlays::render3D(bool drawFront, RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
@@ -114,7 +125,7 @@ void Overlays::render3D(bool drawFront, RenderArgs::RenderMode renderMode, Rende
 
     foreach(Overlay* thisOverlay, _overlays3D) {
         Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay);
-        if (overlay3D->getDrawInFront() != drawFront) {
+        if (overlay3D->getDrawInFront() != drawFront || overlay3D->getDrawOnApplicationOverlay()) {
             continue;
         }
         glPushMatrix();
@@ -251,7 +262,27 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     }
     
     QReadLocker lock(&_lock);
-    QMapIterator<unsigned int, Overlay*> i(_overlays2D);
+    QMapIterator<unsigned int, Overlay*> i(_overlays3D);
+    i.toBack();
+
+    const float LARGE_NEGATIVE_FLOAT = -9999999;
+    glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
+    glm::vec3 direction(0, 0, 1);
+    BoxFace thisFace;
+    float distance;
+
+    while (i.hasPrevious()) {
+        i.previous();
+        unsigned int thisID = i.key();
+        Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value());
+        if (thisOverlay->getDrawOnApplicationOverlay() && !thisOverlay->getIgnoreRayIntersection()) {
+            if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace)) {
+                return thisID;
+            }
+        }
+    }
+
+    i = QMapIterator<unsigned int, Overlay*>(_overlays2D);
     i.toBack();
     while (i.hasPrevious()) {
         i.previous();
@@ -262,6 +293,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
             return thisID;
         }
     }
+
     return 0; // not found
 }
 
@@ -320,6 +352,9 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
         i.previous();
         unsigned int thisID = i.key();
         Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value());
+        if (thisOverlay->getDrawOnApplicationOverlay()) {
+            continue;
+        }
         if (thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;

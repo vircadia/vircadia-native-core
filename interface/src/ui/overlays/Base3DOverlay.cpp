@@ -28,7 +28,8 @@ Base3DOverlay::Base3DOverlay() :
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false),
-    _drawInFront(false)
+    _drawInFront(false),
+    _drawOnApplicationOverlay(false)
 {
 }
 
@@ -161,6 +162,9 @@ QScriptValue Base3DOverlay::getProperty(const QString& property) {
     }
     if (property == "drawInFront") {
         return _drawInFront;
+    }
+    if (property == "drawOnApplicationOverlay") {
+        return _drawOnApplicationOverlay;
     }
 
     return Overlay::getProperty(property);
