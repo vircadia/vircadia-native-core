@@ -68,6 +68,8 @@ private:
     QHash<IntPair, VerticesIndices> _squareVBOs;
     QHash<IntPair, VerticesIndices> _halfCylinderVBOs;
     QHash<IntPair, VerticesIndices> _coneVBOs;
+    QHash<float, VerticesIndices> _wireCubeVBOs;
+    QHash<float, VerticesIndices> _solidCubeVBOs;
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;

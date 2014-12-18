@@ -513,7 +513,65 @@ void GeometryCache::renderSolidCube(float size) {
 }
 
 void GeometryCache::renderWireCube(float size) {
-    glutWireCube(size);
+    VerticesIndices& vbo = _wireCubeVBOs[size];
+    const int FLOATS_PER_VERTEX = 3;
+    const int VERTICES_PER_EDGE = 2;
+    const int TOP_EDGES = 4;
+    const int BOTTOM_EDGES = 4;
+    const int SIDE_EDGES = 4;
+    const int vertices = 8;
+    const int indices = (TOP_EDGES + BOTTOM_EDGES + SIDE_EDGES) * VERTICES_PER_EDGE;
+    if (vbo.first == 0) {    
+        int vertexPoints = vertices * FLOATS_PER_VERTEX;
+        GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices, no normals because we're a wire cube
+        GLfloat* vertex = vertexData;
+        float halfSize = size / 2.0f;
+        
+        static GLfloat cannonicalVertices[] = 
+                                    { 1, 1, 1,   1, 1,-1,  -1, 1,-1,  -1, 1, 1,   // v0, v1, v2, v3 (top)
+                                      1,-1, 1,   1,-1,-1,  -1,-1,-1,  -1,-1, 1    // v4, v5, v6, v7 (bottom)
+                                    };
+
+        // index array of vertex array for glDrawRangeElement() as a GL_LINES for each edge
+        const GLubyte LINE_BREAK = static_cast<GLubyte>(-1);
+        static GLubyte cannonicalIndices[indices]  = { 
+                                      0, 1,  1, 2,  2, 3,  3, 0, // (top)
+                                      4, 5,  5, 6,  6, 7,  7, 4, // (bottom)
+                                      0, 4,  1, 5,  2, 6,  3, 7, // (side edges)
+                                    };
+        
+        for (int i = 0; i < vertexPoints; i++) {
+            vertex[i] = cannonicalVertices[i] * halfSize;
+        }
+        
+        glGenBuffers(1, &vbo.first);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        delete[] vertexData;
+        
+        GLushort* indexData = new GLushort[indices];
+        GLushort* index = indexData;
+        for (int i = 0; i < indices; i++) {
+            index[i] = cannonicalIndices[i];
+        }
+        
+        glGenBuffers(1, &vbo.second);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        delete[] indexData;
+    
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+    }
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(FLOATS_PER_VERTEX, GL_FLOAT, FLOATS_PER_VERTEX * sizeof(float), 0);
+    glDrawRangeElementsEXT(GL_LINES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 }
 
 
