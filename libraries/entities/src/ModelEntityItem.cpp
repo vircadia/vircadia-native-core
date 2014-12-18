@@ -34,7 +34,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Model;     
-    setProperties(properties, true);
+    setProperties(properties);
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
     _color[0] = _color[1] = _color[2] = 0;
@@ -55,9 +55,9 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     return properties;
 }
 
-bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
