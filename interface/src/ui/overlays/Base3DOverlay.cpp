@@ -57,6 +57,13 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
         setDrawInFront(value);
     }
 
+    QScriptValue drawOnApplicationOverlay = properties.property("drawOnApplicationOverlay");
+
+    if (drawOnApplicationOverlay.isValid()) {
+        bool value = drawOnApplicationOverlay.toVariant().toBool();
+        setDrawOnApplicationOverlay(value);
+    }
+
     QScriptValue position = properties.property("position");
 
     // if "position" property was not there, check to see if they included aliases: start, point, p1
