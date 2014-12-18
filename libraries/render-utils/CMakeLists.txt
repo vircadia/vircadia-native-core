@@ -9,7 +9,7 @@ link_hifi_libraries(fbx shared gpu)
 
 if (APPLE)
   find_library(GLUT GLUT)
-  target_link_libraries(${TARGET_NAME} GLUT)
+  target_link_libraries(${TARGET_NAME} ${GLUT})
 else ()
   find_package(GLUT REQUIRED)
   include_directories(SYSTEM "${GLUT_INCLUDE_DIRS}")
