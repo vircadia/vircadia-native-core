@@ -9,7 +9,7 @@ link_hifi_libraries(shared networking octree voxels)
 
 find_package(ZLIB REQUIRED)
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
-list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${ZLIB_LIBRARIES}")
+target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
 
 # call macro to link our dependencies and bubble them up via a property on our target
 link_shared_dependencies()
