@@ -13,9 +13,9 @@
 
 #include <QGLWidget>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 
 #include "TextOverlay.h"
-#include "ui/TextRenderer.h"
 
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),

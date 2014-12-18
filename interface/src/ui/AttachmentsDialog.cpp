@@ -20,6 +20,7 @@
 
 #include "Application.h"
 #include "AttachmentsDialog.h"
+#include "MainWindow.h"
 
 AttachmentsDialog::AttachmentsDialog() :
     QDialog(Application::getInstance()->getWindow()) {

@@ -12,11 +12,11 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+#include <GlowEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 
 #include "Circle3DOverlay.h"
-#include "renderer/GlowEffect.h"
 
 Circle3DOverlay::Circle3DOverlay() :
     _startAt(0.0f),

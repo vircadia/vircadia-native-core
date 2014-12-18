@@ -11,8 +11,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <DependencyManager.h>
-#include <devices/Faceshift.h>
-#include <devices/DdeFaceTracker.h>
+#include <GlowEffect.h>
 #include <NodeList.h>
 
 #include "Application.h"
@@ -21,6 +20,8 @@
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
+#include "devices/DdeFaceTracker.h"
+#include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 
 using namespace std;
@@ -71,20 +72,19 @@ void Head::reset() {
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
-    
     if (isMine) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
             FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            DdeFaceTracker* dde = DependencyManager::get<DdeFaceTracker>();
-            Faceshift* faceshift = DependencyManager::get<Faceshift>();
+            DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
+            Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
             
             if ((_isFaceshiftConnected = (faceshift == faceTracker))) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             } else if (dde->isActive()) {
-                faceTracker = dde;
+                faceTracker = dde.data();
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             }            
         }
@@ -331,7 +331,7 @@ void Head::addLeanDeltas(float sideways, float forward) {
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
 
-    Application::getInstance()->getGlowEffect()->begin();
+    DependencyManager::get<GlowEffect>()->begin();
     
     glLineWidth(2.0);
     glBegin(GL_LINES);
@@ -345,7 +345,7 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
     glEnd();
     
-    Application::getInstance()->getGlowEffect()->end();
+    DependencyManager::get<GlowEffect>()->end();
 }
 
 

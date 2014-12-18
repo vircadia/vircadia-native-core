@@ -15,6 +15,8 @@
 
 #include <glm/glm.hpp>
 
+#include <GlowEffect.h>
+
 #include "Application.h"
 
 #include "TV3DManager.h"
@@ -33,10 +35,10 @@ bool TV3DManager::isConnected() {
 }
 
 void TV3DManager::connect() {
-    Application* app = Application::getInstance();
-    int width = app->getGLWidget()->getDeviceWidth();
-    int height = app->getGLWidget()->getDeviceHeight();
-    Camera& camera = *app->getCamera();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    int width = glCanvas->getDeviceWidth();
+    int height = glCanvas->getDeviceHeight();
+    Camera& camera = *Application::getInstance()->getCamera();
 
     configureCamera(camera, width, height);
 }
@@ -91,7 +93,8 @@ void TV3DManager::display(Camera& whichCamera) {
     // left eye portal
     int portalX = 0;
     int portalY = 0;
-    QSize deviceSize = Application::getInstance()->getGLWidget()->getDeviceSize() *
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    QSize deviceSize = glCanvas->getDeviceSize() *
         Application::getInstance()->getRenderResolutionScale();
     int portalW = deviceSize.width() / 2;
     int portalH = deviceSize.height();
@@ -103,7 +106,7 @@ void TV3DManager::display(Camera& whichCamera) {
     applicationOverlay.renderOverlay(true);
     const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
 
-    Application::getInstance()->getGlowEffect()->prepare();
+    DependencyManager::get<GlowEffect>()->prepare();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -169,7 +172,7 @@ void TV3DManager::display(Camera& whichCamera) {
     // reset the viewport to how we started
     glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
-    Application::getInstance()->getGlowEffect()->render();
+    DependencyManager::get<GlowEffect>()->render();
 }
 
 void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,

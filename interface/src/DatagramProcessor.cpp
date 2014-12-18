@@ -54,14 +54,16 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeMixedAudio:
                 case PacketTypeSilentAudioFrame: {
                     if (incomingType == PacketTypeAudioStreamStats) {
-                        QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "parseAudioStreamStatsPacket",
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "parseAudioStreamStatsPacket",
                                                   Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else if (incomingType == PacketTypeAudioEnvironment) {
-                        QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "parseAudioEnvironmentData", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "parseAudioEnvironmentData",
+                                                  Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else {
-                        QMetaObject::invokeMethod(DependencyManager::get<Audio>(), "addReceivedAudioToStream", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "addReceivedAudioToStream",
+                                                  Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     }
                     

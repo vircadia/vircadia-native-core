@@ -8,18 +8,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <gpu/GPUConfig.h> // hack to get windows to build
+
 #include <QImage>
 
 #include <NodeList.h>
 
 #include <GeometryUtil.h>
+#include <ProgramObject.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Menu.h"
 #include "Util.h"
-#include "renderer/ProgramObject.h"
 
 using namespace std;
 

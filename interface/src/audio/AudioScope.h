@@ -17,8 +17,9 @@
 #include <QByteArray>
 #include <QObject>
 
-class AudioScope : public QObject, public DependencyManager::Dependency {
+class AudioScope : public QObject {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(AudioScope)
 public:
     // Audio scope methods for rendering
     static void renderBackground(const float* color, int x, int y, int width, int height);

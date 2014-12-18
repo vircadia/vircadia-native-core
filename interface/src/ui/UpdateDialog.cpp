@@ -8,12 +8,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <InterfaceConfig.h>
-
-#include "Application.h"  // HACK ATTACK WARNING: for windows build to work, we need this ahead of QtGui
 #include <QtGui>
 #include "ui_updateDialog.h"
 
+#include "Application.h"
 #include "UpdateDialog.h"
 
 

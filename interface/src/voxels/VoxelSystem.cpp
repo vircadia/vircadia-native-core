@@ -14,18 +14,20 @@
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
 
+#include <gpu/GPUConfig.h>
+
 #include <OctalCode.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
+#include <ProgramObject.h>
 #include <SharedUtil.h>
 #include <NodeList.h>
 
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "Menu.h"
-#include "renderer/ProgramObject.h"
 #include "VoxelConstants.h"
 #include "VoxelSystem.h"
 
@@ -371,9 +373,9 @@ void VoxelSystem::initVoxelMemory() {
     // create our simple fragment shader if we're the first system to init
     if (!_program.isLinked()) {
         _program.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/voxel.vert");
+            PathUtils::resourcesPath() + "shaders/voxel.vert");
         _program.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/voxel.frag");
+            PathUtils::resourcesPath() + "shaders/voxel.frag");
         _program.link();
     }
     _initialized = true;
@@ -1644,9 +1646,9 @@ unsigned long VoxelSystem::getVoxelMemoryUsageGPU() {
 void VoxelSystem::bindPerlinModulateProgram() {
     if (!_perlinModulateProgram.isLinked()) {
         _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/perlin_modulate.vert");
+            PathUtils::resourcesPath() + "shaders/perlin_modulate.vert");
         _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/perlin_modulate.frag");
+            PathUtils::resourcesPath() + "shaders/perlin_modulate.frag");
         _perlinModulateProgram.link();
 
         _perlinModulateProgram.bind();

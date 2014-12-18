@@ -38,7 +38,9 @@
 #include <AudioInjector.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+
 #include <PositionalAudioStream.h>
+
 #include <SharedUtil.h>
 #include <UUID.h>
 
@@ -691,7 +693,7 @@ void Audio::handleAudioInput() {
         }
         
         if (audioMixer && audioMixer->getActiveSocket()) {
-            MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
+            const MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientationInWorldFrame();
             quint8 isStereo = _isStereoInput ? 1 : 0;

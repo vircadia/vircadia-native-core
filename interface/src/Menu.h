@@ -356,9 +356,6 @@ namespace MenuOption {
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
-    const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
-    const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
-    const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
