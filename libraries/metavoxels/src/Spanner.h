@@ -81,11 +81,6 @@ public:
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
 
-    /// Attempts to clear and fetch part of the spanner's height.
-    /// \param heightfield the heightfield to populate
-    /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield);
-
     /// Attempts to "sculpt" with the supplied spanner.
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
@@ -478,6 +473,7 @@ typedef QExplicitlySharedDataPointer<HeightfieldStack> HeightfieldStackPointer;
 class HeightfieldStack : public HeightfieldData {
 public:
 
+    static const int POSITION_BYTES;
     static const int ENTRY_BYTES;
 
     HeightfieldStack(int width, const QVector<QByteArray>& contents, const QVector<SharedObjectPointer>& materials);
@@ -576,18 +572,15 @@ public:
     HeightfieldNode* paintMaterial(const glm::vec3& position, const glm::vec3& radius, const SharedObjectPointer& material,
         const QColor& color);
     
-    void getRangeAfterHeightPaint(const glm::vec3& position, const glm::vec3& radius,
-        float height, int& minimum, int& maximum) const;
+    void getRangeAfterHeightPaint(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& position, float radius, float height, float& minimum, float& maximum) const;
     
-    HeightfieldNode* paintHeight(const glm::vec3& position, const glm::vec3& radius, float height,
-        float normalizeScale, float normalizeOffset);
-        
-    HeightfieldNode* clearAndFetchHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const Box& bounds, SharedObjectPointer& heightfield);
+    HeightfieldNode* paintHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& position, float radius, float height, float normalizeScale, float normalizeOffset);
     
-    void getRangeAfterMaterialSet(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const Box& spannerBounds, int& minimum, int& maximum) const;
-        
+    void getRangeAfterEdit(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const Box& editBounds, float& minimum, float& maximum) const;
+            
     HeightfieldNode* setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         Spanner* spanner, const SharedObjectPointer& material, const QColor& color,
         float normalizeScale, float normalizeOffset);
@@ -613,6 +606,9 @@ private:
     
     QRgb getColorAt(const glm::vec3& location) const;
     int getMaterialAt(const glm::vec3& location) const;
+    
+    void maybeRenormalize(const glm::vec3& scale, float normalizeScale, float normalizeOffset, int innerStackWidth,
+        QVector<quint16>& heightContents, QVector<QByteArray>& stackContents);
     
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
@@ -683,8 +679,6 @@ public:
 
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
     
-    virtual Spanner* clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield);
-    
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
         const QColor& color);
         
@@ -723,6 +717,8 @@ private slots:
     void updateRoot();
     
 private:
+
+    Heightfield* prepareEdit(float minimumValue, float maximumValue, float& normalizeScale, float& normalizeOffset);
 
     float _aspectY;
     float _aspectZ;
