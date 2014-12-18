@@ -12,7 +12,7 @@ link_hifi_libraries(
 )
 
 if (UNIX)
-  list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK ${CMAKE_DL_LIBS})
+  target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
 link_shared_dependencies()
