@@ -11,17 +11,14 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <FBXReader.h>
+#include <gpu/GPUConfig.h>
 
-#include "InterfaceConfig.h"
+#include <QJsonDocument>
 
-#include <BoxEntityItem.h>
 #include <DeferredLightingEffect.h>
-#include <ModelEntityItem.h>
+#include <Model.h>
 #include <PerfStat.h>
 
-
-#include "Menu.h"
 #include "EntityTreeRenderer.h"
 #include "RenderableModelEntityItem.h"
 
@@ -165,28 +162,11 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     _needsInitialSimulation = false;
                 }
 
-                // TODO: should we allow entityItems to have alpha on their models?
-                Model::RenderMode modelRenderMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE
-                                                        ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-        
                 if (_model->isActive()) {
                     // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
                     // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
                     PerformanceTimer perfTimer("model->render");
-                    bool dontRenderAsScene = Menu::getInstance()->isOptionChecked(MenuOption::DontRenderEntitiesAsScene);
-                    bool displayModelTriangles = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelTriangles);
-                    bool rendered = false;
-                    if (displayModelTriangles) {
-                        rendered = _model->renderTriangleProxies();
-                    }
-                    
-                    if (!rendered) {
-                        if (dontRenderAsScene) {
-                            _model->render(alpha, modelRenderMode, args);
-                        } else {
-                            _model->renderInScene(alpha, args);
-                        }
-                    }
+                    _model->renderInScene(alpha, args);
                 } else {
                     // if we couldn't get a model, then just draw a cube
                     glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);

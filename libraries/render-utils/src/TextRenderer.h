@@ -12,6 +12,8 @@
 #ifndef hifi_TextRenderer_h
 #define hifi_TextRenderer_h
 
+#include <gpu/GPUConfig.h>
+
 #include <QColor>
 #include <QFont>
 #include <QFontMetrics>
@@ -19,11 +21,10 @@
 #include <QImage>
 #include <QVector>
 
-#include "gpu/Resource.h"
-#include "gpu/Stream.h"
+#include <gpu/Resource.h>
+#include <gpu/Stream.h>
 
 
-#include "InterfaceConfig.h"
 
 // a special "character" that renders as a solid block
 const char SOLID_BLOCK_CHAR = 127;

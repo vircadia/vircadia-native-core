@@ -32,8 +32,8 @@
 #include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
-#include "ViewStateInterface.h"
 
+class AbstractViewStateInterface;
 class QScriptEngine;
 
 class Shape;
@@ -47,7 +47,7 @@ class Model : public QObject, public PhysicsEntity {
     
 public:
 
-    static void setViewStateInterface(ViewStateInterface* viewState) { _viewState = viewState; }
+    static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
     Model(QObject* parent = NULL);
     virtual ~Model();
@@ -459,7 +459,7 @@ private:
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
 
 
-    static ViewStateInterface* _viewState;
+    static AbstractViewStateInterface* _viewState;
 
 };
 
@@ -468,8 +468,9 @@ Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
 /// Handle management of pending models that need blending
-class ModelBlender : public QObject, public DependencyManager::Dependency  {
+class ModelBlender : public QObject  {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(ModelBlender)
 
 public:
 
@@ -483,7 +484,6 @@ public slots:
 private:
     ModelBlender();
     virtual ~ModelBlender();
-    friend class DependencyManager;
 
     QList<QPointer<Model> > _modelsRequiringBlends;
     int _pendingBlenders;

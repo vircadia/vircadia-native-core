@@ -14,11 +14,11 @@
 
 #include <FBXReader.h>
 #include <PerfStat.h>
+#include <TextRenderer.h>
 
 #include "Application.h"
 #include "PrioVR.h"
 #include "scripting/JoystickScriptingInterface.h"
-#include "ui/TextRenderer.h"
 
 #ifdef HAVE_PRIOVR
 const unsigned int SERIAL_LIST[] = { 0x00000001, 0x00000000, 0x00000008, 0x00000009, 0x0000000A,
@@ -215,8 +215,9 @@ void PrioVR::renderCalibrationCountdown() {
     static TextRenderer* textRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY, 18, QFont::Bold,
         false, TextRenderer::OUTLINE_EFFECT, 2);
     QByteArray text = "Assume T-Pose in " + QByteArray::number(secondsRemaining) + "...";
-    textRenderer->draw((Application::getInstance()->getGLWidget()->width() -
-        textRenderer->computeWidth(text.constData())) / 2, Application::getInstance()->getGLWidget()->height() / 2,
-            text);
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    textRenderer->draw((glCanvas->width() - textRenderer->computeWidth(text.constData())) / 2,
+                       glCanvas->height() / 2,
+                       text);
 #endif  
 }

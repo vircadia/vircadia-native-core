@@ -35,10 +35,10 @@ bool TV3DManager::isConnected() {
 }
 
 void TV3DManager::connect() {
-    Application* app = Application::getInstance();
-    int width = app->getGLWidget()->getDeviceWidth();
-    int height = app->getGLWidget()->getDeviceHeight();
-    Camera& camera = *app->getCamera();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    int width = glCanvas->getDeviceWidth();
+    int height = glCanvas->getDeviceHeight();
+    Camera& camera = *Application::getInstance()->getCamera();
 
     configureCamera(camera, width, height);
 }
@@ -93,7 +93,8 @@ void TV3DManager::display(Camera& whichCamera) {
     // left eye portal
     int portalX = 0;
     int portalY = 0;
-    QSize deviceSize = Application::getInstance()->getGLWidget()->getDeviceSize() *
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    QSize deviceSize = glCanvas->getDeviceSize() *
         Application::getInstance()->getRenderResolutionScale();
     int portalW = deviceSize.width() / 2;
     int portalH = deviceSize.height();

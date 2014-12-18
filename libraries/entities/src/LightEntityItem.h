@@ -99,6 +99,9 @@ public:
     void setCutoff(float value) { _cutoff = value; }
     
     virtual const Shape& getCollisionShapeInMeters() const { return _emptyShape; }
+
+    static bool getLightsArePickable() { return _lightsArePickable; }
+    static void setLightsArePickable(bool value) { _lightsArePickable = value; }
     
 protected:
     virtual void recalculateCollisionShape() { /* nothing to do */ }
@@ -116,6 +119,8 @@ protected:
 
     // used for collision detection
     SphereShape _emptyShape;
+
+    static bool _lightsArePickable;
 };
 
 #endif // hifi_LightEntityItem_h

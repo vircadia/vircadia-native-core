@@ -12,9 +12,9 @@
 #ifndef hifi_LocalModelsOverlay_h
 #define hifi_LocalModelsOverlay_h
 
-#include "entities/EntityTreeRenderer.h"
-
 #include "Volume3DOverlay.h"
+
+class EntityTreeRenderer;
 
 class LocalModelsOverlay : public Volume3DOverlay {
     Q_OBJECT

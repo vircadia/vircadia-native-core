@@ -10,6 +10,7 @@
 //
 
 #include "Application.h"
+#include "MainWindow.h"
 #include "ToolWindow.h"
 #include "UIUtil.h"
 

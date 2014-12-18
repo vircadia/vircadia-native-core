@@ -12,18 +12,13 @@
 #ifndef hifi_RenderableModelEntityItem_h
 #define hifi_RenderableModelEntityItem_h
 
-#include <glm/glm.hpp>
-#include <stdint.h>
+#include <QString>
+#include <QStringList>
 
-#include <EntityTree.h>
-#include <Model.h>
 #include <ModelEntityItem.h>
-#include <Octree.h>
-#include <OctreePacketData.h>
-#include <OctreeRenderer.h>
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
-#include <ViewFrustum.h>
+
+class Model;
+class EntityTreeRenderer;
 
 class RenderableModelEntityItem : public ModelEntityItem  {
 public:

@@ -255,7 +255,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-    registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>());
+    registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
