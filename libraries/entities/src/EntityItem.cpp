@@ -587,6 +587,11 @@ bool EntityItem::isRestingOnSurface() const {
 }
 
 void EntityItem::simulate(const quint64& now) {
+    if (_physicsInfo) {
+        // we rely on bullet for simulation, so bail
+        return;
+    }
+
     bool wantDebug = false;
     
     if (_lastSimulated == 0) {
@@ -636,109 +641,107 @@ void EntityItem::simulate(const quint64& now) {
         qDebug() << "     ********** EntityItem::simulate() .... SETTING _lastSimulated=" << _lastSimulated;
     }
 
-    if (!_physicsInfo) {
-        if (hasAngularVelocity()) {
-            glm::quat rotation = getRotation();
-            glm::vec3 angularVelocity = glm::radians(getAngularVelocity());
-            float angularSpeed = glm::length(angularVelocity);
-            
-            if (angularSpeed < EPSILON_VELOCITY_LENGTH) {
-                setAngularVelocity(NO_ANGULAR_VELOCITY);
-            } else {
-                float angle = timeElapsed * angularSpeed;
-                glm::quat  dQ = glm::angleAxis(angle, glm::normalize(angularVelocity));
-                rotation = dQ * rotation;
-                setRotation(rotation);
-    
-                // handle damping for angular velocity
-                float dampingTimescale = getAngularDamping();
-                if (dampingTimescale > 0.0f) {
-                    float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
-                    glm::vec3 newAngularVelocity = (1.0f - dampingFactor) * getAngularVelocity();
-                    setAngularVelocity(newAngularVelocity);
-                    if (wantDebug) {        
-                        qDebug() << "    dampingTimescale :" << dampingTimescale;
-                        qDebug() << "    newAngularVelocity:" << newAngularVelocity;
-                    }
+    if (hasAngularVelocity()) {
+        glm::quat rotation = getRotation();
+        glm::vec3 angularVelocity = glm::radians(getAngularVelocity());
+        float angularSpeed = glm::length(angularVelocity);
+        
+        if (angularSpeed < EPSILON_VELOCITY_LENGTH) {
+            setAngularVelocity(NO_ANGULAR_VELOCITY);
+        } else {
+            float angle = timeElapsed * angularSpeed;
+            glm::quat  dQ = glm::angleAxis(angle, glm::normalize(angularVelocity));
+            rotation = dQ * rotation;
+            setRotation(rotation);
+
+            // handle damping for angular velocity
+            float dampingTimescale = getAngularDamping();
+            if (dampingTimescale > 0.0f) {
+                float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
+                glm::vec3 newAngularVelocity = (1.0f - dampingFactor) * getAngularVelocity();
+                setAngularVelocity(newAngularVelocity);
+                if (wantDebug) {        
+                    qDebug() << "    dampingTimescale :" << dampingTimescale;
+                    qDebug() << "    newAngularVelocity:" << newAngularVelocity;
                 }
             }
         }
-    
-        if (hasVelocity() || hasGravity()) {
-            glm::vec3 position = getPosition();
-            glm::vec3 velocity = getVelocity();
-            glm::vec3 newPosition = position + (velocity * timeElapsed);
-    
-            if (wantDebug) {        
-                qDebug() << "  EntityItem::simulate()....";
-                qDebug() << "    timeElapsed:" << timeElapsed;
-                qDebug() << "    old AACube:" << getMaximumAACube();
-                qDebug() << "    old position:" << position;
-                qDebug() << "    old velocity:" << velocity;
-                qDebug() << "    old getAABox:" << getAABox();
-                qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity() * (float)TREE_SCALE << " in meters";
-                qDebug() << "    newPosition:" << newPosition;
-                qDebug() << "    glm::distance(newPosition, position):" << glm::distance(newPosition, position);
-            }
-            
-            position = newPosition;
-    
-            // handle bounces off the ground... We bounce at the distance to the bottom of our entity
-            if (position.y <= getDistanceToBottomOfEntity()) {
-                velocity = velocity * glm::vec3(1,-1,1);
-    
-                // if we've slowed considerably, then just stop moving
-                if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
-                    velocity = NO_VELOCITY;
-                }
-                
-                position.y = getDistanceToBottomOfEntity();
-            }
-    
-            // handle gravity....
-            if (hasGravity()) { 
-                // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
-                // "ground" plane of the domain, but for now it what we've got
-                if (isRestingOnSurface()) {
-                    velocity.y = 0.0f;
-                    position.y = getDistanceToBottomOfEntity();
-                } else {
-                    velocity += getGravity() * timeElapsed;
-                }
-            }
+    }
 
-            // handle damping for velocity
-            float dampingTimescale = getDamping();
-            if (dampingTimescale > 0.0f) {
-                float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
-                velocity *= (1.0f - dampingFactor);
-                if (wantDebug) {        
-                    qDebug() << "    dampingTimescale:" << dampingTimescale;
-                    qDebug() << "    newVelocity:" << velocity;
-                }
-            }
+    if (hasVelocity() || hasGravity()) {
+        glm::vec3 position = getPosition();
+        glm::vec3 velocity = getVelocity();
+        glm::vec3 newPosition = position + (velocity * timeElapsed);
 
-            if (wantDebug) {        
-                qDebug() << "    velocity AFTER dampingResistance:" << velocity;
-                qDebug() << "    glm::length(velocity):" << glm::length(velocity);
-                qDebug() << "    EPSILON_VELOCITY_LENGTH:" << EPSILON_VELOCITY_LENGTH;
-            }
-            
+        if (wantDebug) {        
+            qDebug() << "  EntityItem::simulate()....";
+            qDebug() << "    timeElapsed:" << timeElapsed;
+            qDebug() << "    old AACube:" << getMaximumAACube();
+            qDebug() << "    old position:" << position;
+            qDebug() << "    old velocity:" << velocity;
+            qDebug() << "    old getAABox:" << getAABox();
+            qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity() * (float)TREE_SCALE << " in meters";
+            qDebug() << "    newPosition:" << newPosition;
+            qDebug() << "    glm::distance(newPosition, position):" << glm::distance(newPosition, position);
+        }
+        
+        position = newPosition;
+
+        // handle bounces off the ground... We bounce at the distance to the bottom of our entity
+        if (position.y <= getDistanceToBottomOfEntity()) {
+            velocity = velocity * glm::vec3(1,-1,1);
+
             // if we've slowed considerably, then just stop moving
             if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
                 velocity = NO_VELOCITY;
             }
-    
-            // NOTE: the simulation should NOT set any DirtyFlags on this entity
-            setPosition(position); // this will automatically recalculate our collision shape
-            setVelocity(velocity);
             
-            if (wantDebug) {        
-                qDebug() << "    new position:" << position;
-                qDebug() << "    new velocity:" << velocity;
-                qDebug() << "    new AACube:" << getMaximumAACube();
-                qDebug() << "    old getAABox:" << getAABox();
+            position.y = getDistanceToBottomOfEntity();
+        }
+
+        // handle gravity....
+        if (hasGravity()) { 
+            // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
+            // "ground" plane of the domain, but for now it what we've got
+            if (isRestingOnSurface()) {
+                velocity.y = 0.0f;
+                position.y = getDistanceToBottomOfEntity();
+            } else {
+                velocity += getGravity() * timeElapsed;
             }
+        }
+
+        // handle damping for velocity
+        float dampingTimescale = getDamping();
+        if (dampingTimescale > 0.0f) {
+            float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
+            velocity *= (1.0f - dampingFactor);
+            if (wantDebug) {        
+                qDebug() << "    dampingTimescale:" << dampingTimescale;
+                qDebug() << "    newVelocity:" << velocity;
+            }
+        }
+
+        if (wantDebug) {        
+            qDebug() << "    velocity AFTER dampingResistance:" << velocity;
+            qDebug() << "    glm::length(velocity):" << glm::length(velocity);
+            qDebug() << "    EPSILON_VELOCITY_LENGTH:" << EPSILON_VELOCITY_LENGTH;
+        }
+        
+        // round velocity to zero if it's close enough...
+        if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
+            velocity = NO_VELOCITY;
+        }
+
+        // NOTE: the simulation should NOT set any DirtyFlags on this entity
+        setPosition(position); // this will automatically recalculate our collision shape
+        setVelocity(velocity);
+        
+        if (wantDebug) {        
+            qDebug() << "    new position:" << position;
+            qDebug() << "    new velocity:" << velocity;
+            qDebug() << "    new AACube:" << getMaximumAACube();
+            qDebug() << "    old getAABox:" << getAABox();
         }
     }
 
