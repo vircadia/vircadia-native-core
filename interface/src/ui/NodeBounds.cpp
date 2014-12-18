@@ -12,6 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <GeometryCache.h>
+
 #include "Application.h"
 #include "Util.h"
 
@@ -132,7 +134,7 @@ void NodeBounds::draw() {
         getColorForNodeType(selectedNode->getType(), red, green, blue);
 
         glColor4f(red, green, blue, 0.2f);
-        glutSolidCube(1.0);
+        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
 
         glPopMatrix();
 

@@ -3575,7 +3575,7 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
             glPushMatrix();
             glColor4f(1, 1, 0, 1);
             glTranslatef(position.x, position.y, position.z); // where we actually want it!
-            glutWireSphere(keyholeRadius, 20, 20);
+            DependencyManager::get<GeometryCache>()->renderSphere(keyholeRadius, 20, 20, false); 
             glPopMatrix();
         }
     }

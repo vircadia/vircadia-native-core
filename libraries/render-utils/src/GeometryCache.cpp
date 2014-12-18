@@ -11,6 +11,7 @@
 
 // include this before QOpenGLBuffer, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
+#include <gpu/GLUTConfig.h> // TODO - we need to get rid of this ASAP
 
 #include <cmath>
 
@@ -506,6 +507,15 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
     
     buffer.release();
 }
+
+void GeometryCache::renderSolidCube(float size) {
+    glutSolidCube(size);
+}
+
+void GeometryCache::renderWireCube(float size) {
+    glutWireCube(size);
+}
+
 
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
