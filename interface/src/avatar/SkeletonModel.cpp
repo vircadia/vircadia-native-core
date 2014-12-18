@@ -554,7 +554,7 @@ void SkeletonModel::renderRagdoll() {
     float radius1 = 0.008f;
     float radius2 = 0.01f;
     glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
-    GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     for (int i = 0; i < numPoints; ++i) {
         glPushMatrix();
         // NOTE: ragdollPoints are in simulation-frame but we want them to be model-relative
@@ -914,7 +914,7 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     endPoint = endPoint - _translation;
     glTranslatef(endPoint.x, endPoint.y, endPoint.z);
     glColor4f(0.6f, 0.6f, 0.8f, alpha);
-    GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
 
     // draw a yellow sphere at the capsule startpoint
@@ -950,7 +950,7 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
             continue;
         } 
 
-        GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
+        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
 
         glPushMatrix();
         // shapes are stored in simulation-frame but we want position to be model-relative

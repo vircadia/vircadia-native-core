@@ -77,15 +77,7 @@ EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const Entity
         factory = _factories[entityType];
     }
     if (factory) {
-        // NOTE: if someone attempts to create an entity with properties that do not include a proper "created" time
-        // then set the created time to now
-        if (!properties.hasCreatedTime()) {
-            EntityItemProperties mutableProperties = properties;
-            mutableProperties.setCreated(usecTimestampNow());
-            newEntityItem = factory(entityID, mutableProperties);
-        } else {
-            newEntityItem = factory(entityID, properties);
-        }
+        newEntityItem = factory(entityID, properties);
     }
     return newEntityItem;
 }
@@ -128,13 +120,6 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         
         EntityItemID tempEntityID(actualID);
         EntityItemProperties tempProperties;
-
-        // we set the Creation and Edit times to 'now', but if the server submits an earlier Creation time 
-        // then it will be accepted 
-        quint64 now = usecTimestampNow();
-        tempProperties.setCreated(now);
-        tempProperties.setLastEdited(now);
-
         return constructEntityItem(entityType, tempEntityID, tempProperties);
     }
     

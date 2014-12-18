@@ -699,7 +699,7 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
 
 void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
     if (_meshes.size() > 0) {
-        TextureCache* textureCache = DependencyManager::get<TextureCache>();
+        TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
         for (int i = 0; i < _meshes.size(); i++) {
             NetworkMesh& mesh = _meshes[i];
             for (int j = 0; j < mesh.parts.size(); j++) {
@@ -914,7 +914,7 @@ void NetworkGeometry::reinsert() {
 void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
 
-    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
     
     foreach (const FBXMesh& mesh, _geometry.meshes) {
         NetworkMesh networkMesh;

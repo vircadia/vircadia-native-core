@@ -53,13 +53,13 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _creatorTokenID = entityItemID.creatorTokenID;
 
     // init values with defaults before calling setProperties
+    quint64 now = usecTimestampNow();
+    _lastSimulated = now;
+    _lastUpdated = now;
     _lastEdited = 0;
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
-    
-    _lastSimulated = 0;
-    _lastUpdated = 0;
-    _created = usecTimestampNow();
+    _created = UNKNOWN_CREATED_TIME;
     _changedOnServer = 0;
 
     _position = glm::vec3(0,0,0);
@@ -85,12 +85,13 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _type = EntityTypes::Unknown;
+    quint64 now = usecTimestampNow();
+    _lastSimulated = now;
+    _lastUpdated = now;
     _lastEdited = 0;
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
-    _lastSimulated = 0;
-    _lastUpdated = 0;
-    _created = 0;
+    _created = UNKNOWN_CREATED_TIME;
     _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
@@ -100,20 +101,17 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
     _type = EntityTypes::Unknown;
     quint64 now = usecTimestampNow();
-    _created = properties.getCreated() < now ? properties.getCreated() : now;
-    _lastEdited = _lastEditedFromRemote = _lastSimulated = _lastUpdated = _lastEditedFromRemoteInRemoteTime = _created;
-    _physicsInfo = NULL;
+    _lastSimulated = now;
+    _lastUpdated = now;
+    _lastEdited = 0;
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
-    _lastSimulated = 0;
-    _lastUpdated = 0;
+    _created = UNKNOWN_CREATED_TIME;
+    _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
-    setProperties(properties, true); // force copy
-    if (_lastEdited == 0) {
-        _lastEdited = _created;
-    }
+    setProperties(properties);
 }
 
 EntityItem::~EntityItem() {
@@ -372,13 +370,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&createdFromBuffer, dataAt, sizeof(createdFromBuffer));
         dataAt += sizeof(createdFromBuffer);
         bytesRead += sizeof(createdFromBuffer);
-        createdFromBuffer -= clockSkew;
-        
-        if (createdFromBuffer < _created) {
-            // the server claims that this entity has an older creation time
-            // so we accept it and clear _lastEdited
+
+        quint64 now = usecTimestampNow();
+        if (_created == UNKNOWN_CREATED_TIME) {
+            // we don't yet have a _created timestamp, so we accept this one
+            createdFromBuffer -= clockSkew;
+            if (createdFromBuffer > now || createdFromBuffer == UNKNOWN_CREATED_TIME) {
+                createdFromBuffer = now;
+            }
             _created = createdFromBuffer;
-            _lastEdited = 0;
         }
 
         if (wantDebug) {
@@ -393,7 +393,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qDebug() << "    ago=" << editedAgo << "seconds - " << agoAsString;
         }
         
-        quint64 now = usecTimestampNow();
         quint64 lastEditedFromBuffer = 0;
         quint64 lastEditedFromBufferAdjusted = 0;
 
@@ -403,6 +402,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += sizeof(lastEditedFromBuffer);
         bytesRead += sizeof(lastEditedFromBuffer);
         lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+        if (lastEditedFromBufferAdjusted > now) {
+            lastEditedFromBufferAdjusted = now;
+        }
         
         bool fromSameServerEdit = (lastEditedFromBuffer == _lastEditedFromRemoteInRemoteTime);
 
@@ -428,14 +430,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (fromSameServerEdit) {
             // If this is from the same sever packet, then check against any local changes since we got
             // the most recent packet from this server time
-            if (_lastEdited >= _lastEditedFromRemote) {
+            if (_lastEdited > _lastEditedFromRemote) {
                 ignoreServerPacket = true;
             }
         } else {
             // If this isn't from the same sever packet, then honor our skew adjusted times...
             // If we've changed our local tree more recently than the new data from this packet
             // then we will not be changing our values, instead we just read and skip the data
-            if (_lastEdited >= lastEditedFromBufferAdjusted) {
+            if (_lastEdited > lastEditedFromBufferAdjusted) {
                 ignoreServerPacket = true;
             }
         }
@@ -452,10 +454,12 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
 
             // don't allow _lastEdited to be in the future
-            _lastEdited = lastEditedFromBufferAdjusted < now ? lastEditedFromBufferAdjusted : now;
+            _lastEdited = lastEditedFromBufferAdjusted;
             _lastEditedFromRemote = now;
             _lastEditedFromRemoteInRemoteTime = lastEditedFromBuffer;
             
+            // TODO: only send this notification if something ACTUALLY changed (hint, we haven't yet parsed 
+            // the properties out of the bitstream (see below))
             somethingChangedNotification(); // notify derived classes that something has changed
         }
 
@@ -464,8 +468,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
-            _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
-            _lastSimulated = now;
+            _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that
             if (wantDebug) {
                 qDebug() << "_lastUpdated =" << _lastUpdated;
                 qDebug() << "_lastEdited=" << _lastEdited;
@@ -537,6 +540,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
         recalculateCollisionShape();
+        if (overwriteLocalData && (getDirtyFlags() & EntityItem::DIRTY_POSITION)) {
+            _lastSimulated = now;
+        }
     }
     return bytesRead;
 }
@@ -658,7 +664,7 @@ void EntityItem::simulate(const quint64& now) {
             }
         }
     
-        if (hasVelocity()) {
+        if (hasVelocity() || hasGravity()) {
             glm::vec3 position = getPosition();
             glm::vec3 velocity = getVelocity();
             glm::vec3 newPosition = position + (velocity * timeElapsed);
@@ -690,17 +696,17 @@ void EntityItem::simulate(const quint64& now) {
             }
     
             // handle gravity....
-            if (hasGravity() && !isRestingOnSurface()) {
-                velocity += getGravity() * timeElapsed;
+            if (hasGravity()) { 
+                // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
+                // "ground" plane of the domain, but for now it what we've got
+                if (isRestingOnSurface()) {
+                    velocity.y = 0.0f;
+                    position.y = getDistanceToBottomOfEntity();
+                } else {
+                    velocity += getGravity() * timeElapsed;
+                }
             }
-    
-            // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
-            // "ground" plane of the domain, but for now it
-            if (hasGravity() && isRestingOnSurface()) {
-                velocity.y = 0.0f;
-                position.y = getDistanceToBottomOfEntity();
-            }
-    
+
             // handle damping for velocity
             float dampingTimescale = getDamping();
             if (dampingTimescale > 0.0f) {
@@ -740,7 +746,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::isMoving() const {
-    return hasVelocity() || hasAngularVelocity();
+    return hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity();
 }
 
 bool EntityItem::lifetimeHasExpired() const { 
@@ -784,20 +790,8 @@ EntityItemProperties EntityItem::getProperties() const {
     return properties;
 }
 
-bool EntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-
-    // handle the setting of created timestamps for the basic new entity case
-    if (forceCopy) {
-        quint64 now = usecTimestampNow();
-        if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
-            _created = now;
-        } else if (properties.getCreated() != USE_EXISTING_CREATED_TIME) {
-            quint64 created = properties.getCreated();
-            // don't allow _created to be in the future
-            _created = created < now ? created : now;
-        }
-    }
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePositionInMeters); // this will call recalculate collision shape if needed
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensionsInMeters); // NOTE: radius is obsolete
@@ -828,14 +822,41 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
             qDebug() << "EntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
-        // don't allow _lastEdited to be in the future
-        setLastEdited(properties._lastEdited < now ? properties._lastEdited : now);
+        if (_created != UNKNOWN_CREATED_TIME) {
+            setLastEdited(now);
+        }
         if (getDirtyFlags() & EntityItem::DIRTY_POSITION) {
-            _lastSimulated = usecTimestampNow();
+            _lastSimulated = now;
         }
     }
-    
+
+    // timestamps
+    quint64 timestamp = properties.getCreated();
+    if (_created == UNKNOWN_CREATED_TIME && timestamp != UNKNOWN_CREATED_TIME) {
+        quint64 now = usecTimestampNow();
+        if (timestamp > now) {
+            timestamp = now;
+        }
+        _created = timestamp;
+
+        timestamp = properties.getLastEdited();
+        if (timestamp > now) {
+            timestamp = now;
+        } else if (timestamp < _created) {
+            timestamp = _created;
+        }
+        _lastEdited = timestamp;
+    }
+
     return somethingChanged;
+}
+
+void EntityItem::recordCreationTime() {
+    assert(_created == UNKNOWN_CREATED_TIME);
+    _created = usecTimestampNow();
+    _lastEdited = _created;
+    _lastUpdated = _created;
+    _lastSimulated = _created;
 }
 
 

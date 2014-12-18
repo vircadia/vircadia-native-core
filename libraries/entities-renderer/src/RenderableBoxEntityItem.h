@@ -12,17 +12,6 @@
 #ifndef hifi_RenderableBoxEntityItem_h
 #define hifi_RenderableBoxEntityItem_h
 
-#include <glm/glm.hpp>
-#include <stdint.h>
-
-#include <EntityTree.h>
-#include <Octree.h>
-#include <OctreePacketData.h>
-#include <OctreeRenderer.h>
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
-#include <ViewFrustum.h>
-
 #include <BoxEntityItem.h>
 
 class RenderableBoxEntityItem : public BoxEntityItem  {

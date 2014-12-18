@@ -19,12 +19,12 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/detail/func_common.hpp>
 
-#include <SharedUtil.h>
-
 #include <QThread>
 
+#include <SharedUtil.h>
+#include <TextRenderer.h>
+
 #include "InterfaceConfig.h"
-#include "ui/TextRenderer.h"
 #include "VoxelConstants.h"
 #include "world.h"
 #include "Application.h"
@@ -71,7 +71,7 @@ void renderWorldBox() {
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
     glColor3fv(red);
-    GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();

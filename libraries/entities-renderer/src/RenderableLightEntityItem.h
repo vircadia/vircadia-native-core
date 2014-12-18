@@ -12,17 +12,6 @@
 #ifndef hifi_RenderableLightEntityItem_h
 #define hifi_RenderableLightEntityItem_h
 
-#include <glm/glm.hpp>
-#include <stdint.h>
-
-#include <EntityTree.h>
-#include <Octree.h>
-#include <OctreePacketData.h>
-#include <OctreeRenderer.h>
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
-#include <ViewFrustum.h>
-
 #include <LightEntityItem.h>
 
 class RenderableLightEntityItem : public LightEntityItem  {

@@ -21,7 +21,7 @@
 const int BYTES_PER_KILOBYTE = 1024;
 
 MetavoxelNetworkSimulator::MetavoxelNetworkSimulator() :
-    QWidget(Application::getInstance()->getGLWidget(), Qt::Dialog) {
+    QWidget(DependencyManager::get<GLCanvas>().data(), Qt::Dialog) {
     
     setWindowTitle("Metavoxel Network Simulator");
     setAttribute(Qt::WA_DeleteOnClose);

@@ -30,6 +30,7 @@
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 
 #include "Application.h"
 #include "Audio.h"
@@ -41,7 +42,6 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
-#include "ui/TextRenderer.h"
 
 using namespace std;
 
@@ -422,7 +422,7 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bo
 }
 
 void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
-    Faceshift* faceshift = DependencyManager::get<Faceshift>();
+    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
     
     float pixelsPerDegree = screenHeight / Menu::getInstance()->getFieldOfView();
     

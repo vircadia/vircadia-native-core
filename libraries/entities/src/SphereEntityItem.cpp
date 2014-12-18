@@ -31,7 +31,7 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Sphere;
-    setProperties(properties, true);
+    setProperties(properties);
 }
 
 EntityItemProperties SphereEntityItem::getProperties() const {
@@ -40,8 +40,8 @@ EntityItemProperties SphereEntityItem::getProperties() const {
     return properties;
 }
 
-bool SphereEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    bool somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+bool SphereEntityItem::setProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
 

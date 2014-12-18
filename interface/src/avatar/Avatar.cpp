@@ -30,6 +30,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 #include <TextureCache.h>
 
 #include "Application.h"
@@ -42,7 +43,6 @@
 #include "Recorder.h"
 #include "world.h"
 #include "devices/OculusManager.h"
-#include "ui/TextRenderer.h"
 
 using namespace std;
 
