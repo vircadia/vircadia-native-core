@@ -400,6 +400,8 @@ void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
         _nodeHash.unsafe_erase(it);
         
         handleNodeKill(matchingNode);
+    } else {
+        _nodeMutex.unlock();
     }
 }
 
