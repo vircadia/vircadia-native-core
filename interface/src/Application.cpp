@@ -191,8 +191,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::set<GLCanvas>();
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
+    
     
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -239,7 +240,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _nodeThread->setPriority(QThread::TimeCriticalPriority);
 
     // put the NodeList and datagram processing on the node thread
-    auto nodeList = DependencyManager::set<NodeList, char, unsigned short>(NodeType::Agent, listenPort);
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     
     nodeList->moveToThread(_nodeThread);
     _datagramProcessor.moveToThread(_nodeThread);
@@ -1045,7 +1046,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+                        auto glCanvas = DependencyManager::get<GLCanvas>();
                         TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
                 } else {
@@ -1058,7 +1059,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+                        auto glCanvas = DependencyManager::get<GLCanvas>();
                         TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
 
@@ -1531,7 +1532,7 @@ void Application::idle() {
 
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
         Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
@@ -1567,7 +1568,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -1593,7 +1594,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -1656,7 +1657,7 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 
 bool Application::mouseOnScreen() const {
     if (OculusManager::isConnected()) {
-        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+        auto glCanvas = DependencyManager::get<GLCanvas>();
         return getMouseX() >= 0 && getMouseX() <= glCanvas->getDeviceWidth() &&
                getMouseY() >= 0 && getMouseY() <= glCanvas->getDeviceHeight();
     }
@@ -1698,9 +1699,9 @@ int Application::getMouseDragStartedY() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
-    Visage::SharedPointer visage = DependencyManager::get<Visage>();
-    DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
+    auto faceshift = DependencyManager::get<Faceshift>();
+    auto visage = DependencyManager::get<Visage>();
+    auto dde = DependencyManager::get<DdeFaceTracker>();
     
     return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
             (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) :
@@ -2032,7 +2033,7 @@ void Application::init() {
 
     _metavoxels.init();
 
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     _audio.init(glCanvas.data());
     _rearMirrorTools = new RearMirrorTools(glCanvas.data(), _mirrorViewRect, _settings);
 
@@ -2120,7 +2121,7 @@ void Application::updateMouseRay() {
 void Application::updateFaceshift() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
+    auto faceshift = DependencyManager::get<Faceshift>();
     //  Update faceshift
     faceshift->update();
 
@@ -2925,7 +2926,7 @@ void Application::updateShadowMap() {
     
     fbo->release();
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -3277,7 +3278,7 @@ bool Application::getCascadeShadowsEnabled() {
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     float horizontalScale = glCanvas->getDeviceWidth() / 2.0f;
     float verticalScale   = glCanvas->getDeviceHeight() / 2.0f;
 

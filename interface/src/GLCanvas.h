@@ -20,7 +20,7 @@
 /// customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(GLCanvas, false)
+    SINGLETON_DEPENDENCY
     
 public:
     bool isThrottleRendering() const;

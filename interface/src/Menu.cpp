@@ -1052,7 +1052,7 @@ void Menu::bumpSettings() {
 
 void sendFakeEnterEvent() {
     QPoint lastCursorPosition = QCursor::pos();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     QPoint windowPosition = glCanvas->mapFromGlobal(lastCursorPosition);
     QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);

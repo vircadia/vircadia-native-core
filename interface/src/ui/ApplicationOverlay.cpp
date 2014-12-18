@@ -147,7 +147,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
     Application* application = Application::getInstance();
     Overlays& overlays = application->getOverlays();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     MyAvatar* myAvatar = application->getAvatar();
     
     _textureFov = glm::radians(Menu::getInstance()->getOculusUIAngularSize());
@@ -215,7 +215,7 @@ void ApplicationOverlay::displayOverlayTexture() {
     if (_alpha == 0.0f) {
         return;
     }
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
@@ -380,7 +380,7 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     
     glEnd();
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     if (_crosshairTexture == 0) {
         _crosshairTexture = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/sixense-reticle.png"));
     }
@@ -434,7 +434,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origi
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     Application* application = Application::getInstance();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     MyAvatar* myAvatar = application->getAvatar();
 
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
@@ -513,7 +513,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
     Application* application = Application::getInstance();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
@@ -561,7 +561,7 @@ void ApplicationOverlay::renderPointers() {
 
 void ApplicationOverlay::renderControllerPointers() {
     Application* application = Application::getInstance();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     MyAvatar* myAvatar = application->getAvatar();
 
     //Static variables used for storing controller state
@@ -706,7 +706,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
 //Renders a small magnification of the currently bound texture at the coordinates
 void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) const {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     
     const int widgetWidth = glCanvas->width();
     const int widgetHeight = glCanvas->height();
@@ -764,7 +764,7 @@ void ApplicationOverlay::renderAudioMeter() {
 
     Application* application = Application::getInstance();
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     Audio* audio = application->getAudio();
 
     //  Display a single screen-size quad to create an alpha blended 'collision' flash
@@ -895,7 +895,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
 
     Application* application = Application::getInstance();
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
     BandwidthMeter* bandwidthMeter = application->getBandwidthMeter();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
@@ -937,7 +937,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
-        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+        auto glCanvas = DependencyManager::get<GLCanvas>();
         int right = glCanvas->width();
         int bottom = glCanvas->height();
 

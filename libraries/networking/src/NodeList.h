@@ -42,7 +42,7 @@ class Assignment;
 
 class NodeList : public LimitedNodeList {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(NodeList, true)
+    SINGLETON_DEPENDENCY
     
 public:
     NodeType_t getOwnerType() const { return _ownerType; }

@@ -27,7 +27,7 @@ class ProgramObject;
 /// A generic full screen glow effect.
 class GlowEffect : public QObject  {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(GlowEffect, false)
+    SINGLETON_DEPENDENCY
     
 public:
    

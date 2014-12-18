@@ -29,6 +29,8 @@
 
 #include <tbb/concurrent_unordered_map.h>
 
+#include <DependencyManager.h>
+
 #include "DomainHandler.h"
 #include "Node.h"
 #include "UUIDHasher.h"
@@ -69,7 +71,7 @@ namespace PingType {
 
 class LimitedNodeList : public QObject {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(LimitedNodeList, true);
+    SINGLETON_DEPENDENCY
     
 public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }

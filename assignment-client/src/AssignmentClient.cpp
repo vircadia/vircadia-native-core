@@ -93,7 +93,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     }
 
     // create a NodeList as an unassigned client
-    auto nodeList = DependencyManager::set<NodeList, char>(NodeType::Unassigned);
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
     
     quint16 assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
 

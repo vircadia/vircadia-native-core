@@ -26,7 +26,7 @@
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
 class Faceshift : public FaceTracker {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(Faceshift, false)
+    SINGLETON_DEPENDENCY
 
 public:
     void init();

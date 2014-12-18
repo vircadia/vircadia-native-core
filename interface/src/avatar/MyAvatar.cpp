@@ -422,7 +422,7 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bo
 }
 
 void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
-    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
+    auto faceshift = DependencyManager::get<Faceshift>();
     
     float pixelsPerDegree = screenHeight / Menu::getInstance()->getFieldOfView();
     

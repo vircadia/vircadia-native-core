@@ -20,7 +20,7 @@ class ProgramObject;
 /// A screen space ambient occlusion effect.  See John Chapman's tutorial at
 /// http://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html for reference.
 class AmbientOcclusionEffect {
-    SINGLETON_DEPENDENCY(AmbientOcclusionEffect, false)
+    SINGLETON_DEPENDENCY
     
 public:
     

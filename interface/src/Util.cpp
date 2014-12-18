@@ -71,7 +71,7 @@ void renderWorldBox() {
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
     glColor3fv(red);
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
