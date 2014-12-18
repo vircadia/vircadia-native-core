@@ -496,7 +496,7 @@ void MetavoxelSystem::render() {
 }
 
 void MetavoxelSystem::refreshVoxelData() {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList::getInstance()->eachNode([](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -504,7 +504,7 @@ void MetavoxelSystem::refreshVoxelData() {
                 QMetaObject::invokeMethod(client, "refreshVoxelData");
             }
         }
-    }
+    });
 }
 
 class RayVoxelIntersectionVisitor : public RayIntersectionVisitor {
@@ -819,7 +819,7 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
 }
 
 void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList::getInstance()->eachNode([&visitor, &render](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -833,7 +833,7 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
                 }
             }
         }
-    }
+    });
 }
 
 void MetavoxelSystem::loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations) {
