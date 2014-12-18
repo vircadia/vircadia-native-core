@@ -11,13 +11,10 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include "InterfaceConfig.h"
-
-#include <TextEntityItem.h>
+#include <gpu/GPUConfig.h>
 #include <PerfStat.h>
+#include <TextRenderer.h>
 
-#include "Menu.h"
-#include "EntityTreeRenderer.h"
 #include "RenderableTextEntityItem.h"
 
 const int FIXED_FONT_POINT_SIZE = 40;

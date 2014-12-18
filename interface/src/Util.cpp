@@ -19,12 +19,12 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/detail/func_common.hpp>
 
-#include <SharedUtil.h>
-
 #include <QThread>
 
+#include <SharedUtil.h>
+#include <TextRenderer.h>
+
 #include "InterfaceConfig.h"
-#include "ui/TextRenderer.h"
 #include "VoxelConstants.h"
 #include "world.h"
 #include "Application.h"

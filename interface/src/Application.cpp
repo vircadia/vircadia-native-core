@@ -74,6 +74,7 @@
 #include <ProgramObject.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
+#include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -110,7 +111,6 @@
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
-#include "ui/TextRenderer.h"
 
 
 
@@ -155,9 +155,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _entities(true),
+        _entities(true, this, this),
         _entityCollisionSystem(),
-        _entityClipboardRenderer(false),
+        _entityClipboardRenderer(false, this, this),
         _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
@@ -192,7 +192,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _aboutToQuit(false)
 {
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    Model::setViewStateInterface(this); // The model class will sometimes need to know view state details from us
+    Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
     
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -2951,6 +2951,18 @@ void Application::setupWorldLight() {
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
     return Menu::getInstance()->shouldRenderMesh(largestDimension, distanceToCamera);
+}
+
+float Application::getSizeScale() const { 
+    return Menu::getInstance()->getVoxelSizeScale();
+}
+
+int Application::getBoundaryLevelAdjust() const { 
+    return Menu::getInstance()->getBoundaryLevelAdjust();
+}
+
+PickRay Application::computePickRay(float x, float y) {
+    return getCamera()->computePickRay(x, y);
 }
 
 QImage Application::renderAvatarBillboard() {

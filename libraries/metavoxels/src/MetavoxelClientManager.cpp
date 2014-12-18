@@ -52,7 +52,8 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
             if (client) {
                 float clientDistance;
                 SharedObjectPointer clientSpanner = client->getDataCopy().findFirstRaySpannerIntersection(
-                                                                                                          origin, direction, attribute, clientDistance);
+                    origin, direction, attribute, clientDistance
+                );
                 if (clientSpanner && clientDistance < closestDistance) {
                     closestSpanner = clientSpanner;
                     closestDistance = clientDistance;

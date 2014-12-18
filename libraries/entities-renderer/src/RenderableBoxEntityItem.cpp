@@ -11,20 +11,12 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <FBXReader.h>
+#include <gpu/GPUConfig.h>
 
-#include "InterfaceConfig.h"
-
-#include <BoxEntityItem.h>
 #include <DeferredLightingEffect.h>
-#include <ModelEntityItem.h>
 #include <PerfStat.h>
 
-
-#include "Menu.h"
-#include "EntityTreeRenderer.h"
 #include "RenderableBoxEntityItem.h"
-
 
 EntityItem* RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableBoxEntityItem(entityID, properties);

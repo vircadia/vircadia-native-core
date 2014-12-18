@@ -30,6 +30,7 @@
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 
 #include "Application.h"
 #include "Audio.h"
@@ -41,7 +42,6 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
-#include "ui/TextRenderer.h"
 
 using namespace std;
 
