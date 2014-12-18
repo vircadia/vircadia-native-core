@@ -5,7 +5,7 @@ setup_hifi_library(Widgets OpenGL Network Script)
 
 include_glm()
 
-link_hifi_libraries(fbx shared gpu)
+link_hifi_libraries(animation fbx shared gpu)
 
 if (APPLE)
   find_library(GLUT GLUT)
