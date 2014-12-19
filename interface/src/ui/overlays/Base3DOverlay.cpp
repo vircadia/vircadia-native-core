@@ -66,14 +66,11 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
 
     QScriptValue position = properties.property("position");
 
-    // if "position" property was not there, check to see if they included aliases: start, point, p1
+    // if "position" property was not there, check to see if they included aliases: point, p1
     if (!position.isValid()) {
-        position = properties.property("start");
+        position = properties.property("p1");
         if (!position.isValid()) {
-            position = properties.property("p1");
-            if (!position.isValid()) {
-                position = properties.property("point");
-            }
+            position = properties.property("point");
         }
     }
 
