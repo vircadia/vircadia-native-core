@@ -537,8 +537,6 @@ void Application::initializeGL() {
     } else {
         isInitialized = true;
     }
-    int argc = 0;
-    glutInit(&argc, 0);
     #endif
 
     #ifdef WIN32
