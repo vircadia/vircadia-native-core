@@ -107,7 +107,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
         if (!handleUsername(lookupUrl.authority())) {
             // we're assuming this is either a network address or global place name
             // check if it is a network address first
-            if (!handleNetworkAddress(lookupUrl.host())) {
+            if (!handleNetworkAddress(lookupUrl.host()
+                                      + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())))) {
                 // wasn't an address - lookup the place name
                 attemptPlaceNameLookup(lookupUrl.host());
             }
@@ -246,17 +247,6 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     const QString HOSTNAME_REGEX_STRING = "^((?:[A-Z0-9]|[A-Z0-9][A-Z0-9\\-]{0,61}[A-Z0-9])"
         "(?:\\.(?:[A-Z0-9]|[A-Z0-9][A-Z0-9\\-]{0,61}[A-Z0-9]))+|localhost)(:{1}\\d{1,5})?$";
     
-    QRegExp hostnameRegex(HOSTNAME_REGEX_STRING, Qt::CaseInsensitive);
-    
-    if (hostnameRegex.indexIn(lookupString) != -1) {
-        QString domainHostname = hostnameRegex.cap(0);
-        
-        emit lookupResultsFinished();
-        setDomainHostnameAndName(domainHostname);
-        
-        return true;
-    }
-    
     QRegExp ipAddressRegex(IP_ADDRESS_REGEX_STRING);
     
     if (ipAddressRegex.indexIn(lookupString) != -1) {
@@ -264,6 +254,17 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
         
         emit lookupResultsFinished();
         setDomainHostnameAndName(domainIPString);
+        
+        return true;
+    }
+    
+    QRegExp hostnameRegex(HOSTNAME_REGEX_STRING, Qt::CaseInsensitive);
+    
+    if (hostnameRegex.indexIn(lookupString) != -1) {
+        QString domainHostname = hostnameRegex.cap(0);
+        
+        emit lookupResultsFinished();
+        setDomainHostnameAndName(domainHostname);
         
         return true;
     }
