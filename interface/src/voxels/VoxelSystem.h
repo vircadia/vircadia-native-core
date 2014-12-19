@@ -25,20 +25,10 @@
 #include "Camera.h"
 #include "Util.h"
 #include "world.h"
-#include "renderer/VoxelShader.h"
-#include "PrimitiveRenderer.h"
 
 class ProgramObject;
 
 const int NUM_CHILDREN = 8;
-
-
-struct VoxelShaderVBOData
-{
-    float x, y, z; // position
-    float s; // size
-    unsigned char r,g,b; // color
-};
 
 
 class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public OctreeElementUpdateHook {
@@ -80,7 +70,6 @@ public:
     void killLocalVoxels();
 
     virtual void hideOutOfView(bool forceFullFrustum = false);
-    void inspectForOcclusions();
     bool hasViewChanged();
     bool isViewChanging();
 
@@ -97,8 +86,6 @@ public slots:
     void clearAllNodesBufferIndex();
  
     void setDisableFastVoxelPipeline(bool disableFastVoxelPipeline);
-    void setUseVoxelShader(bool useVoxelShader);
-    void setVoxelsAsPoints(bool voxelsAsPoints);
 
 protected:
     float _treeScale;
@@ -140,8 +127,6 @@ private:
     static bool killSourceVoxelsOperation(OctreeElement* element, void* extraData);
     static bool forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData);
     static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);
-    static bool inspectForExteriorOcclusionsOperation(OctreeElement* element, void* extraData);
-    static bool inspectForInteriorOcclusionsOperation(OctreeElement* element, void* extraData);
     static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
     static bool hideAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
@@ -191,14 +176,8 @@ private:
     void initVoxelMemory();
     void cleanupVoxelMemory();
 
-    bool _useVoxelShader;
-    bool _voxelsAsPoints;
-    bool _voxelShaderModeWhenVoxelsAsPointsEnabled;
-
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
     GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
-    VoxelShaderVBOData* _writeVoxelShaderData;
-    VoxelShaderVBOData* _readVoxelShaderData;
 
     GLuint _vboVerticesID;
     GLuint _vboColorsID;
@@ -258,17 +237,6 @@ private:
     float _lastKnownVoxelSizeScale;
     int _lastKnownBoundaryLevelAdjust;
 
-    bool _inOcclusions;
-    bool _showCulledSharedFaces;                ///< Flag visibility of culled faces
-    bool _usePrimitiveRenderer;                 ///< Flag primitive renderer for use
-    PrimitiveRenderer* _renderer;               ///< Voxel renderer
-
-    static const unsigned int _sNumOctantsPerHemiVoxel = 4;
-    static int _sCorrectedChildIndex[8];
-    static unsigned short _sSwizzledOcclusionBits[64];          ///< Swizzle value of bit pairs of the value of index
-    static unsigned char _sOctantIndexToBitMask[8];             ///< Map octant index to partition mask
-    static unsigned char _sOctantIndexToSharedBitMask[8][8];    ///< Map octant indices to shared partition mask
-    
     // haze
     bool _drawHaze;
     float _farHazeDistance;

@@ -54,6 +54,9 @@ public:
     friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);
 private slots:
     void handleLookupResult(const QHostInfo& hostInfo);
+signals:
+    void lookupCompleted();
+    void lookupFailed();
 private:
     QHostAddress _address;
     quint16 _port;

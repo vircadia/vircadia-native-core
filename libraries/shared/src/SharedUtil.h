@@ -131,6 +131,6 @@ bool isNaN(float value);
 
 QString formatUsecTime(float usecs, int prec = 3);
 QString formatSecondsElapsed(float seconds);
-
+bool similarStrings(const QString& stringA, const QString& stringB);
 
 #endif // hifi_SharedUtil_h

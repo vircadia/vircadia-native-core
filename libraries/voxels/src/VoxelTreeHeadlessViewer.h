@@ -27,7 +27,6 @@ public:
     VoxelTreeHeadlessViewer();
     virtual ~VoxelTreeHeadlessViewer();
 
-    virtual Octree* createTree() { return new VoxelTree(true); }
     virtual char getMyNodeType() const { return NodeType::VoxelServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketTypeVoxelQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketTypeVoxelData; }
@@ -35,6 +34,9 @@ public:
     VoxelTree* getTree() { return (VoxelTree*)_tree; }
 
     virtual void init();
+
+protected:
+    virtual Octree* createTree() { return new VoxelTree(true); }
 };
 
 #endif // hifi_VoxelTreeHeadlessViewer_h

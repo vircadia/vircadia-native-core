@@ -123,11 +123,9 @@ RemoveSpannerEdit::RemoveSpannerEdit(const AttributePointer& attribute, int id) 
 
 void RemoveSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     SharedObject* object = objects.value(id);
-    if (!object) {
-        qDebug() << "Missing object to remove" << id;
-        return;
+    if (object) {
+        data.remove(attribute, object);
     }
-    data.remove(attribute, object);
 }
 
 ClearSpannersEdit::ClearSpannersEdit(const AttributePointer& attribute) :

@@ -92,7 +92,7 @@ QScriptValue Planar3DOverlay::getProperty(const QString& property) {
 }
 
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face) {
 
     RayIntersectionInfo rayInfo;
     rayInfo._rayStart = origin;

@@ -26,6 +26,7 @@ function Tooltip() {
         text: "",
         color: { red: 128, green: 128, blue: 128 },
         alpha: 0.2,
+        backgroundAlpha: 0.2,
         visible: false
     });
     this.show = function (doShow) {

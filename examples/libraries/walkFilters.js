@@ -1,11 +1,11 @@
 //
 //  walkFilters.js
 //
-//  version 1.001
+//  version 1.002
 //
 //  Created by David Wooldridge, Autumn 2014
 //
-//  Provides a variety of filters for use by the walk.js script v1.1
+//  Provides a variety of filters for use by the walk.js script v1.12
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,33 +24,77 @@ AveragingFilter = function(length) {
     this.process = function() {
 
         if (this.pastValues.length === 0 && arguments[0]) {
+
             return arguments[0];
-        } else if (arguments[0]) {
+
+        } else if (arguments[0] !== null) {
+
             // apply quick and simple LP filtering
             this.pastValues.push(arguments[0]);
             this.pastValues.shift();
             var nextOutputValue = 0;
             for (var ea in this.pastValues) nextOutputValue += this.pastValues[ea];
             return nextOutputValue / this.pastValues.length;
+
         } else {
+
             return 0;
         }
     };
 };
 
+
+// 1st order Butterworth filter - calculate coeffs here: http://www-users.cs.york.ac.uk/~fisher/mkfilter/trad.html
+// provides LP filtering with a more stable frequency / phase response (-3 dB @ 3 Hz)
+ButterworthFilter1 = function() {
+
+    this.gain = 7.313751515;
+    this.coeff = 0.7265425280;
+
+    // initialise the arrays
+    this.xv = [];
+    this.yv = [];
+
+    for(var i = 0; i < 2; i++) {
+
+        this.xv.push(0);
+        this.yv.push(0);
+    }
+
+    // process values
+    this.process = function(nextInputValue) {
+
+        this.xv[0] = this.xv[1];
+        this.xv[1] = nextInputValue / this.gain;
+
+        this.yv[0] = this.yv[1];
+        this.yv[1] = this.xv[0] + this.xv[1] + this.coeff * this.yv[0];
+
+        return this.yv[1];
+    };
+
+}; // end Butterworth filter constructor
+
 // 2nd order Butterworth LP filter - calculate coeffs here: http://www-users.cs.york.ac.uk/~fisher/mkfilter/trad.html
 // provides LP filtering with a more stable frequency / phase response
-ButterworthFilter = function(cutOff) {
+ButterworthFilter2 = function(cutOff) {
 
-    // cut off frequency = 5Hz
-    this.gain = 20.20612010;
-    this.coeffOne = -0.4775922501;
-    this.coeffTwo = 1.2796324250;
+    switch(cutOff) {
+
+        case 5:
+        default:
+
+            this.gain = 20.20612010;
+            this.coeffOne = -0.4775922501;
+            this.coeffTwo = 1.2796324250;
+            break;
+    }
 
     // initialise the arrays
     this.xv = [];
     this.yv = [];
     for(var i = 0; i < 3; i++) {
+
         this.xv.push(0);
         this.yv.push(0);
     }
@@ -71,7 +115,8 @@ ButterworthFilter = function(cutOff) {
 
         return this.yv[2];
     };
-}; // end Butterworth filter contructor
+}; // end Butterworth filter constructor
+
 
 // Add harmonics to a given sine wave to form square, sawtooth or triangle waves
 // Geometric wave synthesis fundamentals taken from: http://hyperphysics.phy-astr.gsu.edu/hbase/audio/geowv.html
@@ -79,10 +124,10 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
 
     this.numHarmonics = numHarmonics;
     this.waveShape = waveShape;
-    this.averagingFilter = new AveragingFilter(smoothing);
+    this.smoothingFilter = new AveragingFilter(smoothing);
 
     // NB: frequency in radians
-    this.shapeWave = function(frequency) {
+    this.calculate = function(frequency) {
 
         // make some shapes
         var harmonics = 0;
@@ -92,7 +137,7 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
             iterations++;
         }
 
-        for(var n = 2; n < iterations; n++) {
+        for(var n = 1; n < iterations; n++) {
 
             switch(this.waveShape) {
 
@@ -128,11 +173,11 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
         }
 
         // smooth the result and return
-        return this.averagingFilter.process(harmonics);
+        return this.smoothingFilter.process(harmonics);
     };
 };
 
-// Create a wave shape by summing pre-calcualted sinusoidal harmonics
+// Create a motion wave by summing pre-calcualted sinusoidal harmonics
 HarmonicsFilter = function(magnitudes, phaseAngles) {
 
     this.magnitudes = magnitudes;
@@ -150,7 +195,8 @@ HarmonicsFilter = function(magnitudes, phaseAngles) {
     };
 };
 
-// the main filter object literal
+
+// the main filter object
 filter = (function() {
 
     // Bezier private functions
@@ -181,9 +227,15 @@ filter = (function() {
             return newAveragingFilter;
         },
 
-        createButterworthFilter: function(cutoff) {
+        createButterworthFilter1: function() {
 
-            var newButterworthFilter = new ButterworthFilter(cutoff);
+            var newButterworthFilter = new ButterworthFilter1();
+            return newButterworthFilter;
+        },
+
+        createButterworthFilter2: function(cutoff) {
+
+            var newButterworthFilter = new ButterworthFilter2(cutoff);
             return newButterworthFilter;
         },
 
@@ -211,7 +263,7 @@ filter = (function() {
             return pos;
         },
 
-        // simple clipping filter (clips bottom of wave only, special case for hips y-axis skeleton offset)
+        // simple clipping filter (clips bottom of wave only)
         clipTrough: function(inputValue, peak, strength) {
 
             var outputValue = inputValue * strength;

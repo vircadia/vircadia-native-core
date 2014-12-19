@@ -17,9 +17,12 @@
 #include "AttributeRegistry.h"
 #include "MetavoxelUtil.h"
 
+class AbstractHeightfieldNodeRenderer;
+class Heightfield;
 class HeightfieldColor;
 class HeightfieldHeight;
 class HeightfieldMaterial;
+class HeightfieldNode;
 class SpannerRenderer;
 
 /// An object that spans multiple octree cells.
@@ -28,6 +31,7 @@ class Spanner : public SharedObject {
     Q_PROPERTY(Box bounds MEMBER _bounds WRITE setBounds NOTIFY boundsChanged DESIGNABLE false)
     Q_PROPERTY(float placementGranularity MEMBER _placementGranularity DESIGNABLE false)
     Q_PROPERTY(float voxelizationGranularity MEMBER _voxelizationGranularity DESIGNABLE false)
+    Q_PROPERTY(bool willBeVoxelized MEMBER _willBeVoxelized DESIGNABLE false)
     
 public:
     
@@ -47,6 +51,9 @@ public:
     
     void setMerged(bool merged) { _merged = merged; }
     bool isMerged() const { return _merged; }
+    
+    void setWillBeVoxelized(bool willBeVoxelized) { _willBeVoxelized = willBeVoxelized; }
+    bool getWillBeVoxelized() const { return _willBeVoxelized; }
     
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
@@ -117,6 +124,7 @@ private:
     float _placementGranularity;
     float _voxelizationGranularity;
     bool _merged;
+    bool _willBeVoxelized;
     QHash<QThread*, int> _lastVisits; ///< last visit identifiers for each thread
     QMutex _lastVisitsMutex;
     
@@ -133,7 +141,7 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 protected:
@@ -458,14 +466,129 @@ Bitstream& operator>>(Bitstream& in, HeightfieldMaterialPointer& value);
 template<> void Bitstream::writeRawDelta(const HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 
+typedef QExplicitlySharedDataPointer<HeightfieldNode> HeightfieldNodePointer;
+
+/// Holds the base state used in streaming heightfield data.
+class HeightfieldStreamBase {
+public:
+    Bitstream& stream;
+    const MetavoxelLOD& lod;
+    const MetavoxelLOD& referenceLOD;
+};
+
+/// Holds the state used in streaming a heightfield node.
+class HeightfieldStreamState {
+public:
+    HeightfieldStreamBase& base;
+    glm::vec2 minimum;
+    float size;
+    
+    bool shouldSubdivide() const;
+    bool shouldSubdivideReference() const;
+    bool becameSubdivided() const;
+    bool becameSubdividedOrCollapsed() const;
+    
+    void setMinimum(const glm::vec2& lastMinimum, int index);
+};
+
+/// A node in a heightfield quadtree.
+class HeightfieldNode : public QSharedData {
+public:
+    
+    static const int CHILD_COUNT = 4;
+    
+    HeightfieldNode(const HeightfieldHeightPointer& height = HeightfieldHeightPointer(),
+        const HeightfieldColorPointer& color = HeightfieldColorPointer(),
+        const HeightfieldMaterialPointer& material = HeightfieldMaterialPointer());
+    
+    HeightfieldNode(const HeightfieldNode& other);
+    
+    ~HeightfieldNode();
+    
+    void setContents(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
+        const HeightfieldMaterialPointer& material);
+    
+    void setHeight(const HeightfieldHeightPointer& height) { _height = height; }
+    const HeightfieldHeightPointer& getHeight() const { return _height; }
+    
+    void setColor(const HeightfieldColorPointer& color) { _color = color; }
+    const HeightfieldColorPointer& getColor() const { return _color; }
+    
+    void setMaterial(const HeightfieldMaterialPointer& material) { _material = material; }
+    const HeightfieldMaterialPointer& getMaterial() const { return _material; }
+    
+    void setRenderer(AbstractHeightfieldNodeRenderer* renderer) { _renderer = renderer; }
+    AbstractHeightfieldNodeRenderer* getRenderer() const { return _renderer; }
+    
+    bool isLeaf() const;
+    
+    void setChild(int index, const HeightfieldNodePointer& child) { _children[index] = child; }
+    const HeightfieldNodePointer& getChild(int index) const { return _children[index]; }
+    
+    float getHeight(const glm::vec3& location) const;
+    
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    
+    HeightfieldNode* paintMaterial(const glm::vec3& position, const glm::vec3& radius, const SharedObjectPointer& material,
+        const QColor& color);
+    
+    void getRangeAfterHeightPaint(const glm::vec3& position, const glm::vec3& radius,
+        float height, int& minimum, int& maximum) const;
+    
+    HeightfieldNode* paintHeight(const glm::vec3& position, const glm::vec3& radius, float height,
+        float normalizeScale, float normalizeOffset);
+        
+    HeightfieldNode* clearAndFetchHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const Box& bounds, SharedObjectPointer& heightfield);
+        
+    void read(HeightfieldStreamState& state);
+    void write(HeightfieldStreamState& state) const;
+    
+    void readDelta(const HeightfieldNodePointer& reference, HeightfieldStreamState& state);
+    void writeDelta(const HeightfieldNodePointer& reference, HeightfieldStreamState& state) const;
+    
+    HeightfieldNode* readSubdivision(HeightfieldStreamState& state);
+    void writeSubdivision(HeightfieldStreamState& state) const;
+    
+    void readSubdivided(HeightfieldStreamState& state, const HeightfieldStreamState& ancestorState,
+        const HeightfieldNode* ancestor);
+    void writeSubdivided(HeightfieldStreamState& state, const HeightfieldStreamState& ancestorState,
+        const HeightfieldNode* ancestor) const;
+    
+private:
+    
+    void clearChildren();
+    void mergeChildren(bool height = true, bool colorMaterial = true);
+    
+    QRgb getColorAt(const glm::vec3& location) const;
+    int getMaterialAt(const glm::vec3& location) const;
+    
+    HeightfieldHeightPointer _height;
+    HeightfieldColorPointer _color;
+    HeightfieldMaterialPointer _material;
+    
+    HeightfieldNodePointer _children[CHILD_COUNT];
+    
+    AbstractHeightfieldNodeRenderer* _renderer;
+};
+
+/// Base class for heightfield node rendering.
+class AbstractHeightfieldNodeRenderer {
+public:
+    
+    virtual ~AbstractHeightfieldNodeRenderer();
+};
+
 /// A heightfield represented as a spanner.
 class Heightfield : public Transformable {
     Q_OBJECT
     Q_PROPERTY(float aspectY MEMBER _aspectY WRITE setAspectY NOTIFY aspectYChanged)
     Q_PROPERTY(float aspectZ MEMBER _aspectZ WRITE setAspectZ NOTIFY aspectZChanged)
-    Q_PROPERTY(HeightfieldHeightPointer height MEMBER _height WRITE setHeight NOTIFY heightChanged)
-    Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged)
-    Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged DESIGNABLE false)
+    Q_PROPERTY(HeightfieldHeightPointer height MEMBER _height WRITE setHeight NOTIFY heightChanged STORED false)
+    Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged STORED false)
+    Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged STORED false
+        DESIGNABLE false)
+    Q_PROPERTY(HeightfieldNodePointer root MEMBER _root WRITE setRoot NOTIFY rootChanged STORED false DESIGNABLE false)
 
 public:
     
@@ -486,6 +609,13 @@ public:
     void setMaterial(const HeightfieldMaterialPointer& material);
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
 
+    void setRoot(const HeightfieldNodePointer& root);
+    const HeightfieldNodePointer& getRoot() const { return _root; }
+
+    MetavoxelLOD transformLOD(const MetavoxelLOD& lod) const;
+
+    virtual SharedObject* clone(bool withID = false, SharedObject* target = NULL) const;
+    
     virtual bool isHeightfield() const;
     
     virtual float getHeight(const glm::vec3& location) const;
@@ -508,6 +638,13 @@ public:
     virtual bool contains(const glm::vec3& point);
     virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
     
+    virtual void writeExtra(Bitstream& out) const;
+    virtual void readExtra(Bitstream& in);
+    virtual void writeExtraDelta(Bitstream& out, const SharedObject* reference) const;
+    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
+    virtual void maybeWriteSubdivision(Bitstream& out);
+    virtual SharedObject* readSubdivision(Bitstream& in);
+    
 signals:
 
     void aspectYChanged(float aspectY);
@@ -515,6 +652,7 @@ signals:
     void heightChanged(const HeightfieldHeightPointer& height);
     void colorChanged(const HeightfieldColorPointer& color);
     void materialChanged(const HeightfieldMaterialPointer& material);
+    void rootChanged(const HeightfieldNodePointer& root);
     
 protected:
     
@@ -523,14 +661,18 @@ protected:
 private slots:
     
     void updateBounds();
+    void updateRoot();
     
 private:
 
     float _aspectY;
     float _aspectZ;
+    
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
     HeightfieldMaterialPointer _material;
+    
+    HeightfieldNodePointer _root;
 };
 
 #endif // hifi_Spanner_h

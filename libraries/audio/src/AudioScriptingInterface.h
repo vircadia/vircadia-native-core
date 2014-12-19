@@ -35,6 +35,8 @@ public slots:
     void stopInjector(AudioInjector* injector);
     bool isInjectorPlaying(AudioInjector* injector);
     
+    void setInjectorOptions(AudioInjector* injector, const AudioInjectorOptions& injectorOptions);
+    
     void injectorStopped();
     
 signals:

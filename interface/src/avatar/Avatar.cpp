@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include <gpu/GPUConfig.h>
+
 #include <QDesktopWidget>
 #include <QWindow>
 
@@ -20,11 +22,16 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/vector_query.hpp>
 
+#include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
+#include <GlowEffect.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
+#include <TextureCache.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -36,8 +43,6 @@
 #include "Recorder.h"
 #include "world.h"
 #include "devices/OculusManager.h"
-#include "renderer/TextureCache.h"
-#include "ui/TextRenderer.h"
 
 using namespace std;
 
@@ -66,8 +71,6 @@ Avatar::Avatar() :
     _leanScale(0.5f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
-    _mouseRayOrigin(0.0f, 0.0f, 0.0f),
-    _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
     _initialized(false),
@@ -250,11 +253,6 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     _lastOrientation = getOrientation();
 }
 
-void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
-    _mouseRayOrigin = origin;
-    _mouseRayDirection = direction;
-}
-
 enum TextRendererType {
     CHAT, 
     DISPLAYNAME
@@ -284,43 +282,64 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
         float laserLength = 50.0f;
-        if (_handState == HAND_STATE_LEFT_POINTING ||
-            _handState == HAND_STATE_BOTH_POINTING) {
-            int leftIndex = _skeletonModel.getLeftHandJointIndex();
-            glm::vec3 leftPosition;
-            glm::quat leftRotation;
-            _skeletonModel.getJointPositionInWorldFrame(leftIndex, leftPosition);
-            _skeletonModel.getJointRotationInWorldFrame(leftIndex, leftRotation);
-            glPushMatrix(); {
-                glTranslatef(leftPosition.x, leftPosition.y, leftPosition.z);
-                float angle = glm::degrees(glm::angle(leftRotation));
-                glm::vec3 axis = glm::axis(leftRotation);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glBegin(GL_LINES);
-                glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(0.0f, laserLength, 0.0f);
-                glEnd();
-            } glPopMatrix();
+        glm::vec3 position;
+        glm::quat rotation;
+        bool havePosition, haveRotation;
+
+        if (_handState & LEFT_HAND_POINTING_FLAG) {
+
+            if (_handState & IS_FINGER_POINTING_FLAG) {
+                int leftIndexTip = getJointIndex("LeftHandIndex4");
+                int leftIndexTipJoint = getJointIndex("LeftHandIndex3");
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(leftIndexTip, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(leftIndexTipJoint, rotation);
+            } else {
+                int leftHand = _skeletonModel.getLeftHandJointIndex();
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(leftHand, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(leftHand, rotation);
+            }
+
+            if (havePosition && haveRotation) {
+                glPushMatrix(); {
+                    glTranslatef(position.x, position.y, position.z);
+                    float angle = glm::degrees(glm::angle(rotation));
+                    glm::vec3 axis = glm::axis(rotation);
+                    glRotatef(angle, axis.x, axis.y, axis.z);
+                    glBegin(GL_LINES);
+                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                    glVertex3f(0.0f, 0.0f, 0.0f);
+                    glVertex3f(0.0f, laserLength, 0.0f);
+                    glEnd();
+                } glPopMatrix();
+            }
         }
-        if (_handState == HAND_STATE_RIGHT_POINTING ||
-            _handState == HAND_STATE_BOTH_POINTING) {
-            int rightIndex = _skeletonModel.getRightHandJointIndex();
-            glm::vec3 rightPosition;
-            glm::quat rightRotation;
-            _skeletonModel.getJointPositionInWorldFrame(rightIndex, rightPosition);
-            _skeletonModel.getJointRotationInWorldFrame(rightIndex, rightRotation);
-            glPushMatrix(); {
-                glTranslatef(rightPosition.x, rightPosition.y, rightPosition.z);
-                float angle = glm::degrees(glm::angle(rightRotation));
-                glm::vec3 axis = glm::axis(rightRotation);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glBegin(GL_LINES);
-                glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(0.0f, laserLength, 0.0f);
-                glEnd();
-            } glPopMatrix();
+
+        if (_handState & RIGHT_HAND_POINTING_FLAG) {
+            
+            if (_handState & IS_FINGER_POINTING_FLAG) {
+                int rightIndexTip = getJointIndex("RightHandIndex4");
+                int rightIndexTipJoint = getJointIndex("RightHandIndex3");
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(rightIndexTip, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(rightIndexTipJoint, rotation);
+            } else {
+                int rightHand = _skeletonModel.getRightHandJointIndex();
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(rightHand, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(rightHand, rotation);
+            }
+
+            if (havePosition && haveRotation) {
+                glPushMatrix(); {
+                    glTranslatef(position.x, position.y, position.z);
+                    float angle = glm::degrees(glm::angle(rotation));
+                    glm::vec3 axis = glm::axis(rotation);
+                    glRotatef(angle, axis.x, axis.y, axis.z);
+                    glBegin(GL_LINES);
+                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                    glVertex3f(0.0f, 0.0f, 0.0f);
+                    glVertex3f(0.0f, laserLength, 0.0f);
+                    glEnd();
+                } glPopMatrix();
+            }
         }
     }
     
@@ -367,7 +386,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             glm::quat orientation = getOrientation();
             foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
-                Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position - direction * distance,
+                DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
                     distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,
                     LIGHT_EXPONENT, LIGHT_CUTOFF);
             }
@@ -401,7 +420,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                 } else {
                     glTranslatef(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
                 }
-                Application::getInstance()->getGeometryCache()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15); 
+                DependencyManager::get<GeometryCache>()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15); 
                 glPopMatrix();
             }
         }
@@ -429,7 +448,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
-                Application::getInstance()->getGeometryCache()->renderSphere(sphereRadius, 15, 15); 
+                DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15); 
 
                 glPopMatrix();
             }
@@ -920,13 +939,13 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_head.fst");
+    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_head.fst");
     getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(Application::resourcesPath() + "meshes/defaultAvatar_body.fst");
+    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
     _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
 }
 

@@ -57,6 +57,7 @@ var statusText = Overlays.addOverlay("text", {
                     height: 20,
                     backgroundColor: { red: 0, green: 0, blue: 0},
                     alpha: 1.0,
+                    backgroundAlpha: 1.0,
                     color: { red: 255, green: 255, blue: 255},
                     topMargin: 4,
                     leftMargin: 4,

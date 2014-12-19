@@ -11,12 +11,15 @@
 
 #include <QHash>
 
+
+#include <DependencyManager.h>
+#include <FBXReader.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 
-#include <FBXReader.h>
-
 #include "Application.h"
+#include "Faceshift.h"
 #include "Visage.h"
 
 // this has to go after our normal includes, because its definition of HANDLE conflicts with Qt's
@@ -43,12 +46,12 @@ Visage::Visage() :
     
 #ifdef HAVE_VISAGE
 #ifdef WIN32
-    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage";
+    QByteArray licensePath = PathUtils::resourcesPath().toLatin1() + "visage";
 #else
-    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
+    QByteArray licensePath = PathUtils::resourcesPath().toLatin1() + "visage/license.vlc";
 #endif
     initializeLicenseManager(licensePath.data());
-    _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
+    _tracker = new VisageTracker2(PathUtils::resourcesPath().toLatin1() + "visage/tracker.cfg");
     _data = new FaceData();
 #endif
 }
@@ -119,7 +122,7 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getActionUnitNameMap() 
 const float TRANSLATION_SCALE = 20.0f;
 
 void Visage::init() {
-    connect(Application::getInstance()->getFaceshift(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
+    connect(DependencyManager::get<Faceshift>().data(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
     updateEnabled();
 }
 
@@ -171,7 +174,7 @@ void Visage::reset() {
 void Visage::updateEnabled() {
     setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Visage) &&
         !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
-            Application::getInstance()->getFaceshift()->isConnectedOrConnecting()));
+            DependencyManager::get<Faceshift>()->isConnectedOrConnecting()));
 }
 
 void Visage::setEnabled(bool enabled) {

@@ -27,7 +27,8 @@ Base3DOverlay::Base3DOverlay() :
     _rotation(),
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
-    _ignoreRayIntersection(false)
+    _ignoreRayIntersection(false),
+    _drawInFront(false)
 {
 }
 
@@ -47,6 +48,13 @@ Base3DOverlay::~Base3DOverlay() {
 
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
+
+    QScriptValue drawInFront = properties.property("drawInFront");
+
+    if (drawInFront.isValid()) {
+        bool value = drawInFront.toVariant().toBool();
+        setDrawInFront(value);
+    }
 
     QScriptValue position = properties.property("position");
 
@@ -151,12 +159,15 @@ QScriptValue Base3DOverlay::getProperty(const QString& property) {
     if (property == "ignoreRayIntersection") {
         return _ignoreRayIntersection;
     }
+    if (property == "drawInFront") {
+        return _drawInFront;
+    }
 
     return Overlay::getProperty(property);
 }
 
 bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face) {
     return false;
 }
 

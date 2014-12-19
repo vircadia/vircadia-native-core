@@ -9,9 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Grid3DOverlay.h"
+#include <PathUtils.h>
 
 #include "Application.h"
+#include "Grid3DOverlay.h"
 
 ProgramObject Grid3DOverlay::_gridProgram;
 
@@ -36,7 +37,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
     }
 
     if (!_gridProgram.isLinked()) {
-        if (!_gridProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/grid.frag")) {
+        if (!_gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag")) {
             qDebug() << "Failed to compile: " + _gridProgram.log();
             return;
         }
@@ -87,7 +88,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         float scale = MINOR_GRID_DIVISIONS * spacing;
         glScalef(scale, scale, scale);
 
-        Application::getInstance()->getGeometryCache()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS);
+        DependencyManager::get<GeometryCache>()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS);
     }
     glPopMatrix();
 
@@ -102,7 +103,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         float scale = MAJOR_GRID_DIVISIONS * spacing;
         glScalef(scale, scale, scale);
 
-        Application::getInstance()->getGeometryCache()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS);
+        DependencyManager::get<GeometryCache>()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS);
     }
     glPopMatrix();
 

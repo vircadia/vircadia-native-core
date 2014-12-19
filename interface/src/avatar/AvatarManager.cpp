@@ -15,16 +15,17 @@
 
 #include <glm/gtx/string_cast.hpp>
 
+#include <GlowEffect.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
 #include <UUID.h>
 
 #include "Application.h"
 #include "Avatar.h"
+#include "AvatarManager.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 
-#include "AvatarManager.h"
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
@@ -68,10 +69,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
-    Application* applicationInstance = Application::getInstance();
-    glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
-    glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
-
+    
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
@@ -87,7 +85,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (!shouldKillAvatar(sharedAvatar)) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->simulate(deltaTime);
-            avatar->setMouseRay(mouseOrigin, mouseDirection);
             ++avatarIterator;
         } else {
             // the mixer that owned this avatar is gone, give it to the vector of fades and kill it

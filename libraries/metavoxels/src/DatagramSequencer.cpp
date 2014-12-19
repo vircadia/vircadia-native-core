@@ -45,7 +45,8 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* 
     _packetsToWrite(0.0f),
     _slowStartThreshold(DEFAULT_SLOW_START_THRESHOLD),
     _packetRateIncreasePacketNumber(0),
-    _packetRateDecreasePacketNumber(0) {
+    _packetRateDecreasePacketNumber(0),
+    _packetDropCount(0) {
 
     _outgoingPacketStream.setByteOrder(QDataStream::LittleEndian);
     _incomingDatagramStream.setByteOrder(QDataStream::LittleEndian);
@@ -239,39 +240,44 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         _sendRecords.erase(_sendRecords.begin(), it + 1);
     }
     
-    // alert external parties so that they can read the middle
-    emit readyToRead(_inputStream);
-    
-    // read and dispatch the high-priority messages
-    int highPriorityMessageCount;
-    _inputStream >> highPriorityMessageCount;
-    int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
-    for (int i = 0; i < highPriorityMessageCount; i++) {
-        QVariant data;
-        _inputStream >> data;
-        if (i >= _receivedHighPriorityMessages) {
-            emit receivedHighPriorityMessage(data);
+    try {
+        // alert external parties so that they can read the middle
+        emit readyToRead(_inputStream);
+        
+        // read and dispatch the high-priority messages
+        int highPriorityMessageCount;
+        _inputStream >> highPriorityMessageCount;
+        int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
+        for (int i = 0; i < highPriorityMessageCount; i++) {
+            QVariant data;
+            _inputStream >> data;
+            if (i >= _receivedHighPriorityMessages) {
+                emit receivedHighPriorityMessage(data);
+            }
         }
-    }
-    _receivedHighPriorityMessages = highPriorityMessageCount;
+        _receivedHighPriorityMessages = highPriorityMessageCount;
+        
+        // read the reliable data, if any
+        quint32 reliableChannels;
+        _incomingPacketStream >> reliableChannels;
+        for (quint32 i = 0; i < reliableChannels; i++) {
+            quint32 channelIndex;
+            _incomingPacketStream >> channelIndex;
+            getReliableInputChannel(channelIndex)->readData(_incomingPacketStream);
+        }
+        
+        // record the receipt
+        ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings(), newHighPriorityMessages };
+        _receiveRecords.append(record);
+        
+        emit receiveRecorded();
     
-    // read the reliable data, if any
-    quint32 reliableChannels;
-    _incomingPacketStream >> reliableChannels;
-    for (quint32 i = 0; i < reliableChannels; i++) {
-        quint32 channelIndex;
-        _incomingPacketStream >> channelIndex;
-        getReliableInputChannel(channelIndex)->readData(_incomingPacketStream);
+    } catch (const BitstreamException& e) {
+        qWarning() << "Error reading datagram:" << e.getDescription();
     }
     
     _incomingPacketStream.device()->seek(0);
-    _inputStream.reset();
-    
-    // record the receipt
-    ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings(), newHighPriorityMessages };
-    _receiveRecords.append(record);
-    
-    emit receiveRecorded();
+    _inputStream.reset();    
 }
 
 void DatagramSequencer::sendClearSharedObjectMessage(int id) {
@@ -343,11 +349,18 @@ void DatagramSequencer::sendRecordLost(const SendRecord& record) {
         }
     }
     
-    // halve the rate and remember as threshold
-    if (record.packetNumber >= _packetRateDecreasePacketNumber) {
-        _packetsPerGroup = qMax(_packetsPerGroup * 0.5f, 1.0f);
-        _slowStartThreshold = _packetsPerGroup;
-        _packetRateDecreasePacketNumber = _outgoingPacketNumber + 1;
+    // if we've lost three in a row, halve the rate and remember as threshold
+    if (_packetDropCount == 0 || record.packetNumber == _lastPacketDropped + 1) {
+        _packetDropCount++;
+        _lastPacketDropped = record.packetNumber;
+        const int CONSECUTIVE_DROPS_BEFORE_REDUCTION = 3;
+        if (_packetDropCount >= CONSECUTIVE_DROPS_BEFORE_REDUCTION && record.packetNumber >= _packetRateDecreasePacketNumber) {
+            _packetsPerGroup = qMax(_packetsPerGroup * 0.5f, 1.0f);
+            _slowStartThreshold = _packetsPerGroup;
+            _packetRateDecreasePacketNumber = _outgoingPacketNumber + 1;
+        }
+    } else {
+        _packetDropCount = 0;
     }
 }
 

@@ -238,6 +238,8 @@ private:
     float _slowStartThreshold;
     int _packetRateIncreasePacketNumber;
     int _packetRateDecreasePacketNumber;
+    int _packetDropCount;
+    int _lastPacketDropped;
     
     QHash<int, ReliableChannel*> _reliableOutputChannels;
     QHash<int, ReliableChannel*> _reliableInputChannels;

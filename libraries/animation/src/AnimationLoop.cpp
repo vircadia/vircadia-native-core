@@ -20,7 +20,8 @@ AnimationLoop::AnimationLoop() :
     _firstFrame(0.0f),
     _lastFrame(FLT_MAX),
     _running(false),
-    _frameIndex(0.0f)
+    _frameIndex(0.0f),
+    _maxFrameIndexHint(FLT_MAX)
 {
 }
 
@@ -55,7 +56,7 @@ void AnimationLoop::simulate(float deltaTime) {
     
     // If we knew the number of frames from the animation, we'd consider using it here 
     // animationGeometry.animationFrames.size()
-    float maxFrame = _lastFrame; 
+    float maxFrame = _maxFrameIndexHint; 
     float endFrameIndex = qMin(_lastFrame, maxFrame - (_loop ? 0.0f : 1.0f));
     float startFrameIndex = qMin(_firstFrame, endFrameIndex);
     if ((!_loop && (_frameIndex < startFrameIndex || _frameIndex > endFrameIndex)) || startFrameIndex == endFrameIndex) {

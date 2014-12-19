@@ -10,6 +10,7 @@
 //
 
 #include <QtCore/QProcess>
+#include <QtCore/qsharedmemory.h>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
@@ -21,6 +22,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <ShutdownEventListener.h>
 #include <SoundCache.h>
 
 #include "AssignmentFactory.h"
@@ -37,8 +39,8 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
-    _shutdownEventListener(this),
-    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
+    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
+    _localASPortSharedMem(NULL)
 {
     LogUtils::init();
 
@@ -47,8 +49,12 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     setApplicationName("assignment-client");
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
-    installNativeEventFilter(&_shutdownEventListener);
-    connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
+    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
+#ifdef _WIN32
+    installNativeEventFilter(&ShutdownEventListener::getInstance());
+#else
+    ShutdownEventListener::getInstance();
+#endif
 
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
@@ -89,13 +95,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NodeType::Unassigned);
     
-    unsigned short assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
-    
-    // check for an overriden assignment server port
-    if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION)) {
-        assignmentServerPort =
-            argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toString().toUInt();
-    }
+    quint16 assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
 
     // check for an overriden assignment server hostname
     if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION)) {
@@ -103,10 +103,16 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
         _assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
     }
     
-    HifiSockAddr assignmentServerSocket(_assignmentServerHostname, assignmentServerPort, true);
-    nodeList->setAssignmentServerSocket(assignmentServerSocket);
+    // check for an overriden assignment server port
+    if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION)) {
+        assignmentServerPort =
+        argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toString().toUInt();
+    }
+    
+    _assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerPort, true);
+    nodeList->setAssignmentServerSocket(_assignmentServerSocket);
 
-    qDebug() << "Assignment server socket is" << assignmentServerSocket;
+    qDebug() << "Assignment server socket is" << _assignmentServerSocket;
     
     // call a timer function every ASSIGNMENT_REQUEST_INTERVAL_MSECS to ask for assignment, if required
     qDebug() << "Waiting for assignment -" << _requestAssignment;
@@ -129,7 +135,40 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
 
 void AssignmentClient::sendAssignmentRequest() {
     if (!_currentAssignment) {
-        NodeList::getInstance()->sendAssignment(_requestAssignment);
+        
+        NodeList* nodeList = NodeList::getInstance();
+        
+        if (_assignmentServerHostname == "localhost") {
+            // we want to check again for the local domain-server port in case the DS has restarted
+            if (!_localASPortSharedMem) {
+                _localASPortSharedMem = new QSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
+                
+                if (!_localASPortSharedMem->attach(QSharedMemory::ReadOnly)) {
+                    qWarning() << "Could not attach to shared memory at key" << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY
+                        << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
+                }
+            }
+            
+            if (_localASPortSharedMem->isAttached()) {
+                _localASPortSharedMem->lock();
+                
+                quint16 localAssignmentServerPort;
+                memcpy(&localAssignmentServerPort, _localASPortSharedMem->data(), sizeof(localAssignmentServerPort));
+                
+                _localASPortSharedMem->unlock();
+                
+                if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
+                    qDebug() << "Port for local assignment server read from shared memory is"
+                        << localAssignmentServerPort;
+                    
+                    _assignmentServerSocket.setPort(localAssignmentServerPort);
+                    nodeList->setAssignmentServerSocket(_assignmentServerSocket);
+                }
+            }
+            
+        }
+        
+        nodeList->sendAssignment(_requestAssignment);
     }
 }
 

@@ -15,8 +15,9 @@
 #include <QGLWidget>
 #include <QScriptValue>
 
-#include <Application.h>
+#include <GlowEffect.h>
 
+#include "Application.h"
 #include "LocalVoxelsOverlay.h"
 #include "voxels/VoxelSystem.h"
 

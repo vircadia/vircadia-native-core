@@ -390,6 +390,7 @@ var ZoomTool = function(opts) {
         leftMargin: 4,
         text: "+",
         alpha: 1.0,
+        backgroundAlpha: 1.0,
         visible: true,
     });
     var decreaseButton = Overlays.addOverlay("text", {
@@ -403,6 +404,7 @@ var ZoomTool = function(opts) {
         leftMargin: 4,
         text: "-",
         alpha: 1.0,
+        backgroundAlpha: 1.0,
         visible: true,
     });
     var zoomBar = Overlays.addOverlay("text", {
@@ -416,6 +418,7 @@ var ZoomTool = function(opts) {
         leftMargin: 4,
         text: "",
         alpha: 1.0,
+        backgroundAlpha: 1.0,
         visible: true,
     });
     var zoomHandle = Overlays.addOverlay("text", {
@@ -428,6 +431,7 @@ var ZoomTool = function(opts) {
         leftMargin: 4,
         text: "",
         alpha: 1.0,
+        backgroundAlpha: 1.0,
         visible: true,
     });
 
@@ -501,6 +505,7 @@ var ArrowTool = function(opts) {
         leftMargin: 4,
         text: "^",
         alpha: 1.0,
+        backgroundAlpha: 1.0,
         visible: true,
     });
     var leftButton = Overlays.addOverlay("text", {
@@ -514,6 +519,7 @@ var ArrowTool = function(opts) {
         leftMargin: 4,
         text: "<",
         alpha: 1.0,
+        backgroundAlpha: 1.0,
         visible: true,
     });
     var rightButton = Overlays.addOverlay("text", {
@@ -540,6 +546,7 @@ var ArrowTool = function(opts) {
         leftMargin: 4,
         text: "v",
         alpha: 1.0,
+        backgroundAlpha: 1.0,
         visible: true,
     });
     var centerButton = Overlays.addOverlay("text", {
@@ -553,6 +560,7 @@ var ArrowTool = function(opts) {
         leftMargin: 4,
         text: "",
         alpha: 1.0,
+        backgroundAlpha: 1.0,
         visible: true,
     });
 

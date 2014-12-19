@@ -21,15 +21,6 @@
 
 class ModelItemID;
 
-enum AvatarHandState
-{
-    HAND_STATE_NULL = 0,
-    HAND_STATE_LEFT_POINTING,
-    HAND_STATE_RIGHT_POINTING,
-    HAND_STATE_BOTH_POINTING,
-    NUM_HAND_STATES
-};
-
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
@@ -55,15 +46,12 @@ public:
     void renderHeadMouse(int screenWidth, int screenHeight) const;
 
     // setters
-    void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
     void setLeanScale(float scale) { _leanScale = scale; }
     void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
 
     // getters
     float getLeanScale() const { return _leanScale; }
-    const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
-    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
@@ -203,9 +191,7 @@ protected:
     virtual void renderAttachments(RenderMode renderMode);
     
 private:
-    bool _mousePressed;
-    float _bodyPitchDelta;  // degrees
-    float _bodyRollDelta;   // degrees
+    float _turningKeyPressTime;
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 

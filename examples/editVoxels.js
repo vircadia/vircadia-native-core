@@ -319,7 +319,7 @@ function ScaleSelector() {
                                            width: this.SECOND_PART, height: this.height,
                                            topMargin: 13,
                                            text: this.scale.toString(),
-                                           alpha: 0.9,
+                                           backgroundAlpha: 0.0,
                                            visible: editToolsOn
                                            });
     this.powerOverlay = Overlays.addOverlay("text", {
@@ -327,7 +327,7 @@ function ScaleSelector() {
                                             width: this.SECOND_PART, height: this.height,
                                             leftMargin: 28,
                                             text: this.power.toString(),
-                                            alpha: 0.0,
+                                            backgroundAlpha: 0.0,
                                             visible: false
                                             });
     this.setScale = function(scale) {

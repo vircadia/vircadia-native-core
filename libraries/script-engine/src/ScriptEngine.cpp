@@ -94,75 +94,9 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _quatLibrary(),
     _vec3Library(),
     _uuidLibrary(),
-    _animationCache(this),
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
-}
-
-ScriptEngine::ScriptEngine(const QUrl& scriptURL,
-                           AbstractControllerScriptingInterface* controllerScriptingInterface)  :
-    _scriptContents(),
-    _isFinished(false),
-    _isRunning(false),
-    _isInitialized(false),
-    _isAvatar(false),
-    _avatarIdentityTimer(NULL),
-    _avatarBillboardTimer(NULL),
-    _timerFunctionMap(),
-    _isListeningToAudioStream(false),
-    _avatarSound(NULL),
-    _numAvatarSoundSentBytes(0),
-    _controllerScriptingInterface(controllerScriptingInterface),
-    _avatarData(NULL),
-    _scriptName(),
-    _fileNameString(),
-    _quatLibrary(),
-    _vec3Library(),
-    _uuidLibrary(),
-    _animationCache(this),
-    _isUserLoaded(false),
-    _arrayBufferClass(new ArrayBufferClass(this))
-{
-    QString scriptURLString = scriptURL.toString();
-    _fileNameString = scriptURLString;
-
-    QUrl url(scriptURL);
-    
-    // if the scheme length is one or lower, maybe they typed in a file, let's try
-    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
-    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
-        url = QUrl::fromLocalFile(scriptURLString);
-    }
-
-    // ok, let's see if it's valid... and if so, load it
-    if (url.isValid()) {
-        if (url.scheme() == "file") {
-            QString fileName = url.toLocalFile();
-            QFile scriptFile(fileName);
-            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-                qDebug() << "Loading file:" << fileName;
-                QTextStream in(&scriptFile);
-                _scriptContents = in.readAll();
-            } else {
-                qDebug() << "ERROR Loading file:" << fileName;
-                emit errorMessage("ERROR Loading file:" + fileName);
-            }
-        } else {
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
-            qDebug() << "Downloading script at" << url;
-            QEventLoop loop;
-            QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-            loop.exec();
-            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-                _scriptContents = reply->readAll();
-            } else {
-                qDebug() << "ERROR Loading file:" << url.toString();
-                emit errorMessage("ERROR Loading file:" + url.toString());
-            }
-        }
-    }
 }
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
@@ -215,6 +149,55 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     _scriptContents = scriptContents;
     _fileNameString = fileNameString;
     return true;
+}
+
+void ScriptEngine::loadURL(const QUrl& scriptURL) {
+    if (_isRunning) {
+        return;
+    }
+
+    _fileNameString = scriptURL.toString();
+    
+    QUrl url(scriptURL);
+    
+    // if the scheme length is one or lower, maybe they typed in a file, let's try
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+        url = QUrl::fromLocalFile(_fileNameString);
+    }
+    
+    // ok, let's see if it's valid... and if so, load it
+    if (url.isValid()) {
+        if (url.scheme() == "file") {
+            _fileNameString = url.toLocalFile();
+            QFile scriptFile(_fileNameString);
+            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
+                qDebug() << "ScriptEngine loading file:" << _fileNameString;
+                QTextStream in(&scriptFile);
+                _scriptContents = in.readAll();
+                emit scriptLoaded(_fileNameString);
+            } else {
+                qDebug() << "ERROR Loading file:" << _fileNameString;
+                emit errorLoadingScript(_fileNameString);
+            }
+        } else {
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
+        }
+    }
+}
+
+void ScriptEngine::handleScriptDownload() {
+    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+    
+    if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
+        _scriptContents = reply->readAll();
+        emit scriptLoaded(_fileNameString);
+    } else {
+        qDebug() << "ERROR Loading file:" << reply->url().toString();
+        emit errorLoadingScript(_fileNameString);
+    }
 }
 
 Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
@@ -272,7 +255,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-    registerGlobalObject("AnimationCache", &_animationCache);
+    registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
@@ -501,17 +484,17 @@ void ScriptEngine::run() {
                 
                 // write audio packet to AudioMixer nodes
                 NodeList* nodeList = NodeList::getInstance();
-                foreach(const SharedNodePointer& node, nodeList->getNodeHash()) {
+                nodeList->eachNode([this, &nodeList, &audioPacket, &numPreSequenceNumberBytes](const SharedNodePointer& node){
                     // only send to nodes of type AudioMixer
                     if (node->getType() == NodeType::AudioMixer) {
                         // pack sequence number
                         quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
                         memcpy(audioPacket.data() + numPreSequenceNumberBytes, &sequence, sizeof(quint16));
-
+                        
                         // send audio packet
                         nodeList->writeDatagram(audioPacket, node);
                     }
-                }
+                });
             }
         }
 

@@ -1,7 +1,7 @@
 //
 //  walk.js
 //
-//  version 1.1
+//  version 1.12
 //
 //  Created by David Wooldridge, Autumn 2014
 //
@@ -14,7 +14,7 @@
 // constants
 var MALE = 1;
 var FEMALE = 2;
-var MAX_WALK_SPEED = 2.5;//3.919;
+var MAX_WALK_SPEED = 2.5;
 var TAKE_FLIGHT_SPEED = 4.55;
 var TOP_SPEED = 300;
 var UP = 1;
@@ -23,9 +23,17 @@ var LEFT = 4;
 var RIGHT = 8;
 var FORWARDS = 16;
 var BACKWARDS = 32;
+var PITCH = 64;
+var YAW = 128;
+var ROLL = 256;
+var SAWTOOTH = 1;
+var TRIANGLE = 2;
+var SQUARE = 4;
+var VERY_LONG_TIME = 1000000.0;
+var VERY_SHORT_TIME = 0.000001;
 
-// location of animation files and overlay images
-var pathToAssets = 'http://s3.amazonaws.com/hifi-public/WalkScript/';
+// ovelay images location
+var pathToAssets = 'http://s3.amazonaws.com/hifi-public/procedural-animator/';
 
 // load the UI
 Script.include("./libraries/walkInterface.js");
@@ -36,2578 +44,809 @@ Script.include("./libraries/walkFilters.js");
 // load objects, constructors and assets (state, Motion, Transition, walkAssets)
 Script.include("./libraries/walkApi.js");
 
-// initialise the motion state / history object
+// initialise the motion properties and history object
 var motion = new Motion();
 
 // initialise Transitions
 var nullTransition = new Transition();
-motion.curTransition = nullTransition;
+motion.currentTransition = nullTransition;
 
 // initialise the UI
 walkInterface.initialise(state, motion, walkAssets);
 
-// wave shapes
-var SAWTOOTH = 1;
-var TRIANGLE = 2;
-var SQUARE = 4;
+// Begin by setting the STANDING internal state
+state.setInternalState(state.STANDING);
 
-// various filters for synthesising more complex, natural waveforms
-var leanPitchFilter = filter.createAveragingFilter(15);
-var leanRollFilter = filter.createAveragingFilter(15);
-var hipsYawShaper = filter.createWaveSynth(TRIANGLE, 3, 2);
-var hipsBobLPFilter = filter.createButterworthFilter(5);
-
+// smoothing filters
+var leanPitchFilter = filter.createButterworthFilter1();
+var leanPitchSmoothingFilter = filter.createAveragingFilter(10);
+var leanRollSmoothingFilter = filter.createAveragingFilter(10);
+var flyUpFilter = filter.createAveragingFilter(30);
+var flyFilter = filter.createAveragingFilter(30);
 
 // Main loop
 Script.update.connect(function(deltaTime) {
 
-	if (state.powerOn) {
+    if (state.powerOn) {
 
-		motion.frameStartTime = new Date().getTime();
-		motion.cumulativeTime += deltaTime;
-		motion.nFrames++;
-		var speed = 0;
+        // calculate avi linear speed
+        var speed = Vec3.length(MyAvatar.getVelocity());
 
-		// check for editing modes first, as these require no positioning calculations
-		switch (state.currentState) {
+        // decide which animation should be playing
+        selectAnimation(deltaTime, speed);
 
-			case state.EDIT_WALK_STYLES: {
-				motion.curAnim = motion.selWalk;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
+        // turn the frequency time wheels
+        turnFrequencyTimeWheels(deltaTime, speed);
 
-			case state.EDIT_WALK_TWEAKS: {
-				motion.curAnim = motion.selWalk;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
+        // calculate (or fetch pre-calculated) stride length for this avi
+        setStrideLength(speed);
 
-			case state.EDIT_WALK_JOINTS: {
-				motion.curAnim = motion.selWalk;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
-			case state.EDIT_STANDING: {
-				motion.curAnim = motion.selStand;
-				motion.direction = FORWARDS;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
+        // update the progress of any live transition
+        updateTransition();
 
-			case state.EDIT_SIDESTEP_LEFT: {
-				motion.curAnim = motion.selSideStepLeft;
-				motion.direction = LEFT;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
-
-			case state.EDIT_SIDESTEP_RIGHT: {
-				motion.curAnim = motion.selSideStepRight;
-				motion.direction = RIGHT;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
-
-			case state.EDIT_FLYING: {
-				motion.curAnim = motion.selFly;
-				motion.direction = FORWARDS;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
-
-			case state.EDIT_FLYING_UP: {
-				motion.curAnim = motion.selFlyUp;
-				motion.direction = UP;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
-
-			case state.EDIT_FLYING_DOWN: {
-				motion.curAnim = motion.selFlyDown;
-				motion.direction = DOWN;
-				animateAvatar(deltaTime, speed);
-				break;
-			}
-
-			default:
-				break;
-		}
-
-		// calcualte velocity and speed
-		var velocity = MyAvatar.getVelocity();
-		speed = Vec3.length(velocity);
-
-		if (motion.curTransition !== nullTransition) {
-
-			// finish any live transition before changing state
-			animateAvatar(deltaTime, speed);
-			return;
-		}
-		var localVelocity = {x: 0, y: 0, z: 0};
-		if (speed > 0) {
-			localVelocity = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), velocity);
-		}
-
-		if (!state.editing) {
-
-			// determine the candidate animation state
-			var actionToTake = undefined;
-			if (speed < 0.05) {
-				actionToTake = state.STANDING;
-			} else if (speed < TAKE_FLIGHT_SPEED) {
-				actionToTake = state.WALKING;
-			} else if (speed >= TAKE_FLIGHT_SPEED) {
-				actionToTake = state.FLYING;
-			}
-
-			// determine the principle direction
-			if (Math.abs(localVelocity.x) > Math.abs(localVelocity.y) &&
-				Math.abs(localVelocity.x) > Math.abs(localVelocity.z)) {
-
-				if (localVelocity.x < 0) {
-					motion.direction = LEFT;
-				} else {
-					motion.direction = RIGHT;
-				}
-
-			} else if (Math.abs(localVelocity.y) > Math.abs(localVelocity.x) &&
-					   Math.abs(localVelocity.y) > Math.abs(localVelocity.z)) {
-
-				if (localVelocity.y > 0) {
-					motion.direction = UP;
-				} else {
-					motion.direction = DOWN;
-				}
-
-			} else if (Math.abs(localVelocity.z) > Math.abs(localVelocity.x) &&
-					   Math.abs(localVelocity.z) > Math.abs(localVelocity.y)) {
-
-				if (localVelocity.z < 0) {
-					motion.direction = FORWARDS;
-				} else {
-					motion.direction = BACKWARDS;
-				}
-			}
-
-			// maybe at walking speed, but sideways?
-			if (actionToTake === state.WALKING &&
-			   (motion.direction === LEFT ||
-				motion.direction === RIGHT)) {
-					actionToTake = state.SIDE_STEP;
-			}
-
-			// maybe at walking speed, but flying up or down?
-			if (actionToTake === state.WALKING &&
-			   (motion.direction === UP ||
-			    motion.direction === DOWN)) {
-					actionToTake = state.FLYING;
-			}
-
-			// select appropriate animation and initiate Transition if required
-			// note: The transitions are not compete, and are the most likely
-			// candidate for the next worklist item
-			switch (actionToTake) {
-
-				case state.STANDING: {
-
-					// do we need to change state?
-					if (state.currentState !== state.STANDING) {
-
-						switch (motion.curAnim) {
-
-							case motion.selWalk: {
-
-								// Walking to standing
-								motion.curTransition = new Transition(
-									motion.curAnim,
-									motion.selWalk,
-									[], 0.25,
-									{x: 0.1, y: 0.5},
-									{x: -0.25, y: 1.22});
-								break;
-							}
-
-							case motion.selFly:
-							case motion.selFlyUp:
-							case motion.selFlyDown: {
-
-								// Flying to Standing
-								motion.curTransition = new Transition(
-									motion.curAnim,
-									motion.selStand,
-									[], 0.5,
-									{x: 0.5, y: 0.08},
-									{x: 0.28, y: 1});
-								break;
-							}
-
-							default:
-
-								break;
-						}
-						state.setInternalState(state.STANDING);
-						motion.curAnim = motion.selStand;
-					}
-					animateAvatar(deltaTime, speed);
-					break;
-				}
-
-				case state.WALKING: {
-
-					if (state.currentState !== state.WALKING) {
-
-						if (motion.direction === BACKWARDS) {
-							motion.walkWheelPos = motion.selWalk.calibration.startAngleBackwards;
-						} else {
-							motion.walkWheelPos = motion.selWalk.calibration.startAngleForwards;
-						}
-
-						switch (motion.curAnim) {
-
-							case motion.selStand: {
-
-								// Standing to Walking
-								motion.curTransition = new Transition(
-									motion.curAnim,
-									motion.selWalk,
-									[], 0.25,
-									{x: 0.5, y: 0.5},
-									{x: 0.5, y: 0.5});
-								break;
-							}
-
-							case motion.selFly:
-							case motion.selFlyUp:
-							case motion.selFlyDown: {
-
-								// Flying to Walking
-								motion.curTransition = new Transition(
-									motion.curAnim,
-									motion.selWalk,
-									[], 0.1,
-									{x: 0.24, y: 0.03},
-									{x: 0.42, y: 1.0});
-								break;
-							}
-
-							default:
-
-								break;
-						}
-						state.setInternalState(state.WALKING);
-					}
-					motion.curAnim = motion.selWalk;
-					animateAvatar(deltaTime, speed);
-					break;
-				}
-
-				case state.SIDE_STEP: {
-
-					var selSideStep = 0;
-					if (motion.direction === LEFT) {
-
-						if (motion.lastDirection !== LEFT) {
-							motion.walkWheelPos = motion.selSideStepLeft.calibration.cycleStart;
-						}
-						selSideStep = motion.selSideStepLeft;
-
-					} else {
-
-						if (motion.lastDirection !== RIGHT) {
-							motion.walkWheelPos = motion.selSideStepRight.calibration.cycleStart;
-						}
-						selSideStep = motion.selSideStepRight;
-					}
-
-					if (state.currentState !== state.SIDE_STEP) {
-
-						if (motion.direction === LEFT) {
-							motion.walkWheelPos = motion.selSideStepLeft.calibration.cycleStart;
-						} else {
-							motion.walkWheelPos = motion.selSideStepRight.calibration.cycleStart;
-						}
-						state.setInternalState(state.SIDE_STEP);
-					}
-					motion.curAnim = selSideStep;
-					animateAvatar(deltaTime, speed);
-					break;
-				}
-
-				case state.FLYING: {
-
-					if (state.currentState !== state.FLYING) {
-						state.setInternalState(state.FLYING);
-					}
-
-					// change animation for flying directly up or down
-					if (motion.direction === UP) {
-
-						if (motion.curAnim !== motion.selFlyUp) {
-
-							switch (motion.curAnim) {
-
-								case motion.selStand:
-								case motion.selWalk: {
-
-									// standing | walking to flying up
-									motion.curTransition = new Transition(
-										motion.curAnim,
-										motion.selFlyUp,
-										[], 0.35,
-										{x: 0.5, y: 0.08},
-										{x: 0.28, y: 1});
-									break;
-								}
-
-								case motion.selFly:
-								case motion.selFlyUp:
-								case motion.selFlyDown: {
-
-									motion.curTransition = new Transition(
-										motion.curAnim,
-										motion.selFlyUp,
-										[], 0.35,
-										{x: 0.5, y: 0.08},
-										{x: 0.28, y: 1});
-									break;
-								}
-
-								default:
-
-									break;
-							}
-							motion.curAnim = motion.selFlyUp;
-						}
-
-					} else if (motion.direction == DOWN) {
-
-						if (motion.curAnim !== motion.selFlyDown) {
-
-							switch (motion.curAnim) {
-
-								case motion.selStand:
-								case motion.selWalk: {
-
-									motion.curTransition = new Transition(
-										motion.curAnim,
-										motion.selFlyDown,
-										[], 0.35,
-										{x: 0.5, y: 0.08},
-										{x: 0.28, y: 1});
-									break;
-								}
-
-								case motion.selFly:
-								case motion.selFlyUp:
-								case motion.selFlyDown: {
-
-									motion.curTransition = new Transition(
-										motion.curAnim,
-										motion.selFlyDown,
-										[], 0.45,
-										{x: 0.5, y: 0.08},
-										{x: 0.28, y: 1});
-									break;
-								}
-
-								default:
-
-									break;
-							}
-							motion.curAnim = motion.selFlyDown;
-						}
-
-					} else {
-
-						if (motion.curAnim !== motion.selFly) {
-
-							switch (motion.curAnim) {
-
-								case motion.selStand:
-								case motion.selWalk: {
-
-									motion.curTransition = new Transition(
-										motion.curAnim,
-										motion.selFly,
-										[], 0.35,
-										{x: 1.44, y:0.24},
-										{x: 0.61, y:0.92});
-									break;
-								}
-
-								case motion.selFly:
-								case motion.selFlyUp:
-								case motion.selFlyDown: {
-
-									motion.curTransition = new Transition(
-										motion.curAnim,
-										motion.selFly,
-										[], 0.75,
-										{x: 0.5, y: 0.08},
-										{x: 0.28, y: 1});
-									break;
-								}
-
-								default:
-
-									break;
-							}
-							motion.curAnim = motion.selFly;
-						}
-					}
-					animateAvatar(deltaTime, speed);
-					break;
-				}// end case state.FLYING
-
-			} // end switch(actionToTake)
-
-		} // end if (!state.editing)
-
-		// record the frame's direction and local avatar's local velocity for future reference
-		motion.lastDirection = motion.direction;
-		motion.lastVelocity = localVelocity;
-	}
+        // apply translation and rotations
+        animateAvatar(deltaTime, speed);
+    }
 });
 
-// the faster we go, the further we lean forward. the angle is calcualted here
+// helper function for selectAnimation()
+function determineLocomotionMode(speed) {
+
+    var locomotionMode = undefined;
+
+    if (speed < 0.1 && motion.currentAnimation !== motion.selectedFlyBlend) {
+
+        locomotionMode = state.STANDING;
+
+    } else if (speed === 0 && motion.currentAnimation === motion.selectedFlyBlend) {
+
+        locomotionMode = state.STANDING;
+
+    } else if (speed < TAKE_FLIGHT_SPEED) {
+
+        locomotionMode = state.WALKING;
+
+    } else if (speed >= TAKE_FLIGHT_SPEED) {
+
+        locomotionMode = state.FLYING;
+    }
+
+    // maybe travelling at walking speed, but sideways?
+    if (locomotionMode === state.WALKING &&
+       (motion.direction === LEFT ||
+        motion.direction === RIGHT)) {
+
+            locomotionMode = state.SIDE_STEP;
+    }
+
+    // maybe completing a final step during a walking to standing transition?
+    if (locomotionMode === state.WALKING &&
+        motion.currentTransition.percentToMove > 0) {
+
+            locomotionMode = state.STANDING;
+    }
+
+    // maybe starting to fly up or down?
+    if (locomotionMode === state.WALKING &&
+        motion.direction === UP || motion.direction === DOWN) {
+
+            locomotionMode = state.FLYING;
+    }
+
+    // are we on a voxel surface?
+    if(spatialInformation.distanceToVoxels() > 0.2 && speed > 0.1) {
+
+        locomotionMode = state.FLYING;
+    }
+
+    return locomotionMode;
+}
+
+// helper function for selectAnimation()
+function determineDirection(localVelocity) {
+
+    if (Math.abs(localVelocity.x) > Math.abs(localVelocity.y) &&
+        Math.abs(localVelocity.x) > Math.abs(localVelocity.z)) {
+
+        if (localVelocity.x < 0) {
+            return LEFT;
+        } else {
+            return RIGHT;
+        }
+
+    } else if (Math.abs(localVelocity.y) > Math.abs(localVelocity.x) &&
+               Math.abs(localVelocity.y) > Math.abs(localVelocity.z)) {
+
+        if (localVelocity.y > 0) {
+            return UP;
+        } else {
+            return DOWN;
+        }
+
+    } else if (Math.abs(localVelocity.z) > Math.abs(localVelocity.x) &&
+               Math.abs(localVelocity.z) > Math.abs(localVelocity.y)) {
+
+        if (localVelocity.z < 0) {
+            return FORWARDS;
+        } else {
+            return BACKWARDS;
+        }
+    }
+}
+
+// advance the animation's frequency time wheels. advance frequency time wheels for any live transitions also
+function turnFrequencyTimeWheels(deltaTime, speed) {
+
+    var wheelAdvance = 0;
+
+    // turn the frequency time wheel
+    if (motion.currentAnimation === motion.selectedWalk ||
+        motion.currentAnimation === motion.selectedSideStepLeft ||
+        motion.currentAnimation === motion.selectedSideStepRight) {
+
+        // Using technique described here: http://www.gdcvault.com/play/1020583/Animation-Bootcamp-An-Indie-Approach
+        // wrap the stride length around a 'surveyor's wheel' twice and calculate the angular speed at the given (linear) speed
+        // omega = v / r , where r = circumference / 2 PI , where circumference = 2 * stride length
+        motion.frequencyTimeWheelRadius = motion.strideLength / Math.PI;
+        var angularVelocity = speed / motion.frequencyTimeWheelRadius;
+
+        // calculate the degrees turned (at this angular speed) since last frame
+        wheelAdvance = filter.radToDeg(deltaTime * angularVelocity);
+
+    } else {
+
+        // turn the frequency time wheel by the amount specified for this animation
+        wheelAdvance = filter.radToDeg(motion.currentAnimation.calibration.frequency * deltaTime);
+    }
+
+    if(motion.currentTransition !== nullTransition) {
+
+        // the last animation is still playing so we turn it's frequency time wheel to maintain the animation
+        if (motion.currentTransition.lastAnimation === motion.selectedWalk) {
+
+            // if at a stop angle (i.e. feet now under the avi) hold the wheel position for remainder of transition
+            var tolerance = motion.currentTransition.lastFrequencyTimeIncrement + 0.1;
+            if ((motion.currentTransition.lastFrequencyTimeWheelPos >
+                (motion.currentTransition.stopAngle - tolerance)) &&
+                (motion.currentTransition.lastFrequencyTimeWheelPos <
+                (motion.currentTransition.stopAngle + tolerance))) {
+
+                motion.currentTransition.lastFrequencyTimeIncrement = 0;
+            }
+        }
+        motion.currentTransition.advancePreviousFrequencyTimeWheel();
+    }
+
+    // advance the walk wheel the appropriate amount
+    motion.advanceFrequencyTimeWheel(wheelAdvance);
+}
+
+// helper function for selectAnimation()
+function setTransition(nextAnimation) {
+
+    var lastTransition = motion.currentTransition;
+    motion.currentTransition = new Transition(nextAnimation,
+                                              motion.currentAnimation,
+                                              motion.currentTransition);
+
+    if(motion.currentTransition.recursionDepth > 5) {
+
+        delete motion.currentTransition;
+        motion.currentTransition = lastTransition;
+    }
+}
+
+// select which animation should be played based on speed, mode of locomotion and direction of travel
+function selectAnimation(deltaTime, speed) {
+
+    var localVelocity = {x: 0, y: 0, z: 0};
+    if (speed > 0) {
+        localVelocity = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), MyAvatar.getVelocity());
+    }
+
+    // determine principle direction of movement
+    motion.direction = determineDirection(localVelocity);
+
+    // determine mode of locomotion
+    var locomotionMode = determineLocomotionMode(speed);
+
+    // select appropriate animation. If changing animation, initiate a new transition
+    // note: The transitions are work in progress: https://worklist.net/20186
+    switch (locomotionMode) {
+
+        case state.STANDING: {
+
+            var onVoxelSurface = spatialInformation.distanceToVoxels() < 0.3 ? true : false;
+
+            if (state.currentState !== state.STANDING) {
+
+                if (onVoxelSurface) {
+
+                    setTransition(motion.selectedStand);
+
+                } else {
+
+                    setTransition(motion.selectedHovering);
+                }
+                state.setInternalState(state.STANDING);
+            }
+            if (onVoxelSurface) {
+
+                motion.currentAnimation = motion.selectedStand;
+
+            } else {
+
+                motion.currentAnimation = motion.selectedHovering;
+            }
+            break;
+        }
+
+        case state.WALKING: {
+
+            if (state.currentState !== state.WALKING) {
+
+                setTransition(motion.selectedWalk);
+                // set the walk wheel to it's starting point for this animation
+                if (motion.direction === BACKWARDS) {
+
+                    motion.frequencyTimeWheelPos = motion.selectedWalk.calibration.startAngleBackwards;
+
+                } else {
+
+                    motion.frequencyTimeWheelPos = motion.selectedWalk.calibration.startAngleForwards;
+                }
+                state.setInternalState(state.WALKING);
+            }
+            motion.currentAnimation = motion.selectedWalk;
+            break;
+        }
+
+        case state.SIDE_STEP: {
+
+            var selSideStep = undefined;
+
+            if (state.currentState !== state.SIDE_STEP) {
+
+                if (motion.direction === LEFT) {
+                    // set the walk wheel to it's starting point for this animation
+                    motion.frequencyTimeWheelPos = motion.selectedSideStepLeft.calibration.startAngle;
+                    selSideStep = motion.selectedSideStepLeft;
+
+                } else {
+                    // set the walk wheel to it's starting point for this animation
+                    motion.frequencyTimeWheelPos = motion.selectedSideStepRight.calibration.startAngle;
+                    selSideStep = motion.selectedSideStepRight;
+                }
+                setTransition(selSideStep);
+                state.setInternalState(state.SIDE_STEP);
+
+            } else if (motion.direction === LEFT) {
+
+                if (motion.lastDirection !== LEFT) {
+                    // set the walk wheel to it's starting point for this animation
+                    motion.frequencyTimeWheelPos = motion.selectedSideStepLeft.calibration.startAngle;
+                    setTransition(motion.selectedSideStepLeft);
+                }
+                selSideStep = motion.selectedSideStepLeft;
+
+            } else {
+
+                if (motion.lastDirection !== RIGHT) {
+                    // set the walk wheel to it's starting point for this animation
+                    motion.frequencyTimeWheelPos = motion.selectedSideStepRight.calibration.startAngle;
+                    setTransition(motion.selectedSideStepRight);
+                }
+                selSideStep = motion.selectedSideStepRight;
+            }
+            motion.currentAnimation = selSideStep;
+            break;
+        }
+
+        case state.FLYING: {
+
+            // blend the up, down and forward flying animations relative to motion direction
+            animation.zeroAnimation(motion.selectedFlyBlend);
+
+            var upVector = 0;
+            var forwardVector = 0;
+
+            if (speed > 0) {
+
+                // calculate directionals
+                upVector = localVelocity.y / speed;
+                forwardVector = -localVelocity.z / speed;
+
+                // add damping
+                upVector = flyUpFilter.process(upVector);
+                forwardVector = flyFilter.process(forwardVector);
+
+                // normalise
+                var denominator = Math.abs(upVector) + Math.abs(forwardVector);
+                upVector = upVector / denominator;
+                forwardVector = forwardVector / denominator;
+            }
+
+            if (upVector > 0) {
+
+                animation.blendAnimation(motion.selectedFlyUp,
+                                         motion.selectedFlyBlend,
+                                         upVector);
+
+            } else if (upVector < 0) {
+
+                animation.blendAnimation(motion.selectedFlyDown,
+                                         motion.selectedFlyBlend,
+                                         -upVector);
+            } else {
+
+                forwardVector = 1;
+            }
+            animation.blendAnimation(motion.selectedFly,
+                                     motion.selectedFlyBlend,
+                                     Math.abs(forwardVector));
+
+            if (state.currentState !== state.FLYING) {
+
+                state.setInternalState(state.FLYING);
+                setTransition(motion.selectedFlyBlend);
+            }
+            motion.currentAnimation = motion.selectedFlyBlend;
+            break;
+        }
+
+    } // end switch(locomotionMode)
+
+    // record frame details for future reference
+    motion.lastDirection = motion.direction;
+    motion.lastSpeed = localVelocity;
+    motion.lastDistanceToVoxels = motion.calibration.distanceToVoxels;
+
+    return;
+}
+
+// if the timing's right, recalculate the stride length. if not, fetch the previously calculated value
+function setStrideLength(speed) {
+
+    // if not at full speed the calculation could be wrong, as we may still be transitioning
+    var atMaxSpeed = speed / MAX_WALK_SPEED < 0.97 ? false : true;
+
+    // walking? then get the stride length
+    if (motion.currentAnimation === motion.selectedWalk) {
+
+        var strideMaxAt = motion.currentAnimation.calibration.forwardStrideMaxAt;
+        if (motion.direction === BACKWARDS) {
+            strideMaxAt = motion.currentAnimation.calibration.backwardsStrideMaxAt;
+        }
+
+        var tolerance = 1.0;
+        if (motion.frequencyTimeWheelPos < (strideMaxAt + tolerance) &&
+            motion.frequencyTimeWheelPos > (strideMaxAt - tolerance) &&
+            atMaxSpeed && motion.currentTransition === nullTransition) {
+
+            // measure and save stride length
+            var footRPos = MyAvatar.getJointPosition("RightFoot");
+            var footLPos = MyAvatar.getJointPosition("LeftFoot");
+            motion.strideLength = Vec3.distance(footRPos, footLPos);
+
+            if (motion.direction === FORWARDS) {
+                motion.currentAnimation.calibration.strideLengthForwards = motion.strideLength;
+            } else if (motion.direction === BACKWARDS) {
+                motion.currentAnimation.calibration.strideLengthBackwards = motion.strideLength;
+            }
+
+        } else {
+
+            // use the previously saved value for stride length
+            if (motion.direction === FORWARDS) {
+                motion.strideLength = motion.currentAnimation.calibration.strideLengthForwards;
+            } else if (motion.direction === BACKWARDS) {
+                motion.strideLength = motion.currentAnimation.calibration.strideLengthBackwards;
+            }
+        }
+    } // end get walk stride length
+
+    // sidestepping? get the stride length
+    if (motion.currentAnimation === motion.selectedSideStepLeft ||
+        motion.currentAnimation === motion.selectedSideStepRight) {
+
+        // if the timing's right, take a snapshot of the stride max and recalibrate the stride length
+        var tolerance = 1.0;
+        if (motion.direction === LEFT) {
+
+            if (motion.frequencyTimeWheelPos < motion.currentAnimation.calibration.strideMaxAt + tolerance &&
+                motion.frequencyTimeWheelPos > motion.currentAnimation.calibration.strideMaxAt - tolerance &&
+                atMaxSpeed && motion.currentTransition === nullTransition) {
+
+                var footRPos = MyAvatar.getJointPosition("RightFoot");
+                var footLPos = MyAvatar.getJointPosition("LeftFoot");
+                motion.strideLength = Vec3.distance(footRPos, footLPos);
+                motion.currentAnimation.calibration.strideLength = motion.strideLength;
+
+            } else {
+
+                motion.strideLength = motion.selectedSideStepLeft.calibration.strideLength;
+            }
+
+        } else if (motion.direction === RIGHT) {
+
+            if (motion.frequencyTimeWheelPos < motion.currentAnimation.calibration.strideMaxAt + tolerance &&
+                motion.frequencyTimeWheelPos > motion.currentAnimation.calibration.strideMaxAt - tolerance &&
+                atMaxSpeed && motion.currentTransition === nullTransition) {
+
+                var footRPos = MyAvatar.getJointPosition("RightFoot");
+                var footLPos = MyAvatar.getJointPosition("LeftFoot");
+                motion.strideLength = Vec3.distance(footRPos, footLPos);
+                motion.currentAnimation.calibration.strideLength = motion.strideLength;
+
+            } else {
+
+                motion.strideLength = motion.selectedSideStepRight.calibration.strideLength;
+            }
+        }
+    } // end get sidestep stride length
+}
+
+// initialise a new transition. update progress of a live transition
+function updateTransition() {
+
+    if (motion.currentTransition !== nullTransition) {
+
+        // new transition?
+        if (motion.currentTransition.progress === 0) {
+
+            // overlapping transitions?
+            if (motion.currentTransition.lastTransition !== nullTransition) {
+
+                // is the last animation for the nested transition the same as the new animation?
+                if (motion.currentTransition.lastTransition.lastAnimation === motion.currentAnimation) {
+
+                    // sync the nested transitions's frequency time wheel for a smooth animation blend
+                    motion.frequencyTimeWheelPos = motion.currentTransition.lastTransition.lastFrequencyTimeWheelPos;
+                }
+            }
+
+            if (motion.currentTransition.lastAnimation === motion.selectedWalk) {
+
+                // decide at which angle we should stop the frequency time wheel
+                var stopAngle = motion.selectedWalk.calibration.stopAngleForwards;
+                var percentToMove = 0;
+                var lastFrequencyTimeWheelPos = motion.currentTransition.lastFrequencyTimeWheelPos;
+                var lastElapsedFTDegrees = motion.currentTransition.lastElapsedFTDegrees;
+
+                // set the stop angle depending on which quadrant of the walk cycle we are currently in
+                // and decide whether we need to take an extra step to complete the walk cycle or not
+                // - currently work in progress
+                if(lastFrequencyTimeWheelPos <= stopAngle && lastElapsedFTDegrees < 180) {
+
+                    // we have not taken a complete step yet, so we do need to do so before stopping
+                    percentToMove = 100;
+                    stopAngle += 180;
+
+                } else if(lastFrequencyTimeWheelPos > stopAngle && lastFrequencyTimeWheelPos <= stopAngle + 90) {
+
+                    // take an extra step to complete the walk cycle and stop at the second stop angle
+                    percentToMove = 100;
+                    stopAngle += 180;
+
+                } else if(lastFrequencyTimeWheelPos > stopAngle + 90 && lastFrequencyTimeWheelPos <= stopAngle + 180) {
+
+                    // stop on the other foot at the second stop angle for this walk cycle
+                    percentToMove = 0;
+                    if (motion.currentTransition.lastDirection === BACKWARDS) {
+
+                        percentToMove = 100;
+
+                    } else {
+
+                        stopAngle += 180;
+                    }
+
+                } else if(lastFrequencyTimeWheelPos > stopAngle + 180 && lastFrequencyTimeWheelPos <= stopAngle + 270) {
+
+                    // take an extra step to complete the walk cycle and stop at the first stop angle
+                    percentToMove = 100;
+                }
+
+                // set it all in motion
+                motion.currentTransition.stopAngle = stopAngle;
+                motion.currentTransition.percentToMove = percentToMove;
+            }
+
+        } // end if new transition
+
+        // update the Transition progress
+        if (motion.currentTransition.updateProgress() >= 1) {
+
+            // it's time to kill off this transition
+            delete motion.currentTransition;
+            motion.currentTransition = nullTransition;
+        }
+    }
+}
+
+// helper function for animateAvatar(). calculate the amount to lean forwards (or backwards) based on the avi's acceleration
 function getLeanPitch(speed) {
 
-	if (speed > TOP_SPEED) {
-		speed = TOP_SPEED;
-	}
-	var leanProgress = speed / TOP_SPEED;
+    var leanProgress = undefined;
 
-	if (motion.direction === LEFT ||
-	   motion.direction === RIGHT) {
-		leanProgress = 0;
-	} else {
+    if (motion.direction === LEFT ||
+        motion.direction === RIGHT ||
+        motion.direction === UP) {
 
-		var responseSharpness = 1.5;
-		if (motion.direction == BACKWARDS) {
-			responseSharpness = 3.0;
-		}
+        leanProgress = 0;
 
-		leanProgress = filter.bezier((1 - leanProgress),
-										{x: 0, y: 0.0},
-										{x: 0, y: responseSharpness},
-										{x: 0, y: 1.5},
-										{x: 1, y: 1}).y;
+    } else {
 
-		// determine final pitch and adjust for direction of momentum
-		if (motion.direction === BACKWARDS) {
-			leanProgress = -motion.motionPitchMax * leanProgress;
-		} else {
-			leanProgress = motion.motionPitchMax * leanProgress;
-		}
-	}
+        // boost lean for flying (leaning whilst walking is work in progress)
+        var signedSpeed = -Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), MyAvatar.getVelocity()).z;
+        var reverseMod = 1;
+        var BOOST = 6;
 
-	// return the smoothed response
-	return leanPitchFilter.process(leanProgress);
+        if (signedSpeed < 0) {
+
+            reverseMod = -1.9;
+            if (motion.direction === DOWN) {
+
+                reverseMod *= -1;
+            }
+        }
+        leanProgress = reverseMod * BOOST * speed / TOP_SPEED;
+    }
+
+    // use filters to shape the walking acceleration response
+    leanProgress = leanPitchFilter.process(leanProgress);
+    leanProgress = leanPitchSmoothingFilter.process(leanProgress);
+    return motion.calibration.pitchMax * leanProgress;
 }
 
-// calculate the angle at which to bank into corners when turning
+// helper function for animateAvatar(). calculate the angle at which to bank into corners whilst turning
 function getLeanRoll(deltaTime, speed) {
 
-	var leanRollProgress = 0;
-	if (speed > TOP_SPEED) {
-		speed = TOP_SPEED;
-	}
+    var leanRollProgress = 0;
+    var angularVelocity = filter.radToDeg(MyAvatar.getAngularVelocity().y);
 
-	// what's our our anglular velocity?
-	var angularVelocityMax = 70; // from observation
-	var angularVelocity = filter.radToDeg(MyAvatar.getAngularVelocity().y);
-	if (angularVelocity > angularVelocityMax) {
-		angularVelocity = angularVelocityMax;
-	}
-	if (angularVelocity < -angularVelocityMax) {
-		angularVelocity = -angularVelocityMax;
-	}
+    leanRollProgress = speed / TOP_SPEED;
+    leanRollProgress *= Math.abs(angularVelocity) / motion.calibration.angularVelocityMax;
 
-	leanRollProgress = speed / TOP_SPEED;
+    // shape the response curve
+    leanRollProgress = filter.bezier((1 - leanRollProgress),
+        {x: 0, y: 0}, {x: 0, y: 1.3}, {x: 0.25, y: 0.5}, {x: 1, y: 1}).y;
 
-	if (motion.direction !== LEFT &&
-	    motion.direction !== RIGHT) {
-			leanRollProgress *= (Math.abs(angularVelocity) / angularVelocityMax);
-	}
+    // which way to lean?
+    var turnSign = -1;
+    if (angularVelocity < 0.001) {
 
-	// apply our response curve
-	leanRollProgress = filter.bezier((1 - leanRollProgress),
-											   {x: 0, y: 0},
-											   {x: 0, y: 1},
-											   {x: 0, y: 1},
-											   {x: 1, y: 1}).y;
-	// which way to lean?
-	var turnSign = -1;
-	if (angularVelocity < 0.001) {
-		turnSign = 1;
-	}
-	if (motion.direction === BACKWARDS ||
-	    motion.direction === LEFT) {
-		turnSign *= -1;
-	}
-	if (motion.direction === LEFT ||
-	    motion.direction === RIGHT) {
-	   		leanRollProgress *= 2;
-	}
+        turnSign = 1;
+    }
+    if (motion.direction === BACKWARDS ||
+        motion.direction === LEFT) {
 
-	// add damping with simple averaging filter
-	leanRollProgress = leanRollFilter.process(turnSign * leanRollProgress);
-	return motion.motionRollMax * leanRollProgress;
+        turnSign *= -1;
+    }
+
+    // add damping with averaging filter
+    leanRollProgress = leanRollSmoothingFilter.process(turnSign * leanRollProgress);
+    return motion.calibration.rollMax * leanRollProgress;
 }
 
-function playFootstep(side) {
+// check for existence of object property (e.g. animation waveform synthesis filters)
+function isDefined(value) {
 
-	options = {
-	  position: Camera.getPosition(),
-    volume: 0.3
-	}
-  
-	var soundNumber = 2; // 0 to 2
-	if (side === RIGHT && motion.makesFootStepSounds) {
-		Audio.playSound(walkAssets.footsteps[soundNumber + 1], options);
-	} else if (side === LEFT && motion.makesFootStepSounds) {
-		Audio.playSound(walkAssets.footsteps[soundNumber], options);
-	}
+    try {
+        if (typeof value != 'undefined') return true;
+    } catch (e) {
+        return false;
+    }
 }
 
-// animate the avatar using sine wave generators. inspired by Victorian clockwork dolls
+// helper function for animateAvatar(). calculate joint translations based on animation file settings and frequency * time
+function calculateTranslations(animation, ft, direction) {
+
+    var jointName = "Hips";
+    var joint = animation.joints[jointName];
+    var jointTranslations = {x:0, y:0, z:0};
+
+    // gather modifiers and multipliers
+    modifiers = new JointModifiers(joint, direction);
+
+    // calculate translations. Use synthesis filters where specified by the animation file.
+
+    // sway (oscillation on the x-axis)
+    if(animation.filters.hasOwnProperty(jointName) &&
+       'swayFilter' in animation.filters[jointName]) {
+
+        jointTranslations.x = joint.sway *
+            animation.filters[jointName].swayFilter.
+            calculate(filter.degToRad(ft + joint.swayPhase)) +
+            joint.swayOffset;
+
+    } else {
+
+        jointTranslations.x = joint.sway *
+            Math.sin(filter.degToRad(ft + joint.swayPhase)) +
+            joint.swayOffset;
+    }
+
+    // bob (oscillation on the y-axis)
+    if(animation.filters.hasOwnProperty(jointName) &&
+       'bobFilter' in animation.filters[jointName]) {
+
+        jointTranslations.y = joint.bob *
+            animation.filters[jointName].bobFilter.calculate
+            (filter.degToRad(modifiers.bobFrequencyMultiplier * ft +
+            joint.bobPhase + modifiers.bobReverseModifier)) +
+            joint.bobOffset;
+
+    } else {
+
+        jointTranslations.y = joint.bob *
+            Math.sin(filter.degToRad(modifiers.bobFrequencyMultiplier * ft +
+            joint.bobPhase + modifiers.bobReverseModifier)) +
+            joint.bobOffset;
+
+        // check for specified low pass filter for this joint (currently Hips bob only)
+        if(animation.filters.hasOwnProperty(jointName) &&
+               'bobLPFilter' in animation.filters[jointName]) {
+
+            jointTranslations.y = filter.clipTrough(jointTranslations.y, joint, 2);
+            jointTranslations.y = animation.filters[jointName].bobLPFilter.process(jointTranslations.y);
+        }
+    }
+
+    // thrust (oscillation on the z-axis)
+    if(animation.filters.hasOwnProperty(jointName) &&
+       'thrustFilter' in animation.filters[jointName]) {
+
+        jointTranslations.z = joint.thrust *
+            animation.filters[jointName].thrustFilter.
+            calculate(filter.degToRad(modifiers.thrustFrequencyMultiplier * ft +
+            joint.thrustPhase)) +
+            joint.thrustOffset;
+
+    } else {
+
+        jointTranslations.z = joint.thrust *
+            Math.sin(filter.degToRad(modifiers.thrustFrequencyMultiplier * ft +
+            joint.thrustPhase)) +
+            joint.thrustOffset;
+    }
+
+    return jointTranslations;
+}
+
+// helper function for animateAvatar(). calculate joint rotations based on animation file settings and frequency * time
+function calculateRotations(jointName, animation, ft, direction) {
+
+    var joint = animation.joints[jointName];
+    var jointRotations = {x:0, y:0, z:0};
+
+    // gather modifiers and multipliers for this joint
+    modifiers = new JointModifiers(joint, direction);
+
+    // calculate rotations. Use synthesis filters where specified by the animation file.
+
+    // calculate pitch
+    if(animation.filters.hasOwnProperty(jointName) &&
+       'pitchFilter' in animation.filters[jointName]) {
+
+        jointRotations.x = modifiers.pitchReverseInvert * (modifiers.pitchSign * joint.pitch *
+            animation.filters[jointName].pitchFilter.calculate
+            (filter.degToRad(ft * modifiers.pitchFrequencyMultiplier +
+            joint.pitchPhase + modifiers.pitchPhaseModifier + modifiers.pitchReverseModifier)) +
+            modifiers.pitchOffsetSign * joint.pitchOffset);
+
+    } else {
+
+        jointRotations.x = modifiers.pitchReverseInvert * (modifiers.pitchSign * joint.pitch *
+            Math.sin(filter.degToRad(ft * modifiers.pitchFrequencyMultiplier +
+            joint.pitchPhase + modifiers.pitchPhaseModifier + modifiers.pitchReverseModifier)) +
+            modifiers.pitchOffsetSign * joint.pitchOffset);
+    }
+
+    // calculate yaw
+    if(animation.filters.hasOwnProperty(jointName) &&
+       'yawFilter' in animation.filters[jointName]) {
+
+        jointRotations.y = modifiers.yawSign * joint.yaw *
+            animation.filters[jointName].yawFilter.calculate
+            (filter.degToRad(ft + joint.yawPhase + modifiers.yawReverseModifier)) +
+            modifiers.yawOffsetSign * joint.yawOffset;
+
+    } else {
+
+        jointRotations.y = modifiers.yawSign * joint.yaw *
+            Math.sin(filter.degToRad(ft + joint.yawPhase + modifiers.yawReverseModifier)) +
+            modifiers.yawOffsetSign * joint.yawOffset;
+    }
+
+    // calculate roll
+    if(animation.filters.hasOwnProperty(jointName) &&
+       'rollFilter' in animation.filters[jointName]) {
+
+        jointRotations.z = modifiers.rollSign * joint.roll *
+            animation.filters[jointName].rollFilter.calculate
+            (filter.degToRad(ft + joint.rollPhase + modifiers.rollReverseModifier)) +
+            modifiers.rollOffsetSign * joint.rollOffset;
+
+    } else {
+
+        jointRotations.z = modifiers.rollSign * joint.roll *
+            Math.sin(filter.degToRad(ft + joint.rollPhase + modifiers.rollReverseModifier)) +
+            modifiers.rollOffsetSign * joint.rollOffset;
+    }
+    return jointRotations;
+}
+
+// animate the avatar using sine waves, geometric waveforms and harmonic generators
 function animateAvatar(deltaTime, speed) {
 
-	var cycle = motion.cumulativeTime;
-	var transProgress = 1;
-	var adjFreq = motion.curAnim.calibration.frequency;
+    // adjust leaning direction for flying
+    var flyingModifier = 1;
+    if (state.currentState.FLYING) {
 
-	// legs phase and cycle reversal for walking backwards
-	var reverseModifier = 0;
-	var reverseSignModifier = 1;
-	if (motion.direction === BACKWARDS) {
-		reverseModifier = -180;
-		reverseSignModifier = -1;
-	}
+        flyingModifier = -1;
+    }
 
-	// don't lean into the direction of travel if going up
-	var leanMod = 1;
-	if (motion.direction === UP) {
-		leanMod = 0;
-	}
+    // leaning in response to speed and acceleration (affects Hips pitch and z-axis acceleration driven offset)
+    var leanPitch = getLeanPitch(speed);
 
-	// adjust leaning direction for flying
-	var flyingModifier = 1;
-	if (state.currentState.FLYING) {
-		flyingModifier = -1;
-	}
+    // hips translations
+    var hipsTranslations = undefined;
+    if (motion.currentTransition !== nullTransition) {
 
-	if (motion.curTransition !== nullTransition) {
+        hipsTranslations = motion.currentTransition.blendTranslations(motion.frequencyTimeWheelPos, motion.direction);
 
-		// new transiton?
-		if (motion.curTransition.progress === 0 &&
-			motion.curTransition.walkingAtStart) {
+    } else {
 
-			if (state.currentState !== state.SIDE_STEP) {
+        hipsTranslations = calculateTranslations(motion.currentAnimation,
+                                                 motion.frequencyTimeWheelPos,
+                                                 motion.direction);
+    }
 
-				// work out where we want the walk cycle to stop
-				var leftStop = motion.selWalk.calibration.stopAngleForwards + 180;
-				var rightStop = motion.selWalk.calibration.stopAngleForwards;
+    // factor in any acceleration driven leaning
+    hipsTranslations.z += motion.calibration.hipsToFeet * Math.sin(filter.degToRad(leanPitch));
 
-				if (motion.direction === BACKWARDS) {
-					leftStop = motion.selWalk.calibration.stopAngleBackwards + 180;
-					rightStop = motion.selWalk.calibration.stopAngleBackwards;
-				}
+    // apply translations
+    MyAvatar.setSkeletonOffset(hipsTranslations);
 
-				// find the closest stop point from the walk wheel's angle
-				var angleToLeftStop = 180 - Math.abs(Math.abs(motion.walkWheelPos - leftStop) - 180);
-				var angleToRightStop = 180 - Math.abs(Math.abs(motion.walkWheelPos - rightStop) - 180);
-				if (motion.walkWheelPos > angleToLeftStop) {
-					angleToLeftStop = 360 - angleToLeftStop;
-				}
-				if (motion.walkWheelPos > angleToRightStop) {
-					angleToRightStop = 360 - angleToRightStop;
-				}
+    // joint rotations
+    for (jointName in walkAssets.animationReference.joints) {
 
-				motion.curTransition.walkWheelIncrement = 3;
+        // ignore arms rotations if 'arms free' is selected for Leap / Hydra use
+        if((walkAssets.animationReference.joints[jointName].IKChain === "LeftArm" ||
+            walkAssets.animationReference.joints[jointName].IKChain === "RightArm") &&
+            motion.armsFree) {
 
-				// keep the walkwheel turning by setting the walkWheelIncrement
-				// until our feet are tucked nicely underneath us.
-				if (angleToLeftStop < angleToRightStop) {
-					motion.curTransition.walkStopAngle = leftStop;
-				} else {
-					motion.curTransition.walkStopAngle = rightStop;
-				}
+                continue;
+        }
 
-			} else {
+        if (isDefined(motion.currentAnimation.joints[jointName])) {
 
-				// freeze wheel for sidestepping transitions (for now)
-				motion.curTransition.walkWheelIncrement = 0;
-			}
-		} // end if (new transition and curTransition.walkingAtStart)
+            var jointRotations = undefined;
 
-		// update the Transition progress
-		var elapasedTime = (new Date().getTime() - motion.curTransition.startTime) / 1000;
-		motion.curTransition.progress = elapasedTime / motion.curTransition.transitionDuration;
-		transProgress = filter.bezier((1 - motion.curTransition.progress), {x: 0, y: 0},
-							motion.curTransition.easingLower,
-							motion.curTransition.easingUpper, {x: 1, y: 1}).y;
+            // if there's a live transition, blend the rotations with the last animation's rotations for this joint
+            if (motion.currentTransition !== nullTransition) {
 
-		if (motion.curTransition.progress >= 1) {
+                jointRotations = motion.currentTransition.blendRotations(jointName,
+                                                                         motion.frequencyTimeWheelPos,
+                                                                         motion.direction);
+            } else {
 
-			// time to kill off the transition
-			delete motion.curTransition;
-			motion.curTransition = nullTransition;
+                jointRotations = calculateRotations(jointName,
+                                                    motion.currentAnimation,
+                                                    motion.frequencyTimeWheelPos,
+                                                    motion.direction);
+            }
 
-		} else {
+            // apply lean
+            if (jointName === "Hips") {
 
-			if (motion.curTransition.walkingAtStart) {
+                jointRotations.x += leanPitch;
+                jointRotations.z += getLeanRoll(deltaTime, speed);
+            }
 
-				if (state.currentState !== state.SIDE_STEP) {
-
-					// if at a stop angle, hold the walk wheel position for remainder of transition
-					var tolerance = 7; // must be greater than the walkWheel increment
-					if ((motion.walkWheelPos > (motion.curTransition.walkStopAngle - tolerance)) &&
-						(motion.walkWheelPos < (motion.curTransition.walkStopAngle + tolerance))) {
-
-						motion.curTransition.walkWheelIncrement = 0;
-					}
-					// keep turning walk wheel until both feet are below the avi
-					motion.advanceWalkWheel(motion.curTransition.walkWheelIncrement);
-
-				} else motion.curTransition.walkWheelIncrement = 0; // sidestep
-			}
-		} } // end motion.curTransition !== nullTransition
-
-
-	// walking? then get the stride length
-	if (motion.curAnim === motion.selWalk) {
-
-		// if the timing's right, take a snapshot of the stride max and recalibrate
-		var strideMaxAt = motion.curAnim.calibration.forwardStrideMaxAt;
-		if (motion.direction === BACKWARDS) {
-			strideMaxAt = motion.curAnim.calibration.backwardsStrideMaxAt;
-		}
-
-		var tolerance = 1.0;
-		if (motion.walkWheelPos < (strideMaxAt + tolerance) &&
-			motion.walkWheelPos > (strideMaxAt - tolerance)) {
-
-			// measure and save stride length
-			var footRPos = MyAvatar.getJointPosition("RightFoot");
-			var footLPos = MyAvatar.getJointPosition("LeftFoot");
-			motion.strideLength = Vec3.distance(footRPos, footLPos);
-
-			if (motion.direction === FORWARDS) {
-				motion.curAnim.calibration.strideLengthForwards = motion.strideLength;
-			} else if (motion.direction === BACKWARDS) {
-				motion.curAnim.calibration.strideLengthBackwards = motion.strideLength;
-			}
-
-		} else {
-
-			// use the saved value for stride length
-			if (motion.direction === FORWARDS) {
-				motion.strideLength = motion.curAnim.calibration.strideLengthForwards;
-			} else if (motion.direction === BACKWARDS) {
-				motion.strideLength = motion.curAnim.calibration.strideLengthBackwards;
-			}
-		}
-	} // end get walk stride length
-
-	// sidestepping? get the stride length
-	if (motion.curAnim === motion.selSideStepLeft ||
-		motion.curAnim === motion.selSideStepRight) {
-
-		// if the timing's right, take a snapshot of the stride max and recalibrate the stride length
-		var tolerance = 1.0;
-		if (motion.direction === LEFT) {
-
-			if (motion.walkWheelPos < motion.curAnim.calibration.strideMaxAt + tolerance &&
-				motion.walkWheelPos > motion.curAnim.calibration.strideMaxAt - tolerance) {
-
-				var footRPos = MyAvatar.getJointPosition("RightFoot");
-				var footLPos = MyAvatar.getJointPosition("LeftFoot");
-				motion.strideLength = Vec3.distance(footRPos, footLPos);
-				motion.curAnim.calibration.strideLength = motion.strideLength;
-
-			} else motion.strideLength = motion.selSideStepLeft.calibration.strideLength;
-
-		} else if (motion.direction === RIGHT) {
-
-			if (motion.walkWheelPos < motion.curAnim.calibration.strideMaxAt + tolerance &&
-				motion.walkWheelPos > motion.curAnim.calibration.strideMaxAt - tolerance) {
-
-				var footRPos = MyAvatar.getJointPosition("RightFoot");
-				var footLPos = MyAvatar.getJointPosition("LeftFoot");
-				motion.strideLength = Vec3.distance(footRPos, footLPos);
-				motion.curAnim.calibration.strideLength = motion.strideLength;
-
-			} else motion.strideLength = motion.selSideStepRight.calibration.strideLength;
-		}
-	} // end get sidestep stride length
-
-	// turn the walk wheel
-	if (motion.curAnim === motion.selWalk ||
-	   motion.curAnim === motion.selSideStepLeft ||
-	   motion.curAnim === motion.selSideStepRight ||
-	   motion.curTransition.walkingAtStart) {
-
-		// wrap the stride length around a 'surveyor's wheel' twice and calculate
-		// the angular speed at the given (linear) speed:
-		// omega = v / r , where r = circumference / 2 PI , where circumference = 2 * stride length
-		var strideLength = motion.strideLength;
-		var wheelRadius = strideLength / Math.PI;
-		var angularVelocity = speed / wheelRadius;
-
-		// calculate the degrees turned (at this angular speed) since last frame
-		var radiansTurnedSinceLastFrame = deltaTime * angularVelocity;
-		var degreesTurnedSinceLastFrame = filter.radToDeg(radiansTurnedSinceLastFrame);
-
-		// if we are in an edit mode, we will need fake time to turn the wheel
-		if (state.currentState !== state.WALKING &&
-			state.currentState !== state.SIDE_STEP) {
-			degreesTurnedSinceLastFrame = motion.curAnim.calibration.frequency / 70;
-		}
-
-		// advance the walk wheel the appropriate amount
-		motion.advanceWalkWheel(degreesTurnedSinceLastFrame);
-
-		// set the new values for the exact correct walk cycle speed
-		adjFreq = 1;
-		cycle = motion.walkWheelPos;
-
-	} // end of walk wheel and stride length calculation
-
-	// motion vars
-	var pitchOsc = 0;
-	var pitchOscLeft = 0;
-	var pitchOscRight = 0;
-	var yawOsc = 0;
-	var yawOscLeft = 0;
-	var yawOscRight = 0;
-	var rollOsc = 0;
-	var pitchOffset = 0;
-	var yawOffset = 0;
-	var rollOffset = 0;
-	var swayOsc = 0;
-	var bobOsc = 0;
-	var thrustOsc = 0;
-	var swayOscLast = 0;
-	var bobOscLast = 0;
-	var thrustOscLast = 0;
-
-	// historical (for transitions)
-	var pitchOscLast = 0;
-	var pitchOscLeftLast = 0;
-	var pitchOscRightLast = 0;
-	var yawOscLast = 0;
-	var rollOscLast = 0;
-	var pitchOffsetLast = 0;
-	var yawOffsetLast = 0;
-	var rollOffsetLast = 0;
-
-	// feet
-	var sideStepFootPitchModifier = 1;
-	var sideStepHandPitchSign = 1;
-
-	// calculate hips translation
-	if (motion.curTransition !== nullTransition) {
-
-		if (motion.curTransition.walkingAtStart) {
-
-			swayOsc = motion.curAnim.joints[0].sway *
-					  Math.sin(filter.degToRad(motion.cumulativeTime * motion.curAnim.calibration.frequency +
-					  motion.curAnim.joints[0].swayPhase)) + motion.curAnim.joints[0].swayOffset;
-
-			var bobPhase = motion.curAnim.joints[0].bobPhase;
-			if (motion.direction === motion.BACKWARDS) {
-				bobPhase += 90;
-			}
-			bobOsc = motion.curAnim.joints[0].bob *
-					 Math.sin(filter.degToRad(motion.cumulativeTime *
-					 motion.curAnim.calibration.frequency + bobPhase)) +
-					 motion.curAnim.joints[0].bobOffset;
-
-			thrustOsc = motion.curAnim.joints[0].thrust *
-						Math.sin(filter.degToRad(motion.cumulativeTime *
-						motion.curAnim.calibration.frequency * 2 +
-						motion.curAnim.joints[0].thrustPhase)) +
-						motion.curAnim.joints[0].thrustOffset;
-
-			swayOscLast = motion.curTransition.lastAnim.joints[0].sway *
-						  Math.sin(filter.degToRad(motion.walkWheelPos +
-						  motion.curTransition.lastAnim.joints[0].swayPhase)) +
-						  motion.curTransition.lastAnim.joints[0].swayOffset;
-
-			var bobPhaseLast = motion.curTransition.lastAnim.joints[0].bobPhase;
-			if (motion.direction === motion.BACKWARDS) {
-				bobPhaseLast +=90;
-			}
-			bobOscLast = motion.curTransition.lastAnim.joints[0].bob *
-						 Math.sin(filter.degToRad(motion.walkWheelPos + bobPhaseLast));
-			bobOscLast = filter.clipTrough(bobOscLast, motion.curTransition.lastAnim.joints[0].bob , 2);
-			bobOscLast = hipsBobLPFilter.process(bobOscLast);
-			bobOscLast += motion.curTransition.lastAnim.joints[0].bobOffset;
-
-			thrustOscLast = motion.curTransition.lastAnim.joints[0].thrust *
-							Math.sin(filter.degToRad(motion.walkWheelPos * 2 +
-							motion.curTransition.lastAnim.joints[0].thrustPhase)) +
-							motion.curTransition.lastAnim.joints[0].thrustOffset;
-
-		// end if walking at start of transition
-
-		} else {
-
-			swayOsc = motion.curAnim.joints[0].sway *
-					  Math.sin(filter.degToRad(cycle * adjFreq + motion.curAnim.joints[0].swayPhase)) +
-					  motion.curAnim.joints[0].swayOffset;
-
-			var bobPhase = motion.curAnim.joints[0].bobPhase;
-			if (motion.direction === motion.BACKWARDS) {
-				bobPhase += 90;
-			}
-			bobOsc = motion.curAnim.joints[0].bob *
-					 Math.sin(filter.degToRad(cycle * adjFreq * 2 + bobPhase));
-			if (state.currentState === state.WALKING ||
-			   state.currentState === state.EDIT_WALK_STYLES ||
-			   state.currentState === state.EDIT_WALK_TWEAKS ||
-			   state.currentState === state.EDIT_WALK_JOINTS) {
-
-					// apply clipping filter to flatten the curve's peaks (inputValue, peak, strength)
-					bobOsc = filter.clipTrough(bobOsc, motion.curAnim.joints[0].bob , 2);
-					bobOsc = hipsBobLPFilter.process(bobOsc);
-			}
-			bobOsc += motion.curAnim.joints[0].bobOffset;
-
-			thrustOsc = motion.curAnim.joints[0].thrust *
-						Math.sin(filter.degToRad(cycle * adjFreq * 2 +
-						motion.curAnim.joints[0].thrustPhase)) +
-						motion.curAnim.joints[0].thrustOffset;
-
-			swayOscLast = motion.curTransition.lastAnim.joints[0].sway *
-						  Math.sin(filter.degToRad(motion.cumulativeTime *
-						  motion.curTransition.lastAnim.calibration.frequency +
-						  motion.curTransition.lastAnim.joints[0].swayPhase)) +
-						  motion.curTransition.lastAnim.joints[0].swayOffset;
-
-			bobOscLast = motion.curTransition.lastAnim.joints[0].bob *
-						 Math.sin(filter.degToRad(motion.cumulativeTime *
-						 motion.curTransition.lastAnim.calibration.frequency * 2 +
-						 motion.curTransition.lastAnim.joints[0].bobPhase)) +
-						 motion.curTransition.lastAnim.joints[0].bobOffset;
-
-			thrustOscLast = motion.curTransition.lastAnim.joints[0].thrust *
-							Math.sin(filter.degToRad(motion.cumulativeTime *
-							motion.curTransition.lastAnim.calibration.frequency * 2 +
-							motion.curTransition.lastAnim.joints[0].thrustPhase)) +
-							motion.curTransition.lastAnim.joints[0].thrustOffset;
-		}
-
-		swayOsc = (transProgress * swayOsc) + ((1 - transProgress) * swayOscLast);
-		bobOsc = (transProgress * bobOsc) + ((1 - transProgress) * bobOscLast);
-		thrustOsc = (transProgress * thrustOsc) + ((1 - transProgress) * thrustOscLast);
-
-		// end if walking at start of transition
-
-		} else {
-
-		swayOsc = motion.curAnim.joints[0].sway *
-				  Math.sin(filter.degToRad(cycle * adjFreq + motion.curAnim.joints[0].swayPhase)) +
-				  motion.curAnim.joints[0].swayOffset;
-
-		bobPhase = motion.curAnim.joints[0].bobPhase;
-		if (motion.direction === motion.BACKWARDS) bobPhase += 90;
-		bobOsc = motion.curAnim.joints[0].bob * Math.sin(filter.degToRad(cycle * adjFreq * 2 + bobPhase));
-		if (state.currentState === state.WALKING ||
-		   state.currentState === state.EDIT_WALK_STYLES ||
-		   state.currentState === state.EDIT_WALK_TWEAKS ||
-		   state.currentState === state.EDIT_WALK_JOINTS) {
-
-				// apply clipping filter to flatten the curve's peaks (inputValue, peak, strength)
-				bobOsc = filter.clipTrough(bobOsc, motion.curAnim.joints[0].bob , 2);
-				bobOsc = hipsBobLPFilter.process(bobOsc);
-		}
-		bobOsc += motion.curAnim.joints[0].bobOffset;
-
-		thrustOsc = motion.curAnim.joints[0].thrust *
-					Math.sin(filter.degToRad(cycle * adjFreq * 2 +
-					motion.curAnim.joints[0].thrustPhase)) +
-					motion.curAnim.joints[0].thrustOffset;
-	}
-
-	// convert local hips translations to global and apply
-	var aviOrientation = MyAvatar.orientation;
-	var front = Quat.getFront(aviOrientation);
-	var right = Quat.getRight(aviOrientation);
-	var up = Quat.getUp(aviOrientation);
-	var aviFront = Vec3.multiply(front, thrustOsc);
-	var aviRight = Vec3.multiply(right, swayOsc);
-	var aviUp = Vec3.multiply(up, bobOsc);
-	var aviTranslationOffset = {x: 0, y: 0, z: 0};
-
-	aviTranslationOffset = Vec3.sum(aviTranslationOffset, aviFront);
-	aviTranslationOffset = Vec3.sum(aviTranslationOffset, aviRight);
-	aviTranslationOffset = Vec3.sum(aviTranslationOffset, aviUp);
-
-	MyAvatar.setSkeletonOffset({
-		x: aviTranslationOffset.x,
-		y: aviTranslationOffset.y,
-		z: aviTranslationOffset.z
-	});
-
-	// hips rotation
-	if (motion.curTransition !== nullTransition) {
-
-		if (motion.curTransition.walkingAtStart) {
-
-			pitchOsc = motion.curAnim.joints[0].pitch *
-				Math.sin(filter.degToRad(motion.cumulativeTime * motion.curAnim.calibration.frequency * 2 +
-				motion.curAnim.joints[0].pitchPhase)) + motion.curAnim.joints[0].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[0].yaw *
-				Math.sin(filter.degToRad(motion.cumulativeTime * motion.curAnim.calibration.frequency +
-				motion.curAnim.joints[0].yawPhase - reverseModifier)) + motion.curAnim.joints[0].yawOffset;
-
-			rollOsc = motion.curAnim.joints[0].roll *
-				Math.sin(filter.degToRad(motion.cumulativeTime * motion.curAnim.calibration.frequency +
-				motion.curAnim.joints[0].rollPhase)) + motion.curAnim.joints[0].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[0].pitch *
-				Math.sin(filter.degToRad(motion.walkWheelPos * 2 +
-				motion.curTransition.lastAnim.joints[0].pitchPhase)) +
-				motion.curTransition.lastAnim.joints[0].pitchOffset;
-
-			yawOscLast = motion.curTransition.lastAnim.joints[0].yaw *
-				Math.sin(filter.degToRad(motion.walkWheelPos +
-				motion.curTransition.lastAnim.joints[0].yawPhase));
-
-			yawOscLast += motion.curTransition.lastAnim.joints[0].yaw *
-				hipsYawShaper.shapeWave(filter.degToRad(motion.walkWheelPos +
-				motion.curTransition.lastAnim.joints[0].yawPhase - reverseModifier)) +
-				motion.curTransition.lastAnim.joints[0].yawOffset;
-
-			rollOscLast = (motion.curTransition.lastAnim.joints[0].roll *
-				Math.sin(filter.degToRad(motion.walkWheelPos +
-				motion.curTransition.lastAnim.joints[0].rollPhase)) +
-				motion.curTransition.lastAnim.joints[0].rollOffset);
-
-		} else {
-
-			pitchOsc = motion.curAnim.joints[0].pitch *
-				Math.sin(filter.degToRad(cycle * adjFreq * 2 +
-				motion.curAnim.joints[0].pitchPhase)) +
-				motion.curAnim.joints[0].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[0].yaw *
-				Math.sin(filter.degToRad(cycle * adjFreq +
-				motion.curAnim.joints[0].yawPhase - reverseModifier)) +
-				motion.curAnim.joints[0].yawOffset;
-
-			rollOsc = motion.curAnim.joints[0].roll *
-				Math.sin(filter.degToRad(cycle * adjFreq +
-				motion.curAnim.joints[0].rollPhase)) +
-				motion.curAnim.joints[0].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[0].pitch *
-				Math.sin(filter.degToRad(motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency * 2 +
-				motion.curTransition.lastAnim.joints[0].pitchPhase)) +
-				motion.curTransition.lastAnim.joints[0].pitchOffset;
-
-			yawOscLast = motion.curTransition.lastAnim.joints[0].yaw *
-				Math.sin(filter.degToRad(motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency +
-				motion.curTransition.lastAnim.joints[0].yawPhase - reverseModifier)) +
-				motion.curTransition.lastAnim.joints[0].yawOffset;
-
-			rollOscLast = motion.curTransition.lastAnim.joints[0].roll *
-				Math.sin(filter.degToRad(motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency +
-				motion.curTransition.lastAnim.joints[0].rollPhase)) +
-				motion.curTransition.lastAnim.joints[0].rollOffset;
-		}
-
-		pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-		yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-		rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-	} else {
-
-		pitchOsc = motion.curAnim.joints[0].pitch *
-			Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-			motion.curAnim.joints[0].pitchPhase)) +
-			motion.curAnim.joints[0].pitchOffset;
-
-		yawOsc = motion.curAnim.joints[0].yaw *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[0].yawPhase));
-
-		yawOsc += motion.curAnim.joints[0].yaw *
-			  hipsYawShaper.shapeWave(filter.degToRad(cycle * adjFreq) +
-			  motion.curAnim.joints[0].yawPhase - reverseModifier)+
-			  motion.curAnim.joints[0].yawOffset;
-
-		rollOsc = (motion.curAnim.joints[0].roll *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[0].rollPhase)) +
-				motion.curAnim.joints[0].rollOffset);
-	}
-
-	// apply hips rotation
-	MyAvatar.setJointData("Hips", Quat.fromPitchYawRollDegrees(
-									pitchOsc + (leanMod * getLeanPitch(speed)),
-									yawOsc,
-									rollOsc + getLeanRoll(deltaTime, speed)));
-
-	// upper legs
-	if (state.currentState !== state.SIDE_STEP &&
-	   state.currentState !== state.EDIT_SIDESTEP_LEFT &&
-	   state.currentState !== state.EDIT_SIDESTEP_RIGHT) {
-
-		if (motion.curTransition !== nullTransition) {
-
-			if (motion.curTransition.walkingAtStart) {
-
-				pitchOscLeft = motion.curAnim.joints[1].pitch *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curAnim.calibration.frequency +
-					reverseModifier * motion.curAnim.joints[1].pitchPhase));
-
-				pitchOscRight = motion.curAnim.joints[1].pitch *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curAnim.calibration.frequency +
-					reverseModifier * motion.curAnim.joints[1].pitchPhase));
-
-				yawOsc = motion.curAnim.joints[1].yaw *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curAnim.calibration.frequency +
-					motion.curAnim.joints[1].yawPhase));
-
-				rollOsc = motion.curAnim.joints[1].roll *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curAnim.calibration.frequency +
-					motion.curAnim.joints[1].rollPhase));
-
-				pitchOffset = motion.curAnim.joints[1].pitchOffset;
-				yawOffset = motion.curAnim.joints[1].yawOffset;
-				rollOffset = motion.curAnim.joints[1].rollOffset;
-
-				pitchOscLeftLast = motion.curTransition.lastAnim.joints[1].pitch *
-					motion.curTransition.lastAnim.harmonics.leftUpperLeg.calculate(
-					filter.degToRad(motion.walkWheelPos +
-						motion.curTransition.lastAnim.joints[1].pitchPhase + 180 + reverseModifier));
-
-				pitchOscRightLast = motion.curTransition.lastAnim.joints[1].pitch *
-					motion.curTransition.lastAnim.harmonics.rightUpperLeg.calculate(
-					filter.degToRad(motion.walkWheelPos +
-						motion.curTransition.lastAnim.joints[1].pitchPhase + reverseModifier));
-
-				yawOscLast = motion.curTransition.lastAnim.joints[1].yaw *
-					Math.sin(filter.degToRad(motion.walkWheelPos +
-					motion.curTransition.lastAnim.joints[1].yawPhase));
-
-				rollOscLast = motion.curTransition.lastAnim.joints[1].roll *
-					Math.sin(filter.degToRad(motion.walkWheelPos +
-					motion.curTransition.lastAnim.joints[1].rollPhase));
-
-				pitchOffsetLast = motion.curTransition.lastAnim.joints[1].pitchOffset;
-				yawOffsetLast = motion.curTransition.lastAnim.joints[1].yawOffset;
-				rollOffsetLast = motion.curTransition.lastAnim.joints[1].rollOffset;
-
-			} else {
-
-				if (state.currentState === state.WALKING ||
-				   state.currentState === state.EDIT_WALK_STYLES ||
-				   state.currentState === state.EDIT_WALK_TWEAKS ||
-				   state.currentState === state.EDIT_WALK_JOINTS) {
-
-					pitchOscLeft = motion.curAnim.joints[1].pitch *
-								   motion.curAnim.harmonics.leftUpperLeg.calculate(filter.degToRad(cycle * adjFreq +
-								   motion.curAnim.joints[1].pitchPhase + 180 + reverseModifier));
-					pitchOscRight = motion.curAnim.joints[1].pitch *
-									motion.curAnim.harmonics.rightUpperLeg.calculate(filter.degToRad(cycle * adjFreq +
-									motion.curAnim.joints[1].pitchPhase + reverseModifier));
-				} else {
-
-					pitchOscLeft = motion.curAnim.joints[1].pitch * Math.sin(filter.degToRad(cycle * adjFreq
-												+ motion.curAnim.joints[1].pitchPhase));
-					pitchOscRight = motion.curAnim.joints[1].pitch * Math.sin(filter.degToRad(cycle * adjFreq
-												+ motion.curAnim.joints[1].pitchPhase));
-				}
-
-				yawOsc = motion.curAnim.joints[1].yaw *
-					Math.sin(filter.degToRad(cycle * adjFreq +
-					motion.curAnim.joints[1].yawPhase));
-
-				rollOsc = motion.curAnim.joints[1].roll *
-					Math.sin(filter.degToRad(cycle * adjFreq +
-					motion.curAnim.joints[1].rollPhase));
-
-				pitchOffset = motion.curAnim.joints[1].pitchOffset;
-				yawOffset = motion.curAnim.joints[1].yawOffset;
-				rollOffset = motion.curAnim.joints[1].rollOffset;
-
-				pitchOscLeftLast = motion.curTransition.lastAnim.joints[1].pitch *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curTransition.lastAnim.calibration.frequency +
-					reverseModifier * motion.curTransition.lastAnim.joints[1].pitchPhase));
-
-				pitchOscRightLast = motion.curTransition.lastAnim.joints[1].pitch *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curTransition.lastAnim.calibration.frequency +
-					reverseModifier * motion.curTransition.lastAnim.joints[1].pitchPhase));
-
-				yawOscLast = motion.curTransition.lastAnim.joints[1].yaw *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curTransition.lastAnim.calibration.frequency +
-					motion.curTransition.lastAnim.joints[1].yawPhase));
-
-				rollOscLast = motion.curTransition.lastAnim.joints[1].roll *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curTransition.lastAnim.calibration.frequency +
-					motion.curTransition.lastAnim.joints[1].rollPhase));
-
-				pitchOffsetLast = motion.curTransition.lastAnim.joints[1].pitchOffset;
-				yawOffsetLast = motion.curTransition.lastAnim.joints[1].yawOffset;
-				rollOffsetLast = motion.curTransition.lastAnim.joints[1].rollOffset;
-			}
-			pitchOscLeft = (transProgress * pitchOscLeft) + ((1 - transProgress) * pitchOscLeftLast);
-			pitchOscRight = (transProgress * pitchOscRight) + ((1 - transProgress) * pitchOscRightLast);
-			yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-			rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-			pitchOffset = (transProgress * pitchOffset) + ((1 - transProgress) * pitchOffsetLast);
-			yawOffset = (transProgress * yawOffset) + ((1 - transProgress) * yawOffsetLast);
-			rollOffset = (transProgress * rollOffset) + ((1 - transProgress) * rollOffsetLast);
-
-		} else {
-
-			if (state.currentState === state.WALKING ||
-			   state.currentState === state.EDIT_WALK_STYLES ||
-			   state.currentState === state.EDIT_WALK_TWEAKS ||
-			   state.currentState === state.EDIT_WALK_JOINTS) {
-
-				pitchOscLeft = motion.curAnim.joints[1].pitch *
-							   motion.curAnim.harmonics.leftUpperLeg.calculate(filter.degToRad(cycle * adjFreq +
-							   motion.curAnim.joints[1].pitchPhase + 180 + reverseModifier));
-				pitchOscRight = motion.curAnim.joints[1].pitch *
-								motion.curAnim.harmonics.rightUpperLeg.calculate(filter.degToRad(cycle * adjFreq +
-								motion.curAnim.joints[1].pitchPhase + reverseModifier));
-			} else {
-
-				pitchOscLeft = motion.curAnim.joints[1].pitch * Math.sin(filter.degToRad(cycle * adjFreq
-											+ motion.curAnim.joints[1].pitchPhase));
-				pitchOscRight = motion.curAnim.joints[1].pitch * Math.sin(filter.degToRad(cycle * adjFreq
-											+ motion.curAnim.joints[1].pitchPhase));
-			}
-
-			yawOsc = motion.curAnim.joints[1].yaw *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-					motion.curAnim.joints[1].yawPhase));
-
-			rollOsc = motion.curAnim.joints[1].roll *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-					motion.curAnim.joints[1].rollPhase));
-
-			pitchOffset = motion.curAnim.joints[1].pitchOffset;
-			yawOffset = motion.curAnim.joints[1].yawOffset;
-			rollOffset = motion.curAnim.joints[1].rollOffset;
-		}
-
-		// apply the upper leg rotations
-		MyAvatar.setJointData("LeftUpLeg", Quat.fromPitchYawRollDegrees(
-			pitchOscLeft + pitchOffset,
-			yawOsc - yawOffset,
-			-rollOsc + rollOffset));
-
-		MyAvatar.setJointData("RightUpLeg", Quat.fromPitchYawRollDegrees(
-			pitchOscRight + pitchOffset,
-			yawOsc + yawOffset,
-			-rollOsc - rollOffset));
-
-		// lower leg
-		if (motion.curTransition !== nullTransition) {
-
-			if (motion.curTransition.walkingAtStart) {
-
-				pitchOscLeft = motion.curAnim.joints[2].pitch *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curAnim.calibration.frequency +
-					motion.curAnim.joints[2].pitchPhase + 180));
-
-				pitchOscRight = motion.curAnim.joints[2].pitch *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curAnim.calibration.frequency +
-					motion.curAnim.joints[2].pitchPhase));
-
-				yawOsc = motion.curAnim.joints[2].yaw *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curAnim.calibration.frequency +
-					motion.curAnim.joints[2].yawPhase));
-
-				rollOsc = motion.curAnim.joints[2].roll *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curAnim.calibration.frequency +
-					motion.curAnim.joints[2].rollPhase));
-
-				pitchOffset = motion.curAnim.joints[2].pitchOffset;
-				yawOffset = motion.curAnim.joints[2].yawOffset;
-				rollOffset = motion.curAnim.joints[2].rollOffset;
-
-				pitchOscLeftLast = motion.curTransition.lastAnim.joints[2].pitch *
-					motion.curTransition.lastAnim.harmonics.leftLowerLeg.calculate(filter.degToRad(motion.walkWheelPos +
-					motion.curTransition.lastAnim.joints[2].pitchPhase + 180));
-
-				pitchOscRightLast = motion.curTransition.lastAnim.joints[2].pitch *
-					motion.curTransition.lastAnim.harmonics.leftLowerLeg.calculate(filter.degToRad(motion.walkWheelPos +
-					motion.curTransition.lastAnim.joints[2].pitchPhase));
-
-				yawOscLast = motion.curTransition.lastAnim.joints[2].yaw *
-					Math.sin(filter.degToRad(motion.walkWheelPos +
-					motion.curTransition.lastAnim.joints[2].yawPhase));
-
-				rollOscLast = motion.curTransition.lastAnim.joints[2].roll *
-					Math.sin(filter.degToRad(motion.walkWheelPos +
-					motion.curTransition.lastAnim.joints[2].rollPhase));
-
-				pitchOffsetLast = motion.curTransition.lastAnim.joints[2].pitchOffset;
-				yawOffsetLast = motion.curTransition.lastAnim.joints[2].yawOffset;
-				rollOffsetLast = motion.curTransition.lastAnim.joints[2].rollOffset;
-
-			} else {
-
-				if (state.currentState === state.WALKING ||
-				   state.currentState === state.EDIT_WALK_STYLES ||
-				   state.currentState === state.EDIT_WALK_TWEAKS ||
-				   state.currentState === state.EDIT_WALK_JOINTS) {
-
-					pitchOscLeft = motion.curAnim.harmonics.leftLowerLeg.calculate(filter.degToRad(reverseSignModifier * cycle * adjFreq +
-								   motion.curAnim.joints[2].pitchPhase + 180));
-					pitchOscRight = motion.curAnim.harmonics.rightLowerLeg.calculate(filter.degToRad(reverseSignModifier * cycle * adjFreq +
-									motion.curAnim.joints[2].pitchPhase));
-
-				} else {
-
-					pitchOscLeft = Math.sin(filter.degToRad((cycle * adjFreq) +
-								   motion.curAnim.joints[2].pitchPhase + 180));
-
-					pitchOscRight = Math.sin(filter.degToRad((cycle * adjFreq) +
-									motion.curAnim.joints[2].pitchPhase));
-				}
-				pitchOscLeft *= motion.curAnim.joints[2].pitch;
-				pitchOscRight *= motion.curAnim.joints[2].pitch;
-
-				yawOsc = motion.curAnim.joints[2].yaw *
-						 Math.sin(filter.degToRad(cycle * adjFreq +
-						 motion.curAnim.joints[2].yawPhase));
-
-				rollOsc = motion.curAnim.joints[2].roll *
-						  Math.sin(filter.degToRad(cycle * adjFreq +
-						  motion.curAnim.joints[2].rollPhase));
-
-				pitchOffset = motion.curAnim.joints[2].pitchOffset;
-				yawOffset = motion.curAnim.joints[2].yawOffset;
-				rollOffset = motion.curAnim.joints[2].rollOffset;
-
-				pitchOscLeftLast = motion.curTransition.lastAnim.joints[2].pitch *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curTransition.lastAnim.calibration.frequency +
-					motion.curTransition.lastAnim.joints[2].pitchPhase + 180));
-
-				pitchOscRightLast = motion.curTransition.lastAnim.joints[2].pitch *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curTransition.lastAnim.calibration.frequency +
-					motion.curTransition.lastAnim.joints[2].pitchPhase));
-
-				yawOscLast = motion.curTransition.lastAnim.joints[2].yaw *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curTransition.lastAnim.calibration.frequency +
-					motion.curTransition.lastAnim.joints[2].yawPhase));
-
-				rollOscLast = motion.curTransition.lastAnim.joints[2].roll *
-					Math.sin(filter.degToRad(motion.cumulativeTime *
-					motion.curTransition.lastAnim.calibration.frequency +
-					motion.curTransition.lastAnim.joints[2].rollPhase));
-
-				pitchOffsetLast = motion.curTransition.lastAnim.joints[2].pitchOffset;
-				yawOffsetLast = motion.curTransition.lastAnim.joints[2].yawOffset;
-				rollOffsetLast = motion.curTransition.lastAnim.joints[2].rollOffset;
-			}
-
-			pitchOscLeft = (transProgress * pitchOscLeft) + ((1 - transProgress) * pitchOscLeftLast);
-			pitchOscRight = (transProgress * pitchOscRight) + ((1 - transProgress) * pitchOscRightLast);
-			yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-			rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-			pitchOffset = (transProgress * pitchOffset) + ((1 - transProgress) * pitchOffsetLast);
-			yawOffset = (transProgress * yawOffset) + ((1 - transProgress) * yawOffsetLast);
-			rollOffset = (transProgress * rollOffset) + ((1 - transProgress) * rollOffsetLast);
-
-			rollOscLeft = rollOsc;
-			rollOscRight = rollOsc;
-
-		} else { // end if transitioning
-
-			if (state.currentState === state.WALKING ||
-			   state.currentState === state.EDIT_WALK_STYLES ||
-			   state.currentState === state.EDIT_WALK_TWEAKS ||
-			   state.currentState === state.EDIT_WALK_JOINTS) {
-
-				pitchOscLeft = motion.curAnim.harmonics.leftLowerLeg.calculate(filter.degToRad(reverseSignModifier * cycle * adjFreq +
-							   motion.curAnim.joints[2].pitchPhase + 180));
-				pitchOscRight = motion.curAnim.harmonics.rightLowerLeg.calculate(filter.degToRad(reverseSignModifier * cycle * adjFreq +
-								motion.curAnim.joints[2].pitchPhase));
-
-			} else {
-
-				pitchOscLeft = Math.sin(filter.degToRad((cycle * adjFreq) +
-							   motion.curAnim.joints[2].pitchPhase + 180));
-
-				pitchOscRight = Math.sin(filter.degToRad((cycle * adjFreq) +
-								motion.curAnim.joints[2].pitchPhase));
-			}
-
-			pitchOscLeft *= motion.curAnim.joints[2].pitch;
-			pitchOscRight *= motion.curAnim.joints[2].pitch;
-
-			yawOsc = motion.curAnim.joints[2].yaw *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-					motion.curAnim.joints[2].yawPhase));
-
-			rollOsc = Math.sin(filter.degToRad((cycle * adjFreq) +
-						   motion.curAnim.joints[2].rollPhase));
-
-			rollOsc = motion.curAnim.joints[2].roll;
-
-			pitchOffset = motion.curAnim.joints[2].pitchOffset;
-			yawOffset = motion.curAnim.joints[2].yawOffset;
-			rollOffset = motion.curAnim.joints[2].rollOffset;
-		}
-
-		pitchOscLeft += pitchOffset;
-		pitchOscRight += pitchOffset;
-
-		// apply lower leg joint rotations
-		MyAvatar.setJointData("LeftLeg", Quat.fromPitchYawRollDegrees(
-			pitchOscLeft,
-			yawOsc + yawOffset,
-			rollOsc + rollOffset));
-		MyAvatar.setJointData("RightLeg", Quat.fromPitchYawRollDegrees(
-			pitchOscRight,
-			yawOsc - yawOffset,
-			rollOsc - rollOffset));
-
-	} // end if !state.SIDE_STEP
-
-	else if (state.currentState === state.SIDE_STEP ||
-		state.currentState === state.EDIT_SIDESTEP_LEFT ||
-		state.currentState === state.EDIT_SIDESTEP_RIGHT) {
-
-		// sidestepping uses the sinewave generators slightly differently for the legs
-		pitchOsc = motion.curAnim.joints[1].pitch *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[1].pitchPhase));
-
-		yawOsc = motion.curAnim.joints[1].yaw *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[1].yawPhase));
-
-		rollOsc = motion.curAnim.joints[1].roll *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[1].rollPhase));
-
-		// apply upper leg rotations for sidestepping
-		MyAvatar.setJointData("RightUpLeg", Quat.fromPitchYawRollDegrees(
-			-pitchOsc + motion.curAnim.joints[1].pitchOffset,
-			yawOsc + motion.curAnim.joints[1].yawOffset,
-			rollOsc + motion.curAnim.joints[1].rollOffset));
-
-		MyAvatar.setJointData("LeftUpLeg", Quat.fromPitchYawRollDegrees(
-			pitchOsc + motion.curAnim.joints[1].pitchOffset,
-			yawOsc - motion.curAnim.joints[1].yawOffset,
-			-rollOsc - motion.curAnim.joints[1].rollOffset));
-
-		// calculate lower leg joint rotations for sidestepping
-		pitchOsc = motion.curAnim.joints[2].pitch *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[2].pitchPhase));
-
-		yawOsc = motion.curAnim.joints[2].yaw *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[2].yawPhase));
-
-		rollOsc = motion.curAnim.joints[2].roll *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[2].rollPhase));
-
-		// apply lower leg joint rotations
-		MyAvatar.setJointData("RightLeg", Quat.fromPitchYawRollDegrees(
-			-pitchOsc + motion.curAnim.joints[2].pitchOffset,
-			yawOsc - motion.curAnim.joints[2].yawOffset,
-			rollOsc - motion.curAnim.joints[2].rollOffset));
-
-		MyAvatar.setJointData("LeftLeg", Quat.fromPitchYawRollDegrees(
-			pitchOsc + motion.curAnim.joints[2].pitchOffset,
-			yawOsc + motion.curAnim.joints[2].yawOffset,
-			rollOsc + motion.curAnim.joints[2].rollOffset));
-	}
-
-	// feet
-	if (motion.curAnim === motion.selSideStepLeft ||
-		motion.curAnim === motion.selSideStepRight ) {
-
-		sideStepHandPitchSign = -1;
-		sideStepFootPitchModifier = 0.5;
-	}
-	if (motion.curTransition !== nullTransition) {
-
-		if (motion.curTransition.walkingAtStart) {
-
-			pitchOscLeft = motion.curAnim.joints[3].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[3].pitchPhase) + 180);
-
-			pitchOscRight = motion.curAnim.joints[3].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[3].pitchPhase));
-
-			yawOsc = motion.curAnim.joints[3].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[3].yawPhase));
-
-			rollOsc = motion.curAnim.joints[3].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[3].rollPhase));
-
-			pitchOffset = motion.curAnim.joints[3].pitchOffset;
-			yawOffset = motion.curAnim.joints[3].yawOffset;
-			rollOffset = motion.curAnim.joints[3].rollOffset;
-
-			pitchOscLeftLast = motion.curTransition.lastAnim.joints[3].pitch *
-				motion.curTransition.lastAnim.harmonics.leftFoot.calculate(filter.degToRad(reverseSignModifier * motion.walkWheelPos +
-				motion.curTransition.lastAnim.joints[3].pitchPhase + reverseModifier));
-
-			pitchOscRightLast = motion.curTransition.lastAnim.joints[3].pitch *
-				motion.curTransition.lastAnim.harmonics.rightFoot.calculate(filter.degToRad(reverseSignModifier * motion.walkWheelPos +
-				motion.curTransition.lastAnim.joints[3].pitchPhase + 180 + reverseModifier));
-
-			yawOscLast = motion.curTransition.lastAnim.joints[3].yaw *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-				motion.curTransition.lastAnim.joints[3].yawPhase));
-
-			rollOscLast = motion.curTransition.lastAnim.joints[3].roll *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-				motion.curTransition.lastAnim.joints[3].rollPhase));
-
-			pitchOffsetLast = motion.curTransition.lastAnim.joints[3].pitchOffset;
-			yawOffsetLast = motion.curTransition.lastAnim.joints[3].yawOffset;
-			rollOffsetLast = motion.curTransition.lastAnim.joints[3].rollOffset;
-
-		} else {
-
-			if (state.currentState === state.WALKING ||
-			   state.currentState === state.EDIT_WALK_STYLES ||
-			   state.currentState === state.EDIT_WALK_TWEAKS ||
-			   state.currentState === state.EDIT_WALK_JOINTS) {
-
-				pitchOscLeft = motion.curAnim.harmonics.leftFoot.calculate(filter.degToRad(reverseSignModifier * cycle * adjFreq +
-							   motion.curAnim.joints[3].pitchPhase + reverseModifier));
-
-				pitchOscRight = motion.curAnim.harmonics.rightFoot.calculate(filter.degToRad(reverseSignModifier * cycle * adjFreq +
-								motion.curAnim.joints[3].pitchPhase + 180 + reverseModifier));
-
-			} else {
-
-				pitchOscLeft = Math.sin(filter.degToRad(cycle * adjFreq * sideStepFootPitchModifier +
-							   motion.curAnim.joints[3].pitchPhase));
-
-				pitchOscRight = Math.sin(filter.degToRad(cycle * adjFreq * sideStepFootPitchModifier +
-								motion.curAnim.joints[3].pitchPhase + 180));
-			}
-
-			yawOsc = motion.curAnim.joints[3].yaw *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-					motion.curAnim.joints[3].yawPhase));
-
-			rollOsc = motion.curAnim.joints[3].roll *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-					motion.curAnim.joints[3].rollPhase));
-
-			pitchOffset = motion.curAnim.joints[3].pitchOffset;
-			yawOffset = motion.curAnim.joints[3].yawOffset;
-			rollOffset = motion.curAnim.joints[3].rollOffset;
-
-			pitchOscLeftLast = motion.curTransition.lastAnim.joints[3].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[3].pitchPhase + 180));
-
-			pitchOscRightLast = motion.curTransition.lastAnim.joints[3].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[3].pitchPhase));
-
-			yawOscLast = motion.curTransition.lastAnim.joints[3].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[3].yawPhase));
-
-			rollOscLast = motion.curTransition.lastAnim.joints[3].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[3].rollPhase));
-
-			pitchOffsetLast = motion.curTransition.lastAnim.joints[3].pitchOffset;
-			yawOffsetLast = motion.curTransition.lastAnim.joints[3].yawOffset;
-			rollOffsetLast = motion.curTransition.lastAnim.joints[3].rollOffset;
-		}
-
-		pitchOscLeft = (transProgress * pitchOscLeft) + ((1 - transProgress) * pitchOscLeftLast);
-		pitchOscRight = (transProgress * pitchOscRight) + ((1 - transProgress) * pitchOscRightLast);
-		yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-		rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-		pitchOffset = (transProgress * pitchOffset) + ((1 - transProgress) * pitchOffsetLast);
-		yawOffset = (transProgress * yawOffset) + ((1 - transProgress) * yawOffsetLast);
-		rollOffset = (transProgress * rollOffset) + ((1 - transProgress) * rollOffsetLast);
-
-	} else {
-
-		if (state.currentState === state.WALKING ||
-		   state.currentState === state.EDIT_WALK_STYLES ||
-		   state.currentState === state.EDIT_WALK_TWEAKS ||
-		   state.currentState === state.EDIT_WALK_JOINTS) {
-
-			pitchOscLeft = motion.curAnim.harmonics.leftFoot.calculate(filter.degToRad(reverseSignModifier * cycle * adjFreq +
-						   motion.curAnim.joints[3].pitchPhase + reverseModifier));
-
-			pitchOscRight = motion.curAnim.harmonics.rightFoot.calculate(filter.degToRad(reverseSignModifier * cycle * adjFreq +
-							motion.curAnim.joints[3].pitchPhase + 180 + reverseModifier));
-
-		} else {
-
-			pitchOscLeft = Math.sin(filter.degToRad(cycle * adjFreq * sideStepFootPitchModifier +
-						   motion.curAnim.joints[3].pitchPhase));
-
-			pitchOscRight = Math.sin(filter.degToRad(cycle * adjFreq * sideStepFootPitchModifier +
-							motion.curAnim.joints[3].pitchPhase + 180));
-		}
-
-		yawOsc = Math.sin(filter.degToRad((cycle * adjFreq) +
-						motion.curAnim.joints[3].yawPhase));
-
-		pitchOscLeft *= motion.curAnim.joints[3].pitch;
-		pitchOscRight *= motion.curAnim.joints[3].pitch;
-
-		yawOsc *= motion.curAnim.joints[3].yaw;
-
-		rollOsc = motion.curAnim.joints[3].roll *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[3].rollPhase));
-
-		pitchOffset = motion.curAnim.joints[3].pitchOffset;
-		yawOffset = motion.curAnim.joints[3].yawOffset;
-		rollOffset = motion.curAnim.joints[3].rollOffset;
-	}
-
-	// apply foot rotations
-	MyAvatar.setJointData("LeftFoot", Quat.fromPitchYawRollDegrees(
-		pitchOscLeft + pitchOffset,
-		yawOsc - yawOffset,
-		rollOsc - rollOffset));
-
-	MyAvatar.setJointData("RightFoot", Quat.fromPitchYawRollDegrees(
-		pitchOscRight + pitchOffset,
-		yawOsc + yawOffset,
-		rollOsc + rollOffset));
-
-	// play footfall sound yet? To determine this, we take the differential of the
-	// foot's pitch curve to decide when the foot hits the ground.
-	if (state.currentState === state.WALKING ||
-		state.currentState === state.SIDE_STEP ||
-		state.currentState === state.EDIT_WALK_STYLES ||
-		state.currentState === state.EDIT_WALK_TWEAKS ||
-		state.currentState === state.EDIT_WALK_JOINTS ||
-		state.currentState === state.EDIT_SIDESTEP_LEFT ||
-		state.currentState === state.EDIT_SIDESTEP_RIGHT) {
-
-		// find dy/dx by determining the cosine wave for the foot's pitch function.
-		var feetPitchDifferential = Math.cos(filter.degToRad((cycle * adjFreq) + motion.curAnim.joints[3].pitchPhase));
-		var threshHold = 0.9; // sets the audio trigger point. with accuracy.
-		if (feetPitchDifferential < -threshHold &&
-			motion.nextStep === LEFT &&
-			motion.direction !== UP &&
-			motion.direction !== DOWN) {
-
-			playFootstep(LEFT);
-			motion.nextStep = RIGHT;
-		} else if (feetPitchDifferential > threshHold &&
-			motion.nextStep === RIGHT &&
-			motion.direction !== UP &&
-			motion.direction !== DOWN) {
-
-			playFootstep(RIGHT);
-			motion.nextStep = LEFT;
-		}
-	}
-
-	// toes
-	if (motion.curTransition !== nullTransition) {
-
-		if (motion.curTransition.walkingAtStart) {
-
-			pitchOsc = motion.curAnim.joints[4].pitch *
-				Math.sin(filter.degToRad((2 * motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[4].pitchPhase));
-
-			yawOsc = motion.curAnim.joints[4].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[4].yawPhase));
-
-			rollOsc = motion.curAnim.joints[4].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[4].rollPhase));
-
-			pitchOffset = motion.curAnim.joints[4].pitchOffset;
-			yawOffset = motion.curAnim.joints[4].yawOffset;
-			rollOffset = motion.curAnim.joints[4].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[4].pitch *
-				Math.sin(filter.degToRad((2 * motion.walkWheelPos) +
-					motion.curTransition.lastAnim.joints[4].pitchPhase));
-
-			yawOscLast = motion.curTransition.lastAnim.joints[4].yaw *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-					motion.curTransition.lastAnim.joints[4].yawPhase));
-
-			rollOscLast = motion.curTransition.lastAnim.joints[4].roll *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-					motion.curTransition.lastAnim.joints[4].rollPhase));
-
-			pitchOffsetLast = motion.curTransition.lastAnim.joints[4].pitchOffset;
-			yawOffsetLast = motion.curTransition.lastAnim.joints[4].yawOffset;
-			rollOffsetLast = motion.curTransition.lastAnim.joints[4].rollOffset;
-
-		} else {
-
-			pitchOsc = motion.curAnim.joints[4].pitch *
-				Math.sin(filter.degToRad((2 * cycle * adjFreq) +
-					motion.curAnim.joints[4].pitchPhase));
-
-			yawOsc = motion.curAnim.joints[4].yaw *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-					motion.curAnim.joints[4].yawPhase));
-
-			rollOsc = motion.curAnim.joints[4].roll *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-					motion.curAnim.joints[4].rollPhase));
-
-			pitchOffset = motion.curAnim.joints[4].pitchOffset;
-			yawOffset = motion.curAnim.joints[4].yawOffset;
-			rollOffset = motion.curAnim.joints[4].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[4].pitch *
-				Math.sin(filter.degToRad((2 * motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[4].pitchPhase));
-
-			yawOscLast = motion.curTransition.lastAnim.joints[4].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[4].yawPhase));
-
-			rollOscLast = motion.curTransition.lastAnim.joints[4].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[4].rollPhase));
-
-			pitchOffsetLast = motion.curTransition.lastAnim.joints[4].pitchOffset;
-			yawOffsetLast = motion.curTransition.lastAnim.joints[4].yawOffset;
-			rollOffsetLast = motion.curTransition.lastAnim.joints[4].rollOffset;
-		}
-
-		pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-		yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-		rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-		pitchOffset = (transProgress * pitchOffset) + ((1 - transProgress) * pitchOffsetLast);
-		yawOffset = (transProgress * yawOffset) + ((1 - transProgress) * yawOffsetLast);
-		rollOffset = (transProgress * rollOffset) + ((1 - transProgress) * rollOffsetLast);
-
-	} else {
-
-		pitchOsc = motion.curAnim.joints[4].pitch *
-			Math.sin(filter.degToRad((2 * cycle * adjFreq) +
-				motion.curAnim.joints[4].pitchPhase));
-
-		yawOsc = motion.curAnim.joints[4].yaw *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[4].yawPhase));
-
-		rollOsc = motion.curAnim.joints[4].roll *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[4].rollPhase));
-
-		pitchOffset = motion.curAnim.joints[4].pitchOffset;
-		yawOffset = motion.curAnim.joints[4].yawOffset;
-		rollOffset = motion.curAnim.joints[4].rollOffset;
-	}
-
-	// apply toe rotations
-	MyAvatar.setJointData("RightToeBase", Quat.fromPitchYawRollDegrees(
-		pitchOsc + pitchOffset,
-		yawOsc + yawOffset,
-		rollOsc + rollOffset));
-
-	MyAvatar.setJointData("LeftToeBase", Quat.fromPitchYawRollDegrees(
-		pitchOsc + pitchOffset,
-		yawOsc - yawOffset,
-		rollOsc - rollOffset));
-
-	// spine
-	if (motion.curTransition !== nullTransition) {
-
-		if (motion.curTransition.walkingAtStart) {
-
-			pitchOsc = motion.curAnim.joints[5].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency * 2) +
-				motion.curAnim.joints[5].pitchPhase)) +
-				motion.curAnim.joints[5].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[5].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[5].yawPhase)) +
-				motion.curAnim
-				.joints[5].yawOffset;
-
-			rollOsc = motion.curAnim.joints[5].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[5].rollPhase)) +
-				motion.curAnim.joints[5].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[5].pitch *
-				Math.sin(filter.degToRad((motion.walkWheelPos * 2) +
-				motion.curTransition.lastAnim.joints[5].pitchPhase)) +
-				motion.curTransition.lastAnim.joints[5].pitchOffset;
-
-			yawOscLast = motion.curTransition.lastAnim.joints[5].yaw *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-				motion.curTransition.lastAnim.joints[5].yawPhase)) +
-				motion.curTransition.lastAnim.joints[5].yawOffset;
-
-			rollOscLast = motion.curTransition.lastAnim.joints[5].roll *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-				motion.curTransition.lastAnim.joints[5].rollPhase)) +
-				motion.curTransition.lastAnim.joints[5].rollOffset;
-		} else {
-
-			pitchOsc = motion.curAnim.joints[5].pitch *
-				Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-				motion.curAnim.joints[5].pitchPhase)) +
-				motion.curAnim.joints[5].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[5].yaw *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[5].yawPhase)) +
-				motion.curAnim.joints[5].yawOffset;
-
-			rollOsc = motion.curAnim.joints[5].roll *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[5].rollPhase)) +
-				motion.curAnim.joints[5].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[5].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency * 2) +
-				motion.curTransition.lastAnim.joints[5].pitchPhase)) +
-				motion.curTransition.lastAnim.joints[5].pitchOffset;
-
-			yawOscLast = motion.curTransition.lastAnim.joints[5].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[5].yawPhase)) +
-				motion.curTransition.lastAnim.joints[5].yawOffset;
-
-			rollOscLast = motion.curTransition.lastAnim.joints[5].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[5].rollPhase)) +
-				motion.curTransition.lastAnim.joints[5].rollOffset;
-		}
-
-		pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-		yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-		rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-	} else {
-
-		pitchOsc = motion.curAnim.joints[5].pitch *
-			Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-			motion.curAnim.joints[5].pitchPhase)) +
-			motion.curAnim.joints[5].pitchOffset;
-
-		yawOsc = motion.curAnim.joints[5].yaw *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[5].yawPhase)) +
-			motion.curAnim.joints[5].yawOffset;
-
-		rollOsc = motion.curAnim.joints[5].roll *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[5].rollPhase)) +
-			motion.curAnim.joints[5].rollOffset;
-	}
-
-	// apply spine joint rotations
-	MyAvatar.setJointData("Spine", Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc, rollOsc));
-
-	// spine 1
-	if (motion.curTransition !== nullTransition) {
-
-		if (motion.curTransition.walkingAtStart) {
-
-			pitchOsc = motion.curAnim.joints[6].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency * 2) +
-				motion.curAnim.joints[6].pitchPhase)) +
-				motion.curAnim.joints[6].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[6].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[6].yawPhase)) +
-				motion.curAnim.joints[6].yawOffset;
-
-			rollOsc = motion.curAnim.joints[6].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[6].rollPhase)) +
-				motion.curAnim.joints[6].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[6].pitch *
-				Math.sin(filter.degToRad((motion.walkWheelPos * 2) +
-				motion.curTransition.lastAnim.joints[6].pitchPhase)) +
-				motion.curTransition.lastAnim.joints[6].pitchOffset;
-
-			yawOscLast = motion.curTransition.lastAnim.joints[6].yaw *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-				motion.curTransition.lastAnim.joints[6].yawPhase)) +
-				motion.curTransition.lastAnim.joints[6].yawOffset;
-
-			rollOscLast = motion.curTransition.lastAnim.joints[6].roll *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-				motion.curTransition.lastAnim.joints[6].rollPhase)) +
-				motion.curTransition.lastAnim.joints[6].rollOffset;
-
-		} else {
-
-			pitchOsc = motion.curAnim.joints[6].pitch *
-				Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-				motion.curAnim.joints[6].pitchPhase)) +
-				motion.curAnim.joints[6].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[6].yaw *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[6].yawPhase)) +
-				motion.curAnim.joints[6].yawOffset;
-
-			rollOsc = motion.curAnim.joints[6].roll *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[6].rollPhase)) +
-				motion.curAnim.joints[6].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[6].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency * 2) +
-				motion.curTransition.lastAnim.joints[6].pitchPhase)) +
-				motion.curTransition.lastAnim.joints[6].pitchOffset;
-
-			yawOscLast = motion.curTransition.lastAnim.joints[6].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[6].yawPhase)) +
-				motion.curTransition.lastAnim.joints[6].yawOffset;
-
-			rollOscLast = motion.curTransition.lastAnim.joints[6].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[6].rollPhase)) +
-				motion.curTransition.lastAnim.joints[6].rollOffset;
-		}
-
-		pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-		yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-		rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-	} else {
-
-		pitchOsc = motion.curAnim.joints[6].pitch *
-			Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-			motion.curAnim.joints[6].pitchPhase)) +
-			motion.curAnim.joints[6].pitchOffset;
-
-		yawOsc = motion.curAnim.joints[6].yaw *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[6].yawPhase)) +
-			motion.curAnim.joints[6].yawOffset;
-
-		rollOsc = motion.curAnim.joints[6].roll *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[6].rollPhase)) +
-			motion.curAnim.joints[6].rollOffset;
-	}
-
-	// apply spine1 joint rotations
-	MyAvatar.setJointData("Spine1", Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc, rollOsc));
-
-	// spine 2
-	if (motion.curTransition !== nullTransition) {
-
-		if (motion.curTransition.walkingAtStart) {
-
-			pitchOsc = motion.curAnim.joints[7].pitch *
-					   Math.sin(filter.degToRad(motion.cumulativeTime *
-					   motion.curAnim.calibration.frequency * 2 +
-					   motion.curAnim.joints[7].pitchPhase)) +
-					   motion.curAnim.joints[7].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[7].yaw *
-					 Math.sin(filter.degToRad(motion.cumulativeTime *
-					 motion.curAnim.calibration.frequency +
-					 motion.curAnim.joints[7].yawPhase)) +
-					 motion.curAnim.joints[7].yawOffset;
-
-			rollOsc = motion.curAnim.joints[7].roll *
-					  Math.sin(filter.degToRad(motion.cumulativeTime *
-					  motion.curAnim.calibration.frequency +
-					  motion.curAnim.joints[7].rollPhase)) +
-					  motion.curAnim.joints[7].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[7].pitch *
-						   Math.sin(filter.degToRad(motion.walkWheelPos * 2 +
-						   motion.curTransition.lastAnim.joints[7].pitchPhase)) +
-						   motion.curTransition.lastAnim.joints[7].pitchOffset;
-
-			yawOscLast = motion.curTransition.lastAnim.joints[7].yaw *
-						 Math.sin(filter.degToRad(motion.walkWheelPos +
-						 motion.curTransition.lastAnim.joints[7].yawPhase)) +
-						 motion.curTransition.lastAnim.joints[7].yawOffset;
-
-			rollOscLast = motion.curTransition.lastAnim.joints[7].roll *
-						  Math.sin(filter.degToRad(motion.walkWheelPos +
-						  motion.curTransition.lastAnim.joints[7].rollPhase)) +
-						  motion.curTransition.lastAnim.joints[7].rollOffset;
-		} else {
-
-			pitchOsc = motion.curAnim.joints[7].pitch *
-					   Math.sin(filter.degToRad(cycle * adjFreq * 2 +
-					   motion.curAnim.joints[7].pitchPhase)) +
-					   motion.curAnim.joints[7].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[7].yaw *
-					 Math.sin(filter.degToRad(cycle * adjFreq +
-					 motion.curAnim.joints[7].yawPhase)) +
-					 motion.curAnim.joints[7].yawOffset;
-
-			rollOsc = motion.curAnim.joints[7].roll *
-					  Math.sin(filter.degToRad(cycle * adjFreq +
-					  motion.curAnim.joints[7].rollPhase)) +
-					  motion.curAnim.joints[7].rollOffset;
-
-			pitchOscLast = motion.curTransition.lastAnim.joints[7].pitch *
-						   Math.sin(filter.degToRad(motion.cumulativeTime * 2 *
-						   motion.curTransition.lastAnim.calibration.frequency +
-						   motion.curTransition.lastAnim.joints[7].pitchPhase)) +
-						   motion.curTransition.lastAnim.joints[7].pitchOffset;
-
-			yawOscLast = motion.curTransition.lastAnim.joints[7].yaw *
-						 Math.sin(filter.degToRad(motion.cumulativeTime *
-						 motion.curTransition.lastAnim.calibration.frequency +
-						 motion.curTransition.lastAnim.joints[7].yawPhase)) +
-						 motion.curTransition.lastAnim.joints[7].yawOffset;
-
-			rollOscLast = motion.curTransition.lastAnim.joints[7].roll *
-						  Math.sin(filter.degToRad(motion.cumulativeTime *
-						  motion.curTransition.lastAnim.calibration.frequency +
-						  motion.curTransition.lastAnim.joints[7].rollPhase)) +
-						  motion.curTransition.lastAnim.joints[7].rollOffset;
-		}
-
-		pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-		yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-		rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-	} else {
-
-		pitchOsc = motion.curAnim.joints[7].pitch *
-				   Math.sin(filter.degToRad(cycle * adjFreq * 2 +
-				   motion.curAnim.joints[7].pitchPhase)) +
-				   motion.curAnim.joints[7].pitchOffset;
-
-		yawOsc = motion.curAnim.joints[7].yaw *
-				 Math.sin(filter.degToRad(cycle * adjFreq +
-				 motion.curAnim.joints[7].yawPhase)) +
-				 motion.curAnim.joints[7].yawOffset;
-
-		rollOsc = motion.curAnim.joints[7].roll *
-				  Math.sin(filter.degToRad(cycle * adjFreq +
-				  motion.curAnim.joints[7].rollPhase)) +
-				  motion.curAnim.joints[7].rollOffset;
-	}
-
-	// apply spine2 joint rotations
-	MyAvatar.setJointData("Spine2", Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc, rollOsc));
-
-	if (!motion.armsFree) {
-
-		// shoulders
-		if (motion.curTransition !== nullTransition) {
-
-			if (motion.curTransition.walkingAtStart) {
-
-				pitchOsc = motion.curAnim.joints[8].pitch *
-						   Math.sin(filter.degToRad(motion.cumulativeTime *
-						   motion.curAnim.calibration.frequency +
-						   motion.curAnim.joints[8].pitchPhase)) +
-						   motion.curAnim.joints[8].pitchOffset;
-
-				yawOsc = motion.curAnim.joints[8].yaw *
-						 Math.sin(filter.degToRad(motion.cumulativeTime *
-						 motion.curAnim.calibration.frequency +
-						 motion.curAnim.joints[8].yawPhase));
-
-				rollOsc = motion.curAnim.joints[8].roll *
-						  Math.sin(filter.degToRad(motion.cumulativeTime *
-						  motion.curAnim.calibration.frequency +
-						  motion.curAnim.joints[8].rollPhase)) +
-						  motion.curAnim.joints[8].rollOffset;
-
-				yawOffset = motion.curAnim.joints[8].yawOffset;
-
-				pitchOscLast = motion.curTransition.lastAnim.joints[8].pitch *
-							   Math.sin(filter.degToRad(motion.walkWheelPos +
-							   motion.curTransition.lastAnim.joints[8].pitchPhase)) +
-							   motion.curTransition.lastAnim.joints[8].pitchOffset;
-
-				yawOscLast = motion.curTransition.lastAnim.joints[8].yaw *
-							 Math.sin(filter.degToRad(motion.walkWheelPos +
-							 motion.curTransition.lastAnim.joints[8].yawPhase))
-
-				rollOscLast = motion.curTransition.lastAnim.joints[8].roll *
-							  Math.sin(filter.degToRad(motion.walkWheelPos +
-							  motion.curTransition.lastAnim.joints[8].rollPhase)) +
-							  motion.curTransition.lastAnim.joints[8].rollOffset;
-
-				yawOffsetLast = motion.curTransition.lastAnim.joints[8].yawOffset;
-
-			} else {
-
-				pitchOsc = motion.curAnim.joints[8].pitch *
-						   Math.sin(filter.degToRad((cycle * adjFreq) +
-						   motion.curAnim.joints[8].pitchPhase)) +
-						   motion.curAnim.joints[8].pitchOffset;
-
-				yawOsc = motion.curAnim.joints[8].yaw *
-						 Math.sin(filter.degToRad((cycle * adjFreq) +
-						 motion.curAnim.joints[8].yawPhase));
-
-				rollOsc = motion.curAnim.joints[8].roll *
-						  Math.sin(filter.degToRad((cycle * adjFreq) +
-						  motion.curAnim.joints[8].rollPhase)) +
-						  motion.curAnim.joints[8].rollOffset;
-
-				yawOffset = motion.curAnim.joints[8].yawOffset;
-
-				pitchOscLast = motion.curTransition.lastAnim.joints[8].pitch *
-							   Math.sin(filter.degToRad(motion.cumulativeTime *
-							   motion.curTransition.lastAnim.calibration.frequency +
-							   motion.curTransition.lastAnim.joints[8].pitchPhase)) +
-							   motion.curTransition.lastAnim.joints[8].pitchOffset;
-
-				yawOscLast = motion.curTransition.lastAnim.joints[8].yaw *
-							 Math.sin(filter.degToRad(motion.cumulativeTime *
-							 motion.curTransition.lastAnim.calibration.frequency +
-							 motion.curTransition.lastAnim.joints[8].yawPhase))
-
-				rollOscLast = motion.curTransition.lastAnim.joints[8].roll *
-							  Math.sin(filter.degToRad(motion.cumulativeTime *
-							  motion.curTransition.lastAnim.calibration.frequency +
-							  motion.curTransition.lastAnim.joints[8].rollPhase)) +
-							  motion.curTransition.lastAnim.joints[8].rollOffset;
-
-				yawOffsetLast = motion.curTransition.lastAnim.joints[8].yawOffset;
-			}
-
-			pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-			yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-			rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-			yawOffset = (transProgress * yawOffset) + ((1 - transProgress) * yawOffsetLast);
-
-		} else {
-
-			pitchOsc = motion.curAnim.joints[8].pitch *
-					   Math.sin(filter.degToRad((cycle * adjFreq) +
-					   motion.curAnim.joints[8].pitchPhase)) +
-					   motion.curAnim.joints[8].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[8].yaw *
-					 Math.sin(filter.degToRad((cycle * adjFreq) +
-					 motion.curAnim.joints[8].yawPhase));
-
-			rollOsc = motion.curAnim.joints[8].roll *
-					  Math.sin(filter.degToRad((cycle * adjFreq) +
-					  motion.curAnim.joints[8].rollPhase)) +
-					  motion.curAnim.joints[8].rollOffset;
-
-			yawOffset = motion.curAnim.joints[8].yawOffset;
-		}
-
-		MyAvatar.setJointData("RightShoulder", Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc + yawOffset, rollOsc));
-		MyAvatar.setJointData("LeftShoulder", Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc - yawOffset, -rollOsc));
-
-		// upper arms
-		if (motion.curTransition !== nullTransition) {
-
-			if (motion.curTransition.walkingAtStart) {
-
-				pitchOsc = motion.curAnim.joints[9].pitch *
-						   Math.sin(filter.degToRad((motion.cumulativeTime *
-						   motion.curAnim.calibration.frequency) +
-						   motion.curAnim.joints[9].pitchPhase));
-
-				yawOsc = motion.curAnim.joints[9].yaw *
-						 Math.sin(filter.degToRad((motion.cumulativeTime *
-						 motion.curAnim.calibration.frequency) +
-						 motion.curAnim.joints[9].yawPhase));
-
-				rollOsc = motion.curAnim.joints[9].roll *
-						  Math.sin(filter.degToRad((motion.cumulativeTime *
-						  motion.curAnim.calibration.frequency * 2) +
-						  motion.curAnim.joints[9].rollPhase)) +
-						  motion.curAnim.joints[9].rollOffset;
-
-				pitchOffset = motion.curAnim.joints[9].pitchOffset;
-				yawOffset = motion.curAnim.joints[9].yawOffset;
-
-				pitchOscLast = motion.curTransition.lastAnim.joints[9].pitch *
-							   Math.sin(filter.degToRad(motion.walkWheelPos +
-							   motion.curTransition.lastAnim.joints[9].pitchPhase));
-
-				yawOscLast = motion.curTransition.lastAnim.joints[9].yaw *
-							 Math.sin(filter.degToRad(motion.walkWheelPos +
-							 motion.curTransition.lastAnim.joints[9].yawPhase));
-
-				rollOscLast = motion.curTransition.lastAnim.joints[9].roll *
-							  Math.sin(filter.degToRad(motion.walkWheelPos +
-							  motion.curTransition.lastAnim.joints[9].rollPhase)) +
-							  motion.curTransition.lastAnim.joints[9].rollOffset;
-
-				pitchOffsetLast = motion.curTransition.lastAnim.joints[9].pitchOffset;
-				yawOffsetLast = motion.curTransition.lastAnim.joints[9].yawOffset;
-
-			} else {
-
-				pitchOsc = motion.curAnim.joints[9].pitch *
-						   Math.sin(filter.degToRad((cycle * adjFreq) +
-						   motion.curAnim.joints[9].pitchPhase));
-
-				yawOsc = motion.curAnim.joints[9].yaw *
-						 Math.sin(filter.degToRad((cycle * adjFreq) +
-						 motion.curAnim.joints[9].yawPhase));
-
-				rollOsc = motion.curAnim.joints[9].roll *
-						  Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-						  motion.curAnim.joints[9].rollPhase)) +
-						  motion.curAnim.joints[9].rollOffset;
-
-				pitchOffset = motion.curAnim.joints[9].pitchOffset;
-				yawOffset = motion.curAnim.joints[9].yawOffset;
-
-				pitchOscLast = motion.curTransition.lastAnim.joints[9].pitch *
-							   Math.sin(filter.degToRad(motion.cumulativeTime *
-							   motion.curTransition.lastAnim.calibration.frequency +
-							   motion.curTransition.lastAnim.joints[9].pitchPhase))
-
-				yawOscLast = motion.curTransition.lastAnim.joints[9].yaw *
-							 Math.sin(filter.degToRad(motion.cumulativeTime *
-							 motion.curTransition.lastAnim.calibration.frequency +
-							 motion.curTransition.lastAnim.joints[9].yawPhase))
-
-				rollOscLast = motion.curTransition.lastAnim.joints[9].roll *
-							  Math.sin(filter.degToRad(motion.cumulativeTime *
-							  motion.curTransition.lastAnim.calibration.frequency +
-							  motion.curTransition.lastAnim.joints[9].rollPhase)) +
-							  motion.curTransition.lastAnim.joints[9].rollOffset;
-
-				pitchOffsetLast = motion.curTransition.lastAnim.joints[9].pitchOffset;
-				yawOffsetLast = motion.curTransition.lastAnim.joints[9].yawOffset;
-			}
-
-			pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-			yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-			rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-			pitchOffset = (transProgress * pitchOffset) + ((1 - transProgress) * pitchOffsetLast);
-			yawOffset = (transProgress * yawOffset) + ((1 - transProgress) * yawOffsetLast);
-
-		} else {
-
-			pitchOsc = motion.curAnim.joints[9].pitch *
-					   Math.sin(filter.degToRad((cycle * adjFreq) +
-					   motion.curAnim.joints[9].pitchPhase));
-
-			yawOsc = motion.curAnim.joints[9].yaw *
-					 Math.sin(filter.degToRad((cycle * adjFreq) +
-					 motion.curAnim.joints[9].yawPhase));
-
-			rollOsc = motion.curAnim.joints[9].roll *
-					  Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-					  motion.curAnim.joints[9].rollPhase)) +
-					  motion.curAnim.joints[9].rollOffset;
-
-			pitchOffset = motion.curAnim.joints[9].pitchOffset;
-			yawOffset = motion.curAnim.joints[9].yawOffset;
-
-		}
-
-		MyAvatar.setJointData("RightArm", Quat.fromPitchYawRollDegrees(
-											(-1 * flyingModifier) * pitchOsc + pitchOffset,
-											yawOsc - yawOffset,
-											rollOsc));
-
-		MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(
-											pitchOsc + pitchOffset,
-											yawOsc + yawOffset,
-											-rollOsc));
-
-		// forearms
-		if (motion.curTransition !== nullTransition) {
-
-			if (motion.curTransition.walkingAtStart) {
-
-				pitchOsc = motion.curAnim.joints[10].pitch *
-						   Math.sin(filter.degToRad((motion.cumulativeTime *
-						   motion.curAnim.calibration.frequency) +
-						   motion.curAnim.joints[10].pitchPhase)) +
-						   motion.curAnim.joints[10].pitchOffset;
-
-				yawOsc = motion.curAnim.joints[10].yaw *
-						 Math.sin(filter.degToRad((motion.cumulativeTime *
-						 motion.curAnim.calibration.frequency) +
-						 motion.curAnim.joints[10].yawPhase));
-
-				rollOsc = motion.curAnim.joints[10].roll *
-						  Math.sin(filter.degToRad((motion.cumulativeTime *
-						  motion.curAnim.calibration.frequency) +
-						  motion.curAnim.joints[10].rollPhase));
-
-				yawOffset = motion.curAnim.joints[10].yawOffset;
-				rollOffset = motion.curAnim.joints[10].rollOffset;
-
-				pitchOscLast = motion.curTransition.lastAnim.joints[10].pitch *
-							   Math.sin(filter.degToRad((motion.walkWheelPos) +
-							   motion.curTransition.lastAnim.joints[10].pitchPhase)) +
-							   motion.curTransition.lastAnim.joints[10].pitchOffset;
-
-				yawOscLast = motion.curTransition.lastAnim.joints[10].yaw *
-							 Math.sin(filter.degToRad((motion.walkWheelPos) +
-							 motion.curTransition.lastAnim.joints[10].yawPhase));
-
-				rollOscLast = motion.curTransition.lastAnim.joints[10].roll *
-							  Math.sin(filter.degToRad((motion.walkWheelPos) +
-							  motion.curTransition.lastAnim.joints[10].rollPhase));
-
-				yawOffsetLast = motion.curTransition.lastAnim.joints[10].yawOffset;
-				rollOffsetLast = motion.curTransition.lastAnim.joints[10].rollOffset;
-
-			} else {
-
-				pitchOsc = motion.curAnim.joints[10].pitch *
-						   Math.sin(filter.degToRad((cycle * adjFreq) +
-						   motion.curAnim.joints[10].pitchPhase)) +
-						   motion.curAnim.joints[10].pitchOffset;
-
-				yawOsc = motion.curAnim.joints[10].yaw *
-						 Math.sin(filter.degToRad((cycle * adjFreq) +
-						 motion.curAnim.joints[10].yawPhase));
-
-				rollOsc = motion.curAnim.joints[10].roll *
-						  Math.sin(filter.degToRad((cycle * adjFreq) +
-						  motion.curAnim.joints[10].rollPhase));
-
-				yawOffset = motion.curAnim.joints[10].yawOffset;
-				rollOffset = motion.curAnim.joints[10].rollOffset;
-
-				pitchOscLast = motion.curTransition.lastAnim.joints[10].pitch *
-							   Math.sin(filter.degToRad((motion.cumulativeTime *
-							   motion.curTransition.lastAnim.calibration.frequency) +
-							   motion.curTransition.lastAnim.joints[10].pitchPhase)) +
-							   motion.curTransition.lastAnim.joints[10].pitchOffset;
-
-				yawOscLast = motion.curTransition.lastAnim.joints[10].yaw *
-							 Math.sin(filter.degToRad((motion.cumulativeTime *
-							 motion.curTransition.lastAnim.calibration.frequency) +
-							 motion.curTransition.lastAnim.joints[10].yawPhase));
-
-				rollOscLast = motion.curTransition.lastAnim.joints[10].roll *
-							  Math.sin(filter.degToRad((motion.cumulativeTime *
-							  motion.curTransition.lastAnim.calibration.frequency) +
-							  motion.curTransition.lastAnim.joints[10].rollPhase));
-
-				yawOffsetLast = motion.curTransition.lastAnim.joints[10].yawOffset;
-				rollOffsetLast = motion.curTransition.lastAnim.joints[10].rollOffset;
-			}
-
-			// blend the animations
-			pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-			yawOsc = -(transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-			rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-			yawOffset = (transProgress * yawOffset) + ((1 - transProgress) * yawOffsetLast);
-			rollOffset = (transProgress * rollOffset) + ((1 - transProgress) * rollOffsetLast);
-
-		} else {
-
-			pitchOsc = motion.curAnim.joints[10].pitch *
-					  Math.sin(filter.degToRad((cycle * adjFreq) +
-					  motion.curAnim.joints[10].pitchPhase)) +
-					  motion.curAnim.joints[10].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[10].yaw *
-					 Math.sin(filter.degToRad((cycle * adjFreq) +
-					 motion.curAnim.joints[10].yawPhase));
-
-			rollOsc = motion.curAnim.joints[10].roll *
-					  Math.sin(filter.degToRad((cycle * adjFreq) +
-					  motion.curAnim.joints[10].rollPhase));
-
-			yawOffset = motion.curAnim.joints[10].yawOffset;
-			rollOffset = motion.curAnim.joints[10].rollOffset;
-		}
-
-		// apply forearms rotations
-		MyAvatar.setJointData("RightForeArm",
-			Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc + yawOffset, rollOsc + rollOffset));
-		MyAvatar.setJointData("LeftForeArm",
-			Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc - yawOffset, rollOsc - rollOffset));
-
-		// hands
-		if (motion.curTransition !== nullTransition) {
-
-			if (motion.curTransition.walkingAtStart) {
-
-				pitchOsc = motion.curAnim.joints[11].pitch *
-						   Math.sin(filter.degToRad((motion.cumulativeTime *
-						   motion.curAnim.calibration.frequency) +
-						   motion.curAnim.joints[11].pitchPhase)) +
-						   motion.curAnim.joints[11].pitchOffset;
-
-				yawOsc = motion.curAnim.joints[11].yaw *
-						 Math.sin(filter.degToRad((motion.cumulativeTime *
-						 motion.curAnim.calibration.frequency) +
-						 motion.curAnim.joints[11].yawPhase)) +
-						 motion.curAnim.joints[11].yawOffset;
-
-				rollOsc = motion.curAnim.joints[11].roll *
-						  Math.sin(filter.degToRad((motion.cumulativeTime *
-						  motion.curAnim.calibration.frequency) +
-						  motion.curAnim.joints[11].rollPhase));
-
-				pitchOscLast = motion.curTransition.lastAnim.joints[11].pitch *
-							   Math.sin(filter.degToRad(motion.walkWheelPos +
-							   motion.curTransition.lastAnim.joints[11].pitchPhase)) +
-							   motion.curTransition.lastAnim.joints[11].pitchOffset;
-
-				yawOscLast = motion.curTransition.lastAnim.joints[11].yaw *
-							 Math.sin(filter.degToRad(motion.walkWheelPos +
-							 motion.curTransition.lastAnim.joints[11].yawPhase)) +
-							 motion.curTransition.lastAnim.joints[11].yawOffset;
-
-				rollOscLast = motion.curTransition.lastAnim.joints[11].roll *
-							  Math.sin(filter.degToRad(motion.walkWheelPos +
-							  motion.curTransition.lastAnim.joints[11].rollPhase))
-
-				rollOffset = motion.curAnim.joints[11].rollOffset;
-				rollOffsetLast = motion.curTransition.lastAnim.joints[11].rollOffset;
-
-			} else {
-
-				pitchOsc = motion.curAnim.joints[11].pitch *
-						   Math.sin(filter.degToRad((cycle * adjFreq) +
-						   motion.curAnim.joints[11].pitchPhase)) +
-						   motion.curAnim.joints[11].pitchOffset;
-
-				yawOsc = motion.curAnim.joints[11].yaw *
-						 Math.sin(filter.degToRad((cycle * adjFreq) +
-						 motion.curAnim.joints[11].yawPhase)) +
-						 motion.curAnim.joints[11].yawOffset;
-
-				rollOsc = motion.curAnim.joints[11].roll *
-						  Math.sin(filter.degToRad((cycle * adjFreq) +
-						  motion.curAnim.joints[11].rollPhase));
-
-				rollOffset = motion.curAnim.joints[11].rollOffset;
-
-				pitchOscLast = motion.curTransition.lastAnim.joints[11].pitch *
-							   Math.sin(filter.degToRad(motion.cumulativeTime *
-							   motion.curTransition.lastAnim.calibration.frequency +
-							   motion.curTransition.lastAnim.joints[11].pitchPhase)) +
-							   motion.curTransition.lastAnim.joints[11].pitchOffset;
-
-				yawOscLast = motion.curTransition.lastAnim.joints[11].yaw *
-							 Math.sin(filter.degToRad(motion.cumulativeTime *
-							 motion.curTransition.lastAnim.calibration.frequency +
-							 motion.curTransition.lastAnim.joints[11].yawPhase)) +
-							 motion.curTransition.lastAnim.joints[11].yawOffset;
-
-				rollOscLast = motion.curTransition.lastAnim.joints[11].roll *
-							  Math.sin(filter.degToRad(motion.cumulativeTime *
-							  motion.curTransition.lastAnim.calibration.frequency +
-							  motion.curTransition.lastAnim.joints[11].rollPhase))
-
-				rollOffset = motion.curAnim.joints[11].rollOffset;
-				rollOffsetLast = motion.curTransition.lastAnim.joints[11].rollOffset;
-			}
-
-			pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-			yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-			rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-			rollOffset = (transProgress * rollOffset) + ((1 - transProgress) * rollOffsetLast);
-
-		} else {
-
-			pitchOsc = motion.curAnim.joints[11].pitch *
-					   Math.sin(filter.degToRad((cycle * adjFreq) +
-					   motion.curAnim.joints[11].pitchPhase)) +
-					   motion.curAnim.joints[11].pitchOffset;
-
-			yawOsc = motion.curAnim.joints[11].yaw *
-					 Math.sin(filter.degToRad((cycle * adjFreq) +
-					 motion.curAnim.joints[11].yawPhase)) +
-					 motion.curAnim.joints[11].yawOffset;
-
-			rollOsc = motion.curAnim.joints[11].roll *
-					  Math.sin(filter.degToRad((cycle * adjFreq) +
-					  motion.curAnim.joints[11].rollPhase));
-
-			rollOffset = motion.curAnim.joints[11].rollOffset;
-		}
-
-		// set the hand rotations
-		MyAvatar.setJointData("RightHand",
-			Quat.fromPitchYawRollDegrees(sideStepHandPitchSign * pitchOsc, yawOsc, rollOsc + rollOffset));
-		MyAvatar.setJointData("LeftHand",
-			Quat.fromPitchYawRollDegrees(pitchOsc, -yawOsc, rollOsc - rollOffset));
-
-	} // end if (!motion.armsFree)
-
-	// head and neck
-	if (motion.curTransition !== nullTransition) {
-
-		if (motion.curTransition.walkingAtStart) {
-
-			pitchOsc = 0.5 * motion.curAnim.joints[12].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency * 2) +
-				motion.curAnim.joints[12].pitchPhase)) +
-				motion.curAnim.joints[12].pitchOffset;
-
-			yawOsc = 0.5 * motion.curAnim.joints[12].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[12].yawPhase)) +
-				motion.curAnim.joints[12].yawOffset;
-
-			rollOsc = 0.5 * motion.curAnim.joints[12].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curAnim.calibration.frequency) +
-				motion.curAnim.joints[12].rollPhase)) +
-				motion.curAnim.joints[12].rollOffset;
-
-			pitchOscLast = 0.5 * motion.curTransition.lastAnim.joints[12].pitch *
-				Math.sin(filter.degToRad((motion.walkWheelPos * 2) +
-				motion.curTransition.lastAnim.joints[12].pitchPhase)) +
-				motion.curTransition.lastAnim.joints[12].pitchOffset;
-
-			yawOscLast = 0.5 * motion.curTransition.lastAnim.joints[12].yaw *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-				motion.curTransition.lastAnim.joints[12].yawPhase)) +
-				motion.curTransition.lastAnim.joints[12].yawOffset;
-
-			rollOscLast = 0.5 * motion.curTransition.lastAnim.joints[12].roll *
-				Math.sin(filter.degToRad((motion.walkWheelPos) +
-				motion.curTransition.lastAnim.joints[12].rollPhase)) +
-				motion.curTransition.lastAnim.joints[12].rollOffset;
-
-		} else {
-
-			pitchOsc = 0.5 * motion.curAnim.joints[12].pitch *
-				Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-				motion.curAnim.joints[12].pitchPhase)) +
-				motion.curAnim.joints[12].pitchOffset;
-
-			yawOsc = 0.5 * motion.curAnim.joints[12].yaw *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[12].yawPhase)) +
-				motion.curAnim.joints[12].yawOffset;
-
-			rollOsc = 0.5 * motion.curAnim.joints[12].roll *
-				Math.sin(filter.degToRad((cycle * adjFreq) +
-				motion.curAnim.joints[12].rollPhase)) +
-				motion.curAnim.joints[12].rollOffset;
-
-			pitchOscLast = 0.5 * motion.curTransition.lastAnim.joints[12].pitch *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency * 2) +
-				motion.curTransition.lastAnim.joints[12].pitchPhase)) +
-				motion.curTransition.lastAnim.joints[12].pitchOffset;
-
-			yawOscLast = 0.5 * motion.curTransition.lastAnim.joints[12].yaw *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[12].yawPhase)) +
-				motion.curTransition.lastAnim.joints[12].yawOffset;
-
-			rollOscLast = 0.5 * motion.curTransition.lastAnim.joints[12].roll *
-				Math.sin(filter.degToRad((motion.cumulativeTime *
-				motion.curTransition.lastAnim.calibration.frequency) +
-				motion.curTransition.lastAnim.joints[12].rollPhase)) +
-				motion.curTransition.lastAnim.joints[12].rollOffset;
-		}
-
-		pitchOsc = (transProgress * pitchOsc) + ((1 - transProgress) * pitchOscLast);
-		yawOsc = (transProgress * yawOsc) + ((1 - transProgress) * yawOscLast);
-		rollOsc = (transProgress * rollOsc) + ((1 - transProgress) * rollOscLast);
-
-	} else {
-
-		pitchOsc = 0.5 * motion.curAnim.joints[12].pitch *
-			Math.sin(filter.degToRad((cycle * adjFreq * 2) +
-			motion.curAnim.joints[12].pitchPhase)) +
-			motion.curAnim.joints[12].pitchOffset;
-
-		yawOsc = 0.5 * motion.curAnim.joints[12].yaw *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[12].yawPhase)) +
-			motion.curAnim.joints[12].yawOffset;
-
-		rollOsc = 0.5 * motion.curAnim.joints[12].roll *
-			Math.sin(filter.degToRad((cycle * adjFreq) +
-			motion.curAnim.joints[12].rollPhase)) +
-			motion.curAnim.joints[12].rollOffset;
-	}
-
-	MyAvatar.setJointData("Head", Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc, rollOsc));
-	MyAvatar.setJointData("Neck", Quat.fromPitchYawRollDegrees(pitchOsc, yawOsc, rollOsc));
+            // apply rotation
+            MyAvatar.setJointData(jointName, Quat.fromVec3Degrees(jointRotations));
+        }
+    }
 }
-
-// Begin by setting an internal state
-state.setInternalState(state.STANDING);

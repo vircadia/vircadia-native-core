@@ -13,6 +13,7 @@
 
 #include <QString>
 #include <QScriptValue>
+#include <QSignalMapper>
 
 #include "Overlay.h"
 
@@ -51,7 +52,7 @@ public:
     ~Overlays();
     void init(QGLWidget* parent);
     void update(float deltatime);
-    void render3D(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
+    void render3D(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
                         RenderArgs::RenderSide renderSide = RenderArgs::MONO);
     void render2D();
 
@@ -84,9 +85,9 @@ public slots:
     /// returns whether the overlay's assets are loaded or not
     bool isLoaded(unsigned int id);
 
-    /// returns the width of the given text in the specified overlay if it is a text overlay: in pixels if it is a 2D text
+    /// returns the size of the given text in the specified overlay if it is a text overlay: in pixels if it is a 2D text
     /// overlay; in meters if it is a 3D text overlay
-    float textWidth(unsigned int id, const QString& text) const;
+    QSizeF textSize(unsigned int id, const QString& text) const;
 
 private:
     QMap<unsigned int, Overlay*> _overlays2D;

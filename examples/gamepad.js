@@ -16,11 +16,15 @@ var AXIS_STRAFE = Joysticks.AXIS_LEFT_X;
 var AXIS_FORWARD = Joysticks.AXIS_LEFT_Y;
 var AXIS_ROTATE = Joysticks.AXIS_RIGHT_X;
 
+var BUTTON_SPRINT = Joysticks.BUTTON_LEFT_STICK;
+
+var BUTTON_TOGGLE_MIRROR = Joysticks.BUTTON_FACE_LEFT;
+
 var BUTTON_TURN_AROUND = Joysticks.BUTTON_RIGHT_STICK;
 
 var BUTTON_FLY_UP = Joysticks.BUTTON_RIGHT_SHOULDER;
 var BUTTON_FLY_DOWN = Joysticks.BUTTON_LEFT_SHOULDER;
-var BUTTON_WARP = Joysticks.BUTTON_FACE_BOTTOM;
+var BUTTON_WARP = null; // Disable for now
 
 var BUTTON_WARP_FORWARD = Joysticks.BUTTON_DPAD_UP;
 var BUTTON_WARP_BACKWARD = Joysticks.BUTTON_DPAD_DOWN;
@@ -31,7 +35,8 @@ var BUTTON_WARP_RIGHT = Joysticks.BUTTON_DPAD_RIGHT;
 var WARP_DISTANCE = 1;
 
 // Walk speed in m/s
-var MOVE_SPEED = 2;
+var MOVE_SPEED = 0.5;
+var MOVE_SPRINT_SPEED = 2;
 
 // Amount to rotate in radians
 var ROTATE_INCREMENT = Math.PI / 8;
@@ -46,9 +51,14 @@ var WARP_PICK_MAX_DISTANCE = 100;
 var flyDownButtonState = false;
 var flyUpButtonState = false;
 
+// When toggling to mirror mode, this stores the mode the user was previously in
+// so it can be toggled back to.
+var toggledFromCameraMode = 'first person';
+
 // Current move direction, axis aligned - that is, looking down and moving forward
 // will not move you into the ground, but instead will keep you on the horizontal plane.
 var moveDirection = { x: 0, y: 0, z: 0 };
+var sprintButtonState = false;
 
 var warpActive = false;
 var warpPosition = { x: 0, y: 0, z: 0 };
@@ -173,6 +183,18 @@ function reportButtonValue(button, newValue, oldValue) {
             MyAvatar.orientation = Quat.multiply(
                 Quat.fromPitchYawRollRadians(0, Math.PI, 0), MyAvatar.orientation);
         }
+    } else if (button == BUTTON_SPRINT) {
+        sprintButtonState = newValue;
+    } else if (button == BUTTON_TOGGLE_MIRROR) {
+        if (newValue) {
+            var currentMode = Camera.mode;
+            if (currentMode != "mirror") {
+                toggledFromCameraMode = currentMode;
+            }
+            Camera.mode = "mirror";
+        } else {
+            Camera.mode = toggledFromCameraMode;
+        }
     } else if (newValue) {
         var direction = null;
 
@@ -209,9 +231,10 @@ function update(dt) {
     var move = copyVec3(moveDirection);
     move.y = 0;
     if (Vec3.length(move) > 0) {
+        speed = sprintButtonState ? MOVE_SPRINT_SPEED : MOVE_SPEED;
         velocity = Vec3.multiplyQbyV(Camera.getOrientation(), move);
         velocity.y = 0;
-        velocity = Vec3.multiply(Vec3.normalize(velocity), MOVE_SPEED);
+        velocity = Vec3.multiply(Vec3.normalize(velocity), speed);
     }
 
     if (moveDirection.y != 0) {

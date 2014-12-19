@@ -19,9 +19,12 @@
 #include <QVector>
 
 #include <Extents.h>
+#include <Transform.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+class QIODevice;
 
 class FBXNode;
 
@@ -102,6 +105,10 @@ public:
     QString name;
     QByteArray filename;
     QByteArray content;
+    
+    Transform transform;
+    int texcoordSet;
+    std::string texcoordSetName;
 };
 
 /// A single part of a mesh (with the same material).
@@ -114,12 +121,14 @@ public:
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;
+    glm::vec2 emissiveParams;
     float shininess;
     float opacity;
     
     FBXTexture diffuseTexture;
     FBXTexture normalTexture;
     FBXTexture specularTexture;
+    FBXTexture emissiveTexture;
 
     QString materialID;
 };
@@ -135,18 +144,21 @@ public:
     QVector<glm::vec3> tangents;
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
+    QVector<glm::vec2> texCoords1;
     QVector<glm::vec4> clusterIndices;
     QVector<glm::vec4> clusterWeights;
     
     QVector<FBXCluster> clusters;
 
     Extents meshExtents;
-    
+    glm::mat4 modelTransform;
+
     bool isEye;
     
     QVector<FBXBlendshape> blendshapes;
     
     bool hasSpecularTexture() const;
+    bool hasEmissiveTexture() const;
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -154,6 +166,22 @@ class FBXAnimationFrame {
 public:
     
     QVector<glm::quat> rotations;
+};
+
+/// A light in an FBX document.
+class FBXLight {
+public:
+    QString name;
+    Transform transform;
+    float intensity;
+    glm::vec3 color;
+
+    FBXLight() :
+        name(),
+        transform(),
+        intensity(1.0f),
+        color(1.0f)
+    {}
 };
 
 Q_DECLARE_METATYPE(FBXAnimationFrame)
@@ -244,7 +272,11 @@ QByteArray writeMapping(const QVariantHash& mapping);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping);
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+
+/// Reads FBX geometry from the supplied model and mapping data.
+/// \exception QString if an error occurs in parsing
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads SVO geometry from the supplied model data.
 FBXGeometry readSVO(const QByteArray& model);

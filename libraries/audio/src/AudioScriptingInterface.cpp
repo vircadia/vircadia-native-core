@@ -85,6 +85,13 @@ bool AudioScriptingInterface::isInjectorPlaying(AudioInjector* injector) {
     return (injector != NULL);
 }
 
+void AudioScriptingInterface::setInjectorOptions(AudioInjector* injector, const AudioInjectorOptions& injectorOptions) {
+    AudioInjectorOptions optionsCopy = injectorOptions;
+    if (injector) {
+        injector->setOptions(optionsCopy);
+    }
+}
+
 float AudioScriptingInterface::getLoudness(AudioInjector* injector) {
     if (injector) {
         return injector->getLoudness();

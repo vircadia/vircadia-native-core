@@ -73,6 +73,7 @@ void DomainHandler::hardReset() {
     
     qDebug() << "Hard reset in NodeList DomainHandler.";
     _iceDomainID = QUuid();
+    _iceServerSockAddr = HifiSockAddr();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
 }

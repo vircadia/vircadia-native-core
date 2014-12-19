@@ -135,16 +135,20 @@ glm::vec3 vec3FromLeapVector(const Leap::Vector& vec) {
 
 void Leapmotion::update() {
 #ifdef HAVE_LEAPMOTION
-    // Check that the controller is actually active
+    bool wasActive = _active;
     _active = _controller.isConnected();
-    if (!_active) {
-        return;
+
+    if (_active || wasActive) {
+        // Go through all the joints and increment their counter since last update.
+        // Increment all counters once after controller first becomes inactive so that each joint reports itself as inactive.
+        // TODO C++11 for (auto jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
+        for (JointTracker::Vector::iterator jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
+            (*jointIt).tickNewFrame();
+        }
     }
 
-    // go through all the joints and increment their counter since last update
-    // TODO C++11 for (auto jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
-    for (JointTracker::Vector::iterator jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
-        (*jointIt).tickNewFrame();
+    if (!_active) {
+        return;
     }
 
     // Get the most recent frame and report some basic information

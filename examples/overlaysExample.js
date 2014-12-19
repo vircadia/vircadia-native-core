@@ -69,7 +69,8 @@ var text = Overlays.addOverlay("text", {
                     topMargin: 4,
                     leftMargin: 4,
                     text: "Here is some text.\nAnd a second line.",
-                    alpha: 0.7
+                    alpha: 0.7,
+                    backgroundAlpha: 0.5
                 });
 
 // This will create an image overlay, which starts out as invisible
@@ -170,6 +171,7 @@ var clipboardPreview = Overlays.addOverlay("clipboard", {
 // Demonstrate retrieving overlay properties
 print("Text overlay text property value =\n" + Overlays.getProperty(text, "text"));
 print("Text overlay alpha =\n" + Overlays.getProperty(text, "alpha"));
+print("Text overlay background alpha =\n" + Overlays.getProperty(text, "backgroundAlpha"));
 print("Text overlay visible =\n" + Overlays.getProperty(text, "visible"));
 print("Text overlay font size =\n" + Overlays.getProperty(text, "font").size);
 print("Text overlay anchor =\n" + Overlays.getProperty(text, "anchor"));

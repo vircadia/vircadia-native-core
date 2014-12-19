@@ -44,7 +44,9 @@ bool ReceivedPacketProcessor::process() {
         NetworkPacket& packet = _packets.front(); // get the oldest packet
         NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
         _packets.erase(_packets.begin()); // remove the oldest packet
-        _nodePacketCounts[temporary.getNode()->getUUID()]--;
+        if (!temporary.getNode().isNull()) {
+            _nodePacketCounts[temporary.getNode()->getUUID()]--;
+        }
         unlock(); // let others add to the packets
         processPacket(temporary.getNode(), temporary.getByteArray()); // process our temporary copy
         midProcess();

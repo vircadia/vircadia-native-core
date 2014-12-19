@@ -12,9 +12,9 @@
 #ifndef hifi_ModelOverlay_h
 #define hifi_ModelOverlay_h
 
-#include "Base3DOverlay.h"
+#include <Model.h>
 
-#include "../../renderer/Model.h"
+#include "Base3DOverlay.h"
 
 class ModelOverlay : public Base3DOverlay {
     Q_OBJECT
@@ -26,9 +26,9 @@ public:
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction, 
-                                                    float& distance, BoxFace& face, QString& extraInfo) const;
+                                                    float& distance, BoxFace& face, QString& extraInfo);
 
     virtual ModelOverlay* createClone() const;
 

@@ -23,6 +23,16 @@ public:
     virtual void render(RenderArgs* args);
 
     virtual Cube3DOverlay* createClone() const;
+
+    float getBorderSize() const { return _borderSize; }
+
+    void setBorderSize(float value) { _borderSize = value; }
+
+    virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
+
+private:
+    float _borderSize;
 };
 
  

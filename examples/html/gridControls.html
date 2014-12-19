@@ -6,7 +6,7 @@
             var gridColor = { red: 0, green: 0, blue: 0 };
             var gridColors = [
                 { red: 0, green: 0, blue: 0 },
-                { red: 128, green: 128, blue: 128 },
+                { red: 255, green: 255, blue: 255 },
                 { red: 255, green: 0, blue: 0 },
                 { red: 0, green: 255, blue: 0},
                 { red: 0, green: 0, blue: 255 },
@@ -29,11 +29,11 @@
                         elPosY.value = origin.y.toFixed(2);
                     }
 
-                    if (data.minorGridSpacing) {
+                    if (data.minorGridSpacing !== undefined) {
                         elMinorSpacing.value = data.minorGridSpacing;
                     }
 
-                    if (data.majorGridEvery) {
+                    if (data.majorGridEvery !== undefined) {
                         elMajorSpacing.value = data.majorGridEvery;
                     }
 
@@ -41,7 +41,7 @@
                         gridColor = data.gridColor;
                     }
 
-                    if (data.elSnapToGrid !== undefined) {
+                    if (data.snapToGrid !== undefined) {
                         elSnapToGrid.checked = data.snapToGrid == true;
                     }
 

@@ -206,6 +206,7 @@ var progressDialog = (function () {
         height: backgroundHeight,
         imageURL: backgroundUrl,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -216,6 +217,7 @@ var progressDialog = (function () {
         textColor: textColor,
         backgroundColor: textBackground,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -226,6 +228,7 @@ var progressDialog = (function () {
         textColor: textColor,
         backgroundColor: textBackground,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -1169,29 +1172,27 @@ var toolBar = (function () {
         menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
 
         loadURLMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
         loadFileMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset + menuItemHeight,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
-        menuItemWidth = Math.max(Overlays.textWidth(loadURLMenuItem, "Model URL"),
-            Overlays.textWidth(loadFileMenuItem, "Model File")) + 20;
+        menuItemWidth = Math.max(Overlays.textSize(loadURLMenuItem, "Model URL").width,
+            Overlays.textSize(loadFileMenuItem, "Model File").width) + 20;
         Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
         Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
@@ -1493,6 +1494,7 @@ var ExportMenu = function (opts) {
         width: scaleViewWidth,
         height: height,
         alpha: 0.0,
+        backgroundAlpha: 0.0,
         color: { red: 255, green: 255, blue: 255 },
         text: "1"
     });
@@ -2480,6 +2482,7 @@ function Tooltip() {
         text: "",
         color: { red: 228, green: 228, blue: 228 },
         alpha: 0.8,
+        backgroundAlpha: 0.8,
         visible: false
     });
     this.show = function (doShow) {
@@ -2554,7 +2557,7 @@ function mousePressEvent(event) {
 
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
-        var foundIntersection = Entities.findRayIntersection(pickRay);
+        var foundIntersection = Entities.findRayIntersection(pickRay, true); // we want precision picking here
 
         if(!foundIntersection.accurate) {
             return;
@@ -2807,6 +2810,7 @@ function mouseReleaseEvent(event) {
 // exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
 // added it.
 var modelMenuAddedDelete = false;
+var originalLightsArePickable = Entities.getLightsArePickable();
 function setupModelMenus() {
     print("setupModelMenus()");
     // adj our menuitems
@@ -2824,15 +2828,18 @@ function setupModelMenus() {
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
                         afterItem: "Paste Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S", 
-                        afterItem: "Allow Select Large Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
+                        afterItem: "Allow Selecting of Large Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
+                        afterItem: "Allow Selecting of Small Models", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
 
+    Entities.setLightsArePickable(false);
     
 }
 
@@ -2846,8 +2853,9 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", "Model List...");
     Menu.removeMenuItem("Edit", "Paste Models");
-    Menu.removeMenuItem("Edit", "Allow Select Large Models");
-    Menu.removeMenuItem("Edit", "Allow Select Small Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
 
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
@@ -2865,6 +2873,7 @@ function scriptEnding() {
     if (exportMenu) {
         exportMenu.close();
     }
+    Entities.setLightsArePickable(originalLightsArePickable);
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -2890,10 +2899,12 @@ function showPropertiesForm(editModelID) {
 
 function handeMenuEvent(menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
-    if (menuItem == "Allow Select Small Models") {
-        allowSmallModels = Menu.isOptionChecked("Allow Select Small Models");
-    } else if (menuItem == "Allow Select Large Models") {
-        allowLargeModels = Menu.isOptionChecked("Allow Select Large Models");
+    if (menuItem == "Allow Selecting of Small Models") {
+        allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
+    } else if (menuItem == "Allow Selecting of Large Models") {
+        allowLargeModels = Menu.isOptionChecked("Allow Selecting of Large Models");
+    } else if (menuItem == "Allow Selecting of Lights") {
+        Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem == "Delete") {
         if (leftController.grabbing) {
             print("  Delete Entity.... leftController.entityID="+ leftController.entityID);

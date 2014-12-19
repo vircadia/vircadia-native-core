@@ -19,12 +19,12 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/detail/func_common.hpp>
 
-#include <SharedUtil.h>
-
 #include <QThread>
 
+#include <SharedUtil.h>
+#include <TextRenderer.h>
+
 #include "InterfaceConfig.h"
-#include "ui/TextRenderer.h"
 #include "VoxelConstants.h"
 #include "world.h"
 #include "Application.h"
@@ -32,12 +32,6 @@
 #include "Util.h"
 
 using namespace std;
-
-// no clue which versions are affected...
-#define WORKAROUND_BROKEN_GLUT_STROKES
-// see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
-
-
 
 void renderWorldBox() {
     //  Show edge of world
@@ -71,22 +65,23 @@ void renderWorldBox() {
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
     glColor3fv(red);
-    Application::getInstance()->getGeometryCache()->renderSphere(MARKER_RADIUS, 10, 10);
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, MARKER_DISTANCE, 0);
     glColor3fv(green);
-    Application::getInstance()->getGeometryCache()->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, 0, MARKER_DISTANCE);
     glColor3fv(blue);
-    Application::getInstance()->getGeometryCache()->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glColor3fv(gray);
     glTranslatef(MARKER_DISTANCE, 0, MARKER_DISTANCE);
-    Application::getInstance()->getGeometryCache()->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
 
 }
@@ -100,7 +95,8 @@ static TextRenderer* textRenderer(int mono) {
     static TextRenderer* monoRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY); 
     static TextRenderer* proportionalRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY,
         -1, -1, false, TextRenderer::SHADOW_EFFECT);
-    static TextRenderer* inconsolataRenderer = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false);
+    static TextRenderer* inconsolataRenderer = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT, 
+        false);
     switch (mono) {
         case 1:
             return monoRenderer;

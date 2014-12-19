@@ -17,7 +17,8 @@
 #include <OVR.h>
 #endif
 
-#include "renderer/ProgramObject.h"
+#include <ProgramObject.h>
+
 #include "ui/overlays/Text3DOverlay.h"
 
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
@@ -52,10 +53,14 @@ public:
     static glm::vec3 getLeftEyePosition() { return _leftEyePosition; }
     static glm::vec3 getRightEyePosition() { return _rightEyePosition; }
     
+    static int getHMDScreen();
+    
 private:
 #ifdef HAVE_LIBOVR
     static void generateDistortionMesh();
     static void renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]);
+
+    static bool similarNames(const QString& nameA,const QString& nameB);
 
     struct DistortionVertex {
         glm::vec2 pos;

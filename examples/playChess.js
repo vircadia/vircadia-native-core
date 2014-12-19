@@ -86,6 +86,7 @@ ChessGame.Board = (function(position, scale) {
         modelURL: ChessGame.BOARD.modelURL,
         position: this.position,
         dimensions: this.dimensions,
+        rotation: ChessGame.BOARD.rotation,
         userData: this.buildUserDataString()
     }
     this.entity = null;

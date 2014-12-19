@@ -10,9 +10,12 @@
 //
 
 
+#include <glm/gtx/transform.hpp>
+
 #include <QDebug>
 
 #include <ByteCountCoding.h>
+#include <GeometryUtil.h>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -28,7 +31,7 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Sphere;
-    setProperties(properties, true);
+    setProperties(properties);
 }
 
 EntityItemProperties SphereEntityItem::getProperties() const {
@@ -37,8 +40,8 @@ EntityItemProperties SphereEntityItem::getProperties() const {
     return properties;
 }
 
-bool SphereEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    bool somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+bool SphereEntityItem::setProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
 
@@ -93,3 +96,32 @@ void SphereEntityItem::recalculateCollisionShape() {
     float largestDiameter = glm::max(dimensionsInMeters.x, dimensionsInMeters.y, dimensionsInMeters.z);
     _sphereShape.setRadius(largestDiameter / 2.0f);
 }
+
+bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                     bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                     void** intersectedObject, bool precisionPicking) const {
+    // determine the ray in the frame of the entity transformed from a unit sphere
+    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 scale = glm::scale(getDimensions());
+    glm::mat4 registration = glm::translate(glm::vec3(0.5f, 0.5f, 0.5f) - getRegistrationPoint());
+    glm::mat4 entityToWorldMatrix = translation * rotation * scale * registration;
+    glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+    glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
+    glm::vec3 entityFrameDirection = glm::normalize(glm::vec3(worldToEntityMatrix * glm::vec4(direction, 1.0f)));
+
+    float localDistance;
+    // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
+    if (findRaySphereIntersection(entityFrameOrigin, entityFrameDirection, glm::vec3(0.0f), 0.5f, localDistance)) {
+        // determine where on the unit sphere the hit point occured
+        glm::vec3 entityFrameHitAt = entityFrameOrigin + (entityFrameDirection * localDistance);
+        // then translate back to work coordinates
+        glm::vec3 hitAt = glm::vec3(entityToWorldMatrix * glm::vec4(entityFrameHitAt, 1.0f));
+        distance = glm::distance(origin,hitAt);
+        return true;
+    }
+    return false;                
+}
+
+
+

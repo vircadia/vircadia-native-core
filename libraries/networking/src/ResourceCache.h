@@ -109,11 +109,11 @@ public:
     /// For loading resources, returns the number of bytes received.
     qint64 getBytesReceived() const { return _bytesReceived; }
     
-    /// For loading resources, returns the number of total bytes (or zero if unknown).
+    /// For loading resources, returns the number of total bytes (<= zero if unknown).
     qint64 getBytesTotal() const { return _bytesTotal; }
 
     /// For loading resources, returns the load progress.
-    float getProgress() const { return (_bytesTotal == 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
+    float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
 
     /// Refreshes the resource.
     void refresh();

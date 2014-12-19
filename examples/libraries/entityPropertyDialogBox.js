@@ -41,6 +41,8 @@ EntityPropertyDialogBox = (function () {
 
         array.push({ label: "Entity Type:" + properties.type, type: "header" });
         index++;
+        array.push({ label: "ID:", value: properties.id });
+        index++;
         array.push({ label: "Locked:", type: "checkbox", value: properties.locked });
         index++;
 
@@ -265,6 +267,7 @@ EntityPropertyDialogBox = (function () {
             var properties = propertiesForEditedEntity;
             var index = 0;
             index++; // skip type header
+            index++; // skip id item
             properties.locked = array[index++].value;
             if (properties.type == "Model") {
                 properties.modelURL = array[index++].value;

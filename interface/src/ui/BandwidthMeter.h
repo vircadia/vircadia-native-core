@@ -16,7 +16,7 @@
 
 #include <glm/glm.hpp>
 
-#include "ui/TextRenderer.h"
+#include <TextRenderer.h>
 
 
 class BandwidthMeter {

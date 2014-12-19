@@ -1274,25 +1274,37 @@ void SpannerSetAttribute::writeMetavoxelRoot(const MetavoxelNode& root, Metavoxe
 
 void SpannerSetAttribute::readMetavoxelDelta(MetavoxelData& data,
         const MetavoxelNode& reference, MetavoxelStreamState& state) {
-    forever {
-        SharedObjectPointer object;
-        state.base.stream >> object;
-        if (!object) {
-            break;
+    readMetavoxelSubdivision(data, state);
+}
+
+static void writeDeltaSubdivision(SharedObjectSet& oldSet, SharedObjectSet& newSet, Bitstream& stream) {
+    for (SharedObjectSet::iterator newIt = newSet.begin(); newIt != newSet.end(); ) {
+        SharedObjectSet::iterator oldIt = oldSet.find(*newIt);
+        if (oldIt == oldSet.end()) {
+            stream << *newIt; // added
+            newIt = newSet.erase(newIt);
+            
+        } else {
+            oldSet.erase(oldIt);
+            newIt++;
         }
-        data.toggle(state.base.attribute, object);
     }
-    // even if the root is empty, it should still exist
-    if (!data.getRoot(state.base.attribute)) {
-        data.createRoot(state.base.attribute);
+    foreach (const SharedObjectPointer& object, oldSet) {
+        stream << object; // removed
     }
+    stream << SharedObjectPointer();
+    foreach (const SharedObjectPointer& object, newSet) {
+        object->maybeWriteSubdivision(stream);
+    }
+    stream << SharedObjectPointer();
 }
 
 void SpannerSetAttribute::writeMetavoxelDelta(const MetavoxelNode& root,
         const MetavoxelNode& reference, MetavoxelStreamState& state) {
-    state.base.visit = Spanner::getAndIncrementNextVisit();
-    root.writeSpannerDelta(reference, state);
-    state.base.stream << SharedObjectPointer();
+    SharedObjectSet oldSet, newSet;
+    reference.getSpanners(this, state.minimum, state.size, state.base.referenceLOD, oldSet);
+    root.getSpanners(this, state.minimum, state.size, state.base.lod, newSet);
+    writeDeltaSubdivision(oldSet, newSet, state.base.stream);
 }
 
 void SpannerSetAttribute::readMetavoxelSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
@@ -1302,14 +1314,31 @@ void SpannerSetAttribute::readMetavoxelSubdivision(MetavoxelData& data, Metavoxe
         if (!object) {
             break;
         }
-        data.insert(state.base.attribute, object);
+        data.toggle(state.base.attribute, object);
+    }
+    forever {
+        SharedObjectPointer object;
+        state.base.stream >> object;
+        if (!object) {
+            break;
+        }
+        SharedObjectPointer newObject = object->readSubdivision(state.base.stream);
+        if (newObject != object) {
+            data.replace(state.base.attribute, object, newObject);
+            state.base.stream.addSubdividedObject(newObject);
+        }
+    }
+    // even if the root is empty, it should still exist
+    if (!data.getRoot(state.base.attribute)) {
+        data.createRoot(state.base.attribute);
     }
 }
 
 void SpannerSetAttribute::writeMetavoxelSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
-    state.base.visit = Spanner::getAndIncrementNextVisit();
-    root.writeSpannerSubdivision(state);
-    state.base.stream << SharedObjectPointer();
+    SharedObjectSet oldSet, newSet;
+    root.getSpanners(this, state.minimum, state.size, state.base.referenceLOD, oldSet);
+    root.getSpanners(this, state.minimum, state.size, state.base.lod, newSet);
+    writeDeltaSubdivision(oldSet, newSet, state.base.stream);
 }
 
 bool SpannerSetAttribute::metavoxelRootsEqual(const MetavoxelNode& firstRoot, const MetavoxelNode& secondRoot,

@@ -16,27 +16,32 @@
 #include <CollisionInfo.h>
 #include <HeadData.h>
 #include <HandData.h>
+#include <PerfStat.h>
 #include <SphereShape.h>
 
-#include "EntityItem.h"
 #include "EntityCollisionSystem.h"
 #include "EntityEditPacketSender.h"
-#include "EntityTree.h"
+#include "EntityItem.h"
 #include "EntityTreeElement.h"
+#include "EntityTree.h"
 
 const int MAX_COLLISIONS_PER_Entity = 16;
 
-EntityCollisionSystem::EntityCollisionSystem(EntityEditPacketSender* packetSender,
-    EntityTree* Entities, VoxelTree* voxels, AbstractAudioInterface* audio,
-    AvatarHashMap* avatars) : _collisions(MAX_COLLISIONS_PER_Entity) {
-    init(packetSender, Entities, voxels, audio, avatars);
+EntityCollisionSystem::EntityCollisionSystem()
+    :   SimpleEntitySimulation(), 
+        _packetSender(NULL),
+        _voxels(NULL),
+        _audio(NULL),
+        _avatars(NULL),
+        _collisions(MAX_COLLISIONS_PER_Entity) {
 }
 
 void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
-    EntityTree* Entities, VoxelTree* voxels, AbstractAudioInterface* audio,
-    AvatarHashMap* avatars) {
+        EntityTree* entities, VoxelTree* voxels, AbstractAudioInterface* audio,
+        AvatarHashMap* avatars) {
+    assert(entities);
+    setEntityTree(entities);
     _packetSender = packetSender;
-    _entities = Entities;
     _voxels = voxels;
     _audio = audio;
     _avatars = avatars;
@@ -45,14 +50,15 @@ void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
 EntityCollisionSystem::~EntityCollisionSystem() {
 }
 
-void EntityCollisionSystem::update() {
+void EntityCollisionSystem::updateCollisions() {
+    PerformanceTimer perfTimer("collisions");
+    assert(_entityTree);
     // update all Entities
-    if (_entities->tryLockForRead()) {
-        QList<EntityItem*>& movingEntities = _entities->getMovingEntities();
-        foreach (EntityItem* entity, movingEntities) {
+    if (_entityTree->tryLockForWrite()) {
+        foreach (EntityItem* entity, _movingEntities) {
             checkEntity(entity);
         }
-        _entities->unlock();
+        _entityTree->unlock();
     }
 }
 
@@ -64,13 +70,13 @@ void EntityCollisionSystem::checkEntity(EntityItem* entity) {
 }
 
 void EntityCollisionSystem::emitGlobalEntityCollisionWithVoxel(EntityItem* entity, 
-                                            VoxelDetail* voxelDetails, const CollisionInfo& collision) {
+                                            VoxelDetail* voxelDetails, const Collision& collision) {
     EntityItemID entityItemID = entity->getEntityItemID();
     emit entityCollisionWithVoxel(entityItemID, *voxelDetails, collision);
 }
 
 void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* entityA, 
-                                            EntityItem* entityB, const CollisionInfo& collision) {
+                                            EntityItem* entityB, const Collision& collision) {
                                             
     EntityItemID idA = entityA->getEntityItemID();
     EntityItemID idB = entityB->getEntityItemID();
@@ -98,7 +104,8 @@ void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
         // the results to systems outside of this octree reference frame.
         collisionInfo._contactPoint = (float)TREE_SCALE * (entity->getPosition() + entity->getRadius() * glm::normalize(collisionInfo._penetration));
         // let the global script run their collision scripts for Entities if they have them
-        emitGlobalEntityCollisionWithVoxel(entity, voxelDetails, collisionInfo);
+        Collision collision(collisionInfo._contactPoint, collisionInfo._penetration);
+        emitGlobalEntityCollisionWithVoxel(entity, voxelDetails, collision);
 
         // we must scale back down to the octree reference frame before updating the Entity properties
         collisionInfo._penetration /= (float)(TREE_SCALE);
@@ -127,9 +134,8 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
     CollisionList collisions(MAX_COLLISIONS_PER_ENTITY);
     bool shapeCollisionsAccurate = false;
     
-    bool shapeCollisions = _entities->findShapeCollisions(&entityA->getCollisionShapeInMeters(), 
+    bool shapeCollisions = _entityTree->findShapeCollisions(&entityA->getCollisionShapeInMeters(), 
                                             collisions, Octree::NoLock, &shapeCollisionsAccurate);
-    
 
     if (shapeCollisions) {
         for(int i = 0; i < collisions.size(); i++) {
@@ -164,12 +170,6 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
 
                 quint64 now = usecTimestampNow();
         
-                CollisionInfo collision;
-                collision._penetration = penetration;
-                // for now the contactPoint is the average between the the two paricle centers
-                collision._contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
-                emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
-
                 glm::vec3 axis = glm::normalize(penetration);
                 glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;
 
@@ -203,7 +203,9 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                     propertiesA.setPosition(newPositionA * (float)TREE_SCALE);
                     propertiesA.setLastEdited(now);
 
-                    _entities->updateEntity(idA, propertiesA);
+                    // NOTE: EntityTree::updateEntity() will cause the entity to get sorted correctly in the EntitySimulation,
+                    // thereby waking up static non-moving entities.
+                    _entityTree->updateEntity(entityA, propertiesA);
                     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idA, propertiesA);
                 }            
 
@@ -220,9 +222,17 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                     propertiesB.setPosition(newPositionB * (float)TREE_SCALE);
                     propertiesB.setLastEdited(now);
 
-                    _entities->updateEntity(idB, propertiesB);
+                    // NOTE: EntityTree::updateEntity() will cause the entity to get sorted correctly in the EntitySimulation,
+                    // thereby waking up static non-moving entities.
+                    _entityTree->updateEntity(entityB, propertiesB);
                     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idB, propertiesB);
-                }      
+                }
+
+                // NOTE: Do this after updating the entities so that the callback can delete the entities if they want to
+                Collision collision;
+                collision.penetration = penetration;
+                collision.contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
+                emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
             }
         }
     }
@@ -326,6 +336,6 @@ void EntityCollisionSystem::applyHardCollision(EntityItem* entity, const Collisi
     properties.setVelocity(velocity * (float)TREE_SCALE);
     properties.setLastEdited(usecTimestampNow());
 
-    _entities->updateEntity(entityItemID, properties);
+    _entityTree->updateEntity(entity, properties);
     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, entityItemID, properties);
 }
