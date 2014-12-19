@@ -82,6 +82,12 @@ const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
 const int HAS_REFERENTIAL = 6; // 7th bit
+const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
+
+const char HAND_STATE_NULL = 0;
+const char LEFT_HAND_POINTING_FLAG = 1;
+const char RIGHT_HAND_POINTING_FLAG = 2;
+const char IS_FINGER_POINTING_FLAG = 4;
 
 static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
