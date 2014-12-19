@@ -62,11 +62,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            if (_isSolid) {
-                DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES); 
-            } else {
-                glutWireSphere(1.0f, SLICES, SLICES);
-            }
+            DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES, _isSolid); 
         glPopMatrix();
     glPopMatrix();
     

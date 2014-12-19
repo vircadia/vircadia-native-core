@@ -12,8 +12,6 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-#include <gpu/GLUTConfig.h> // TODO - we need to get rid of this ASAP
-
 #include <QOpenGLFramebufferObject>
 
 #include <GLMHelpers.h>
@@ -68,19 +66,19 @@ void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int sta
 
 void DeferredLightingEffect::renderWireSphere(float radius, int slices, int stacks) {
     bindSimpleProgram();
-    glutWireSphere(radius, slices, stacks);
+    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks, false); 
     releaseSimpleProgram();
 }
 
 void DeferredLightingEffect::renderSolidCube(float size) {
     bindSimpleProgram();
-    glutSolidCube(size);
+    DependencyManager::get<GeometryCache>()->renderSolidCube(size); 
     releaseSimpleProgram();
 }
 
 void DeferredLightingEffect::renderWireCube(float size) {
     bindSimpleProgram();
-    glutWireCube(size);
+    DependencyManager::get<GeometryCache>()->renderWireCube(size);
     releaseSimpleProgram();
 }
 
