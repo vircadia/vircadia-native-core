@@ -44,5 +44,5 @@ else ()
   list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${OPENGL_INCLUDE_DIR}")
 endif (APPLE)
 
-# call macro to link our dependencies and bubble them up via a property on our target
-link_shared_dependencies()
+# call macro to include our dependency includes and bubble them up via a property on our target
+include_dependency_includes()

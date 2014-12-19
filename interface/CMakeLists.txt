@@ -246,4 +246,4 @@ else (APPLE)
 endif (APPLE)
 
 # link any dependencies bubbled up from our linked dependencies
-link_shared_dependencies()
+include_dependency_includes()
