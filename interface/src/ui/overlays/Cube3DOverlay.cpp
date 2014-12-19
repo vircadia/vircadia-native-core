@@ -78,7 +78,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
                         glScalef(dimensions.x * _borderSize, dimensions.y * _borderSize, dimensions.z * _borderSize);
 
                         if (_drawOnApplicationOverlay) {
-                            glutSolidCube(1.0f);
+                            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
                         } else {
                             DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
                         }
