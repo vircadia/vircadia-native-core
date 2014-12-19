@@ -173,7 +173,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& addressMap) {
             if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                 QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
                 
-                emit possibleDomainChangeRequiredToHostname(domainHostname);
+                emit possibleDomainChangeRequired(domainHostname, DEFAULT_DOMAIN_SERVER_PORT);
             } else {
                 QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
                 
@@ -250,10 +250,15 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     QRegExp ipAddressRegex(IP_ADDRESS_REGEX_STRING);
     
     if (ipAddressRegex.indexIn(lookupString) != -1) {
-        QString domainIPString = ipAddressRegex.cap(0);
+        QString domainIPString = ipAddressRegex.cap(1);
+        
+        qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        if (ipAddressRegex.captureCount() > 1) {
+            domainPort = (qint16) ipAddressRegex.cap(2).toInt();
+        }
         
         emit lookupResultsFinished();
-        setDomainHostnameAndName(domainIPString);
+        setDomainInfo(domainIPString, domainPort);
         
         return true;
     }
@@ -261,10 +266,15 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     QRegExp hostnameRegex(HOSTNAME_REGEX_STRING, Qt::CaseInsensitive);
     
     if (hostnameRegex.indexIn(lookupString) != -1) {
-        QString domainHostname = hostnameRegex.cap(0);
+        QString domainHostname = hostnameRegex.cap(1);
+        
+        qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        if (ipAddressRegex.captureCount() > 1) {
+            domainPort = (qint16) ipAddressRegex.cap(2).toInt();
+        }
         
         emit lookupResultsFinished();
-        setDomainHostnameAndName(domainHostname);
+        setDomainInfo(domainHostname, domainPort);
         
         return true;
     }
@@ -340,9 +350,9 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 
-void AddressManager::setDomainHostnameAndName(const QString& hostname, const QString& domainName) {
+void AddressManager::setDomainInfo(const QString &hostname, quint16 port, const QString& domainName) {
     _currentDomain = domainName.isEmpty() ? hostname : domainName;
-    emit possibleDomainChangeRequiredToHostname(hostname);
+    emit possibleDomainChangeRequired(hostname, port);
 }
 
 void AddressManager::goToUser(const QString& username) {

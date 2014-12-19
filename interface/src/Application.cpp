@@ -309,13 +309,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // use our MyAvatar position and quat for address manager path
     addressManager.setPositionGetter(getPositionForPath);
     addressManager.setOrientationGetter(getOrientationForPath);
-    
-    // handle domain change signals from AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
-            this, &Application::changeDomainHostname);
-    
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
-            &domainHandler, &DomainHandler::setIceServerHostnameAndID);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -1435,7 +1428,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-            changeDomainHostname(snapshotData->getDomain());
+            NodeList::getInstance()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -3698,19 +3691,6 @@ void Application::updateLocationInServer() {
         accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
-}
-
-void Application::changeDomainHostname(const QString &newDomainHostname) {
-    NodeList* nodeList = NodeList::getInstance();
-    
-    if (!nodeList->getDomainHandler().isCurrentHostname(newDomainHostname)) {
-        // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
-        _myAvatar->sendKillAvatar();
-        
-        // call the domain hostname change as a queued connection on the nodelist
-        QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
-                                  Q_ARG(const QString&, newDomainHostname));
-    }
 }
 
 void Application::clearDomainOctreeDetails() {

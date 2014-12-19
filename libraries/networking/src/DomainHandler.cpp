@@ -97,39 +97,19 @@ void DomainHandler::setUUID(const QUuid& uuid) {
     }
 }
 
-QString DomainHandler::hostnameWithoutPort(const QString& hostname) {
-    int colonIndex = hostname.indexOf(':');
-    return colonIndex > 0 ? hostname.left(colonIndex) : hostname;
-}
-
-bool DomainHandler::isCurrentHostname(const QString& hostname) {
-    return hostnameWithoutPort(hostname) == _hostname;
-}
-
-void DomainHandler::setHostname(const QString& hostname) {
+void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
     
-    if (hostname != _hostname) {
+    if (hostname != _hostname || _sockAddr.getPort() != port) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
         
-        int colonIndex = hostname.indexOf(':');
+        // the new hostname is everything up to the colon
+        _hostname = hostname;
         
-        if (colonIndex > 0) {
-            // the user has included a custom DS port with the hostname
-            
-            // the new hostname is everything up to the colon
-            _hostname = hostname.left(colonIndex);
-            
-            // grab the port by reading the string after the colon
-            _sockAddr.setPort(atoi(hostname.mid(colonIndex + 1, hostname.size()).toLocal8Bit().constData()));
-            
-            qDebug() << "Updated hostname to" << _hostname << "and port to" << _sockAddr.getPort();
-            
-        } else {
-            // no port included with the hostname, simply set the member variable and reset the domain server port to default
-            _hostname = hostname;
-            _sockAddr.setPort(DEFAULT_DOMAIN_SERVER_PORT);
-        }
+        // grab the port by reading the string after the colon
+        _sockAddr.setPort(port);
+        
+        qDebug() << "Updated hostname to" << _hostname << "and port to" << _sockAddr.getPort();
         
         // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
         qDebug("Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
