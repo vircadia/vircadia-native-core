@@ -7,14 +7,5 @@ include_glm()
 
 link_hifi_libraries(animation fbx shared gpu)
 
-if (APPLE)
-  find_library(GLUT GLUT)
-  target_link_libraries(${TARGET_NAME} ${GLUT})
-else ()
-  find_package(GLUT REQUIRED)
-  include_directories(SYSTEM "${GLUT_INCLUDE_DIRS}")
-  target_link_libraries(${TARGET_NAME} ${GLUT_LIBRARIES})
-endif ()
-
 # call macro to include our dependency includes and bubble them up via a property on our target
 include_dependency_includes()
