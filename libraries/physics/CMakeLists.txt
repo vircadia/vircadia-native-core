@@ -5,6 +5,9 @@ setup_hifi_library()
 
 include_glm()
 include_bullet()
+if (BULLET_FOUND)
+     target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
+endif (BULLET_FOUND)
 
 link_hifi_libraries(shared fbx entities)
 include_hifi_library_headers(fbx)
