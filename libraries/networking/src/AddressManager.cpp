@@ -350,7 +350,7 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 
-void AddressManager::setDomainInfo(const QString &hostname, quint16 port, const QString& domainName) {
+void AddressManager::setDomainInfo(const QString& hostname, quint16 port, const QString& domainName) {
     _currentDomain = domainName.isEmpty() ? hostname : domainName;
     emit possibleDomainChangeRequired(hostname, port);
 }
