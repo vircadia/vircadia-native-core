@@ -33,6 +33,7 @@
 #include <QVBoxLayout>
 
 #include <AttributeRegistry.h>
+#include <GeometryCache.h>
 #include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
 #include <PathUtils.h>
@@ -492,12 +493,11 @@ void BoxTool::render() {
                 glColor4f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS, BOX_ALPHA);
             }
             glEnable(GL_CULL_FACE);
-            glutSolidCube(1.0);
+            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
             glDisable(GL_CULL_FACE);
         }
         glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
-        glutWireCube(1.0);
-    
+        DependencyManager::get<GeometryCache>()->renderWireCube(1.0f);
         glPopMatrix();   
     }
     
