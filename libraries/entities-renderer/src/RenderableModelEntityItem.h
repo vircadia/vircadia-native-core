@@ -35,7 +35,7 @@ public:
     virtual ~RenderableModelEntityItem();
 
     virtual EntityItemProperties getProperties() const;
-    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy);
+    virtual bool setProperties(const EntityItemProperties& properties);
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
