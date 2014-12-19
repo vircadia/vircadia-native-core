@@ -117,8 +117,7 @@ GLBackend::GLBackend() :
     _input(),
     _transform()
 {
-    // TEST FOR SANITY
-    glewInit();
+
 }
 
 GLBackend::~GLBackend() {
