@@ -404,7 +404,7 @@ CameraTool = function(cameraManager) {
         y: 30,
     }
 
-    var UI_URL = "https://s3.amazonaws.com/uploads.hipchat.com/33953/231344/FYPfAu0teMAYhMF/camera-controls.svg",
+    var UI_URL = HIFI_PUBLIC_BUCKET + "images/tools/camera-controls.svg";
 
     var UI_WIDTH = 128;
     var UI_HEIGHT = 61;
