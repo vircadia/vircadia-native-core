@@ -474,6 +474,7 @@ class HeightfieldStack : public HeightfieldData {
 public:
 
     static const int POSITION_BYTES;
+    static const int COLOR_MATERIAL_BYTES;
     static const int ENTRY_BYTES;
 
     HeightfieldStack(int width, const QVector<QByteArray>& contents, const QVector<SharedObjectPointer>& materials);

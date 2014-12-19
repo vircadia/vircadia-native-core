@@ -1156,8 +1156,10 @@ static QVector<QByteArray> decodeHeightfieldStack(const QByteArray& encoded,
 
 const int HeightfieldStack::POSITION_BYTES = sizeof(quint16);
 
+const int HeightfieldStack::COLOR_MATERIAL_BYTES = 4 + 1;
+
 // RGBA color, material, Hermite values for X, Y, and Z
-const int HeightfieldStack::ENTRY_BYTES = 4 + 1 + 4 * 3;
+const int HeightfieldStack::ENTRY_BYTES = COLOR_MATERIAL_BYTES + 4 * 3;
 
 HeightfieldStack::HeightfieldStack(int width, const QVector<QByteArray>& contents,
         const QVector<SharedObjectPointer>& materials) :
@@ -2163,28 +2165,79 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             float distance;
             glm::vec3 normal;
             
+            float colorX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerColorWidth / innerHeightWidth;
+            float colorZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerColorHeight / innerHeightHeight;
+            
+            float materialX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerMaterialWidth / innerHeightWidth;
+            float materialZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerMaterialHeight / innerHeightHeight;
+                    
             float stackX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerStackWidth / innerHeightWidth;
             float stackZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerStackHeight / innerHeightHeight;
             if (stackX >= 0.0f && stackX <= innerStackWidth && stackZ >= 0.0f && stackZ <= innerStackHeight) {
                 QByteArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
-                quint16 oldHeight = *heightLineDest;
-                int offset = 0;
-                if (oldHeight != 0 && !stackDest->isEmpty()) {
-                    int oldTop = oldHeight * voxelScale;
-                    offset = qMax(0, oldTop - newTop) * HeightfieldStack::ENTRY_BYTES;
-                    int prepend = qMax(0, newTop - oldTop) * HeightfieldStack::ENTRY_BYTES;
-                    int append = qMax(0, (oldTop - stackDest->size() + 1) - newBottom) * HeightfieldStack::ENTRY_BYTES;                 
+                if (stackDest->isEmpty() && *heightLineDest != 0) {
+                    // initialize from heightfield
+                    *stackDest = QByteArray(HeightfieldStack::POSITION_BYTES + HeightfieldStack::ENTRY_BYTES, 0);
+                    float voxelHeight = *heightLineDest * voxelScale;
+                    *(quint16*)stackDest->data() = glm::floor(voxelHeight);
+                    char* entryDest = stackDest->data() + HeightfieldStack::POSITION_BYTES;
+                
+                    if (colorX >= 0.0f && colorX <= innerColorWidth && colorZ >= 0.0f && colorZ <= innerColorHeight) {
+                        const char* colorDest = newColorContents.constData() + ((int)colorZ * colorWidth +
+                            (int)colorX) * DataBlock::COLOR_BYTES;
+                        entryDest[0] = colorDest[0];
+                        entryDest[1] = colorDest[1];
+                        entryDest[2] = colorDest[2];
+                    }
+                    entryDest[3] = 0xFF;    
+                    
+                    if (materialX >= 0.0f && materialX <= innerMaterialWidth && materialZ >= 0.0f &&
+                            materialZ <= innerMaterialHeight) {
+                        const uchar* materialDest = (const uchar*)newMaterialContents.constData() +
+                            (int)materialZ * materialWidth + (int)materialX;
+                        int index = *materialDest;
+                        if (index != 0) {
+                            int& mapping = materialMappings[index];
+                            if (mapping == 0) {
+                                QByteArray dummyContents;
+                                mapping = getMaterialIndex(newMaterialMaterials.at(index - 1),
+                                    newStackMaterials, dummyContents);
+                            }
+                            index = mapping;
+                        }
+                        entryDest[4] = index;
+                    }
+                    
+                    entryDest[12] = glm::fract(voxelHeight) * numeric_limits<quint8>::max();
+                    
+                }
+                if (!stackDest->isEmpty()) {
+                    int oldBottom = *(const quint16*)stackDest->constData();
+                    int oldTop = oldBottom + (stackDest->size() - HeightfieldStack::POSITION_BYTES) /
+                        HeightfieldStack::ENTRY_BYTES - 1;
+                    int prepend = qMax(0, oldBottom - newBottom) * HeightfieldStack::ENTRY_BYTES;
+                    int append = qMax(0, newTop - oldTop) * HeightfieldStack::ENTRY_BYTES;
                     if (prepend != 0 || append != 0) {
                         QByteArray newStack(prepend + stackDest->size() + append, 0);
-                        memcpy(newStack.data() + prepend, stackDest->constData(), stackDest->size());
+                        memcpy(newStack.data() + HeightfieldStack::POSITION_BYTES + prepend, stackDest->constData() +
+                            HeightfieldStack::POSITION_BYTES, stackDest->size() - HeightfieldStack::POSITION_BYTES);
+                        for (char* entryDest = newStack.data() + HeightfieldStack::POSITION_BYTES, *end = entryDest + prepend;
+                                entryDest != end; entryDest += HeightfieldStack::ENTRY_BYTES) {
+                            memcpy(entryDest, end, HeightfieldStack::COLOR_MATERIAL_BYTES);
+                        }
                         *stackDest = newStack;
+                        *(quint16*)stackDest->data() = qMin(oldBottom, newBottom);
                     }
                 } else {
-                    *stackDest = QByteArray((newTop - newBottom + 1) * HeightfieldStack::ENTRY_BYTES, 0);
+                    *stackDest = QByteArray(HeightfieldStack::POSITION_BYTES + (newTop - newBottom + 1) * 
+                        HeightfieldStack::ENTRY_BYTES, 0);
+                    *(quint16*)stackDest->data() = newBottom;
                 }
-                char* entryDest = stackDest->data() + offset;
+                quint16& stackPos = *(quint16*)stackDest->data();
+                char* entryDest = stackDest->data() + HeightfieldStack::POSITION_BYTES +
+                    (newTop - stackPos) * HeightfieldStack::ENTRY_BYTES;
                 glm::vec3 pos = glm::vec3(transform * glm::vec4(x, 0.0f, z, 1.0f)) + voxelStepY * (float)newTop;
-                for (int y = newTop; y >= newBottom; y--, entryDest += HeightfieldStack::ENTRY_BYTES, pos -= voxelStepY) {
+                for (int y = newTop; y >= newBottom; y--, entryDest -= HeightfieldStack::ENTRY_BYTES, pos -= voxelStepY) {
                     if (spanner->contains(pos)) {
                         if (hasOwnColors && !erase) {
                             QRgb spannerColor = spanner->getColorAt(pos);
@@ -2215,39 +2268,40 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             entryDest[4] = materialIndex;
                         }
                     }
+                    bool currentSet = (entryDest[3] != 0);
                     int nextStackX = (int)stackX + 1;
                     if (nextStackX <= innerStackWidth) {
-                        QByteArray* nextStackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)nextStackX;
+                        const QByteArray* nextStackDest = newStackContents.constData() +
+                            (int)stackZ * stackWidth + (int)nextStackX;
                         
                     }
-                    if (entryDest != stackDest->data()) {
-                        bool previousSet = ((entryDest - HeightfieldStack::ENTRY_BYTES)[3] != 0);
-                        bool currentSet = (entryDest[3] != 0);
-                        if (previousSet == currentSet) {
-                            entryDest[9] = entryDest[10] = entryDest[11] = entryDest[12] = 0;
+                    bool nextSetY = (entryDest != stackDest->data() + stackDest->size() - HeightfieldStack::ENTRY_BYTES &&
+                        (entryDest + HeightfieldStack::ENTRY_BYTES)[3] != 0);
+                    if (nextSetY == currentSet) {
+                        entryDest[9] = entryDest[10] = entryDest[11] = entryDest[12] = 0;
+                    } else {
+                        bool intersects;
+                        if (erase == nextSetY) {
+                            if ((intersects = spanner->intersects(pos - voxelStepY, pos, distance, normal))) {
+                                distance = 1.0f - distance;
+                            }
                         } else {
-                            bool intersects;
-                            if (erase == previousSet) {
-                                if ((intersects = spanner->intersects(pos - voxelStepY, pos, distance, normal))) {
-                                    distance = 1.0f - distance;
-                                }
-                            } else {
-                                intersects = spanner->intersects(pos, pos - voxelStepY, distance, normal); 
+                            intersects = spanner->intersects(pos, pos - voxelStepY, distance, normal); 
+                        }
+                        if (intersects) {
+                            if (erase) {
+                                normal = -normal;
                             }
-                            if (intersects) {
-                                if (erase) {
-                                    normal = -normal;
-                                }
-                                entryDest[9] = normal.x * numeric_limits<qint8>::max();
-                                entryDest[10] = normal.y * numeric_limits<qint8>::max();
-                                entryDest[11] = normal.z * numeric_limits<qint8>::max();
-                                entryDest[12] = distance * numeric_limits<quint8>::max();       
-                            }
+                            entryDest[9] = normal.x * numeric_limits<qint8>::max();
+                            entryDest[10] = normal.y * numeric_limits<qint8>::max();
+                            entryDest[11] = normal.z * numeric_limits<qint8>::max();
+                            entryDest[12] = distance * numeric_limits<quint8>::max();
                         }
                     }
                     int nextStackZ = (int)stackZ + 1;
                     if (nextStackZ <= innerStackHeight) {
-                        QByteArray* nextStackDest = newStackContents.data() + (int)nextStackZ * stackWidth + (int)stackX;
+                        const QByteArray* nextStackDest = newStackContents.constData() +
+                            (int)nextStackZ * stackWidth + (int)stackX;
                         
                     }
                 }
@@ -2265,8 +2319,6 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 if (height >= *heightLineDest) {
                     *heightLineDest = height;
                     
-                    float colorX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerColorWidth / innerHeightWidth;
-                    float colorZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerColorHeight / innerHeightHeight;
                     if (colorX >= 0.0f && colorX <= innerColorWidth && colorZ >= 0.0f && colorZ <= innerColorHeight) {
                         char* colorDest = newColorContents.data() + ((int)colorZ * colorWidth +
                             (int)colorX) * DataBlock::COLOR_BYTES;
@@ -2283,8 +2335,6 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                         }
                     }
                     
-                    float materialX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerMaterialWidth / innerHeightWidth;
-                    float materialZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerMaterialHeight / innerHeightHeight;
                     if (materialX >= 0.0f && materialX <= innerMaterialWidth && materialZ >= 0.0f &&
                             materialZ <= innerMaterialHeight) {
                         char* materialDest = newMaterialContents.data() + (int)materialZ * materialWidth + (int)materialX;
