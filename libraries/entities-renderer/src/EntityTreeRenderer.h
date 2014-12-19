@@ -129,6 +129,7 @@ private:
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
     void checkEnterLeaveEntities();
+    void leaveAllEntities();
     glm::vec3 _lastAvatarPosition;
     QVector<EntityItemID> _currentEntitiesInside;
     

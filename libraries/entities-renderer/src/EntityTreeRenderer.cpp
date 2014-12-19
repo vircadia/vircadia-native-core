@@ -62,6 +62,7 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 }
 
 void EntityTreeRenderer::clear() {
+    leaveAllEntities();
     foreach (const EntityItemID& entityID, _entityScripts.keys()) {
         checkAndCallUnload(entityID);
     }
@@ -82,8 +83,7 @@ void EntityTreeRenderer::init() {
 
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.    
-    glm::vec3 avatarPosition = _viewState->getAvatarPosition();
-    _lastAvatarPosition = avatarPosition + glm::vec3(1.0f, 1.0f, 1.0f);
+    _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3(1.0f, 1.0f, 1.0f);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
     connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
@@ -297,6 +297,27 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
     }
 }
 
+void EntityTreeRenderer::leaveAllEntities() {
+    if (_tree) {
+        _tree->lockForWrite(); // so that our scripts can do edits if they want
+        
+        // for all of our previous containing entities, if they are no longer containing then send them a leave event
+        foreach(const EntityItemID& entityID, _currentEntitiesInside) {
+            emit leaveEntity(entityID);
+            QScriptValueList entityArgs = createEntityArgs(entityID);
+            QScriptValue entityScript = loadEntityScript(entityID);
+            if (entityScript.property("leaveEntity").isValid()) {
+                entityScript.property("leaveEntity").call(entityScript, entityArgs);
+            }
+        }
+        _currentEntitiesInside.clear();
+        
+        // make sure our "last avatar position" is something other than our current position, so that on our
+        // first chance, we'll check for enter/leave entity events.    
+        _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3(1.0f, 1.0f, 1.0f);
+        _tree->unlock();
+    }
+}
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
     if (_tree) {
         Model::startScene(renderSide);
