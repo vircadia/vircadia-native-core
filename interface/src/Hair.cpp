@@ -10,6 +10,8 @@
 //
 //  Creates single flexible verlet-integrated strands that can be used for hair/fur/grass
 
+#include <gpu/GPUConfig.h>
+
 #include "Hair.h"
 
 #include "Util.h"

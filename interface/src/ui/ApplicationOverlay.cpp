@@ -226,7 +226,7 @@ void ApplicationOverlay::displayOverlayTexture() {
     glMatrixMode(GL_PROJECTION);
     glPushMatrix(); {
         glLoadIdentity();
-        gluOrtho2D(0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight(), 0);
+        glOrtho(0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight(), 0, -1.0, 1.0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
         glEnable(GL_BLEND);
