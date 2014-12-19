@@ -153,7 +153,7 @@ void Hand::renderHandTargets(bool isMine) {
         
             const float collisionRadius = 0.05f;
             glColor4f(0.5f,0.5f,0.5f, alpha);
-            glutWireSphere(collisionRadius, 10.0f, 10.0f);
+            DependencyManager::get<GeometryCache>()->renderSphere(collisionRadius, 10, 10, false); 
             glPopMatrix();
         }
     }

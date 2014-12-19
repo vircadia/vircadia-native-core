@@ -12,6 +12,7 @@
 #include "InterfaceConfig.h"
 
 #include <GlowEffect.h>
+#include <GeometryCache.h>
 #include <VoxelConstants.h>
 
 #include "Application.h"
@@ -47,7 +48,7 @@ void VoxelFade::render() {
                  voxelDetails.y + voxelDetails.s * 0.5f,
                  voxelDetails.z + voxelDetails.s * 0.5f);
     glLineWidth(1.0f);
-    glutSolidCube(voxelDetails.s);
+    DependencyManager::get<GeometryCache>()->renderSolidCube(voxelDetails.s);
     glLineWidth(1.0f);
     glPopMatrix();
     glEnable(GL_LIGHTING);
