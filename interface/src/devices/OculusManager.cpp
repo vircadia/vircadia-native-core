@@ -582,7 +582,7 @@ void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     glLoadIdentity();
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    gluOrtho2D(0, glCanvas->getDeviceWidth(), 0, glCanvas->getDeviceHeight());
+    glOrtho(0, glCanvas->getDeviceWidth(), 0, glCanvas->getDeviceHeight(), -1.0f, 1.0f);
 
     glDisable(GL_DEPTH_TEST);
 
