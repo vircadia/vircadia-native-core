@@ -182,7 +182,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         const float NEAR_CLIP = -10000;
         const float FAR_CLIP = 10000;
         glLoadIdentity();
-        glOrtho(0, glWidget->width(), glWidget->height(), 0, NEAR_CLIP, FAR_CLIP);
+        glOrtho(0, glCanvas->width(), glCanvas->height(), 0, NEAR_CLIP, FAR_CLIP);
         
         renderAudioMeter();
         

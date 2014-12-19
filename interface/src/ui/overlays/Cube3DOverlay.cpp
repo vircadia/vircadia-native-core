@@ -93,7 +93,6 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     if (_drawOnApplicationOverlay) {
                         glutSolidCube(1.0f);
                     } else {
-                        Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
                         DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
                     }
                 glPopMatrix();
