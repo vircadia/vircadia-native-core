@@ -469,19 +469,60 @@ template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const
 
 typedef QExplicitlySharedDataPointer<HeightfieldStack> HeightfieldStackPointer;
 
+/// A single column within a stack block.
+class StackArray : public QByteArray {
+public:
+    
+#pragma pack(push, 1)
+    /// A single entry within the array.
+    class Entry {
+    public:
+        uchar rgba[4];
+        uchar material;
+        uchar hermiteX[4];
+        uchar hermiteY[4];
+        uchar hermiteZ[4];
+               
+        void setRGBA(int r, int g, int b, int a = 0xFF) { rgba[0] = r; rgba[1] = g; rgba[2] = b; rgba[3] = a; } 
+        void setRGBA(const uchar* orgba) { setRGBA(orgba[0], orgba[1], orgba[2], orgba[3]); }
+        void setRGB(const uchar* rgb) { setRGBA(rgb[0], rgb[1], rgb[2]); }
+        void setRGBA(QRgb rgb) { setRGBA(qRed(rgb), qGreen(rgb), qBlue(rgb), qAlpha(rgb)); }
+        
+        bool isSet() const { return rgba[3] != 0; }
+        
+        void setHermiteY(int x, int y, int z, int w) { hermiteY[0] = x; hermiteY[1] = y; hermiteY[2] = z; hermiteY[3] = w; }
+        void setHermiteY(const glm::vec3& normal, float position);
+        void clearHermiteY() { setHermiteY(0, 0, 0, 0); }
+    };
+#pragma pack(pop)
+
+    static int getSize(int entries) { return (entries == 0) ? 0 : sizeof(quint16) + sizeof(Entry) * entries; }
+
+    StackArray() : QByteArray() { }
+    StackArray(int entries) : QByteArray(getSize(entries), 0) { }
+    StackArray(const QByteArray& other) : QByteArray(other) { }
+    StackArray(const char* src, int bytes) : QByteArray(src, bytes) { }
+    
+    int getPosition() const { return *(const quint16*)constData(); }
+    void setPosition(int position) { *(quint16*)data() = position; }
+    
+    quint16& getPositionRef() { return *(quint16*)data(); }
+    
+    int getEntryCount() const { return isEmpty() ? 0 : (size() - sizeof(quint16)) / sizeof(Entry); }
+    
+    Entry* getEntryData() { return (Entry*)(data() + sizeof(quint16)); }
+    const Entry* getEntryData() const { return (const Entry*)(constData() + sizeof(quint16)); }
+};
+
 /// A block of stack data associated with a heightfield.
 class HeightfieldStack : public HeightfieldData {
 public:
 
-    static const int POSITION_BYTES;
-    static const int COLOR_MATERIAL_BYTES;
-    static const int ENTRY_BYTES;
-
-    HeightfieldStack(int width, const QVector<QByteArray>& contents, const QVector<SharedObjectPointer>& materials);
+    HeightfieldStack(int width, const QVector<StackArray>& contents, const QVector<SharedObjectPointer>& materials);
     HeightfieldStack(Bitstream& in, int bytes);
     HeightfieldStack(Bitstream& in, int bytes, const HeightfieldStackPointer& reference);
     
-    QVector<QByteArray>& getContents() { return _contents; }
+    QVector<StackArray>& getContents() { return _contents; }
     QVector<SharedObjectPointer>& getMaterials() { return _materials; }
     
     void write(Bitstream& out);
@@ -491,7 +532,7 @@ private:
     
     void read(Bitstream& in, int bytes);
     
-    QVector<QByteArray> _contents;
+    QVector<StackArray> _contents;
     QVector<SharedObjectPointer> _materials;
 };
 
@@ -609,7 +650,7 @@ private:
     int getMaterialAt(const glm::vec3& location) const;
     
     void maybeRenormalize(const glm::vec3& scale, float normalizeScale, float normalizeOffset, int innerStackWidth,
-        QVector<quint16>& heightContents, QVector<QByteArray>& stackContents);
+        QVector<quint16>& heightContents, QVector<StackArray>& stackContents);
     
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;

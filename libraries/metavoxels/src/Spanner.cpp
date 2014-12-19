@@ -1116,23 +1116,22 @@ template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const
 }
 
 static QByteArray encodeHeightfieldStack(int offsetX, int offsetY, int width, int height,
-        const QVector<QByteArray>& contents) {
+        const QVector<StackArray>& contents) {
     QByteArray inflated(HEIGHTFIELD_DATA_HEADER_SIZE, 0);
     qint32* header = (qint32*)inflated.data();
     *header++ = offsetX;
     *header++ = offsetY;
     *header++ = width;
     *header++ = height;
-    foreach (const QByteArray& stack, contents) {
-        quint16 entries = stack.isEmpty() ? 0 : (stack.size() - HeightfieldStack::POSITION_BYTES) /
-            HeightfieldStack::ENTRY_BYTES;
+    foreach (const StackArray& stack, contents) {
+        quint16 entries = stack.getEntryCount();
         inflated.append((const char*)&entries, sizeof(quint16));
         inflated.append(stack);
     }
     return qCompress(inflated);
 }
 
-static QVector<QByteArray> decodeHeightfieldStack(const QByteArray& encoded,
+static QVector<StackArray> decodeHeightfieldStack(const QByteArray& encoded,
         int& offsetX, int& offsetY, int& width, int& height) {
     QByteArray inflated = qUncompress(encoded);
     const qint32* header = (const qint32*)inflated.constData();
@@ -1141,27 +1140,27 @@ static QVector<QByteArray> decodeHeightfieldStack(const QByteArray& encoded,
     width = *header++;
     height = *header++;
     const char* src = inflated.constData() + HEIGHTFIELD_DATA_HEADER_SIZE;
-    QVector<QByteArray> contents(width * height);
-    for (QByteArray* dest = contents.data(), *end = dest + contents.size(); dest != end; dest++) {
+    QVector<StackArray> contents(width * height);
+    for (StackArray* dest = contents.data(), *end = dest + contents.size(); dest != end; dest++) {
         int entries = *(const quint16*)src;
         src += sizeof(quint16);
         if (entries > 0) {
-            int bytes = HeightfieldStack::POSITION_BYTES + entries * HeightfieldStack::ENTRY_BYTES;
-            *dest = QByteArray(src, bytes);
+            int bytes = StackArray::getSize(entries);
+            *dest = StackArray(src, bytes);
             src += bytes;
         }
     }
     return contents;
 }
 
-const int HeightfieldStack::POSITION_BYTES = sizeof(quint16);
+void StackArray::Entry::setHermiteY(const glm::vec3& normal, float position) {
+    hermiteY[0] = position * numeric_limits<qint8>::max();
+    hermiteY[1] = position * numeric_limits<qint8>::max();
+    hermiteY[2] = position * numeric_limits<qint8>::max();
+    hermiteY[3] = position * numeric_limits<quint8>::max();
+}
 
-const int HeightfieldStack::COLOR_MATERIAL_BYTES = 4 + 1;
-
-// RGBA color, material, Hermite values for X, Y, and Z
-const int HeightfieldStack::ENTRY_BYTES = COLOR_MATERIAL_BYTES + 4 * 3;
-
-HeightfieldStack::HeightfieldStack(int width, const QVector<QByteArray>& contents,
+HeightfieldStack::HeightfieldStack(int width, const QVector<StackArray>& contents,
         const QVector<SharedObjectPointer>& materials) :
     HeightfieldData(width),
     _contents(contents),
@@ -1185,7 +1184,7 @@ HeightfieldStack::HeightfieldStack(Bitstream& in, int bytes, const HeightfieldSt
     _contents = reference->getContents();
  
     int offsetX, offsetY, width, height;
-    QVector<QByteArray> delta = decodeHeightfieldStack(reference->getEncodedDelta(), offsetX, offsetY, width, height);
+    QVector<StackArray> delta = decodeHeightfieldStack(reference->getEncodedDelta(), offsetX, offsetY, width, height);
     if (delta.isEmpty()) {
         return;
     }
@@ -1196,11 +1195,11 @@ HeightfieldStack::HeightfieldStack(Bitstream& in, int bytes, const HeightfieldSt
     }
     int minX = offsetX - 1;
     int minY = offsetY - 1;
-    const QByteArray* src = delta.constData();
-    QByteArray* dest = _contents.data() + minY * _width + minX;
+    const StackArray* src = delta.constData();
+    StackArray* dest = _contents.data() + minY * _width + minX;
     for (int y = 0; y < height; y++, src += width, dest += _width) {
-        const QByteArray* lineSrc = src;
-        for (QByteArray* lineDest = dest, *end = dest + width; lineDest != end; lineDest++, lineSrc++) {
+        const StackArray* lineSrc = src;
+        for (StackArray* lineDest = dest, *end = dest + width; lineDest != end; lineDest++, lineSrc++) {
             *lineDest = *lineSrc;
         }
     }   
@@ -1230,8 +1229,8 @@ void HeightfieldStack::writeDelta(Bitstream& out, const HeightfieldStackPointer&
             int height = _contents.size() / _width;
             int minX = _width, minY = height;
             int maxX = -1, maxY = -1;
-            const QByteArray* src = _contents.constData();
-            const QByteArray* ref = reference->getContents().constData();
+            const StackArray* src = _contents.constData();
+            const StackArray* ref = reference->getContents().constData();
             for (int y = 0; y < height; y++) {
                 bool difference = false;
                 for (int x = 0; x < _width; x++) {
@@ -1246,17 +1245,17 @@ void HeightfieldStack::writeDelta(Bitstream& out, const HeightfieldStackPointer&
                     maxY = qMax(maxY, y);
                 }
             }
-            QVector<QByteArray> delta;
+            QVector<StackArray> delta;
             int deltaWidth = 0, deltaHeight = 0;
             if (maxX >= minX) {
                 deltaWidth = maxX - minX + 1;
                 deltaHeight = maxY - minY + 1;
-                delta = QVector<QByteArray>(deltaWidth * deltaHeight);
-                QByteArray* dest = delta.data();
+                delta = QVector<StackArray>(deltaWidth * deltaHeight);
+                StackArray* dest = delta.data();
                 src = _contents.constData() + minY * _width + minX;
                 for (int y = 0; y < deltaHeight; y++, src += _width, dest += deltaWidth) {
-                    const QByteArray* lineSrc = src;
-                    for (QByteArray* lineDest = dest, *end = dest + deltaWidth; lineDest != end; lineDest++, lineSrc++) {
+                    const StackArray* lineSrc = src;
+                    for (StackArray* lineDest = dest, *end = dest + deltaWidth; lineDest != end; lineDest++, lineSrc++) {
                         *lineDest = *lineSrc;
                     }
                 }
@@ -1941,7 +1940,7 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
     QVector<quint16> newHeightContents = _height->getContents();
     
     int stackWidth = innerHeightWidth + HeightfieldData::SHARED_EDGE;
-    QVector<QByteArray> newStackContents;
+    QVector<StackArray> newStackContents;
     QVector<SharedObjectPointer> newStackMaterials;
     if (_stack) {
         stackWidth = _stack->getWidth();
@@ -2072,7 +2071,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     QVector<quint16> newHeightContents = _height->getContents();
     
     int stackWidth, stackHeight;
-    QVector<QByteArray> newStackContents;
+    QVector<StackArray> newStackContents;
     QVector<SharedObjectPointer> newStackMaterials;
     if (_stack) {
         stackWidth = _stack->getWidth();
@@ -2083,7 +2082,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     } else {
         stackWidth = innerHeightWidth + HeightfieldData::SHARED_EDGE;
         stackHeight = innerHeightHeight + HeightfieldData::SHARED_EDGE;
-        newStackContents = QVector<QByteArray>(stackWidth * stackHeight);
+        newStackContents = QVector<StackArray>(stackWidth * stackHeight);
     }
     int innerStackWidth = stackWidth - HeightfieldData::SHARED_EDGE;
     int innerStackHeight = stackHeight - HeightfieldData::SHARED_EDGE;
@@ -2152,7 +2151,9 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     int newBottom = end.y * voxelScale;
     char r = color.red(), g = color.green(), b = color.blue(), a = color.alpha();
     bool erase = (a == 0);
-    uchar materialIndex = getMaterialIndex(material, newMaterialMaterials, newMaterialContents);
+    uchar materialMaterialIndex = getMaterialIndex(material, newMaterialMaterials, newMaterialContents);
+    QByteArray dummyContents;
+    uchar stackMaterialIndex = getMaterialIndex(material, newStackMaterials, dummyContents);
     bool hasOwnColors = spanner->hasOwnColors();
     bool hasOwnMaterials = spanner->hasOwnMaterials();
     QHash<int, int> materialMappings;
@@ -2174,23 +2175,20 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             float stackX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerStackWidth / innerHeightWidth;
             float stackZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerStackHeight / innerHeightHeight;
             if (stackX >= 0.0f && stackX <= innerStackWidth && stackZ >= 0.0f && stackZ <= innerStackHeight) {
-                QByteArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
+                StackArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
                 if (stackDest->isEmpty() && *heightLineDest != 0) {
                     // initialize from heightfield
-                    *stackDest = QByteArray(HeightfieldStack::POSITION_BYTES + HeightfieldStack::ENTRY_BYTES, 0);
+                    *stackDest = StackArray(1);
                     float voxelHeight = *heightLineDest * voxelScale;
-                    *(quint16*)stackDest->data() = glm::floor(voxelHeight);
-                    char* entryDest = stackDest->data() + HeightfieldStack::POSITION_BYTES;
-                
-                    if (colorX >= 0.0f && colorX <= innerColorWidth && colorZ >= 0.0f && colorZ <= innerColorHeight) {
-                        const char* colorDest = newColorContents.constData() + ((int)colorZ * colorWidth +
-                            (int)colorX) * DataBlock::COLOR_BYTES;
-                        entryDest[0] = colorDest[0];
-                        entryDest[1] = colorDest[1];
-                        entryDest[2] = colorDest[2];
-                    }
-                    entryDest[3] = 0xFF;    
+                    stackDest->setPosition(glm::floor(voxelHeight));
+                    StackArray::Entry* entryDest = stackDest->getEntryData();
                     
+                    if (colorX >= 0.0f && colorX <= innerColorWidth && colorZ >= 0.0f && colorZ <= innerColorHeight) {
+                        const uchar* colorDest = (const uchar*)newColorContents.constData() + ((int)colorZ * colorWidth +
+                            (int)colorX) * DataBlock::COLOR_BYTES;
+                        entryDest->setRGB(colorDest);
+                    }
+
                     if (materialX >= 0.0f && materialX <= innerMaterialWidth && materialZ >= 0.0f &&
                             materialZ <= innerMaterialHeight) {
                         const uchar* materialDest = (const uchar*)newMaterialContents.constData() +
@@ -2199,58 +2197,48 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                         if (index != 0) {
                             int& mapping = materialMappings[index];
                             if (mapping == 0) {
-                                QByteArray dummyContents;
                                 mapping = getMaterialIndex(newMaterialMaterials.at(index - 1),
                                     newStackMaterials, dummyContents);
                             }
                             index = mapping;
                         }
-                        entryDest[4] = index;
+                        entryDest->material = index;
                     }
                     
-                    entryDest[12] = glm::fract(voxelHeight) * numeric_limits<quint8>::max();
+                    entryDest->hermiteY[0] = glm::fract(voxelHeight) * numeric_limits<quint8>::max();
                     
                 }
                 if (!stackDest->isEmpty()) {
-                    int oldBottom = *(const quint16*)stackDest->constData();
-                    int oldTop = oldBottom + (stackDest->size() - HeightfieldStack::POSITION_BYTES) /
-                        HeightfieldStack::ENTRY_BYTES - 1;
-                    int prepend = qMax(0, oldBottom - newBottom) * HeightfieldStack::ENTRY_BYTES;
-                    int append = qMax(0, newTop - oldTop) * HeightfieldStack::ENTRY_BYTES;
+                    int oldBottom = stackDest->getPosition();
+                    int oldTop = oldBottom + stackDest->getEntryCount() - 1;
+                    int prepend = qMax(0, oldBottom - newBottom);
+                    int append = qMax(0, newTop - oldTop);
                     if (prepend != 0 || append != 0) {
-                        QByteArray newStack(prepend + stackDest->size() + append, 0);
-                        memcpy(newStack.data() + HeightfieldStack::POSITION_BYTES + prepend, stackDest->constData() +
-                            HeightfieldStack::POSITION_BYTES, stackDest->size() - HeightfieldStack::POSITION_BYTES);
-                        for (char* entryDest = newStack.data() + HeightfieldStack::POSITION_BYTES, *end = entryDest + prepend;
-                                entryDest != end; entryDest += HeightfieldStack::ENTRY_BYTES) {
-                            memcpy(entryDest, end, HeightfieldStack::COLOR_MATERIAL_BYTES);
+                        StackArray newStack(prepend + stackDest->getEntryCount() + append);
+                        memcpy(newStack.getEntryData() + prepend, stackDest->getEntryData(),
+                            stackDest->getEntryCount() * sizeof(StackArray::Entry));
+                        for (StackArray::Entry* entryDest = newStack.getEntryData(), *end = entryDest + prepend;
+                                entryDest != end; entryDest++) {
+                            entryDest->setRGBA(end->rgba);
+                            entryDest->material = end->material;
                         }
                         *stackDest = newStack;
-                        *(quint16*)stackDest->data() = qMin(oldBottom, newBottom);
+                        stackDest->setPosition(qMin(oldBottom, newBottom));
                     }
                 } else {
-                    *stackDest = QByteArray(HeightfieldStack::POSITION_BYTES + (newTop - newBottom + 1) * 
-                        HeightfieldStack::ENTRY_BYTES, 0);
-                    *(quint16*)stackDest->data() = newBottom;
+                    *stackDest = StackArray(newTop - newBottom + 1);
+                    stackDest->setPosition(newBottom);
                 }
-                quint16& stackPos = *(quint16*)stackDest->data();
-                char* entryDest = stackDest->data() + HeightfieldStack::POSITION_BYTES +
-                    (newTop - stackPos) * HeightfieldStack::ENTRY_BYTES;
+                quint16& stackPos = stackDest->getPositionRef();
+                StackArray::Entry* entryDest = stackDest->getEntryData() + (newTop - stackPos);
                 glm::vec3 pos = glm::vec3(transform * glm::vec4(x, 0.0f, z, 1.0f)) + voxelStepY * (float)newTop;
-                for (int y = newTop; y >= newBottom; y--, entryDest -= HeightfieldStack::ENTRY_BYTES, pos -= voxelStepY) {
+                for (int y = newTop; y >= newBottom; y--, entryDest--, pos -= voxelStepY) {
                     if (spanner->contains(pos)) {
                         if (hasOwnColors && !erase) {
-                            QRgb spannerColor = spanner->getColorAt(pos);
-                            entryDest[0] = qRed(spannerColor);
-                            entryDest[1] = qGreen(spannerColor);
-                            entryDest[2] = qBlue(spannerColor);
-                            entryDest[3] = qAlpha(spannerColor);
+                            entryDest->setRGBA(spanner->getColorAt(pos));
                             
                         } else {
-                            entryDest[0] = r;
-                            entryDest[1] = g;
-                            entryDest[2] = b;
-                            entryDest[3] = a;
+                            entryDest->setRGBA(r, g, b, a);
                         }
                         if (hasOwnMaterials && !erase) {
                             int index = spanner->getMaterialAt(pos);
@@ -2258,27 +2246,28 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                                 int& mapping = materialMappings[index];
                                 if (mapping == 0) {
                                     mapping = getMaterialIndex(spanner->getMaterials().at(index - 1),
-                                        newMaterialMaterials, newMaterialContents);
+                                        newStackMaterials, dummyContents);
                                 }
                                 index = mapping;
                             }
-                            entryDest[4] = index;
+                            entryDest->material = index;
                             
                         } else {
-                            entryDest[4] = materialIndex;
+                            entryDest->material = stackMaterialIndex;
                         }
                     }
-                    bool currentSet = (entryDest[3] != 0);
+                    bool currentSet = entryDest->isSet();
                     int nextStackX = (int)stackX + 1;
                     if (nextStackX <= innerStackWidth) {
-                        const QByteArray* nextStackDest = newStackContents.constData() +
+                        const StackArray* nextStackDest = newStackContents.constData() +
                             (int)stackZ * stackWidth + (int)nextStackX;
                         
                     }
-                    bool nextSetY = (entryDest != stackDest->data() + stackDest->size() - HeightfieldStack::ENTRY_BYTES &&
-                        (entryDest + HeightfieldStack::ENTRY_BYTES)[3] != 0);
+                    bool nextSetY = (entryDest != stackDest->getEntryData() + stackDest->getEntryCount() - 1 &&
+                        (entryDest + 1)->isSet());
                     if (nextSetY == currentSet) {
-                        entryDest[9] = entryDest[10] = entryDest[11] = entryDest[12] = 0;
+                        entryDest->clearHermiteY();
+                    
                     } else {
                         bool intersects;
                         if (erase == nextSetY) {
@@ -2292,15 +2281,12 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             if (erase) {
                                 normal = -normal;
                             }
-                            entryDest[9] = normal.x * numeric_limits<qint8>::max();
-                            entryDest[10] = normal.y * numeric_limits<qint8>::max();
-                            entryDest[11] = normal.z * numeric_limits<qint8>::max();
-                            entryDest[12] = distance * numeric_limits<quint8>::max();
+                            entryDest->setHermiteY(normal, distance);
                         }
                     }
                     int nextStackZ = (int)stackZ + 1;
                     if (nextStackZ <= innerStackHeight) {
-                        const QByteArray* nextStackDest = newStackContents.constData() +
+                        const StackArray* nextStackDest = newStackContents.constData() +
                             (int)nextStackZ * stackWidth + (int)stackX;
                         
                     }
@@ -2351,7 +2337,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             *materialDest = index;
                             
                         } else {
-                            *materialDest = materialIndex;
+                            *materialDest = materialMaterialIndex;
                         }
                     }
                 }
@@ -2828,7 +2814,7 @@ int HeightfieldNode::getMaterialAt(const glm::vec3& location) const {
 }
 
 void HeightfieldNode::maybeRenormalize(const glm::vec3& scale, float normalizeScale, float normalizeOffset,
-        int innerStackWidth, QVector<quint16>& heightContents, QVector<QByteArray>& stackContents) {
+        int innerStackWidth, QVector<quint16>& heightContents, QVector<StackArray>& stackContents) {
     if (normalizeScale == 1.0f && normalizeOffset == 0.0f) {
         return;
     }
@@ -2843,9 +2829,9 @@ void HeightfieldNode::maybeRenormalize(const glm::vec3& scale, float normalizeSc
     }
     int stackOffset = glm::round(scale.y * normalizeOffset * normalizeScale * innerStackWidth /
         (numeric_limits<quint16>::max() * scale.x));
-    for (QByteArray* dest = stackContents.data(), *end = dest + stackContents.size(); dest != end; dest++) {
+    for (StackArray* dest = stackContents.data(), *end = dest + stackContents.size(); dest != end; dest++) {
         if (!dest->isEmpty()) {
-            *(quint16*)dest->data() += stackOffset;
+            dest->getPositionRef() += stackOffset;
         }
     }
 }
