@@ -495,11 +495,11 @@ var mouseHasMovedSincePress = false;
 function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || cameraManager.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         return;
     }
     if (isActive) {
-        if (cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
+        if (selectionDisplay.mousePressEvent(event)) {
             // Event handled; do nothing.
             return;
         }
