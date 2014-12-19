@@ -178,7 +178,7 @@ var currentCursor = 0;
                         
 function addLineOverlay() {
     return Overlays.addOverlay("line3d", {
-                                         position: { x: 0, y: 0, z: 0},
+                                         start: { x: 0, y: 0, z: 0},
                                          end: { x: 0, y: 0, z: 0},
                                          color: { red: 255, green: 255, blue: 255},
                                          alpha: 1,
@@ -474,7 +474,7 @@ function initImport() {
                                            });
     
     xImportGuide = Overlays.addOverlay("line3d", {
-                                       position: { x: 0, y: 0, z: 0},
+                                       start: { x: 0, y: 0, z: 0},
                                        end: { x: 0, y: 0, z: 0},
                                        color: { red: 255, green: 0, blue: 0},
                                        alpha: 1,
@@ -482,7 +482,7 @@ function initImport() {
                                        lineWidth: previewLineWidth
                                        });
     yImportGuide = Overlays.addOverlay("line3d", {
-                                       position: { x: 0, y: 0, z: 0},
+                                       start: { x: 0, y: 0, z: 0},
                                        end: { x: 0, y: 0, z: 0},
                                        color: { red: 0, green: 255, blue: 0},
                                        alpha: 1,
@@ -490,7 +490,7 @@ function initImport() {
                                        lineWidth: previewLineWidth
                                        });
     zImportGuide = Overlays.addOverlay("line3d", {
-                                       position: { x: 0, y: 0, z: 0},
+                                       start: { x: 0, y: 0, z: 0},
                                        end: { x: 0, y: 0, z: 0},
                                        color: { red: 0, green: 0, blue: 255},
                                        alpha: 1,
@@ -519,15 +519,15 @@ function moveImport(position) {
     
     
     Overlays.editOverlay(xImportGuide, {
-                         position: { x: importPosition.x, y: 0, z: importPosition.z },
+                         start: { x: importPosition.x, y: 0, z: importPosition.z },
                          end: { x: importPosition.x + scaleSelector.scale, y: 0, z: importPosition.z }
                          });
     Overlays.editOverlay(yImportGuide, {
-                         position: { x: importPosition.x, y: importPosition.y, z: importPosition.z },
+                         start: { x: importPosition.x, y: importPosition.y, z: importPosition.z },
                          end: { x: importPosition.x, y: 0, z: importPosition.z }
                          });
     Overlays.editOverlay(zImportGuide, {
-                         position: { x: importPosition.x, y: 0, z: importPosition.z },
+                         start: { x: importPosition.x, y: 0, z: importPosition.z },
                          end: { x: importPosition.x, y: 0, z: importPosition.z + scaleSelector.scale }
                          });
     rescaleImport();
