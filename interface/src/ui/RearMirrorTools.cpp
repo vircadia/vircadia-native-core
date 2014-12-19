@@ -11,11 +11,6 @@
 
 #include "InterfaceConfig.h"
 
-// TODO: remove calls to gluProject to remove this include
-#ifdef __APPLE__
-#include <OpenGL/glu.h>
-#endif
-
 #include <QMouseEvent>
 
 #include <PathUtils.h>

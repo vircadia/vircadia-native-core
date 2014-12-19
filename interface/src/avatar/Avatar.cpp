@@ -13,11 +13,6 @@
 
 #include <gpu/GPUConfig.h>
 
-// TODO: remove calls to gluProject to remove this include
-#ifdef __APPLE__
-#include <OpenGL/glu.h>
-#endif
-
 #include <QDesktopWidget>
 #include <QWindow>
 
