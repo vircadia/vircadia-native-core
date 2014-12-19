@@ -103,20 +103,26 @@ void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
         
-        // the new hostname is everything up to the colon
-        _hostname = hostname;
+        if (hostname != _hostname) {
+            // set the new hostname
+            _hostname = hostname;
+            
+            qDebug() << "Updated domain hostname to" << _hostname;
+            
+            // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
+            qDebug("Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
+            QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
+            
+            UserActivityLogger::getInstance().changedDomain(_hostname);
+            emit hostnameChanged(_hostname);
+        }
+        
+        if (_sockAddr.getPort() != port) {
+            qDebug() << "Updated domain port to" << port;
+        }
         
         // grab the port by reading the string after the colon
         _sockAddr.setPort(port);
-        
-        qDebug() << "Updated hostname to" << _hostname << "and port to" << _sockAddr.getPort();
-        
-        // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
-        qDebug("Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
-        QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
-        
-        UserActivityLogger::getInstance().changedDomain(_hostname);
-        emit hostnameChanged(_hostname);
     }
 }
 

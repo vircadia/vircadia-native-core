@@ -241,11 +241,11 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString) {
 }
 
 bool AddressManager::handleNetworkAddress(const QString& lookupString) {
-    const QString IP_ADDRESS_REGEX_STRING = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
-        "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:\\d{1,5})?$";
+    const QString IP_ADDRESS_REGEX_STRING = "^((?:(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
+        "(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(?::(\\d{1,5}))?$";
     
     const QString HOSTNAME_REGEX_STRING = "^((?:[A-Z0-9]|[A-Z0-9][A-Z0-9\\-]{0,61}[A-Z0-9])"
-        "(?:\\.(?:[A-Z0-9]|[A-Z0-9][A-Z0-9\\-]{0,61}[A-Z0-9]))+|localhost)(:{1}\\d{1,5})?$";
+        "(?:\\.(?:[A-Z0-9]|[A-Z0-9][A-Z0-9\\-]{0,61}[A-Z0-9]))+|localhost)(?::(\\d{1,5}))?$";
     
     QRegExp ipAddressRegex(IP_ADDRESS_REGEX_STRING);
     
@@ -253,7 +253,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
         QString domainIPString = ipAddressRegex.cap(1);
         
         qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
-        if (ipAddressRegex.captureCount() > 1) {
+        if (!ipAddressRegex.cap(2).isEmpty()) {
             domainPort = (qint16) ipAddressRegex.cap(2).toInt();
         }
         
@@ -269,8 +269,8 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
         QString domainHostname = hostnameRegex.cap(1);
         
         qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
-        if (ipAddressRegex.captureCount() > 1) {
-            domainPort = (qint16) ipAddressRegex.cap(2).toInt();
+        if (!hostnameRegex.cap(2).isEmpty()) {
+            domainPort = (qint16) hostnameRegex.cap(2).toInt();
         }
         
         emit lookupResultsFinished();
