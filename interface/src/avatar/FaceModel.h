@@ -12,7 +12,7 @@
 #ifndef hifi_FaceModel_h
 #define hifi_FaceModel_h
 
-#include "renderer/Model.h"
+#include <Model.h>
 
 class Head;
 

@@ -38,14 +38,12 @@ bool JurisdictionListener::queueJurisdictionRequest() {
     int sizeOut = populatePacketHeader(reinterpret_cast<char*>(bufferOut), PacketTypeJurisdictionRequest);
     int nodeCount = 0;
 
-    NodeList* nodeList = NodeList::getInstance();
-    
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node) {
         if (node->getType() == getNodeType() && node->getActiveSocket()) {
             _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(bufferOut), sizeOut));
             nodeCount++;
         }
-    }
+    });
 
     if (nodeCount > 0){
         _packetSender.setPacketsPerSecond(nodeCount);

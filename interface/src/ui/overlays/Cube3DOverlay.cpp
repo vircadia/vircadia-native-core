@@ -12,12 +12,14 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+
+#include <DeferredLightingEffect.h>
+#include <GlowEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 
 #include "Application.h"
 #include "Cube3DOverlay.h"
-#include "renderer/GlowEffect.h"
 
 Cube3DOverlay::Cube3DOverlay() : _borderSize(0) {
 }
@@ -74,11 +76,13 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     glPushMatrix();
                         glColor4f(1.0f, 1.0f, 1.0f, alpha);
                         glScalef(dimensions.x * _borderSize, dimensions.y * _borderSize, dimensions.z * _borderSize);
+
                         if (_drawOnApplicationOverlay) {
                             glutSolidCube(1.0f);
                         } else {
-                            Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
+                            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
                         }
+
                     glPopMatrix();
                     glDepthMask(GL_TRUE);
                 }
@@ -90,6 +94,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
                         glutSolidCube(1.0f);
                     } else {
                         Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
+                        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
                     }
                 glPopMatrix();
             } else {
@@ -124,7 +129,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
                 } else {
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
-                    Application::getInstance()->getDeferredLightingEffect()->renderWireCube(1.0f);
+                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f);
                 }
             }
         glPopMatrix();

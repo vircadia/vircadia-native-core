@@ -35,8 +35,10 @@
 #include <AttributeRegistry.h>
 #include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
+#include <PathUtils.h>
 
 #include "Application.h"
+#include "MainWindow.h"
 #include "MetavoxelEditor.h"
 
 using namespace std;
@@ -137,7 +139,7 @@ MetavoxelEditor::MetavoxelEditor() :
     connect(Application::getInstance()->getMetavoxels(), &MetavoxelSystem::rendering,
         this, &MetavoxelEditor::renderPreview);
     
-    Application::getInstance()->getGLWidget()->installEventFilter(this);
+    DependencyManager::get<GLCanvas>()->installEventFilter(this);
     
     show();
     
@@ -145,7 +147,7 @@ MetavoxelEditor::MetavoxelEditor() :
         return;
     }
         
-    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/grid.frag");
+    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag");
     _gridProgram.link();
 }
 

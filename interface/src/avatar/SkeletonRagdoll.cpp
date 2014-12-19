@@ -11,10 +11,10 @@
 
 #include <DistanceConstraint.h>
 #include <FixedConstraint.h>
+#include <Model.h>
 
 #include "SkeletonRagdoll.h"
 #include "MuscleConstraint.h"
-#include "../renderer/Model.h"
 
 SkeletonRagdoll::SkeletonRagdoll(Model* model) : Ragdoll(), _model(model) {
     assert(_model);

@@ -94,7 +94,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _quatLibrary(),
     _vec3Library(),
     _uuidLibrary(),
-    _animationCache(this),
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
@@ -256,7 +255,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-    registerGlobalObject("AnimationCache", &_animationCache);
+    registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
@@ -485,17 +484,17 @@ void ScriptEngine::run() {
                 
                 // write audio packet to AudioMixer nodes
                 NodeList* nodeList = NodeList::getInstance();
-                foreach(const SharedNodePointer& node, nodeList->getNodeHash()) {
+                nodeList->eachNode([this, &nodeList, &audioPacket, &numPreSequenceNumberBytes](const SharedNodePointer& node){
                     // only send to nodes of type AudioMixer
                     if (node->getType() == NodeType::AudioMixer) {
                         // pack sequence number
                         quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
                         memcpy(audioPacket.data() + numPreSequenceNumberBytes, &sequence, sizeof(quint16));
-
+                        
                         // send audio packet
                         nodeList->writeDatagram(audioPacket, node);
                     }
-                }
+                });
             }
         }
 

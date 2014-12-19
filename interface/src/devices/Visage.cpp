@@ -14,6 +14,7 @@
 
 #include <DependencyManager.h>
 #include <FBXReader.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 
@@ -45,12 +46,12 @@ Visage::Visage() :
     
 #ifdef HAVE_VISAGE
 #ifdef WIN32
-    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage";
+    QByteArray licensePath = PathUtils::resourcesPath().toLatin1() + "visage";
 #else
-    QByteArray licensePath = Application::resourcesPath().toLatin1() + "visage/license.vlc";
+    QByteArray licensePath = PathUtils::resourcesPath().toLatin1() + "visage/license.vlc";
 #endif
     initializeLicenseManager(licensePath.data());
-    _tracker = new VisageTracker2(Application::resourcesPath().toLatin1() + "visage/tracker.cfg");
+    _tracker = new VisageTracker2(PathUtils::resourcesPath().toLatin1() + "visage/tracker.cfg");
     _data = new FaceData();
 #endif
 }
@@ -121,7 +122,7 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getActionUnitNameMap() 
 const float TRANSLATION_SCALE = 20.0f;
 
 void Visage::init() {
-    connect(DependencyManager::get<Faceshift>(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
+    connect(DependencyManager::get<Faceshift>().data(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
     updateEnabled();
 }
 
