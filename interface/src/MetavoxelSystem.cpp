@@ -2206,7 +2206,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                 quint16* lineDest = dest;
                 for (int x = 0; x < stackWidth; x++, src++, lineDest++) {
                     if (!src->isEmpty()) {
-                        *lineDest = 0;
+                        //*lineDest = 0;
                     }
                 }
             }

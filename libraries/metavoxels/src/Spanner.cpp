@@ -1153,10 +1153,23 @@ static QVector<StackArray> decodeHeightfieldStack(const QByteArray& encoded,
     return contents;
 }
 
+static inline bool isZero(const uchar values[4]) {
+    return *(const quint32*)values == 0;
+}
+
+bool StackArray::Entry::isZero() const {
+    return ::isZero(rgba) && material == 0 && ::isZero(hermiteX) && ::isZero(hermiteY) && ::isZero(hermiteZ);
+}
+
+bool StackArray::Entry::isMergeable(const Entry& other) const {
+    return *(const quint32*)rgba == *(const quint32*)other.rgba && material == other.material &&
+        ::isZero(hermiteX) && ::isZero(hermiteY) && ::isZero(hermiteZ);
+}
+
 void StackArray::Entry::setHermiteY(const glm::vec3& normal, float position) {
-    hermiteY[0] = position * numeric_limits<qint8>::max();
-    hermiteY[1] = position * numeric_limits<qint8>::max();
-    hermiteY[2] = position * numeric_limits<qint8>::max();
+    hermiteY[0] = normal.x * numeric_limits<qint8>::max();
+    hermiteY[1] = normal.y * numeric_limits<qint8>::max();
+    hermiteY[2] = normal.z * numeric_limits<qint8>::max();
     hermiteY[3] = position * numeric_limits<quint8>::max();
 }
 
@@ -2168,12 +2181,22 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             
             float colorX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerColorWidth / innerHeightWidth;
             float colorZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerColorHeight / innerHeightHeight;
-            
+            uchar* colorDest = (colorX >= 0.0f && colorX <= innerColorWidth && colorZ >= 0.0f && colorZ <= innerColorHeight) ?
+                ((uchar*)newColorContents.data() + ((int)colorZ * colorWidth + (int)colorX) * DataBlock::COLOR_BYTES) : NULL;
+                            
             float materialX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerMaterialWidth / innerHeightWidth;
             float materialZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerMaterialHeight / innerHeightHeight;
-                    
+            char* materialDest = (materialX >= 0.0f && materialX <= innerMaterialWidth && materialZ >= 0.0f &&
+                materialZ <= innerMaterialHeight) ? (newMaterialContents.data() + 
+                    (int)materialZ * materialWidth + (int)materialX) : NULL;
+            
             float stackX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerStackWidth / innerHeightWidth;
             float stackZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerStackHeight / innerHeightHeight;
+            
+            int topHeight = -1;
+            char topR = 0, topG = 0, topB = 0;
+            uchar topMaterial;
+            
             if (stackX >= 0.0f && stackX <= innerStackWidth && stackZ >= 0.0f && stackZ <= innerStackHeight) {
                 StackArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
                 if (stackDest->isEmpty() && *heightLineDest != 0) {
@@ -2183,16 +2206,11 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     stackDest->setPosition(glm::floor(voxelHeight));
                     StackArray::Entry* entryDest = stackDest->getEntryData();
                     
-                    if (colorX >= 0.0f && colorX <= innerColorWidth && colorZ >= 0.0f && colorZ <= innerColorHeight) {
-                        const uchar* colorDest = (const uchar*)newColorContents.constData() + ((int)colorZ * colorWidth +
-                            (int)colorX) * DataBlock::COLOR_BYTES;
+                    if (colorDest) {
                         entryDest->setRGB(colorDest);
                     }
 
-                    if (materialX >= 0.0f && materialX <= innerMaterialWidth && materialZ >= 0.0f &&
-                            materialZ <= innerMaterialHeight) {
-                        const uchar* materialDest = (const uchar*)newMaterialContents.constData() +
-                            (int)materialZ * materialWidth + (int)materialX;
+                    if (materialDest) {
                         int index = *materialDest;
                         if (index != 0) {
                             int& mapping = materialMappings[index];
@@ -2229,8 +2247,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     *stackDest = StackArray(newTop - newBottom + 1);
                     stackDest->setPosition(newBottom);
                 }
-                quint16& stackPos = stackDest->getPositionRef();
-                StackArray::Entry* entryDest = stackDest->getEntryData() + (newTop - stackPos);
+                StackArray::Entry* entryDest = stackDest->getEntryData() + (newTop - stackDest->getPosition());
                 glm::vec3 pos = glm::vec3(transform * glm::vec4(x, 0.0f, z, 1.0f)) + voxelStepY * (float)newTop;
                 for (int y = newTop; y >= newBottom; y--, entryDest--, pos -= voxelStepY) {
                     if (spanner->contains(pos)) {
@@ -2271,11 +2288,11 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     } else {
                         bool intersects;
                         if (erase == nextSetY) {
-                            if ((intersects = spanner->intersects(pos - voxelStepY, pos, distance, normal))) {
+                            if ((intersects = spanner->intersects(pos + voxelStepY, pos, distance, normal))) {
                                 distance = 1.0f - distance;
                             }
                         } else {
-                            intersects = spanner->intersects(pos, pos - voxelStepY, distance, normal); 
+                            intersects = spanner->intersects(pos, pos + voxelStepY, distance, normal); 
                         }
                         if (intersects) {
                             if (erase) {
@@ -2291,9 +2308,59 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                         
                     }
                 }
+                
+                // prune zero entries from end, repeated entries from beginning
+                int endPruneCount = 0;
+                for (int i = stackDest->getEntryCount() - 1; i >= 0 && stackDest->getEntryData()[i].isZero(); i--) {
+                    endPruneCount++;
+                }
+                if (endPruneCount == stackDest->getEntryCount()) {
+                    topHeight = 0;
+                    stackDest->clear();
+                    
+                } else {
+                    int topIndex = stackDest->getEntryCount() - 1;
+                    while (topIndex > 0 && !stackDest->getEntryData()[topIndex].isSet()) {
+                        topIndex--;
+                    }
+                    StackArray::Entry* topEntry = stackDest->getEntryData() + topIndex;
+                    if (topEntry->isSet()) {
+                        topHeight = ((stackDest->getPosition() + topIndex) +
+                            topEntry->hermiteY[3] / (float)numeric_limits<quint8>::max()) / voxelScale;
+                        topR = topEntry->rgba[0];
+                        topG = topEntry->rgba[1];
+                        topB = topEntry->rgba[2];
+                        topMaterial = topEntry->material;
+                        
+                    } else {
+                        topHeight = 0;
+                    }
+                    stackDest->removeEntries(stackDest->getEntryCount() - endPruneCount, endPruneCount);
+                    int beginningPruneCount = 0;
+                    for (int i = 0; i < stackDest->getEntryCount() - 1 && stackDest->getEntryData()[i].isMergeable(
+                            stackDest->getEntryData()[i + 1]); i++) {
+                        beginningPruneCount++;
+                    }
+                    stackDest->removeEntries(0, beginningPruneCount);
+                    stackDest->getPositionRef() += beginningPruneCount;
+                }
             }
             
-            if (erase) {
+            if (topHeight != -1) {
+                *heightLineDest = topHeight;
+                if (colorDest) {
+                    colorDest[0] = topR;
+                    colorDest[1] = topG;
+                    colorDest[2] = topB;
+                }
+                if (materialDest) {
+                    if (topMaterial != 0) {
+                        topMaterial = getMaterialIndex(newStackMaterials.at(topMaterial - 1),
+                            newMaterialMaterials, newMaterialContents);
+                    }
+                    *materialDest = topMaterial;
+                }
+            } else if (erase) {
                 if (spanner->intersects(endPos, worldPos, distance, normal)) {
                     quint16 height = glm::round(glm::mix(end.y, start.y, distance));
                     if (height <= *heightLineDest) {
@@ -2305,9 +2372,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 if (height >= *heightLineDest) {
                     *heightLineDest = height;
                     
-                    if (colorX >= 0.0f && colorX <= innerColorWidth && colorZ >= 0.0f && colorZ <= innerColorHeight) {
-                        char* colorDest = newColorContents.data() + ((int)colorZ * colorWidth +
-                            (int)colorX) * DataBlock::COLOR_BYTES;
+                    if (colorDest) {
                         if (hasOwnColors) {
                             QRgb spannerColor = spanner->getColorAt(glm::mix(endPos, worldPos, distance));
                             colorDest[0] = qRed(spannerColor);
@@ -2321,9 +2386,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                         }
                     }
                     
-                    if (materialX >= 0.0f && materialX <= innerMaterialWidth && materialZ >= 0.0f &&
-                            materialZ <= innerMaterialHeight) {
-                        char* materialDest = newMaterialContents.data() + (int)materialZ * materialWidth + (int)materialX;
+                    if (materialDest) {
                         if (hasOwnMaterials) {
                             int index = spanner->getMaterialAt(glm::mix(endPos, worldPos, distance));
                             if (index != 0) {

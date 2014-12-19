@@ -490,6 +490,9 @@ public:
         
         bool isSet() const { return rgba[3] != 0; }
         
+        bool isZero() const;
+        bool isMergeable(const Entry& other) const;
+        
         void setHermiteY(int x, int y, int z, int w) { hermiteY[0] = x; hermiteY[1] = y; hermiteY[2] = z; hermiteY[3] = w; }
         void setHermiteY(const glm::vec3& normal, float position);
         void clearHermiteY() { setHermiteY(0, 0, 0, 0); }
@@ -512,6 +515,8 @@ public:
     
     Entry* getEntryData() { return (Entry*)(data() + sizeof(quint16)); }
     const Entry* getEntryData() const { return (const Entry*)(constData() + sizeof(quint16)); }
+    
+    void removeEntries(int position, int count) { remove(sizeof(quint16) + position * sizeof(Entry), count * sizeof(Entry)); }
 };
 
 /// A block of stack data associated with a heightfield.
