@@ -91,7 +91,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
                     if (_drawOnApplicationOverlay) {
-                        glutSolidCube(1.0f);
+                        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
                     } else {
                         DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
                     }
