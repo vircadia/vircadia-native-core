@@ -260,8 +260,8 @@ function checkSize(){
 //  Triggers notification if a user logs on or off
 function onOnlineUsersChanged(users) {
     for (user in users) {
-    if (last_users.indexOf(users[user]) == -1.0) {
-        createNotification(users[user] + " has joined");		
+        if (last_users.indexOf(users[user]) == -1.0) {
+            createNotification(users[user] + " has joined");		
         }
     }
     for (user in last_users) {
