@@ -19,7 +19,7 @@ elseif (WIN32)
   # we're using static GLEW, so define GLEW_STATIC
   add_definitions(-DGLEW_STATIC)
 
-  target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" opengl32.lib)
+  target_link_libraries(${TARGET_NAME} opengl32.lib)
   
   # need to bubble up the GLEW_INCLUDE_DIRS
   list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${GLEW_INCLUDE_DIRS}")

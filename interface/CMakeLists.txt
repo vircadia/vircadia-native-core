@@ -228,7 +228,7 @@ else (APPLE)
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
 
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib)
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib Winmm.lib)
 
     # try to find the Nsight package and add it to the build if we find it
     find_package(NSIGHT)
