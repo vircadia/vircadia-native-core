@@ -12,17 +12,6 @@
 #ifndef hifi_RenderableTextEntityItem_h
 #define hifi_RenderableTextEntityItem_h
 
-#include <glm/glm.hpp>
-#include <stdint.h>
-
-#include <EntityTree.h>
-#include <Octree.h>
-#include <OctreePacketData.h>
-#include <OctreeRenderer.h>
-#include <PacketHeaders.h>
-#include <SharedUtil.h>
-#include <ViewFrustum.h>
-
 #include <TextEntityItem.h>
 
 class RenderableTextEntityItem : public TextEntityItem  {

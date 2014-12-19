@@ -12,22 +12,15 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-
-// TODO: remove these once we migrate away from GLUT calls
-#if defined(__APPLE__)
-#include <GLUT/glut.h>
-#elif defined(WIN32)
-#include <GL/glut.h>
-#else
-#include <GL/glut.h>
-#endif
+#include <gpu/GLUTConfig.h> // TODO - we need to get rid of this ASAP
 
 #include <QOpenGLFramebufferObject>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
+#include <ViewFrustum.h>
 
-
+#include "AbstractViewStateInterface.h"
 #include "DeferredLightingEffect.h"
 #include "GeometryCache.h"
 #include "GlowEffect.h"
@@ -35,7 +28,7 @@
 #include "TextureCache.h"
 
 
-void DeferredLightingEffect::init(ViewStateInterface* viewState) {
+void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     _viewState = viewState;
     _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/simple.vert");
     _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/simple.frag");
@@ -135,7 +128,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare() {
     // clear the normal and specular buffers
-    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
     textureCache->setPrimaryDrawBuffers(false, true, false);
     glClear(GL_COLOR_BUFFER_BIT);
     textureCache->setPrimaryDrawBuffers(false, false, true);
@@ -157,7 +150,7 @@ void DeferredLightingEffect::render() {
     glDisable(GL_COLOR_MATERIAL);
     glDepthMask(false);
 
-    TextureCache* textureCache = DependencyManager::get<TextureCache>();
+    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
     
     QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
@@ -254,7 +247,7 @@ void DeferredLightingEffect::render() {
     const glm::vec3& eyePoint = _viewState->getCurrentViewFrustum()->getPosition();
     float nearRadius = glm::distance(eyePoint, _viewState->getCurrentViewFrustum()->getNearTopLeft());
 
-    GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();

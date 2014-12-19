@@ -38,6 +38,7 @@
 #include <PathUtils.h>
 
 #include "Application.h"
+#include "MainWindow.h"
 #include "MetavoxelEditor.h"
 
 using namespace std;
@@ -138,7 +139,7 @@ MetavoxelEditor::MetavoxelEditor() :
     connect(Application::getInstance()->getMetavoxels(), &MetavoxelSystem::rendering,
         this, &MetavoxelEditor::renderPreview);
     
-    Application::getInstance()->getGLWidget()->installEventFilter(this);
+    DependencyManager::get<GLCanvas>()->installEventFilter(this);
     
     show();
     

@@ -95,10 +95,8 @@ void Camera::setFarClip(float f) {
 }
 
 PickRay Camera::computePickRay(float x, float y) {
-    float screenWidth = Application::getInstance()->getGLWidget()->width();
-    float screenHeight = Application::getInstance()->getGLWidget()->height();
-    
-    return computeViewPickRay(x / screenWidth, y / screenHeight);
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    return computeViewPickRay(x / glCanvas->width(), y / glCanvas->height());
 }
 
 PickRay Camera::computeViewPickRay(float xRatio, float yRatio) {

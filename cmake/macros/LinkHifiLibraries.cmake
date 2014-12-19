@@ -25,10 +25,9 @@ macro(LINK_HIFI_LIBRARIES)
     # link the actual library - it is static so don't bubble it up
     target_link_libraries(${TARGET_NAME} ${HIFI_LIBRARY})
     
-    # ask the library what its dynamic dependencies are and link them
-    get_target_property(LINKED_TARGET_DEPENDENCY_LIBRARIES ${HIFI_LIBRARY} DEPENDENCY_LIBRARIES)
-    list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK ${LINKED_TARGET_DEPENDENCY_LIBRARIES})
-    
+    # ask the library what its include dependencies are and link them
+    get_target_property(LINKED_TARGET_DEPENDENCY_INCLUDES ${HIFI_LIBRARY} DEPENDENCY_INCLUDES)
+    list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES ${LINKED_TARGET_DEPENDENCY_INCLUDES})
   endforeach()
   
 endmacro(LINK_HIFI_LIBRARIES)

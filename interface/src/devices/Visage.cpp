@@ -122,7 +122,7 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getActionUnitNameMap() 
 const float TRANSLATION_SCALE = 20.0f;
 
 void Visage::init() {
-    connect(DependencyManager::get<Faceshift>(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
+    connect(DependencyManager::get<Faceshift>().data(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
     updateEnabled();
 }
 

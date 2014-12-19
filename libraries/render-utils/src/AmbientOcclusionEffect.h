@@ -14,22 +14,22 @@
 
 #include <DependencyManager.h>
 
-#include "ViewStateInterface.h"
-
+class AbstractViewStateInterface;
 class ProgramObject;
 
 /// A screen space ambient occlusion effect.  See John Chapman's tutorial at
 /// http://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html for reference.
-class AmbientOcclusionEffect: public DependencyManager::Dependency {
+class AmbientOcclusionEffect {
+    SINGLETON_DEPENDENCY(AmbientOcclusionEffect)
+    
 public:
     
-    void init(ViewStateInterface* viewState);
+    void init(AbstractViewStateInterface* viewState);
     void render();
     
 private:
     AmbientOcclusionEffect() {}
     virtual ~AmbientOcclusionEffect() {}
-    friend class DependencyManager;
 
     ProgramObject* _occlusionProgram;
     int _nearLocation;
@@ -44,7 +44,7 @@ private:
     int _blurScaleLocation;
     
     GLuint _rotationTextureID;
-    ViewStateInterface* _viewState;
+    AbstractViewStateInterface* _viewState;
 };
 
 #endif // hifi_AmbientOcclusionEffect_h
