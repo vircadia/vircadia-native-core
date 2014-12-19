@@ -38,6 +38,8 @@ void Line3DOverlay::render(RenderArgs* args) {
         glower = new Glower(glowLevel);
     }
 
+    glPushMatrix();
+
     glDisable(GL_LIGHTING);
     glLineWidth(_lineWidth);
 
@@ -46,15 +48,24 @@ void Line3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
+    glm::vec3 position = getPosition();
+    glm::quat rotation = getRotation();
+
+    glTranslatef(position.x, position.y, position.z);
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+
     if (getIsDashedLine()) {
         drawDashedLine(_position, _end);
     } else {
         glBegin(GL_LINES);
-        glVertex3f(_position.x, _position.y, _position.z);
+        glVertex3f(_start.x, _start.y, _start.z);
         glVertex3f(_end.x, _end.y, _end.z);
         glEnd();
     }
     glEnable(GL_LIGHTING);
+
+    glPopMatrix();
 
     if (glower) {
         delete glower;
@@ -64,13 +75,28 @@ void Line3DOverlay::render(RenderArgs* args) {
 void Line3DOverlay::setProperties(const QScriptValue& properties) {
     Base3DOverlay::setProperties(properties);
 
+    QScriptValue start = properties.property("start");
+    // if "start" property was not there, check to see if they included aliases: startPoint
+    if (!start.isValid()) {
+        start = properties.property("startPoint");
+    }
+    if (start.isValid()) {
+        QScriptValue x = start.property("x");
+        QScriptValue y = start.property("y");
+        QScriptValue z = start.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newStart;
+            newStart.x = x.toVariant().toFloat();
+            newStart.y = y.toVariant().toFloat();
+            newStart.z = z.toVariant().toFloat();
+            setStart(newStart);
+        }
+    }
+
     QScriptValue end = properties.property("end");
-    // if "end" property was not there, check to see if they included aliases: endPoint, or p2
+    // if "end" property was not there, check to see if they included aliases: endPoint
     if (!end.isValid()) {
         end = properties.property("endPoint");
-        if (!end.isValid()) {
-            end = properties.property("p2");
-        }
     }
     if (end.isValid()) {
         QScriptValue x = end.property("x");
