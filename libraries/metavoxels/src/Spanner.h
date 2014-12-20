@@ -493,9 +493,17 @@ public:
         bool isZero() const;
         bool isMergeable(const Entry& other) const;
         
+        void setHermiteX(int x, int y, int z, int w) { hermiteX[0] = x; hermiteX[1] = y; hermiteX[2] = z; hermiteX[3] = w; }
+        void setHermiteX(const glm::vec3& normal, float position);
+        void clearHermiteX() { setHermiteX(0, 0, 0, 0); }
+        
         void setHermiteY(int x, int y, int z, int w) { hermiteY[0] = x; hermiteY[1] = y; hermiteY[2] = z; hermiteY[3] = w; }
         void setHermiteY(const glm::vec3& normal, float position);
         void clearHermiteY() { setHermiteY(0, 0, 0, 0); }
+    
+        void setHermiteZ(int x, int y, int z, int w) { hermiteZ[0] = x; hermiteZ[1] = y; hermiteZ[2] = z; hermiteZ[3] = w; }
+        void setHermiteZ(const glm::vec3& normal, float position);
+        void clearHermiteZ() { setHermiteZ(0, 0, 0, 0); }
     };
 #pragma pack(pop)
 
