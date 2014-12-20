@@ -2312,7 +2312,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     baseBatch.heightScale = glm::vec4(1.0f / width, 1.0f / height, (innerWidth - 1) / -2.0f, (innerHeight - 1) / -2.0f);
     baseBatch.colorTextureID = _colorTextureID;
     baseBatch.colorScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
-    Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);    
+    Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);
     
     if (!_networkTextures.isEmpty()) {
         HeightfieldSplatBatch splatBatch;

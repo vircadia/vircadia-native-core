@@ -2249,8 +2249,14 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                         entryDest->material = index;
                     }
                     
-                    entryDest->hermiteY[0] = glm::fract(voxelHeight) * numeric_limits<quint8>::max();
+                    quint16 left = heightLineDest[-1];
+                    quint16 right = heightLineDest[1];
+                    quint16 up = heightLineDest[heightWidth];
+                    quint16 down = heightLineDest[-heightWidth];
                     
+                    entryDest->setHermiteY(glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f :
+                        (left - right), 2.0f / voxelScale, (up == 0 || down == 0) ? 0.0f :
+                            (down - up))), glm::fract(voxelHeight));
                 }
                 if (!stackDest->isEmpty()) {
                     int oldBottom = stackDest->getPosition();
