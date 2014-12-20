@@ -130,7 +130,7 @@ static QTimer* idleTimer = NULL;
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
-const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
+const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
