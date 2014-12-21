@@ -15,4 +15,4 @@ if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
-link_shared_dependencies()
+include_dependency_includes()
