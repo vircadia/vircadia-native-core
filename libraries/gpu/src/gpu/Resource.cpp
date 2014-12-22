@@ -95,7 +95,7 @@ Resource::Sysmem::~Sysmem() {
 
 Resource::Size Resource::Sysmem::allocate(Size size) {
     if (size != _size) {
-        Byte* newData = 0;
+        Byte* newData = NULL;
         Size newSize = 0;
         if (size > 0) {
             Size allocated = allocateMemory(&newData, size);
@@ -116,7 +116,7 @@ Resource::Size Resource::Sysmem::allocate(Size size) {
 
 Resource::Size Resource::Sysmem::resize(Size size) {
     if (size != _size) {
-        Byte* newData = 0;
+        Byte* newData = NULL;
         Size newSize = 0;
         if (size > 0) {
             Size allocated = allocateMemory(&newData, size);
@@ -196,11 +196,11 @@ Buffer& Buffer::operator=(const Buffer& buf) {
 Buffer::~Buffer() {
     if (_sysmem) {
         delete _sysmem;
-        _sysmem = 0;
+        _sysmem = NULL;
     }
     if (_gpuObject) {
         delete _gpuObject;
-        _gpuObject = 0;
+        _gpuObject = NULL;
     }
 }
 
