@@ -33,12 +33,6 @@
 
 using namespace std;
 
-// no clue which versions are affected...
-#define WORKAROUND_BROKEN_GLUT_STROKES
-// see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
-
-
-
 void renderWorldBox() {
     //  Show edge of world
     float red[] = {1, 0, 0};

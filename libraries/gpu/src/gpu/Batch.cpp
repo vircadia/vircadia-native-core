@@ -107,6 +107,19 @@ void Batch::setInputFormat(const Stream::FormatPointer& format) {
     _params.push_back(_streamFormats.cache(format));
 }
 
+void Batch::setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride) {
+    ADD_COMMAND(setInputBuffer);
+
+    _params.push_back(stride);
+    _params.push_back(offset);
+    _params.push_back(_buffers.cache(buffer));
+    _params.push_back(channel);
+}
+
+void Batch::setInputBuffer(Slot channel, const BufferView& view) {
+    setInputBuffer(channel, view._buffer, view._offset, Offset(view._stride));
+}
+
 void Batch::setInputStream(Slot startChannel, const BufferStream& stream) {
     if (stream.getNumBuffers()) {
         const Buffers& buffers = stream.getBuffers();
@@ -116,15 +129,6 @@ void Batch::setInputStream(Slot startChannel, const BufferStream& stream) {
             setInputBuffer(startChannel + i, buffers[i], offsets[i], strides[i]);
         }
     }
-}
-
-void Batch::setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride) {
-    ADD_COMMAND(setInputBuffer);
-
-    _params.push_back(stride);
-    _params.push_back(offset);
-    _params.push_back(_buffers.cache(buffer));
-    _params.push_back(channel);
 }
 
 void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset) {
@@ -152,4 +156,18 @@ void Batch::setProjectionTransform(const Transform& proj) {
 
     _params.push_back(_transforms.cache(proj));
 }
+
+void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {
+    ADD_COMMAND(setUniformBuffer);
+
+    _params.push_back(size);
+    _params.push_back(offset);
+    _params.push_back(_buffers.cache(buffer));
+    _params.push_back(slot);
+}
+
+void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
+    setUniformBuffer(slot, view._buffer, view._offset, view._size);
+}
+
 

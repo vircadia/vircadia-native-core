@@ -89,6 +89,8 @@ public:
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
 
+    void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
+
 public slots:
     void loadURL(const QUrl& scriptURL);
     void stop();
@@ -120,6 +122,7 @@ signals:
 
 protected:
     QString _scriptContents;
+    QString _parentURL;
     bool _isFinished;
     bool _isRunning;
     bool _isInitialized;

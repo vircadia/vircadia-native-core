@@ -12,7 +12,6 @@
 #define hifi_gpu_Context_h
 
 #include <assert.h>
-#include "GPUConfig.h"
 
 #include "Resource.h"
 

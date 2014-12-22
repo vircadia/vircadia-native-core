@@ -282,43 +282,64 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
         float laserLength = 50.0f;
-        if (_handState == HAND_STATE_LEFT_POINTING ||
-            _handState == HAND_STATE_BOTH_POINTING) {
-            int leftIndex = _skeletonModel.getLeftHandJointIndex();
-            glm::vec3 leftPosition;
-            glm::quat leftRotation;
-            _skeletonModel.getJointPositionInWorldFrame(leftIndex, leftPosition);
-            _skeletonModel.getJointRotationInWorldFrame(leftIndex, leftRotation);
-            glPushMatrix(); {
-                glTranslatef(leftPosition.x, leftPosition.y, leftPosition.z);
-                float angle = glm::degrees(glm::angle(leftRotation));
-                glm::vec3 axis = glm::axis(leftRotation);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glBegin(GL_LINES);
-                glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(0.0f, laserLength, 0.0f);
-                glEnd();
-            } glPopMatrix();
+        glm::vec3 position;
+        glm::quat rotation;
+        bool havePosition, haveRotation;
+
+        if (_handState & LEFT_HAND_POINTING_FLAG) {
+
+            if (_handState & IS_FINGER_POINTING_FLAG) {
+                int leftIndexTip = getJointIndex("LeftHandIndex4");
+                int leftIndexTipJoint = getJointIndex("LeftHandIndex3");
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(leftIndexTip, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(leftIndexTipJoint, rotation);
+            } else {
+                int leftHand = _skeletonModel.getLeftHandJointIndex();
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(leftHand, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(leftHand, rotation);
+            }
+
+            if (havePosition && haveRotation) {
+                glPushMatrix(); {
+                    glTranslatef(position.x, position.y, position.z);
+                    float angle = glm::degrees(glm::angle(rotation));
+                    glm::vec3 axis = glm::axis(rotation);
+                    glRotatef(angle, axis.x, axis.y, axis.z);
+                    glBegin(GL_LINES);
+                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                    glVertex3f(0.0f, 0.0f, 0.0f);
+                    glVertex3f(0.0f, laserLength, 0.0f);
+                    glEnd();
+                } glPopMatrix();
+            }
         }
-        if (_handState == HAND_STATE_RIGHT_POINTING ||
-            _handState == HAND_STATE_BOTH_POINTING) {
-            int rightIndex = _skeletonModel.getRightHandJointIndex();
-            glm::vec3 rightPosition;
-            glm::quat rightRotation;
-            _skeletonModel.getJointPositionInWorldFrame(rightIndex, rightPosition);
-            _skeletonModel.getJointRotationInWorldFrame(rightIndex, rightRotation);
-            glPushMatrix(); {
-                glTranslatef(rightPosition.x, rightPosition.y, rightPosition.z);
-                float angle = glm::degrees(glm::angle(rightRotation));
-                glm::vec3 axis = glm::axis(rightRotation);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glBegin(GL_LINES);
-                glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(0.0f, laserLength, 0.0f);
-                glEnd();
-            } glPopMatrix();
+
+        if (_handState & RIGHT_HAND_POINTING_FLAG) {
+            
+            if (_handState & IS_FINGER_POINTING_FLAG) {
+                int rightIndexTip = getJointIndex("RightHandIndex4");
+                int rightIndexTipJoint = getJointIndex("RightHandIndex3");
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(rightIndexTip, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(rightIndexTipJoint, rotation);
+            } else {
+                int rightHand = _skeletonModel.getRightHandJointIndex();
+                havePosition = _skeletonModel.getJointPositionInWorldFrame(rightHand, position);
+                haveRotation = _skeletonModel.getJointRotationInWorldFrame(rightHand, rotation);
+            }
+
+            if (havePosition && haveRotation) {
+                glPushMatrix(); {
+                    glTranslatef(position.x, position.y, position.z);
+                    float angle = glm::degrees(glm::angle(rotation));
+                    glm::vec3 axis = glm::axis(rotation);
+                    glRotatef(angle, axis.x, axis.y, axis.z);
+                    glBegin(GL_LINES);
+                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
+                    glVertex3f(0.0f, 0.0f, 0.0f);
+                    glVertex3f(0.0f, laserLength, 0.0f);
+                    glEnd();
+                } glPopMatrix();
+            }
         }
     }
     
@@ -648,6 +669,49 @@ glm::vec3 Avatar::getDisplayNamePosition() {
     return namePosition;
 }
 
+float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD) {
+
+    // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
+    // We project a unit vector and check the difference in screen coordinates, to check which is the 
+    // correction scale needed
+    // save the matrices for later scale correction factor 
+    // The up vector must be relative to the rotation current rotation matrix:
+    // we set the identity
+    glm::vec3 testPoint0 = textPosition;
+    glm::vec3 testPoint1 = textPosition + (Application::getInstance()->getCamera()->getRotation() * IDENTITY_UP);
+    
+    double textWindowHeight;
+    
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    float windowSizeX = glCanvas->getDeviceWidth();
+    float windowSizeY = glCanvas->getDeviceHeight();
+    
+    glm::dmat4 modelViewMatrix;
+    glm::dmat4 projectionMatrix;
+    Application::getInstance()->getModelViewMatrix(&modelViewMatrix);
+    Application::getInstance()->getProjectionMatrix(&projectionMatrix);
+
+    glm::dvec4 p0 = modelViewMatrix * glm::dvec4(testPoint0, 1.0);
+    p0 = projectionMatrix * p0;
+    glm::dvec2 result0 = glm::vec2(windowSizeX * (p0.x / p0.w + 1.0f) * 0.5f, windowSizeY * (p0.y / p0.w + 1.0f) * 0.5f);
+
+    glm::dvec4 p1 = modelViewMatrix * glm::dvec4(testPoint1, 1.0);
+    p1 = projectionMatrix * p1;
+    glm::vec2 result1 = glm::vec2(windowSizeX * (p1.x / p1.w + 1.0f) * 0.5f, windowSizeY * (p1.y / p1.w + 1.0f) * 0.5f);
+    textWindowHeight = abs(result1.y - result0.y);
+
+    // need to scale to compensate for the font resolution due to the device
+    float scaleFactor = QApplication::desktop()->windowHandle()->devicePixelRatio() *
+        ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
+    if (inHMD) {
+        const float HMDMODE_NAME_SCALE = 0.65f;
+        scaleFactor *= HMDMODE_NAME_SCALE;
+    } else {
+        scaleFactor *= Application::getInstance()->getRenderResolutionScale();
+    }
+    return scaleFactor;
+}
+
 void Avatar::renderDisplayName() {
 
     if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
@@ -679,78 +743,39 @@ void Avatar::renderDisplayName() {
     frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.0f, -frontAxis.x));
     float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.0f : -1.0f);
     glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
-
-    // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
-    // We project a unit vector and check the difference in screen coordinates, to check which is the 
-    // correction scale needed
-    // save the matrices for later scale correction factor 
-    glm::dmat4 modelViewMatrix;
-    glm::dmat4 projectionMatrix;
-    GLint viewportMatrix[4];
-    Application::getInstance()->getModelViewMatrix(&modelViewMatrix);
-    Application::getInstance()->getProjectionMatrix(&projectionMatrix);
-    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
-    GLdouble result0[3], result1[3];
-
-    // The up vector must be relative to the rotation current rotation matrix:
-    // we set the identity
-    glm::dvec3 testPoint0 = glm::dvec3(textPosition);
-    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + glm::dvec3(Application::getInstance()->getCamera()->getRotation() * IDENTITY_UP);
     
-    bool success;
-    success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
-        (GLdouble*)&modelViewMatrix, (GLdouble*)&projectionMatrix, viewportMatrix, 
-        &result0[0], &result0[1], &result0[2]);
-    success = success && 
-        gluProject(testPoint1.x, testPoint1.y, testPoint1.z,
-        (GLdouble*)&modelViewMatrix, (GLdouble*)&projectionMatrix, viewportMatrix, 
-        &result1[0], &result1[1], &result1[2]);
+    float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
+    glScalef(scaleFactor, scaleFactor, 1.0);
+    
+    glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
 
-    if (success) {
-        double textWindowHeight = abs(result1[1] - result0[1]);
-        // need to scale to compensate for the font resolution due to the device
-        float scaleFactor = QApplication::desktop()->windowHandle()->devicePixelRatio() *
-            ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
-        if (inHMD) {
-            const float HMDMODE_NAME_SCALE = 0.65f;
-            scaleFactor *= HMDMODE_NAME_SCALE;
-        } else {
-            scaleFactor *= Application::getInstance()->getRenderResolutionScale();
-        }
-        glScalef(scaleFactor, scaleFactor, 1.0);
-        
-        glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
+    int text_x = -_displayNameBoundingRect.width() / 2;
+    int text_y = -_displayNameBoundingRect.height() / 2;
 
-        int text_x = -_displayNameBoundingRect.width() / 2;
-        int text_y = -_displayNameBoundingRect.height() / 2;
+    // draw a gray background
+    int left = text_x + _displayNameBoundingRect.x();
+    int right = left + _displayNameBoundingRect.width();
+    int bottom = text_y + _displayNameBoundingRect.y();
+    int top = bottom + _displayNameBoundingRect.height();
+    const int border = 8;
+    bottom -= border;
+    left -= border;
+    top += border;
+    right += border;
 
-        // draw a gray background
-        int left = text_x + _displayNameBoundingRect.x();
-        int right = left + _displayNameBoundingRect.width();
-        int bottom = text_y + _displayNameBoundingRect.y();
-        int top = bottom + _displayNameBoundingRect.height();
-        const int border = 8;
-        bottom -= border;
-        left -= border;
-        top += border;
-        right += border;
+    // We are drawing coplanar textures with depth: need the polygon offset
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0f, 1.0f);
 
-        // We are drawing coplanar textures with depth: need the polygon offset
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(1.0f, 1.0f);
-
-        glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
-        renderBevelCornersRect(left, bottom, right - left, top - bottom, 3);
-       
-        glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-        QByteArray ba = _displayName.toLocal8Bit();
-        const char* text = ba.data();
-        
-        glDisable(GL_POLYGON_OFFSET_FILL);
-        textRenderer(DISPLAYNAME)->draw(text_x, text_y, text); 
-     
-
-    }
+    glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
+    renderBevelCornersRect(left, bottom, right - left, top - bottom, 3);
+   
+    glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+    QByteArray ba = _displayName.toLocal8Bit();
+    const char* text = ba.data();
+    
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    textRenderer(DISPLAYNAME)->draw(text_x, text_y, text); 
 
     glPopMatrix();
 

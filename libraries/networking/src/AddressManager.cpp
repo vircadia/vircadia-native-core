@@ -107,7 +107,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
         if (!handleUsername(lookupUrl.authority())) {
             // we're assuming this is either a network address or global place name
             // check if it is a network address first
-            if (!handleNetworkAddress(lookupUrl.host())) {
+            if (!handleNetworkAddress(lookupUrl.host()
+                                      + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())))) {
                 // wasn't an address - lookup the place name
                 attemptPlaceNameLookup(lookupUrl.host());
             }
@@ -172,7 +173,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& addressMap) {
             if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                 QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
                 
-                emit possibleDomainChangeRequiredToHostname(domainHostname);
+                emit possibleDomainChangeRequired(domainHostname, DEFAULT_DOMAIN_SERVER_PORT);
             } else {
                 QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
                 
@@ -240,30 +241,40 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString) {
 }
 
 bool AddressManager::handleNetworkAddress(const QString& lookupString) {
-    const QString IP_ADDRESS_REGEX_STRING = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
-        "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:\\d{1,5})?$";
+    const QString IP_ADDRESS_REGEX_STRING = "^((?:(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
+        "(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(?::(\\d{1,5}))?$";
     
     const QString HOSTNAME_REGEX_STRING = "^((?:[A-Z0-9]|[A-Z0-9][A-Z0-9\\-]{0,61}[A-Z0-9])"
-        "(?:\\.(?:[A-Z0-9]|[A-Z0-9][A-Z0-9\\-]{0,61}[A-Z0-9]))+|localhost)(:{1}\\d{1,5})?$";
-    
-    QRegExp hostnameRegex(HOSTNAME_REGEX_STRING, Qt::CaseInsensitive);
-    
-    if (hostnameRegex.indexIn(lookupString) != -1) {
-        QString domainHostname = hostnameRegex.cap(0);
-        
-        emit lookupResultsFinished();
-        setDomainHostnameAndName(domainHostname);
-        
-        return true;
-    }
+        "(?:\\.(?:[A-Z0-9]|[A-Z0-9][A-Z0-9\\-]{0,61}[A-Z0-9]))+|localhost)(?::(\\d{1,5}))?$";
     
     QRegExp ipAddressRegex(IP_ADDRESS_REGEX_STRING);
     
     if (ipAddressRegex.indexIn(lookupString) != -1) {
-        QString domainIPString = ipAddressRegex.cap(0);
+        QString domainIPString = ipAddressRegex.cap(1);
+        
+        qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        if (!ipAddressRegex.cap(2).isEmpty()) {
+            domainPort = (qint16) ipAddressRegex.cap(2).toInt();
+        }
         
         emit lookupResultsFinished();
-        setDomainHostnameAndName(domainIPString);
+        setDomainInfo(domainIPString, domainPort);
+        
+        return true;
+    }
+    
+    QRegExp hostnameRegex(HOSTNAME_REGEX_STRING, Qt::CaseInsensitive);
+    
+    if (hostnameRegex.indexIn(lookupString) != -1) {
+        QString domainHostname = hostnameRegex.cap(1);
+        
+        qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        if (!hostnameRegex.cap(2).isEmpty()) {
+            domainPort = (qint16) hostnameRegex.cap(2).toInt();
+        }
+        
+        emit lookupResultsFinished();
+        setDomainInfo(domainHostname, domainPort);
         
         return true;
     }
@@ -339,9 +350,9 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 
-void AddressManager::setDomainHostnameAndName(const QString& hostname, const QString& domainName) {
+void AddressManager::setDomainInfo(const QString& hostname, quint16 port, const QString& domainName) {
     _currentDomain = domainName.isEmpty() ? hostname : domainName;
-    emit possibleDomainChangeRequiredToHostname(hostname);
+    emit possibleDomainChangeRequired(hostname, port);
 }
 
 void AddressManager::goToUser(const QString& username) {

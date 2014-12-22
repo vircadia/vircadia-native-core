@@ -38,11 +38,13 @@ class GeometryCache : public ResourceCache  {
 
 public:
     void renderHemisphere(int slices, int stacks);
-    void renderSphere(float radius, int slices, int stacks);
+    void renderSphere(float radius, int slices, int stacks, bool solid = true);
     void renderSquare(int xDivisions, int yDivisions);
     void renderHalfCylinder(int slices, int stacks);
     void renderCone(float base, float height, int slices, int stacks);
     void renderGrid(int xDivisions, int yDivisions);
+    void renderSolidCube(float size);
+    void renderWireCube(float size);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -66,6 +68,8 @@ private:
     QHash<IntPair, VerticesIndices> _squareVBOs;
     QHash<IntPair, VerticesIndices> _halfCylinderVBOs;
     QHash<IntPair, VerticesIndices> _coneVBOs;
+    QHash<float, VerticesIndices> _wireCubeVBOs;
+    QHash<float, VerticesIndices> _solidCubeVBOs;
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;

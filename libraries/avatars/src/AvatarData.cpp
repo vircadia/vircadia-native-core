@@ -188,7 +188,11 @@ QByteArray AvatarData::toByteArray() {
     // key state
     setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
     // hand state
-    setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
+    bool isFingerPointing = _handState & IS_FINGER_POINTING_FLAG;
+    setSemiNibbleAt(bitItems, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
+    if (isFingerPointing) {
+        setAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT);
+    }
     // faceshift state
     if (_headData->_isFaceshiftConnected) {
         setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
@@ -439,8 +443,16 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         
         // key state, stored as a semi-nibble in the bitItems
         _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
-        // hand state, stored as a semi-nibble in the bitItems
-        _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
+
+        // hand state, stored as a semi-nibble plus a bit in the bitItems
+        // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split 
+        // into two sections to maintain backward compatibility. The bits are ordered as such (0-7 left to right).
+        //     +---+-----+-----+--+
+        //     |x,x|H0,H1|x,x,x|H2|
+        //     +---+-----+-----+--+
+        // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
+        _handState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT) 
+            + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
         
         _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
         _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
