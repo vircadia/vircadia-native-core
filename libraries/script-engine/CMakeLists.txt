@@ -8,4 +8,5 @@ include_glm()
 link_hifi_libraries(shared octree voxels gpu model fbx entities animation audio physics metavoxels)
 
 # call macro to include our dependency includes and bubble them up via a property on our target
-gpu model ()
+include_dependency_includes()
+
