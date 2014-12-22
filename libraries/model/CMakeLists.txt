@@ -8,4 +8,4 @@ include_glm()
 link_hifi_libraries(shared gpu)
 
 # call macro to link our dependencies and bubble them up via a property on our target
-link_shared_dependencies()
+include_dependency_includes()

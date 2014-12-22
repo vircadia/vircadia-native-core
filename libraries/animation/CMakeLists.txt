@@ -5,5 +5,5 @@ setup_hifi_library(Network Script)
 
 link_hifi_libraries(shared gpu model fbx)
 
-# call macro to link our dependencies and bubble them up via a property on our target
-link_shared_dependencies()
+# call macro to include our dependency includes and bubble them up via a property on our target
+include_dependency_includes()

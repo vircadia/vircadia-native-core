@@ -70,11 +70,16 @@ void TextOverlay::render(RenderArgs* args) {
     glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
         getBackgroundAlpha());
 
+    int left = _bounds.left();
+    int right = _bounds.right() + 1;
+    int top = _bounds.top();
+    int bottom = _bounds.bottom() + 1;
+
     glBegin(GL_QUADS);
-        glVertex2f(_bounds.left(), _bounds.top());
-        glVertex2f(_bounds.right(), _bounds.top());
-        glVertex2f(_bounds.right(), _bounds.bottom());
-        glVertex2f(_bounds.left(), _bounds.bottom());
+        glVertex2f(left, top);
+        glVertex2f(right, top);
+        glVertex2f(right, bottom);
+        glVertex2f(left, bottom);
     glEnd();
 
     // Same font properties as textSize()
