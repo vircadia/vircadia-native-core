@@ -661,6 +661,73 @@ void GeometryCache::renderWireCube(float size) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight) {
+    Vec2Pair key(topLeft, bottomRight);
+    VerticesIndices& vbo = _quad2DVBOs[key];
+    const int FLOATS_PER_VERTEX = 2;
+    const int vertices = 4;
+    const int indices = 4;
+    if (vbo.first == 0) {    
+        int vertexPoints = vertices * FLOATS_PER_VERTEX;
+        GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices, no normals because we're a 2D quad
+        GLfloat* vertex = vertexData;
+        // index array of vertex array for glDrawRangeElement() as a GL_LINES for each edge
+        static GLubyte cannonicalIndices[indices]  = { 0, 1, 2, 3 };
+
+        //glBegin(GL_QUADS);
+        //    glVertex2f(left, top);
+        //    glVertex2f(right, top);
+        //    glVertex2f(right, bottom);
+        //    glVertex2f(left, bottom);
+        //glEnd();
+
+        vertex[0] = topLeft.x;
+        vertex[1] = topLeft.y;
+        vertex[2] = bottomRight.x;
+        vertex[3] = topLeft.y;
+        vertex[4] = bottomRight.x;
+        vertex[5] = bottomRight.y;
+        vertex[6] = topLeft.x;
+        vertex[7] = bottomRight.y;
+        
+        glGenBuffers(1, &vbo.first);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        delete[] vertexData;
+        
+        GLushort* indexData = new GLushort[indices];
+        GLushort* index = indexData;
+        for (int i = 0; i < indices; i++) {
+            index[i] = cannonicalIndices[i];
+        }
+        
+        glGenBuffers(1, &vbo.second);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        delete[] indexData;
+        
+        qDebug() << "new quad VBO made -- _quad2DVBOs.size():" << _quad2DVBOs.size();
+    
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+    }
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(FLOATS_PER_VERTEX, GL_FLOAT, FLOATS_PER_VERTEX * sizeof(float), 0);
+    glDrawRangeElementsEXT(GL_QUADS, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+
+/*
+void GeometryCache::renderQuad(cont glm::vec2& topLeft, cont glm::vec2& bottomRight, 
+                    cont glm::vec2& texCoordTopLeft, cont glm::vec2& texCoordBottomRight) {
+}
+*/
+
 
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();

@@ -835,7 +835,6 @@ void ApplicationOverlay::renderAudioMeter() {
 
     audio->renderStats(WHITE_TEXT, glCanvas->width(), glCanvas->height());
 
-    glBegin(GL_QUADS);
     if (isClipping) {
         glColor3f(1, 0, 0);
     } else {
@@ -846,10 +845,7 @@ void ApplicationOverlay::renderAudioMeter() {
 
     glColor3f(0, 0, 0);
     //  Draw audio meter background Quad
-    glVertex2i(AUDIO_METER_X, audioMeterY);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_WIDTH, audioMeterY + AUDIO_METER_HEIGHT);
-    glVertex2i(AUDIO_METER_X, audioMeterY + AUDIO_METER_HEIGHT);
+    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X, audioMeterY, AUDIO_METER_WIDTH, AUDIO_METER_HEIGHT);
 
     if (audioLevel > AUDIO_RED_START) {
         if (!isClipping) {
@@ -858,12 +854,16 @@ void ApplicationOverlay::renderAudioMeter() {
             glColor3f(1, 1, 1);
         }
         // Draw Red Quad
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, audioMeterY + AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, 
+                                                            audioMeterY + AUDIO_METER_INSET, 
+                                                            audioLevel - AUDIO_RED_START, 
+                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+        
         audioLevel = AUDIO_RED_START;
     }
+
+    //glBegin(GL_QUADS);
+
     if (audioLevel > AUDIO_GREEN_START) {
         if (!isClipping) {
             glColor3fv(AUDIO_METER_GREEN);
@@ -871,10 +871,11 @@ void ApplicationOverlay::renderAudioMeter() {
             glColor3f(1, 1, 1);
         }
         // Draw Green Quad
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, audioMeterY + AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-        glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, 
+                                                            audioMeterY + AUDIO_METER_INSET, 
+                                                            audioLevel - AUDIO_GREEN_START, 
+                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+
         audioLevel = AUDIO_GREEN_START;
     }
     //   Draw Blue Quad
@@ -884,11 +885,9 @@ void ApplicationOverlay::renderAudioMeter() {
         glColor3f(1, 1, 1);
     }
     // Draw Blue (low level) quad
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, audioMeterY + AUDIO_METER_INSET);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_INSET);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET + audioLevel, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-    glVertex2i(AUDIO_METER_X + AUDIO_METER_INSET, audioMeterY + AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET, 
+                                                        audioMeterY + AUDIO_METER_INSET, 
+                                                        audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
 }
 
 void ApplicationOverlay::renderStatsAndLogs() {

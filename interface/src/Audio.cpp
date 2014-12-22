@@ -1702,14 +1702,7 @@ void Audio::renderScope(int width, int height) {
 void Audio::renderBackground(const float* color, int x, int y, int width, int height) {
 
     glColor4fv(color);
-    glBegin(GL_QUADS);
-
-    glVertex2i(x, y);
-    glVertex2i(x + width, y);
-    glVertex2i(x + width, y + height);
-    glVertex2i(x , y + height);
-
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height);
     glColor4f(1, 1, 1, 1); 
 }
 
