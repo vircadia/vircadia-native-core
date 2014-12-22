@@ -63,8 +63,7 @@ public:
     // Access vertex position value
     const Vec3& getPos3(Index index) const { return _vertexBuffer.get<Vec3>(index); }
 
-    enum Topology
-    {
+    enum Topology {
         POINTS = 0,
         LINES,
         LINE_STRIP,
