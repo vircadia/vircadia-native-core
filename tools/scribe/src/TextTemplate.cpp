@@ -717,184 +717,184 @@ int TextTemplate::generateTree(std::ostream& dst, const BlockPointer& block, Var
 
 int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& block, Vars& vars, BlockPointer& branch) {
     switch (block->command.type) {
-    case Command::BLOCK: {
-        branch = block;
-        return 1;
-    }
-    break;
-    case Command::VAR: {
-        Vars::iterator it = vars.find(block->command.arguments.front());
-        if (it != vars.end()) {
-            dst << (*it).second;
-        } else {
-            BlockPointer funcBlock = _config->_funcs.findFunc(block->command.arguments.front().c_str());
-            if (funcBlock) {
-                // before diving in the func tree, let's modify the vars with the local defs:
-                int nbParams = std::min(block->command.arguments.size(), funcBlock->command.arguments.size());
-                std::vector< String > paramCache;
-                paramCache.push_back("");
-                String val;
-                for (int i = 1; i < nbParams; i++) {
-                    val = block->command.arguments[i];
-                    if ((val[0] == Tag::VAR) && (val[val.length()-1] == Tag::VAR)) {
-                        val = val.substr(1, val.length()-2);
-                        Vars::iterator it = vars.find(val);
+        case Command::BLOCK: {
+            branch = block;
+            return 1;
+        }
+        break;
+        case Command::VAR: {
+            Vars::iterator it = vars.find(block->command.arguments.front());
+            if (it != vars.end()) {
+                dst << (*it).second;
+            } else {
+                BlockPointer funcBlock = _config->_funcs.findFunc(block->command.arguments.front().c_str());
+                if (funcBlock) {
+                    // before diving in the func tree, let's modify the vars with the local defs:
+                    int nbParams = std::min(block->command.arguments.size(), funcBlock->command.arguments.size());
+                    std::vector< String > paramCache;
+                    paramCache.push_back("");
+                    String val;
+                    for (int i = 1; i < nbParams; i++) {
+                        val = block->command.arguments[i];
+                        if ((val[0] == Tag::VAR) && (val[val.length()-1] == Tag::VAR)) {
+                            val = val.substr(1, val.length()-2);
+                            Vars::iterator it = vars.find(val);
+                            if (it != vars.end()) {
+                                val = (*it).second;
+                            }
+                        }
+
+                        Vars::iterator it = vars.find(funcBlock->command.arguments[i]);
                         if (it != vars.end()) {
-                            val = (*it).second;
+                            paramCache.push_back((*it).second);
+                            (*it).second = val;
+                        } else {
+                            vars.insert(Vars::value_type(funcBlock->command.arguments[i], val));
+                            paramCache.push_back("");
                         }
                     }
 
-                    Vars::iterator it = vars.find(funcBlock->command.arguments[i]);
+                    generateTree(dst, funcBlock, vars);
+
+                    for (int i = 1; i < nbParams; i++) {
+                        vars[ funcBlock->command.arguments[i] ] = paramCache[i];
+                    }
+                }
+            }
+            branch = block;
+            return 1;
+        }
+        break;
+        case Command::IFBLOCK: {
+            // ok, go through the branches and pick the first one that goes
+            for (auto child: block->blocks) {
+                int numPasses = evalBlockGeneration(dst, child, vars, branch);
+                if (numPasses > 0) {
+                    return numPasses;
+                }
+            }
+        }
+        break;
+        case Command::IF:
+        case Command::ELIF: {
+            if (!block->command.arguments.empty()) {
+                // Just one argument means check for the var beeing defined
+                if (block->command.arguments.size() == 1) {
+                    Vars::iterator it = vars.find(block->command.arguments.front());
                     if (it != vars.end()) {
-                        paramCache.push_back((*it).second);
-                        (*it).second = val;
-                    } else {
-                        vars.insert(Vars::value_type(funcBlock->command.arguments[i], val));
-                        paramCache.push_back("");
-                    }
-                }
-
-                generateTree(dst, funcBlock, vars);
-
-                for (int i = 1; i < nbParams; i++) {
-                    vars[ funcBlock->command.arguments[i] ] = paramCache[i];
-                }
-            }
-        }
-        branch = block;
-        return 1;
-    }
-    break;
-    case Command::IFBLOCK: {
-        // ok, go through the branches and pick the first one that goes
-        for (auto child: block->blocks) {
-            int numPasses = evalBlockGeneration(dst, child, vars, branch);
-            if (numPasses > 0) {
-                return numPasses;
-            }
-        }
-    }
-    break;
-    case Command::IF:
-    case Command::ELIF: {
-        if (!block->command.arguments.empty()) {
-            // Just one argument means check for the var beeing defined
-            if (block->command.arguments.size() == 1) {
-                Vars::iterator it = vars.find(block->command.arguments.front());
-                if (it != vars.end()) {
-                    branch = block;
-                    return 1;
-                }
-            } else if (block->command.arguments.size() == 2) {
-                if (block->command.arguments[0].compare("not") == 0) {
-                    Vars::iterator it = vars.find(block->command.arguments[1]);
-                    if (it == vars.end()) {
                         branch = block;
                         return 1;
                     }
-                }
-            } else if (block->command.arguments.size() == 3) {
-                if (block->command.arguments[1].compare("and") == 0) {
-                    Vars::iterator itL = vars.find(block->command.arguments[0]);
-                    Vars::iterator itR = vars.find(block->command.arguments[2]);
-                    if ((itL != vars.end()) && (itR != vars.end())) {
-                        branch = block;
-                        return 1;
-                    }
-                } else if (block->command.arguments[1].compare("or") == 0) {
-                    Vars::iterator itL = vars.find(block->command.arguments[0]);
-                    Vars::iterator itR = vars.find(block->command.arguments[2]);
-                    if ((itL != vars.end()) || (itR != vars.end())) {
-                        branch = block;
-                        return 1;
-                    }
-                } else if (block->command.arguments[1].compare("==") == 0) {
-                    Vars::iterator itL = vars.find(block->command.arguments[0]);
-                    if (itL != vars.end()) {
-                        if ((*itL).second.compare(block->command.arguments[2]) == 0) {
+                } else if (block->command.arguments.size() == 2) {
+                    if (block->command.arguments[0].compare("not") == 0) {
+                        Vars::iterator it = vars.find(block->command.arguments[1]);
+                        if (it == vars.end()) {
                             branch = block;
                             return 1;
                         }
                     }
-                }
-            }
-
-        }
-        return 0;
-    }
-    break;
-    case Command::ELSE: {
-        branch = block;
-        return 1;
-    }
-    break;
-    case Command::ENDIF: {
-        branch = block;
-        return 1;
-    }
-    break;
-    case Command::DEF: {
-        if (block->command.arguments.size()) {
-            // THe actual value of the var defined sneeds to be evaluated:
-            String val;
-            for (int t = 1; t < block->command.arguments.size(); t++) {
-                // detect if a param is a var
-                int len = block->command.arguments[t].length();
-                if ((block->command.arguments[t][0] == Tag::VAR)
-                    && (block->command.arguments[t][len-1] == Tag::VAR)) {
-                    String var = block->command.arguments[t].substr(1, len-2);
-                    Vars::iterator it = vars.find(var);
-                    if (it != vars.end()) {
-                        val += (*it).second;
+                } else if (block->command.arguments.size() == 3) {
+                    if (block->command.arguments[1].compare("and") == 0) {
+                        Vars::iterator itL = vars.find(block->command.arguments[0]);
+                        Vars::iterator itR = vars.find(block->command.arguments[2]);
+                        if ((itL != vars.end()) && (itR != vars.end())) {
+                            branch = block;
+                            return 1;
+                        }
+                    } else if (block->command.arguments[1].compare("or") == 0) {
+                        Vars::iterator itL = vars.find(block->command.arguments[0]);
+                        Vars::iterator itR = vars.find(block->command.arguments[2]);
+                        if ((itL != vars.end()) || (itR != vars.end())) {
+                            branch = block;
+                            return 1;
+                        }
+                    } else if (block->command.arguments[1].compare("==") == 0) {
+                        Vars::iterator itL = vars.find(block->command.arguments[0]);
+                        if (itL != vars.end()) {
+                            if ((*itL).second.compare(block->command.arguments[2]) == 0) {
+                                branch = block;
+                                return 1;
+                            }
+                        }
                     }
-                } else {
-                    val += block->command.arguments[t];
                 }
-            }
 
-            Vars::iterator it = vars.find(block->command.arguments.front());
-            if (it == vars.end()) {
-                vars.insert(Vars::value_type(block->command.arguments.front(), val));
+            }
+            return 0;
+        }
+        break;
+        case Command::ELSE: {
+            branch = block;
+            return 1;
+        }
+        break;
+        case Command::ENDIF: {
+            branch = block;
+            return 1;
+        }
+        break;
+        case Command::DEF: {
+            if (block->command.arguments.size()) {
+                // THe actual value of the var defined sneeds to be evaluated:
+                String val;
+                for (int t = 1; t < block->command.arguments.size(); t++) {
+                    // detect if a param is a var
+                    int len = block->command.arguments[t].length();
+                    if ((block->command.arguments[t][0] == Tag::VAR)
+                        && (block->command.arguments[t][len-1] == Tag::VAR)) {
+                        String var = block->command.arguments[t].substr(1, len-2);
+                        Vars::iterator it = vars.find(var);
+                        if (it != vars.end()) {
+                            val += (*it).second;
+                        }
+                    } else {
+                        val += block->command.arguments[t];
+                    }
+                }
+
+                Vars::iterator it = vars.find(block->command.arguments.front());
+                if (it == vars.end()) {
+                    vars.insert(Vars::value_type(block->command.arguments.front(), val));
+                } else {
+                    (*it).second = val;
+                }
+
+                branch = block;
+                return 1;
             } else {
-                (*it).second = val;
+                branch = block;
+                return 0;
+            }
+        }
+        break;
+
+        case Command::INCLUDE: {
+            TextTemplatePointer include = _config->findInclude(block->command.arguments.front().c_str());
+            if (include && !include->_root->blocks.empty()) {
+                if (&include->_root) {
+                    generateTree(dst, include->_root, vars);
+                }
             }
 
             branch = block;
             return 1;
-        } else {
+        }
+        break;
+
+        case Command::FUNC: {
             branch = block;
-            return 0;
+            return 1;
         }
-    }
-    break;
+        break;
 
-    case Command::INCLUDE: {
-        TextTemplatePointer include = _config->findInclude(block->command.arguments.front().c_str());
-        if (include && !include->_root->blocks.empty()) {
-            if (&include->_root) {
-                generateTree(dst, include->_root, vars);
-            }
+        case Command::ENDFUNC: {
+            branch = block;
+            return 1;
         }
+        break;
 
-        branch = block;
-        return 1;
-    }
-    break;
-
-    case Command::FUNC: {
-        branch = block;
-        return 1;
-    }
-    break;
-
-    case Command::ENDFUNC: {
-        branch = block;
-        return 1;
-    }
-    break;
-
-    default: {
-    }
+        default: {
+        }
     }
 
     return 0;

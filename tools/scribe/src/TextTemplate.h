@@ -95,8 +95,7 @@ public:
         String sourceName;
 
         Block(const String& sourceFilename) :
-            sourceName(sourceFilename)
-            {}
+            sourceName(sourceFilename) {}
 
         static void addNewBlock(const Block::Pointer& parent, const Block::Pointer& block);
         static const Block::Pointer& getCurrentBlock(const Block::Pointer& block);
