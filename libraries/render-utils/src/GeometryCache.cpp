@@ -787,6 +787,144 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight) {
+    Vec3Pair key(topLeft, bottomRight);
+    VerticesIndices& vbo = _quad3DVBOs[key];
+    const int FLOATS_PER_VERTEX = 3;
+    const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
+    const int vertices = 4;
+    const int indices = 4;
+    if (vbo.first == 0) {    
+        int vertexPoints = vertices * FLOATS_PER_VERTEX;
+        GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices
+        GLfloat* vertex = vertexData;
+        static GLubyte cannonicalIndices[indices]  = { 0, 1, 2, 3 };
+        int v = 0;
+
+        vertex[v++] = topLeft.x;
+        vertex[v++] = topLeft.y;
+        vertex[v++] = topLeft.z;
+
+        vertex[v++] = bottomRight.x;
+        vertex[v++] = topLeft.y;
+        vertex[v++] = topLeft.z;
+
+        vertex[v++] = bottomRight.x;
+        vertex[v++] = bottomRight.y;
+        vertex[v++] = bottomRight.z;
+
+        vertex[v++] = topLeft.x;
+        vertex[v++] = bottomRight.y;
+        vertex[v++] = bottomRight.z;
+        
+        glGenBuffers(1, &vbo.first);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        delete[] vertexData;
+        
+        GLushort* indexData = new GLushort[indices];
+        GLushort* index = indexData;
+        for (int i = 0; i < indices; i++) {
+            index[i] = cannonicalIndices[i];
+        }
+        
+        glGenBuffers(1, &vbo.second);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        delete[] indexData;
+        
+        qDebug() << "new quad VBO made -- _quad3DVBOs.size():" << _quad3DVBOs.size();
+    
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+    }
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(FLOATS_PER_VERTEX, GL_FLOAT, FLOATS_PER_VERTEX * sizeof(float), 0);
+    glDrawRangeElementsEXT(GL_QUADS, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+
+void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight,
+                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight) {
+                    
+    Vec3PairVec2Pair key(Vec3Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
+    
+    VerticesIndices& vbo = _quad3DTextureVBOs[key];
+    const int FLOATS_PER_VERTEX = 5; // text coords & vertices
+    const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
+    const int vertices = 4;
+    const int indices = 4;
+    if (vbo.first == 0) {    
+        int vertexPoints = vertices * FLOATS_PER_VERTEX;
+        GLfloat* vertexData = new GLfloat[vertexPoints]; // text coords & vertices
+        GLfloat* vertex = vertexData;
+        static GLubyte cannonicalIndices[indices]  = { 0, 1, 2, 3 };
+        int v = 0;
+
+        vertex[v++] = topLeft.x;
+        vertex[v++] = topLeft.y;
+        vertex[v++] = topLeft.z;
+        vertex[v++] = texCoordTopLeft.x;
+        vertex[v++] = texCoordTopLeft.y;
+        
+        vertex[v++] = bottomRight.x;
+        vertex[v++] = topLeft.y;
+        vertex[v++] = topLeft.z;
+        vertex[v++] = texCoordBottomRight.x;
+        vertex[v++] = texCoordTopLeft.y;
+        
+        vertex[v++] = bottomRight.x;
+        vertex[v++] = bottomRight.y;
+        vertex[v++] = bottomRight.z;
+        vertex[v++] = texCoordBottomRight.x;
+        vertex[v++] = texCoordBottomRight.y;
+        
+        vertex[v++] = topLeft.x;
+        vertex[v++] = bottomRight.y;
+        vertex[v++] = bottomRight.z;
+        vertex[v++] = texCoordTopLeft.x;
+        vertex[v++] = texCoordBottomRight.y;
+        
+        glGenBuffers(1, &vbo.first);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        delete[] vertexData;
+        
+        GLushort* indexData = new GLushort[indices];
+        GLushort* index = indexData;
+        for (int i = 0; i < indices; i++) {
+            index[i] = cannonicalIndices[i];
+        }
+        
+        glGenBuffers(1, &vbo.second);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        delete[] indexData;
+       
+        qDebug() << "new quad + texture VBO made -- _quad3DTextureVBOs.size():" << _quad3DTextureVBOs.size();
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+    }
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glVertexPointer(2, GL_FLOAT, NUM_BYTES_PER_VERTEX, 0);
+    glTexCoordPointer(2, GL_FLOAT, NUM_BYTES_PER_VERTEX, (const void *)(3 * sizeof(float)));
+
+    glDrawRangeElementsEXT(GL_QUADS, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }

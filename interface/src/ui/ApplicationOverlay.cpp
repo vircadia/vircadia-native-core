@@ -106,23 +106,14 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 }
 
 void renderReticle(glm::quat orientation, float alpha) {
-    glm::vec3 topLeft = getPoint(reticleSize / 2.0f, -reticleSize / 2.0f);
-    glm::vec3 topRight = getPoint(-reticleSize / 2.0f, -reticleSize / 2.0f);
-    glm::vec3 bottomLeft = getPoint(reticleSize / 2.0f, reticleSize / 2.0f);
-    glm::vec3 bottomRight = getPoint(-reticleSize / 2.0f, reticleSize / 2.0f);
-    
     glPushMatrix(); {
         glm::vec3 axis = glm::axis(orientation);
         glRotatef(glm::degrees(glm::angle(orientation)), axis.x, axis.y, axis.z);
-        
-        glBegin(GL_QUADS); {
-            glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha);
-            
-            glTexCoord2f(0.0f, 0.0f); glVertex3f(topLeft.x, topLeft.y, topLeft.z);
-            glTexCoord2f(1.0f, 0.0f); glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
-            glTexCoord2f(1.0f, 1.0f); glVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
-            glTexCoord2f(0.0f, 1.0f); glVertex3f(topRight.x, topRight.y, topRight.z);
-        } glEnd();
+        glm::vec3 topLeft = getPoint(reticleSize / 2.0f, -reticleSize / 2.0f);
+        glm::vec3 bottomRight = getPoint(-reticleSize / 2.0f, reticleSize / 2.0f);
+        glm::vec2 texCoordTopLeft(0.0f, 0.0f);
+        glm::vec2 texCoordBottomRight(1.0f, 1.0f);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
     } glPopMatrix();
 }
 
@@ -371,15 +362,12 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     GLfloat x = -halfQuadWidth;
     GLfloat y = -halfQuadHeight;
     glDisable(GL_DEPTH_TEST);
-    
-    glBegin(GL_QUADS);
-    
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(x, y + quadHeight, -distance);
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(x + quadWidth, y + quadHeight, -distance);
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(x + quadWidth, y, -distance);
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(x, y, -distance);
-    
-    glEnd();
+
+    glm::vec3 topLeft(x, y + quadHeight, -distance);
+    glm::vec3 bottomRight(x + quadWidth, y, -distance);
+    glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+    glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
     
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     if (_crosshairTexture == 0) {
@@ -395,16 +383,13 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     const float mouseX = (application->getMouseX() / (float)glCanvas->width()) * quadWidth;
     const float mouseY = (1.0 - (application->getMouseY() / (float)glCanvas->height())) * quadHeight;
     
-    glBegin(GL_QUADS);
-    
     glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
-    
-    glTexCoord2d(0.0f, 0.0f); glVertex3f(x + mouseX, y + mouseY, -distance);
-    glTexCoord2d(1.0f, 0.0f); glVertex3f(x + mouseX + reticleSize, y + mouseY, -distance);
-    glTexCoord2d(1.0f, 1.0f); glVertex3f(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance);
-    glTexCoord2d(0.0f, 1.0f); glVertex3f(x + mouseX, y + mouseY - reticleSize, -distance);
-    
-    glEnd();
+
+    glm::vec3 reticleTopLeft(x + mouseX, y + mouseY, -distance);
+    glm::vec3 reticleBottomRight(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance);
+    glm::vec2 reticleTexCoordTopLeft(0.0f, 0.0f);
+    glm::vec2 reticleTexCoordBottomRight(1.0f, 1.0f);
+    DependencyManager::get<GeometryCache>()->renderQuad(reticleTopLeft, reticleBottomRight, reticleTexCoordTopLeft, reticleTexCoordBottomRight);
     
     glEnable(GL_DEPTH_TEST);
     
