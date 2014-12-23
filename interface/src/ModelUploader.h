@@ -53,7 +53,7 @@ private:
     QSet<QByteArray> _textureFilenames;
     int _lodCount;
     int _texturesCount;
-    int _totalSize;
+    unsigned long _totalSize;
     ModelType _modelType;
     bool _readyToSend;
     

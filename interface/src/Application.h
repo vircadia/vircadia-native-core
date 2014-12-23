@@ -374,6 +374,7 @@ public slots:
     void uploadHead();
     void uploadSkeleton();
     void uploadAttachment();
+    void uploadEntity();
     
     void openUrl(const QUrl& url);
 

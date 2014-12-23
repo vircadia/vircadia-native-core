@@ -55,8 +55,9 @@ static const QString MODEL_URL = "/api/v1/models";
 
 static const QString SETTING_NAME = "LastModelUploadLocation";
 
-static const int MAX_SIZE = 10 * 1024 * 1024; // 10 MB
-static const int MAX_TEXTURE_SIZE = 1024;
+static const int BYTES_PER_MEGABYTES = 1024 * 1024;
+static const unsigned long MAX_SIZE = 50 * 1024 * BYTES_PER_MEGABYTES; // 50 GB (Virtually remove limit)
+static const int MAX_TEXTURE_SIZE = 4096;
 static const int TIMEOUT = 1000;
 static const int MAX_CHECK = 30;
 
@@ -590,9 +591,9 @@ bool ModelUploader::addPart(const QFile& file, const QByteArray& contents, const
     if (_totalSize > MAX_SIZE) {
         QMessageBox::warning(NULL,
                              QString("ModelUploader::zip()"),
-                             QString("Model too big, over %1 Bytes.").arg(MAX_SIZE),
+                             QString("Model too big, over %1 MB.").arg(MAX_SIZE / BYTES_PER_MEGABYTES),
                              QMessageBox::Ok);
-        qDebug() << "[Warning] " << QString("Model too big, over %1 Bytes.").arg(MAX_SIZE);
+        qDebug() << "[Warning] " << QString("Model too big, over %1 MB.").arg(MAX_SIZE / BYTES_PER_MEGABYTES);
         return false;
     }
     qDebug() << "Current model size: " << _totalSize;
@@ -613,8 +614,8 @@ ModelPropertiesDialog::ModelPropertiesDialog(ModelType modelType, const QVariant
     _modelType(modelType),
     _originalMapping(originalMapping),
     _basePath(basePath),
-    _geometry(geometry) {
-    
+    _geometry(geometry)
+{
     setWindowTitle("Set Model Properties");
     
     QFormLayout* form = new QFormLayout();
@@ -629,33 +630,35 @@ ModelPropertiesDialog::ModelPropertiesDialog(ModelType modelType, const QVariant
     _scale->setMaximum(FLT_MAX);
     _scale->setSingleStep(0.01);
     
-    if (_modelType == ATTACHMENT_MODEL) {
-        QHBoxLayout* translation = new QHBoxLayout();
-        form->addRow("Translation:", translation);
-        translation->addWidget(_translationX = createTranslationBox());
-        translation->addWidget(_translationY = createTranslationBox());
-        translation->addWidget(_translationZ = createTranslationBox());
-        form->addRow("Pivot About Center:", _pivotAboutCenter = new QCheckBox());
-        form->addRow("Pivot Joint:", _pivotJoint = createJointBox());    
-        connect(_pivotAboutCenter, SIGNAL(toggled(bool)), SLOT(updatePivotJoint()));
-        _pivotAboutCenter->setChecked(true);
-        
-    } else {
-        form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
-        form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
-        form->addRow("Neck Joint:", _neckJoint = createJointBox());
-    }
-    if (_modelType == SKELETON_MODEL) {
-        form->addRow("Root Joint:", _rootJoint = createJointBox());
-        form->addRow("Lean Joint:", _leanJoint = createJointBox());
-        form->addRow("Head Joint:", _headJoint = createJointBox());
-        form->addRow("Left Hand Joint:", _leftHandJoint = createJointBox());
-        form->addRow("Right Hand Joint:", _rightHandJoint = createJointBox());
-        
-        form->addRow("Free Joints:", _freeJoints = new QVBoxLayout());
-        QPushButton* newFreeJoint = new QPushButton("New Free Joint");
-        _freeJoints->addWidget(newFreeJoint);
-        connect(newFreeJoint, SIGNAL(clicked(bool)), SLOT(createNewFreeJoint()));
+    if (_modelType != ENTITY_MODEL) {
+        if (_modelType == ATTACHMENT_MODEL) {
+            QHBoxLayout* translation = new QHBoxLayout();
+            form->addRow("Translation:", translation);
+            translation->addWidget(_translationX = createTranslationBox());
+            translation->addWidget(_translationY = createTranslationBox());
+            translation->addWidget(_translationZ = createTranslationBox());
+            form->addRow("Pivot About Center:", _pivotAboutCenter = new QCheckBox());
+            form->addRow("Pivot Joint:", _pivotJoint = createJointBox());
+            connect(_pivotAboutCenter, SIGNAL(toggled(bool)), SLOT(updatePivotJoint()));
+            _pivotAboutCenter->setChecked(true);
+            
+        } else {
+            form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
+            form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
+            form->addRow("Neck Joint:", _neckJoint = createJointBox());
+        }
+        if (_modelType == SKELETON_MODEL) {
+            form->addRow("Root Joint:", _rootJoint = createJointBox());
+            form->addRow("Lean Joint:", _leanJoint = createJointBox());
+            form->addRow("Head Joint:", _headJoint = createJointBox());
+            form->addRow("Left Hand Joint:", _leftHandJoint = createJointBox());
+            form->addRow("Right Hand Joint:", _rightHandJoint = createJointBox());
+            
+            form->addRow("Free Joints:", _freeJoints = new QVBoxLayout());
+            QPushButton* newFreeJoint = new QPushButton("New Free Joint");
+            _freeJoints->addWidget(newFreeJoint);
+            connect(newFreeJoint, SIGNAL(clicked(bool)), SLOT(createNewFreeJoint()));
+        }
     }
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
@@ -683,38 +686,40 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     }
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);
     
-    QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
-    if (_modelType == ATTACHMENT_MODEL) {
-        glm::vec3 pivot;
-        if (_pivotAboutCenter->isChecked()) {
-            pivot = (_geometry.meshExtents.minimum + _geometry.meshExtents.maximum) * 0.5f;
-        
-        } else if (_pivotJoint->currentIndex() != 0) {
-            pivot = extractTranslation(_geometry.joints.at(_pivotJoint->currentIndex() - 1).transform);
+    if (_modelType != ENTITY_MODEL) {
+        QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
+        if (_modelType == ATTACHMENT_MODEL) {
+            glm::vec3 pivot;
+            if (_pivotAboutCenter->isChecked()) {
+                pivot = (_geometry.meshExtents.minimum + _geometry.meshExtents.maximum) * 0.5f;
+                
+            } else if (_pivotJoint->currentIndex() != 0) {
+                pivot = extractTranslation(_geometry.joints.at(_pivotJoint->currentIndex() - 1).transform);
+            }
+            mapping.insert(TRANSLATION_X_FIELD, -pivot.x * _scale->value() + _translationX->value());
+            mapping.insert(TRANSLATION_Y_FIELD, -pivot.y * _scale->value() + _translationY->value());
+            mapping.insert(TRANSLATION_Z_FIELD, -pivot.z * _scale->value() + _translationZ->value());
+            
+        } else {
+            insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
+            insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
+            insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
         }
-        mapping.insert(TRANSLATION_X_FIELD, -pivot.x * _scale->value() + _translationX->value());
-        mapping.insert(TRANSLATION_Y_FIELD, -pivot.y * _scale->value() + _translationY->value());
-        mapping.insert(TRANSLATION_Z_FIELD, -pivot.z * _scale->value() + _translationZ->value());
-        
-    } else {
-        insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
-        insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
-        insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
-    }
-    if (_modelType == SKELETON_MODEL) {
-        insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
-        insertJointMapping(joints, "jointLean", _leanJoint->currentText());
-        insertJointMapping(joints, "jointHead", _headJoint->currentText());
-        insertJointMapping(joints, "jointLeftHand", _leftHandJoint->currentText());
-        insertJointMapping(joints, "jointRightHand", _rightHandJoint->currentText());
-        
-        mapping.remove(FREE_JOINT_FIELD);
-        for (int i = 0; i < _freeJoints->count() - 1; i++) {
-            QComboBox* box = static_cast<QComboBox*>(_freeJoints->itemAt(i)->widget()->layout()->itemAt(0)->widget());
-            mapping.insertMulti(FREE_JOINT_FIELD, box->currentText());
+        if (_modelType == SKELETON_MODEL) {
+            insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
+            insertJointMapping(joints, "jointLean", _leanJoint->currentText());
+            insertJointMapping(joints, "jointHead", _headJoint->currentText());
+            insertJointMapping(joints, "jointLeftHand", _leftHandJoint->currentText());
+            insertJointMapping(joints, "jointRightHand", _rightHandJoint->currentText());
+            
+            mapping.remove(FREE_JOINT_FIELD);
+            for (int i = 0; i < _freeJoints->count() - 1; i++) {
+                QComboBox* box = static_cast<QComboBox*>(_freeJoints->itemAt(i)->widget()->layout()->itemAt(0)->widget());
+                mapping.insertMulti(FREE_JOINT_FIELD, box->currentText());
+            }
         }
+        mapping.insert(JOINT_FIELD, joints);
     }
-    mapping.insert(JOINT_FIELD, joints);
     
     return mapping;
 }
@@ -729,32 +734,35 @@ void ModelPropertiesDialog::reset() {
     _scale->setValue(_originalMapping.value(SCALE_FIELD).toDouble());
     
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
-    if (_modelType == ATTACHMENT_MODEL) {
-        _translationX->setValue(_originalMapping.value(TRANSLATION_X_FIELD).toDouble());
-        _translationY->setValue(_originalMapping.value(TRANSLATION_Y_FIELD).toDouble());
-        _translationZ->setValue(_originalMapping.value(TRANSLATION_Z_FIELD).toDouble());    
-        _pivotAboutCenter->setChecked(true);
-        _pivotJoint->setCurrentIndex(0);
-        
-    } else {
-        setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
-        setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
-        setJointText(_neckJoint, jointHash.value("jointNeck").toString());
-    }
-    if (_modelType == SKELETON_MODEL) {
-        setJointText(_rootJoint, jointHash.value("jointRoot").toString());
-        setJointText(_leanJoint, jointHash.value("jointLean").toString());
-        setJointText(_headJoint, jointHash.value("jointHead").toString());
-        setJointText(_leftHandJoint, jointHash.value("jointLeftHand").toString());
-        setJointText(_rightHandJoint, jointHash.value("jointRightHand").toString());
-        
-        while (_freeJoints->count() > 1) {
-            delete _freeJoints->itemAt(0)->widget();
+    
+    if (_modelType != ENTITY_MODEL) {
+        if (_modelType == ATTACHMENT_MODEL) {
+            _translationX->setValue(_originalMapping.value(TRANSLATION_X_FIELD).toDouble());
+            _translationY->setValue(_originalMapping.value(TRANSLATION_Y_FIELD).toDouble());
+            _translationZ->setValue(_originalMapping.value(TRANSLATION_Z_FIELD).toDouble());
+            _pivotAboutCenter->setChecked(true);
+            _pivotJoint->setCurrentIndex(0);
+            
+        } else {
+            setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
+            setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
+            setJointText(_neckJoint, jointHash.value("jointNeck").toString());
         }
-        foreach (const QVariant& joint, _originalMapping.values(FREE_JOINT_FIELD)) {
-            QString jointName = joint.toString();
-            if (_geometry.jointIndices.contains(jointName)) {
-                createNewFreeJoint(jointName);
+        if (_modelType == SKELETON_MODEL) {
+            setJointText(_rootJoint, jointHash.value("jointRoot").toString());
+            setJointText(_leanJoint, jointHash.value("jointLean").toString());
+            setJointText(_headJoint, jointHash.value("jointHead").toString());
+            setJointText(_leftHandJoint, jointHash.value("jointLeftHand").toString());
+            setJointText(_rightHandJoint, jointHash.value("jointRightHand").toString());
+            
+            while (_freeJoints->count() > 1) {
+                delete _freeJoints->itemAt(0)->widget();
+            }
+            foreach (const QVariant& joint, _originalMapping.values(FREE_JOINT_FIELD)) {
+                QString jointName = joint.toString();
+                if (_geometry.jointIndices.contains(jointName)) {
+                    createNewFreeJoint(jointName);
+                }
             }
         }
     }

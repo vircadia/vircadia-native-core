@@ -4202,6 +4202,10 @@ void Application::uploadAttachment() {
     uploadModel(ATTACHMENT_MODEL);
 }
 
+void Application::uploadEntity() {
+    uploadModel(ENTITY_MODEL);
+}
+
 void Application::openUrl(const QUrl& url) {
     if (!url.isEmpty()) {
         if (url.scheme() == HIFI_URL_SCHEME) {

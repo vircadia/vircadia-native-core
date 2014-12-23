@@ -189,10 +189,14 @@ Menu::Menu() :
                                   SLOT(toggleAddressBar()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadSkeleton, 0, Application::getInstance(), SLOT(uploadSkeleton()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
+                                  Application::getInstance(), SLOT(uploadHead()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadSkeleton, 0,
+                                  Application::getInstance(), SLOT(uploadSkeleton()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadAttachment, 0,
-        Application::getInstance(), SLOT(uploadAttachment()));
+                                  Application::getInstance(), SLOT(uploadAttachment()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadEntity, 0,
+                                  Application::getInstance(), SLOT(uploadEntity()));
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
