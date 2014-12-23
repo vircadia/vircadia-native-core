@@ -55,7 +55,7 @@ int main (int argc, char** argv) {
                     mode = GRAB_VAR_NAME;
                 } else if (inputs.back() == "-I") {
                     mode = GRAB_INCLUDE_PATH;
-                } else if (inputs.back() == "-listvars") {
+                } else if (inputs.back() == "-listVars") {
                     listVars = true;
                     mode = READY;
                 } else if (inputs.back() == "-showParseTree") {
@@ -115,11 +115,11 @@ int main (int argc, char** argv) {
         cerr << "Usage: shaderScribe [OPTION]... inputFilename" << endl;
         cerr << "Where options include:" << endl;
         cerr << "  -o filename: Send output to filename rather than standard output." << endl;
-        cerr << "  -tn targetName: Set the targetName used, if not defined use the output filename 'name' and if not defined use the inputFilename 'name'" << endl;
+        cerr << "  -t targetName: Set the targetName used, if not defined use the output filename 'name' and if not defined use the inputFilename 'name'" << endl;
         cerr << "  -I include_directory: Declare a directory to be added to the includes search pool." << endl;
         cerr << "  -D varname varvalue: Declare a var used to generate the output file." << endl;
         cerr << "       varname and varvalue must be made of alpha numerical characters with no spaces." << endl;
-        cerr << "  -listvars : Will list the vars name and value in the standard output." << endl;
+        cerr << "  -listVars : Will list the vars name and value in the standard output." << endl;
         cerr << "  -showParseTree : Draw the tree obtained while parsing the source" << endl;
         cerr << "  -c++ : Generate a c++ header file containing the output file stream stored as a char[] variable" << endl;
         return 0;
