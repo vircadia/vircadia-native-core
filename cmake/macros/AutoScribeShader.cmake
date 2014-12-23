@@ -11,8 +11,8 @@
 function(AUTOSCRIBE_SHADER SHADER_FILE)
     
     # Grab include files
-    foreach(includeFIle  ${ARGN})
-        list(APPEND SHADER_INCLUDE_FILES ${includeFIle})
+    foreach(includeFile  ${ARGN})
+        list(APPEND SHADER_INCLUDE_FILES ${includeFile})
     endforeach()
 
     #Extract the unique include shader paths
