@@ -149,6 +149,91 @@ bool ModelUploader::zip() {
     FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
     
     // make sure we have some basic mappings
+    populateBasicMapping(mapping, filename, geometry);
+    
+    // open the dialog to configure the rest
+    ModelPropertiesDialog properties(_modelType, mapping, basePath, geometry);
+    if (properties.exec() == QDialog::Rejected) {
+        return false;
+    }
+    mapping = properties.getMapping();
+    
+    QByteArray nameField = mapping.value(NAME_FIELD).toByteArray();
+    QString urlBase;
+    if (!nameField.isEmpty()) {
+        QHttpPart textPart;
+        textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"model_name\"");
+        textPart.setBody(nameField);
+        _dataMultiPart->append(textPart);
+        urlBase = S3_URL + "/models/" + MODEL_TYPE_NAMES[_modelType] + "/" + nameField;
+        _url = urlBase + ".fst";
+       
+    } else {
+        QMessageBox::warning(NULL,
+                             QString("ModelUploader::zip()"),
+                             QString("Model name is missing in the .fst file."),
+                             QMessageBox::Ok);
+        qDebug() << "[Warning] " << QString("Model name is missing in the .fst file.");
+        return false;
+    }
+    
+    QByteArray texdirField = mapping.value(TEXDIR_FIELD).toByteArray();
+    QString texDir;
+    _textureBase = urlBase + "/textures/";
+    if (!texdirField.isEmpty()) {
+        texDir = basePath + "/" + texdirField;
+        QFileInfo texInfo(texDir);
+        if (!texInfo.exists() || !texInfo.isDir()) {
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("Texture directory could not be found."),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("Texture directory could not be found.");
+            return false;
+        }
+    }
+    
+    QVariantHash lodField = mapping.value(LOD_FIELD).toHash();
+    for (QVariantHash::const_iterator it = lodField.constBegin(); it != lodField.constEnd(); it++) {
+        QFileInfo lod(basePath + "/" + it.key());
+        if (!lod.exists() || !lod.isFile()) { // Check existence
+            QMessageBox::warning(NULL,
+                                 QString("ModelUploader::zip()"),
+                                 QString("LOD file %1 could not be found.").arg(lod.fileName()),
+                                 QMessageBox::Ok);
+            qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(lod.fileName());
+        }
+        // Compress and copy
+        if (!addPart(lod.filePath(), QString("lod%1").arg(++_lodCount))) {
+            return false;
+        }
+    }
+    
+    // Write out, compress and copy the fst
+    if (!addPart(*fst, writeMapping(mapping), QString("fst"))) {
+        return false;
+    }
+    
+    // Compress and copy the fbx
+    if (!addPart(fbx, fbxContents, "fbx")) {
+        return false;
+    }
+                
+    if (!addTextures(texDir, geometry)) {
+        return false;
+    }
+    
+    QHttpPart textPart;
+    textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
+                       " name=\"model_category\"");
+    textPart.setBody(MODEL_TYPE_NAMES[_modelType]);
+    _dataMultiPart->append(textPart);
+    
+    _readyToSend = true;
+    return true;
+}
+
+void ModelUploader::populateBasicMapping(QVariantHash& mapping, QString filename, FBXGeometry geometry) {
     if (!mapping.contains(NAME_FIELD)) {
         mapping.insert(NAME_FIELD, QFileInfo(filename).baseName());
     }
@@ -163,11 +248,11 @@ bool ModelUploader::zip() {
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointEyeLeft")) {
         joints.insert("jointEyeLeft", geometry.jointIndices.contains("jointEyeLeft") ? "jointEyeLeft" :
-            (geometry.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye"));
+                      (geometry.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye"));
     }
     if (!joints.contains("jointEyeRight")) {
         joints.insert("jointEyeRight", geometry.jointIndices.contains("jointEyeRight") ? "jointEyeRight" :
-            geometry.jointIndices.contains("EyeRight") ? "EyeRight" : "RightEye");
+                      geometry.jointIndices.contains("EyeRight") ? "EyeRight" : "RightEye");
     }
     if (!joints.contains("jointNeck")) {
         joints.insert("jointNeck", geometry.jointIndices.contains("jointNeck") ? "jointNeck" : "Neck");
@@ -251,87 +336,6 @@ bool ModelUploader::zip() {
         blendshapes.insertMulti("Sneer", QVariantList() << "Squint_Right" << 0.5);
         mapping.insert(BLENDSHAPE_FIELD, blendshapes);
     }
-    
-    // open the dialog to configure the rest
-    ModelPropertiesDialog properties(_modelType, mapping, basePath, geometry);
-    if (properties.exec() == QDialog::Rejected) {
-        return false;
-    }
-    mapping = properties.getMapping();
-    
-    QByteArray nameField = mapping.value(NAME_FIELD).toByteArray();
-    QString urlBase;
-    if (!nameField.isEmpty()) {
-        QHttpPart textPart;
-        textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"model_name\"");
-        textPart.setBody(nameField);
-        _dataMultiPart->append(textPart);
-        urlBase = S3_URL + "/models/" + MODEL_TYPE_NAMES[_modelType] + "/" + nameField;
-        _url = urlBase + ".fst";
-       
-    } else {
-        QMessageBox::warning(NULL,
-                             QString("ModelUploader::zip()"),
-                             QString("Model name is missing in the .fst file."),
-                             QMessageBox::Ok);
-        qDebug() << "[Warning] " << QString("Model name is missing in the .fst file.");
-        return false;
-    }
-    
-    QByteArray texdirField = mapping.value(TEXDIR_FIELD).toByteArray();
-    QString texDir;
-    _textureBase = urlBase + "/textures/";
-    if (!texdirField.isEmpty()) {
-        texDir = basePath + "/" + texdirField;
-        QFileInfo texInfo(texDir);
-        if (!texInfo.exists() || !texInfo.isDir()) {
-            QMessageBox::warning(NULL,
-                                 QString("ModelUploader::zip()"),
-                                 QString("Texture directory could not be found."),
-                                 QMessageBox::Ok);
-            qDebug() << "[Warning] " << QString("Texture directory could not be found.");
-            return false;
-        }
-    }
-    
-    QVariantHash lodField = mapping.value(LOD_FIELD).toHash();
-    for (QVariantHash::const_iterator it = lodField.constBegin(); it != lodField.constEnd(); it++) {
-        QFileInfo lod(basePath + "/" + it.key());
-        if (!lod.exists() || !lod.isFile()) { // Check existence
-            QMessageBox::warning(NULL,
-                                 QString("ModelUploader::zip()"),
-                                 QString("LOD file %1 could not be found.").arg(lod.fileName()),
-                                 QMessageBox::Ok);
-            qDebug() << "[Warning] " << QString("FBX file %1 could not be found.").arg(lod.fileName());
-        }
-        // Compress and copy
-        if (!addPart(lod.filePath(), QString("lod%1").arg(++_lodCount))) {
-            return false;
-        }
-    }
-    
-    // Write out, compress and copy the fst
-    if (!addPart(*fst, writeMapping(mapping), QString("fst"))) {
-        return false;
-    }
-    
-    // Compress and copy the fbx
-    if (!addPart(fbx, fbxContents, "fbx")) {
-        return false;
-    }
-                
-    if (!addTextures(texDir, geometry)) {
-        return false;
-    }
-    
-    QHttpPart textPart;
-    textPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data;"
-                       " name=\"model_category\"");
-    textPart.setBody(MODEL_TYPE_NAMES[_modelType]);
-    _dataMultiPart->append(textPart);
-    
-    _readyToSend = true;
-    return true;
 }
 
 void ModelUploader::send() {

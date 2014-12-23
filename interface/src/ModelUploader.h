@@ -65,7 +65,7 @@ private:
     QDialog* _progressDialog;
     QProgressBar* _progressBar;
     
-    
+    void populateBasicMapping(QVariantHash& mapping, QString filename, FBXGeometry geometry);
     bool zip();
     bool addTextures(const QString& texdir, const FBXGeometry& geometry);
     bool addPart(const QString& path, const QString& name, bool isTexture = false);
