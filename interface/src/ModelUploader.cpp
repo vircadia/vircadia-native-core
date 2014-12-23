@@ -64,6 +64,32 @@ static const int MAX_CHECK = 30;
 static const int QCOMPRESS_HEADER_POSITION = 0;
 static const int QCOMPRESS_HEADER_SIZE = 4;
 
+void ModelUploader::uploadModel(ModelType modelType) {
+    ModelUploader* uploader = new ModelUploader(modelType);
+    QThread* thread = new QThread();
+    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
+    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
+    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
+    
+    thread->start();
+}
+
+void ModelUploader::uploadHead() {
+    uploadModel(HEAD_MODEL);
+}
+
+void ModelUploader::uploadSkeleton() {
+    uploadModel(SKELETON_MODEL);
+}
+
+void ModelUploader::uploadAttachment() {
+    uploadModel(ATTACHMENT_MODEL);
+}
+
+void ModelUploader::uploadEntity() {
+    uploadModel(ENTITY_MODEL);
+}
+
 ModelUploader::ModelUploader(ModelType modelType) :
     _lodCount(-1),
     _texturesCount(-1),

@@ -460,8 +460,6 @@ private:
 
     void setMenuShortcutsEnabled(bool enabled);
 
-    void uploadModel(ModelType modelType);
-
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
