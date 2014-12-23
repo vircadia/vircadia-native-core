@@ -229,13 +229,14 @@ void ApplicationOverlay::displayOverlayTexture() {
         glDisable(GL_LIGHTING);
         glEnable(GL_BLEND);
         
-        glBegin(GL_QUADS); {
-            glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-            glTexCoord2f(0, 0); glVertex2i(0, glCanvas->getDeviceHeight());
-            glTexCoord2f(1, 0); glVertex2i(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
-            glTexCoord2f(1, 1); glVertex2i(glCanvas->getDeviceWidth(), 0);
-            glTexCoord2f(0, 1); glVertex2i(0, 0);
-        } glEnd();
+        glColor4f(1.0f, 1.0f, 1.0f, _alpha);
+        glm::vec2 topLeft(0.0f, 0.0f);
+        glm::vec2 bottomRight(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
+        glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+        glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+        
     } glPopMatrix();
     
     glDisable(GL_TEXTURE_2D);
@@ -658,16 +659,16 @@ void ApplicationOverlay::renderControllerPointers() {
         mouseX -= reticleSize / 2.0f;
         mouseY += reticleSize / 2.0f;
 
-        glBegin(GL_QUADS);
 
         glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
 
-        glTexCoord2d(0.0f, 0.0f); glVertex2i(mouseX, mouseY);
-        glTexCoord2d(1.0f, 0.0f); glVertex2i(mouseX + reticleSize, mouseY);
-        glTexCoord2d(1.0f, 1.0f); glVertex2i(mouseX + reticleSize, mouseY - reticleSize);
-        glTexCoord2d(0.0f, 1.0f); glVertex2i(mouseX, mouseY - reticleSize);
+        glm::vec2 topLeft(mouseX, mouseY);
+        glm::vec2 bottomRight(mouseX + reticleSize, mouseY - reticleSize);
+        glm::vec2 texCoordTopLeft(0.0f, 0.0f);
+        glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-        glEnd();
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+        
     }
 }
 
@@ -861,8 +862,6 @@ void ApplicationOverlay::renderAudioMeter() {
         
         audioLevel = AUDIO_RED_START;
     }
-
-    //glBegin(GL_QUADS);
 
     if (audioLevel > AUDIO_GREEN_START) {
         if (!isClipping) {

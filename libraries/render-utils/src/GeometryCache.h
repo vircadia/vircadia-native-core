@@ -70,11 +70,9 @@ public:
     void renderWireCube(float size);
 
 
-    void renderQuad(int x, int y, int width, int height) { 
-            renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height));
-        };
-
+    void renderQuad(int x, int y, int width, int height) { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height)); }
     void renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight);
+
     void renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight);
 
@@ -104,7 +102,7 @@ private:
     QHash<float, VerticesIndices> _wireCubeVBOs;
     QHash<float, VerticesIndices> _solidCubeVBOs;
     QHash<Vec2Pair, VerticesIndices> _quad2DVBOs;
-    //QHash<Vec2PairPair, VerticesIndices> _quad2DTextureVBOs;
+    QHash<Vec2PairPair, VerticesIndices> _quad2DTextureVBOs;
 
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
