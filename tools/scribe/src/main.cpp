@@ -42,6 +42,7 @@ int main (int argc, char** argv) {
         GRAB_TARGET_NAME,
         EXIT,
     } mode = READY;
+
     for (int ii = 1; (mode != EXIT) && (ii < argc); ii++) {
         inputs.push_back(argv[ii]);
 
