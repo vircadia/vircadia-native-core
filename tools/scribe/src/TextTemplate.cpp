@@ -59,9 +59,9 @@ const TextTemplatePointer TextTemplate::Config::addInclude(const ConfigPointer& 
 }
 
 const TextTemplatePointer TextTemplate::Config::findInclude(const char* include) {
-    Includes::iterator it = _includes.find(String(include));
-    if (it != _includes.end()) {
-        return (*it).second;
+    Includes::iterator includeIt = _includes.find(String(include));
+    if (includeIt != _includes.end()) {
+        return (*includeIt).second;
     } else {
         return TextTemplatePointer();
     }
@@ -76,22 +76,18 @@ bool TextTemplate::loadFile(const ConfigPointer& config, const char* filename, S
     String fullfilename;
     for (unsigned int i = 0; i < config->_paths.size(); i++) {
         fullfilename = config->_paths[i] + s;
-        {
-            std::ifstream ifs;
-            ifs.open(fullfilename.c_str());
-            if (ifs.is_open()) {
-                std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-                source = str;
-                ifs.close();
-                return (source.length() > 0);
-            }
+        std::ifstream ifs;
+        ifs.open(fullfilename.c_str());
+        if (ifs.is_open()) {
+            std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+            source = str;
+            ifs.close();
+            return (source.length() > 0);
         }
     }
 
     return false;
 }
-
-//-----------------------------------------------------------------------------
 
 TextTemplate::Funcs::Funcs() :
     _funcs() {
@@ -118,8 +114,6 @@ const BlockPointer TextTemplate::Funcs::addFunc(const char* func, const BlockPoi
     return included;
 }
 
-//-----------------------------------------------------------------------------
-
 void TextTemplate::Block::addNewBlock(const Pointer& parent, const Pointer& block) {
     if (parent) {
         parent->blocks.push_back(block);
@@ -128,14 +122,12 @@ void TextTemplate::Block::addNewBlock(const Pointer& parent, const Pointer& bloc
 }
 
 const BlockPointer& TextTemplate::Block::getCurrentBlock(const Pointer& block) {
-    if ((block) && block->command.isBlockEnd()) {
+    if (block && block->command.isBlockEnd()) {
         return block->parent;
     } else {
         return block;
     }
 }
-
-//-----------------------------------------------------------------------------
 
 void TextTemplate::logError(const Block::Pointer& block, const char* fmt, ...) {
     va_list argp;
@@ -196,21 +188,21 @@ bool TextTemplate::grabUntilBeginTag(std::istream* str, std::string& grabbed, Ta
 bool TextTemplate::grabUntilEndTag(std::istream* str, std::string& grabbed, Tag::Type& tagType) {
     std::stringstream dst;
 
-    // preend char depends on tag type
-    char preend = Tag::COM;
+    // preEnd char depends on tag type
+    char preEnd = Tag::COM;
     if (tagType == Tag::VARIABLE) {
-        preend = Tag::VAR;
+        preEnd = Tag::VAR;
     } else if (tagType == Tag::REMARK) {
-        preend = Tag::REM;
+        preEnd = Tag::REM;
     }
 
     while (!str->eof()) {
         // looking for the end of the tag means find the next preEnd
-        std::string datatoken;
-        getline((*str), datatoken, preend);
+        std::string dataToken;
+        getline((*str), dataToken, preEnd);
         char end = str->peek();
 
-        dst << datatoken;
+        dst << dataToken;
 
         // and if the next char is Tag::END then that's it
         if (end == Tag::END) {
@@ -219,14 +211,15 @@ bool TextTemplate::grabUntilEndTag(std::istream* str, std::string& grabbed, Tag:
             return true;
         } else {
             // false positive, keep on searching
-            dst << preend;
+            dst << preEnd;
         }
     }
     grabbed = dst.str();
     return false;
 }
 
-bool TextTemplate::stepForward(std::istream* str, std::string& grabbed, std::string& tag, Tag::Type& tagType, Tag::Type& nextTagType) {
+bool TextTemplate::stepForward(std::istream* str, std::string& grabbed, std::string& tag, Tag::Type& tagType,
+    Tag::Type& nextTagType) {
     if (str->eof()) {
         return false;
     }
@@ -242,7 +235,7 @@ bool TextTemplate::stepForward(std::istream* str, std::string& grabbed, std::str
         if ((tagType == Tag::COMMAND) || (tagType == Tag::REMARK)) {
             while (!str->eof()) {
                 char c = str->peek();
-                if ((c== ' ') || (c=='\t') || (c=='\n')) {
+                if ((c == ' ') || (c == '\t') || (c == '\n')) {
                     str->get();
                 } else {
                     break;
@@ -251,15 +244,13 @@ bool TextTemplate::stepForward(std::istream* str, std::string& grabbed, std::str
         }
 
         grabUntilBeginTag(str, grabbed, nextTagType);
-        /*if (grabbed.empty()) {
-            grabbed += ' ';
-        }*/
     }
 
     return true; //hasElement;
 }
 
-const BlockPointer TextTemplate::processStep(const BlockPointer& block, std::string& grabbed, std::string& tag, Tag::Type& tagType) {
+const BlockPointer TextTemplate::processStep(const BlockPointer& block, std::string& grabbed, std::string& tag,
+    Tag::Type& tagType) {
     switch (tagType) {
         case Tag::INVALID:
             block->ostr << grabbed;
@@ -362,10 +353,10 @@ bool TextTemplate::convertExpressionToFuncArguments(String& src, std::vector< St
     if (src.empty()) {
         return false;
     }
-    std::stringstream str_src(src);
+    std::stringstream streamSrc(src);
     String params;
-    getline(str_src, params, '(');
-    getline(str_src, params, ')');
+    getline(streamSrc, params, '(');
+    getline(streamSrc, params, ')');
     if (params.empty()) {
         return false;
     }
@@ -474,7 +465,7 @@ const BlockPointer TextTemplate::processStepDef(const BlockPointer& block, Strin
 
     newBlock->command.type = Command::DEF;
     newBlock->command.arguments.push_back(varName);
-    if (! val.empty()) {
+    if (!val.empty()) {
         // loose first character which should be a white space
         val = val.substr(val.find_first_not_of(' '));
         convertExpressionToDefArguments(val, newBlock->command.arguments);
@@ -691,8 +682,6 @@ const BlockPointer TextTemplate::processStepEndFunc(const BlockPointer& block, S
 
     return block;
 }
-
-//-----------------------------------------------------------------------------
 
 TextTemplate::TextTemplate(const String& name, const ConfigPointer& externalConfig) :
     _config(externalConfig),
