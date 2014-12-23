@@ -144,6 +144,13 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
             penetration = collision->_penetration;
             entityB = static_cast<EntityItem*>(collision->_extraData);
             
+            // The collision _extraData should be a valid entity, but if for some reason
+            // it's NULL then continue with a warning.
+            if (!entityB) {
+                qDebug() << "UNEXPECTED - we have a collision with missing _extraData. Something went wrong down below!";
+                continue; // skip this loop pass if the entity is NULL
+            }
+            
             // don't collide entities with unknown IDs,
             if (!entityB->isKnownID()) {
                 continue; // skip this loop pass if the entity has an unknown ID
