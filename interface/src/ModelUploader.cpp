@@ -57,7 +57,7 @@ static const QString SETTING_NAME = "LastModelUploadLocation";
 
 static const int BYTES_PER_MEGABYTES = 1024 * 1024;
 static const unsigned long MAX_SIZE = 50 * 1024 * BYTES_PER_MEGABYTES; // 50 GB (Virtually remove limit)
-static const int MAX_TEXTURE_SIZE = 4096;
+static const int MAX_TEXTURE_SIZE = 1024;
 static const int TIMEOUT = 1000;
 static const int MAX_CHECK = 30;
 
