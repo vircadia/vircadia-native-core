@@ -841,8 +841,8 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                     // detect if a param is a var
                     int len = block->command.arguments[t].length();
                     if ((block->command.arguments[t][0] == Tag::VAR)
-                        && (block->command.arguments[t][len-1] == Tag::VAR)) {
-                        String var = block->command.arguments[t].substr(1, len-2);
+                        && (block->command.arguments[t][len - 1] == Tag::VAR)) {
+                        String var = block->command.arguments[t].substr(1, len - 2);
                         Vars::iterator it = vars.find(var);
                         if (it != vars.end()) {
                             val += (*it).second;
