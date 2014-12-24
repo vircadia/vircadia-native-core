@@ -35,6 +35,8 @@
 #include "GlowEffect.h"
 #include "Model.h"
 
+#include "model_vert.h"
+#include "model_frag.h"
 
 #define GLBATCH( call ) batch._##call
 //#define GLBATCH( call ) call
