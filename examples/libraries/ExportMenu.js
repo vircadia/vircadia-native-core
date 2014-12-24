@@ -81,7 +81,7 @@ ExportMenu = function (opts) {
         y: pos.y + margin,
         width: scaleViewWidth,
         height: height,
-        alpha: 0.0,
+        backgroundAlpha: 0.0,
         color: { red: 255, green: 255, blue: 255 },
         text: "1"
     });

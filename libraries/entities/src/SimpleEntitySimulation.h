@@ -19,29 +19,17 @@
 class SimpleEntitySimulation : public EntitySimulation {
 public:
     SimpleEntitySimulation() : EntitySimulation() { }
-    virtual ~SimpleEntitySimulation() { setEntityTree(NULL); }
-
-    virtual void update(QSet<EntityItem*>& entitiesToDelete);
-
-    virtual void addEntity(EntityItem* entity);
-    virtual void removeEntity(EntityItem* entity);
-    virtual void entityChanged(EntityItem* entity);
-
-    virtual void clearEntities();
+    virtual ~SimpleEntitySimulation() { clearEntitiesInternal(); }
 
 protected:
-    void updateEntityState(EntityItem* entity);
-    void clearEntityState(EntityItem* entity);
+    virtual void updateEntitiesInternal(const quint64& now);
+    virtual void addEntityInternal(EntityItem* entity);
+    virtual void removeEntityInternal(EntityItem* entity);
+    virtual void entityChangedInternal(EntityItem* entity);
+    virtual void clearEntitiesInternal();
 
-    QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
-
-    void updateChangedEntities(quint64 now, QSet<EntityItem*>& entitiesToDelete);
-    void updateMovingEntities(quint64 now, QSet<EntityItem*>& entitiesToDelete);
-    void updateMortalEntities(quint64 now, QSet<EntityItem*>& entitiesToDelete);
-
-    QSet<EntityItem*> _changedEntities; // entities that have changed in the last frame
-    QList<EntityItem*> _movingEntities; // entities that need to be updated
-    QList<EntityItem*> _mortalEntities; // non-moving entities that need to be checked for expiry
+    QSet<EntityItem*> _movingEntities;
+    QSet<EntityItem*> _movableButStoppedEntities;
 };
 
 #endif // hifi_SimpleEntitySimulation_h

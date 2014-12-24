@@ -461,7 +461,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
 void SixenseManager::emulateMouse(PalmData* palm, int index) {
     Application* application = Application::getInstance();
     MyAvatar* avatar = application->getAvatar();
-    GLCanvas* widget = application->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     QPoint pos;
     
     Qt::MouseButton bumperButton;
@@ -489,10 +489,10 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = widget->width() * getCursorPixelRangeMult();
+        float cursorRange = glCanvas->width() * getCursorPixelRangeMult();
 
-        pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
-        pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+        pos.setX(glCanvas->width() / 2.0f + cursorRange * xAngle);
+        pos.setY(glCanvas->height() / 2.0f + cursorRange * yAngle);
 
     }
 
@@ -540,8 +540,6 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     //a magnification window was clicked on
     int clickX = pos.x();
     int clickY = pos.y();
-    //Checks for magnification window click
-    application->getApplicationOverlay().getClickLocation(clickX, clickY);
     //Set pos to the new click location, which may be the same if no magnification window is open
     pos.setX(clickX);
     pos.setY(clickY);

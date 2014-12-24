@@ -137,13 +137,13 @@
         }
 
 #define SET_ENTITY_PROPERTY_FROM_PROPERTIES(P,M)    \
-    if (properties._##P##Changed || forceCopy) {    \
+    if (properties._##P##Changed) {    \
         M(properties._##P);                         \
         somethingChanged = true;                    \
     }
 
 #define SET_ENTITY_PROPERTY_FROM_PROPERTIES_GETTER(C,G,S)    \
-    if (properties.C() || forceCopy) {    \
+    if (properties.C()) {    \
         S(properties.G());                         \
         somethingChanged = true;                    \
     }

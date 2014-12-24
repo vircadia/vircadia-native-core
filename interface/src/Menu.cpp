@@ -31,12 +31,19 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <XmppClient.h>
+#include <DependencyManager.h>
+#include <MainWindow.h>
+#include <GlowEffect.h>
+#include <PathUtils.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
+#include <XmppClient.h>
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "devices/Faceshift.h"
+#include "devices/OculusManager.h"
+#include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -49,8 +56,6 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
-#include "devices/OculusManager.h"
-
 
 Menu* Menu::_instance = NULL;
 
@@ -243,7 +248,7 @@ Menu::Menu() :
     connect(&xmppClient, &QXmppClient::connected, this, &Menu::toggleChat);
     connect(&xmppClient, &QXmppClient::disconnected, this, &Menu::toggleChat);
 
-    QDir::setCurrent(Application::resourcesPath());
+    QDir::setCurrent(PathUtils::resourcesPath());
     // init chat window to listen chat
     _chatWindow = new ChatWindow(Application::getInstance()->getWindow());
 #endif
@@ -421,7 +426,8 @@ Menu::Menu() :
                                            true,
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true, 
+                                            DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
@@ -432,12 +438,12 @@ Menu::Menu() :
                                            MenuOption::Faceshift,
                                            0,
                                            true,
-                                           appInstance->getFaceshift(),
+                                           DependencyManager::get<Faceshift>().data(),
                                            SLOT(setTCPEnabled(bool)));
 #endif
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Visage, 0, false,
-            appInstance->getVisage(), SLOT(updateEnabled()));
+            DependencyManager::get<Visage>().data(), SLOT(updateEnabled()));
 #endif
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
@@ -1046,11 +1052,11 @@ void Menu::bumpSettings() {
 
 void sendFakeEnterEvent() {
     QPoint lastCursorPosition = QCursor::pos();
-    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
 
-    QPoint windowPosition = glWidget->mapFromGlobal(lastCursorPosition);
+    QPoint windowPosition = glCanvas->mapFromGlobal(lastCursorPosition);
     QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);
-    QCoreApplication::sendEvent(glWidget, &enterEvent);
+    QCoreApplication::sendEvent(glCanvas.data(), &enterEvent);
 }
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
@@ -1298,11 +1304,15 @@ void Menu::toggleLoginMenuItem() {
 
 void Menu::bandwidthDetails() {
     if (! _bandwidthDialog) {
-        _bandwidthDialog = new BandwidthDialog(Application::getInstance()->getGLWidget(),
+        _bandwidthDialog = new BandwidthDialog(DependencyManager::get<GLCanvas>().data(),
                                                Application::getInstance()->getBandwidthMeter());
         connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
 
         _bandwidthDialog->show();
+        
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
+        }
     }
     _bandwidthDialog->raise();
 }
@@ -1384,6 +1394,9 @@ void Menu::toggleConsole() {
 void Menu::toggleToolWindow() {
     QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
     toolWindow->setVisible(!toolWindow->isVisible());
+    if (_hmdToolsDialog) {
+        _hmdToolsDialog->watchWindow(toolWindow->windowHandle());
+    }
 }
 
 void Menu::audioMuteToggled() {
@@ -1402,10 +1415,13 @@ void Menu::bandwidthDetailsClosed() {
 
 void Menu::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
-        _octreeStatsDialog = new OctreeStatsDialog(Application::getInstance()->getGLWidget(),
+        _octreeStatsDialog = new OctreeStatsDialog(DependencyManager::get<GLCanvas>().data(),
                                                  Application::getInstance()->getOcteeSceneStats());
         connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
         _octreeStatsDialog->show();
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
+        }
     }
     _octreeStatsDialog->raise();
 }
@@ -1583,9 +1599,12 @@ bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) {
 
 void Menu::lodTools() {
     if (!_lodToolsDialog) {
-        _lodToolsDialog = new LodToolsDialog(Application::getInstance()->getGLWidget());
+        _lodToolsDialog = new LodToolsDialog(DependencyManager::get<GLCanvas>().data());
         connect(_lodToolsDialog, SIGNAL(closed()), SLOT(lodToolsClosed()));
         _lodToolsDialog->show();
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_lodToolsDialog->windowHandle());
+        }
     }
     _lodToolsDialog->raise();
 }
@@ -1600,7 +1619,7 @@ void Menu::lodToolsClosed() {
 void Menu::hmdTools(bool showTools) {
     if (showTools) {
         if (!_hmdToolsDialog) {
-            _hmdToolsDialog = new HMDToolsDialog(Application::getInstance()->getGLWidget());
+            _hmdToolsDialog = new HMDToolsDialog(DependencyManager::get<GLCanvas>().data());
             connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
         }
         _hmdToolsDialog->show();

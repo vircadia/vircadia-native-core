@@ -117,7 +117,7 @@ function ScaleSelector() {
                                           width: this.SECOND_PART, height: this.height,
                                           topMargin: 13,
                                           text: this.scale.toString(),
-                                          alpha: 0.0,
+                                          backgroundAlpha: 0.0,
                                           visible: editToolsOn,
                                           color: activeUIColor
                                           });
@@ -126,7 +126,7 @@ function ScaleSelector() {
                                            width: this.SECOND_PART, height: this.height,
                                            leftMargin: 28,
                                            text: this.power.toString(),
-                                           alpha: 0.0,
+                                           backgroundAlpha: 0.0,
                                            visible: false,
                                            color: activeUIColor
                                            });

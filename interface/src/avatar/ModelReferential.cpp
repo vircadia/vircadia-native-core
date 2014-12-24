@@ -10,9 +10,8 @@
 //
 
 #include <AvatarData.h>
-
 #include <EntityTree.h>
-#include "../renderer/Model.h"
+#include <Model.h>
 
 #include "ModelReferential.h"
 

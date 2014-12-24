@@ -19,9 +19,12 @@
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
-EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _simulation(NULL) {
+EntityTree::EntityTree(bool shouldReaverage) : 
+    Octree(shouldReaverage), 
+    _fbxService(NULL),
+    _simulation(NULL)
+{
     _rootElement = createNewElement();
-    _lightsArePickable = true; // assume they are by default
 }
 
 EntityTree::~EntityTree() {
@@ -99,59 +102,79 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         qDebug() << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
     }
-    
+
+    return updateEntityWithElement(existingEntity, properties, containingElement);
+}
+
+bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties) {
+    EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
+    if (!containingElement) {
+        qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
+            << entity->getEntityItemID();
+        return false;
+    }
+    return updateEntityWithElement(entity, properties, containingElement);
+}
+
+bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+        EntityTreeElement* containingElement) {
     // enforce support for locked entities. If an entity is currently locked, then the only
     // property we allow you to change is the locked property.
-    if (existingEntity->getLocked()) {
+    if (entity->getLocked()) {
         if (properties.lockedChanged()) {
             bool wantsLocked = properties.getLocked();
             if (!wantsLocked) {
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
-                UpdateEntityOperator theOperator(this, containingElement, existingEntity, tempProperties);
+                UpdateEntityOperator theOperator(this, containingElement, entity, tempProperties);
                 recurseTreeWithOperator(&theOperator);
                 _isDirty = true;
-                if (_simulation && existingEntity->getUpdateFlags() != 0) {
-                    _simulation->entityChanged(existingEntity);
-                }
             }
         }
     } else {
-        // check to see if we need to simulate this entity...
-        QString entityScriptBefore = existingEntity->getScript();
+        QString entityScriptBefore = entity->getScript();
     
-        UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
+        UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
         _isDirty = true;
 
-        if (_simulation && existingEntity->getUpdateFlags() != 0) {
-            _simulation->entityChanged(existingEntity);
+        if (_simulation && entity->getDirtyFlags() != 0) {
+            _simulation->entityChanged(entity);
         }
 
-        QString entityScriptAfter = existingEntity->getScript();
+        QString entityScriptAfter = entity->getScript();
         if (entityScriptBefore != entityScriptAfter) {
-            emitEntityScriptChanging(entityID); // the entity script has changed
+            emit entityScriptChanging(entity->getEntityItemID()); // the entity script has changed
         }
     }
     
-    containingElement = getContainingElement(entityID);
+    // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
+    containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" << entityID;
+        qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" 
+                << entity->getEntityItemID();
         return false;
     }
     
     return true;
 }
 
-
 EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = NULL;
 
     // NOTE: This method is used in the client and the server tree. In the client, it's possible to create EntityItems 
     // that do not yet have known IDs. In the server tree however we don't want to have entities without known IDs.
-    if (getIsServer() && !entityID.isKnownID) {
-        qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
-        return result;
+    bool recordCreationTime = false;
+    if (!entityID.isKnownID) {
+        if (getIsServer()) {
+            qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
+            return result;
+        }
+        if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
+            // the entity's creation time was not specified in properties, which means this is a NEW entity
+            // and we must record its creation time
+            recordCreationTime = true;
+        }
     }
 
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
@@ -167,6 +190,9 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     result = EntityTypes::constructEntityItem(type, entityID, properties);
 
     if (result) {
+        if (recordCreationTime) {
+            result->recordCreationTime();
+        }
         // Recurse the tree and store the entity in the correct tree element
         AddEntityOperator theOperator(this, result);
         recurseTreeWithOperator(&theOperator);
@@ -572,7 +598,7 @@ void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
         QSet<EntityItem*> entitiesToDelete;
-        _simulation->update(entitiesToDelete);
+        _simulation->updateEntities(entitiesToDelete);
         if (entitiesToDelete.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;

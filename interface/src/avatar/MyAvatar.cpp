@@ -22,12 +22,15 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AnimationHandle.h>
+#include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 
 #include "Application.h"
 #include "Audio.h"
@@ -39,8 +42,6 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
-#include "renderer/AnimationHandle.h"
-#include "ui/TextRenderer.h"
 
 using namespace std;
 
@@ -393,7 +394,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.2f, 10.0f, 10.0f);
+    DependencyManager::get<GeometryCache>()->renderSphere(0.2f, 10.0f, 10.0f);
     glPopMatrix();
 
     //  Head Sphere
@@ -401,7 +402,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.15f, 10.0f, 10.0f);
+    DependencyManager::get<GeometryCache>()->renderSphere(0.15f, 10.0f, 10.0f);
     glPopMatrix();
 }
 
@@ -421,8 +422,7 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bo
 }
 
 void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
-    
-    Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
     
     float pixelsPerDegree = screenHeight / Menu::getInstance()->getFieldOfView();
     

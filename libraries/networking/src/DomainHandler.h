@@ -37,9 +37,7 @@ public:
     
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid);
-
-    static QString hostnameWithoutPort(const QString& hostname);
-    bool isCurrentHostname(const QString& hostname);
+    
     const QString& getHostname() const { return _hostname; }
     
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
@@ -75,7 +73,7 @@ public:
     
     void softReset();
 public slots:
-    void setHostname(const QString& hostname);
+    void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
     
 private slots:

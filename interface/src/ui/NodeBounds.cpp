@@ -12,6 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <GeometryCache.h>
+
 #include "Application.h"
 #include "Util.h"
 
@@ -38,12 +40,8 @@ void NodeBounds::draw() {
     // Compute ray to find selected nodes later on.  We can't use the pre-computed ray in Application because it centers
     // itself after the cursor disappears.
     Application* application = Application::getInstance();
-    GLCanvas* glWidget = application->getGLWidget();
-    float mouseX = application->getMouseX() / (float)glWidget->width();
-    float mouseY = application->getMouseY() / (float)glWidget->height();
-    glm::vec3 mouseRayOrigin;
-    glm::vec3 mouseRayDirection;
-    application->getViewFrustum()->computePickRay(mouseX, mouseY, mouseRayOrigin, mouseRayDirection);
+    PickRay pickRay = application->getCamera()->computePickRay(application->getTrueMouseX(),
+                                                               application->getTrueMouseY());
 
     // Variables to keep track of the selected node and properties to draw the cube later if needed
     Node* selectedNode = NULL;
@@ -53,61 +51,61 @@ void NodeBounds::draw() {
     float selectedScale = 0;
 
     NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    nodeList->eachNode([&](const SharedNodePointer& node){
         NodeType_t nodeType = node->getType();
-
+        
         if (nodeType == NodeType::VoxelServer && _showVoxelNodes) {
             serverJurisdictions = &voxelServerJurisdictions;
         } else if (nodeType == NodeType::EntityServer && _showEntityNodes) {
             serverJurisdictions = &entityServerJurisdictions;
         } else {
-            continue;
+            return;
         }
-
+        
         QUuid nodeUUID = node->getUUID();
         serverJurisdictions->lockForRead();
         if (serverJurisdictions->find(nodeUUID) != serverJurisdictions->end()) {
             const JurisdictionMap& map = (*serverJurisdictions)[nodeUUID];
-
+            
             unsigned char* rootCode = map.getRootOctalCode();
-
+            
             if (rootCode) {
                 VoxelPositionSize rootDetails;
                 voxelDetailsForCode(rootCode, rootDetails);
                 serverJurisdictions->unlock();
                 glm::vec3 location(rootDetails.x, rootDetails.y, rootDetails.z);
                 location *= (float)TREE_SCALE;
-
+                
                 AACube serverBounds(location, rootDetails.s * TREE_SCALE);
-
+                
                 glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR)
-                    + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
-
+                + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
+                
                 const float VOXEL_NODE_SCALE = 1.00f;
                 const float ENTITY_NODE_SCALE = 0.99f;
-
+                
                 float scaleFactor = rootDetails.s * TREE_SCALE;
-
+                
                 // Scale by 0.92 - 1.00 depending on the scale of the node.  This allows smaller nodes to scale in
                 // a bit and not overlap larger nodes.
                 scaleFactor *= 0.92 + (rootDetails.s * 0.08);
-
+                
                 // Scale different node types slightly differently because it's common for them to overlap.
                 if (nodeType == NodeType::VoxelServer) {
                     scaleFactor *= VOXEL_NODE_SCALE;
                 } else if (nodeType == NodeType::EntityServer) {
                     scaleFactor *= ENTITY_NODE_SCALE;
                 }
-
+                
                 float red, green, blue;
                 getColorForNodeType(nodeType, red, green, blue);
                 drawNodeBorder(center, scaleFactor, red, green, blue);
-
+                
                 float distance;
                 BoxFace face;
-                bool inside = serverBounds.contains(mouseRayOrigin);
-                bool colliding = serverBounds.findRayIntersection(mouseRayOrigin, mouseRayDirection, distance, face);
+                
+                bool inside = serverBounds.contains(pickRay.origin);
+                bool colliding = serverBounds.findRayIntersection(pickRay.origin, pickRay.direction, distance, face);
 
                 // If the camera is inside a node it will be "selected" if you don't have your cursor over another node
                 // that you aren't inside.
@@ -124,7 +122,7 @@ void NodeBounds::draw() {
         } else {
             serverJurisdictions->unlock();
         }
-    }
+    });
 
     if (selectedNode) {
         glPushMatrix();
@@ -136,7 +134,7 @@ void NodeBounds::draw() {
         getColorForNodeType(selectedNode->getType(), red, green, blue);
 
         glColor4f(red, green, blue, 0.2f);
-        glutSolidCube(1.0);
+        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
 
         glPopMatrix();
 
@@ -225,8 +223,8 @@ void NodeBounds::drawOverlay() {
         const int MOUSE_OFFSET = 10;
         const int BACKGROUND_BEVEL = 3;
 
-        int mouseX = application->getMouseX(),
-            mouseY = application->getMouseY(),
+        int mouseX = application->getTrueMouseX(),
+            mouseY = application->getTrueMouseY(),
             textWidth = widthText(TEXT_SCALE, 0, _overlayText);
         glColor4f(0.4f, 0.4f, 0.4f, 0.6f);
         renderBevelCornersRect(mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,

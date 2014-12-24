@@ -17,11 +17,12 @@
 
 #include <GeometryUtil.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
+#include <ProgramObject.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
 #include "Camera.h"
-#include "renderer/ProgramObject.h"
 #include "world.h"
 
 #include "Environment.h"
@@ -188,7 +189,7 @@ int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& 
 
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
     ProgramObject* program = new ProgramObject();
-    QByteArray prefix = QString(Application::resourcesPath() + "/shaders/SkyFrom" + from).toUtf8();
+    QByteArray prefix = QString(PathUtils::resourcesPath() + "/shaders/SkyFrom" + from).toUtf8();
     program->addShaderFromSourceFile(QGLShader::Vertex, prefix + ".vert");
     program->addShaderFromSourceFile(QGLShader::Fragment, prefix + ".frag");
     program->link();
@@ -261,7 +262,7 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
     
     glDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
-    Application::getInstance()->getGeometryCache()->renderSphere(1.0f, 100, 50); //Draw a unit sphere
+    DependencyManager::get<GeometryCache>()->renderSphere(1.0f, 100, 50); //Draw a unit sphere
     glDepthMask(GL_TRUE);
     
     program->release();

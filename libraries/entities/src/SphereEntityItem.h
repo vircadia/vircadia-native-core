@@ -25,7 +25,7 @@ public:
     
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
-    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    virtual bool setProperties(const EntityItemProperties& properties);
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
@@ -59,8 +59,8 @@ public:
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject) const;
-    
+                         void** intersectedObject, bool precisionPicking) const;
+
 protected:
     virtual void recalculateCollisionShape();
 

@@ -51,7 +51,6 @@ public:
     static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
 
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
-    AnimationCache* getAnimationCache() { return &_animationCache; }
     
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
@@ -90,6 +89,8 @@ public:
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
 
+    void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
+
 public slots:
     void loadURL(const QUrl& scriptURL);
     void stop();
@@ -121,6 +122,7 @@ signals:
 
 protected:
     QString _scriptContents;
+    QString _parentURL;
     bool _isFinished;
     bool _isRunning;
     bool _isInitialized;
@@ -149,7 +151,6 @@ private:
     Quat _quatLibrary;
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
-    AnimationCache _animationCache;
     bool _isUserLoaded;
 
     ArrayBufferClass* _arrayBufferClass;

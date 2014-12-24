@@ -8,6 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+#include <GlowEffect.h>
+
 #include "../../Menu.h"
 
 #include "ModelOverlay.h"
@@ -170,14 +173,14 @@ QScriptValue ModelOverlay::getProperty(const QString& property) {
 }
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face) {
     
     QString subMeshNameTemp;
     return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, subMeshNameTemp);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face, QString& extraInfo) const {
+                                                        float& distance, BoxFace& face, QString& extraInfo) {
     
     return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo);
 }

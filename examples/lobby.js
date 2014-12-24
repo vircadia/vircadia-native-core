@@ -13,8 +13,8 @@ Script.include("libraries/globals.js");
 
 var panelWall = false;
 var orbShell = false;
-var reticle = false;
 var descriptionText = false;
+var showText = false;
 
 // used for formating the description text, in meters
 var textWidth = 4;
@@ -23,8 +23,6 @@ var numberOfLines = 2;
 var textMargin = 0.0625;
 var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
 
-var lastMouseMove = 0;
-var IDLE_HOVER_TIME = 2000; // if you haven't moved the mouse in 2 seconds, and in HMD mode, then we use reticle for hover
 var avatarStickPosition = {};
 
 var orbNaturalExtentsMin = { x: -1.230354, y: -1.22077, z: -1.210487 };
@@ -49,6 +47,10 @@ var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
 var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
+var LOBBY_PANEL_WALL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/PanelWallForInterface.fbx";
+var LOBBY_BLANK_PANEL_TEXTURE_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Texture.jpg";
+var LOBBY_SHELL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyShellForInterface.fbx";
+
 var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.stereo.raw")
 var currentDrone = null;
 
@@ -57,13 +59,6 @@ var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/eleva
 var currentMuzakInjector = null;
 var currentSound = null;
 
-var inOculusMode = false;
-
-function reticlePosition() {
-  var RETICLE_DISTANCE = 1;
-  return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
-}
-
 function textOverlayPosition() {
   var TEXT_DISTANCE_OUT = 6;
   var TEXT_DISTANCE_DOWN = -2;
@@ -71,6 +66,21 @@ function textOverlayPosition() {
                               Vec3.multiply(Quat.getUp(Camera.orientation), TEXT_DISTANCE_DOWN));
 }
 
+var panelLocationOrder = [
+  7, 8, 9, 10, 11, 12, 13,
+  0, 1, 2, 3, 4, 5, 6,
+  14, 15, 16, 17, 18, 19, 20
+];
+
+// Location index is 0-based
+function locationIndexToPanelIndex(locationIndex) {
+  return panelLocationOrder.indexOf(locationIndex) + 1;
+}
+
+// Panel index is 1-based
+function panelIndexToLocationIndex(panelIndex) {
+  return panelLocationOrder[panelIndex - 1];
+}
 
 var MAX_NUM_PANELS = 21;
 var DRONE_VOLUME = 0.3;
@@ -85,14 +95,14 @@ function drawLobby() {
     var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/PanelWall2.fbx",
+      url: LOBBY_PANEL_WALL_URL,
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
       rotation: towardsMe,
       dimensions: panelsDimensions
     };
     
     var orbShellProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.fbx",
+      url: LOBBY_SHELL_URL,
       position: orbPosition,
       rotation: towardsMe,
       dimensions: orbDimensions,
@@ -113,6 +123,7 @@ function drawLobby() {
         text: "",
         lineHeight: lineHeight,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         ignoreRayIntersection: true,
         visible: false,
         isFacingAvatar: true
@@ -123,22 +134,6 @@ function drawLobby() {
     panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
     descriptionText = Overlays.addOverlay("text3d", descriptionTextProps);
-    
-    inOculusMode = Menu.isOptionChecked("Enable VR Mode");
-    
-    // for HMD wearers, create a reticle in center of screen
-    if (inOculusMode) {
-      var CURSOR_SCALE = 0.025;
-    
-      reticle = Overlays.addOverlay("billboard", {
-        url: HIFI_PUBLIC_BUCKET + "images/cursor.svg",
-        position: reticlePosition(),
-        ignoreRayIntersection: true,
-        isFacingAvatar: true,
-        alpha: 1.0,
-        scale: CURSOR_SCALE
-      });
-    }
       
     // add an attachment on this avatar so other people see them in the lobby
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
@@ -167,7 +162,9 @@ function changeLobbyTextures() {
   };
   
   for (var j = 0; j < NUM_PANELS; j++) {
-    textureProp["textures"]["file" + (j + 1)] = "http:" + locations[j].thumbnail_url
+    var panelIndex = locationIndexToPanelIndex(j);
+    textureProp["textures"]["file" + panelIndex] = HIFI_PUBLIC_BUCKET + "images/locations/" 
+      + locations[j].id + "/hifi-location-" + locations[j].id + "_640x360.jpg";
   };
   
   Overlays.editOverlay(panelWall, textureProp);
@@ -217,7 +214,7 @@ function cleanupLobby() {
   panelTexturesReset["textures"] = {};
       
   for (var j = 0; j < MAX_NUM_PANELS; j++) { 
-    panelTexturesReset["textures"]["file" + (j + 1)] = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Texture.jpg";
+    panelTexturesReset["textures"]["file" + (j + 1)] = LOBBY_BLANK_PANEL_TEXTURE_URL;
   };
   
   Overlays.editOverlay(panelWall, panelTexturesReset);
@@ -226,14 +223,8 @@ function cleanupLobby() {
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(descriptionText);
   
-  
-  if (reticle) {
-    Overlays.deleteOverlay(reticle);
-  }
-  
   panelWall = false;
   orbShell = false;
-  reticle = false;
   
   Audio.stopInjector(currentDrone);
   currentDrone = null;
@@ -258,12 +249,13 @@ function actionStartEvent(event) {
       
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
-        var panelIndex = parseInt(panelName.slice(5)) - 1;
-        if (panelIndex < locations.length) {
-          var actionLocation = locations[panelIndex];
+        var panelIndex = parseInt(panelName.slice(5));
+        var locationIndex = panelIndexToLocationIndex(panelIndex);
+        if (locationIndex < locations.length) {
+          var actionLocation = locations[locationIndex];
           
           print("Jumping to " + actionLocation.name + " at " + actionLocation.path 
-            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex);
+            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex + " with location index " + locationIndex);
           
           Window.location = actionLocation;
           maybeCleanupLobby();
@@ -307,12 +299,13 @@ function handleLookAt(pickRay) {
       var panelName = result.extraInfo;
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
-        var panelIndex = parseInt(panelName.slice(5)) - 1;
-        if (panelIndex < locations.length) {
-          var actionLocation = locations[panelIndex];
+        var panelIndex = parseInt(panelName.slice(5));
+        var locationIndex = panelIndexToLocationIndex(panelIndex);
+        if (locationIndex < locations.length) {
+          var actionLocation = locations[locationIndex];
           
           if (actionLocation.description == "") {
-              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: true });
+              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: showText });
           } else {
               // handle line wrapping
               var allWords = actionLocation.description.split(" ");
@@ -330,7 +323,7 @@ function handleLookAt(pickRay) {
                 } else {
                     currentTestLine = allWords[currentTestWord];
                 }
-                var lineLength = Overlays.textWidth(descriptionText, currentTestLine);
+                var lineLength = Overlays.textSize(descriptionText, currentTestLine).width;
                 if (lineLength < textWidth || wordsOnLine == 0) {
                   wordsFormated++;
                   currentTestWord++;
@@ -344,7 +337,7 @@ function handleLookAt(pickRay) {
                 }
               }
               formatedDescription += currentGoodLine;
-              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: true });
+              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: showText });
             }
         } else {
           Overlays.editOverlay(descriptionText, { text: "", visible: false });
@@ -357,20 +350,6 @@ function handleLookAt(pickRay) {
 function update(deltaTime) {
   maybeCleanupLobby();
   if (panelWall) {
-    
-    if (reticle) {
-      Overlays.editOverlay(reticle, {
-        position: reticlePosition()
-      });
-
-      var nowDate = new Date();
-      var now = nowDate.getTime();
-      if (now - lastMouseMove > IDLE_HOVER_TIME) {
-        var pickRay = Camera.computeViewPickRay(0.5, 0.5);
-        handleLookAt(pickRay);
-      }
-    }
-
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
@@ -382,8 +361,6 @@ function update(deltaTime) {
 
 function mouseMoveEvent(event) {
   if (panelWall) {
-      var nowDate = new Date();
-      lastMouseMove = nowDate.getTime();
       var pickRay = Camera.computePickRay(event.x, event.y);
       handleLookAt(pickRay);
     }

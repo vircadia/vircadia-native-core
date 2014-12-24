@@ -17,6 +17,7 @@
 #include <QScriptValue>
 
 #include "Application.h"
+#include "MainWindow.h"
 #include "Menu.h"
 #include "ui/ModelsBrowser.h"
 
@@ -39,7 +40,7 @@ WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
-    return Application::getInstance()->getGLWidget()->hasFocus();
+    return DependencyManager::get<GLCanvas>()->hasFocus();
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {
@@ -200,7 +201,7 @@ void WindowScriptingInterface::showNonBlockingForm(const QString& title, QScript
     }
     
     // what should we do if someone calls us while we still think we have a dialog showing???
-    if (_editDialog) {
+    if (_nonBlockingFormActive) {
         qDebug() << "Show Non-Blocking Form called when form already active.";
         return;
     }

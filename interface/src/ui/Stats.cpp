@@ -56,8 +56,8 @@ Stats::Stats():
         _metavoxelReceiveProgress(0),
         _metavoxelReceiveTotal(0)
 {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-    resetWidth(glWidget->width(), 0);
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    resetWidth(glCanvas->width(), 0);
 }
 
 void Stats::toggleExpanded() {
@@ -67,7 +67,7 @@ void Stats::toggleExpanded() {
 // called on mouse click release
 // check for clicks over stats  in order to expand or contract them
 void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset) {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
 
     if (0 != glm::compMax(glm::abs(glm::ivec2(mouseX - mouseDragStartedX, mouseY - mouseDragStartedY)))) {
         // not worried about dragging on stats
@@ -114,7 +114,7 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
     // top-right stats click
     lines = _expanded ? 11 : 3;
     statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    statsWidth = glWidget->width() - statsX;
+    statsWidth = glCanvas->width() - statsX;
     if (mouseX > statsX && mouseX < statsX + statsWidth  && mouseY > statsY && mouseY < statsY + statsHeight) {
         toggleExpanded();
         return;
@@ -122,8 +122,8 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
 }
 
 void Stats::resetWidth(int width, int horizontalOffset) {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-    int extraSpace = glWidget->width() - horizontalOffset -2
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    int extraSpace = glCanvas->width() - horizontalOffset -2
                    - STATS_GENERAL_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
                    - STATS_GEO_MIN_WIDTH
@@ -147,7 +147,7 @@ void Stats::resetWidth(int width, int horizontalOffset) {
             _pingStatsWidth += (int) extraSpace / panels;
         }
         _geoStatsWidth += (int) extraSpace / panels;
-        _voxelStatsWidth += glWidget->width() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
+        _voxelStatsWidth += glCanvas->width() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
     }
 }
 
@@ -198,7 +198,7 @@ void Stats::display(
         int bytesPerSecond, 
         int voxelPacketsToProcess) 
 {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
 
     unsigned int backgroundColor = 0x33333399;
     int verticalOffset = 0, lines = 0;
@@ -210,7 +210,7 @@ void Stats::display(
     std::stringstream voxelStats;
 
     if (_lastHorizontalOffset != horizontalOffset) {
-        resetWidth(glWidget->width(), horizontalOffset);
+        resetWidth(glCanvas->width(), horizontalOffset);
         _lastHorizontalOffset = horizontalOffset;
     }
 
@@ -328,8 +328,8 @@ void Stats::display(
         // Now handle voxel servers, since there could be more than one, we average their ping times
         unsigned long totalPingVoxel = 0;
         int voxelServerCount = 0;
-
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        
+        nodeList->eachNode([&totalPingVoxel, &pingVoxelMax, &voxelServerCount](const SharedNodePointer& node){
             // TODO: this should also support entities
             if (node->getType() == NodeType::VoxelServer) {
                 totalPingVoxel += node->getPingMs();
@@ -338,7 +338,7 @@ void Stats::display(
                     pingVoxelMax = node->getPingMs();
                 }
             }
-        }
+        });
 
         if (voxelServerCount) {
             pingVoxel = totalPingVoxel/voxelServerCount;
@@ -477,12 +477,8 @@ void Stats::display(
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
     lines = _expanded ? 14 : 3;
-    bool wantSpatialProcessing = false; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)
-    if (_expanded && wantSpatialProcessing) {
-        lines += 10; // spatial audio processing adds 1 spacing line and 8 extra lines of info
-    }
 
-    drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset,
+    drawBackground(backgroundColor, horizontalOffset, 0, glCanvas->width() - horizontalOffset,
         lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
@@ -668,104 +664,6 @@ void Stats::display(
         voxelStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-    }
-
-    if (_expanded && wantSpatialProcessing) {
-        verticalOffset += STATS_PELS_PER_LINE; // space one line...
-        
-        const AudioReflector* audioReflector = Application::getInstance()->getAudioReflector();
-    
-        // add some reflection stats
-        char reflectionsStatus[128];
-
-        bool includeOriginal = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)
-        bool separateEars = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)
-        bool stereoSource = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingStereoSource)
-        bool randomSurfaces = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces)
-
-        sprintf(reflectionsStatus, "Reflections: %d, Original: %s, Ears: %s, Source: %s, Normals: %s", 
-                audioReflector->getReflections(),
-                (includeOriginal ? "included" : "silent"),
-                (separateEars ? "two" : "one"),
-                (stereoSource ? "stereo" : "mono"),
-                (randomSurfaces ? "random" : "regular")
-                );
-                
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
-
-        bool wantPreDelay = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay)
-        float preDelay = wantPreDelay ? audioReflector->getPreDelay() : 0.0f;
-
-        sprintf(reflectionsStatus, "Delay: pre: %6.3f, average %6.3f, max %6.3f, min %6.3f, speed: %6.3f", 
-                preDelay,
-                audioReflector->getAverageDelayMsecs(),
-                audioReflector->getMaxDelayMsecs(),
-                audioReflector->getMinDelayMsecs(),
-                audioReflector->getSoundMsPerMeter());
-                
-        verticalOffset += STATS_PELS_PER_LINE;
-        
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
-
-        //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingDontDistanceAttenuate);        
-        bool distanceAttenuationDisabled = false; 
-
-        // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
-        bool alternateDistanceAttenuationEnabled = false; 
-        
-        sprintf(reflectionsStatus, "Attenuation: average %5.3f, max %5.3f, min %5.3f, %s: %5.3f", 
-                audioReflector->getAverageAttenuation(),
-                audioReflector->getMaxAttenuation(),
-                audioReflector->getMinAttenuation(),
-                (distanceAttenuationDisabled ? "Distance Factor [DISABLED]" : 
-                    alternateDistanceAttenuationEnabled ? "Distance Factor [ALTERNATE]" : "Distance Factor [STANARD]"),
-                audioReflector->getDistanceAttenuationScalingFactor());
-                
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
-
-        bool localAudio = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio);
-        sprintf(reflectionsStatus, "Local Audio: %s Attenuation: %5.3f", (localAudio ? "yes" : "no"),
-                audioReflector->getLocalAudioAttenuationFactor());
-                
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
-
-        bool diffusionEnabled = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
-        int fanout = diffusionEnabled ? audioReflector->getDiffusionFanout() : 0;
-        int diffusionPaths = diffusionEnabled ? audioReflector->getDiffusionPathCount() : 0;
-        sprintf(reflectionsStatus, "Diffusion: %s, Fanout: %d, Paths: %d", 
-                    (diffusionEnabled ? "yes" : "no"), fanout, diffusionPaths);
-                
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
-
-        const float AS_PERCENT = 100.0f;
-        float reflectiveRatio = audioReflector->getReflectiveRatio() * AS_PERCENT;
-        float diffusionRatio = audioReflector->getDiffusionRatio() * AS_PERCENT;
-        float absorptionRatio = audioReflector->getAbsorptionRatio() * AS_PERCENT;
-        sprintf(reflectionsStatus, "Ratios: Reflective: %5.3f, Diffusion: %5.3f, Absorption: %5.3f", 
-                    reflectiveRatio, diffusionRatio, absorptionRatio);
-                
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
-
-        sprintf(reflectionsStatus, "Comb Filter Window: %5.3f ms, Allowed: %d, Suppressed: %d", 
-                    audioReflector->getCombFilterWindow(), 
-                    audioReflector->getEchoesInjected(),
-                    audioReflector->getEchoesSuppressed());
-                
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
-
-        sprintf(reflectionsStatus, "Wet/Dry Mix: Original: %5.3f Echoes: %5.3f", 
-                    audioReflector->getOriginalSourceAttenuation(), 
-                    audioReflector->getEchoesAttenuation());
-                
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.0f, 2.0f, reflectionsStatus, color);
-
     }
 }
 

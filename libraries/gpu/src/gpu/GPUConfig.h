@@ -18,13 +18,15 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
-#elif defined(UNIX)
+#elif defined(WIN32)
+#include <windowshacks.h>
+#include <GL/glew.h>
+#include <GL/wglew.h>
+
+#else
 #include <GL/gl.h>
 #include <GL/glext.h>
 
-#elif defined(WIN32)
-#include <GL/glew.h>
-#include <GL/wglew.h>
 
 #endif
 

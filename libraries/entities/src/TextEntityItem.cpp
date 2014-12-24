@@ -37,7 +37,14 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityIte
 {
     _type = EntityTypes::Text;
     _created = properties.getCreated();
-    setProperties(properties, true);
+    setProperties(properties);
+}
+
+void TextEntityItem::setDimensions(const glm::vec3& value) {
+    // NOTE: Text Entities always have a "depth" of 1cm.
+    float fixedDepth = 0.01f / (float)TREE_SCALE;
+    _dimensions = glm::vec3(value.x, value.y, fixedDepth); 
+    recalculateCollisionShape(); 
 }
 
 EntityItemProperties TextEntityItem::getProperties() const {
@@ -50,9 +57,9 @@ EntityItemProperties TextEntityItem::getProperties() const {
     return properties;
 }
 
-bool TextEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(text, setText);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineHeight, setLineHeight);
@@ -118,7 +125,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
 bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                     void** intersectedObject) const {
+                     void** intersectedObject, bool precisionPicking) const {
                      
     RayIntersectionInfo rayInfo;
     rayInfo._rayStart = origin;

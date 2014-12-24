@@ -368,6 +368,7 @@ SelectionDisplay = (function () {
                     color: { red: 0, green: 0, blue: 0},
                     backgroundColor: { red: 255, green: 255, blue: 255 },
                     alpha: 0.7,
+                    backgroundAlpha: 0.7,
                     visible: false,
                     isFacingAvatar: true,
                     drawInFront: true,
@@ -1748,13 +1749,6 @@ SelectionDisplay = (function () {
             pushCommandForSelections();
         },
         onMove: function(event) {
-            var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
-
-            if (debug) {
-                print("rotateYaw()...");
-                print("    event.x,y:" + event.x + "," + event.y);
-            }
-
             var pickRay = Camera.computePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
             Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
@@ -1762,29 +1756,16 @@ SelectionDisplay = (function () {
             
             var result = Overlays.findRayIntersection(pickRay);
 
-            if (debug) {
-                print("    findRayIntersection() .... result.intersects:" + result.intersects);
-            }
-
             if (result.intersects) {
                 var center = yawCenter;
                 var zero = yawZero;
                 var centerToZero = Vec3.subtract(center, zero);
                 var centerToIntersect = Vec3.subtract(center, result.intersection);
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
-                
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
                 var snapToInner = distanceFromCenter < innerRadius;
                 var snapAngle = snapToInner ? innerSnapAngle : 1.0;
                 angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
-                
-                // for debugging
-                if (debug) {
-                    Vec3.print("    result.intersection:",result.intersection);
-                    Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
-                    print("    angleFromZero:" + angleFromZero);
-                }
-
                 var yawChange = Quat.fromVec3Degrees({ x: 0, y: angleFromZero, z: 0 });
 
                 // Entities should only reposition if we are rotating multiple selections around
@@ -1895,22 +1876,11 @@ SelectionDisplay = (function () {
             pushCommandForSelections();
         },
         onMove: function(event) {
-            var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
-
-            if (debug) {
-                print("rotatePitch()...");
-                print("    event.x,y:" + event.x + "," + event.y);
-            }
-
             var pickRay = Camera.computePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
             Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
             Overlays.editOverlay(rotateOverlayTarget, { ignoreRayIntersection: false });
             var result = Overlays.findRayIntersection(pickRay);
-
-            if (debug) {
-                print("    findRayIntersection() .... result.intersects:" + result.intersects);
-            }
 
             if (result.intersects) {
                 var properties = Entities.getEntityProperties(selectionManager.selections[0]);
@@ -1925,13 +1895,6 @@ SelectionDisplay = (function () {
                 var snapAngle = snapToInner ? innerSnapAngle : 1.0;
                 angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
                 
-                // for debugging
-                if (debug) {
-                    Vec3.print("    result.intersection:",result.intersection);
-                    Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
-                    print("    angleFromZero:" + angleFromZero);
-                }
-
                 var pitchChange = Quat.fromVec3Degrees({ x: angleFromZero, y: 0, z: 0 });
 
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
@@ -2032,22 +1995,11 @@ SelectionDisplay = (function () {
             pushCommandForSelections();
         },
         onMove: function(event) {
-            var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
-
-            if (debug) {
-                print("rotateRoll()...");
-                print("    event.x,y:" + event.x + "," + event.y);
-            }
-            
             var pickRay = Camera.computePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
             Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
             Overlays.editOverlay(rotateOverlayTarget, { ignoreRayIntersection: false });
             var result = Overlays.findRayIntersection(pickRay);
-
-            if (debug) {
-                print("    findRayIntersection() .... result.intersects:" + result.intersects);
-            }
 
             if (result.intersects) {
                 var properties = Entities.getEntityProperties(selectionManager.selections[0]);
@@ -2061,13 +2013,6 @@ SelectionDisplay = (function () {
                 var snapToInner = distanceFromCenter < innerRadius;
                 var snapAngle = snapToInner ? innerSnapAngle : 1.0;
                 angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
-
-                // for debugging
-                if (debug) {
-                    Vec3.print("    result.intersection:",result.intersection);
-                    Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
-                    print("    angleFromZero:" + angleFromZero);
-                }
 
                 var rollChange = Quat.fromVec3Degrees({ x: 0, y: 0, z: angleFromZero });
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
@@ -2299,14 +2244,6 @@ SelectionDisplay = (function () {
                 Overlays.editOverlay(rotateOverlayInner, { visible: true, rotation: overlayOrientation, position: overlayCenter });
                 Overlays.editOverlay(rotateOverlayOuter, { visible: true, rotation: overlayOrientation, position: overlayCenter, startAt: 0, endAt: 360 });
                 Overlays.editOverlay(rotateOverlayCurrent, { visible: true, rotation: overlayOrientation, position: overlayCenter, startAt: 0, endAt: 0 });
-                  
-                // for debugging                  
-                var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
-                if (debug) {
-                    Overlays.editOverlay(rotateZeroOverlay, { visible: true, start: overlayCenter, end: result.intersection });
-                    Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: overlayCenter, end: result.intersection });
-                }
-
                 Overlays.editOverlay(yawHandle, { visible: false });
                 Overlays.editOverlay(pitchHandle, { visible: false });
                 Overlays.editOverlay(rollHandle, { visible: false });

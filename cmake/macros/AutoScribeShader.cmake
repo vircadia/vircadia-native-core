@@ -1,0 +1,88 @@
+# 
+#  AutoScribeShader.cmake
+# 
+#  Created by Sam Gateau on 12/17/14.
+#  Copyright 2014 High Fidelity, Inc.
+#
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+# 
+
+function(AUTOSCRIBE_SHADER SHADER_FILE)
+    
+    # Grab include files
+    foreach(includeFile  ${ARGN})
+        list(APPEND SHADER_INCLUDE_FILES ${includeFile})
+    endforeach()
+
+    #Extract the unique include shader paths
+    foreach(SHADER_INCLUDE ${SHADER_INCLUDE_FILES})
+        get_filename_component(INCLUDE_DIR ${SHADER_INCLUDE} PATH)
+        list(APPEND SHADER_INCLUDES_PATHS ${INCLUDE_DIR})
+    endforeach()
+    list(REMOVE_DUPLICATES SHADER_INCLUDES_PATHS)
+
+    # make the scribe include arguments
+    set(SCRIBE_INCLUDES)
+    foreach(INCLUDE_PATH ${SHADER_INCLUDES_PATHS})
+        set(SCRIBE_INCLUDES ${SCRIBE_INCLUDES} -I ${INCLUDE_PATH}/)
+    endforeach()
+
+    # Define where to ouput the scribed shader
+    set(SHADER_OUTPUT_DIR "${PROJECT_BINARY_DIR}/includes/")
+    make_directory(${SHADER_OUTPUT_DIR})
+
+    # Define the final name of the generated shader
+    get_filename_component(SHADER_TARGET ${SHADER_FILE} NAME_WE)
+    get_filename_component(SHADER_EXT ${SHADER_FILE} EXT)
+    if(SHADER_EXT STREQUAL .slv)
+        set(SHADER_TARGET ${SHADER_TARGET}_vert.h)
+    elseif(${SHADER_EXT} STREQUAL .slf) 
+        set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
+    endif()
+    #set(SHADER_TARGET ${SHADER_OUTPUT_DIR}${SHADER_TARGET})
+
+    # Target dependant Custom rule on the SHADER_FILE
+    if (APPLE)
+        set(GLPROFILE MAC_GL)
+        set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+
+        add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+    else (APPLE)
+        set(GLPROFILE PC_GL)
+        set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+
+        add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+    endif()
+
+    #output the generated file name
+    set(AUTOSCRIBE_SHADER_RETURN ${SHADER_TARGET} PARENT_SCOPE)
+
+    file(GLOB INCLUDE_FILES ${SHADER_TARGET})
+
+endfunction()
+
+
+macro(AUTOSCRIBE_SHADER_LIB)
+
+  file(GLOB_RECURSE SHADER_INCLUDE_FILES src/*.slh)
+  file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf)
+
+  #message(${SHADER_INCLUDE_FILES})
+  foreach(SHADER_FILE ${SHADER_SOURCE_FILES})
+      AUTOSCRIBE_SHADER(${SHADER_FILE} ${SHADER_INCLUDE_FILES})
+      list(APPEND AUTOSCRIBE_SHADER_SRC ${AUTOSCRIBE_SHADER_RETURN})
+  endforeach()
+  #message(${AUTOSCRIBE_SHADER_SRC})
+
+  if (WIN32)
+    source_group("Shaders" FILES ${SHADER_INCLUDE_FILES})
+    source_group("Shaders" FILES ${SHADER_SOURCE_FILES})
+    source_group("Shaders" FILES ${AUTOSCRIBE_SHADER_SRC})
+  endif()
+
+  list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_INCLUDE_FILES})
+  list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_SOURCE_FILES})
+  list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${AUTOSCRIBE_SHADER_SRC})
+
+endmacro()

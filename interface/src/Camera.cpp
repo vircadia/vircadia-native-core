@@ -95,22 +95,17 @@ void Camera::setFarClip(float f) {
 }
 
 PickRay Camera::computePickRay(float x, float y) {
-    float screenWidth = Application::getInstance()->getGLWidget()->width();
-    float screenHeight = Application::getInstance()->getGLWidget()->height();
-    PickRay result;
-    if (OculusManager::isConnected()) {
-        result.origin = getPosition();
-        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(x / screenWidth, y / screenHeight, result.direction);
-    } else {
-        Application::getInstance()->getViewFrustum()->computePickRay(x / screenWidth, y / screenHeight,
-                                                                     result.origin, result.direction);
-    }
-    return result;
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    return computeViewPickRay(x / glCanvas->width(), y / glCanvas->height());
 }
 
 PickRay Camera::computeViewPickRay(float xRatio, float yRatio) {
     PickRay result;
-    Application::getInstance()->getViewFrustum()->computePickRay(xRatio, yRatio, result.origin, result.direction);
+    if (OculusManager::isConnected()) {
+        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(xRatio, yRatio, result.origin, result.direction);
+    } else {
+        Application::getInstance()->getViewFrustum()->computePickRay(xRatio, yRatio, result.origin, result.direction);
+    }
     return result;
 }
 

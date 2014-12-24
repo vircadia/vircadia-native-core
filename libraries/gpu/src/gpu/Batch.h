@@ -72,8 +72,9 @@ public:
     // IndexBuffer
     void setInputFormat(const Stream::FormatPointer& format);
 
-    void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
     void setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride);
+    void setInputBuffer(Slot channel, const BufferView& buffer); // not a command, just a shortcut from a BufferView
+    void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
 
@@ -87,6 +88,9 @@ public:
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Transform& proj);
 
+    // Shader Stage
+    void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
+    void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -117,6 +121,7 @@ public:
     void _glUseProgram(GLuint program);
     void _glUniform1f(GLint location, GLfloat v0);
     void _glUniform2f(GLint location, GLfloat v0, GLfloat v1);
+    void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
     void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
     void _glMatrixMode(GLenum mode); 
@@ -161,6 +166,8 @@ public:
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
 
+        COMMAND_setUniformBuffer,
+
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
         // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -187,6 +194,7 @@ public:
         COMMAND_glUseProgram,
         COMMAND_glUniform1f,
         COMMAND_glUniform2f,
+        COMMAND_glUniform4fv,
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glMatrixMode,

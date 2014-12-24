@@ -17,13 +17,15 @@ body {
     user-select: none;
 }
 
-input {
-    line-height: 2;
-}
+.selectable {
+    -webkit-touch-callout: text;
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
 
-.input-left {
-    display: inline-block;
-    width: 20px;
+    cursor: text;
 }
 
 .color-box {
@@ -63,7 +65,6 @@ input {
 
 .property-section label {
     font-weight: bold;
-    vertical-align: middle;
 }
 
 .property-section span {
@@ -89,9 +90,10 @@ input[type=button] {
     font-size: .9em;
 }
 
-input.coord {
-    width: 6em;
-    height: 2em;
+input {
+    padding: 2px;
+    border: 1px solid #999;
+    background-color: #eee;
 }
 
 table#entity-table {
@@ -105,7 +107,7 @@ table#entity-table {
     cursor: pointer;
 }
 
-tr.selected {
+#entity-table tr.selected {
     background-color: #AAA;
 }
 
@@ -129,4 +131,49 @@ th#entity-type {
 }
 
 th#entity-url {
+}
+
+
+div.input-area {
+    display: inline-block;
+}
+
+input {
+}
+
+
+
+table#properties-table {
+    border: none;
+    border-collapse: collapse;
+    width: 100%;
+    background-color: #efefef;
+    font-family: Arial;
+    font-size: 12px;
+    table-layout: fixed;
+}
+
+#properties-table tr {
+    border-bottom: 1px solid #e5e5e5;
+}
+
+#properties-table td.label {
+    padding-right: 10px;
+    border-right: 1px solid #999;
+    text-align: right;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    vertical-align: middle;
+    height: 1.2em;
+}
+
+#properties-table td {
+    padding: 5px 0px 5px 10px;
+}
+
+col#col-label {
+    width: 130px;
 }
