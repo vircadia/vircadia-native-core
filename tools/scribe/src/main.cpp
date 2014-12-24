@@ -192,16 +192,22 @@ int main (int argc, char** argv) {
         targetStringStream << "#ifndef scribe_" << targetName << "_h" << std::endl;
         targetStringStream << "#define scribe_" << targetName << "_h" << std::endl << std::endl;
 
+        targetStringStream << "const char " << targetName << "[] = R\"XXX(" << destStringStream.str() << ")XXX\";";
+/*
         targetStringStream << "const char " << targetName << "[] = {\n";
 
         std::stringstream destStringStreamAgain(destStringStream.str());
         while (!destStringStreamAgain.eof()) {
             std::string line;
             std::getline(destStringStreamAgain, line);
+            
+            
+            if (line.find_first_of('/t') )
             targetStringStream << "\"" << line << "\\n\"" << std::endl;
         }
         targetStringStream << "};" << std::endl << std::endl;
-
+*/
+        targetStringStream << std::endl << std::endl;
         targetStringStream << "#endif" << std::endl;
     } else {
         targetStringStream << destStringStream.str();
