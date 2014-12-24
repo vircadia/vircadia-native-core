@@ -100,8 +100,13 @@ public:
 
     void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight);
 
-    void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight,
-                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight);
+    //void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight,
+    //                const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight);
+
+    void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
+                    const glm::vec3& bottomRight, const glm::vec3& topRight,
+                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable

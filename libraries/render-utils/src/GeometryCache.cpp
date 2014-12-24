@@ -699,7 +699,9 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
         
-        qDebug() << "new quad VBO made -- _quad2DVBOs.size():" << _quad2DVBOs.size();
+        #ifdef WANT_DEBUG
+            qDebug() << "new quad VBO made -- _quad2DVBOs.size():" << _quad2DVBOs.size();
+        #endif
     
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
@@ -767,7 +769,9 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
        
-        qDebug() << "new quad + texture VBO made -- _quad2DTextureVBOs.size():" << _quad2DTextureVBOs.size();
+        #ifdef WANT_DEBUG
+            qDebug() << "new quad + texture VBO made -- _quad2DTextureVBOs.size():" << _quad2DTextureVBOs.size();
+        #endif
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
@@ -833,7 +837,9 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
         
-        qDebug() << "new quad VBO made -- _quad3DVBOs.size():" << _quad3DVBOs.size();
+        #ifdef WANT_DEBUG
+            qDebug() << "new quad VBO made -- _quad3DVBOs.size():" << _quad3DVBOs.size();
+        #endif
     
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
@@ -849,8 +855,20 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
 }
 
 
-void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight,
-                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight) {
+void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
+                    const glm::vec3& bottomRight, const glm::vec3& topRight,
+                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight) {
+
+    #ifdef WANT_DEBUG
+        qDebug() << "renderQuad() vec3 + texture VBO...";
+        qDebug() << "    topLeft:" << topLeft;
+        qDebug() << "    bottomLeft:" << bottomLeft;
+        qDebug() << "    bottomRight:" << bottomRight;
+        qDebug() << "    topRight:" << topRight;
+        qDebug() << "    texCoordTopLeft:" << texCoordTopLeft;
+        qDebug() << "    texCoordBottomRight:" << texCoordBottomRight;
+    #endif //def WANT_DEBUG
                     
     Vec3PairVec2Pair key(Vec3Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
     
@@ -872,11 +890,11 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         vertex[v++] = texCoordTopLeft.x;
         vertex[v++] = texCoordTopLeft.y;
         
-        vertex[v++] = bottomRight.x;
-        vertex[v++] = topLeft.y;
-        vertex[v++] = topLeft.z;
-        vertex[v++] = texCoordBottomRight.x;
-        vertex[v++] = texCoordTopLeft.y;
+        vertex[v++] = bottomLeft.x;
+        vertex[v++] = bottomLeft.y;
+        vertex[v++] = bottomLeft.z;
+        vertex[v++] = texCoordBottomLeft.x;
+        vertex[v++] = texCoordBottomLeft.y;
         
         vertex[v++] = bottomRight.x;
         vertex[v++] = bottomRight.y;
@@ -884,11 +902,11 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         vertex[v++] = texCoordBottomRight.x;
         vertex[v++] = texCoordBottomRight.y;
         
-        vertex[v++] = topLeft.x;
-        vertex[v++] = bottomRight.y;
-        vertex[v++] = bottomRight.z;
-        vertex[v++] = texCoordTopLeft.x;
-        vertex[v++] = texCoordBottomRight.y;
+        vertex[v++] = topRight.x;
+        vertex[v++] = topRight.y;
+        vertex[v++] = topRight.z;
+        vertex[v++] = texCoordTopRight.x;
+        vertex[v++] = texCoordTopRight.y;
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
@@ -905,8 +923,10 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
-       
-        qDebug() << "new quad + texture VBO made -- _quad3DTextureVBOs.size():" << _quad3DTextureVBOs.size();
+
+        #ifdef WANT_DEBUG
+            qDebug() << "    _quad3DTextureVBOs.size():" << _quad3DTextureVBOs.size();
+        #endif
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
@@ -914,7 +934,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glVertexPointer(2, GL_FLOAT, NUM_BYTES_PER_VERTEX, 0);
+    glVertexPointer(3, GL_FLOAT, NUM_BYTES_PER_VERTEX, 0);
     glTexCoordPointer(2, GL_FLOAT, NUM_BYTES_PER_VERTEX, (const void *)(3 * sizeof(float)));
 
     glDrawRangeElementsEXT(GL_QUADS, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
