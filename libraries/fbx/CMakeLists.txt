@@ -5,7 +5,7 @@ setup_hifi_library()
 
 include_glm()
 
-link_hifi_libraries(shared networking octree voxels)
+link_hifi_libraries(shared gpu model networking octree voxels)
 
 find_package(ZLIB REQUIRED)
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
