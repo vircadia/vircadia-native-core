@@ -28,11 +28,7 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
         set(SCRIBE_INCLUDES ${SCRIBE_INCLUDES} -I ${INCLUDE_PATH}/)
     endforeach()
 
-    # Define where to ouput the scribed shader
-    set(SHADER_OUTPUT_DIR "${PROJECT_BINARY_DIR}/includes/")
-    make_directory(${SHADER_OUTPUT_DIR})
-
-    # Define the final name of the generated shader
+    # Define the final name of the generated shader file
     get_filename_component(SHADER_TARGET ${SHADER_FILE} NAME_WE)
     get_filename_component(SHADER_EXT ${SHADER_FILE} EXT)
     if(SHADER_EXT STREQUAL .slv)
@@ -40,7 +36,6 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
     elseif(${SHADER_EXT} STREQUAL .slf) 
         set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
     endif()
-    #set(SHADER_TARGET ${SHADER_OUTPUT_DIR}${SHADER_TARGET})
 
     # Target dependant Custom rule on the SHADER_FILE
     if (APPLE)
