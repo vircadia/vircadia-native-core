@@ -235,8 +235,8 @@ void Model::initJointTransforms() {
 
 void Model::init() {
     if (!_program.isLinked()) {
-        _program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/model.vert");
-        _program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/model.frag");
+        _program.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
+        _program.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
 
         initProgram(_program, _locations);
         
@@ -247,8 +247,7 @@ void Model::init() {
 
         initProgram(_normalMapProgram, _normalMapLocations);
         
-        _specularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model.vert");
+        _specularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
         _specularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
             PathUtils::resourcesPath() + "shaders/model_specular_map.frag");
 
@@ -261,8 +260,7 @@ void Model::init() {
 
         initProgram(_normalSpecularMapProgram, _normalSpecularMapLocations);
         
-        _translucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model.vert");
+        _translucentProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
         _translucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
             PathUtils::resourcesPath() + "shaders/model_translucent.frag");
 
@@ -302,7 +300,7 @@ void Model::init() {
             PathUtils::resourcesPath() + "shaders/model_shadow.frag");
 
         _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/skin_model.vert");
-        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/model.frag");
+        _skinProgram.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
 
         initSkinProgram(_skinProgram, _skinLocations);
         
