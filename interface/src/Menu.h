@@ -482,6 +482,7 @@ namespace MenuOption {
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString UploadAttachment = "Upload Attachment Model";
+    const QString UploadEntity = "Upload Entity Model";
     const QString UploadHead = "Upload Head Model";
     const QString UploadSkeleton = "Upload Skeleton Model";
     const QString UserInterface = "User Interface";
