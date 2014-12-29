@@ -8,15 +8,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-//#include "ShapeColliderTests.h"
-//#include "VerletShapeTests.h"
+#include "ShapeColliderTests.h"
+#include "VerletShapeTests.h"
 #include "ShapeInfoTests.h"
 #include "ShapeManagerTests.h"
 #include "BulletUtilTests.h"
 
 int main(int argc, char** argv) {
-    //ShapeColliderTests::runAllTests();
-    //VerletShapeTests::runAllTests();
+    ShapeColliderTests::runAllTests();
+    VerletShapeTests::runAllTests();
     ShapeInfoTests::runAllTests();
     ShapeManagerTests::runAllTests();
     BulletUtilTests::runAllTests();
