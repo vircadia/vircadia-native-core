@@ -33,13 +33,15 @@ class ModelUploader : public QObject {
     Q_OBJECT
     
 public:
-    ModelUploader(ModelType type);
-    ~ModelUploader();
+    static void uploadModel(ModelType modelType);
     
-public slots:
-    void send();
+    static void uploadHead();
+    static void uploadSkeleton();
+    static void uploadAttachment();
+    static void uploadEntity();
     
 private slots:
+    void send();
     void checkJSON(QNetworkReply& requestReply);
     void uploadUpdate(qint64 bytesSent, qint64 bytesTotal);
     void uploadSuccess(QNetworkReply& requestReply);
@@ -48,12 +50,21 @@ private slots:
     void processCheck();
     
 private:
+    ModelUploader(ModelType type);
+    ~ModelUploader();
+    
+    void populateBasicMapping(QVariantHash& mapping, QString filename, FBXGeometry geometry);
+    bool zip();
+    bool addTextures(const QString& texdir, const FBXGeometry& geometry);
+    bool addPart(const QString& path, const QString& name, bool isTexture = false);
+    bool addPart(const QFile& file, const QByteArray& contents, const QString& name, bool isTexture = false);
+    
     QString _url;
     QString _textureBase;
     QSet<QByteArray> _textureFilenames;
     int _lodCount;
     int _texturesCount;
-    int _totalSize;
+    unsigned long _totalSize;
     ModelType _modelType;
     bool _readyToSend;
     
@@ -64,12 +75,6 @@ private:
     
     QDialog* _progressDialog;
     QProgressBar* _progressBar;
-    
-    
-    bool zip();
-    bool addTextures(const QString& texdir, const FBXGeometry& geometry);
-    bool addPart(const QString& path, const QString& name, bool isTexture = false);
-    bool addPart(const QFile& file, const QByteArray& contents, const QString& name, bool isTexture = false);
 };
 
 /// A dialog that allows customization of various model properties.

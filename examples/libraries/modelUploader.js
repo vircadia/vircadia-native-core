@@ -274,19 +274,11 @@ modelUploader = (function () {
             }
         }
 
-        if (view.string(0, 18) === "Kaydara FBX Binary") {
-            previousNodeFilename = "";
-
-            index = 27;
-            while (index < view.byteLength - 39 && !EOF) {
-                parseBinaryFBX();
-            }
-
-        } else {
+  
 
             readTextFBX();
 
-        }
+       
     }
 
     function readModel() {

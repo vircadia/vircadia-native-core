@@ -116,9 +116,8 @@ void AddressBarDialog::setupUI() {
 
 void AddressBarDialog::showEvent(QShowEvent* event) {
     _goButton->setIcon(QIcon(PathUtils::resourcesPath() + ADDRESSBAR_GO_BUTTON_ICON));
-    _addressLineEdit->setText(AddressManager::getInstance().currentAddress().toString());
+    _addressLineEdit->setText(QString());
     _addressLineEdit->setFocus();
-    _addressLineEdit->selectAll();
     FramelessDialog::showEvent(event);
 }
 

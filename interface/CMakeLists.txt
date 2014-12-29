@@ -107,7 +107,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree voxels gpu fbx metavoxels networking entities avatars audio animation script-engine physics 
+link_hifi_libraries(shared octree voxels gpu model fbx metavoxels networking entities avatars audio animation script-engine physics 
                     render-utils entities-renderer)
 
 # find any optional and required libraries
@@ -194,11 +194,10 @@ if (APPLE)
   # link in required OS X frameworks and include the right GL headers
   find_library(CoreAudio CoreAudio)
   find_library(CoreFoundation CoreFoundation)
-  find_library(GLUT GLUT)
   find_library(OpenGL OpenGL)
   find_library(AppKit AppKit)
 
-  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${GLUT} ${OpenGL} ${AppKit})
+  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${OpenGL} ${AppKit})
     
   # install command for OS X bundle
   INSTALL(TARGETS ${TARGET_NAME}
@@ -214,15 +213,12 @@ else (APPLE)
   )
     
   find_package(OpenGL REQUIRED)
-  find_package(GLUT REQUIRED)
-  
-  include_directories(SYSTEM "${GLUT_INCLUDE_DIRS}")
   
   if (${OPENGL_INCLUDE_DIR})
     include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
   endif ()
   
-  target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}" "${GLUT_LIBRARIES}")
+  target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
   
   # link target to external libraries
   if (WIN32)
@@ -246,4 +242,4 @@ else (APPLE)
 endif (APPLE)
 
 # link any dependencies bubbled up from our linked dependencies
-link_shared_dependencies()
+include_dependency_includes()
