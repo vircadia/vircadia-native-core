@@ -150,8 +150,6 @@ public:
 
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
-    bool getLightsArePickable() const { return _lightsArePickable; }
-    void setLightsArePickable(bool value) { _lightsArePickable = value; }
     void setSimulation(EntitySimulation* simulation);
 
 signals:
@@ -180,7 +178,6 @@ private:
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
-    bool _lightsArePickable;
     EntitySimulation* _simulation;
 };
 

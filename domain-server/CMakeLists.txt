@@ -50,6 +50,6 @@ endif ()
 include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 
 # append OpenSSL to our list of libraries to link
-list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${OPENSSL_LIBRARIES}")
+target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
 
-link_shared_dependencies()
+include_dependency_includes()

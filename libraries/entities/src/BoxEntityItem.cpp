@@ -29,7 +29,7 @@ BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemP
 {
     _type = EntityTypes::Box;
     _created = properties.getCreated();
-    setProperties(properties, true);
+    setProperties(properties);
 }
 
 EntityItemProperties BoxEntityItem::getProperties() const {
@@ -44,9 +44,9 @@ EntityItemProperties BoxEntityItem::getProperties() const {
     return properties;
 }
 
-bool BoxEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool BoxEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
 

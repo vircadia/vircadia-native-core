@@ -18,8 +18,9 @@
 
 #include "FaceTracker.h"
 
-class DdeFaceTracker : public FaceTracker, public DependencyManager::Dependency {
+class DdeFaceTracker : public FaceTracker {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(DdeFaceTracker)
     
 public:
     //initialization
@@ -58,7 +59,6 @@ private:
     DdeFaceTracker();
     DdeFaceTracker(const QHostAddress& host, quint16 port);
     ~DdeFaceTracker();
-    friend DependencyManager;
     
     float getBlendshapeCoefficient(int index) const;
     void decodePacket(const QByteArray& buffer);

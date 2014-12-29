@@ -27,7 +27,9 @@
 #include <PhysicsEntity.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
+#include <ViewFrustum.h>
 
+#include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
 #include "GlowEffect.h"
@@ -111,7 +113,7 @@ Model::SkinLocations Model::_skinNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
 
-ViewStateInterface* Model::_viewState = NULL;
+AbstractViewStateInterface* Model::_viewState = NULL;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -1161,7 +1163,7 @@ void Blender::run() {
         }
     }
     // post the result to the geometry cache, which will dispatch to the model if still alive
-    QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>(), "setBlendedVertices",
+    QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
         Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
         Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
         Q_ARG(const QVector<glm::vec3>&, normals));
@@ -2334,8 +2336,8 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                                         Locations* locations, SkinLocations* skinLocations) {
     PROFILE_RANGE(__FUNCTION__);
 
-    TextureCache* textureCache = DependencyManager::get<TextureCache>();
-    GlowEffect* glowEffect = DependencyManager::get<GlowEffect>();
+    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
+    GlowEffect::SharedPointer glowEffect = DependencyManager::get<GlowEffect>();
     QString lastMaterialID;
     int meshPartsRendered = 0;
     updateVisibleJointStates();

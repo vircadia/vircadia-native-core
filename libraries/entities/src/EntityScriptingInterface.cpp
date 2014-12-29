@@ -11,6 +11,7 @@
 
 #include "EntityScriptingInterface.h"
 #include "EntityTree.h"
+#include "LightEntityItem.h"
 #include "ModelEntityItem.h"
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -226,16 +227,11 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
 }
 
 void EntityScriptingInterface::setLightsArePickable(bool value) {
-    if (_entityTree) {
-        _entityTree->setLightsArePickable(value);
-    }
+    LightEntityItem::setLightsArePickable(value);
 }
 
 bool EntityScriptingInterface::getLightsArePickable() const {
-    if (_entityTree) {
-        return _entityTree->getLightsArePickable();
-    }
-    return false;
+    return LightEntityItem::getLightsArePickable();
 }
 
 

@@ -19,12 +19,12 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/detail/func_common.hpp>
 
-#include <SharedUtil.h>
-
 #include <QThread>
 
+#include <SharedUtil.h>
+#include <TextRenderer.h>
+
 #include "InterfaceConfig.h"
-#include "ui/TextRenderer.h"
 #include "VoxelConstants.h"
 #include "world.h"
 #include "Application.h"
@@ -32,12 +32,6 @@
 #include "Util.h"
 
 using namespace std;
-
-// no clue which versions are affected...
-#define WORKAROUND_BROKEN_GLUT_STROKES
-// see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
-
-
 
 void renderWorldBox() {
     //  Show edge of world
@@ -71,7 +65,7 @@ void renderWorldBox() {
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
     glColor3fv(red);
-    GeometryCache* geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();

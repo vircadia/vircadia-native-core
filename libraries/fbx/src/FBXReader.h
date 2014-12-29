@@ -24,8 +24,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-class QIODevice;
+#include <model/Geometry.h>
+#include <model/Material.h>
 
+class QIODevice;
 class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
@@ -131,6 +133,7 @@ public:
     FBXTexture emissiveTexture;
 
     QString materialID;
+    model::MaterialPointer _material;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -159,6 +162,8 @@ public:
     
     bool hasSpecularTexture() const;
     bool hasEmissiveTexture() const;
+
+    model::Mesh _mesh;
 };
 
 /// A single animation frame extracted from an FBX document.
