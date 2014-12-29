@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
+
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
@@ -33,6 +35,8 @@
 
 #include "Application.h"
 #include "MetavoxelSystem.h"
+
+using namespace std;
 
 REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
@@ -365,6 +369,12 @@ void MetavoxelSystem::render() {
         _baseVoxelProgram.bind();
         
         foreach (const MetavoxelBatch& batch, _voxelBaseBatches) {
+            glPushMatrix();
+            glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
+            glm::vec3 axis = glm::axis(batch.rotation);
+            glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
+            glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
+                
             batch.vertexBuffer->bind();
             batch.indexBuffer->bind();
             
@@ -377,6 +387,8 @@ void MetavoxelSystem::render() {
             
             batch.vertexBuffer->release();
             batch.indexBuffer->release();
+            
+            glPopMatrix();
         }
         
         _baseVoxelProgram.release();
@@ -398,6 +410,12 @@ void MetavoxelSystem::render() {
             _splatVoxelProgram.enableAttributeArray(_splatVoxelLocations.materialWeights);
             
             foreach (const VoxelSplatBatch& batch, _voxelSplatBatches) {
+                glPushMatrix();
+                glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
+                glm::vec3 axis = glm::axis(batch.rotation);
+                glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
+                glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
+            
                 batch.vertexBuffer->bind();
                 batch.indexBuffer->bind();
                 
@@ -443,6 +461,8 @@ void MetavoxelSystem::render() {
         
                 batch.vertexBuffer->release();
                 batch.indexBuffer->release();
+                
+                glPopMatrix();
             }
             
             glDisable(GL_POLYGON_OFFSET_FILL);
@@ -474,6 +494,12 @@ void MetavoxelSystem::render() {
         DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
         
         foreach (const HermiteBatch& batch, _hermiteBatches) {
+            glPushMatrix();
+            glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
+            glm::vec3 axis = glm::axis(batch.rotation);
+            glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
+            glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
+                
             batch.vertexBuffer->bind();
             
             glVertexPointer(3, GL_FLOAT, 0, 0);
@@ -481,6 +507,8 @@ void MetavoxelSystem::render() {
             glDrawArrays(GL_LINES, 0, batch.vertexCount);
             
             batch.vertexBuffer->release();
+            
+            glPopMatrix();
         }
         
         DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
@@ -1247,6 +1275,9 @@ void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation
             _hermite.clear();
         }
         HermiteBatch hermiteBatch;
+        hermiteBatch.translation = translation;
+        hermiteBatch.rotation = rotation;
+        hermiteBatch.scale = scale;
         hermiteBatch.vertexBuffer = &_hermiteBuffer;
         hermiteBatch.vertexCount = _hermiteCount;
         Application::getInstance()->getMetavoxels()->addHermiteBatch(hermiteBatch);
@@ -2266,6 +2297,50 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         QVector<int> indices;
         QVector<glm::vec3> hermiteSegments;
         QMultiHash<VoxelCoord, int> quadIndices;
+        
+        int stackWidth = node->getStack()->getWidth();
+        int stackHeight = node->getStack()->getContents().size() / stackWidth;
+        int innerStackWidth = stackWidth - HeightfieldData::SHARED_EDGE;
+        int innerStackHeight = stackHeight - HeightfieldData::SHARED_EDGE;
+        const StackArray* src = node->getStack()->getContents().constData();
+        glm::vec3 pos;
+        glm::vec3 step(1.0f / innerStackWidth, scale.x / (innerStackWidth * scale.y),
+            1.0f / innerStackHeight);
+        bool displayHermite = Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData);
+        
+        for (int z = 0; z < stackHeight; z++, pos.z += step.z) {
+            pos.x = 0.0f;
+            for (int x = 0; x < stackWidth; x++, src++, pos.x += step.x) {
+                if (src->isEmpty()) {
+                    continue;
+                }
+                pos.y = src->getPosition() * step.y;
+                for (const StackArray::Entry* entry = src->getEntryData(), *end = entry + src->getEntryCount(); entry != end;
+                        entry++, pos.y += step.y) {
+                    if (displayHermite) {
+                        glm::vec3 normal;
+                        float distance = entry->getHermiteX(normal);
+                        if (normal != glm::vec3()) {
+                            glm::vec3 start = pos + glm::vec3(distance * step.x, 0.0f, 0.0f);
+                            hermiteSegments.append(start);
+                            hermiteSegments.append(start + normal * step);
+                        }
+                        distance = entry->getHermiteY(normal);
+                        if (normal != glm::vec3()) {
+                            glm::vec3 start = pos + glm::vec3(0.0f, distance * step.y, 0.0f);
+                            hermiteSegments.append(start);
+                            hermiteSegments.append(start + normal * step);
+                        }
+                        distance = entry->getHermiteZ(normal);
+                        if (normal != glm::vec3()) {
+                            glm::vec3 start = pos + glm::vec3(0.0f, 0.0f, distance * step.z);
+                            hermiteSegments.append(start);
+                            hermiteSegments.append(start + normal * step);
+                        }
+                    }
+                }
+            }
+        }
         
         _voxels = new VoxelBuffer(vertices, indices, hermiteSegments, quadIndices, width, node->getStack()->getMaterials());
     }

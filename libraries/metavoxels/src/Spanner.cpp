@@ -1166,25 +1166,42 @@ bool StackArray::Entry::isMergeable(const Entry& other) const {
         ::isZero(hermiteX) && ::isZero(hermiteY) && ::isZero(hermiteZ);
 }
 
+static inline void setHermite(uchar values[4], const glm::vec3& normal, float position) {
+    values[0] = normal.x * numeric_limits<qint8>::max();
+    values[1] = normal.y * numeric_limits<qint8>::max();
+    values[2] = normal.z * numeric_limits<qint8>::max();
+    values[3] = position * numeric_limits<quint8>::max();
+}
+
+static inline float getHermite(const uchar values[4], glm::vec3& normal) {
+    normal.x = (char)values[0] / (float)numeric_limits<qint8>::max();
+    normal.y = (char)values[1] / (float)numeric_limits<qint8>::max();
+    normal.z = (char)values[2] / (float)numeric_limits<qint8>::max();
+    return values[3] / (float)numeric_limits<qint8>::max();
+}
+
 void StackArray::Entry::setHermiteX(const glm::vec3& normal, float position) {
-    hermiteX[0] = normal.x * numeric_limits<qint8>::max();
-    hermiteX[1] = normal.y * numeric_limits<qint8>::max();
-    hermiteX[2] = normal.z * numeric_limits<qint8>::max();
-    hermiteX[3] = position * numeric_limits<quint8>::max();
+    setHermite(hermiteX, normal, position);
+}
+
+float StackArray::Entry::getHermiteX(glm::vec3& normal) const {
+    return getHermite(hermiteX, normal);
 }
 
 void StackArray::Entry::setHermiteY(const glm::vec3& normal, float position) {
-    hermiteY[0] = normal.x * numeric_limits<qint8>::max();
-    hermiteY[1] = normal.y * numeric_limits<qint8>::max();
-    hermiteY[2] = normal.z * numeric_limits<qint8>::max();
-    hermiteY[3] = position * numeric_limits<quint8>::max();
+    setHermite(hermiteY, normal, position);
+}
+
+float StackArray::Entry::getHermiteY(glm::vec3& normal) const {
+    return getHermite(hermiteY, normal);
 }
 
 void StackArray::Entry::setHermiteZ(const glm::vec3& normal, float position) {
-    hermiteZ[0] = normal.x * numeric_limits<qint8>::max();
-    hermiteZ[1] = normal.y * numeric_limits<qint8>::max();
-    hermiteZ[2] = normal.z * numeric_limits<qint8>::max();
-    hermiteZ[3] = position * numeric_limits<quint8>::max();
+    setHermite(hermiteZ, normal, position);
+}
+
+float StackArray::Entry::getHermiteZ(glm::vec3& normal) const {
+    return getHermite(hermiteZ, normal);
 }
 
 HeightfieldStack::HeightfieldStack(int width, const QVector<StackArray>& contents,

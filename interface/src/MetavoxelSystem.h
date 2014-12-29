@@ -213,6 +213,9 @@ public:
 class HermiteBatch {
 public:
     QOpenGLBuffer* vertexBuffer;
+    glm::vec3 translation;
+    glm::quat rotation;
+    glm::vec3 scale;
     int vertexCount;
 };
 
