@@ -17,6 +17,9 @@
 
 Script.include("libraries/globals.js");
 
+// experimental 3dmode
+const THREE_D_MODE = true;
+
 const KBD_UPPERCASE_DEFAULT = 0;
 const KBD_LOWERCASE_DEFAULT = 1;
 const KBD_UPPERCASE_HOVER   = 2;
@@ -274,14 +277,28 @@ function KeyboardKey(keyboard, keyProperties) {
     };
     for (var i = 0; i < this.bounds.length; i++) {
         var newOverlay = Overlays.cloneOverlay(this.keyboard.background);
-        Overlays.editOverlay(newOverlay, {
-            x: this.keyboard.getX() + this.bounds[i][BOUND_X] * keyboard.scale,
-            y: this.keyboard.getY() + this.bounds[i][BOUND_Y] * keyboard.scale,
-            width: this.bounds[i][BOUND_W] * keyboard.scale,
-            height: this.bounds[i][BOUND_H] * keyboard.scale,
-            subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
-            alpha: 1
-        });
+        if (THREE_D_MODE) {
+	        Overlays.editOverlay(newOverlay, {
+	            position: {
+	                x: MyAvatar.position.x,// + this.bounds[i][BOUND_X] * 0.01,// /*+ this.keyboard.getX()*/ + this.bounds[i][BOUND_X] * keyboard.scale,
+	                y: MyAvatar.position.y,// - this.bounds[i][BOUND_Y] * 0.01,// /*+ this.keyboard.getY()*/ + this.bounds[i][BOUND_Y] * keyboard.scale,
+	                z: MyAvatar.position.z
+	            },
+	            width: this.bounds[i][BOUND_W] * keyboard.scale,
+	            height: this.bounds[i][BOUND_H] * keyboard.scale,
+	            subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
+	            alpha: 1
+	        });
+        } else {
+	        Overlays.editOverlay(newOverlay, {
+	            x: this.keyboard.getX() + this.bounds[i][BOUND_X] * keyboard.scale,
+	            y: this.keyboard.getY() + this.bounds[i][BOUND_Y] * keyboard.scale,
+	            width: this.bounds[i][BOUND_W] * keyboard.scale,
+	            height: this.bounds[i][BOUND_H] * keyboard.scale,
+	            subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
+	            alpha: 1
+	        });
+        }
         this.overlays.push(newOverlay);
     }
 }
@@ -303,15 +320,29 @@ function Keyboard() {
     this.getY = function() {
         return windowDimensions.y - this.height();
     };
-    this.background = Overlays.addOverlay("image", {
-        x: this.getX(),
-        y: this.getY(),
-        width: this.width(),
-        height: this.height(),
-        subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
-        imageURL: KEYBOARD_URL,
-        alpha: 1
-    });
+    if (THREE_D_MODE) {
+	    this.background = Overlays.addOverlay("billboard", {
+	        scale: 1,
+	        position: MyAvatar.position,
+	        rotation: MyAvatar.rotation,
+	        width: this.width(),
+	        height: this.height(),
+	        subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
+	        isFacingAvatar: false,
+	        url: KEYBOARD_URL,
+	        alpha: 1
+	    });
+    } else {
+	    this.background = Overlays.addOverlay("image", {
+	        x: this.getX(),
+	        y: this.getY(),
+	        width: this.width(),
+	        height: this.height(),
+	        subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
+	        imageURL: KEYBOARD_URL,
+	        alpha: 1
+	    });
+    }
     this.rescale = function() {
         this.scale = windowDimensions.x / KEYBOARD_WIDTH;
         Overlays.editOverlay(tthis.background, {
