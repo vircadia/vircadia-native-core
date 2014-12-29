@@ -139,11 +139,12 @@ void ShapeManagerTests::addManyShapes() {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: i = " << i << " null box shape for scale = " << scale << std::endl;
         }
-        info.setSphere(s);
+        float radius = 0.5f * s;
+        info.setSphere(radius);
         shape = shapeManager.getShape(info);
         if (!shape) {
             std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: i = " << i << " null sphere shape for radius = " << s << std::endl;
+                << " ERROR: i = " << i << " null sphere shape for radius = " << radius << std::endl;
         }
     }
     int numShapes = shapeManager.getNumShapes();
