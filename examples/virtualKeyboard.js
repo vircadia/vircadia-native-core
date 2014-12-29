@@ -18,7 +18,7 @@
 Script.include("libraries/globals.js");
 
 // experimental 3dmode
-const THREE_D_MODE = true;
+const THREE_D_MODE = false;
 
 const KBD_UPPERCASE_DEFAULT = 0;
 const KBD_LOWERCASE_DEFAULT = 1;
