@@ -7,4 +7,4 @@ include_bullet()
 
 link_hifi_libraries(shared physics)
 
-link_shared_dependencies()
+include_dependency_includes()

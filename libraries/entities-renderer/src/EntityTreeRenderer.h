@@ -129,6 +129,7 @@ private:
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
     void checkEnterLeaveEntities();
+    void leaveAllEntities();
     glm::vec3 _lastAvatarPosition;
     QVector<EntityItemID> _currentEntitiesInside;
     
@@ -138,7 +139,7 @@ private:
     QScriptValue loadEntityScript(EntityItem* entity);
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);
     QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
-    QString loadScriptContents(const QString& scriptMaybeURLorText);
+    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     

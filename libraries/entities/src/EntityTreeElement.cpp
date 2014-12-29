@@ -585,8 +585,12 @@ bool EntityTreeElement::findShapeCollisions(const Shape* shape, CollisionList& c
         if (shape != otherCollisionShape && !ignoreForCollisions) {
             if (ShapeCollider::collideShapes(shape, otherCollisionShape, collisions)) {
                 CollisionInfo* lastCollision = collisions.getLastCollision();
-                lastCollision->_extraData = entity;
-                atLeastOneCollision = true;
+                if (lastCollision) {
+                    lastCollision->_extraData = entity;
+                    atLeastOneCollision = true;
+                } else {
+                    qDebug() << "UNEXPECTED - ShapeCollider::collideShapes() returned true, but no lastCollision.";
+                }
             }
         }
         ++entityItr;

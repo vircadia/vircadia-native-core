@@ -18,6 +18,7 @@
 #include <LogHandler.h>
 
 #include "AccountManager.h"
+#include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
@@ -62,6 +63,15 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _hasCompletedInitialSTUNFailure(false),
     _stunRequestsSinceSuccess(0)
 {
+    AddressManager& addressManager = AddressManager::getInstance();
+    
+    // handle domain change signals from AddressManager
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
+            &_domainHandler, &DomainHandler::setHostnameAndPort);
+    
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
+            &_domainHandler, &DomainHandler::setIceServerHostnameAndID);
+    
     // clear our NodeList when the domain changes
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::reset);
     
