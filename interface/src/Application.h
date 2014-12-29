@@ -12,37 +12,33 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
-#include <map>
-#include <time.h>
+#include <gpu/GPUConfig.h>
 
 #include <QApplication>
-#include <QMainWindow>
-#include <QAction>
 #include <QHash>
 #include <QImage>
-#include <QList>
 #include <QPointer>
 #include <QSet>
 #include <QSettings>
 #include <QStringList>
-#include <QHash>
-#include <QTouchEvent>
 #include <QUndoStack>
-#include <QSystemTrayIcon>
 
+#include <AbstractScriptingServicesInterface.h>
+#include <AbstractViewStateInterface.h>
 #include <EntityCollisionSystem.h>
 #include <EntityEditPacketSender.h>
+#include <EntityTreeRenderer.h>
+#include <GeometryCache.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
+#include <OctreeQuery.h>
 #include <PacketHeaders.h>
 #include <ScriptEngine.h>
-#include <OctreeQuery.h>
+#include <TextureCache.h>
 #include <ViewFrustum.h>
 #include <VoxelEditPacketSender.h>
 
-#include "MainWindow.h"
 #include "Audio.h"
-#include "AudioReflector.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -55,19 +51,8 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "devices/Faceshift.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
-#include "devices/Visage.h"
-#include "devices/DdeFaceTracker.h"
-#include "entities/EntityTreeRenderer.h"
-#include "renderer/AmbientOcclusionEffect.h"
-#include "renderer/DeferredLightingEffect.h"
-#include "renderer/GeometryCache.h"
-#include "renderer/GlowEffect.h"
-#include "renderer/PointShader.h"
-#include "renderer/TextureCache.h"
-#include "renderer/VoxelShader.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
@@ -95,16 +80,19 @@
 #include "UndoStackScriptingInterface.h"
 
 
-class QAction;
-class QActionGroup;
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
 class QSettings;
+class QSystemTrayIcon;
+class QTouchEvent;
 class QWheelEvent;
 
+class FaceTracker;
+class MainWindow;
 class Node;
 class ProgramObject;
+class ScriptEngine;
 
 static const float NODE_ADDED_RED   = 0.0f;
 static const float NODE_ADDED_GREEN = 1.0f;
@@ -132,7 +120,7 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
 
-class Application : public QApplication {
+class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -141,7 +129,6 @@ class Application : public QApplication {
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
-    static QString& resourcesPath();
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
 
@@ -188,49 +175,50 @@ public:
     void removeVoxel(glm::vec3 position, float scale);
 
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
+    bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
 
-    GLCanvas* getGLWidget() { return _glWidget; }
-    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
+    const MyAvatar* getAvatar() const { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
-    const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
-    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
-    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     EntityTreeRenderer* getEntities() { return &_entities; }
-    bool getImportSucceded() { return _importSucceded; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
+    Environment* getEnvironment() { return &_environment; }
+    PrioVR* getPrioVR() { return &_prioVR; }
+    QUndoStack* getUndoStack() { return &_undoStack; }
+    MainWindow* getWindow() { return _window; }
+    
+    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelTree* getClipboard() { return &_clipboard; }
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
-    Environment* getEnvironment() { return &_environment; }
+    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
+    bool getImportSucceded() { return _importSucceded; }
+    
     bool isMousePressed() const { return _mousePressed; }
-    bool isMouseHidden() const { return _mouseHidden; }
+    bool isMouseHidden() const { return DependencyManager::get<GLCanvas>()->cursor().shape() == Qt::BlankCursor; }
+    void setCursorVisible(bool visible);
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
     int getMouseX() const;
     int getMouseY() const;
-    int getTrueMouseX() const { return _glWidget->mapFromGlobal(QCursor::pos()).x(); }
-    int getTrueMouseY() const { return _glWidget->mapFromGlobal(QCursor::pos()).y(); }
+    int getTrueMouseX() const { return DependencyManager::get<GLCanvas>()->mapFromGlobal(QCursor::pos()).x(); }
+    int getTrueMouseY() const { return DependencyManager::get<GLCanvas>()->mapFromGlobal(QCursor::pos()).y(); }
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
     int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
-    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
-    Faceshift* getFaceshift() { return &_faceshift; }
-    Visage* getVisage() { return &_visage; }
-    DdeFaceTracker* getDDE() { return &_dde; }
+    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
+    
     FaceTracker* getActiveFaceTracker();
-    PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
-    QUndoStack* getUndoStack() { return &_undoStack; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
@@ -241,7 +229,7 @@ public:
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
-    const Transform& getViewTransform() const { return _viewTransform; }
+    virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
@@ -250,26 +238,23 @@ public:
 
     void saveSettings();
 
-    MainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    GeometryCache* getGeometryCache() { return &_geometryCache; }
-    AnimationCache* getAnimationCache() { return &_animationCache; }
-    TextureCache* getTextureCache() { return &_textureCache; }
-    DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
-    GlowEffect* getGlowEffect() { return &_glowEffect; }
-    ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
+
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
     void resetProfile(const QString& username);
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
-    void setupWorldLight();
+    virtual void setupWorldLight();
+    virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
     QImage renderAvatarBillboard();
 
@@ -288,19 +273,27 @@ public:
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
-    const glm::vec3& getShadowDistances() const { return _shadowDistances; }
+    virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+    virtual void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
+    virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
+    virtual bool getShadowsEnabled();
+    virtual bool getCascadeShadowsEnabled();
+    virtual QThread* getMainThread() { return thread(); }
+    virtual float getSizeScale() const;
+    virtual int getBoundaryLevelAdjust() const;
+    virtual PickRay computePickRay(float x, float y);
+    virtual const glm::vec3& getAvatarPosition() const { return getAvatar()->getPosition(); }
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
-    VoxelShader& getVoxelShader() { return _voxelShader; }
-    PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
+    glm::vec2 getViewportDimensions() const { return glm::vec2(DependencyManager::get<GLCanvas>()->getDeviceWidth(),
+                                                               DependencyManager::get<GLCanvas>()->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
@@ -309,8 +302,6 @@ public:
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
-
-    void setCursorVisible(bool visible);
     
     bool isLookingAtMyAvatar(Avatar* avatar);
 
@@ -321,13 +312,13 @@ public:
     bool isVSyncEditable() const;
     bool isAboutToQuit() const { return _aboutToQuit; }
 
-
-    void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
-
     // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
+    
+    QRect getDesirableApplicationGeometry();
+    RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
 signals:
 
@@ -344,7 +335,6 @@ signals:
     void importDone();
 
 public slots:
-    void changeDomainHostname(const QString& newDomainHostname);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void updateLocationInServer();
@@ -384,6 +374,7 @@ public slots:
     void uploadHead();
     void uploadSkeleton();
     void uploadAttachment();
+    void uploadEntity();
     
     void openUrl(const QUrl& url);
 
@@ -469,15 +460,12 @@ private:
 
     void setMenuShortcutsEnabled(bool enabled);
 
-    void uploadModel(ModelType modelType);
-
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
     int sendNackPackets();
 
     MainWindow* _window;
-    GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
     ToolWindow* _toolWindow;
 
@@ -536,10 +524,6 @@ private:
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
-    Faceshift _faceshift;
-    Visage _visage;
-    DdeFaceTracker _dde;
-
     PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
@@ -567,8 +551,6 @@ private:
     int _mouseDragStartedY;
     quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
-    bool _mouseHidden;
-    bool _seenMouseMove;
 
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
@@ -582,17 +564,6 @@ private:
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     QSet<int> _keysPressed;
-
-
-    GeometryCache _geometryCache;
-    AnimationCache _animationCache;
-    TextureCache _textureCache;
-
-    DeferredLightingEffect _deferredLightingEffect;
-    GlowEffect _glowEffect;
-    AmbientOcclusionEffect _ambientOcclusionEffect;
-    VoxelShader _voxelShader;
-    PointShader _pointShader;
 
     Audio _audio;
 
@@ -638,7 +609,6 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
 
-    AudioReflector _audioReflector;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;

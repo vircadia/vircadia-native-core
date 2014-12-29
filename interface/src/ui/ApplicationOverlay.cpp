@@ -12,6 +12,8 @@
 #include "InterfaceConfig.h"
 
 #include <QOpenGLFramebufferObject>
+
+#include <PathUtils.h>
 #include <PerfStat.h>
 
 #include "Application.h"
@@ -145,11 +147,11 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
     Application* application = Application::getInstance();
     Overlays& overlays = application->getOverlays();
-    GLCanvas* glWidget = application->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     MyAvatar* myAvatar = application->getAvatar();
     
     _textureFov = glm::radians(Menu::getInstance()->getOculusUIAngularSize());
-    _textureAspectRatio = (float)application->getGLWidget()->getDeviceWidth() / (float)application->getGLWidget()->getDeviceHeight();
+    _textureAspectRatio = (float)glCanvas->getDeviceWidth() / (float)glCanvas->getDeviceHeight();
 
     //Handle fading and deactivation/activation of UI
     if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
@@ -178,12 +180,12 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     
     glPushMatrix(); {
         glLoadIdentity();
-        gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
+        glOrtho(0, glCanvas->width(), glCanvas->height(), 0, -1.0, 1.0);
         
         renderAudioMeter();
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
-            myAvatar->renderHeadMouse(glWidget->width(), glWidget->height());
+            myAvatar->renderHeadMouse(glCanvas->width(), glCanvas->height());
         }
         
         renderStatsAndLogs();
@@ -213,7 +215,7 @@ void ApplicationOverlay::displayOverlayTexture() {
     if (_alpha == 0.0f) {
         return;
     }
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
 
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
@@ -222,16 +224,16 @@ void ApplicationOverlay::displayOverlayTexture() {
     glMatrixMode(GL_PROJECTION);
     glPushMatrix(); {
         glLoadIdentity();
-        gluOrtho2D(0, glWidget->getDeviceWidth(), glWidget->getDeviceHeight(), 0);
+        glOrtho(0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight(), 0, -1.0, 1.0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
         glEnable(GL_BLEND);
         
         glBegin(GL_QUADS); {
             glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-            glTexCoord2f(0, 0); glVertex2i(0, glWidget->getDeviceHeight());
-            glTexCoord2f(1, 0); glVertex2i(glWidget->getDeviceWidth(), glWidget->getDeviceHeight());
-            glTexCoord2f(1, 1); glVertex2i(glWidget->getDeviceWidth(), 0);
+            glTexCoord2f(0, 0); glVertex2i(0, glCanvas->getDeviceHeight());
+            glTexCoord2f(1, 0); glVertex2i(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
+            glTexCoord2f(1, 1); glVertex2i(glCanvas->getDeviceWidth(), 0);
             glTexCoord2f(0, 1); glVertex2i(0, 0);
         } glEnd();
     } glPopMatrix();
@@ -378,18 +380,19 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     
     glEnd();
     
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     if (_crosshairTexture == 0) {
-        _crosshairTexture = Application::getInstance()->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
+        _crosshairTexture = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/sixense-reticle.png"));
     }
     
     //draw the mouse pointer
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-    const float reticleSize = 40.0f / application->getGLWidget()->width() * quadWidth;
+    const float reticleSize = 40.0f / glCanvas->width() * quadWidth;
     x -= reticleSize / 2.0f;
     y += reticleSize / 2.0f;
-    const float mouseX = (application->getMouseX() / (float)application->getGLWidget()->width()) * quadWidth;
-    const float mouseY = (1.0 - (application->getMouseY() / (float)application->getGLWidget()->height())) * quadHeight;
+    const float mouseX = (application->getMouseX() / (float)glCanvas->width()) * quadWidth;
+    const float mouseY = (1.0 - (application->getMouseY() / (float)glCanvas->height())) * quadHeight;
     
     glBegin(GL_QUADS);
     
@@ -431,7 +434,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origi
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     Application* application = Application::getInstance();
-    GLCanvas* glWidget = application->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     MyAvatar* myAvatar = application->getAvatar();
 
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
@@ -462,8 +465,8 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
                 float u = asin(collisionPos.x) / (_textureFov)+0.5f;
                 float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
 
-                rv.setX(u * glWidget->width());
-                rv.setY(v * glWidget->height());
+                rv.setX(u * glCanvas->width());
+                rv.setY(v * glCanvas->height());
             }
         } else {
             //if they did not click on the overlay, just set the coords to INT_MAX
@@ -480,8 +483,8 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
             ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
         }
 
-        rv.setX(((ndcSpacePos.x + 1.0) / 2.0) * glWidget->width());
-        rv.setY((1.0 - ((ndcSpacePos.y + 1.0) / 2.0)) * glWidget->height());
+        rv.setX(((ndcSpacePos.x + 1.0) / 2.0) * glCanvas->width());
+        rv.setY((1.0 - ((ndcSpacePos.y + 1.0) / 2.0)) * glCanvas->height());
     }
     return rv;
 }
@@ -510,10 +513,11 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
     Application* application = Application::getInstance();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
 
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
-        _crosshairTexture = Application::getInstance()->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
+        _crosshairTexture = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/sixense-reticle.png"));
     }
     glEnable(GL_TEXTURE_2D);
     
@@ -536,7 +540,7 @@ void ApplicationOverlay::renderPointers() {
             glm::vec2 screenPos = sphericalToScreen(glm::vec2(yaw, -pitch));
             
             position = QPoint(screenPos.x, screenPos.y);
-            QCursor::setPos(application->getGLWidget()->mapToGlobal(position));
+            glCanvas->cursor().setPos(glCanvas->mapToGlobal(position));
         }
         
         _reticlePosition[MOUSE] = position;
@@ -557,7 +561,7 @@ void ApplicationOverlay::renderPointers() {
 
 void ApplicationOverlay::renderControllerPointers() {
     Application* application = Application::getInstance();
-    GLCanvas* glWidget = application->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     MyAvatar* myAvatar = application->getAvatar();
 
     //Static variables used for storing controller state
@@ -635,14 +639,14 @@ void ApplicationOverlay::renderControllerPointers() {
             float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
             // Get the pixel range over which the xAngle and yAngle are scaled
-            float cursorRange = glWidget->width() * SixenseManager::getInstance().getCursorPixelRangeMult();
+            float cursorRange = glCanvas->width() * SixenseManager::getInstance().getCursorPixelRangeMult();
 
-            mouseX = (glWidget->width() / 2.0f + cursorRange * xAngle);
-            mouseY = (glWidget->height() / 2.0f + cursorRange * yAngle);
+            mouseX = (glCanvas->width() / 2.0f + cursorRange * xAngle);
+            mouseY = (glCanvas->height() / 2.0f + cursorRange * yAngle);
         }
 
         //If the cursor is out of the screen then don't render it
-        if (mouseX < 0 || mouseX >= glWidget->width() || mouseY < 0 || mouseY >= glWidget->height()) {
+        if (mouseX < 0 || mouseX >= glCanvas->width() || mouseY < 0 || mouseY >= glCanvas->height()) {
             _reticleActive[index] = false;
             continue;
         }
@@ -702,11 +706,10 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
 //Renders a small magnification of the currently bound texture at the coordinates
 void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) const {
-    Application* application = Application::getInstance();
-    GLCanvas* glWidget = application->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     
-    const int widgetWidth = glWidget->width();
-    const int widgetHeight = glWidget->height();
+    const int widgetWidth = glCanvas->width();
+    const int widgetHeight = glCanvas->height();
     
     const float halfWidth = (MAGNIFY_WIDTH / _textureAspectRatio) * sizeMult / 2.0f;
     const float halfHeight = MAGNIFY_HEIGHT * sizeMult / 2.0f;
@@ -760,8 +763,8 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
 void ApplicationOverlay::renderAudioMeter() {
 
     Application* application = Application::getInstance();
-
-    GLCanvas* glWidget = application->getGLWidget();
+    
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     Audio* audio = application->getAudio();
 
     //  Display a single screen-size quad to create an alpha blended 'collision' flash
@@ -769,7 +772,7 @@ void ApplicationOverlay::renderAudioMeter() {
         float collisionSoundMagnitude = audio->getCollisionSoundMagnitude();
         const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
         if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
-            renderCollisionOverlay(glWidget->width(), glWidget->height(),
+            renderCollisionOverlay(glCanvas->width(), glCanvas->height(),
                 audio->getCollisionSoundMagnitude());
         }
     }
@@ -823,14 +826,14 @@ void ApplicationOverlay::renderAudioMeter() {
     if ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
         const float MAX_MAGNITUDE = 0.7f;
         float magnitude = MAX_MAGNITUDE * (1 - audio->getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
-        renderCollisionOverlay(glWidget->width(), glWidget->height(), magnitude, 1.0f);
+        renderCollisionOverlay(glCanvas->width(), glCanvas->height(), magnitude, 1.0f);
     }
 
     audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
 
-    audio->renderScope(glWidget->width(), glWidget->height());
+    audio->renderScope(glCanvas->width(), glCanvas->height());
 
-    audio->renderStats(WHITE_TEXT, glWidget->width(), glWidget->height());
+    audio->renderStats(WHITE_TEXT, glCanvas->width(), glCanvas->height());
 
     glBegin(GL_QUADS);
     if (isClipping) {
@@ -891,8 +894,8 @@ void ApplicationOverlay::renderAudioMeter() {
 void ApplicationOverlay::renderStatsAndLogs() {
 
     Application* application = Application::getInstance();
-
-    GLCanvas* glWidget = application->getGLWidget();
+    
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
     BandwidthMeter* bandwidthMeter = application->getBandwidthMeter();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
@@ -910,8 +913,8 @@ void ApplicationOverlay::renderStatsAndLogs() {
             application->getPacketsPerSecond(), application->getBytesPerSecond(), voxelPacketsToProcess);
         //  Bandwidth meter
         if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
-            Stats::drawBackground(0x33333399, glWidget->width() - 296, glWidget->height() - 68, 296, 68);
-            bandwidthMeter->render(glWidget->width(), glWidget->height());
+            Stats::drawBackground(0x33333399, glCanvas->width() - 296, glCanvas->height() - 68, 296, 68);
+            bandwidthMeter->render(glCanvas->width(), glCanvas->height());
         }
     }
 
@@ -924,7 +927,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
             Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
             ? 80 : 20;
-        drawText(glWidget->width() - 100, glWidget->height() - timerBottom,
+        drawText(glCanvas->width() - 100, glCanvas->height() - timerBottom,
             0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
     }
     nodeBoundsDisplay.drawOverlay();
@@ -934,9 +937,9 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     NodeList* nodeList = NodeList::getInstance();
 
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
-        GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-        int right = glWidget->width();
-        int bottom = glWidget->height();
+        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+        int right = glCanvas->width();
+        int bottom = glCanvas->height();
 
         glColor3f(CONNECTION_STATUS_BORDER_COLOR[0],
                   CONNECTION_STATUS_BORDER_COLOR[1],
@@ -1071,7 +1074,7 @@ void ApplicationOverlay::TexturedHemisphere::cleanupVBO() {
 }
 
 void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
-    QSize size = Application::getInstance()->getGLWidget()->getDeviceSize();
+    QSize size = DependencyManager::get<GLCanvas>()->getDeviceSize();
     if (_framebufferObject != NULL && size == _framebufferObject->size()) {
         // Already build
         return;
@@ -1122,7 +1125,7 @@ void ApplicationOverlay::TexturedHemisphere::render() {
 
 
 glm::vec2 ApplicationOverlay::screenToSpherical(glm::vec2 screenPos) const {
-    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    QSize screenSize = DependencyManager::get<GLCanvas>()->getDeviceSize();
     float yaw = -(screenPos.x / screenSize.width() - 0.5f) * MOUSE_YAW_RANGE;
     float pitch = (screenPos.y / screenSize.height() - 0.5f) * MOUSE_PITCH_RANGE;
     
@@ -1130,7 +1133,7 @@ glm::vec2 ApplicationOverlay::screenToSpherical(glm::vec2 screenPos) const {
 }
 
 glm::vec2 ApplicationOverlay::sphericalToScreen(glm::vec2 sphericalPos) const {
-    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    QSize screenSize = DependencyManager::get<GLCanvas>()->getDeviceSize();
     float x = (-sphericalPos.x / MOUSE_YAW_RANGE + 0.5f) * screenSize.width();
     float y = (sphericalPos.y / MOUSE_PITCH_RANGE + 0.5f) * screenSize.height();
     
@@ -1138,7 +1141,7 @@ glm::vec2 ApplicationOverlay::sphericalToScreen(glm::vec2 sphericalPos) const {
 }
 
 glm::vec2 ApplicationOverlay::sphericalToOverlay(glm::vec2 sphericalPos) const {
-    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    QSize screenSize = DependencyManager::get<GLCanvas>()->getDeviceSize();
     float x = (-sphericalPos.x / (_textureFov * _textureAspectRatio) + 0.5f) * screenSize.width();
     float y = (sphericalPos.y / _textureFov + 0.5f) * screenSize.height();
     
@@ -1146,7 +1149,7 @@ glm::vec2 ApplicationOverlay::sphericalToOverlay(glm::vec2 sphericalPos) const {
 }
 
 glm::vec2 ApplicationOverlay::overlayToSpherical(glm::vec2 overlayPos) const {
-    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    QSize screenSize = DependencyManager::get<GLCanvas>()->getDeviceSize();
     float yaw = -(overlayPos.x / screenSize.width() - 0.5f) * _textureFov * _textureAspectRatio;
     float pitch = (overlayPos.y / screenSize.height() - 0.5f) * _textureFov;
     

@@ -22,7 +22,6 @@
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
     _fbxService(NULL),
-    _lightsArePickable(true),
     _simulation(NULL)
 {
     _rootElement = createNewElement();
@@ -83,7 +82,6 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 /// Adds a new entity item to the tree
 void EntityTree::postAddEntity(EntityItem* entity) {
     assert(entity);
-    entity->setOldMaximumAACube(entity->getMaximumAACube());
     // check to see if we need to simulate this entity..
     if (_simulation) {
         _simulation->addEntity(entity);
@@ -138,7 +136,6 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
     
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
-        entity->setOldMaximumAACube(entity->getMaximumAACube());
         _isDirty = true;
 
         if (_simulation && entity->getDirtyFlags() != 0) {
@@ -167,9 +164,17 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
 
     // NOTE: This method is used in the client and the server tree. In the client, it's possible to create EntityItems 
     // that do not yet have known IDs. In the server tree however we don't want to have entities without known IDs.
-    if (getIsServer() && !entityID.isKnownID) {
-        qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
-        return result;
+    bool recordCreationTime = false;
+    if (!entityID.isKnownID) {
+        if (getIsServer()) {
+            qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
+            return result;
+        }
+        if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
+            // the entity's creation time was not specified in properties, which means this is a NEW entity
+            // and we must record its creation time
+            recordCreationTime = true;
+        }
     }
 
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
@@ -185,6 +190,9 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     result = EntityTypes::constructEntityItem(type, entityID, properties);
 
     if (result) {
+        if (recordCreationTime) {
+            result->recordCreationTime();
+        }
         // Recurse the tree and store the entity in the correct tree element
         AddEntityOperator theOperator(this, result);
         recurseTreeWithOperator(&theOperator);

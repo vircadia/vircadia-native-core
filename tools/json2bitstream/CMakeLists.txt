@@ -5,4 +5,4 @@ include_glm()
 
 link_hifi_libraries(metavoxels)
 
-link_shared_dependencies()
+include_dependency_includes()

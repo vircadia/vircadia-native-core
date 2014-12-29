@@ -26,7 +26,7 @@ public:
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
-    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    virtual bool setProperties(const EntityItemProperties& properties);
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;

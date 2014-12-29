@@ -9,8 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QScreen>
+#include <QWindow>
+
+#include <PathUtils.h>
+
 #include "Application.h"
 #include "FramelessDialog.h"
+#include "Menu.h"
 
 const int RESIZE_HANDLE_WIDTH = 7;
 
@@ -76,10 +82,10 @@ bool FramelessDialog::eventFilter(QObject* sender, QEvent* event) {
 }
 
 void FramelessDialog::setStyleSheetFile(const QString& fileName) {
-    QFile globalStyleSheet(Application::resourcesPath() + "styles/global.qss");
-    QFile styleSheet(Application::resourcesPath() + fileName);
+    QFile globalStyleSheet(PathUtils::resourcesPath() + "styles/global.qss");
+    QFile styleSheet(PathUtils::resourcesPath() + fileName);
     if (styleSheet.open(QIODevice::ReadOnly) && globalStyleSheet.open(QIODevice::ReadOnly) ) {
-        QDir::setCurrent(Application::resourcesPath());
+        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(globalStyleSheet.readAll() + styleSheet.readAll());
     }
 }
@@ -90,24 +96,27 @@ void FramelessDialog::showEvent(QShowEvent* event) {
 }
 
 void FramelessDialog::resizeAndPosition(bool resizeParent) {
+    QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
+    QSize parentSize = parentGeometry.size();
+    
     // keep full app height or width depending on position
     if (_position == POSITION_LEFT || _position == POSITION_RIGHT) {
-        setFixedHeight(parentWidget()->size().height());
+        setFixedHeight(parentSize.height());
     } else {
-        setFixedWidth(parentWidget()->size().width());
+        setFixedWidth(parentSize.width());
     }
 
     // resize parrent if width is smaller than this dialog
-    if (resizeParent && parentWidget()->size().width() < size().width()) {
-        parentWidget()->resize(size().width(), parentWidget()->size().height());
+    if (resizeParent && parentSize.width() < size().width()) {
+        parentWidget()->resize(size().width(), parentSize.height());
     }
 
     if (_position == POSITION_LEFT || _position == POSITION_TOP) {
         // move to upper left corner
-        move(parentWidget()->geometry().topLeft());
+        move(parentGeometry.topLeft());
     } else if (_position == POSITION_RIGHT) {
         // move to upper right corner
-        QPoint pos = parentWidget()->geometry().topRight();
+        QPoint pos = parentGeometry.topRight();
         pos.setX(pos.x() - size().width());
         move(pos);
     }
@@ -122,21 +131,21 @@ void FramelessDialog::mousePressEvent(QMouseEvent* mouseEvent) {
             if (hitLeft || hitRight) {
                 _isResizing = true;
                 _resizeInitialWidth = size().width();
-                QApplication::setOverrideCursor(Qt::SizeHorCursor);
+                setCursor(Qt::SizeHorCursor);
             }
         } else {
             bool hitTop = (_position == POSITION_TOP) && (abs(mouseEvent->pos().y() - size().height()) < RESIZE_HANDLE_WIDTH);
             if (hitTop) {
                 _isResizing = true;
                 _resizeInitialWidth = size().height();
-                QApplication::setOverrideCursor(Qt::SizeHorCursor);
+                setCursor(Qt::SizeHorCursor);
             }
         }
     }
 }
 
 void FramelessDialog::mouseReleaseEvent(QMouseEvent* mouseEvent) {
-    QApplication::restoreOverrideCursor();
+    unsetCursor();
     _isResizing = false;
 }
 

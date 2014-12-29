@@ -34,7 +34,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Model;     
-    setProperties(properties, true);
+    setProperties(properties);
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
     _color[0] = _color[1] = _color[2] = 0;
@@ -55,9 +55,9 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     return properties;
 }
 
-bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
@@ -285,7 +285,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 
 QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
-AnimationCache ModelEntityItem::_animationCache;
 
 // This class/instance will cleanup the animations once unloaded.
 class EntityAnimationsBookkeeper {
@@ -309,7 +308,7 @@ Animation* ModelEntityItem::getAnimation(const QString& url) {
     
     // if we don't already have this model then create it and initialize it
     if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
-        animation = _animationCache.getAnimation(url);
+        animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
         _loadedAnimations[url] = animation;
     } else {
         animation = _loadedAnimations[url];

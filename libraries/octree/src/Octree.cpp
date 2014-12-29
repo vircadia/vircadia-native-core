@@ -728,6 +728,10 @@ bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     }
 
     recurseTreeWithOperation(findRayIntersectionOp, &args);
+    
+    if (args.found) {
+        args.distance *= (float)(TREE_SCALE); // scale back up to meters
+    }
 
     if (gotLock) {
         unlock();

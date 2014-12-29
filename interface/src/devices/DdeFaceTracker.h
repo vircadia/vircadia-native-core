@@ -14,16 +14,15 @@
 
 #include <QUdpSocket>
 
+#include <DependencyManager.h>
+
 #include "FaceTracker.h"
 
 class DdeFaceTracker : public FaceTracker {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(DdeFaceTracker)
     
 public:
-    DdeFaceTracker();
-    DdeFaceTracker(const QHostAddress& host, quint16 port);
-    ~DdeFaceTracker();
-    
     //initialization
     void init();
     void reset();
@@ -57,6 +56,10 @@ private slots:
     void socketStateChanged(QAbstractSocket::SocketState socketState);
     
 private:
+    DdeFaceTracker();
+    DdeFaceTracker(const QHostAddress& host, quint16 port);
+    ~DdeFaceTracker();
+    
     float getBlendshapeCoefficient(int index) const;
     void decodePacket(const QByteArray& buffer);
     

@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "Gverb")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "Gverb")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -25,15 +25,15 @@ else ()
 endif ()
 
 if (APPLE)
-  set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
+  set(GL_HEADERS "#include <OpenGL/glext.h>")
 elseif (UNIX)
   # include the right GL headers for UNIX
-  set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
+  set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glext.h>")
 elseif (WIN32)
   add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
   add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 
-  set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>\n#include <GL/wglew.h>")
+  set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/wglew.h>")
 endif ()
 
 # set up the external glm library
@@ -107,7 +107,8 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree voxels gpu fbx metavoxels networking entities avatars audio animation script-engine physics)
+link_hifi_libraries(shared octree voxels gpu model fbx metavoxels networking entities avatars audio animation script-engine physics 
+                    render-utils entities-renderer)
 
 # find any optional and required libraries
 find_package(ZLIB REQUIRED)
@@ -156,7 +157,6 @@ if (VISAGE_FOUND AND NOT DISABLE_VISAGE AND APPLE)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
   find_library(AVFoundation AVFoundation)
   find_library(CoreMedia CoreMedia)
-  find_library(NEW_STD_LIBRARY libc++.dylib /usr/lib/)
   target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
 endif ()
 
@@ -194,11 +194,10 @@ if (APPLE)
   # link in required OS X frameworks and include the right GL headers
   find_library(CoreAudio CoreAudio)
   find_library(CoreFoundation CoreFoundation)
-  find_library(GLUT GLUT)
   find_library(OpenGL OpenGL)
   find_library(AppKit AppKit)
 
-  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${GLUT} ${OpenGL} ${AppKit})
+  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${OpenGL} ${AppKit})
     
   # install command for OS X bundle
   INSTALL(TARGETS ${TARGET_NAME}
@@ -214,15 +213,12 @@ else (APPLE)
   )
     
   find_package(OpenGL REQUIRED)
-  find_package(GLUT REQUIRED)
-  
-  include_directories(SYSTEM "${GLUT_INCLUDE_DIRS}")
   
   if (${OPENGL_INCLUDE_DIR})
     include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
   endif ()
   
-  target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}" "${GLUT_LIBRARIES}")
+  target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
   
   # link target to external libraries
   if (WIN32)
@@ -232,7 +228,7 @@ else (APPLE)
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
 
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib)
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib Winmm.lib)
 
     # try to find the Nsight package and add it to the build if we find it
     find_package(NSIGHT)
@@ -246,4 +242,4 @@ else (APPLE)
 endif (APPLE)
 
 # link any dependencies bubbled up from our linked dependencies
-link_shared_dependencies()
+include_dependency_includes()

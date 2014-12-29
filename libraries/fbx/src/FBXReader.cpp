@@ -138,7 +138,15 @@ static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
 static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
 
-template<class T> QVariant readBinaryArray(QDataStream& in) {
+template<class T> int streamSize() {
+    return sizeof(T);
+}
+
+template<bool> int streamSize() {
+    return 1;
+}
+
+template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
     quint32 arrayLength;
     quint32 encoding;
     quint32 compressedLength;
@@ -146,6 +154,7 @@ template<class T> QVariant readBinaryArray(QDataStream& in) {
     in >> arrayLength;
     in >> encoding;
     in >> compressedLength;
+    position += sizeof(quint32) * 3;
 
     QVector<T> values;
     const unsigned int DEFLATE_ENCODING = 1;
@@ -154,6 +163,7 @@ template<class T> QVariant readBinaryArray(QDataStream& in) {
         QByteArray compressed(sizeof(quint32) + compressedLength, 0);
         *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
         in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
+        position += compressedLength;
         QByteArray uncompressed = qUncompress(compressed);
         QDataStream uncompressedIn(uncompressed);
         uncompressedIn.setByteOrder(QDataStream::LittleEndian);
@@ -167,65 +177,74 @@ template<class T> QVariant readBinaryArray(QDataStream& in) {
         for (quint32 i = 0; i < arrayLength; i++) {
             T value;
             in >> value;
+            position += streamSize<T>();
             values.append(value);
         }
     }
     return QVariant::fromValue(values);
 }
 
-QVariant parseBinaryFBXProperty(QDataStream& in) {
+QVariant parseBinaryFBXProperty(QDataStream& in, int& position) {
     char ch;
     in.device()->getChar(&ch);
+    position++;
     switch (ch) {
         case 'Y': {
             qint16 value;
             in >> value;
+            position += sizeof(qint16);
             return QVariant::fromValue(value);
         }
         case 'C': {
             bool value;
             in >> value;
+            position++;
             return QVariant::fromValue(value);
         }
         case 'I': {
             qint32 value;
             in >> value;
+            position += sizeof(qint32);
             return QVariant::fromValue(value);
         }
         case 'F': {
             float value;
             in >> value;
+            position += sizeof(float);
             return QVariant::fromValue(value);
         }
         case 'D': {
             double value;
             in >> value;
+            position += sizeof(double);
             return QVariant::fromValue(value);
         }
         case 'L': {
             qint64 value;
             in >> value;
+            position += sizeof(qint64);
             return QVariant::fromValue(value);
         }
         case 'f': {
-            return readBinaryArray<float>(in);
+            return readBinaryArray<float>(in, position);
         }
         case 'd': {
-            return readBinaryArray<double>(in);
+            return readBinaryArray<double>(in, position);
         }
         case 'l': {
-            return readBinaryArray<qint64>(in);
+            return readBinaryArray<qint64>(in, position);
         }
         case 'i': {
-            return readBinaryArray<qint32>(in);
+            return readBinaryArray<qint32>(in, position);
         }
         case 'b': {
-            return readBinaryArray<bool>(in);
+            return readBinaryArray<bool>(in, position);
         }
         case 'S':
         case 'R': {
             quint32 length;
             in >> length;
+            position += sizeof(quint32) + length;
             return QVariant::fromValue(in.device()->read(length));
         }
         default:
@@ -233,8 +252,8 @@ QVariant parseBinaryFBXProperty(QDataStream& in) {
     }
 }
 
-FBXNode parseBinaryFBXNode(QDataStream& in) {
-    quint32 endOffset;
+FBXNode parseBinaryFBXNode(QDataStream& in, int& position) {
+    qint32 endOffset;
     quint32 propertyCount;
     quint32 propertyListLength;
     quint8 nameLength;
@@ -243,21 +262,23 @@ FBXNode parseBinaryFBXNode(QDataStream& in) {
     in >> propertyCount;
     in >> propertyListLength;
     in >> nameLength;
+    position += sizeof(quint32) * 3 + sizeof(quint8);
 
     FBXNode node;
-    const unsigned int MIN_VALID_OFFSET = 40;
+    const int MIN_VALID_OFFSET = 40;
     if (endOffset < MIN_VALID_OFFSET || nameLength == 0) {
         // use a null name to indicate a null node
         return node;
     }
     node.name = in.device()->read(nameLength);
+    position += nameLength;
 
     for (quint32 i = 0; i < propertyCount; i++) {
-        node.properties.append(parseBinaryFBXProperty(in));
+        node.properties.append(parseBinaryFBXProperty(in, position));
     }
 
-    while (endOffset > in.device()->pos()) {
-        FBXNode child = parseBinaryFBXNode(in);
+    while (endOffset > position) {
+        FBXNode child = parseBinaryFBXNode(in, position);
         if (child.name.isNull()) {
             return node;
 
@@ -416,11 +437,12 @@ FBXNode parseFBX(QIODevice* device) {
     // skip the rest of the header
     const int HEADER_SIZE = 27;
     in.skipRawData(HEADER_SIZE);
+    int position = HEADER_SIZE;
 
     // parse the top-level node
     FBXNode top;
     while (device->bytesAvailable()) {
-        FBXNode next = parseBinaryFBXNode(in);
+        FBXNode next = parseBinaryFBXNode(in, position);
         if (next.name.isNull()) {
             return top;
 
@@ -1520,7 +1542,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                             }
                         } else {
                             std::string whatisthat = subobject.name;
-                            if (whatisthat == "WTF") {
+                            if (whatisthat == "Shape") {
                             } 
                         }
 #endif
@@ -2516,7 +2538,11 @@ QByteArray writeMapping(const QVariantHash& mapping) {
 FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
-    return extractFBXGeometry(parseFBX(&buffer), mapping, loadLightmaps, lightmapLevel);
+    return readFBX(&buffer, mapping, loadLightmaps, lightmapLevel);
+}
+
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
+    return extractFBXGeometry(parseFBX(device), mapping, loadLightmaps, lightmapLevel);
 }
 
 bool addMeshVoxelsOperation(OctreeElement* element, void* extraData) {

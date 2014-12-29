@@ -10,6 +10,8 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <DependencyManager.h>
+#include <GlowEffect.h>
 #include <NodeList.h>
 
 #include "Application.h"
@@ -18,6 +20,8 @@
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
+#include "devices/DdeFaceTracker.h"
+#include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 
 using namespace std;
@@ -68,18 +72,19 @@ void Head::reset() {
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
-    
     if (isMine) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
             FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            if ((_isFaceshiftConnected = faceTracker)) {
+            DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
+            Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
+            
+            if ((_isFaceshiftConnected = (faceshift == faceTracker))) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-                _isFaceshiftConnected = true;
-            } else if (Application::getInstance()->getDDE()->isActive()) {
-                faceTracker = Application::getInstance()->getDDE();
+            } else if (dde->isActive()) {
+                faceTracker = dde.data();
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             }            
         }
@@ -196,14 +201,14 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         _mouth2 = glm::mix(_audioJawOpen * MMMM_POWER, _mouth2, MMMM_PERIOD + randFloat() * MMMM_RANDOM_PERIOD);
         _mouth4 = glm::mix(_audioJawOpen, _mouth4, SMILE_PERIOD + randFloat() * SMILE_RANDOM_PERIOD);
         
-        Application::getInstance()->getFaceshift()->updateFakeCoefficients(_leftEyeBlink,
-                                                                           _rightEyeBlink,
-            _browAudioLift,
-            _audioJawOpen,
-            _mouth2,
-            _mouth3,
-            _mouth4,
-            _blendshapeCoefficients);
+        DependencyManager::get<Faceshift>()->updateFakeCoefficients(_leftEyeBlink,
+                                                                    _rightEyeBlink,
+                                                                    _browAudioLift,
+                                                                    _audioJawOpen,
+                                                                    _mouth2,
+                                                                    _mouth3,
+                                                                    _mouth4,
+                                                                    _blendshapeCoefficients);
     } else {
         _saccade = glm::vec3();
     }
@@ -326,7 +331,7 @@ void Head::addLeanDeltas(float sideways, float forward) {
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
 
-    Application::getInstance()->getGlowEffect()->begin();
+    DependencyManager::get<GlowEffect>()->begin();
     
     glLineWidth(2.0);
     glBegin(GL_LINES);
@@ -340,7 +345,7 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
     glEnd();
     
-    Application::getInstance()->getGlowEffect()->end();
+    DependencyManager::get<GlowEffect>()->end();
 }
 
 

@@ -17,7 +17,6 @@ public:
     EntityItem* entity;
     AACube oldCube;
     AACube newCube;
-    AABox oldCubeClamped;
     AABox newCubeClamped;
     EntityTreeElement* oldContainingElement;
     AACube oldContainingElementCube;
@@ -43,7 +42,6 @@ public:
     virtual bool postRecursion(OctreeElement* element);
     virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);
     bool hasMovingEntities() const { return _entitiesToMove.size() > 0; }
-    void finish();
 private:
     EntityTree* _tree;
     QSet<EntityToMoveDetails> _entitiesToMove;

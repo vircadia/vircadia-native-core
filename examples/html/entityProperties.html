@@ -70,20 +70,28 @@
         };
 
         function loaded() {
+            var elID = document.getElementById("property-id");
             var elType = document.getElementById("property-type");
             var elLocked = document.getElementById("property-locked");
             var elVisible = document.getElementById("property-visible");
             var elPositionX = document.getElementById("property-pos-x");
             var elPositionY = document.getElementById("property-pos-y");
             var elPositionZ = document.getElementById("property-pos-z");
+            var elMoveSelectionToGrid = document.getElementById("move-selection-to-grid");
+            var elMoveAllToGrid = document.getElementById("move-all-to-grid");
 
             var elDimensionsX = document.getElementById("property-dim-x");
             var elDimensionsY = document.getElementById("property-dim-y");
             var elDimensionsZ = document.getElementById("property-dim-z");
+            var elResetToNaturalDimensions = document.getElementById("reset-to-natural-dimensions");
 
             var elRegistrationX = document.getElementById("property-reg-x");
             var elRegistrationY = document.getElementById("property-reg-y");
             var elRegistrationZ = document.getElementById("property-reg-z");
+
+            var elRotationX = document.getElementById("property-rot-x");
+            var elRotationY = document.getElementById("property-rot-y");
+            var elRotationZ = document.getElementById("property-rot-z");
 
             var elLinearVelocityX = document.getElementById("property-lvel-x");
             var elLinearVelocityY = document.getElementById("property-lvel-y");
@@ -156,6 +164,8 @@
                         } else {
                             var properties = data.properties;
 
+                            elID.innerHTML = data.id;
+
                             elType.innerHTML = properties.type;
 
                             elLocked.checked = properties.locked;
@@ -180,6 +190,10 @@
                             elRegistrationX.value = properties.registrationPoint.x.toFixed(2);
                             elRegistrationY.value = properties.registrationPoint.y.toFixed(2);
                             elRegistrationZ.value = properties.registrationPoint.z.toFixed(2);
+
+                            elRotationX.value = properties.rotation.x.toFixed(2);
+                            elRotationY.value = properties.rotation.y.toFixed(2);
+                            elRotationZ.value = properties.rotation.z.toFixed(2);
 
                             elLinearVelocityX.value = properties.velocity.x.toFixed(2);
                             elLinearVelocityY.value = properties.velocity.y.toFixed(2);
@@ -302,6 +316,12 @@
             elRegistrationY.addEventListener('change', registrationChangeFunction);
             elRegistrationZ.addEventListener('change', registrationChangeFunction);
 
+            var rotationChangeFunction = createEmitVec3PropertyUpdateFunction(
+                'rotation', elRotationX, elRotationY, elRotationZ);
+            elRotationX.addEventListener('change', rotationChangeFunction);
+            elRotationY.addEventListener('change', rotationChangeFunction);
+            elRotationZ.addEventListener('change', rotationChangeFunction);
+
             var velocityChangeFunction = createEmitVec3PropertyUpdateFunction(
                 'velocity', elLinearVelocityX, elLinearVelocityY, elLinearVelocityZ);
             elLinearVelocityX.addEventListener('change', velocityChangeFunction);
@@ -381,6 +401,25 @@
             elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
             elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
 
+            elMoveSelectionToGrid.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "moveSelectionToGrid",
+                }));
+            });
+            elMoveAllToGrid.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "moveAllToGrid",
+                }));
+            });
+            elResetToNaturalDimensions.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "resetToNaturalDimensions",
+                }));
+            });
+
 
             var resizing = false;
             var startX = 0;
@@ -439,6 +478,14 @@
         </colgroup>
         <tr>
             <td class="label">
+                ID
+            </td>
+            <td>
+                <label id="property-id" class="selectable"></label>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">
                 Type
             </td>
             <td>
@@ -465,6 +512,10 @@
                 <div class="input-area">X <input class="coord" type='number' id="property-pos-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-pos-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-pos-z"></input></div>
+                <div>
+                    <input type="button" id="move-selection-to-grid" value="Selection to Grid">
+                    <input type="button" id="move-all-to-grid" value="All to Grid">
+                </div>
             </td>
         </tr>
 
@@ -483,6 +534,18 @@
                 <div class="input-area">X <input class="coord" type='number' id="property-dim-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-dim-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-dim-z"></input></div>
+                <div>
+                    <input type="button" id="reset-to-natural-dimensions" value="Reset to Natural Dimensions">
+                </div>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="label">Rotation</td>
+            <td>
+                <div class="input-area">Pitch <input class="coord" type='number' id="property-rot-x"></input></div>
+                <div class="input-area">Yaw <input class="coord" type='number' id="property-rot-y"></input></div>
+                <div class="input-area">Roll <input class="coord" type='number' id="property-rot-z"></input></div>
             </td>
         </tr>
 

@@ -6,4 +6,4 @@ setup_hifi_project(Network)
 # link the shared hifi libraries
 link_hifi_libraries(networking shared)
 
-link_shared_dependencies()
+include_dependency_includes()

@@ -22,6 +22,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <ShutdownEventListener.h>
 #include <SoundCache.h>
 
 #include "AssignmentFactory.h"
@@ -38,7 +39,6 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
-    _shutdownEventListener(this),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
     _localASPortSharedMem(NULL)
 {
@@ -49,8 +49,12 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     setApplicationName("assignment-client");
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
-    installNativeEventFilter(&_shutdownEventListener);
-    connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
+    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
+#ifdef _WIN32
+    installNativeEventFilter(&ShutdownEventListener::getInstance());
+#else
+    ShutdownEventListener::getInstance();
+#endif
 
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);

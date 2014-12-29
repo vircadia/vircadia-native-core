@@ -100,26 +100,31 @@ void ImageOverlay::render(RenderArgs* args) {
     float w = fromImage.width() / imageWidth; // ?? is this what we want? not sure
     float h = fromImage.height() / imageHeight;
 
+    int left = _bounds.left();
+    int right = _bounds.right() + 1;
+    int top = _bounds.top();
+    int bottom = _bounds.bottom() + 1;
+
     glBegin(GL_QUADS);
         if (_renderImage) {
             glTexCoord2f(x, 1.0f - y);
         }
-        glVertex2f(_bounds.left(), _bounds.top());
+        glVertex2f(left, top);
 
         if (_renderImage) {
             glTexCoord2f(x + w, 1.0f - y);
         }
-        glVertex2f(_bounds.right(), _bounds.top());
+        glVertex2f(right, top);
 
         if (_renderImage) {
             glTexCoord2f(x + w, 1.0f - (y + h));
         }
-        glVertex2f(_bounds.right(), _bounds.bottom());
+        glVertex2f(right, bottom);
 
         if (_renderImage) {
             glTexCoord2f(x, 1.0f - (y + h));
         }
-        glVertex2f(_bounds.left(), _bounds.bottom());
+        glVertex2f(left, bottom);
     glEnd();
 
     if (_renderImage) {

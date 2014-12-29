@@ -39,6 +39,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
+    qScriptRegisterMetaType(engine, qSizeFToScriptValue, qSizeFFromScriptValue);
 }
 
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
@@ -206,3 +207,14 @@ void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
     uuid = fromString;
 }
 
+QScriptValue qSizeFToScriptValue(QScriptEngine* engine, const QSizeF& qSizeF) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("width", qSizeF.width());
+    obj.setProperty("height", qSizeF.height());
+    return obj;
+}
+
+void qSizeFFromScriptValue(const QScriptValue& object, QSizeF& qSizeF) {
+    qSizeF.setWidth(object.property("width").toVariant().toFloat());
+    qSizeF.setHeight(object.property("height").toVariant().toFloat());
+}

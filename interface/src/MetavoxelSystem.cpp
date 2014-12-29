@@ -21,17 +21,18 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
+#include <Model.h>
 #include <SharedUtil.h>
 
 #include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
+#include <PathUtils.h>
 #include <ScriptCache.h>
 
 #include "Application.h"
 #include "MetavoxelSystem.h"
-#include "renderer/Model.h"
-#include "renderer/RenderUtil.h"
 
 REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
@@ -63,9 +64,9 @@ void MetavoxelSystem::init() {
     _voxelBufferAttribute->setLODThresholdMultiplier(
         AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
         
-    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
             "shaders/metavoxel_heightfield_base.vert");
-    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_heightfield_base.frag");
     _baseHeightfieldProgram.link();
     
@@ -78,9 +79,9 @@ void MetavoxelSystem::init() {
     
     loadSplatProgram("heightfield", _splatHeightfieldProgram, _splatHeightfieldLocations);
     
-    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         "shaders/metavoxel_heightfield_cursor.vert");
-    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_cursor.frag");
     _heightfieldCursorProgram.link();
     
@@ -88,17 +89,17 @@ void MetavoxelSystem::init() {
     _heightfieldCursorProgram.setUniformValue("heightMap", 0);
     _heightfieldCursorProgram.release();
     
-    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         "shaders/metavoxel_voxel_base.vert");
-    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_voxel_base.frag");
     _baseVoxelProgram.link();
     
     loadSplatProgram("voxel", _splatVoxelProgram, _splatVoxelLocations);
     
-    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         "shaders/metavoxel_voxel_cursor.vert");
-    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_cursor.frag");
     _voxelCursorProgram.link();
 }
@@ -205,7 +206,7 @@ void MetavoxelSystem::render() {
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
     
         glDisable(GL_BLEND);
         glEnable(GL_CULL_FACE);
@@ -251,7 +252,7 @@ void MetavoxelSystem::render() {
             glPopMatrix();
         }
         
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false);
         
         _baseHeightfieldProgram.release();
         
@@ -348,7 +349,7 @@ void MetavoxelSystem::render() {
     }
     
     if (!_voxelBaseBatches.isEmpty()) {
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
     
         glEnableClientState(GL_VERTEX_ARRAY);
         glDisable(GL_BLEND);
@@ -383,7 +384,7 @@ void MetavoxelSystem::render() {
         glDisable(GL_ALPHA_TEST);
         glEnable(GL_BLEND);
             
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false);
         
         if (!_voxelSplatBatches.isEmpty()) {
             glDepthFunc(GL_LEQUAL);
@@ -463,14 +464,14 @@ void MetavoxelSystem::render() {
     }
     
     if (!_hermiteBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
         
         glEnableClientState(GL_VERTEX_ARRAY);
         
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         glNormal3f(0.0f, 1.0f, 0.0f);
         
-        Application::getInstance()->getDeferredLightingEffect()->bindSimpleProgram();
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
         
         foreach (const HermiteBatch& batch, _hermiteBatches) {
             batch.vertexBuffer->bind();
@@ -482,11 +483,11 @@ void MetavoxelSystem::render() {
             batch.vertexBuffer->release();
         }
         
-        Application::getInstance()->getDeferredLightingEffect()->releaseSimpleProgram();
+        DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
         
         glDisableClientState(GL_VERTEX_ARRAY);
         
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false);
     }
     _hermiteBatches.clear();
     
@@ -495,7 +496,7 @@ void MetavoxelSystem::render() {
 }
 
 void MetavoxelSystem::refreshVoxelData() {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList::getInstance()->eachNode([](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -503,7 +504,7 @@ void MetavoxelSystem::refreshVoxelData() {
                 QMetaObject::invokeMethod(client, "refreshVoxelData");
             }
         }
-    }
+    });
 }
 
 class RayVoxelIntersectionVisitor : public RayIntersectionVisitor {
@@ -797,7 +798,7 @@ void MetavoxelSystem::applyMaterialEdit(const MetavoxelEditMessage& message, boo
                 Q_ARG(bool, reliable));
             return;
         }
-        QSharedPointer<NetworkTexture> texture = Application::getInstance()->getTextureCache()->getTexture(
+        QSharedPointer<NetworkTexture> texture = DependencyManager::get<TextureCache>()->getTexture(
             material->getDiffuse(), SPLAT_TEXTURE);
         if (texture->isLoaded()) {
             MetavoxelEditMessage newMessage = message;
@@ -818,7 +819,7 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
 }
 
 void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList::getInstance()->eachNode([&visitor, &render](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -832,13 +833,13 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
                 }
             }
         }
-    }
+    });
 }
 
 void MetavoxelSystem::loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+    program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
         "shaders/metavoxel_" + type + "_splat.vert");
-    program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+    program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
         "shaders/metavoxel_" + type + "_splat.frag");
     program.link();
     
@@ -1177,10 +1178,11 @@ void VoxelBuffer::render(bool cursor) {
         
         if (!_materials.isEmpty()) {
             _networkTextures.resize(_materials.size());
+            TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < _materials.size(); i++) {
                 const SharedObjectPointer material = _materials.at(i);
                 if (material) {
-                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                    _networkTextures[i] = textureCache->getTexture(
                         static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }
@@ -1980,7 +1982,7 @@ void SphereRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
-    Application::getInstance()->getDeferredLightingEffect()->renderSolidSphere(sphere->getScale(), 32, 32);
+    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(sphere->getScale(), 32, 32);
     
     glPopMatrix();
 }
@@ -2001,7 +2003,7 @@ void CuboidRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     glScalef(1.0f, cuboid->getAspectY(), cuboid->getAspectZ());
     
-    Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(cuboid->getScale() * 2.0f);
+    DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(cuboid->getScale() * 2.0f);
     
     glPopMatrix();
 }
@@ -2188,13 +2190,15 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         bufferPair.second.release();
     }
     if (_heightTextureID == 0) {
+        // we use non-aligned data for the various layers
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    
         glGenTextures(1, &_heightTextureID);
         glBindTexture(GL_TEXTURE_2D, _heightTextureID);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         const QVector<quint16>& heightContents = node->getHeight()->getContents();
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0,
             GL_RED, GL_UNSIGNED_SHORT, heightContents.constData());
@@ -2229,10 +2233,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                 
             const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
             _networkTextures.resize(materials.size());
+            TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < materials.size(); i++) {
                 const SharedObjectPointer& material = materials.at(i);
                 if (material) {
-                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                    _networkTextures[i] = textureCache->getTexture(
                         static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
                 }
             }
@@ -2241,6 +2246,9 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &ZERO_VALUE);
         }
         glBindTexture(GL_TEXTURE_2D, 0);
+        
+        // restore the default alignment; it's what Qt uses for image storage
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     }
     
     if (cursor) {

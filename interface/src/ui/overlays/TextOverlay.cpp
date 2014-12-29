@@ -13,9 +13,9 @@
 
 #include <QGLWidget>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 
 #include "TextOverlay.h"
-#include "ui/TextRenderer.h"
 
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
@@ -70,14 +70,19 @@ void TextOverlay::render(RenderArgs* args) {
     glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
         getBackgroundAlpha());
 
+    int left = _bounds.left();
+    int right = _bounds.right() + 1;
+    int top = _bounds.top();
+    int bottom = _bounds.bottom() + 1;
+
     glBegin(GL_QUADS);
-        glVertex2f(_bounds.left(), _bounds.top());
-        glVertex2f(_bounds.right(), _bounds.top());
-        glVertex2f(_bounds.right(), _bounds.bottom());
-        glVertex2f(_bounds.left(), _bounds.bottom());
+        glVertex2f(left, top);
+        glVertex2f(right, top);
+        glVertex2f(right, bottom);
+        glVertex2f(left, bottom);
     glEnd();
 
-    // Same font properties as textWidth()
+    // Same font properties as textSize()
     TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
@@ -169,8 +174,20 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
     return Overlay2D::getProperty(property);
 }
 
-float TextOverlay::textWidth(const QString& text) const {
+QSizeF TextOverlay::textSize(const QString& text) const {
+
     QFont font(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
-    return fontMetrics.width(qPrintable(text));
+    const int TEXT_HEIGHT_ADJUST = -2;  // Experimentally determined for the specified font
+
+    QStringList lines = text.split(QRegExp("\r\n|\r|\n"));
+
+    int width = 0;
+    for (int i = 0; i < lines.count(); i += 1) {
+        width = std::max(width, fontMetrics.width(qPrintable(lines[i])));
+    }
+
+    int height = lines.count() * (fontMetrics.height() + TEXT_HEIGHT_ADJUST);
+
+    return QSizeF(width, height);
 }

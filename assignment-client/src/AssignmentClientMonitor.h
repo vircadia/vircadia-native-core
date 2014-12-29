@@ -24,6 +24,7 @@ class AssignmentClientMonitor : public QCoreApplication {
     Q_OBJECT
 public:
     AssignmentClientMonitor(int &argc, char **argv, int numAssignmentClientForks);
+    ~AssignmentClientMonitor();
     
     void stopChildProcesses();
 private slots:

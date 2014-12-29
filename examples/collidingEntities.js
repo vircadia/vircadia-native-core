@@ -22,7 +22,7 @@ var velocity = {
   y: 0,
   z: 1 };
 
-var damping = 0.1;
+var damping = 0;
 
 var color = {  
   red: 255, 

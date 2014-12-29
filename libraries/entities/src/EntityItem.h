@@ -74,18 +74,19 @@ public:
     virtual EntityItemProperties getProperties() const;
     
     /// returns true if something changed
-    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    virtual bool setProperties(const EntityItemProperties& properties);
 
     /// Override this in your derived class if you'd like to be informed when something about the state of the entity
     /// has changed. This will be called with properties change or when new data is loaded from a stream
     virtual void somethingChangedNotification() { }
 
+    void recordCreationTime();    // set _created to 'now'
     quint64 getLastSimulated() const { return _lastSimulated; } /// Last simulated time of this entity universal usecs
 
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
     void setLastEdited(quint64 lastEdited) 
-        { _lastEdited = _lastSimulated = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
+        { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
 
@@ -119,9 +120,6 @@ public:
     virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
 
     static int expectedBytes();
-
-    static bool encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& details,
-                        unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
 
@@ -227,8 +225,6 @@ public:
     float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
-    AACube getOldMaximumAACube() const { return _oldMaximumAACube; }
-    void setOldMaximumAACube(const AACube& cube) { _oldMaximumAACube = cube; }
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     static const QString DEFAULT_SCRIPT;
@@ -347,7 +343,6 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
-    AACube _oldMaximumAACube;   // remember this so we know where the entity used to live in the tree
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation

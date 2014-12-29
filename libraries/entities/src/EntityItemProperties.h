@@ -95,9 +95,7 @@ enum EntityPropertyList {
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 
-const quint64 UNKNOWN_CREATED_TIME = (quint64)(-1);
-const quint64 USE_EXISTING_CREATED_TIME = (quint64)(-2);
-
+const quint64 UNKNOWN_CREATED_TIME = 0;
 
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
@@ -134,7 +132,7 @@ public:
     AABox getAABoxInMeters() const;
 
     void debugDump() const;
-    void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
+    void setLastEdited(quint64 usecTime);
 
     DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool);
     DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3);
@@ -180,7 +178,7 @@ public:
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     quint64 getCreated() const { return _created; }
-    void setCreated(quint64 usecTime) { _created = usecTime; }
+    void setCreated(quint64 usecTime);
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
 
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }

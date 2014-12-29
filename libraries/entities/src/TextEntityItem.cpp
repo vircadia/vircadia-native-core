@@ -37,7 +37,7 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityIte
 {
     _type = EntityTypes::Text;
     _created = properties.getCreated();
-    setProperties(properties, true);
+    setProperties(properties);
 }
 
 void TextEntityItem::setDimensions(const glm::vec3& value) {
@@ -57,9 +57,9 @@ EntityItemProperties TextEntityItem::getProperties() const {
     return properties;
 }
 
-bool TextEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(text, setText);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineHeight, setLineHeight);

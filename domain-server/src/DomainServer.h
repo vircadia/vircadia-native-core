@@ -27,7 +27,6 @@
 
 #include "DomainServerSettingsManager.h"
 #include "DomainServerWebSessionData.h"
-#include "ShutdownEventListener.h"
 #include "WalletTransaction.h"
 
 #include "PendingAssignedNodeData.h"
@@ -101,9 +100,9 @@ private:
     
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
-    void createScriptedAssignmentsFromList(const QVariantList& configList);
     void createStaticAssignmentsForType(Assignment::Type type, const QVariantList& configList);
     void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
+    void populateStaticScriptedAssignmentsFromSettings();
     
     SharedAssignmentPointer matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
@@ -125,8 +124,6 @@ private:
     
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
-
-    ShutdownEventListener _shutdownEventListener;
     
     HTTPManager _httpManager;
     HTTPSManager* _httpsManager;
