@@ -579,7 +579,8 @@ bool MetavoxelSystem::findFirstRayVoxelIntersection(const glm::vec3& origin, con
 }
 
 void MetavoxelSystem::paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldMaterialEdit(position, radius, SharedObjectPointer(), color)) };
+    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldMaterialEdit(position, radius,
+        SharedObjectPointer(), color)) };
     applyEdit(edit, true);
 }
 
@@ -1106,6 +1107,7 @@ VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>
     _vertices(vertices),
     _indices(indices),
     _hermite(hermite),
+    _hermiteEnabled(Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)),
     _quadIndices(quadIndices),
     _size(size),
     _vertexCount(vertices.size()),
@@ -2292,7 +2294,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         // restore the default alignment; it's what Qt uses for image storage
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     }
-    if (!_voxels && node->getStack()) {
+    bool displayHermite = Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData);
+    if ((!_voxels || (displayHermite && !static_cast<VoxelBuffer*>(_voxels.data())->isHermiteEnabled())) && node->getStack()) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         QVector<glm::vec3> hermiteSegments;
@@ -2306,7 +2309,6 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         glm::vec3 pos;
         glm::vec3 step(1.0f / innerStackWidth, scale.x / (innerStackWidth * scale.y),
             1.0f / innerStackHeight);
-        bool displayHermite = Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData);
         
         for (int z = 0; z < stackHeight; z++, pos.z += step.z) {
             pos.x = 0.0f;

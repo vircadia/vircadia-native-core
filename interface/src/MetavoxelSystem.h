@@ -331,6 +331,8 @@ public:
         const QMultiHash<VoxelCoord, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
             QVector<SharedObjectPointer>());
 
+    bool isHermiteEnabled() const { return _hermiteEnabled; }
+
     /// Finds the first intersection between the described ray and the voxel data.
     /// \param entry the entry point of the ray in relative coordinates, from (0, 0, 0) to (1, 1, 1)
     bool findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
@@ -344,6 +346,7 @@ private:
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
     QVector<glm::vec3> _hermite;
+    bool _hermiteEnabled;
     QMultiHash<VoxelCoord, int> _quadIndices;
     int _size;
     int _vertexCount;
