@@ -42,6 +42,9 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
+    foreach (EntityTreeElement* element, _entityToElementMap) {
+        element->cleanupEntities();
+    }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
 }
