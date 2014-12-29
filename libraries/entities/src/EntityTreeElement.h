@@ -175,8 +175,6 @@ public:
 
     EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
 
-    // TODO: probably move the cleanupEntities() stuff into EntityTree
-    //void cleanupEntities(PhysicsEngine* physicsEngine);
     bool removeEntityWithEntityItemID(const EntityItemID& id);
     bool removeEntityItem(EntityItem* entity);
 
