@@ -441,12 +441,13 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
 
     // loop through all other nodes that have sufficient audio to mix
     int streamsMixed = 0;
-    foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
+    
+    NodeList::getInstance()->eachNode([&](const SharedNodePointer& otherNode){
         if (otherNode->getLinkedData()) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
-
+            
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
-
+            
             const QHash<QUuid, PositionalAudioStream*>& otherNodeAudioStreams = otherNodeClientData->getAudioStreams();
             QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
             for (i = otherNodeAudioStreams.constBegin(); i != otherNodeAudioStreams.constEnd(); i++) {
@@ -456,14 +457,15 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
                 if (otherNodeStream->getType() == PositionalAudioStream::Microphone) {
                     streamUUID = otherNode->getUUID();
                 }
-                 
+                
                 if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
-                    streamsMixed += addStreamToMixForListeningNodeWithStream(listenerNodeData, streamUUID, 
-                                                                                otherNodeStream, nodeAudioStream);
+                    streamsMixed += addStreamToMixForListeningNodeWithStream(listenerNodeData, streamUUID,
+                                                                             otherNodeStream, nodeAudioStream);
                 }
             }
         }
-    }
+    });
+    
     return streamsMixed;
 }
 
@@ -541,12 +543,11 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
             QByteArray packet = receivedPacket;
             populatePacketHeader(packet, PacketTypeMuteEnvironment);
             
-            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+            nodeList->eachNode([&](const SharedNodePointer& node){
                 if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
                     nodeList->writeDatagram(packet, packet.size(), node);
                 }
-            }
-            
+            });
         } else {
             // let processNodeData handle it.
             nodeList->processNodeData(senderSockAddr, receivedPacket);
@@ -609,8 +610,9 @@ void AudioMixer::sendStatsPacket() {
     
     NodeList* nodeList = NodeList::getInstance();
     int clientNumber = 0;
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-
+    
+    
+    nodeList->eachNode([&](const SharedNodePointer& node) {
         // if we're too large, send the packet
         if (sizeOfStats > TOO_BIG_FOR_MTU) {
             nodeList->sendStatsToDomainServer(statsObject2);
@@ -628,7 +630,7 @@ void AudioMixer::sendStatsPacket() {
             somethingToSend = true;
             sizeOfStats += property.size() + value.size();
         }
-    }
+    });
 
     if (somethingToSend) {
         nodeList->sendStatsToDomainServer(statsObject2);
@@ -766,7 +768,8 @@ void AudioMixer::run() {
             _lastPerSecondCallbackTime = now;
         }
         
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        nodeList->eachNode([&](const SharedNodePointer& node) {
+            
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
@@ -833,7 +836,7 @@ void AudioMixer::run() {
                     ++_sumListeners;
                 }
             }
-        }
+        });
         
         ++_numStatFrames;
         
@@ -891,7 +894,7 @@ void AudioMixer::perSecondActions() {
             _timeSpentPerHashMatchCallStats.getWindowSum() / WINDOW_LENGTH_USECS * 100.0,
             _timeSpentPerHashMatchCallStats.getCurrentIntervalSum() / USECS_PER_SECOND * 100.0);
 
-        foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        NodeList::getInstance()->eachNode([](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
@@ -901,7 +904,7 @@ void AudioMixer::perSecondActions() {
                     nodeData->printUpstreamDownstreamStats();
                 }
             }
-        }
+        });
     }
 
     _datagramsReadPerCallStats.currentIntervalComplete();

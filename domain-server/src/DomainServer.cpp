@@ -549,7 +549,9 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     for (Assignment::Type defaultedType = Assignment::AudioMixerType;
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
-        if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
+        if (!excludedTypes.contains(defaultedType) 
+            && defaultedType != Assignment::UNUSED 
+            && defaultedType != Assignment::AgentType) {
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);
@@ -857,49 +859,48 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
-            foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
-
+            nodeList->eachNode([&](const SharedNodePointer& otherNode){
                 // reset our nodeByteArray and nodeDataStream
                 QByteArray nodeByteArray;
                 QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
-
+                
                 if (otherNode->getUUID() != node->getUUID() && nodeInterestList.contains(otherNode->getType())) {
-
+                    
                     // don't send avatar nodes to other avatars, that will come from avatar mixer
                     nodeDataStream << *otherNode.data();
-
+                    
                     // pack the secret that these two nodes will use to communicate with each other
                     QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
                     if (secretUUID.isNull()) {
                         // generate a new secret UUID these two nodes can use
                         secretUUID = QUuid::createUuid();
-
+                        
                         // set that on the current Node's sessionSecretHash
                         nodeData->getSessionSecretHash().insert(otherNode->getUUID(), secretUUID);
-
+                        
                         // set it on the other Node's sessionSecretHash
                         reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())
                         ->getSessionSecretHash().insert(node->getUUID(), secretUUID);
-
+                        
                     }
-
+                    
                     nodeDataStream << secretUUID;
-
+                    
                     if (broadcastPacket.size() +  nodeByteArray.size() > dataMTU) {
                         // we need to break here and start a new packet
                         // so send the current one
-
+                        
                         nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
-
+                        
                         // reset the broadcastPacket structure
                         broadcastPacket.resize(numBroadcastPacketLeadBytes);
                         broadcastDataStream.device()->seek(numBroadcastPacketLeadBytes);
                     }
-
+                    
                     // append the nodeByteArray to the current state of broadcastDataStream
                     broadcastPacket.append(nodeByteArray);
                 }
-            }
+            });
         }
 
         // always write the last broadcastPacket
@@ -996,14 +997,14 @@ void DomainServer::readAvailableDatagrams() {
 
 void DomainServer::setupPendingAssignmentCredits() {
     // enumerate the NodeList to find the assigned nodes
-    foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
-
+        
         if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
             // check if we have a non-finalized transaction for this node to add this amount to
             TransactionHash::iterator i = _pendingAssignmentCredits.find(nodeData->getWalletUUID());
             WalletTransaction* existingTransaction = NULL;
-
+            
             while (i != _pendingAssignmentCredits.end() && i.key() == nodeData->getWalletUUID()) {
                 if (!i.value()->isFinalized()) {
                     existingTransaction = i.value();
@@ -1012,16 +1013,16 @@ void DomainServer::setupPendingAssignmentCredits() {
                     ++i;
                 }
             }
-
+            
             qint64 elapsedMsecsSinceLastPayment = nodeData->getPaymentIntervalTimer().elapsed();
             nodeData->getPaymentIntervalTimer().restart();
-
+            
             const float CREDITS_PER_HOUR = 0.10f;
             const float CREDITS_PER_MSEC = CREDITS_PER_HOUR / (60 * 60 * 1000);
             const int SATOSHIS_PER_MSEC = CREDITS_PER_MSEC * SATOSHIS_PER_CREDIT;
-
+            
             float pendingCredits = elapsedMsecsSinceLastPayment * SATOSHIS_PER_MSEC;
-
+            
             if (existingTransaction) {
                 existingTransaction->incrementAmount(pendingCredits);
             } else {
@@ -1030,7 +1031,7 @@ void DomainServer::setupPendingAssignmentCredits() {
                 _pendingAssignmentCredits.insert(nodeData->getWalletUUID(), freshTransaction);
             }
         }
-    }
+    });
 }
 
 void DomainServer::sendPendingTransactionsToServer() {
@@ -1155,11 +1156,12 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     
     // add the number of currently connected agent users
     int numConnectedAuthedUsers = 0;
-    foreach(const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+    
+    NodeList::getInstance()->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
         if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
             ++numConnectedAuthedUsers;
         }
-    }
+    });
     
     const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
     const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
@@ -1277,8 +1279,9 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                     parseNodeDataFromByteArray(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress,
                                                senderSockAddr);
                     
-                    SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID,
-                                                                                   nodePublicAddress, nodeLocalAddress);
+                    SharedNodePointer checkInNode = nodeList->nodeWithUUID(nodeUUID);
+                    checkInNode->setPublicSocket(nodePublicAddress);
+                    checkInNode->setLocalSocket(nodeLocalAddress);
                     
                     // update last receive to now
                     quint64 timeNow = usecTimestampNow();
@@ -1470,15 +1473,15 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonObject assignedNodesJSON;
 
             // enumerate the NodeList to find the assigned nodes
-            foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+            NodeList::getInstance()->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
                 DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
-
+                
                 if (!nodeData->getAssignmentUUID().isNull()) {
                     // add the node using the UUID as the key
                     QString uuidString = uuidStringWithoutCurlyBraces(nodeData->getAssignmentUUID());
                     assignedNodesJSON[uuidString] = jsonObjectForNode(node);
                 }
-            }
+            });
 
             assignmentJSON["fulfilled"] = assignedNodesJSON;
 
@@ -1532,12 +1535,10 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonArray nodesJSONArray;
 
             // enumerate the NodeList to find the assigned nodes
-            LimitedNodeList* nodeList = LimitedNodeList::getInstance();
-
-            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+            LimitedNodeList::getInstance()->eachNode([this, &nodesJSONArray](const SharedNodePointer& node){
                 // add the node using the UUID as the key
                 nodesJSONArray.append(jsonObjectForNode(node));
-            }
+            });
 
             rootJSON["nodes"] = nodesJSONArray;
 
@@ -2065,16 +2066,9 @@ void DomainServer::addStaticAssignmentsToQueue() {
     QHash<QUuid, SharedAssignmentPointer>::iterator staticAssignment = staticHashCopy.begin();
     while (staticAssignment != staticHashCopy.end()) {
         // add any of the un-matched static assignments to the queue
-        bool foundMatchingAssignment = false;
-
+        
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
-            if (node->getUUID() == staticAssignment->data()->getUUID()) {
-                foundMatchingAssignment = true;
-            }
-        }
-
-        if (!foundMatchingAssignment) {
+        if (!NodeList::getInstance()->nodeWithUUID(staticAssignment->data()->getUUID())) {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             refreshStaticAssignmentAndAddToQueue(*staticAssignment);
         }

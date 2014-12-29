@@ -128,7 +128,7 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint texture
     glPushMatrix();
     glLoadIdentity();
     
-    gluOrtho2D(bounds.left(), bounds.right(), bounds.bottom(), bounds.top());
+    glOrtho(bounds.left(), bounds.right(), bounds.bottom(), bounds.top(), -1.0, 1.0);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_2D);

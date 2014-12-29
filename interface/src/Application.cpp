@@ -132,7 +132,7 @@ static QTimer* idleTimer = NULL;
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
-const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
+const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
@@ -309,15 +309,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
     
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter(getPositionForPath);
-    addressManager->setOrientationGetter(getOrientationForPath);
-    
-    // handle domain change signals from AddressManager
-    connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredToHostname,
-            this, &Application::changeDomainHostname);
-    
-    connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
-            &domainHandler, &DomainHandler::setIceServerHostnameAndID);
+    addressManager.setPositionGetter(getPositionForPath);
+    addressManager.setOrientationGetter(getOrientationForPath);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -541,8 +534,6 @@ void Application::initializeGL() {
     } else {
         isInitialized = true;
     }
-    int argc = 0;
-    glutInit(&argc, 0);
     #endif
 
     #ifdef WIN32
@@ -1439,7 +1430,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-            changeDomainHostname(snapshotData->getDomain());
+            NodeList::getInstance()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -2454,72 +2445,73 @@ int Application::sendNackPackets() {
     char packet[MAX_PACKET_SIZE];
 
     // iterates thru all nodes in NodeList
-    foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    nodeList->eachNode([&](const SharedNodePointer& node){
         
-        if (node->getActiveSocket() &&
-            ( node->getType() == NodeType::VoxelServer
-            || node->getType() == NodeType::EntityServer)
-            ) {
-
+        if (node->getActiveSocket()
+            && (node->getType() == NodeType::VoxelServer || node->getType() == NodeType::EntityServer)) {
+            
             QUuid nodeUUID = node->getUUID();
-
+            
             // if there are octree packets from this node that are waiting to be processed,
             // don't send a NACK since the missing packets may be among those waiting packets.
             if (_octreeProcessor.hasPacketsToProcessFrom(nodeUUID)) {
-                continue;
+                return;
             }
             
             _octreeSceneStatsLock.lockForRead();
-
+            
             // retreive octree scene stats of this node
             if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
                 _octreeSceneStatsLock.unlock();
-                continue;
+                return;
             }
-
+            
             // get sequence number stats of node, prune its missing set, and make a copy of the missing set
             SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
             sequenceNumberStats.pruneMissingSet();
             const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
-
+            
             _octreeSceneStatsLock.unlock();
-
+            
             // construct nack packet(s) for this node
             int numSequenceNumbersAvailable = missingSequenceNumbers.size();
             QSet<OCTREE_PACKET_SEQUENCE>::const_iterator missingSequenceNumbersIterator = missingSequenceNumbers.constBegin();
             while (numSequenceNumbersAvailable > 0) {
-
+                
                 char* dataAt = packet;
                 int bytesRemaining = MAX_PACKET_SIZE;
-
+                
                 // pack header
                 int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
                 dataAt += numBytesPacketHeader;
                 bytesRemaining -= numBytesPacketHeader;
-
+                
                 // calculate and pack the number of sequence numbers
                 int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
                 uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
                 uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
                 *numSequenceNumbersAt = numSequenceNumbers;
                 dataAt += sizeof(uint16_t);
-
+                
                 // pack sequence numbers
                 for (int i = 0; i < numSequenceNumbers; i++) {
                     OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
                     *sequenceNumberAt = *missingSequenceNumbersIterator;
                     dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
+                    
                     missingSequenceNumbersIterator++;
                 }
                 numSequenceNumbersAvailable -= numSequenceNumbers;
-
+                
                 // send it
-                NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, node);
+                nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
                 packetsSent++;
             }
         }
-    }
+    });
+
     return packetsSent;
 }
 
@@ -2552,7 +2544,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
 
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    nodeList->eachNode([&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
             totalServers++;
@@ -2583,7 +2577,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 }
             }
         }
-    }
+    });
 
     if (wantExtraDebugging) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d",
@@ -2609,20 +2603,18 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     if (wantExtraDebugging) {
         qDebug("perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
-
-    NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    
+    nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
-
-
+            
+            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-
+            
             bool inView = false;
             bool unknownView = false;
-
+            
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
@@ -2632,15 +2624,15 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-
+                
                 unsigned char* rootCode = map.getRootOctalCode();
-
+                
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-
+                    
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inView = true;
@@ -2653,15 +2645,15 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     }
                 }
             }
-
+            
             if (inView) {
                 _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
-                            << perUnknownServer << " to send us jurisdiction.";
+                    << perUnknownServer << " to send us jurisdiction.";
                 }
-
+                
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
                 // If there's only one server, then don't do this, and just let the normal voxel query pass through
                 // as expected... this way, we will actually get a valid scene if there is one to be seen
@@ -2685,22 +2677,22 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
-
+            
             // insert packet type/version and node UUID
             endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
-
+            
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
-
+            
             int packetLength = endOfQueryPacket - queryPacket;
-
+            
             // make sure we still have an active socket
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
-
+            
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
         }
-    }
+    });
 }
 
 bool Application::isHMDMode() const {
@@ -3565,7 +3557,7 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
             glPushMatrix();
             glColor4f(1, 1, 0, 1);
             glTranslatef(position.x, position.y, position.z); // where we actually want it!
-            glutWireSphere(keyholeRadius, 20, 20);
+            DependencyManager::get<GeometryCache>()->renderSphere(keyholeRadius, 20, 20, false); 
             glPopMatrix();
         }
     }
@@ -3624,16 +3616,6 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
 }
 
-void Application::uploadModel(ModelType modelType) {
-    ModelUploader* uploader = new ModelUploader(modelType);
-    QThread* thread = new QThread();
-    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
-    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
-    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
-
-    thread->start();
-}
-
 void Application::updateWindowTitle(){
 
     QString buildVersion = " (build " + applicationVersion() + ")";
@@ -3687,19 +3669,6 @@ void Application::updateLocationInServer() {
         accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
-}
-
-void Application::changeDomainHostname(const QString &newDomainHostname) {
-    NodeList* nodeList = NodeList::getInstance();
-    
-    if (!nodeList->getDomainHandler().isCurrentHostname(newDomainHostname)) {
-        // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
-        _myAvatar->sendKillAvatar();
-        
-        // call the domain hostname change as a queued connection on the nodelist
-        QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
-                                  Q_ARG(const QString&, newDomainHostname));
-    }
 }
 
 void Application::clearDomainOctreeDetails() {
@@ -4202,15 +4171,19 @@ void Application::toggleRunningScriptsWidget() {
 }
 
 void Application::uploadHead() {
-    uploadModel(HEAD_MODEL);
+    ModelUploader::uploadHead();
 }
 
 void Application::uploadSkeleton() {
-    uploadModel(SKELETON_MODEL);
+    ModelUploader::uploadSkeleton();
 }
 
 void Application::uploadAttachment() {
-    uploadModel(ATTACHMENT_MODEL);
+    ModelUploader::uploadAttachment();
+}
+
+void Application::uploadEntity() {
+    ModelUploader::uploadEntity();
 }
 
 void Application::openUrl(const QUrl& url) {

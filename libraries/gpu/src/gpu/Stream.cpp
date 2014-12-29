@@ -18,7 +18,7 @@ void Stream::Format::evaluateCache() {
     _elementTotalSize = 0;
     for(AttributeMap::iterator it = _attributes.begin(); it != _attributes.end(); it++) {
         Attribute& attrib = (*it).second;
-        Channel& channel = _channels[attrib._channel];
+        ChannelInfo& channel = _channels[attrib._channel];
         channel._slots.push_back(attrib._slot);
         channel._stride = std::max(channel._stride, attrib.getSize() + attrib._offset);
         channel._netSize += attrib.getSize();
@@ -41,7 +41,7 @@ BufferStream::BufferStream() :
 BufferStream::~BufferStream() {
 }
 
-void BufferStream::addBuffer(BufferPointer& buffer, Offset offset, Offset stride) {
+void BufferStream::addBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {
     _buffers.push_back(buffer);
     _offsets.push_back(offset);
     _strides.push_back(stride);

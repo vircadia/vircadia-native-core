@@ -156,6 +156,17 @@ void EntityItemProperties::debugDump() const {
     props.debugDumpBits();
 }
 
+void EntityItemProperties::setCreated(quint64 usecTime) { 
+    _created = usecTime; 
+    if (_lastEdited < _created) {
+        _lastEdited = _created;
+    }
+}
+
+void EntityItemProperties::setLastEdited(quint64 usecTime) { 
+    _lastEdited = usecTime > _created ? usecTime : _created; 
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
     
@@ -652,9 +663,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         entityID.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
         entityID.isKnownID = true;
         valid = true;
-
-        // created time is lastEdited time
-        properties.setCreated(USE_EXISTING_CREATED_TIME);
     }
 
     // Entity Type...

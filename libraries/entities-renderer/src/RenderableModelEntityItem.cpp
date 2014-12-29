@@ -34,9 +34,9 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
     }
 }
 
-bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties) {
     QString oldModelURL = getModelURL();
-    bool somethingChanged = ModelEntityItem::setProperties(properties, forceCopy);
+    bool somethingChanged = ModelEntityItem::setProperties(properties);
     if (somethingChanged && oldModelURL != getModelURL()) {
         _needsModelReload = true;
     }

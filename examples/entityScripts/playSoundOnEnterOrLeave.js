@@ -27,10 +27,12 @@
     }; 
 
     this.enterEntity = function(entityID) { 
+        print("enterEntity("+entityID.id+")");
         playSound();
     }; 
 
     this.leaveEntity = function(entityID) {
+        print("leaveEntity("+entityID.id+")");
         playSound();
     }; 
 })

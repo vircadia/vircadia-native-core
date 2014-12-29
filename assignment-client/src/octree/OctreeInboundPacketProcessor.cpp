@@ -261,7 +261,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             continue;
         }
 
-        const SharedNodePointer& destinationNode = NodeList::getInstance()->getNodeHash().value(nodeUUID);
+        const SharedNodePointer& destinationNode = NodeList::getInstance()->nodeWithUUID(nodeUUID);
 
         // retrieve sequence number stats of node, prune its missing set
         SequenceNumberStats& sequenceNumberStats = nodeStats.getIncomingEditSequenceNumberStats();

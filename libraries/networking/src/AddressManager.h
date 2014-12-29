@@ -64,7 +64,7 @@ signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
-    void possibleDomainChangeRequiredToHostname(const QString& newHostname);
+    void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort);
     void possibleDomainChangeRequiredViaICEForID(const QString& iceServerHostname, const QUuid& domainID);
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
@@ -76,7 +76,7 @@ private slots:
     void handleAPIError(QNetworkReply& errorReply);
     void storeCurrentAddress();
 private:
-    void setDomainHostnameAndName(const QString& hostname, const QString& domainName = QString());
+    void setDomainInfo(const QString& hostname, quint16 port, const QString& domainName = QString());
     
     const JSONCallbackParameters& apiCallbackParameters();
     
