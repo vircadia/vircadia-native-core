@@ -115,6 +115,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 }
 
 EntityItem::~EntityItem() {
+    // be sure to clean up _physicsInfo before calling this dtor
+    assert(_physicsInfo == NULL);
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
