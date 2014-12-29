@@ -15,8 +15,9 @@
 #include <QList>
 #include <QWidget>
 
+#include <ProgramObject.h>
+
 #include "MetavoxelSystem.h"
-#include "renderer/ProgramObject.h"
 
 class QColorEditor;
 class QComboBox;

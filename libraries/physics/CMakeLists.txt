@@ -15,5 +15,5 @@ link_hifi_libraries(shared)
 ## append BULLET to our list of libraries to link
 #list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${BULLET_LIBRARIES}")
 
-# call macro to link our dependencies and bubble them up via a property on our target
-link_shared_dependencies()
+# call macro to include our dependency includes and bubble them up via a property on our target
+include_dependency_includes()

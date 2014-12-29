@@ -1191,8 +1191,8 @@ var toolBar = (function () {
             visible: false
         });
 
-        menuItemWidth = Math.max(Overlays.textWidth(loadURLMenuItem, "Model URL"),
-            Overlays.textWidth(loadFileMenuItem, "Model File")) + 20;
+        menuItemWidth = Math.max(Overlays.textSize(loadURLMenuItem, "Model URL").width,
+            Overlays.textSize(loadFileMenuItem, "Model File").width) + 20;
         Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
         Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 

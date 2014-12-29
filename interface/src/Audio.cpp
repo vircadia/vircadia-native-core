@@ -37,6 +37,7 @@
 #include <AudioInjector.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <SharedUtil.h>
 #include <StDev.h>
 #include <UUID.h>
@@ -146,9 +147,9 @@ Audio::~Audio() {
 }
 
 void Audio::init(QGLWidget *parent) {
-    _micTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic.svg"));
-    _muteTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/mic-mute.svg"));
-    _boxTextureId = parent->bindTexture(QImage(Application::resourcesPath() + "images/audio-box.svg"));
+    _micTextureId = parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
+    _muteTextureId = parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
+    _boxTextureId = parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
     
     // configure filters
     configureGverbFilter(_gverb);
@@ -463,7 +464,9 @@ void Audio::start() {
         qDebug() << "Unable to set up audio output because of a problem with output format.";
     }
 
-    _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 8 );
+    if (_audioInput) {
+        _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 8 );
+    }
     _inputGain.initialize();
     _sourceGain.initialize();
     _noiseSource.initialize();
@@ -1959,6 +1962,9 @@ int Audio::calculateNumberOfFrameSamples(int numBytes) const {
 }
 
 float Audio::getAudioOutputMsecsUnplayed() const {
+    if (!_audioOutput) {
+        return 0.0f;
+    }
     int bytesAudioOutputUnplayed = _audioOutput->bufferSize() - _audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_outputFormat.bytesForDuration(USECS_PER_MSEC);
     return msecsAudioOutputUnplayed;

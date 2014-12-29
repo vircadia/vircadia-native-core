@@ -11,6 +11,8 @@
 
 #include "InterfaceConfig.h"
 
+#include <GlowEffect.h>
+#include <GeometryCache.h>
 #include <VoxelConstants.h>
 
 #include "Application.h"
@@ -36,7 +38,7 @@ VoxelFade::VoxelFade(FadeDirection direction, float red, float green, float blue
 }
 
 void VoxelFade::render() {
-    Application::getInstance()->getGlowEffect()->begin();
+    DependencyManager::get<GlowEffect>()->begin();
 
     glDisable(GL_LIGHTING);
     glPushMatrix();
@@ -46,13 +48,13 @@ void VoxelFade::render() {
                  voxelDetails.y + voxelDetails.s * 0.5f,
                  voxelDetails.z + voxelDetails.s * 0.5f);
     glLineWidth(1.0f);
-    glutSolidCube(voxelDetails.s);
+    DependencyManager::get<GeometryCache>()->renderSolidCube(voxelDetails.s);
     glLineWidth(1.0f);
     glPopMatrix();
     glEnable(GL_LIGHTING);
     
     
-    Application::getInstance()->getGlowEffect()->end();
+    DependencyManager::get<GlowEffect>()->end();
     
     opacity *= (direction == FADE_OUT) ? FADE_OUT_STEP : FADE_IN_STEP;
 }

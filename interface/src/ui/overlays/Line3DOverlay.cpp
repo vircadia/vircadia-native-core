@@ -11,8 +11,9 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
+#include <GlowEffect.h>
+
 #include "Line3DOverlay.h"
-#include "renderer/GlowEffect.h"
 
 
 Line3DOverlay::Line3DOverlay() {

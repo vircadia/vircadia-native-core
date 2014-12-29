@@ -21,6 +21,8 @@
 
 #include <glm/glm.hpp>
 
+#include <GlowEffect.h>
+#include <PathUtils.h>
 #include <SharedUtil.h>
 #include <UserActivityLogger.h>
 
@@ -136,8 +138,8 @@ void OculusManager::connect() {
         if (!_programInitialized) {
             // Shader program
             _programInitialized = true;
-            _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/oculus.vert");
-            _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/oculus.frag");
+            _program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/oculus.vert");
+            _program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/oculus.frag");
             _program.link();
 
             // Uniforms
@@ -447,9 +449,9 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
    
     //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
-        Application::getInstance()->getGlowEffect()->prepare();
+        DependencyManager::get<GlowEffect>()->prepare();
     } else {
-        Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+        DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
@@ -552,16 +554,16 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
   
     //Bind the output texture from the glow shader. If glow effect is disabled, we just grab the texture
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
-        QOpenGLFramebufferObject* fbo = Application::getInstance()->getGlowEffect()->render(true);
+        QOpenGLFramebufferObject* fbo = DependencyManager::get<GlowEffect>()->render(true);
         glBindTexture(GL_TEXTURE_2D, fbo->texture());
     } else {
-        Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->texture());
+        DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
+        glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->texture());
     }
 
     // restore our normal viewport
-    glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
-        Application::getInstance()->getGLWidget()->getDeviceHeight());
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -579,8 +581,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     glLoadIdentity();
-    gluOrtho2D(0, Application::getInstance()->getGLWidget()->getDeviceWidth(), 0,
-        Application::getInstance()->getGLWidget()->getDeviceHeight());
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    glOrtho(0, glCanvas->getDeviceWidth(), 0, glCanvas->getDeviceHeight(), -1.0, 1.0);
 
     glDisable(GL_DEPTH_TEST);
 

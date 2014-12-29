@@ -76,12 +76,28 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
         AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
 
 
-// First bitset
+// Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
+// referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
+// backward compatibility. The bits are ordered as such (0-7 left to right).
+//     +-----+-----+-+-+-+--+
+//     |K0,K1|H0,H1|F|C|R|H2|
+//     +-----+-----+-+-+-+--+
+// Key state - K0,K1 is found in the 1st and 2nd bits
+// Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
+// Faceshift - F is found in the 5th bit
+// Chat Circling - C is found in the 6th bit
+// Referential Data - R is found in the 7th bit
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
 const int HAS_REFERENTIAL = 6; // 7th bit
+const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
+
+const char HAND_STATE_NULL = 0;
+const char LEFT_HAND_POINTING_FLAG = 1;
+const char RIGHT_HAND_POINTING_FLAG = 2;
+const char IS_FINGER_POINTING_FLAG = 4;
 
 static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;

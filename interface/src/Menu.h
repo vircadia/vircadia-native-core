@@ -123,7 +123,6 @@ public:
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
-    QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
     bool getShadowsEnabled() const;
 
@@ -304,7 +303,6 @@ private:
     float _avatarLODIncreaseFPS;
     float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
-    QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
@@ -363,9 +361,6 @@ namespace MenuOption {
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
-    const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
-    const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
-    const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
@@ -487,6 +482,7 @@ namespace MenuOption {
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString UploadAttachment = "Upload Attachment Model";
+    const QString UploadEntity = "Upload Entity Model";
     const QString UploadHead = "Upload Head Model";
     const QString UploadSkeleton = "Upload Skeleton Model";
     const QString UserInterface = "User Interface";

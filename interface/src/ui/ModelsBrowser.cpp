@@ -12,15 +12,18 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGridLayout>
+#include <QFileInfo>
 #include <QHeaderView>
+#include <QLineEdit>
 #include <QMessageBox>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QThread>
 #include <QUrl>
-#include <qurlquery.h>
+#include <QUrlQuery>
 #include <QXmlStreamReader>
 
 #include <NetworkAccessManager.h>
-
-#include "Application.h"
 
 #include "ModelsBrowser.h"
 
