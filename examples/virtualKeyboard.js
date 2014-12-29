@@ -26,6 +26,8 @@ const KBD_BACKGROUND        = 4;
 const KEYBOARD_URL = HIFI_PUBLIC_BUCKET + "images/keyboard.svg";
 const CURSOR_URL = HIFI_PUBLIC_BUCKET + "images/cursor.svg";
 
+const RETURN_CHARCODE = 0x01000004;
+const ENTER_CHARCODE = 0x01000005;
 const SPACEBAR_CHARCODE = 32;
 
 const KEYBOARD_WIDTH  = 1174.7;
@@ -576,7 +578,10 @@ function Cursor() {
 function keyPressEvent(event) {
     if (event.key === SPACEBAR_CHARCODE) {
         keyboard.pressFocussedKey();
+    } else if (event.key === ENTER_CHARCODE || event.key === RETURN_CHARCODE) {
+        print("Enter pressed");
     }
+
 }
 
 function keyReleaseEvent(event) {
@@ -591,7 +596,11 @@ function scriptEnding() {
     Overlays.deleteOverlay(text);
     Overlays.deleteOverlay(textSizeMeasureOverlay);
     Controller.releaseKeyEvents({key: SPACEBAR_CHARCODE});
+    Controller.releaseKeyEvents({key: RETURN_CHARCODE});
+    Controller.releaseKeyEvents({key: ENTER_CHARCODE});
 }
+Controller.captureKeyEvents({key: RETURN_CHARCODE});
+Controller.captureKeyEvents({key: ENTER_CHARCODE});
 Controller.captureKeyEvents({key: SPACEBAR_CHARCODE});
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
