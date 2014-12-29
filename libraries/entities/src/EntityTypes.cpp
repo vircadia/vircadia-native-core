@@ -71,22 +71,13 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
 
 EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID,
                                                     const EntityItemProperties& properties) {
-                            
     EntityItem* newEntityItem = NULL;
     EntityTypeFactory factory = NULL;
     if (entityType >= 0 && entityType <= LAST) {
         factory = _factories[entityType];
     }
     if (factory) {
-        // NOTE: if someone attempts to create an entity with properties that do not include a proper "created" time
-        // then set the created time to now
-        if (!properties.hasCreatedTime()) {
-            EntityItemProperties mutableProperties = properties;
-            mutableProperties.setCreated(usecTimestampNow());
-            newEntityItem = factory(entityID, mutableProperties);
-        } else {
-            newEntityItem = factory(entityID, properties);
-        }
+        newEntityItem = factory(entityID, properties);
     }
     return newEntityItem;
 }
@@ -129,8 +120,6 @@ EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int byte
         
         EntityItemID tempEntityID(actualID);
         EntityItemProperties tempProperties;
-        tempProperties.setCreated(usecTimestampNow()); // this is temporary...
-
         return constructEntityItem(entityType, tempEntityID, tempProperties);
     }
     

@@ -19,6 +19,7 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 
+#include "AbstractViewStateInterface.h"
 #include "AmbientOcclusionEffect.h"
 #include "GlowEffect.h"
 #include "ProgramObject.h"
@@ -28,7 +29,7 @@
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
     
-void AmbientOcclusionEffect::init(ViewStateInterface* viewState) {
+void AmbientOcclusionEffect::init(AbstractViewStateInterface* viewState) {
     _viewState = viewState; // we will use this for view state services
     
     _occlusionProgram = new ProgramObject();

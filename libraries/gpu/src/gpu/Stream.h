@@ -12,7 +12,6 @@
 #define hifi_gpu_Stream_h
 
 #include <assert.h>
-#include "GPUConfig.h"
 
 #include "Resource.h"
 #include "Format.h"
@@ -83,16 +82,16 @@ public:
     public:
         typedef std::map< Slot, Attribute > AttributeMap;
 
-        class Channel {
+        class ChannelInfo {
         public:
             std::vector< Slot > _slots;
             std::vector< Offset > _offsets;
             Offset _stride;
             uint32 _netSize;
 
-            Channel() : _stride(0), _netSize(0) {}
+            ChannelInfo() : _stride(0), _netSize(0) {}
         };
-        typedef std::map< Slot, Channel > ChannelMap;
+        typedef std::map< Slot, ChannelInfo > ChannelMap;
 
         Format() :
             _attributes(),
@@ -104,6 +103,7 @@ public:
 
         uint8  getNumChannels() const { return _channels.size(); }
         const ChannelMap& getChannels() const { return _channels; }
+        const Offset getChannelStride(Slot channel) const { return _channels.at(channel)._stride; }
 
         uint32 getElementTotalSize() const { return _elementTotalSize; }
 
@@ -131,7 +131,7 @@ public:
     BufferStream();
     ~BufferStream();
 
-    void addBuffer(BufferPointer& buffer, Offset offset, Offset stride);
+    void addBuffer(const BufferPointer& buffer, Offset offset, Offset stride);
 
     const Buffers& getBuffers() const { return _buffers; }
     const Offsets& getOffsets() const { return _offsets; }

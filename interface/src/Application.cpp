@@ -64,6 +64,7 @@
 #include <HFBackEvent.h>
 #include <LocalVoxelsList.h>
 #include <LogHandler.h>
+#include <MainWindow.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -73,6 +74,7 @@
 #include <ProgramObject.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
+#include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -109,7 +111,6 @@
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
-#include "ui/TextRenderer.h"
 
 
 
@@ -129,7 +130,7 @@ static QTimer* idleTimer = NULL;
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
-const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
+const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
@@ -142,7 +143,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _window(new MainWindow(desktop())),
-        _glWidget(new GLCanvas()),
         _toolWindow(NULL),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
@@ -155,9 +155,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _entities(true),
+        _entities(true, this, this),
         _entityCollisionSystem(),
-        _entityClipboardRenderer(false),
+        _entityClipboardRenderer(false, this, this),
         _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
@@ -191,8 +191,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-    Model::setViewStateInterface(this); // The model class will sometimes need to know view state details from us
-
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -308,13 +309,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // use our MyAvatar position and quat for address manager path
     addressManager.setPositionGetter(getPositionForPath);
     addressManager.setOrientationGetter(getOrientationForPath);
-    
-    // handle domain change signals from AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
-            this, &Application::changeDomainHostname);
-    
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
-            &domainHandler, &DomainHandler::setIceServerHostnameAndID);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -362,16 +356,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     ResourceCache::setRequestLimit(3);
 
-    _window->setCentralWidget(_glWidget);
+    _window->setCentralWidget(glCanvas.data());
 
     restoreSizeAndPosition();
 
     _window->setVisible(true);
-    _glWidget->setFocusPolicy(Qt::StrongFocus);
-    _glWidget->setFocus();
+    glCanvas->setFocusPolicy(Qt::StrongFocus);
+    glCanvas->setFocus();
 
     // enable mouse tracking; otherwise, we only get drag events
-    _glWidget->setMouseTracking(true);
+    glCanvas->setMouseTracking(true);
 
     _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
@@ -390,7 +384,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     checkVersion();
 
-    _overlays.init(_glWidget); // do this before scripts load
+    _overlays.init(glCanvas.data()); // do this before scripts load
 
     LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
     LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
@@ -439,6 +433,7 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
+    
     _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
     
@@ -480,8 +475,6 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
-
-    delete _glWidget;
 }
 
 void Application::saveSettings() {
@@ -537,8 +530,6 @@ void Application::initializeGL() {
     } else {
         isInitialized = true;
     }
-    int argc = 0;
-    glutInit(&argc, 0);
     #endif
 
     #ifdef WIN32
@@ -621,7 +612,7 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         DependencyManager::get<TextureCache>()->setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
+        QSize fbSize = DependencyManager::get<GLCanvas>()->getDeviceSize() * getRenderResolutionScale();
         DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
     }
 
@@ -1045,7 +1036,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+                        TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
@@ -1057,7 +1049,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+                        TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
 
                 } else {
@@ -1433,7 +1426,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-            changeDomainHostname(snapshotData->getDomain());
+            NodeList::getInstance()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -1503,7 +1496,7 @@ void Application::idle() {
         {
             PerformanceTimer perfTimer("updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
-            _glWidget->updateGL();
+            DependencyManager::get<GLCanvas>()->updateGL();
         }
         {
             PerformanceTimer perfTimer("rest");
@@ -1529,13 +1522,14 @@ void Application::idle() {
 
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
         Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
         glm::compMax(glm::abs(glm::ivec2(getMouseX() - getMouseDragStartedX(),
                                          getMouseY() - getMouseDragStartedY())))
         <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-        && _bandwidthMeter.isWithinArea(getMouseX(), getMouseY(), _glWidget->width(), _glWidget->height())) {
+        && _bandwidthMeter.isWithinArea(getMouseX(), getMouseY(), glCanvas->width(), glCanvas->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1564,7 +1558,8 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->getDeviceWidth(),_glWidget->getDeviceHeight());
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1589,7 +1584,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
@@ -1651,8 +1647,9 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 
 bool Application::mouseOnScreen() const {
     if (OculusManager::isConnected()) {
-        return getMouseX() >= 0 && getMouseX() <= _glWidget->getDeviceWidth() &&
-               getMouseY() >= 0 && getMouseY() <= _glWidget->getDeviceHeight();
+        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+        return getMouseX() >= 0 && getMouseX() <= glCanvas->getDeviceWidth() &&
+               getMouseY() >= 0 && getMouseY() <= glCanvas->getDeviceHeight();
     }
     return true;
 }
@@ -1692,13 +1689,13 @@ int Application::getMouseDragStartedY() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    Faceshift* faceshift = DependencyManager::get<Faceshift>();
-    Visage* visage = DependencyManager::get<Visage>();
-    DdeFaceTracker* dde = DependencyManager::get<DdeFaceTracker>();
+    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
+    Visage::SharedPointer visage = DependencyManager::get<Visage>();
+    DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
     
-    return (dde->isActive() ? static_cast<FaceTracker*>(dde) :
-            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift) :
-             (visage->isActive() ? static_cast<FaceTracker*>(visage) : NULL)));
+    return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
+            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) :
+             (visage->isActive() ? static_cast<FaceTracker*>(visage.data()) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1771,7 +1768,8 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
     QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/voxels.svo");
 
-    QString fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), suggestedName,
+    QString fileNameString = QFileDialog::getSaveFileName(DependencyManager::get<GLCanvas>().data(),
+                                                          tr("Export Voxels"), suggestedName,
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
@@ -2025,9 +2023,9 @@ void Application::init() {
 
     _metavoxels.init();
 
-    _audio.init(_glWidget);
-
-    _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    _audio.init(glCanvas.data());
+    _rearMirrorTools = new RearMirrorTools(glCanvas.data(), _mirrorViewRect, _settings);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
@@ -2040,11 +2038,12 @@ void Application::init() {
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 
-    // make sure our texture cache knows about window size changes    
-    DependencyManager::get<TextureCache>()->associateWithWidget(getGLWidget());
+    // make sure our texture cache knows about window size changes
+    DependencyManager::get<TextureCache>()->associateWithWidget(glCanvas.data());
 
     // initialize the GlowEffect with our widget
-    DependencyManager::get<GlowEffect>()->init(getGLWidget(), Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
+    DependencyManager::get<GlowEffect>()->init(glCanvas.data(),
+                                               Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
 }
 
 void Application::closeMirrorView() {
@@ -2112,7 +2111,7 @@ void Application::updateMouseRay() {
 void Application::updateFaceshift() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-    Faceshift* faceshift = DependencyManager::get<Faceshift>();
+    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
     //  Update faceshift
     faceshift->update();
 
@@ -2456,72 +2455,73 @@ int Application::sendNackPackets() {
     char packet[MAX_PACKET_SIZE];
 
     // iterates thru all nodes in NodeList
-    foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    nodeList->eachNode([&](const SharedNodePointer& node){
         
-        if (node->getActiveSocket() &&
-            ( node->getType() == NodeType::VoxelServer
-            || node->getType() == NodeType::EntityServer)
-            ) {
-
+        if (node->getActiveSocket()
+            && (node->getType() == NodeType::VoxelServer || node->getType() == NodeType::EntityServer)) {
+            
             QUuid nodeUUID = node->getUUID();
-
+            
             // if there are octree packets from this node that are waiting to be processed,
             // don't send a NACK since the missing packets may be among those waiting packets.
             if (_octreeProcessor.hasPacketsToProcessFrom(nodeUUID)) {
-                continue;
+                return;
             }
             
             _octreeSceneStatsLock.lockForRead();
-
+            
             // retreive octree scene stats of this node
             if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
                 _octreeSceneStatsLock.unlock();
-                continue;
+                return;
             }
-
+            
             // get sequence number stats of node, prune its missing set, and make a copy of the missing set
             SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
             sequenceNumberStats.pruneMissingSet();
             const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
-
+            
             _octreeSceneStatsLock.unlock();
-
+            
             // construct nack packet(s) for this node
             int numSequenceNumbersAvailable = missingSequenceNumbers.size();
             QSet<OCTREE_PACKET_SEQUENCE>::const_iterator missingSequenceNumbersIterator = missingSequenceNumbers.constBegin();
             while (numSequenceNumbersAvailable > 0) {
-
+                
                 char* dataAt = packet;
                 int bytesRemaining = MAX_PACKET_SIZE;
-
+                
                 // pack header
                 int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
                 dataAt += numBytesPacketHeader;
                 bytesRemaining -= numBytesPacketHeader;
-
+                
                 // calculate and pack the number of sequence numbers
                 int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
                 uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
                 uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
                 *numSequenceNumbersAt = numSequenceNumbers;
                 dataAt += sizeof(uint16_t);
-
+                
                 // pack sequence numbers
                 for (int i = 0; i < numSequenceNumbers; i++) {
                     OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
                     *sequenceNumberAt = *missingSequenceNumbersIterator;
                     dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
+                    
                     missingSequenceNumbersIterator++;
                 }
                 numSequenceNumbersAvailable -= numSequenceNumbers;
-
+                
                 // send it
-                NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, node);
+                nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
                 packetsSent++;
             }
         }
-    }
+    });
+
     return packetsSent;
 }
 
@@ -2554,7 +2554,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
 
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    nodeList->eachNode([&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
             totalServers++;
@@ -2585,7 +2587,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 }
             }
         }
-    }
+    });
 
     if (wantExtraDebugging) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d",
@@ -2611,20 +2613,18 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     if (wantExtraDebugging) {
         qDebug("perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
-
-    NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    
+    nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
-
-
+            
+            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-
+            
             bool inView = false;
             bool unknownView = false;
-
+            
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
@@ -2634,15 +2634,15 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-
+                
                 unsigned char* rootCode = map.getRootOctalCode();
-
+                
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-
+                    
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inView = true;
@@ -2655,15 +2655,15 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     }
                 }
             }
-
+            
             if (inView) {
                 _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
-                            << perUnknownServer << " to send us jurisdiction.";
+                    << perUnknownServer << " to send us jurisdiction.";
                 }
-
+                
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
                 // If there's only one server, then don't do this, and just let the normal voxel query pass through
                 // as expected... this way, we will actually get a valid scene if there is one to be seen
@@ -2687,22 +2687,22 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
-
+            
             // insert packet type/version and node UUID
             endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
-
+            
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
-
+            
             int packetLength = endOfQueryPacket - queryPacket;
-
+            
             // make sure we still have an active socket
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
-
+            
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
         }
-    }
+    });
 }
 
 bool Application::isHMDMode() const {
@@ -2915,8 +2915,9 @@ void Application::updateShadowMap() {
     }
     
     fbo->release();
-
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
@@ -2943,6 +2944,18 @@ bool Application::shouldRenderMesh(float largestDimension, float distanceToCamer
     return Menu::getInstance()->shouldRenderMesh(largestDimension, distanceToCamera);
 }
 
+float Application::getSizeScale() const { 
+    return Menu::getInstance()->getVoxelSizeScale();
+}
+
+int Application::getBoundaryLevelAdjust() const { 
+    return Menu::getInstance()->getBoundaryLevelAdjust();
+}
+
+PickRay Application::computePickRay(float x, float y) {
+    return getCamera()->computePickRay(x, y);
+}
+
 QImage Application::renderAvatarBillboard() {
     DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
 
@@ -2950,7 +2963,9 @@ QImage Application::renderAvatarBillboard() {
     Glower glower;
 
     const int BILLBOARD_SIZE = 64;
-    renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    renderRearViewMirror(QRect(0, DependencyManager::get<GLCanvas>()->getDeviceHeight() - BILLBOARD_SIZE,
+                               BILLBOARD_SIZE, BILLBOARD_SIZE),
+                         true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
@@ -3253,8 +3268,9 @@ bool Application::getCascadeShadowsEnabled() {
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
-    float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    float horizontalScale = glCanvas->getDeviceWidth() / 2.0f;
+    float verticalScale   = glCanvas->getDeviceHeight() / 2.0f;
 
     // -1,-1 is 0,windowHeight
     // 1,1 is windowWidth,0
@@ -3273,7 +3289,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     // -1,-1                   1,-1
 
     glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
+        ((projectedPoint.y + 1.0) * -verticalScale) + glCanvas->getDeviceHeight());
 
     return screenPoint;
 }
@@ -3551,7 +3567,7 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
             glPushMatrix();
             glColor4f(1, 1, 0, 1);
             glTranslatef(position.x, position.y, position.z); // where we actually want it!
-            glutWireSphere(keyholeRadius, 20, 20);
+            DependencyManager::get<GeometryCache>()->renderSphere(keyholeRadius, 20, 20, false); 
             glPopMatrix();
         }
     }
@@ -3584,7 +3600,7 @@ void Application::resetSensors() {
     QScreen* currentScreen = _window->windowHandle()->screen();
     QWindow* mainWindow = _window->windowHandle();
     QPoint windowCenter = mainWindow->geometry().center();
-    _glWidget->cursor().setPos(currentScreen, windowCenter);
+    DependencyManager::get<GLCanvas>()->cursor().setPos(currentScreen, windowCenter);
     
     _myAvatar->reset();
 
@@ -3608,16 +3624,6 @@ static void setShortcutsEnabled(QWidget* widget, bool enabled) {
 
 void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
-}
-
-void Application::uploadModel(ModelType modelType) {
-    ModelUploader* uploader = new ModelUploader(modelType);
-    QThread* thread = new QThread();
-    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
-    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
-    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
-
-    thread->start();
 }
 
 void Application::updateWindowTitle(){
@@ -3673,19 +3679,6 @@ void Application::updateLocationInServer() {
         accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
-}
-
-void Application::changeDomainHostname(const QString &newDomainHostname) {
-    NodeList* nodeList = NodeList::getInstance();
-    
-    if (!nodeList->getDomainHandler().isCurrentHostname(newDomainHostname)) {
-        // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
-        _myAvatar->sendKillAvatar();
-        
-        // call the domain hostname change as a queued connection on the nodelist
-        QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
-                                  Q_ARG(const QString&, newDomainHostname));
-    }
 }
 
 void Application::clearDomainOctreeDetails() {
@@ -4020,7 +4013,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
-    scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>());
+    scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
@@ -4188,15 +4181,19 @@ void Application::toggleRunningScriptsWidget() {
 }
 
 void Application::uploadHead() {
-    uploadModel(HEAD_MODEL);
+    ModelUploader::uploadHead();
 }
 
 void Application::uploadSkeleton() {
-    uploadModel(SKELETON_MODEL);
+    ModelUploader::uploadSkeleton();
 }
 
 void Application::uploadAttachment() {
-    uploadModel(ATTACHMENT_MODEL);
+    ModelUploader::uploadAttachment();
+}
+
+void Application::uploadEntity() {
+    ModelUploader::uploadEntity();
 }
 
 void Application::openUrl(const QUrl& url) {
@@ -4265,7 +4262,8 @@ void Application::setPreviousScriptLocation(const QString& previousScriptLocatio
 
 void Application::loadDialog() {
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"),
+    QString fileNameString = QFileDialog::getOpenFileName(DependencyManager::get<GLCanvas>().data(),
+                                                          tr("Open Script"),
                                                           getPreviousScriptLocation(),
                                                           tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
@@ -4301,7 +4299,7 @@ void Application::loadScriptURLDialog() {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(_glWidget, getLogger());
+        _logDialog = new LogDialog(DependencyManager::get<GLCanvas>().data(), getLogger());
     }
 
     if (_logDialog->isVisible()) {
@@ -4361,7 +4359,7 @@ void Application::parseVersionXml() {
     }
 
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
+        new UpdateDialog(DependencyManager::get<GLCanvas>().data(), releaseNotes, latestVersion, downloadUrl);
     }
     sender->deleteLater();
 }
@@ -4394,7 +4392,7 @@ void Application::takeSnapshot() {
     }
 
     if (!_snapshotShareDialog) {
-        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
+        _snapshotShareDialog = new SnapshotShareDialog(fileName, DependencyManager::get<GLCanvas>().data());
     }
     _snapshotShareDialog->show();
 }

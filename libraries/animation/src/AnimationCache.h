@@ -24,8 +24,9 @@ class Animation;
 typedef QSharedPointer<Animation> AnimationPointer;
 
 /// Scriptable interface for FBX animation loading.
-class AnimationCache : public ResourceCache, public DependencyManager::Dependency  {
+class AnimationCache : public ResourceCache  {
     Q_OBJECT
+    SINGLETON_DEPENDENCY(AnimationCache)
 
 public:
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
@@ -38,7 +39,6 @@ protected:
 private:
     AnimationCache(QObject* parent = NULL);
     virtual ~AnimationCache() { }
-    friend class DependencyManager;
 
 };
 

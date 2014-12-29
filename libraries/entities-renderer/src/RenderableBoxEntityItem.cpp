@@ -1,5 +1,5 @@
 //
-//  RenderableSphereEntityItem.cpp
+//  RenderableBoxEntityItem.cpp
 //  interface/src
 //
 //  Created by Brad Hefta-Gaub on 8/6/14.
@@ -11,48 +11,40 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <FBXReader.h>
+#include <gpu/GPUConfig.h>
 
-#include "InterfaceConfig.h"
-
-#include <DependencyManager.h>
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
-#include <SphereEntityItem.h>
 
+#include "RenderableBoxEntityItem.h"
 
-#include "Menu.h"
-#include "EntityTreeRenderer.h"
-#include "RenderableSphereEntityItem.h"
-
-EntityItem* RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableSphereEntityItem(entityID, properties);
+EntityItem* RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return new RenderableBoxEntityItem(entityID, properties);
 }
 
-void RenderableSphereEntityItem::render(RenderArgs* args) {
-    PerformanceTimer perfTimer("RenderableSphereEntityItem::render");
-    assert(getType() == EntityTypes::Sphere);
+void RenderableBoxEntityItem::render(RenderArgs* args) {
+    PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
+    assert(getType() == EntityTypes::Box);
     glm::vec3 position = getPositionInMeters();
-    glm::vec3 center = getCenterInMeters();
+    glm::vec3 center = getCenter() * (float)TREE_SCALE;
     glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
     glm::quat rotation = getRotation();
 
     const float MAX_COLOR = 255.0f;
+
     glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
-                    
+
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        
-        
         glPushMatrix();
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, 15, 15);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
         glPopMatrix();
     glPopMatrix();
+
 };

@@ -562,8 +562,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     }
 
     // restore our normal viewport
-    glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
-        Application::getInstance()->getGLWidget()->getDeviceHeight());
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -581,8 +581,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     glLoadIdentity();
-    gluOrtho2D(0, Application::getInstance()->getGLWidget()->getDeviceWidth(), 0,
-        Application::getInstance()->getGLWidget()->getDeviceHeight());
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    glOrtho(0, glCanvas->getDeviceWidth(), 0, glCanvas->getDeviceHeight(), -1.0, 1.0);
 
     glDisable(GL_DEPTH_TEST);
 

@@ -10,10 +10,13 @@
 //
 //  Creates single flexible verlet-integrated strands that can be used for hair/fur/grass
 
-#include "Hair.h"
+#include <gpu/GPUConfig.h>
 
 #include "Util.h"
 #include "world.h"
+
+#include "Hair.h"
+
 
 const float HAIR_DAMPING = 0.99f;
 const float CONSTRAINT_RELAXATION = 10.0f;

@@ -11,20 +11,12 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <FBXReader.h>
-
-#include "InterfaceConfig.h"
+#include <gpu/GPUConfig.h>
 
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
-#include <LightEntityItem.h>
 
-
-#include "Application.h"
-#include "Menu.h"
-#include "EntityTreeRenderer.h"
 #include "RenderableLightEntityItem.h"
-
 
 EntityItem* RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableLightEntityItem(entityID, properties);
@@ -61,17 +53,13 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
 
-    bool disableLights = Menu::getInstance()->isOptionChecked(MenuOption::DisableLightEntities);
-
-    if (!disableLights) {
-        if (_isSpotlight) {
-            DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f, 
-                ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation,
-                direction, exponent, cutoff);
-        } else {
-            DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f, 
-                ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);
-        }
+    if (_isSpotlight) {
+        DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f, 
+            ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation,
+            direction, exponent, cutoff);
+    } else {
+        DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f, 
+            ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);
     }
 
 #ifdef WANT_DEBUG
@@ -94,10 +82,11 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
 bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const {
-                         
-    // TODO: this isn't really correct because we don't know if we actually live in the main tree of the applications's
-    // EntityTreeRenderer. But we probably do. Technically we could be on the clipboard and someone might be trying to
-    // use the ray intersection API there. Anyway... if you ever try to do ray intersection testing off of trees other
-    // than the main tree of the main entity renderer, then you'll need to fix this mechanism.
-    return Application::getInstance()->getEntities()->getTree()->getLightsArePickable();
+
+    // TODO: consider if this is really what we want to do. We've made it so that "lights are pickable" is a global state
+    // this is probably reasonable since there's typically only one tree you'd be picking on at a time. Technically we could 
+    // be on the clipboard and someone might be trying to use the ray intersection API there. Anyway... if you ever try to 
+    // do ray intersection testing off of trees other than the main tree of the main entity renderer, then we'll need to 
+    // fix this mechanism.
+    return _lightsArePickable;
 }

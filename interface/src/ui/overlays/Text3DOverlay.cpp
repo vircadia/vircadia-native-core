@@ -11,9 +11,10 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
+#include <TextRenderer.h>
+
 #include "Application.h"
 #include "Text3DOverlay.h"
-#include "ui/TextRenderer.h"
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_BACKGROUND_ALPHA = 0.7f;

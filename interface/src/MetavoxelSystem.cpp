@@ -524,7 +524,7 @@ void MetavoxelSystem::render() {
 }
 
 void MetavoxelSystem::refreshVoxelData() {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList::getInstance()->eachNode([](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -532,7 +532,7 @@ void MetavoxelSystem::refreshVoxelData() {
                 QMetaObject::invokeMethod(client, "refreshVoxelData");
             }
         }
-    }
+    });
 }
 
 class RayVoxelIntersectionVisitor : public RayIntersectionVisitor {
@@ -837,7 +837,7 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
 }
 
 void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList::getInstance()->eachNode([&visitor, &render](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -851,7 +851,7 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
                 }
             }
         }
-    }
+    });
 }
 
 void MetavoxelSystem::loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations) {
@@ -1196,7 +1196,7 @@ void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation
         
         if (!_materials.isEmpty()) {
             _networkTextures.resize(_materials.size());
-            TextureCache* textureCache = DependencyManager::get<TextureCache>();
+            TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < _materials.size(); i++) {
                 const SharedObjectPointer material = _materials.at(i);
                 if (material) {
@@ -2275,7 +2275,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                 
             const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
             _networkTextures.resize(materials.size());
-            TextureCache* textureCache = DependencyManager::get<TextureCache>();
+            TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < materials.size(); i++) {
                 const SharedObjectPointer& material = materials.at(i);
                 if (material) {

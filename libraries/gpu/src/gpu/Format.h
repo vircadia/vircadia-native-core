@@ -12,8 +12,6 @@
 #define hifi_gpu_Format_h
 
 #include <assert.h>
-#include "GPUConfig.h"
-
 
 namespace gpu {
 
@@ -94,7 +92,8 @@ static const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
 // Semantic of an Element
 // Provide information on how to use the element
 enum Semantic {
-    RGB = 0,
+    RAW = 0, // used as RAW memory
+    RGB,
     RGBA,
     XYZ,
     XYZW,
@@ -104,6 +103,8 @@ enum Semantic {
     DIR_XYZ,
     UV,
     R8,
+    INDEX, //used by index buffer of a mesh
+    PART, // used by part buffer of a mesh
 
     NUM_SEMANTICS,
 };
@@ -119,7 +120,7 @@ public:
         _type(type) 
     {}
     Element() :
-        _semantic(R8),
+        _semantic(RAW),
         _dimension(SCALAR),
         _type(INT8)
     {}

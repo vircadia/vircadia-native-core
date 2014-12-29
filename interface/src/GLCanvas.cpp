@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QMainWindow>
 #include <QMimeData>
 #include <QUrl>
 #include <QWindow>
 
 #include "Application.h"
 #include "GLCanvas.h"
+#include "MainWindow.h"
 #include "devices/OculusManager.h"
 
 const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
