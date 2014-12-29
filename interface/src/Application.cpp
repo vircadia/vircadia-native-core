@@ -309,8 +309,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
     
     // use our MyAvatar position and quat for address manager path
-    addressManager.setPositionGetter(getPositionForPath);
-    addressManager.setOrientationGetter(getOrientationForPath);
+    addressManager->setPositionGetter(getPositionForPath);
+    addressManager->setOrientationGetter(getOrientationForPath);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
