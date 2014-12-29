@@ -8,16 +8,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-// TODO DONE: make _incomingChanges to be list of MotionState*'s.
-// TODO DONE: make MotionState able to clear incoming flags
-// TODO DONE: make MotionState::setWorldTransform() put itself on _incomingChanges list
-// TODO DONE: give PhysicsEngine instance an _entityPacketSender
-// TODO DONE: make sure code compiles when BULLET is not found
-// TODO DONE: make sure incoming and outgoing pipelines are connected
-// TODO DONE: provide some sort of "reliable" send for "stopped" update
-// TODO DONE: test entity updates (second viewer sees physics results from first)
-// TODO DONE: debug path of updates through EntityServer
-// TODO: reconcile hifi damping with bullet damping for improved ballistic predictions
 
 #include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS
