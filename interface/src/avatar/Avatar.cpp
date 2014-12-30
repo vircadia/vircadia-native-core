@@ -633,17 +633,14 @@ void Avatar::renderBillboard() {
     glScalef(size, size, size);
     
     glColor3f(1.0f, 1.0f, 1.0f);
-    
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex2f(-1.0f, -1.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex2f(1.0f, -1.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex2f(1.0f, 1.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex2f(-1.0f, 1.0f);
-    glEnd();
+
+    glm::vec2 topLeft(-1.0f, -1.0f);
+    glm::vec2 bottomRight(1.0f, 1.0f);
+    glm::vec2 texCoordTopLeft(0.0f, 0.0f);
+    glm::vec2 texCoordBottomRight(1.0f, 1.0f);
+
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+
     
     glPopMatrix();
     

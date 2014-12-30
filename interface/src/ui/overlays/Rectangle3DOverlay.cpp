@@ -13,6 +13,7 @@
 
 #include <QGLWidget>
 
+#include <GeometryCache.h>
 #include <GlowEffect.h>
 #include <SharedUtil.h>
 
@@ -66,14 +67,9 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
             
             // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
             if (getIsSolid()) {
-                glBegin(GL_QUADS);
-
-                glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                glVertex3f(halfDimensions.x, 0.0f, -halfDimensions.y);
-                glVertex3f(halfDimensions.x, 0.0f, halfDimensions.y);
-                glVertex3f(-halfDimensions.x, 0.0f, halfDimensions.y);
-
-                glEnd();
+                glm::vec3 topLeft(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                glm::vec3 bottomRight(halfDimensions.x, 0.0f, halfDimensions.y);
+                DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
             } else {
                 if (getIsDashedLine()) {
 
