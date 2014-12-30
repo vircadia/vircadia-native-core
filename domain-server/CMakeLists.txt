@@ -52,4 +52,4 @@ include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 # append OpenSSL to our list of libraries to link
 target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
 
-link_shared_dependencies()
+include_dependency_includes()

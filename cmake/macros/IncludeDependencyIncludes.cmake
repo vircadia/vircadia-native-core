@@ -1,5 +1,5 @@
 # 
-#  LinkSharedDependencies.cmake
+#  IncludeDependencyIncludes.cmake
 #  cmake/macros
 # 
 #  Copyright 2014 High Fidelity, Inc.
@@ -9,7 +9,7 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(LINK_SHARED_DEPENDENCIES)
+macro(INCLUDE_DEPENDENCY_INCLUDES)
   if (${TARGET_NAME}_DEPENDENCY_INCLUDES)
     list(REMOVE_DUPLICATES ${TARGET_NAME}_DEPENDENCY_INCLUDES)
     
@@ -19,4 +19,4 @@ macro(LINK_SHARED_DEPENDENCIES)
   
   # set the property on this target so it can be retreived by targets linking to us
   set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_INCLUDES "${${TARGET_NAME}_DEPENDENCY_INCLUDES}")
-endmacro(LINK_SHARED_DEPENDENCIES)
+endmacro(INCLUDE_DEPENDENCY_INCLUDES)

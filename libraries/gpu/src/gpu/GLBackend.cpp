@@ -31,6 +31,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setViewTransform),
     (&::gpu::GLBackend::do_setProjectionTransform),
 
+    (&::gpu::GLBackend::do_setUniformBuffer),
+
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
 
@@ -54,6 +56,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glUseProgram),
     (&::gpu::GLBackend::do_glUniform1f),
     (&::gpu::GLBackend::do_glUniform2f),
+    (&::gpu::GLBackend::do_glUniform4fv),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
     (&::gpu::GLBackend::do_glMatrixMode),
@@ -483,6 +486,25 @@ void GLBackend::updateTransform() {
     }
 }
 
+void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
+    GLuint slot = batch._params[paramOffset + 3]._uint;
+    BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
+    GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
+    GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
+#if defined(Q_OS_MAC)
+    GLfloat* data = (GLfloat*) (uniformBuffer->getData() + rangeStart);
+    glUniform4fv(slot, rangeSize / sizeof(GLfloat[4]), data);
+#else
+    GLuint bo = getBufferID(*uniformBuffer);
+    glBindBufferRange(GL_UNIFORM_BUFFER, slot, bo, rangeStart, rangeSize);
+
+   // glUniformBufferEXT(_shader._program, slot, bo);
+
+    //glBindBufferBase(GL_UNIFORM_BUFFER, slot, bo);
+#endif
+    CHECK_GL_ERROR();
+}
+
 // TODO: As long as we have gl calls explicitely issued from interface
 // code, we need to be able to record and batch these calls. THe long 
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -672,7 +694,10 @@ void Batch::_glUseProgram(GLuint program) {
     DO_IT_NOW(_glUseProgram, 1);
 }
 void GLBackend::do_glUseProgram(Batch& batch, uint32 paramOffset) {
-    glUseProgram(batch._params[paramOffset]._uint);
+    
+    _shader._program = batch._params[paramOffset]._uint;
+    glUseProgram(_shader._program);
+
     CHECK_GL_ERROR();
 }
 
@@ -705,6 +730,25 @@ void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
+    CHECK_GL_ERROR();
+}
+
+void Batch::_glUniform4fv(GLint location, GLsizei count, const GLfloat* value) {
+    ADD_COMMAND_GL(glUniform4fv);
+
+    const int VEC4_SIZE = 4 * sizeof(float);
+    _params.push_back(cacheData(count * VEC4_SIZE, value));
+    _params.push_back(count);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform4fv, 3);
+}
+void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
+    glUniform4fv(
+        batch._params[paramOffset + 2]._int,
+        batch._params[paramOffset + 1]._uint,
+        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
+
     CHECK_GL_ERROR();
 }
 

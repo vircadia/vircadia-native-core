@@ -35,6 +35,26 @@
 #include "GlowEffect.h"
 #include "Model.h"
 
+#include "model_vert.h"
+#include "model_shadow_vert.h"
+#include "model_normal_map_vert.h"
+#include "model_lightmap_vert.h"
+#include "model_lightmap_normal_map_vert.h"
+#include "skin_model_vert.h"
+#include "skin_model_shadow_vert.h"
+#include "skin_model_normal_map_vert.h"
+
+#include "model_frag.h"
+#include "model_shadow_frag.h"
+#include "model_normal_map_frag.h"
+#include "model_normal_specular_map_frag.h"
+#include "model_specular_map_frag.h"
+#include "model_lightmap_frag.h"
+#include "model_lightmap_normal_map_frag.h"
+#include "model_lightmap_normal_specular_map_frag.h"
+#include "model_lightmap_specular_map_frag.h"
+#include "model_translucent_frag.h"
+
 
 #define GLBATCH( call ) batch._##call
 //#define GLBATCH( call ) call
@@ -233,110 +253,71 @@ void Model::initJointTransforms() {
 
 void Model::init() {
     if (!_program.isLinked()) {
-        _program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/model.vert");
-        _program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/model.frag");
-
+        _program.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
+        _program.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
         initProgram(_program, _locations);
         
-        _normalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model_normal_map.vert");
-        _normalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_normal_map.frag");
-
+        _normalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
+        _normalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);
         initProgram(_normalMapProgram, _normalMapLocations);
         
-        _specularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model.vert");
-        _specularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_specular_map.frag");
-
+        _specularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
+        _specularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_specular_map_frag);
         initProgram(_specularMapProgram, _specularMapLocations);
         
-        _normalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model_normal_map.vert");
-        _normalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_normal_specular_map.frag");
-
+        _normalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
+        _normalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_specular_map_frag);
         initProgram(_normalSpecularMapProgram, _normalSpecularMapLocations);
         
-        _translucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model.vert");
-        _translucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_translucent.frag");
-
+        _translucentProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
+        _translucentProgram.addShaderFromSourceCode(QGLShader::Fragment, model_translucent_frag);
         initProgram(_translucentProgram, _translucentLocations);
 
         // Lightmap
-        _lightmapProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/model_lightmap.vert");
-        _lightmapProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/model_lightmap.frag");
-
+        _lightmapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_vert);
+        _lightmapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_frag);
         initProgram(_lightmapProgram, _lightmapLocations);
 
-        _lightmapNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model_lightmap_normal_map.vert");
-        _lightmapNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_lightmap_normal_map.frag");
-
+        _lightmapNormalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_normal_map_vert);
+        _lightmapNormalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_normal_map_frag);
         initProgram(_lightmapNormalMapProgram, _lightmapNormalMapLocations);
         
-        _lightmapSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model_lightmap.vert");
-        _lightmapSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_lightmap_specular_map.frag");
-
+        _lightmapSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_vert);
+        _lightmapSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_specular_map_frag);
         initProgram(_lightmapSpecularMapProgram, _lightmapSpecularMapLocations);
         
-        _lightmapNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/model_lightmap_normal_map.vert");
-        _lightmapNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_lightmap_normal_specular_map.frag");
-
+        _lightmapNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_normal_map_vert);
+        _lightmapNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_normal_specular_map_frag);
         initProgram(_lightmapNormalSpecularMapProgram, _lightmapNormalSpecularMapLocations);
         // end lightmap
 
         
-        _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/model_shadow.vert");
-        _shadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_shadow.frag");
+        _shadowProgram.addShaderFromSourceCode(QGLShader::Vertex, model_shadow_vert);
+        _shadowProgram.addShaderFromSourceCode(QGLShader::Fragment, model_shadow_frag);
 
-        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/skin_model.vert");
-        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/model.frag");
-
+        _skinProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_vert);
+        _skinProgram.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
         initSkinProgram(_skinProgram, _skinLocations);
         
-        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/skin_model_normal_map.vert");
-        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_normal_map.frag");
-
+        _skinNormalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_normal_map_vert);
+        _skinNormalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);
         initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);
         
-        _skinSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/skin_model.vert");
-        _skinSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_specular_map.frag");
-
+        _skinSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
+        _skinSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_specular_map_frag);
         initSkinProgram(_skinSpecularMapProgram, _skinSpecularMapLocations);
         
-        _skinNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/skin_model_normal_map.vert");
-        _skinNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_normal_specular_map.frag");
-
+        _skinNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_normal_map_vert);
+        _skinNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_specular_map_frag);
         initSkinProgram(_skinNormalSpecularMapProgram, _skinNormalSpecularMapLocations);
         
-        _skinShadowProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/skin_model_shadow.vert");
-        _skinShadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_shadow.frag");
-
+        _skinShadowProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_shadow_vert);
+        _skinShadowProgram.addShaderFromSourceCode(QGLShader::Fragment, model_shadow_frag);
         initSkinProgram(_skinShadowProgram, _skinShadowLocations);
         
-        _skinTranslucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            PathUtils::resourcesPath() + "shaders/skin_model.vert");
-        _skinTranslucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            PathUtils::resourcesPath() + "shaders/model_translucent.frag");
 
+        _skinTranslucentProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_vert);
+        _skinTranslucentProgram.addShaderFromSourceCode(QGLShader::Fragment, model_translucent_frag);
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
     }
 }

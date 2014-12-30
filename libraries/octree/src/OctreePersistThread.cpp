@@ -189,6 +189,9 @@ void OctreePersistThread::backup() {
         quint64 intervalToBackup = _backupInterval * MSECS_TO_USECS;
         
         if (sinceLastBackup > intervalToBackup) {
+            qDebug() << "Time since last backup [" << sinceLastBackup << "] exceeds backup interval [" 
+                                    << intervalToBackup << "] doing backup now...";
+
             struct tm* localTime = localtime(&_lastPersistTime);
 
             QString backupFileName;
@@ -213,6 +216,8 @@ void OctreePersistThread::backup() {
             } else {
                 qDebug() << "ERROR in backing up persist file...";
             }
+            
+            _lastBackup = now;
         }
     }
 }
