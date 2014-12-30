@@ -280,7 +280,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         unsigned int thisID = i.key();
         if (i.value()->is3D()) {
             Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value());
-            if (thisOverlay->getDrawOnHUD() && !thisOverlay->getIgnoreRayIntersection()) {
+            if (!thisOverlay->getIgnoreRayIntersection()) {
                 if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace)) {
                     return thisID;
                 }
