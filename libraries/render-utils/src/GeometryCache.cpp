@@ -23,7 +23,13 @@
 #include "TextureCache.h"
 #include "GeometryCache.h"
 
-GeometryCache::GeometryCache() {
+//#define WANT_DEBUG
+
+const int GeometryCache::UNKNOWN_QUAD_ID = -1;
+
+GeometryCache::GeometryCache() :
+    _nextQuadID(0) 
+{
 }
 
 GeometryCache::~GeometryCache() {
@@ -661,9 +667,23 @@ void GeometryCache::renderWireCube(float size) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight) {
+void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight, int quadID) {
+
+    bool registeredQuad = (quadID != UNKNOWN_QUAD_ID);
     Vec2Pair key(topLeft, bottomRight);
-    VerticesIndices& vbo = _quad2DVBOs[key];
+    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad2DVBOs[key];
+    
+    // if this is a registered quad, and we have buffers, then clear them and rebuild
+    // TODO: would be nice to only rebuild if the geometry changed from last time.
+    if (registeredQuad && vbo.first != 0) {
+        glDeleteBuffers(1, &vbo.first);
+        glDeleteBuffers(1, &vbo.second);
+        vbo.first = vbo.second = 0;
+        #ifdef WANT_DEBUG
+            qDebug() << "renderQuad() vec2... RELEASING REGISTERED QUAD";
+        #endif // def WANT_DEBUG
+    }
+
     const int FLOATS_PER_VERTEX = 2;
     const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
@@ -700,7 +720,11 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
         delete[] indexData;
         
         #ifdef WANT_DEBUG
-            qDebug() << "new quad VBO made -- _quad2DVBOs.size():" << _quad2DVBOs.size();
+            if (quadID == UNKNOWN_QUAD_ID) {
+                qDebug() << "new quad VBO made -- _quad2DVBOs.size():" << _quad2DVBOs.size();
+            } else {
+                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
+            }
         #endif
     
     } else {
@@ -718,10 +742,23 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
 
 
 void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight,
-                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight) {
+                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight, int quadID) {
+
+    bool registeredQuad = (quadID != UNKNOWN_QUAD_ID);
     Vec2PairPair key(Vec2Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
+    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad2DTextureVBOs[key];
     
-    VerticesIndices& vbo = _quad2DTextureVBOs[key];
+    // if this is a registered quad, and we have buffers, then clear them and rebuild
+    // TODO: would be nice to only rebuild if the geometry changed from last time.
+    if (registeredQuad && vbo.first != 0) {
+        glDeleteBuffers(1, &vbo.first);
+        glDeleteBuffers(1, &vbo.second);
+        vbo.first = vbo.second = 0;
+        #ifdef WANT_DEBUG
+            qDebug() << "renderQuad() vec2 + texture... RELEASING REGISTERED QUAD";
+        #endif // def WANT_DEBUG
+    }
+
     const int FLOATS_PER_VERTEX = 2 * 2; // text coords & vertices
     const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
@@ -770,7 +807,11 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
         delete[] indexData;
        
         #ifdef WANT_DEBUG
-            qDebug() << "new quad + texture VBO made -- _quad2DTextureVBOs.size():" << _quad2DTextureVBOs.size();
+            if (quadID == UNKNOWN_QUAD_ID) {
+                qDebug() << "new quad + texture VBO made -- _quad2DTextureVBOs.size():" << _quad2DTextureVBOs.size();
+            } else {
+                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
+            }
         #endif
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
@@ -791,9 +832,23 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight) {
+void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight, int quadID) {
+
+    bool registeredQuad = (quadID != UNKNOWN_QUAD_ID);
     Vec3Pair key(topLeft, bottomRight);
-    VerticesIndices& vbo = _quad3DVBOs[key];
+    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad3DVBOs[key];
+    
+    // if this is a registered quad, and we have buffers, then clear them and rebuild
+    // TODO: would be nice to only rebuild if the geometry changed from last time.
+    if (registeredQuad && vbo.first != 0) {
+        glDeleteBuffers(1, &vbo.first);
+        glDeleteBuffers(1, &vbo.second);
+        vbo.first = vbo.second = 0;
+        #ifdef WANT_DEBUG
+            qDebug() << "renderQuad() vec3... RELEASING REGISTERED QUAD";
+        #endif // def WANT_DEBUG
+    }
+
     const int FLOATS_PER_VERTEX = 3;
     const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
@@ -838,7 +893,11 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         delete[] indexData;
         
         #ifdef WANT_DEBUG
-            qDebug() << "new quad VBO made -- _quad3DVBOs.size():" << _quad3DVBOs.size();
+            if (quadID == UNKNOWN_QUAD_ID) {
+                qDebug() << "new quad VBO made -- _quad3DVBOs.size():" << _quad3DVBOs.size();
+            } else {
+                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
+            }
         #endif
     
     } else {
@@ -858,7 +917,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
 void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
-                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight) {
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int quadID) {
 
     #ifdef WANT_DEBUG
         qDebug() << "renderQuad() vec3 + texture VBO...";
@@ -869,10 +928,22 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         qDebug() << "    texCoordTopLeft:" << texCoordTopLeft;
         qDebug() << "    texCoordBottomRight:" << texCoordBottomRight;
     #endif //def WANT_DEBUG
-                    
-    Vec3PairVec2Pair key(Vec3Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
     
-    VerticesIndices& vbo = _quad3DTextureVBOs[key];
+    bool registeredQuad = (quadID != UNKNOWN_QUAD_ID);
+    Vec3PairVec2Pair key(Vec3Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
+    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad3DTextureVBOs[key];
+    
+    // if this is a registered quad, and we have buffers, then clear them and rebuild
+    // TODO: would be nice to only rebuild if the geometry changed from last time.
+    if (registeredQuad && vbo.first != 0) {
+        glDeleteBuffers(1, &vbo.first);
+        glDeleteBuffers(1, &vbo.second);
+        vbo.first = vbo.second = 0;
+        #ifdef WANT_DEBUG
+            qDebug() << "renderQuad() vec3 + texture VBO... RELEASING REGISTERED QUAD";
+        #endif // def WANT_DEBUG
+    }
+    
     const int FLOATS_PER_VERTEX = 5; // text coords & vertices
     const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
@@ -925,7 +996,11 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         delete[] indexData;
 
         #ifdef WANT_DEBUG
-            qDebug() << "    _quad3DTextureVBOs.size():" << _quad3DTextureVBOs.size();
+            if (quadID == UNKNOWN_QUAD_ID) {
+                qDebug() << "    _quad3DTextureVBOs.size():" << _quad3DTextureVBOs.size();
+            } else {
+                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
+            }
         #endif
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
