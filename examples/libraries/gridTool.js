@@ -2,11 +2,11 @@ Grid = function(opts) {
     var that = {};
 
     var colors = [
-        { red: 102, green: 180, blue: 126 },
-        { red: 83, green: 210, blue: 83 },
-        { red: 235, green: 173, blue: 0 },
-        { red: 210, green: 115, blue: 0 },
-        { red: 48, green: 116, blue: 119 },
+        { red: 0, green: 255, blue: 0 },
+        { red: 255, green: 255, blue: 255 },
+        { red: 0, green: 0, blue: 0 },
+        { red: 0, green: 0, blue: 255 },
+        { red: 255, green: 0, blue: 0 },
     ];
     var colorIndex = 0;
     var gridAlpha = 1.0;
