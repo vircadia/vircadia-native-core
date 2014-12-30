@@ -679,14 +679,16 @@ float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, boo
     
     double textWindowHeight;
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    float windowSizeX = glCanvas->getDeviceWidth();
-    float windowSizeY = glCanvas->getDeviceHeight();
-    
+    GLint viewportMatrix[4];
+    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
     glm::dmat4 modelViewMatrix;
+    float windowSizeX = viewportMatrix[2] - viewportMatrix[0];
+    float windowSizeY = viewportMatrix[3] - viewportMatrix[1];
+    
     glm::dmat4 projectionMatrix;
     Application::getInstance()->getModelViewMatrix(&modelViewMatrix);
     Application::getInstance()->getProjectionMatrix(&projectionMatrix);
+    
 
     glm::dvec4 p0 = modelViewMatrix * glm::dvec4(testPoint0, 1.0);
     p0 = projectionMatrix * p0;
