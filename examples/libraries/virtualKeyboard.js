@@ -9,8 +9,6 @@
 //  Usage: Enable VR-mode and go to First person mode,
 //  look at the key that you would like to press, and press the spacebar on your "REAL" keyboard.
 //
-//  leased some code from newEditEntities.js for Text Entity example
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -18,26 +16,26 @@
 Script.include("libraries/globals.js");
 
 // experimental 3dmode
-const THREE_D_MODE = false;
+THREE_D_MODE = false;
 
-const KBD_UPPERCASE_DEFAULT = 0;
-const KBD_LOWERCASE_DEFAULT = 1;
-const KBD_UPPERCASE_HOVER   = 2;
-const KBD_LOWERCASE_HOVER   = 3;
-const KBD_BACKGROUND        = 4;
+KBD_UPPERCASE_DEFAULT = 0;
+KBD_LOWERCASE_DEFAULT = 1;
+KBD_UPPERCASE_HOVER   = 2;
+KBD_LOWERCASE_HOVER   = 3;
+KBD_BACKGROUND        = 4;
 
-const KEYBOARD_URL = HIFI_PUBLIC_BUCKET + "images/keyboard.svg";
-const CURSOR_URL = HIFI_PUBLIC_BUCKET + "images/cursor.svg";
+KEYBOARD_URL = HIFI_PUBLIC_BUCKET + "images/keyboard.svg";
+CURSOR_URL = HIFI_PUBLIC_BUCKET + "images/cursor.svg";
 
-const RETURN_CHARCODE = 0x01000004;
-const ENTER_CHARCODE = 0x01000005;
-const SPACEBAR_CHARCODE = 32;
+RETURN_CHARCODE = 0x01000004;
+ENTER_CHARCODE = 0x01000005;
+SPACEBAR_CHARCODE = 32;
 
-const KEYBOARD_WIDTH  = 1174.7;
-const KEYBOARD_HEIGHT = 434.1;
+KEYBOARD_WIDTH  = 1174.7;
+KEYBOARD_HEIGHT = 434.1;
 
-const CURSOR_WIDTH = 33.9;
-const CURSOR_HEIGHT = 33.9;
+CURSOR_WIDTH = 33.9;
+CURSOR_HEIGHT = 33.9;
 
 // VIEW_ANGLE can be adjusted to your likings, the smaller the faster movement.
 // Try setting it to 60 if it goes too fast for you.
@@ -52,8 +50,8 @@ const BOUND_Y = 1;
 const BOUND_W = 2;
 const BOUND_H = 3;
 
-const KEY_STATE_LOWER = 0;
-const KEY_STATE_UPPER = 1;
+KEY_STATE_LOWER = 0;
+KEY_STATE_UPPER = 1;
 
 const TEXT_MARGIN_TOP = 0.15;
 const TEXT_MARGIN_LEFT = 0.15;
@@ -62,131 +60,8 @@ const TEXT_MARGIN_BOTTOM = 0.17;
 
 var windowDimensions = Controller.getViewportDimensions();
 var cursor = null;
-var keyboard = new Keyboard();
-var textFontSize = 9;
-var text = null;
-var textText = "";
-var textSizeMeasureOverlay = Overlays.addOverlay("text3d", {visible: false});
 
-function appendChar(char) {
-    textText += char;
-    updateTextOverlay();
-    Overlays.editOverlay(text, {text: textText});
-}
-
-function deleteChar() {
-    if (textText.length > 0) {
-        textText = textText.substring(0, textText.length - 1);
-        updateTextOverlay();
-    }
-}
-
-function updateTextOverlay() {
-    var textLines = textText.split("\n");
-    var maxLineWidth = 0;
-    for (textLine in textLines) {
-        var lineWidth = Overlays.textSize(text, textLines[textLine]).width;
-        if (lineWidth > maxLineWidth) {
-            maxLineWidth = lineWidth;
-        }
-    }
-    var suggestedFontSize = (windowDimensions.x / maxLineWidth) * textFontSize * 0.90;
-    var maxFontSize = 190 / textLines.length;
-    textFontSize = (suggestedFontSize > maxFontSize) ? maxFontSize : suggestedFontSize;
-    var topMargin = (250 - (textFontSize * textLines.length)) / 4;
-    Overlays.editOverlay(text, {text: textText, font: {size: textFontSize}, topMargin: topMargin});
-    var maxLineWidth = 0;
-    for (textLine in textLines) {
-        var lineWidth = Overlays.textSize(text, textLines[textLine]).width;
-        if (lineWidth > maxLineWidth) {
-            maxLineWidth = lineWidth;
-        }
-    }
-    Overlays.editOverlay(text, {leftMargin: (windowDimensions.x - maxLineWidth) / 2});
-}
-
-keyboard.onKeyPress = function(event) {
-    if (event.event == 'keypress') {
-        appendChar(event.char);
-    } else if (event.event == 'enter') {
-        appendChar("\n");
-    }
-};
-
-keyboard.onKeyRelease = function(event) {
-    print("Key release event test");
-    // you can cancel a key by releasing its focusing before releasing it
-    if (event.focus) {
-        if (event.event == 'delete') {
-           deleteChar();
-        } else if (event.event == 'submit') {
-           print(textText);
-
-           var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-
-           var textLines = textText.split("\n");
-           var maxLineWidth = 0;
-           for (textLine in textLines) {
-               var lineWidth = Overlays.textSize(textSizeMeasureOverlay, textLines[textLine]).width;
-               if (lineWidth > maxLineWidth) {
-                   maxLineWidth = lineWidth;
-               }
-           }
-           var usernameLine = "--" + GlobalServices.myUsername;
-           var usernameWidth = Overlays.textSize(textSizeMeasureOverlay, usernameLine).width;
-           if (maxLineWidth < usernameWidth) {
-               maxLineWidth = usernameWidth;
-           } else {
-               var spaceableWidth = maxLineWidth - usernameWidth;
-               var spaceWidth = Overlays.textSize(textSizeMeasureOverlay, " ").width;
-               var numberOfSpaces = Math.floor(spaceableWidth / spaceWidth);
-               for (var i = 0; i < numberOfSpaces; i++) {
-                   usernameLine = " " + usernameLine;
-               }
-           }
-           var dimension_x = maxLineWidth + TEXT_MARGIN_RIGHT + TEXT_MARGIN_LEFT;
-           if (position.x > 0 && position.y > 0 && position.z > 0) {
-               Entities.addEntity({ 
-                   type: "Text",
-                   rotation: MyAvatar.orientation,
-                   position: position,
-                   dimensions: { x: dimension_x, y: (textLines.length + 1) * 0.14 + TEXT_MARGIN_TOP + TEXT_MARGIN_BOTTOM, z: DEFAULT_TEXT_DIMENSION_Z },
-                   backgroundColor: { red: 0, green: 0, blue: 0 },
-                   textColor: { red: 255, green: 255, blue: 255 },
-                   text: textText + "\n" + usernameLine
-               });
-           }
-           textText = "";
-           updateTextOverlay();
-        }
-    }
-};
-
-keyboard.onFullyLoaded = function() {
-    print("Virtual-keyboard fully loaded.");
-    var dimensions = Controller.getViewportDimensions();
-    text = Overlays.addOverlay("text", {
-         x: 0,
-         y: dimensions.y - keyboard.height() - 260,
-         width: dimensions.x,
-         height: 250,
-         backgroundColor: { red: 255, green: 255, blue: 255},
-         color: { red: 0, green: 0, blue: 0},
-         topMargin: 5,
-         leftMargin: 0,
-         font: {size: textFontSize},
-         text: "",
-         alpha: 0.8
-    });
-    updateTextOverlay();
-    // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
-    cursor = new Cursor();
-    cursor.onUpdate = function(position) {
-        keyboard.setFocusPosition(position.x, position.y);
-    };
-};
-
-function KeyboardKey(keyboard, keyProperties) {
+KeyboardKey = (function(keyboard, keyProperties) {
     var tthis = this;
     this._focus = false;
     this._beingPressed = false;
@@ -301,9 +176,9 @@ function KeyboardKey(keyboard, keyProperties) {
         }
         this.overlays.push(newOverlay);
     }
-}
+});
 
-function Keyboard() {
+Keyboard = (function() {
     var tthis = this;
     this.focussed_key = -1;
     this.scale = windowDimensions.x / KEYBOARD_WIDTH;
@@ -548,9 +423,9 @@ function Keyboard() {
         }
     };
     this.keyboardTextureLoaded_timer = Script.setInterval(this.keyboardTextureLoaded, 250);
-}
+});
 
-function Cursor() {
+Cursor = (function() {
     var tthis = this;
     this.x = windowDimensions.x / 2;
     this.y = windowDimensions.y / 2;
@@ -604,35 +479,4 @@ function Cursor() {
         }
     };
     Script.update.connect(this.update);
-}
-
-function keyPressEvent(event) {
-    if (event.key === SPACEBAR_CHARCODE) {
-        keyboard.pressFocussedKey();
-    } else if (event.key === ENTER_CHARCODE || event.key === RETURN_CHARCODE) {
-        print("Enter pressed");
-    }
-
-}
-
-function keyReleaseEvent(event) {
-    if (event.key === SPACEBAR_CHARCODE) {
-        keyboard.releaseKeys();
-    }
-}
-
-function scriptEnding() {
-    keyboard.remove();
-    cursor.remove();
-    Overlays.deleteOverlay(text);
-    Overlays.deleteOverlay(textSizeMeasureOverlay);
-    Controller.releaseKeyEvents({key: SPACEBAR_CHARCODE});
-    Controller.releaseKeyEvents({key: RETURN_CHARCODE});
-    Controller.releaseKeyEvents({key: ENTER_CHARCODE});
-}
-Controller.captureKeyEvents({key: RETURN_CHARCODE});
-Controller.captureKeyEvents({key: ENTER_CHARCODE});
-Controller.captureKeyEvents({key: SPACEBAR_CHARCODE});
-Controller.keyPressEvent.connect(keyPressEvent);
-Controller.keyReleaseEvent.connect(keyReleaseEvent);
-Script.scriptEnding.connect(scriptEnding);
+});
