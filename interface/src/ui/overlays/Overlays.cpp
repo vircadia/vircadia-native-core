@@ -91,7 +91,6 @@ void Overlays::renderHUD() {
 
     foreach(Overlay* thisOverlay, _overlaysHUD) {
         if (thisOverlay->is3D()) {
-            qDebug() << "Rendering 3d HUD!";
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_LIGHTING);
 
