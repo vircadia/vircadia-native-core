@@ -12,14 +12,13 @@ Grid = function(opts) {
     var gridAlpha = 1.0;
     var origin = { x: 0, y: 0, z: 0 };
     var majorGridEvery = 5;
-    var minorGridSpacing = 0.2;
+    var minorGridWidth = 0.2;
     var halfSize = 40;
     var yOffset = 0.001;
 
     var worldSize = 16384;
 
     var minorGridWidth = 0.5;
-    var majorGridWidth = 1.5;
 
     var snapToGrid = false;
 
@@ -107,7 +106,7 @@ Grid = function(opts) {
             dimensions = { x: 0, y: 0, z: 0 };
         }
 
-        var spacing = majorOnly ? (minorGridSpacing * majorGridEvery) : minorGridSpacing;
+        var spacing = majorOnly ? (minorGridWidth * majorGridEvery) : minorGridWidth;
 
         position = Vec3.subtract(position, origin);
 
@@ -123,7 +122,7 @@ Grid = function(opts) {
             return delta;
         }
 
-        var spacing = majorOnly ? (minorGridSpacing * majorGridEvery) : minorGridSpacing;
+        var spacing = majorOnly ? (minorGridWidth * majorGridEvery) : minorGridWidth;
 
         var snappedDelta = {
             x: Math.round(delta.x / spacing) * spacing,
@@ -150,7 +149,7 @@ Grid = function(opts) {
         if (that.onUpdate) {
             that.onUpdate({
                 origin: origin,
-                minorGridSpacing: minorGridSpacing,
+                minorGridWidth: minorGridWidth,
                 majorGridEvery: majorGridEvery,
                 gridSize: halfSize,
                 visible: that.visible,
@@ -172,8 +171,8 @@ Grid = function(opts) {
             that.setPosition(pos, true);
         }
 
-        if (data.minorGridSpacing) {
-            minorGridSpacing = data.minorGridSpacing;
+        if (data.minorGridWidth) {
+            minorGridWidth = data.minorGridWidth;
         }
 
         if (data.majorGridEvery) {
@@ -199,7 +198,7 @@ Grid = function(opts) {
         Overlays.editOverlay(gridOverlay, {
             position: { x: origin.y, y: origin.y, z: -origin.y },
             visible: that.visible && that.enabled,
-            minorGridWidth: minorGridSpacing,
+            minorGridWidth: minorGridWidth,
             majorGridEvery: majorGridEvery,
             color: colors[colorIndex],
             alpha: gridAlpha,
