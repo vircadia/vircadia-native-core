@@ -44,22 +44,22 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
 
 
 ObjectMotionState::ObjectMotionState() : 
-        _density(DEFAULT_DENSITY), 
-        _volume(DEFAULT_VOLUME), 
-        _friction(DEFAULT_FRICTION), 
-        _restitution(DEFAULT_RESTITUTION), 
-        _wasInWorld(false),
-        _motionType(MOTION_TYPE_STATIC),
-        _body(NULL),
-        _sentMoving(false),
-        _numNonMovingUpdates(0),
-        _outgoingPacketFlags(DIRTY_PHYSICS_FLAGS),
-        _sentFrame(0),
-        _sentPosition(0.0f),
-        _sentRotation(),
-        _sentVelocity(0.0f),
-        _sentAngularVelocity(0.0f),
-        _sentAcceleration(0.0f) {
+    _density(DEFAULT_DENSITY), 
+    _volume(DEFAULT_VOLUME), 
+    _friction(DEFAULT_FRICTION), 
+    _restitution(DEFAULT_RESTITUTION), 
+    _wasInWorld(false),
+    _motionType(MOTION_TYPE_STATIC),
+    _body(NULL),
+    _sentMoving(false),
+    _numNonMovingUpdates(0),
+    _outgoingPacketFlags(DIRTY_PHYSICS_FLAGS),
+    _sentFrame(0),
+    _sentPosition(0.0f),
+    _sentRotation(),
+    _sentVelocity(0.0f),
+    _sentAngularVelocity(0.0f),
+    _sentAcceleration(0.0f) {
 }
 
 ObjectMotionState::~ObjectMotionState() {
