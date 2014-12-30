@@ -496,14 +496,12 @@ function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
-    if (toolBar.mousePressEvent(event) || cameraManager.mousePressEvent(event)
-        || progressDialog.mousePressEvent(event) || gridTool.mousePressEvent(event)) {
-
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event) || gridTool.mousePressEvent(event)) {
         mouseCapturedByTool = true;
         return;
     }
     if (isActive) {
-        if (selectionDisplay.mousePressEvent(event)) {
+        if (cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
             // Event handled; do nothing.
             return;
         }
