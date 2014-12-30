@@ -475,9 +475,6 @@ GridTool = function(opts) {
         return false;
     };
 
-    that.mouseReleaseEvent = function(event) {
-    };
-
     Script.scriptEnding.connect(function() {
         for (var i = 0; i < allOverlays.length; i++) {
             Overlays.deleteOverlay(allOverlays[i]);
