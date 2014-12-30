@@ -18,8 +18,6 @@ Grid = function(opts) {
 
     var worldSize = 16384;
 
-    var minorGridWidth = 0.5;
-
     var snapToGrid = false;
 
     var gridOverlay = Overlays.addOverlay("grid", {
