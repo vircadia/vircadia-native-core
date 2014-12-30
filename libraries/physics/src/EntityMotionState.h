@@ -47,10 +47,10 @@ public:
 
 #ifdef USE_BULLET_PHYSICS
     // this relays incoming position/rotation to the RigidBody
-    void getWorldTransform (btTransform &worldTrans) const;
+    void getWorldTransform(btTransform& worldTrans) const;
 
     // this relays outgoing position/rotation to the EntityItem
-    void setWorldTransform (const btTransform &worldTrans);
+    void setWorldTransform(const btTransform& worldTrans);
 #endif // USE_BULLET_PHYSICS
 
     // these relay incoming values to the RigidBody

@@ -55,7 +55,7 @@ MotionType EntityMotionState::computeMotionType() const {
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
 // (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
-void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
+void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     btVector3 pos;
     glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset(), pos);
     worldTrans.setOrigin(pos);
@@ -67,7 +67,7 @@ void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
 
 // This callback is invoked by the physics simulation at the end of each simulation frame...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
-void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
+void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     glm::vec3 pos;
     bulletToGLM(worldTrans.getOrigin(), pos);
     _entity->setPositionInMeters(pos + ObjectMotionState::getWorldOffset());
