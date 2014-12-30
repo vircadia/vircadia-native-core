@@ -2,7 +2,7 @@
 //  virtualKeyboardTextEntityExample.js
 //  examples
 //
-//  Created by Thijs Wenker on 11/18/14.
+//  Created by Thijs Wenker on 12/28/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Control a virtual keyboard using your favorite HMD.
@@ -45,29 +45,15 @@ function deleteChar() {
         updateTextOverlay();
     }
 }
-
+  
 function updateTextOverlay() {
     var textLines = textText.split("\n");
-    var maxLineWidth = 0;
-    for (textLine in textLines) {
-        var lineWidth = Overlays.textSize(text, textLines[textLine]).width;
-        if (lineWidth > maxLineWidth) {
-            maxLineWidth = lineWidth;
-        }
-    }
-    var suggestedFontSize = (windowDimensions.x / maxLineWidth) * textFontSize * 0.90;
-    var maxFontSize = 190 / textLines.length;
+    var suggestedFontSize = (windowDimensions.x / Overlays.textSize(text, textLines).width) * textFontSize * 0.90;
+    var maxFontSize = 170 / textLines.length;
     textFontSize = (suggestedFontSize > maxFontSize) ? maxFontSize : suggestedFontSize;
     var topMargin = (250 - (textFontSize * textLines.length)) / 4;
     Overlays.editOverlay(text, {text: textText, font: {size: textFontSize}, topMargin: topMargin});
-    var maxLineWidth = 0;
-    for (textLine in textLines) {
-        var lineWidth = Overlays.textSize(text, textLines[textLine]).width;
-        if (lineWidth > maxLineWidth) {
-            maxLineWidth = lineWidth;
-        }
-    }
-    Overlays.editOverlay(text, {leftMargin: (windowDimensions.x - maxLineWidth) / 2});
+    Overlays.editOverlay(text, {leftMargin: (windowDimensions.x - Overlays.textSize(text, textLines).width) / 2});
 }
 
 keyboard.onKeyPress = function(event) {

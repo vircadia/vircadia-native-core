@@ -2,7 +2,7 @@
 //  virtualKeyboardTextEntityExample.js
 //  examples
 //
-//  Created by Thijs Wenker on 11/18/14.
+//  Created by Thijs Wenker on 12/28/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Control a virtual keyboard using your favorite HMD.
@@ -156,7 +156,7 @@ function keyPressEvent(event) {
     if (event.key === SPACEBAR_CHARCODE) {
         keyboard.pressFocussedKey();
     } else if (event.key === ENTER_CHARCODE || event.key === RETURN_CHARCODE) {
-        print("Enter pressed");
+        keyboard.toggle();
     }
 
 }
