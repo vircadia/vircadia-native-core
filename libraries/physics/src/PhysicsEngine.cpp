@@ -79,10 +79,10 @@ void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
     if (physicsInfo) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(physicsInfo);
         removeObject(motionState);
-        entity->setPhysicsInfo(NULL);
         _entityMotionStates.remove(motionState);
         _incomingChanges.remove(motionState);
         _outgoingPackets.remove(motionState);
+        delete motionState;
     }
 }
 
@@ -118,6 +118,7 @@ void PhysicsEngine::clearEntitiesInternal() {
     QSet<EntityMotionState*>::const_iterator stateItr = _entityMotionStates.begin();
     for (stateItr = _entityMotionStates.begin(); stateItr != _entityMotionStates.end(); ++stateItr) {
         removeObject(*stateItr);
+        delete (*stateItr);
     }
     _entityMotionStates.clear();
     _incomingChanges.clear();

@@ -37,6 +37,9 @@ EntityMotionState::EntityMotionState(EntityItem* entity)
 }
 
 EntityMotionState::~EntityMotionState() {
+    assert(_entity);
+    _entity->setPhysicsInfo(NULL);
+    _entity = NULL;
 }
 
 MotionType EntityMotionState::computeMotionType() const {
