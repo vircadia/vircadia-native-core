@@ -673,8 +673,7 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
     Vec2Pair key(minCorner, maxCorner);
     VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad2DVBOs[key];
     
-    // if this is a registered quad, and we have buffers, then clear them and rebuild
-    // TODO: would be nice to only rebuild if the geometry changed from last time.
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registeredQuad && vbo.first != 0) {
         Vec2Pair& lastKey = _lastRegisteredQuad2D[quadID];
         if (lastKey != key) {
@@ -757,7 +756,7 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
     Vec2PairPair key(Vec2Pair(minCorner, maxCorner), Vec2Pair(texCoordMinCorner, texCoordMaxCorner));
     VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad2DTextureVBOs[key];
     
-    // if this is a registered quad, and we have buffers, then clear them and rebuild
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registeredQuad && vbo.first != 0) {
         Vec2PairPair& lastKey = _lastRegisteredQuad2DTexture[quadID];
         if (lastKey != key) {
@@ -855,8 +854,7 @@ void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxC
     Vec3Pair key(minCorner, maxCorner);
     VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad3DVBOs[key];
     
-    // if this is a registered quad, and we have buffers, then clear them and rebuild
-    // TODO: would be nice to only rebuild if the geometry changed from last time.
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registeredQuad && vbo.first != 0) {
         Vec3Pair& lastKey = _lastRegisteredQuad3D[quadID];
         if (lastKey != key) {
@@ -959,8 +957,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
     Vec3PairVec2Pair key(Vec3Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
     VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad3DTextureVBOs[key];
     
-    // if this is a registered quad, and we have buffers, then clear them and rebuild
-    // TODO: would be nice to only rebuild if the geometry changed from last time.
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registeredQuad && vbo.first != 0) {
         Vec3PairVec2Pair& lastKey = _lastRegisteredQuad3DTexture[quadID];
         if (lastKey != key) {
