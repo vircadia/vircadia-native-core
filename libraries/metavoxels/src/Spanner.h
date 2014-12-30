@@ -477,35 +477,26 @@ public:
     /// A single entry within the array.
     class Entry {
     public:
-        uchar rgba[4];
+        quint32 color;
         uchar material;
-        uchar hermiteX[4];
-        uchar hermiteY[4];
-        uchar hermiteZ[4];
-               
-        void setRGBA(int r, int g, int b, int a = 0xFF) { rgba[0] = r; rgba[1] = g; rgba[2] = b; rgba[3] = a; } 
-        void setRGBA(const uchar* orgba) { setRGBA(orgba[0], orgba[1], orgba[2], orgba[3]); }
-        void setRGB(const uchar* rgb) { setRGBA(rgb[0], rgb[1], rgb[2]); }
-        void setRGBA(QRgb rgb) { setRGBA(qRed(rgb), qGreen(rgb), qBlue(rgb), qAlpha(rgb)); }
+        quint32 hermiteX;
+        quint32 hermiteY;
+        quint32 hermiteZ;
         
-        bool isSet() const { return rgba[3] != 0; }
+        Entry();
+        
+        bool isSet() const { return qAlpha(color) != 0; }
         
         bool isZero() const;
         bool isMergeable(const Entry& other) const;
         
-        void setHermiteX(int x, int y, int z, int w) { hermiteX[0] = x; hermiteX[1] = y; hermiteX[2] = z; hermiteX[3] = w; }
         void setHermiteX(const glm::vec3& normal, float position);
-        void clearHermiteX() { setHermiteX(0, 0, 0, 0); }
         float getHermiteX(glm::vec3& normal) const;
         
-        void setHermiteY(int x, int y, int z, int w) { hermiteY[0] = x; hermiteY[1] = y; hermiteY[2] = z; hermiteY[3] = w; }
         void setHermiteY(const glm::vec3& normal, float position);
-        void clearHermiteY() { setHermiteY(0, 0, 0, 0); }
         float getHermiteY(glm::vec3& normal) const;
         
-        void setHermiteZ(int x, int y, int z, int w) { hermiteZ[0] = x; hermiteZ[1] = y; hermiteZ[2] = z; hermiteZ[3] = w; }
         void setHermiteZ(const glm::vec3& normal, float position);
-        void clearHermiteZ() { setHermiteZ(0, 0, 0, 0); }
         float getHermiteZ(glm::vec3& normal) const;
     };
 #pragma pack(pop)
@@ -528,6 +519,9 @@ public:
     const Entry* getEntryData() const { return (const Entry*)(constData() + sizeof(quint16)); }
     
     int getEntryAlpha(int y) const;
+    
+    Entry& getEntry(int y);
+    const Entry& getEntry(int y) const;
     
     void removeEntries(int position, int count) { remove(sizeof(quint16) + position * sizeof(Entry), count * sizeof(Entry)); }
 };

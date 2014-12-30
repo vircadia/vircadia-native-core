@@ -1153,31 +1153,32 @@ static QVector<StackArray> decodeHeightfieldStack(const QByteArray& encoded,
     return contents;
 }
 
-static inline bool isZero(const uchar values[4]) {
-    return *(const quint32*)values == 0;
+StackArray::Entry::Entry() :
+    color(0),
+    material(0),
+    hermiteX(0),
+    hermiteY(0),
+    hermiteZ(0) {
 }
 
 bool StackArray::Entry::isZero() const {
-    return ::isZero(rgba) && material == 0 && ::isZero(hermiteX) && ::isZero(hermiteY) && ::isZero(hermiteZ);
+    return color == 0 && material == 0 && hermiteX == 0 && hermiteY == 0 && hermiteZ == 0;
 }
 
 bool StackArray::Entry::isMergeable(const Entry& other) const {
-    return *(const quint32*)rgba == *(const quint32*)other.rgba && material == other.material &&
-        ::isZero(hermiteX) && ::isZero(hermiteY) && ::isZero(hermiteZ);
+    return color == other.color && material == other.material && hermiteX == 0 && hermiteY == 0 && hermiteZ == 0;
 }
 
-static inline void setHermite(uchar values[4], const glm::vec3& normal, float position) {
-    values[0] = normal.x * numeric_limits<qint8>::max();
-    values[1] = normal.y * numeric_limits<qint8>::max();
-    values[2] = normal.z * numeric_limits<qint8>::max();
-    values[3] = position * numeric_limits<quint8>::max();
+static inline void setHermite(quint32& value, const glm::vec3& normal, float position) {
+    value = qRgba(normal.x * numeric_limits<qint8>::max(), normal.y * numeric_limits<qint8>::max(),
+        normal.z * numeric_limits<qint8>::max(), position * numeric_limits<quint8>::max());
 }
 
-static inline float getHermite(const uchar values[4], glm::vec3& normal) {
-    normal.x = (char)values[0] / (float)numeric_limits<qint8>::max();
-    normal.y = (char)values[1] / (float)numeric_limits<qint8>::max();
-    normal.z = (char)values[2] / (float)numeric_limits<qint8>::max();
-    return values[3] / (float)numeric_limits<qint8>::max();
+static inline float getHermite(QRgb value, glm::vec3& normal) {
+    normal.x = (char)qRed(value) / (float)numeric_limits<qint8>::max();
+    normal.y = (char)qGreen(value) / (float)numeric_limits<qint8>::max();
+    normal.z = (char)qBlue(value) / (float)numeric_limits<qint8>::max();
+    return qAlpha(value) / (float)numeric_limits<qint8>::max();   
 }
 
 void StackArray::Entry::setHermiteX(const glm::vec3& normal, float position) {
@@ -1210,7 +1211,27 @@ int StackArray::getEntryAlpha(int y) const {
         return 0;
     }
     int relative = y - getPosition();
-    return (relative < count) ? getEntryData()[qMax(relative, 0)].rgba[3] : 0;
+    return (relative < count) ? qAlpha(getEntryData()[qMax(relative, 0)].color) : 0;
+}
+
+StackArray::Entry& StackArray::getEntry(int y) {
+    static Entry emptyEntry;
+    int count = getEntryCount();
+    if (count == 0) {
+        return emptyEntry;
+    }
+    int relative = y - getPosition();
+    return (relative < count) ? getEntryData()[qMax(relative, 0)] : emptyEntry;
+}
+
+const StackArray::Entry& StackArray::getEntry(int y) const {
+    static Entry emptyEntry;
+    int count = getEntryCount();
+    if (count == 0) {
+        return emptyEntry;
+    }
+    int relative = y - getPosition();
+    return (relative < count) ? getEntryData()[qMax(relative, 0)] : emptyEntry;
 }
 
 HeightfieldStack::HeightfieldStack(int width, const QVector<StackArray>& contents,
@@ -2214,8 +2235,8 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     glm::vec3 voxelStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
     int newTop = start.y * voxelScale;
     int newBottom = end.y * voxelScale;
-    char r = color.red(), g = color.green(), b = color.blue(), a = color.alpha();
-    bool erase = (a == 0);
+    QRgb rgba = color.rgba();
+    bool erase = (color.alpha() == 0);
     uchar materialMaterialIndex = getMaterialIndex(material, newMaterialMaterials, newMaterialContents);
     QByteArray dummyContents;
     uchar stackMaterialIndex = getMaterialIndex(material, newStackMaterials, dummyContents);
@@ -2246,8 +2267,8 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             float stackZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerStackHeight / innerHeightHeight;
             
             int topHeight = -1;
-            char topR = 0, topG = 0, topB = 0;
-            uchar topMaterial;
+            QRgb topColor = 0;
+            uchar topMaterial = 0;
             
             if (stackX >= 0.0f && stackX <= innerStackWidth && stackZ >= 0.0f && stackZ <= innerStackHeight) {
                 StackArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
@@ -2259,7 +2280,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     StackArray::Entry* entryDest = stackDest->getEntryData();
                     
                     if (colorDest) {
-                        entryDest->setRGB(colorDest);
+                        entryDest->color = qRgb(colorDest[0], colorDest[1], colorDest[2]);
                     }
 
                     if (materialDest) {
@@ -2295,7 +2316,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             stackDest->getEntryCount() * sizeof(StackArray::Entry));
                         for (StackArray::Entry* entryDest = newStack.getEntryData(), *end = entryDest + prepend;
                                 entryDest != end; entryDest++) {
-                            entryDest->setRGBA(end->rgba);
+                            entryDest->color = end->color;
                             entryDest->material = end->material;
                         }
                         *stackDest = newStack;
@@ -2311,10 +2332,10 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     bool oldCurrentSet = entryDest->isSet();
                     if (spanner->contains(pos)) {
                         if (hasOwnColors && !erase) {
-                            entryDest->setRGBA(spanner->getColorAt(pos));
+                            entryDest->color = spanner->getColorAt(pos);
                             
                         } else {
-                            entryDest->setRGBA(r, g, b, a);
+                            entryDest->color = rgba;
                         }
                         if (hasOwnMaterials && !erase) {
                             int index = spanner->getMaterialAt(pos);
@@ -2337,14 +2358,14 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     if (nextStackX <= innerStackWidth) {
                         bool nextSetX = isSet(newStackContents, stackWidth, nextStackX, y, (int)stackZ);
                         if (nextSetX == currentSet) {
-                            entryDest->clearHermiteX();
+                            entryDest->hermiteX = 0;
                             
                         } else {
                             bool flipped = (erase == nextSetX);
                             float oldDistance = flipped ? 0.0f : 1.0f;
                             if (currentSet == oldCurrentSet && nextSetX == isSet(oldStackContents, stackWidth,
                                     nextStackX, y, (int)stackZ)) {
-                                oldDistance = entryDest->hermiteX[3] / (float)numeric_limits<quint8>::max();
+                                oldDistance = qAlpha(entryDest->hermiteX) / (float)numeric_limits<quint8>::max();
                             }
                             if (flipped ? (spanner->intersects(pos + voxelStepX, pos, distance, normal) &&
                                     (distance = 1.0f - distance) >= oldDistance) :
@@ -2357,14 +2378,14 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     bool nextSetY = (entryDest != stackDest->getEntryData() + stackDest->getEntryCount() - 1 &&
                         (entryDest + 1)->isSet());
                     if (nextSetY == currentSet) {
-                        entryDest->clearHermiteY();
+                        entryDest->hermiteY = 0;
                     
                     } else {
                         bool flipped = (erase == nextSetY);
                         float oldDistance = flipped ? 0.0f : 1.0f;
                         if (currentSet == oldCurrentSet && nextSetY == isSet(oldStackContents, stackWidth,
                                 (int)stackX, y + 1, (int)stackZ)) {
-                            oldDistance = entryDest->hermiteY[3] / (float)numeric_limits<quint8>::max();
+                            oldDistance = qAlpha(entryDest->hermiteY) / (float)numeric_limits<quint8>::max();
                         }
                         if (flipped ? (spanner->intersects(pos + voxelStepY, pos, distance, normal) &&
                                 (distance = 1.0f - distance) >= oldDistance) :
@@ -2377,14 +2398,14 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     if (nextStackZ <= innerStackHeight) {
                         bool nextSetZ = isSet(newStackContents, stackWidth, (int)stackX, y, nextStackZ);
                         if (nextSetZ == currentSet) {
-                            entryDest->clearHermiteZ();
+                            entryDest->hermiteZ = 0;
                             
                         } else {
                             bool flipped = (erase == nextSetZ);
                             float oldDistance = flipped ? 0.0f : 1.0f;
                             if (currentSet == oldCurrentSet && nextSetZ == isSet(oldStackContents, stackWidth,
                                     (int)stackX, y, nextStackZ)) {
-                                oldDistance = entryDest->hermiteZ[3] / (float)numeric_limits<quint8>::max();
+                                oldDistance = qAlpha(entryDest->hermiteZ) / (float)numeric_limits<quint8>::max();
                             }
                             if (flipped ? (spanner->intersects(pos + voxelStepZ, pos, distance, normal) &&
                                     (distance = 1.0f - distance) >= oldDistance) :
@@ -2413,10 +2434,8 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     StackArray::Entry* topEntry = stackDest->getEntryData() + topIndex;
                     if (topEntry->isSet()) {
                         topHeight = ((stackDest->getPosition() + topIndex) +
-                            topEntry->hermiteY[3] / (float)numeric_limits<quint8>::max()) / voxelScale;
-                        topR = topEntry->rgba[0];
-                        topG = topEntry->rgba[1];
-                        topB = topEntry->rgba[2];
+                            qAlpha(topEntry->hermiteY) / (float)numeric_limits<quint8>::max()) / voxelScale;
+                        topColor = topEntry->color;
                         topMaterial = topEntry->material;
                         
                     } else {
@@ -2436,9 +2455,9 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             if (topHeight != -1) {
                 *heightLineDest = topHeight;
                 if (colorDest) {
-                    colorDest[0] = topR;
-                    colorDest[1] = topG;
-                    colorDest[2] = topB;
+                    colorDest[0] = qRed(topColor);
+                    colorDest[1] = qGreen(topColor);
+                    colorDest[2] = qBlue(topColor);
                 }
                 if (materialDest) {
                     if (topMaterial != 0) {
@@ -2467,9 +2486,9 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             colorDest[2] = qBlue(spannerColor);
                             
                         } else { 
-                            colorDest[0] = r;
-                            colorDest[1] = g;
-                            colorDest[2] = b;
+                            colorDest[0] = color.red();
+                            colorDest[1] = color.green();
+                            colorDest[2] = color.blue();
                         }
                     }
                     

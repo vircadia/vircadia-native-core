@@ -2294,6 +2294,9 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         glm::vec3 step(1.0f / innerStackWidth, scale.x / (innerStackWidth * scale.y),
             1.0f / innerStackHeight);
         
+        const int EDGES_PER_CUBE = 12;
+        EdgeCrossing crossings[EDGES_PER_CUBE];
+        
         for (int z = 0; z <= stackHeight; z++) {
             pos.x = 0.0f;
             const StackArray* lineSrc = src;
@@ -2324,9 +2327,9 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 hermiteSegments.append(start + normal * step);
                             }
                         }
-                        int alpha0 = entry->rgba[3];
+                        int alpha0 = qAlpha(entry->color);
                         int alpha2 = lineSrc->getEntryAlpha(y + 1);
-                        int alpha1 = alpha0, alpha4 = alpha0, alpha6 = alpha0;
+                        int alpha1 = alpha0, alpha3 = alpha2, alpha4 = alpha0, alpha6 = alpha2;
                         int alphaTotal = alpha0 + alpha2;
                         int possibleTotal = 2 * numeric_limits<uchar>::max();
                         
@@ -2341,9 +2344,72 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             alphaTotal += (alpha6 = lineSrc[stackWidth].getEntryAlpha(y + 1));
                             possibleTotal += numeric_limits<uchar>::max();
                         }
-                        
+                        int alpha5 = alpha4, alpha7 = alpha6;
+                        if (middleX) {
+                            alphaTotal += (alpha1 = lineSrc[1].getEntryAlpha(y));
+                            possibleTotal += numeric_limits<uchar>::max();
+                            
+                            alphaTotal += (alpha3 = lineSrc[1].getEntryAlpha(y + 1));
+                            possibleTotal += numeric_limits<uchar>::max();
+                                
+                            if (middleZ) {
+                                alphaTotal += (alpha5 = lineSrc[stackWidth + 1].getEntryAlpha(y));
+                                possibleTotal += numeric_limits<uchar>::max();
+                                
+                                alphaTotal += (alpha7 = lineSrc[stackWidth + 1].getEntryAlpha(y + 1));
+                                possibleTotal += numeric_limits<uchar>::max();
+                            }
+                        }
                         if (alphaTotal == 0 || alphaTotal == possibleTotal) {
                             continue; // no corners set/all corners set
+                        }
+                        // the terrifying conditional code that follows checks each cube edge for a crossing, gathering
+                        // its properties (color, material, normal) if one is present; as before, boundary edges are excluded
+                        int crossingCount = 0;
+                        if (middleX) {
+                            if (alpha0 != alpha1) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                float distance = entry->getHermiteX(crossing.normal);
+                                if (alpha0 == 0) {
+                                    const StackArray::Entry& nextEntry = lineSrc[1].getEntry(y);
+                                    crossing.color = nextEntry.color;
+                                    crossing.material = nextEntry.material;
+                                } else {
+                                    crossing.color = entry->color;
+                                    crossing.material = entry->material;
+                                }
+                                crossing.point = glm::vec3(distance, 0.0f, 0.0f);
+                            }
+                            
+                        }
+                        if (alpha0 != alpha2) {
+                            EdgeCrossing& crossing = crossings[crossingCount++];
+                            float distance = entry->getHermiteY(crossing.normal);
+                            if (alpha0 == 0) {
+                                const StackArray::Entry& nextEntry = lineSrc->getEntry(y + 1);
+                                crossing.color = nextEntry.color;
+                                crossing.material = nextEntry.material;
+                            } else {
+                                crossing.color = entry->color;
+                                crossing.material = entry->material;
+                            }
+                            crossing.point = glm::vec3(0.0f, distance, 0.0f);
+                        }
+                        if (middleZ) {
+                            if (alpha0 != alpha4) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                float distance = entry->getHermiteZ(crossing.normal);
+                                if (alpha0 == 0) {
+                                    const StackArray::Entry& nextEntry = lineSrc[stackWidth].getEntry(y);
+                                    crossing.color = nextEntry.color;
+                                    crossing.material = nextEntry.material;
+                                } else {
+                                    crossing.color = entry->color;
+                                    crossing.material = entry->material;
+                                }
+                                crossing.point = glm::vec3(0.0f, 0.0f, distance);
+                            }
+                            
                         }
                     }
                 }
