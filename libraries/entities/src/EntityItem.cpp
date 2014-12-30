@@ -1000,8 +1000,17 @@ void EntityItem::recalculateCollisionShape() {
     // TODO: use motionState to update physics object
 }
 
+const float MIN_POSITION_DELTA = 0.0001f;
+const float MIN_DIMENSION_DELTA = 0.0001f;
+const float MIN_ALIGNMENT_DOT = 0.9999f;
+const float MIN_MASS_DELTA = 0.001f;
+const float MIN_VELOCITY_DELTA = 0.025f;
+const float MIN_GRAVITY_DELTA = 0.001f;
+const float MIN_SPIN_DELTA = 0.0003f;
+
 void EntityItem::updatePosition(const glm::vec3& value) { 
-    if (_position != value) {
+    glm::vec3 debugPosition = value * (float) TREE_SCALE;
+    if (glm::distance(_position, value) * (float)TREE_SCALE > MIN_POSITION_DELTA) {
         _position = value; 
         recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
@@ -1010,7 +1019,7 @@ void EntityItem::updatePosition(const glm::vec3& value) {
 
 void EntityItem::updatePositionInMeters(const glm::vec3& value) { 
     glm::vec3 position = glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f);
-    if (_position != position) {
+    if (glm::distance(_position, position) * (float)TREE_SCALE > MIN_POSITION_DELTA) {
         _position = position;
         recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
@@ -1018,7 +1027,7 @@ void EntityItem::updatePositionInMeters(const glm::vec3& value) {
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) { 
-    if (_dimensions != value) {
+    if (glm::distance(_dimensions, value) * (float)TREE_SCALE > MIN_DIMENSION_DELTA) {
         _dimensions = value; 
         recalculateCollisionShape();
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
@@ -1027,7 +1036,7 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 
 void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
     glm::vec3 dimensions = value / (float) TREE_SCALE;
-    if (_dimensions != dimensions) {
+    if (glm::distance(_dimensions, dimensions) * (float)TREE_SCALE > MIN_DIMENSION_DELTA) {
         _dimensions = dimensions; 
         recalculateCollisionShape();
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
@@ -1035,7 +1044,7 @@ void EntityItem::updateDimensionsInMeters(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) { 
-    if (_rotation != rotation) {
+    if (glm::dot(_rotation, rotation) < MIN_ALIGNMENT_DOT) {
         _rotation = rotation; 
         recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
@@ -1043,29 +1052,37 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
 }
 
 void EntityItem::updateMass(float value) {
-    if (_mass != value) {
+    if (fabsf(_mass - value) > MIN_MASS_DELTA) {
         _mass = value;
         _dirtyFlags |= EntityItem::DIRTY_MASS;
     }
 }
 
-void EntityItem::updateVelocity(const glm::vec3& value) { 
-    if (_velocity != value) {
-        _velocity = value;
+void EntityItem::updateVelocity(const glm::vec3& value) {
+    if (glm::distance(_velocity, value) * (float)TREE_SCALE > MIN_VELOCITY_DELTA) {
+        if (glm::length(value) * (float)TREE_SCALE < MIN_VELOCITY_DELTA) {
+            _velocity = glm::vec3(0.0f);
+        } else {
+            _velocity = value;
+        }
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateVelocityInMeters(const glm::vec3& value) { 
     glm::vec3 velocity = value / (float) TREE_SCALE; 
-    if (_velocity != velocity) {
-        _velocity = velocity;
+    if (glm::distance(_velocity, velocity) * (float)TREE_SCALE > MIN_VELOCITY_DELTA) {
+        if (glm::length(value) < MIN_VELOCITY_DELTA) {
+            _velocity = glm::vec3(0.0f);
+        } else {
+            _velocity = velocity;
+        }
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
-    if (_gravity != value) {
+    if (glm::distance(_gravity, value) * (float)TREE_SCALE > MIN_GRAVITY_DELTA) {
         _gravity = value; 
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
@@ -1073,14 +1090,14 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 
 void EntityItem::updateGravityInMeters(const glm::vec3& value) { 
     glm::vec3 gravity = value / (float) TREE_SCALE;
-    if (_gravity != gravity) {
+    if ( glm::distance(_gravity, gravity) * (float)TREE_SCALE > MIN_GRAVITY_DELTA) {
         _gravity = gravity;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
-    if (_angularVelocity != value) {
+    if (glm::distance(_angularVelocity, value) > MIN_SPIN_DELTA) {
         _angularVelocity = value; 
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
