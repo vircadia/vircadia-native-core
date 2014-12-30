@@ -54,6 +54,7 @@ Head::Head(Avatar* owningAvatar) :
     _deltaRoll(0.0f),
     _deltaLeanSideways(0.0f),
     _deltaLeanForward(0.0f),
+    _torsoTwist(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
     _faceModel(this)
@@ -89,6 +90,11 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             }            
         }
     }
+    //  Twist the upper body to follow the rotation of the head
+    const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
+    const float BODY_FOLLOW_HEAD_FACTOR = 1.5f;
+    setTorsoTwist((1.0f - BODY_FOLLOW_HEAD_YAW_RATE) * getTorsoTwist() + getFinalYaw() * BODY_FOLLOW_HEAD_YAW_RATE / BODY_FOLLOW_HEAD_FACTOR);
+    
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
