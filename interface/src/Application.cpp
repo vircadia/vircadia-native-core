@@ -62,7 +62,6 @@
 #include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
-#include <LocalVoxelsList.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <NetworkAccessManager.h>
@@ -151,15 +150,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _voxelImportDialog(NULL),
-        _voxelImporter(),
-        _importSucceded(false),
-        _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
         _entities(true, this, this),
         _entityCollisionSystem(),
         _entityClipboardRenderer(false, this, this),
         _entityClipboard(),
-        _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
@@ -177,7 +171,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _audio(),
         _enableProcessVoxelsThread(true),
         _octreeProcessor(),
-        _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _nodeBoundsDisplay(this),
@@ -275,8 +268,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
 
@@ -313,10 +304,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _settings = new QSettings(this);
     _numChangedSettings = 0;
 
-    // Check to see if the user passed in a command line option for loading a local
-    // Voxel File.
-    _voxelsFilename = getCmdOption(argc, constArgv, "-i");
-
     #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
@@ -327,8 +314,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
                                                  << NodeType::VoxelServer << NodeType::EntityServer
                                                  << NodeType::MetavoxelServer);
 
-    // connect to the packet sent signal of the _voxelEditSender and the _entityEditSender
-    connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
+    // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
@@ -373,8 +359,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // initialization continues in initializeGL when OpenGL context is ready
 
-    // Tell our voxel edit sender about our known jurisdictions
-    _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
+    // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
 
     // For now we're going to set the PPS for outbound packets to be super high, this is
@@ -385,9 +370,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     checkVersion();
 
     _overlays.init(glCanvas.data()); // do this before scripts load
-
-    LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
-    LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
@@ -446,9 +428,6 @@ Application::~Application() {
     // make sure we don't call the idle timer any more
     delete idleTimer;
     
-    _sharedVoxelSystem.changeTree(new VoxelTree);
-    delete _voxelImportDialog;
-
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
 
@@ -467,11 +446,8 @@ Application::~Application() {
     _audio.thread()->wait();
     
     _octreeProcessor.terminate();
-    _voxelHideShowThread.terminate();
-    _voxelEditSender.terminate();
     _entityEditSender.terminate();
 
-    VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
@@ -481,9 +457,6 @@ void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
 
-    if (_voxelImportDialog) {
-        _voxelImportDialog->saveSettings(_settings);
-    }
     _settings->sync();
     _numChangedSettings = 0;
 }
@@ -568,13 +541,7 @@ void Application::initializeGL() {
 
     // create thread for parsing of voxel data independent of the main network and rendering threads
     _octreeProcessor.initialize(_enableProcessVoxelsThread);
-    _voxelEditSender.initialize(_enableProcessVoxelsThread);
-    _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _entityEditSender.initialize(_enableProcessVoxelsThread);
-
-    if (_enableProcessVoxelsThread) {
-        qDebug("Voxel parsing thread created.");
-    }
 
     // call our timer function every second
     QTimer* timer = new QTimer(this);
@@ -797,10 +764,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     foreach(NodeType_t type, destinationNodeTypes) {
-        // Intercept data to voxel server when voxels are disabled
-        if (type == NodeType::VoxelServer && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-            continue;
-        }
 
         // Perform the broadcast for one type
         int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, NodeSet() << type);
@@ -812,7 +775,6 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
             case NodeType::AvatarMixer:
                 channel = BandwidthMeter::AVATARS;
                 break;
-            case NodeType::VoxelServer:
             case NodeType::EntityServer:
                 channel = BandwidthMeter::VOXELS;
                 break;
@@ -1091,11 +1053,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_F:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::DisplayFrustum);
-                }
-                break;
-            case Qt::Key_V:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Voxels);
                 }
                 break;
             case Qt::Key_P:
@@ -1442,7 +1399,7 @@ void Application::dropEvent(QDropEvent *event) {
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::VoxelServer << NodeType::EntityServer
+                               << NodeType::EntityServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
 }
@@ -1588,61 +1545,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
-void Application::setRenderVoxels(bool voxelRender) {
-    _voxelEditSender.setShouldSend(voxelRender);
-    if (!voxelRender) {
-        doKillLocalVoxels();
-    }
-}
-
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     SixenseManager::getInstance().setLowVelocityFilter(lowVelocityFilter);
-}
-
-void Application::doKillLocalVoxels() {
-    _wantToKillLocalVoxels = true;
-}
-
-void Application::removeVoxel(glm::vec3 position,
-                              float scale) {
-    VoxelDetail voxel;
-    voxel.x = position.x / TREE_SCALE;
-    voxel.y = position.y / TREE_SCALE;
-    voxel.z = position.z / TREE_SCALE;
-    voxel.s = scale / TREE_SCALE;
-    _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
-
-    // delete it locally to see the effect immediately (and in case no voxel server is present)
-    _voxels.getTree()->deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
-}
-
-
-void Application::makeVoxel(glm::vec3 position,
-                            float scale,
-                            unsigned char red,
-                            unsigned char green,
-                            unsigned char blue,
-                            bool isDestructive) {
-    VoxelDetail voxel;
-    voxel.x = position.x / TREE_SCALE;
-    voxel.y = position.y / TREE_SCALE;
-    voxel.z = position.z / TREE_SCALE;
-    voxel.s = scale / TREE_SCALE;
-    voxel.red = red;
-    voxel.green = green;
-    voxel.blue = blue;
-    PacketType message = isDestructive ? PacketTypeVoxelSetDestructive : PacketTypeVoxelSet;
-    _voxelEditSender.sendVoxelEditMessage(message, voxel);
-
-    // create the voxel locally so it appears immediately
-    _voxels.getTree()->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
-                        voxel.red, voxel.green, voxel.blue,
-                        isDestructive);
-   }
-
-glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
-    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.0f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.0f) * TREE_SCALE,
-        (mouseVoxel.z + mouseVoxel.s / 2.0f) * TREE_SCALE);
 }
 
 bool Application::mouseOnScreen() const {
@@ -1728,88 +1632,6 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     return true;
 }
 
-bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
-    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-    SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
-    if (voxel->isColored()) {
-        const unsigned char* nodeOctalCode = voxel->getOctalCode();
-        unsigned char* codeColorBuffer = NULL;
-        int codeLength  = 0;
-        int bytesInCode = 0;
-        int codeAndColorLength;
-
-        // If the newBase is NULL, then don't rebase
-        if (args->newBaseOctCode) {
-            codeColorBuffer = rebaseOctalCode(nodeOctalCode, args->newBaseOctCode, true);
-            codeLength  = numberOfThreeBitSectionsInCode(codeColorBuffer);
-            bytesInCode = bytesRequiredForCodeLength(codeLength);
-            codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
-        } else {
-            codeLength  = numberOfThreeBitSectionsInCode(nodeOctalCode);
-            bytesInCode = bytesRequiredForCodeLength(codeLength);
-            codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
-            codeColorBuffer = new unsigned char[codeAndColorLength];
-            memcpy(codeColorBuffer, nodeOctalCode, bytesInCode);
-        }
-
-        // copy the colors over
-        codeColorBuffer[bytesInCode + RED_INDEX] = voxel->getColor()[RED_INDEX];
-        codeColorBuffer[bytesInCode + GREEN_INDEX] = voxel->getColor()[GREEN_INDEX];
-        codeColorBuffer[bytesInCode + BLUE_INDEX] = voxel->getColor()[BLUE_INDEX];
-        getInstance()->_voxelEditSender.queueVoxelEditMessage(PacketTypeVoxelSetDestructive,
-                codeColorBuffer, codeAndColorLength);
-
-        delete[] codeColorBuffer;
-    }
-    return true; // keep going
-}
-
-void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString suggestedName = desktopLocation.append("/voxels.svo");
-
-    QString fileNameString = QFileDialog::getSaveFileName(DependencyManager::get<GLCanvas>().data(),
-                                                          tr("Export Voxels"), suggestedName,
-                                                          tr("Sparse Voxel Octree Files (*.svo)"));
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
-
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (selectedNode) {
-        VoxelTree exportTree;
-        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, &exportTree, true);
-        exportTree.writeToSVOFile(fileName);
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-}
-
-void Application::importVoxels() {
-    _importSucceded = false;
-
-    if (!_voxelImportDialog) {
-        _voxelImportDialog = new VoxelImportDialog(_window);
-        _voxelImportDialog->loadSettings(_settings);
-    }
-
-    if (!_voxelImportDialog->exec()) {
-        qDebug() << "Import succeeded." << endl;
-        _importSucceded = true;
-    } else {
-        qDebug() << "Import failed." << endl;
-        if (_sharedVoxelSystem.getTree() == _voxelImporter.getVoxelTree()) {
-            _sharedVoxelSystem.killLocalVoxels();
-            _sharedVoxelSystem.changeTree(&_clipboard);
-        }
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-
-    emit importDone();
-}
-
 bool Application::importEntities(const QString& filename) {
     _entityClipboard.eraseAllOctreeElements();
     bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
@@ -1823,71 +1645,6 @@ void Application::pasteEntities(float x, float y, float z) {
     _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
-void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
-    copyVoxels(sourceVoxel);
-    deleteVoxelAt(sourceVoxel);
-}
-
-void Application::copyVoxels(const VoxelDetail& sourceVoxel) {
-    // switch to and clear the clipboard first...
-    _sharedVoxelSystem.killLocalVoxels();
-    if (_sharedVoxelSystem.getTree() != &_clipboard) {
-        _clipboard.eraseAllOctreeElements();
-        _sharedVoxelSystem.changeTree(&_clipboard);
-    }
-
-    // then copy onto it if there is something to copy
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (selectedNode) {
-        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, _sharedVoxelSystem.getTree(), true);
-        _sharedVoxelSystem.forceRedrawEntireTree();
-    }
-}
-
-void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination) {
-    // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to
-    // the server as an set voxel message, this will also rebase the voxels to the new location
-    SendVoxelsOperationArgs args;
-    args.newBaseOctCode = octalCodeDestination;
-    _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
-
-    // Switch back to clipboard if it was an import
-    if (_sharedVoxelSystem.getTree() != &_clipboard) {
-        _sharedVoxelSystem.killLocalVoxels();
-        _sharedVoxelSystem.changeTree(&_clipboard);
-    }
-
-    _voxelEditSender.releaseQueuedMessages();
-}
-
-void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
-    unsigned char* calculatedOctCode = NULL;
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a
-    // target octalCode for where the user is pointing.
-    const unsigned char* octalCodeDestination;
-    if (selectedNode) {
-        octalCodeDestination = selectedNode->getOctalCode();
-    } else {
-        octalCodeDestination = calculatedOctCode = pointToVoxel(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    }
-
-    pasteVoxelsToOctalCode(octalCodeDestination);
-
-    if (calculatedOctCode) {
-        delete[] calculatedOctCode;
-    }
-}
-
-void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
-    VoxelTreeElement* nodeToNudge = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (nodeToNudge) {
-        _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
-    }
-}
-
 void Application::initDisplay() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
@@ -1898,23 +1655,6 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    _sharedVoxelSystemViewFrustum.setPosition(glm::vec3(TREE_SCALE / 2.0f,
-                                                        TREE_SCALE / 2.0f,
-                                                        3.0f * TREE_SCALE / 2.0f));
-    _sharedVoxelSystemViewFrustum.setNearClip(TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFarClip(3.0f * TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFieldOfView(90.0f);
-    _sharedVoxelSystemViewFrustum.setOrientation(glm::quat());
-    _sharedVoxelSystemViewFrustum.calculate();
-    _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
-
-    VoxelTreeElement::removeUpdateHook(&_sharedVoxelSystem);
-
-    // Cleanup of the original shared tree
-    _sharedVoxelSystem.init();
-
-    _voxelImportDialog = new VoxelImportDialog(_window);
-
     _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
@@ -1987,16 +1727,11 @@ void Application::init() {
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 
-    // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
-    _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
-    _voxels.setDisableFastVoxelPipeline(false);
-    _voxels.init();
-
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
     EntityTree* entityTree = _entities.getTree();
-    _entityCollisionSystem.init(&_entityEditSender, entityTree, _voxels.getTree(), &_audio, &_avatarManager);
+    _entityCollisionSystem.init(&_entityEditSender, entityTree, NULL, &_audio, &_avatarManager);
     entityTree->setSimulation(&_entityCollisionSystem);
 
     // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface

@@ -71,10 +71,7 @@
 #include "ui/ToolWindow.h"
 #include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
-#include "voxels/VoxelHideShowThread.h"
-#include "voxels/VoxelImporter.h"
 #include "voxels/OctreePacketProcessor.h"
-#include "voxels/VoxelSystem.h"
 
 
 #include "UndoStackScriptingInterface.h"
@@ -174,7 +171,6 @@ public:
 
     void removeVoxel(glm::vec3 position, float scale);
 
-    glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
     bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
 
     MyAvatar* getAvatar() { return _myAvatar; }
@@ -184,22 +180,16 @@ public:
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
-    VoxelSystem* getVoxels() { return &_voxels; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     EntityTreeRenderer* getEntities() { return &_entities; }
-    VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     Environment* getEnvironment() { return &_environment; }
     PrioVR* getPrioVR() { return &_prioVR; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     
-    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
-    VoxelTree* getClipboard() { return &_clipboard; }
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
-    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
-    bool getImportSucceded() { return _importSucceded; }
     
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return DependencyManager::get<GLCanvas>()->cursor().shape() == Qt::BlankCursor; }
@@ -294,9 +284,7 @@ public:
 
     glm::vec2 getViewportDimensions() const { return glm::vec2(DependencyManager::get<GLCanvas>()->getDeviceWidth(),
                                                                DependencyManager::get<GLCanvas>()->getDeviceHeight()); }
-    NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
-    void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
     void skipVersion(QString latestVersion);
 
@@ -346,17 +334,7 @@ public slots:
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& filename);
 
-    void importVoxels(); // doesn't include source voxel because it goes to clipboard
-    void cutVoxels(const VoxelDetail& sourceVoxel);
-    void copyVoxels(const VoxelDetail& sourceVoxel);
-    void pasteVoxels(const VoxelDetail& sourceVoxel);
-    void deleteVoxels(const VoxelDetail& sourceVoxel);
-    void exportVoxels(const VoxelDetail& sourceVoxel);
-    void nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
-
-    void setRenderVoxels(bool renderVoxels);
     void setLowVelocityFilter(bool lowVelocityFilter);
-    void doKillLocalVoxels();
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
@@ -418,7 +396,6 @@ private:
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
-    static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
     void sendPingPackets();
 
     void initDisplay();
@@ -493,21 +470,10 @@ private:
     bool _justStarted;
     Stars _stars;
 
-    VoxelSystem _voxels;
-    VoxelTree _clipboard; // if I copy/paste
-    VoxelImportDialog* _voxelImportDialog;
-    VoxelImporter _voxelImporter;
-    bool _importSucceded;
-    VoxelSystem _sharedVoxelSystem;
-    ViewFrustum _sharedVoxelSystemViewFrustum;
-
     EntityTreeRenderer _entities;
     EntityCollisionSystem _entityCollisionSystem;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTree _entityClipboard;
-
-    QByteArray _voxelsFilename;
-    bool _wantToKillLocalVoxels;
 
     MetavoxelSystem _metavoxels;
 
@@ -569,8 +535,6 @@ private:
 
     bool _enableProcessVoxelsThread;
     OctreePacketProcessor _octreeProcessor;
-    VoxelHideShowThread _voxelHideShowThread;
-    VoxelEditPacketSender _voxelEditSender;
     EntityEditPacketSender _entityEditSender;
 
     int _packetsPerSecond;
@@ -582,7 +546,6 @@ private:
     int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
-    NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
