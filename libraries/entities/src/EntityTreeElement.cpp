@@ -760,6 +760,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 // TODO: Do we need to also do this?
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
+                    QString entityScriptBefore = entityItem->getScript();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
@@ -780,6 +781,12 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             }
                         }
                     }
+
+                    QString entityScriptAfter = entityItem->getScript();
+                    if (entityScriptBefore != entityScriptAfter) {
+                        _myTree->emitEntityScriptChanging(entityItemID); // the entity script has changed
+                    }
+
                 } else {
                     entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
                     if (entityItem) {

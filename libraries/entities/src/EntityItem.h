@@ -51,9 +51,6 @@ public:
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
         DIRTY_UPDATEABLE = 0x0080,
-        // add new simulation-relevant flags above
-        // all other flags below
-        DIRTY_SCRIPT = 0x8000
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -294,7 +291,6 @@ public:
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
-    void updateScript(const QString& value);
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }

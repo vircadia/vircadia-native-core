@@ -522,7 +522,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
-        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, updateScript);
+        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, setScript);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
         READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
@@ -806,7 +806,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, updateScript);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
@@ -1121,13 +1121,6 @@ void EntityItem::updateLifetime(float value) {
     if (_lifetime != value) {
         _lifetime = value;
         _dirtyFlags |= EntityItem::DIRTY_LIFETIME;
-    }
-}
-
-void EntityItem::updateScript(const QString& value) { 
-    if (_script != value) {
-        _script = value; 
-        _dirtyFlags |= EntityItem::DIRTY_SCRIPT;
     }
 }
 

@@ -139,11 +139,6 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
-            if (newFlags & EntityItem::DIRTY_SCRIPT) {
-                emit entityScriptChanging(entity->getEntityItemID());
-                entity->clearDirtyFlags(EntityItem::DIRTY_SCRIPT);
-            }
-
             if (_simulation) { 
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->entityChanged(entity);
@@ -222,6 +217,10 @@ void EntityTree::trackDeletedEntity(EntityItem* entity) {
         _recentlyDeletedEntityItemIDs.insert(deletedAt, entity->getEntityItemID().id);
         _recentlyDeletedEntitiesLock.unlock();
     }
+}
+
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
+    emit entityScriptChanging(entityItemID);
 }
 
 void EntityTree::setSimulation(EntitySimulation* simulation) {
