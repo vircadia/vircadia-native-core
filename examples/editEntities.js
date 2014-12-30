@@ -494,8 +494,10 @@ var mouseHasMovedSincePress = false;
 
 function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
+    mouseCapturedByTool = false;
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event) || gridTool.mousePressEvent(event)) {
+        mouseCapturedByTool = true;
         return;
     }
     if (isActive) {
@@ -519,6 +521,7 @@ function mousePressEvent(event) {
 }
 
 var highlightedEntityID = { isKnownID: false };
+var mouseCapturedByTool = false;
 
 function mouseMoveEvent(event) {
     mouseHasMovedSincePress = true;
@@ -562,6 +565,9 @@ function mouseMoveEvent(event) {
 function mouseReleaseEvent(event) {
     if (isActive && selectionManager.hasSelection()) {
         tooltip.show(false);
+    }
+    if (mouseCapturedByTool) {
+        return;
     }
 
     cameraManager.mouseReleaseEvent(event);

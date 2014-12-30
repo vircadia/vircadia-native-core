@@ -91,8 +91,6 @@ private:
     bool _isInitialized;
     bool _isEnabled;
     bool _hydrasConnected;
-    quint64 _lastMovement;
-    glm::vec3 _amountMoved;
 
     // for mouse emulation with the two controllers
     bool _triggerPressed[2];
@@ -101,6 +99,7 @@ private:
     int _oldY[2];
     
     bool _lowVelocityFilter;
+    bool _controllersAtBase;
 };
 
 #endif // hifi_SixenseManager_h
