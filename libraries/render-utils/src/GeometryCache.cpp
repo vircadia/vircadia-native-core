@@ -730,7 +730,7 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // text coords & vertices
         GLfloat* vertex = vertexData;
-        static GLubyte cannonicalIndices[indices]  = { 0, 1, 2, 3 };
+        static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
         int v = 0;
 
         vertex[v++] = topLeft.x;
@@ -802,7 +802,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices
         GLfloat* vertex = vertexData;
-        static GLubyte cannonicalIndices[indices]  = { 0, 1, 2, 3 };
+        static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
         int v = 0;
 
         vertex[v++] = topLeft.x;
@@ -881,7 +881,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // text coords & vertices
         GLfloat* vertex = vertexData;
-        static GLubyte cannonicalIndices[indices]  = { 0, 1, 2, 3 };
+        static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
         int v = 0;
 
         vertex[v++] = topLeft.x;
