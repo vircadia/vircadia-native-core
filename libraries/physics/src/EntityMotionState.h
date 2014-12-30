@@ -19,7 +19,8 @@
 // ObjectMotionState stubbery
 class ObjectMotionState {
 public:
-    bool _foo;
+    // so that this stub implementation is not completely empty we give the class a data member
+    bool _stubData;
 };
 #endif // USE_BULLET_PHYSICS
 
