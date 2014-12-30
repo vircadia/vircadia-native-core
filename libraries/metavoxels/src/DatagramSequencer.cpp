@@ -353,7 +353,7 @@ void DatagramSequencer::sendRecordLost(const SendRecord& record) {
     if (_packetDropCount == 0 || record.packetNumber == _lastPacketDropped + 1) {
         _packetDropCount++;
         _lastPacketDropped = record.packetNumber;
-        const int CONSECUTIVE_DROPS_BEFORE_REDUCTION = 3;
+        const int CONSECUTIVE_DROPS_BEFORE_REDUCTION = 1;
         if (_packetDropCount >= CONSECUTIVE_DROPS_BEFORE_REDUCTION && record.packetNumber >= _packetRateDecreasePacketNumber) {
             _packetsPerGroup = qMax(_packetsPerGroup * 0.5f, 1.0f);
             _slowStartThreshold = _packetsPerGroup;

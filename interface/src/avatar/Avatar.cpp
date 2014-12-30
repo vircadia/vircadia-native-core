@@ -633,17 +633,14 @@ void Avatar::renderBillboard() {
     glScalef(size, size, size);
     
     glColor3f(1.0f, 1.0f, 1.0f);
-    
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex2f(-1.0f, -1.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex2f(1.0f, -1.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex2f(1.0f, 1.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex2f(-1.0f, 1.0f);
-    glEnd();
+
+    glm::vec2 topLeft(-1.0f, -1.0f);
+    glm::vec2 bottomRight(1.0f, 1.0f);
+    glm::vec2 texCoordTopLeft(0.0f, 0.0f);
+    glm::vec2 texCoordBottomRight(1.0f, 1.0f);
+
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+
     
     glPopMatrix();
     
@@ -682,14 +679,16 @@ float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, boo
     
     double textWindowHeight;
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    float windowSizeX = glCanvas->getDeviceWidth();
-    float windowSizeY = glCanvas->getDeviceHeight();
-    
+    GLint viewportMatrix[4];
+    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
     glm::dmat4 modelViewMatrix;
+    float windowSizeX = viewportMatrix[2] - viewportMatrix[0];
+    float windowSizeY = viewportMatrix[3] - viewportMatrix[1];
+    
     glm::dmat4 projectionMatrix;
     Application::getInstance()->getModelViewMatrix(&modelViewMatrix);
     Application::getInstance()->getProjectionMatrix(&projectionMatrix);
+    
 
     glm::dvec4 p0 = modelViewMatrix * glm::dvec4(testPoint0, 1.0);
     p0 = projectionMatrix * p0;

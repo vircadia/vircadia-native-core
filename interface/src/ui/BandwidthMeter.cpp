@@ -11,6 +11,9 @@
 
 #include <cstdio>
 
+#include <DependencyManager.h>
+#include <GeometryCache.h>
+
 #include "BandwidthMeter.h"
 #include "InterfaceConfig.h"
 
@@ -92,13 +95,7 @@ void BandwidthMeter::setColorRGBA(unsigned c) {
 }
 
 void BandwidthMeter::renderBox(int x, int y, int w, int h) {
-
-    glBegin(GL_QUADS);
-    glVertex2i(x, y);
-    glVertex2i(x + w, y);
-    glVertex2i(x + w, y + h);
-    glVertex2i(x, y + h);
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h);
 }
 
 void BandwidthMeter::renderVerticalLine(int x, int y, int h) {
