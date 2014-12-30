@@ -96,12 +96,12 @@ public:
     void renderQuad(int x, int y, int width, int height, int quadID = UNKNOWN_QUAD_ID)
             { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), quadID); }
             
-    void renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight, int quadID = UNKNOWN_QUAD_ID);
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int quadID = UNKNOWN_QUAD_ID);
 
-    void renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight,
-                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight, int quadID = UNKNOWN_QUAD_ID);
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, int quadID = UNKNOWN_QUAD_ID);
 
-    void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight, int quadID = UNKNOWN_QUAD_ID);
+    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, int quadID = UNKNOWN_QUAD_ID);
 
     void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
@@ -138,6 +138,11 @@ private:
     QHash<Vec3PairVec2Pair, VerticesIndices> _quad3DTextureVBOs;
     QHash<int, VerticesIndices> _registeredQuadVBOs;
     int _nextQuadID;
+
+    QHash<int, Vec2Pair> _lastRegisteredQuad2D;
+    QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
+    QHash<int, Vec3Pair> _lastRegisteredQuad3D;
+    QHash<int, Vec3PairVec2Pair> _lastRegisteredQuad3DTexture;
 
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
