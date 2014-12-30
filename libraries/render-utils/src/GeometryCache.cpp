@@ -672,7 +672,7 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices, no normals because we're a 2D quad
         GLfloat* vertex = vertexData;
-        static GLubyte cannonicalIndices[indices]  = { 0, 1, 2, 3 };
+        static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
 
         vertex[0] = topLeft.x;
         vertex[1] = topLeft.y;
