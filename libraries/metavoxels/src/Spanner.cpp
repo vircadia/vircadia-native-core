@@ -1204,6 +1204,15 @@ float StackArray::Entry::getHermiteZ(glm::vec3& normal) const {
     return getHermite(hermiteZ, normal);
 }
 
+int StackArray::getEntryAlpha(int y) const {
+    int count = getEntryCount();
+    if (count == 0) {
+        return 0;
+    }
+    int relative = y - getPosition();
+    return (relative < count) ? getEntryData()[qMax(relative, 0)].rgba[3] : 0;
+}
+
 HeightfieldStack::HeightfieldStack(int width, const QVector<StackArray>& contents,
         const QVector<SharedObjectPointer>& materials) :
     HeightfieldData(width),

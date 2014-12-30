@@ -2228,24 +2228,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        QVector<quint16> heightContents = node->getHeight()->getContents();
-        if (node->getStack()) {
-            // clear any height values covered by stacks
-            int stackWidth = node->getStack()->getWidth();
-            int stackHeight = node->getStack()->getContents().size() / stackWidth;
-            const QByteArray* src = node->getStack()->getContents().constData();
-            quint16* dest = heightContents.data() + (width + 1) * HeightfieldHeight::HEIGHT_BORDER;
-            for (int z = 0; z < stackHeight; z++, dest += width) {
-                quint16* lineDest = dest;
-                for (int x = 0; x < stackWidth; x++, src++, lineDest++) {
-                    if (!src->isEmpty()) {
-                        //*lineDest = 0;
-                    }
-                }
-            }
-        }
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0,
-            GL_RED, GL_UNSIGNED_SHORT, heightContents.constData());
+            GL_RED, GL_UNSIGNED_SHORT, node->getHeight()->getContents().constData());
     
         glGenTextures(1, &_colorTextureID);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
@@ -2310,37 +2294,67 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         glm::vec3 step(1.0f / innerStackWidth, scale.x / (innerStackWidth * scale.y),
             1.0f / innerStackHeight);
         
-        for (int z = 0; z < stackHeight; z++, pos.z += step.z) {
+        for (int z = 0; z <= stackHeight; z++) {
             pos.x = 0.0f;
-            for (int x = 0; x < stackWidth; x++, src++, pos.x += step.x) {
-                if (src->isEmpty()) {
-                    continue;
-                }
-                pos.y = src->getPosition() * step.y;
-                for (const StackArray::Entry* entry = src->getEntryData(), *end = entry + src->getEntryCount(); entry != end;
-                        entry++, pos.y += step.y) {
-                    if (displayHermite) {
-                        glm::vec3 normal;
-                        float distance = entry->getHermiteX(normal);
-                        if (normal != glm::vec3()) {
-                            glm::vec3 start = pos + glm::vec3(distance * step.x, 0.0f, 0.0f);
-                            hermiteSegments.append(start);
-                            hermiteSegments.append(start + normal * step);
+            const StackArray* lineSrc = src;
+            for (int x = 0; x <= stackWidth; x++) {
+                if (!lineSrc->isEmpty()) {
+                    int y = lineSrc->getPosition();
+                    pos.y = y * step.y;
+                    for (const StackArray::Entry* entry = lineSrc->getEntryData(), *end = entry + lineSrc->getEntryCount();
+                            entry != end; entry++, pos.y += step.y, y++) {
+                        if (displayHermite && x != 0 && z != 0) {
+                            glm::vec3 normal;
+                            float distance = entry->getHermiteX(normal);
+                            if (normal != glm::vec3()) {
+                                glm::vec3 start = pos + glm::vec3(distance * step.x, 0.0f, 0.0f);
+                                hermiteSegments.append(start);
+                                hermiteSegments.append(start + normal * step);
+                            }
+                            distance = entry->getHermiteY(normal);
+                            if (normal != glm::vec3()) {
+                                glm::vec3 start = pos + glm::vec3(0.0f, distance * step.y, 0.0f);
+                                hermiteSegments.append(start);
+                                hermiteSegments.append(start + normal * step);
+                            }
+                            distance = entry->getHermiteZ(normal);
+                            if (normal != glm::vec3()) {
+                                glm::vec3 start = pos + glm::vec3(0.0f, 0.0f, distance * step.z);
+                                hermiteSegments.append(start);
+                                hermiteSegments.append(start + normal * step);
+                            }
                         }
-                        distance = entry->getHermiteY(normal);
-                        if (normal != glm::vec3()) {
-                            glm::vec3 start = pos + glm::vec3(0.0f, distance * step.y, 0.0f);
-                            hermiteSegments.append(start);
-                            hermiteSegments.append(start + normal * step);
+                        int alpha0 = entry->rgba[3];
+                        int alpha2 = lineSrc->getEntryAlpha(y + 1);
+                        int alpha1 = alpha0, alpha4 = alpha0, alpha6 = alpha0;
+                        int alphaTotal = alpha0 + alpha2;
+                        int possibleTotal = 2 * numeric_limits<uchar>::max();
+                        
+                        // cubes on the edge are two-dimensional: this ensures that their vertices will be shared between
+                        // neighboring blocks, which share only one layer of points
+                        bool middleX = (x != 0 && x != stackWidth);
+                        bool middleZ = (z != 0 && z != stackHeight);
+                        if (middleZ) {
+                            alphaTotal += (alpha4 = lineSrc[stackWidth].getEntryAlpha(y));
+                            possibleTotal += numeric_limits<uchar>::max();
+                            
+                            alphaTotal += (alpha6 = lineSrc[stackWidth].getEntryAlpha(y + 1));
+                            possibleTotal += numeric_limits<uchar>::max();
                         }
-                        distance = entry->getHermiteZ(normal);
-                        if (normal != glm::vec3()) {
-                            glm::vec3 start = pos + glm::vec3(0.0f, 0.0f, distance * step.z);
-                            hermiteSegments.append(start);
-                            hermiteSegments.append(start + normal * step);
+                        
+                        if (alphaTotal == 0 || alphaTotal == possibleTotal) {
+                            continue; // no corners set/all corners set
                         }
                     }
                 }
+                if (x != 0) {
+                    pos.x += step.x;
+                    lineSrc++;
+                }
+            }
+            if (z != 0) {
+                pos.z += step.z;
+                src += stackWidth;
             }
         }
         

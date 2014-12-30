@@ -527,6 +527,8 @@ public:
     Entry* getEntryData() { return (Entry*)(data() + sizeof(quint16)); }
     const Entry* getEntryData() const { return (const Entry*)(constData() + sizeof(quint16)); }
     
+    int getEntryAlpha(int y) const;
+    
     void removeEntries(int position, int count) { remove(sizeof(quint16) + position * sizeof(Entry), count * sizeof(Entry)); }
 };
 
