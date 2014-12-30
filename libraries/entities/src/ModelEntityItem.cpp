@@ -401,6 +401,19 @@ void ModelEntityItem::setAnimationURL(const QString& url) {
     _animationURL = url; 
 }
 
+void ModelEntityItem::setAnimationFrameIndex(float value) {
+#ifdef WANT_DEBUG
+    if (isAnimatingSomething()) {
+        qDebug() << "ModelEntityItem::setAnimationFrameIndex()";
+        qDebug() << "    value:" << value;
+        qDebug() << "    was:" << _animationLoop.getFrameIndex();
+        qDebug() << "    model URL:" << getModelURL();
+        qDebug() << "    animation URL:" << getAnimationURL();
+    }
+#endif
+    _animationLoop.setFrameIndex(value);
+}
+
 void ModelEntityItem::setAnimationSettings(const QString& value) { 
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
@@ -416,6 +429,17 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
 
     if (settingsMap.contains("frameIndex")) {
         float frameIndex = settingsMap["frameIndex"].toFloat();
+#ifdef WANT_DEBUG
+        if (isAnimatingSomething()) {
+            qDebug() << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
+            qDebug() << "    model URL:" << getModelURL();
+            qDebug() << "    animation URL:" << getAnimationURL();
+            qDebug() << "    settings:" << value;
+            qDebug() << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
+            qDebug("    frameIndex: %20.5f", frameIndex);
+        }
+#endif
+
         setAnimationFrameIndex(frameIndex);
     }
 
