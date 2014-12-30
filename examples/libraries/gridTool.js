@@ -1,8 +1,14 @@
 Grid = function(opts) {
     var that = {};
 
-    var color = { red: 100, green: 152, blue: 203 };
-    var gridColor = { red: 100, green: 152, blue: 203 };
+    var colors = [
+        { red: 102, green: 180, blue: 126 },
+        { red: 83, green: 210, blue: 83 },
+        { red: 235, green: 173, blue: 0 },
+        { red: 210, green: 115, blue: 0 },
+        { red: 48, green: 116, blue: 119 },
+    ];
+    var colorIndex = 0;
     var gridAlpha = 1.0;
     var origin = { x: 0, y: 0, z: 0 };
     var majorGridEvery = 5;
@@ -20,7 +26,7 @@ Grid = function(opts) {
     var gridOverlay = Overlays.addOverlay("grid", {
         position: { x: 0 , y: 0, z: 0 },
         visible: true,
-        color: { red: 0, green: 0, blue: 128 },
+        color: colors[0],
         alpha: 1.0,
         rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         minorGridWidth: 0.1,
@@ -149,7 +155,6 @@ Grid = function(opts) {
                 gridSize: halfSize,
                 visible: that.visible,
                 snapToGrid: snapToGrid,
-                gridColor: gridColor,
             });
         }
     };
@@ -175,8 +180,8 @@ Grid = function(opts) {
             majorGridEvery = data.majorGridEvery;
         }
 
-        if (data.gridColor) {
-            gridColor = data.gridColor;
+        if (data.colorIndex !== undefined) {
+            colorIndex = data.colorIndex;
         }
 
         if (data.gridSize) {
@@ -196,8 +201,8 @@ Grid = function(opts) {
             visible: that.visible && that.enabled,
             minorGridWidth: minorGridSpacing,
             majorGridEvery: majorGridEvery,
-                color: gridColor,
-                alpha: gridAlpha,
+            color: colors[colorIndex],
+            alpha: gridAlpha,
         });
 
         that.emitUpdate();
