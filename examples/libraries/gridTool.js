@@ -27,9 +27,6 @@ Grid = function(opts) {
         majorGridEvery: 2,
     });
 
-    that.getMinorIncrement = function() { return minorGridSpacing; };
-    that.getMajorIncrement = function() { return minorGridSpacing * majorGridEvery; };
-
     that.visible = false;
     that.enabled = false;
 
@@ -37,13 +34,39 @@ Grid = function(opts) {
         return origin;
     }
 
+    that.getMinorIncrement = function() { return minorGridWidth; };
+    that.getMajorIncrement = function() { return minorGridWidth * majorGridEvery; };
+
+    that.getMinorGridWidth = function() { return minorGridWidth; };
+    that.setMinorGridWidth = function(value) {
+        minorGridWidth = value;
+        updateGrid();
+    };
+
+    that.getMajorGridEvery = function() { return majorGridEvery; };
+    that.setMajorGridEvery = function(value) {
+        majorGridEvery = value;
+        updateGrid();
+    };
+
+    that.getColorIndex = function() { return colorIndex; };
+    that.setColorIndex = function(value) {
+        colorIndex = value;
+        updateGrid();
+    };
+
     that.getSnapToGrid = function() { return snapToGrid; };
+    that.setSnapToGrid = function(value) {
+        snapToGrid = value;
+        that.emitUpdate();
+    };
 
     that.setEnabled = function(enabled) {
         that.enabled = enabled;
         updateGrid();
     }
 
+    that.getVisible = function() { return that.visible; };
     that.setVisible = function(visible, noUpdate) {
         that.visible = visible;
         updateGrid();
