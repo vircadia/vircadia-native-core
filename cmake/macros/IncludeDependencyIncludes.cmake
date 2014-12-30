@@ -16,10 +16,7 @@ macro(INCLUDE_DEPENDENCY_INCLUDES)
     # include those in our own target
     include_directories(SYSTEM ${${TARGET_NAME}_DEPENDENCY_INCLUDES})
 
-    list(LENGTH ${TARGET_NAME}_DEPENDENCY_INCLUDES NUM_DEPENDENCY_INCLUDES)
-    if(NUM_DEPENDENCY_INCLUDES STRGREATER 0)
-      # set the property on this target so it can be retreived by targets linking to us
-      set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_INCLUDES "${${TARGET_NAME}_DEPENDENCY_INCLUDES}")
-    endif ()
+    # set the property on this target so it can be retreived by targets linking to us
+    set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_INCLUDES "${${TARGET_NAME}_DEPENDENCY_INCLUDES}")
   endif()
 endmacro(INCLUDE_DEPENDENCY_INCLUDES)
