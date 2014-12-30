@@ -461,7 +461,7 @@ CameraTool = function(cameraManager) {
         color: { red: 255, green: 0, blue: 0 },
         solid: true,
         visible: true,
-        drawOnApplicationOverlay: true,
+        drawOnHUD: true,
     };
     var defaultLineProps = {
         lineWidth: 1.5,
@@ -471,7 +471,7 @@ CameraTool = function(cameraManager) {
         end: { x: 0, y: 0, z: 0 },
         color: { red: 255, green: 0, blue: 0 },
         visible: true,
-        drawOnApplicationOverlay: true,
+        drawOnHUD: true,
     };
 
     var orientationOverlay = OverlayGroup({

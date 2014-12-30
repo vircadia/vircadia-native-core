@@ -195,7 +195,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         // give external parties a change to hook in
         emit application->renderingOverlay();
         
-        overlays.render2D();
+        overlays.renderHUD();
         
         renderPointers();
         

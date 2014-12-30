@@ -52,9 +52,9 @@ public:
     ~Overlays();
     void init(QGLWidget* parent);
     void update(float deltatime);
-    void render3D(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
+    void renderWorld(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
                         RenderArgs::RenderSide renderSide = RenderArgs::MONO);
-    void render2D();
+    void renderHUD();
 
 public slots:
     /// adds an overlay with the specific properties
@@ -90,8 +90,8 @@ public slots:
     QSizeF textSize(unsigned int id, const QString& text) const;
 
 private:
-    QMap<unsigned int, Overlay*> _overlays2D;
-    QMap<unsigned int, Overlay*> _overlays3D;
+    QMap<unsigned int, Overlay*> _overlaysHUD;
+    QMap<unsigned int, Overlay*> _overlaysWorld;
     QList<Overlay*> _overlaysToDelete;
     unsigned int _nextOverlayID;
     QGLWidget* _parent;
