@@ -18,25 +18,20 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-inline void bulletToGLM(const btVector3& b, glm::vec3& g) { 
-    g = glm::vec3(b.getX(), b.getY(), b.getZ());
+inline glm::vec3 bulletToGLM(const btVector3& b) {
+    return glm::vec3(b.getX(), b.getY(), b.getZ());
 }
 
-inline void bulletToGLM(const btQuaternion& b, glm::quat& g) { 
-    g.x = b.getX();
-    g.y = b.getY();
-    g.z = b.getZ();
-    g.w = b.getW();
+inline glm::quat bulletToGLM(const btQuaternion& b) {
+    return glm::quat(b.getW(), b.getX(), b.getY(), b.getZ());
 }
 
-inline void glmToBullet(const glm::vec3& g, btVector3& b) {
-    b.setX(g.x);
-    b.setY(g.y);
-    b.setZ(g.z);
+inline btVector3 glmToBullet(const glm::vec3& g) {
+    return btVector3(g.x, g.y, g.z);
 }
 
-inline void glmToBullet(const glm::quat& g, btQuaternion& b) {
-    b = btQuaternion(g.x, g.y, g.z, g.w);
+inline btQuaternion glmToBullet(const glm::quat& g) {
+    return btQuaternion(g.x, g.y, g.z, g.w);
 }
 
 #endif // USE_BULLET_PHYSICS

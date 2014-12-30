@@ -84,29 +84,23 @@ void ObjectMotionState::setVolume(float volume) {
 }
 
 void ObjectMotionState::setVelocity(const glm::vec3& velocity) const {
-    btVector3 v;
-    glmToBullet(velocity, v);
-    _body->setLinearVelocity(v);
+    _body->setLinearVelocity(glmToBullet(velocity));
 }
 
 void ObjectMotionState::setAngularVelocity(const glm::vec3& velocity) const {
-    btVector3 v;
-    glmToBullet(velocity, v);
-    _body->setAngularVelocity(v);
+    _body->setAngularVelocity(glmToBullet(velocity));
 }
 
 void ObjectMotionState::setGravity(const glm::vec3& gravity) const {
-    btVector3 g;
-    glmToBullet(gravity, g);
-    _body->setGravity(g);
+    _body->setGravity(glmToBullet(gravity));
 }
 
 void ObjectMotionState::getVelocity(glm::vec3& velocityOut) const {
-    bulletToGLM(_body->getLinearVelocity(), velocityOut);
+    velocityOut = bulletToGLM(_body->getLinearVelocity());
 }
 
 void ObjectMotionState::getAngularVelocity(glm::vec3& angularVelocityOut) const {
-    bulletToGLM(_body->getAngularVelocity(), angularVelocityOut);
+    angularVelocityOut = bulletToGLM(_body->getAngularVelocity());
 }
 
 // RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
@@ -154,9 +148,8 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
     // compute position error
     glm::vec3 extrapolatedPosition = _sentPosition + dt * (_sentVelocity + (0.5f * dt) * _sentAcceleration);
 
-    glm::vec3 position;
     btTransform worldTrans = _body->getWorldTransform();
-    bulletToGLM(worldTrans.getOrigin(), position);
+    glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
     
     float dx2 = glm::distance2(position, extrapolatedPosition);
     const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
@@ -173,8 +166,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
         extrapolatedRotation = glm::angleAxis(dt * spin, axis) * _sentRotation;
     }
     const float MIN_ROTATION_DOT = 0.98f;
-    glm::quat actualRotation;
-    bulletToGLM(worldTrans.getRotation(), actualRotation);
+    glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
     return (glm::dot(actualRotation, extrapolatedRotation) < MIN_ROTATION_DOT);
 }
 

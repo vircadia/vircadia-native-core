@@ -56,25 +56,15 @@ MotionType EntityMotionState::computeMotionType() const {
 // (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
-    btVector3 pos;
-    glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset(), pos);
-    worldTrans.setOrigin(pos);
-
-    btQuaternion rot;
-    glmToBullet(_entity->getRotation(), rot);
-    worldTrans.setRotation(rot);
+    worldTrans.setOrigin(glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset()));
+    worldTrans.setRotation(glmToBullet(_entity->getRotation()));
 }
 
 // This callback is invoked by the physics simulation at the end of each simulation frame...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
-    glm::vec3 pos;
-    bulletToGLM(worldTrans.getOrigin(), pos);
-    _entity->setPositionInMeters(pos + ObjectMotionState::getWorldOffset());
-
-    glm::quat rot;
-    bulletToGLM(worldTrans.getRotation(), rot);
-    _entity->setRotation(rot);
+    _entity->setPositionInMeters(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
+    _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
     glm::vec3 v;
     getVelocity(v);
@@ -118,17 +108,17 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
-            bulletToGLM(worldTrans.getOrigin(), _sentPosition);
+            _sentPosition = bulletToGLM(worldTrans.getOrigin());
             properties.setPosition(_sentPosition + ObjectMotionState::getWorldOffset());
         
-            bulletToGLM(worldTrans.getRotation(), _sentRotation);
+            _sentRotation = bulletToGLM(worldTrans.getRotation());
             properties.setRotation(_sentRotation);
         }
     
         if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
             if (_body->isActive()) {
-                bulletToGLM(_body->getLinearVelocity(), _sentVelocity);
-                bulletToGLM(_body->getAngularVelocity(), _sentAngularVelocity);
+                _sentVelocity = bulletToGLM(_body->getLinearVelocity());
+                _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
 
                 // if the speeds are very small we zero them out
                 const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 4.0e-6f; // 2mm/sec
@@ -148,7 +138,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 _sentMoving = false;
             }
             properties.setVelocity(_sentVelocity);
-            bulletToGLM(_body->getGravity(), _sentAcceleration);
+            _sentAcceleration = bulletToGLM(_body->getGravity());
             properties.setGravity(_sentAcceleration);
             properties.setAngularVelocity(_sentAngularVelocity);
         }

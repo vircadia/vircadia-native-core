@@ -62,9 +62,7 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
         switch(type) {
             case BOX_SHAPE: {
                 const btBoxShape* boxShape = static_cast<const btBoxShape*>(shape);
-                glm::vec3 halfExtents;
-                bulletToGLM(boxShape->getHalfExtentsWithMargin(), halfExtents);
-                info.setBox(halfExtents);
+                info.setBox(bulletToGLM(boxShape->getHalfExtentsWithMargin()));
             }
             break;
             case SPHERE_SHAPE: {
@@ -99,9 +97,8 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
     const QVector<glm::vec3>& data = info.getData();
     switch(info.getType()) {
         case BOX_SHAPE: {
-            btVector3 halfExtents;
-            glmToBullet(data[0], halfExtents);
-            shape = new btBoxShape(halfExtents);
+            // data[0] is halfExtents
+            shape = new btBoxShape(glmToBullet(data[0]));
         }
         break;
         case SPHERE_SHAPE: {
@@ -110,11 +107,9 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
         }
         break;
         case CYLINDER_SHAPE: {
-            btVector3 halfExtents;
-            glmToBullet(data[0], halfExtents);
             // NOTE: default cylinder has (UpAxis = 1) axis along yAxis and radius stored in X
-            // halfExtents = btVector3(radius, halfHeight, unused)
-            shape = new btCylinderShape(halfExtents);
+            // data[0] = btVector3(radius, halfHeight, unused)
+            shape = new btCylinderShape(glmToBullet(data[0]));
         }
         break;
         case CAPSULE_SHAPE: {

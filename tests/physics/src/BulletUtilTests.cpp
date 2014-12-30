@@ -19,8 +19,7 @@
 #ifdef USE_BULLET_PHYSICS
 void BulletUtilTests::fromBulletToGLM() {
     btVector3 bV(1.23f, 4.56f, 7.89f);
-    glm::vec3 gV;
-    bulletToGLM(bV, gV);
+    glm::vec3 gV = bulletToGLM(bV);
     if (gV.x != bV.getX()) {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: x mismatch bullet.x = " << bV.getX() << "  !=  glm.x = " << gV.x << std::endl;
@@ -39,8 +38,7 @@ void BulletUtilTests::fromBulletToGLM() {
     axis.normalize();
     btQuaternion bQ(axis, angle);
 
-    glm::quat gQ;
-    bulletToGLM(bQ, gQ);
+    glm::quat gQ = bulletToGLM(bQ);
     if (gQ.x != bQ.getX()) {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: x mismatch bullet.x = " << bQ.getX() << "  !=  glm.x = " << gQ.x << std::endl;
@@ -61,8 +59,7 @@ void BulletUtilTests::fromBulletToGLM() {
 
 void BulletUtilTests::fromGLMToBullet() {
     glm::vec3 gV(1.23f, 4.56f, 7.89f);
-    btVector3 bV;
-    glmToBullet(gV, bV);
+    btVector3 bV = glmToBullet(gV);
     if (gV.x != bV.getX()) {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: x mismatch glm.x = " << gV.x << "  !=  bullet.x = " << bV.getX() << std::endl;
@@ -81,8 +78,7 @@ void BulletUtilTests::fromGLMToBullet() {
     axis.normalize();
     btQuaternion bQ(axis, angle);
 
-    glm::quat gQ;
-    bulletToGLM(bQ, gQ);
+    glm::quat gQ = bulletToGLM(bQ);
     if (gQ.x != bQ.getX()) {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: x mismatch glm.x = " << gQ.x << "  !=  bullet.x = " << bQ.getX() << std::endl;
