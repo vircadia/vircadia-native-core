@@ -48,7 +48,7 @@ function deleteChar() {
   
 function updateTextOverlay() {
     var textLines = textText.split("\n");
-    var suggestedFontSize = (windowDimensions.x / Overlays.textSize(text, textLines).width) * textFontSize * 0.90;
+    var suggestedFontSize = (windowDimensions.x / Overlays.textSize(text, textText).width) * textFontSize * 0.90;
     var maxFontSize = 170 / textLines.length;
     textFontSize = (suggestedFontSize > maxFontSize) ? maxFontSize : suggestedFontSize;
     var topMargin = (250 - (textFontSize * textLines.length)) / 4;
@@ -76,13 +76,7 @@ keyboard.onKeyRelease = function(event) {
            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
            var textLines = textText.split("\n");
-           var maxLineWidth = 0;
-           for (textLine in textLines) {
-               var lineWidth = Overlays.textSize(textSizeMeasureOverlay, textLines[textLine]).width;
-               if (lineWidth > maxLineWidth) {
-                   maxLineWidth = lineWidth;
-               }
-           }
+           var maxLineWidth = Overlays.textSize(textSizeMeasureOverlay, textText).width;
            var usernameLine = "--" + GlobalServices.myUsername;
            var usernameWidth = Overlays.textSize(textSizeMeasureOverlay, usernameLine).width;
            if (maxLineWidth < usernameWidth) {
@@ -104,7 +98,8 @@ keyboard.onKeyRelease = function(event) {
                    dimensions: { x: dimension_x, y: (textLines.length + 1) * 0.14 + TEXT_MARGIN_TOP + TEXT_MARGIN_BOTTOM, z: DEFAULT_TEXT_DIMENSION_Z },
                    backgroundColor: { red: 0, green: 0, blue: 0 },
                    textColor: { red: 255, green: 255, blue: 255 },
-                   text: textText + "\n" + usernameLine
+                   text: textText + "\n" + usernameLine,
+				   lineHeight: 0.1
                });
            }
            textText = "";
