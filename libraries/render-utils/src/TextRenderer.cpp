@@ -81,9 +81,6 @@ int TextRenderer::draw(int x, int y, const char* str, float alpha) {
                        ((int(currentColor[2] * 255.0f) & 0xFF) << 16) |
                        ((int(currentColor[3] * 255.0f) & 0xFF) << 24);
 
-// TODO: Remove that code once we test for performance improvments
-    //glEnable(GL_TEXTURE_2D);
-
     int maxHeight = 0;
     for (const char* ch = str; *ch != 0; ch++) {
         const Glyph& glyph = getGlyph(*ch);
@@ -111,20 +108,6 @@ int TextRenderer::draw(int x, int y, const char* str, float alpha) {
         float bt = glyph.location().y() * scale;
         float tt = (glyph.location().y() + glyph.bounds().height()) * scale;
 
-// TODO: Remove that code once we test for performance improvments
-/*
-        glBegin(GL_QUADS);
-        glTexCoord2f(ls, bt);
-        glVertex2f(left, bottom);
-        glTexCoord2f(rs, bt);
-        glVertex2f(right, bottom);
-        glTexCoord2f(rs, tt);
-        glVertex2f(right, top);
-        glTexCoord2f(ls, tt);
-        glVertex2f(left, top);
-        glEnd();
-*/
-
         const int NUM_COORDS_SCALARS_PER_GLYPH = 16;
         float vertexBuffer[NUM_COORDS_SCALARS_PER_GLYPH] = {    leftBottom.x, leftBottom.y, ls, bt,
                                                         rightTop.x, leftBottom.y, rs, bt,
@@ -151,10 +134,6 @@ int TextRenderer::draw(int x, int y, const char* str, float alpha) {
     // TODO: remove these calls once we move to a full batched rendering of the text, for now, one draw call per draw() function call
     drawBatch();
     clearBatch();
-
-// TODO: Remove that code once we test for performance improvments
-   // glBindTexture(GL_TEXTURE_2D, 0);
-   // glDisable(GL_TEXTURE_2D);
 
     return maxHeight;
 }
