@@ -14,6 +14,9 @@
 #include <QGLWidget>
 #include <QPainter>
 #include <QSvgRenderer>
+
+#include <DependencyManager.h>
+#include <GeometryCache.h>
 #include <SharedUtil.h>
 
 #include "ImageOverlay.h"
@@ -105,27 +108,16 @@ void ImageOverlay::render(RenderArgs* args) {
     int top = _bounds.top();
     int bottom = _bounds.bottom() + 1;
 
-    glBegin(GL_QUADS);
-        if (_renderImage) {
-            glTexCoord2f(x, 1.0f - y);
-        }
-        glVertex2f(left, top);
+    glm::vec2 topLeft(left, top);
+    glm::vec2 bottomRight(right, bottom);
+    glm::vec2 texCoordTopLeft(x, 1.0f - y);
+    glm::vec2 texCoordBottomRight(x + w, 1.0f - (y + h));
 
-        if (_renderImage) {
-            glTexCoord2f(x + w, 1.0f - y);
-        }
-        glVertex2f(right, top);
-
-        if (_renderImage) {
-            glTexCoord2f(x + w, 1.0f - (y + h));
-        }
-        glVertex2f(right, bottom);
-
-        if (_renderImage) {
-            glTexCoord2f(x, 1.0f - (y + h));
-        }
-        glVertex2f(left, bottom);
-    glEnd();
+    if (_renderImage) {
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+    } else {
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+    }
 
     if (_renderImage) {
         glDisable(GL_TEXTURE_2D);

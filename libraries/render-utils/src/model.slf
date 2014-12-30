@@ -1,6 +1,6 @@
-#version 120
-
-//
+<@include Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
 //  model.frag
 //  fragment shader
 //
