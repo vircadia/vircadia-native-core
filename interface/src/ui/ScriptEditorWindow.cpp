@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QFileDialog>
+
 #include "ui_scriptEditorWindow.h"
 #include "ScriptEditorWindow.h"
 #include "ScriptEditorWidget.h"

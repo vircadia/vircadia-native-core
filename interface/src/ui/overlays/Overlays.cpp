@@ -21,7 +21,6 @@
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
 #include "LocalModelsOverlay.h"
-#include "LocalVoxelsOverlay.h"
 #include "ModelOverlay.h"
 #include "Overlays.h"
 #include "Rectangle3DOverlay.h"
@@ -166,8 +165,6 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = new Line3DOverlay();
     } else if (type == "grid") {
         thisOverlay = new Grid3DOverlay();
-    } else if (type == "localvoxels") {
-        thisOverlay = new LocalVoxelsOverlay();
     } else if (type == "localmodels") {
         thisOverlay = new LocalModelsOverlay(Application::getInstance()->getEntityClipboardRenderer());
     } else if (type == "model") {

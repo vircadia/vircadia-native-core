@@ -24,8 +24,6 @@
 #include <EntityTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
-#include <VoxelEditPacketSender.h>
-#include <VoxelTreeHeadlessViewer.h>
 
 #include "MixedAudioStream.h"
 

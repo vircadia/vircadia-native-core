@@ -41,6 +41,7 @@
 #include "ModelReferential.h"
 #include "Physics.h"
 #include "Recorder.h"
+#include "Util.h"
 #include "world.h"
 #include "devices/OculusManager.h"
 

@@ -42,6 +42,7 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
+#include "Util.h"
 
 using namespace std;
 
@@ -1458,20 +1459,6 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-
-    quint64 now = usecTimestampNow();
-    if (_voxelShapeManager.needsUpdate(now)) {
-        // We use a multiple of the avatar's boundingRadius as the size of the cube of interest.
-        float cubeScale = 6.0f * getBoundingRadius();
-        glm::vec3 corner = getPosition() - glm::vec3(0.5f * cubeScale);
-        AACube boundingCube(corner, cubeScale);
-
-        // query the VoxelTree for cubes that touch avatar's boundingCube
-        CubeList cubes;
-        if (Application::getInstance()->getVoxelTree()->findContentInCube(boundingCube, cubes)) {
-            _voxelShapeManager.updateVoxels(now, cubes);
-        }
-    }
 
     // TODO: Andrew to do ground/walking detection in ragdoll mode
     if (!Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {

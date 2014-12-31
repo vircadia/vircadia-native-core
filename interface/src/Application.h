@@ -36,7 +36,6 @@
 #include <ScriptEngine.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
-#include <VoxelEditPacketSender.h>
 
 #include "Audio.h"
 #include "Camera.h"
@@ -69,7 +68,6 @@
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
-#include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/OctreePacketProcessor.h"
 
@@ -121,7 +119,6 @@ class Application : public QApplication, public AbstractViewStateInterface, Abst
     Q_OBJECT
 
     friend class OctreePacketProcessor;
-    friend class VoxelEditPacketSender;
     friend class DatagramProcessor;
 
 public:
@@ -161,15 +158,6 @@ public:
 
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
-
-    void makeVoxel(glm::vec3 position,
-                   float scale,
-                   unsigned char red,
-                   unsigned char green,
-                   unsigned char blue,
-                   bool isDestructive);
-
-    void removeVoxel(glm::vec3 position, float scale);
 
     bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
 
@@ -429,12 +417,7 @@ private:
     void updateShadowMap();
     void renderRearViewMirror(const QRect& region, bool billboard = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
-
     void checkBandwidthMeterClick();
-
-    void deleteVoxelAt(const VoxelDetail& voxel);
-    void eyedropperVoxelUnderCursor();
-
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
@@ -485,7 +468,7 @@ private:
 
     float _trailingAudioLoudness;
 
-    OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
+    OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
@@ -533,7 +516,7 @@ private:
 
     Audio _audio;
 
-    bool _enableProcessVoxelsThread;
+    bool _enableProcessOctreeThread;
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;
 
@@ -544,7 +527,7 @@ private:
     float _idleLoopMeasuredJitter;
 
     int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
+    void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;

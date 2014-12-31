@@ -16,8 +16,6 @@
 #include <Octree.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
-#include <VoxelsScriptingInterface.h>
-#include <VoxelDetail.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntityItem.h"

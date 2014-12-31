@@ -49,7 +49,6 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _serverVoxels = AddStatItem("Elements on Servers");
     _localVoxels = AddStatItem("Local Elements");
     _localVoxelsMemory = AddStatItem("Elements Memory");
-    _voxelsRendered = AddStatItem("Voxels Rendered");
     _sendingMode = AddStatItem("Sending Mode");
     
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
@@ -122,31 +121,15 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Update labels
 
-    VoxelSystem* voxels = Application::getInstance()->getVoxels();
     QLabel* label;
     QLocale locale(QLocale::English);
     std::stringstream statsValue;
     statsValue.precision(4);
 
-    // Voxels Rendered    
-    label = _labels[_voxelsRendered];
-    statsValue << "Max: " << voxels->getMaxVoxels() / 1000.0f << "K " << 
-        "Drawn: " << voxels->getVoxelsWritten() / 1000.0f << "K " <<
-        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.0f << "K " <<
-        "ReadBuffer: " << voxels->getVoxelsRendered() / 1000.0f << "K " <<
-        "Changed: " << voxels->getVoxelsUpdated() / 1000.0f << "K ";
-    label->setText(statsValue.str().c_str());
-
-    // Voxels Memory Usage
+    // Octree Elements Memory Usage
     label = _labels[_localVoxelsMemory];
     statsValue.str("");
-    statsValue << 
-        "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.0f << "MB "
-        "Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.0f << "MB " <<
-        "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.0f << "MB ";
-    if (voxels->hasVoxelMemoryUsageGPU()) {
-        statsValue << "GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.0f << "MB ";
-    }
+    statsValue << "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.0f << "MB ";
     label->setText(statsValue.str().c_str());
 
     // Local Voxels
@@ -227,8 +210,6 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 void OctreeStatsDialog::showAllOctreeServers() {
     int serverCount = 0;
 
-    showOctreeServersOfType(serverCount, NodeType::VoxelServer, "Voxel",
-            Application::getInstance()->getVoxelServerJurisdictions());
     showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
             Application::getInstance()->getEntityServerJurisdictions());
 

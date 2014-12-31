@@ -22,7 +22,6 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
-#include <VoxelDetail.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 

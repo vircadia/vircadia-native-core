@@ -635,11 +635,6 @@ Menu::Menu() :
 
     connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
-                Qt::CTRL | Qt::SHIFT | Qt::Key_V,
-                this,
-                SLOT(pasteToVoxel()));
-
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
@@ -1257,33 +1252,6 @@ void Menu::nameLocation() {
     _newLocationDialog->raise();
     _newLocationDialog->activateWindow();
     _newLocationDialog->showNormal();
-}
-
-void Menu::pasteToVoxel() {
-    QInputDialog pasteToOctalCodeDialog(Application::getInstance()->getWindow());
-    pasteToOctalCodeDialog.setWindowTitle("Paste to Voxel");
-    pasteToOctalCodeDialog.setLabelText("Octal Code:");
-    QString octalCode = "";
-    pasteToOctalCodeDialog.setTextValue(octalCode);
-    pasteToOctalCodeDialog.setWindowFlags(Qt::Sheet);
-    pasteToOctalCodeDialog.resize(pasteToOctalCodeDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
-        pasteToOctalCodeDialog.size().height());
-
-    int dialogReturn = pasteToOctalCodeDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !pasteToOctalCodeDialog.textValue().isEmpty()) {
-        // we got an octalCode to paste to...
-        QString locationToPaste = pasteToOctalCodeDialog.textValue();
-        unsigned char* octalCodeDestination = hexStringToOctalCode(locationToPaste);
-
-        // check to see if it was a legit octcode...
-        if (locationToPaste == octalCodeToHexString(octalCodeDestination)) {
-            Application::getInstance()->pasteVoxelsToOctalCode(octalCodeDestination);
-        } else {
-            qDebug() << "Problem with octcode...";
-        }
-    }
-
-    sendFakeEnterEvent();
 }
 
 void Menu::toggleLoginMenuItem() {

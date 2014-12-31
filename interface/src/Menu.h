@@ -190,7 +190,6 @@ public slots:
     void importSettings();
     void exportSettings();
     void toggleAddressBar();
-    void pasteToVoxel();
 
     void toggleLoginMenuItem();
     void toggleSixense(bool shouldEnable);
@@ -428,7 +427,6 @@ namespace MenuOption {
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString Pair = "Pair";
-    const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";

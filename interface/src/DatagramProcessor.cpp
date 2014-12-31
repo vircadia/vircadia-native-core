@@ -167,11 +167,6 @@ void DatagramProcessor::processDatagrams() {
                     }
                     break;
                 }
-                case PacketTypeVoxelEditNack:
-                    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-                        application->_voxelEditSender.processNackPacket(incomingPacket);
-                    }
-                    break;
                 case PacketTypeEntityEditNack:
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
                         application->_entityEditSender.processNackPacket(incomingPacket);

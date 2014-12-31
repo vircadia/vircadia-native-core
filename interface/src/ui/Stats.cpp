@@ -471,8 +471,6 @@ void Stats::display(
     verticalOffset = 0;
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3;
 
-    VoxelSystem* voxels = Application::getInstance()->getVoxels();
-
     lines = _expanded ? 14 : 3;
 
     drawBackground(backgroundColor, horizontalOffset, 0, glCanvas->width() - horizontalOffset,
@@ -506,38 +504,6 @@ void Stats::display(
         voxelStats.str("");
         voxelStats << "  Mesh Parts Rendered Opaque: " << entities->getOpaqueMeshPartsRendered() 
                     << " / Translucent:" << entities->getTranslucentMeshPartsRendered();
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-    }
-
-    voxelStats.str("");
-    voxelStats.precision(4);
-    voxelStats << "Voxels Drawn: " << voxels->getVoxelsWritten() / 1000.0f << "K " <<
-        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.0f << "K ";
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-
-    if (_expanded) {
-        // Local Voxel Memory Usage
-        voxelStats.str("");
-        voxelStats << "  Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.0f << "MB";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-
-        voxelStats.str("");
-        voxelStats << 
-                "  Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.0f << "MB / " <<
-                "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.0f << "MB";
-        if (voxels->hasVoxelMemoryUsageGPU()) {
-            voxelStats << " / GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.0f << "MB";
-        }
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-
-        // Voxel Rendering
-        voxelStats.str("");
-        voxelStats.precision(4);
-        voxelStats << "  Voxel Rendering Slots Max: " << voxels->getMaxVoxels() / 1000.0f << "K";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
@@ -612,7 +578,7 @@ void Stats::display(
     }
 
     QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
-    unsigned long localTotal = VoxelTreeElement::getNodeCount();
+    unsigned long localTotal = OctreeElement::getNodeCount();
     QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
 
     // Server Octree Elements
@@ -641,8 +607,8 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
         // Local Voxels
-        unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
-        unsigned long localLeaves = VoxelTreeElement::getLeafNodeCount();
+        unsigned long localInternal = OctreeElement::getInternalNodeCount();
+        unsigned long localLeaves = OctreeElement::getLeafNodeCount();
         QString localInternalString = locale.toString((uint)localInternal);
         QString localLeavesString = locale.toString((uint)localLeaves);
 

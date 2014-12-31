@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QFileDialog>
 
 #include "Application.h"
 #include "MainWindow.h"
@@ -214,7 +215,6 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    Application::getInstance()->getVoxels()->setMaxVoxels(ui.maxVoxelsSpin->value());
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 

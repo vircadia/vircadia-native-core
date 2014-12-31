@@ -63,7 +63,6 @@ private:
     int _serverVoxels;
     int _localVoxels;
     int _localVoxelsMemory;
-    int _voxelsRendered;
     int _voxelServerLables[MAX_VOXEL_SERVERS];
     int _voxelServerLabelsCount;
     details _extraServerDetails[MAX_VOXEL_SERVERS];
