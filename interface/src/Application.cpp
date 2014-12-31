@@ -776,7 +776,7 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
                 channel = BandwidthMeter::AVATARS;
                 break;
             case NodeType::EntityServer:
-                channel = BandwidthMeter::VOXELS;
+                channel = BandwidthMeter::OCTREE;
                 break;
             default:
                 continue;
@@ -1602,10 +1602,6 @@ FaceTracker* Application::getActiveFaceTracker() {
              (visage->isActive() ? static_cast<FaceTracker*>(visage.data()) : NULL)));
 }
 
-struct SendVoxelsOperationArgs {
-    const unsigned char*  newBaseOctCode;
-};
-
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
@@ -2183,8 +2179,7 @@ int Application::sendNackPackets() {
     
     nodeList->eachNode([&](const SharedNodePointer& node){
         
-        if (node->getActiveSocket()
-            && (node->getType() == NodeType::VoxelServer || node->getType() == NodeType::EntityServer)) {
+        if (node->getActiveSocket() && node->getType() == NodeType::EntityServer) {
             
             QUuid nodeUUID = node->getUUID();
             
@@ -2424,7 +2419,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
             
             // Feed number of bytes to corresponding channel of the bandwidth meter
-            _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
+            _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(packetLength);
         }
     });
 }
@@ -3569,7 +3564,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 }
 
 void Application::packetSent(quint64 length) {
-    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
+    _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(length);
 }
 
 void Application::loadScripts() {

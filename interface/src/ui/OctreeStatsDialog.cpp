@@ -28,10 +28,10 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _model(model) {
     
     _statCount = 0;
-    _voxelServerLabelsCount = 0;
+    _octreeServerLabelsCount = 0;
 
     for (int i = 0; i < MAX_VOXEL_SERVERS; i++) {
-        _voxelServerLables[i] = 0;
+        _octreeServerLables[i] = 0;
         _extraServerDetails[i] = LESS;
     }
 
@@ -46,9 +46,9 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     this->QDialog::setLayout(_form);
 
     // Setup stat items
-    _serverVoxels = AddStatItem("Elements on Servers");
-    _localVoxels = AddStatItem("Local Elements");
-    _localVoxelsMemory = AddStatItem("Elements Memory");
+    _serverElements = AddStatItem("Elements on Servers");
+    _localElements = AddStatItem("Local Elements");
+    _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
     
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
@@ -127,13 +127,13 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     statsValue.precision(4);
 
     // Octree Elements Memory Usage
-    label = _labels[_localVoxelsMemory];
+    label = _labels[_localElementsMemory];
     statsValue.str("");
     statsValue << "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.0f << "MB ";
     label->setText(statsValue.str().c_str());
 
-    // Local Voxels
-    label = _labels[_localVoxels];
+    // Local Elements
+    label = _labels[_localElements];
     unsigned long localTotal = OctreeElement::getNodeCount();
     unsigned long localInternal = OctreeElement::getInternalNodeCount();
     unsigned long localLeaves = OctreeElement::getLeafNodeCount();
@@ -191,11 +191,11 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     label = _labels[_sendingMode];
     label->setText(sendingMode.str().c_str());
     
-    // Server Voxels
+    // Server Elements
     QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
     QString serversInternalString = locale.toString((uint)totalInternal);
     QString serversLeavesString = locale.toString((uint)totalLeaves);
-    label = _labels[_serverVoxels];
+    label = _labels[_serverElements];
     statsValue.str("");
     statsValue << 
         "Total: " << qPrintable(serversTotalString) << " / " <<
@@ -213,13 +213,13 @@ void OctreeStatsDialog::showAllOctreeServers() {
     showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
             Application::getInstance()->getEntityServerJurisdictions());
 
-    if (_voxelServerLabelsCount > serverCount) {
-        for (int i = serverCount; i < _voxelServerLabelsCount; i++) {
-            int serverLabel = _voxelServerLables[i];
+    if (_octreeServerLabelsCount > serverCount) {
+        for (int i = serverCount; i < _octreeServerLabelsCount; i++) {
+            int serverLabel = _octreeServerLables[i];
             RemoveStatItem(serverLabel);
-            _voxelServerLables[i] = 0;
+            _octreeServerLables[i] = 0;
         }
-        _voxelServerLabelsCount = serverCount;
+        _octreeServerLabelsCount = serverCount;
     }
 }
 
@@ -235,14 +235,14 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
         if (node->getType() == serverType) {
             serverCount++;
             
-            if (serverCount > _voxelServerLabelsCount) {
+            if (serverCount > _octreeServerLabelsCount) {
                 char label[128] = { 0 };
                 sprintf(label, "%s Server %d", serverTypeName, serverCount);
-                int thisServerRow = _voxelServerLables[serverCount-1] = AddStatItem(label);
+                int thisServerRow = _octreeServerLables[serverCount-1] = AddStatItem(label);
                 _labels[thisServerRow]->setTextFormat(Qt::RichText);
                 _labels[thisServerRow]->setTextInteractionFlags(Qt::TextBrowserInteraction);
                 connect(_labels[thisServerRow], SIGNAL(linkActivated(const QString&)), this, SLOT(moreless(const QString&)));
-                _voxelServerLabelsCount++;
+                _octreeServerLabelsCount++;
             }
             
             std::stringstream serverDetails("");
@@ -335,7 +335,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             
                             serverDetails << "<br/>" << "Node UUID: " << qPrintable(nodeUUID.toString()) << " ";
                             
-                            serverDetails << "<br/>" << "Voxels: " <<
+                            serverDetails << "<br/>" << "Elements: " <<
                                 qPrintable(totalString) << " total " <<
                                 qPrintable(internalString) << " internal " <<
                                 qPrintable(leavesString) << " leaves ";
@@ -399,7 +399,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                 linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
             }
             serverDetails << linkDetails.str();
-            _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
+            _labels[_octreeServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
         } // is VOXEL_SERVER
     });
 }
