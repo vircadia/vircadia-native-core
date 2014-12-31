@@ -2897,21 +2897,21 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
             renderViewFrustum(_viewFrustum);
         }
 
-        // render voxel fades if they exist
-        if (_voxelFades.size() > 0) {
-            PerformanceTimer perfTimer("voxelFades");
+        // render octree fades if they exist
+        if (_octreeFades.size() > 0) {
+            PerformanceTimer perfTimer("octreeFades");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... voxel fades...");
-            _voxelFadesLock.lockForWrite();
-            for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
+                "Application::displaySide() ... octree fades...");
+            _octreeFadesLock.lockForWrite();
+            for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
                 fade->render();
                 if(fade->isDone()) {
-                    fade = _voxelFades.erase(fade);
+                    fade = _octreeFades.erase(fade);
                 } else {
                     ++fade;
                 }
             }
-            _voxelFadesLock.unlock();
+            _octreeFadesLock.unlock();
         }
 
         // give external parties a change to hook in
@@ -3453,13 +3453,13 @@ void Application::nodeKilled(SharedNodePointer node) {
 
             // Add the jurisditionDetails object to the list of "fade outs"
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+                OctreeFade fade(OctreeFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
+                _octreeFadesLock.lockForWrite();
+                _octreeFades.push_back(fade);
+                _octreeFadesLock.unlock();
             }
 
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
@@ -3539,13 +3539,13 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 
             // Add the jurisditionDetails object to the list of "fade outs"
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+                OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
+                _octreeFadesLock.lockForWrite();
+                _octreeFades.push_back(fade);
+                _octreeFadesLock.unlock();
             }
         } else {
             jurisdiction->unlock();

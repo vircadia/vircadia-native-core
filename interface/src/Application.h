@@ -68,8 +68,8 @@
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
-#include "voxels/VoxelFade.h"
-#include "voxels/OctreePacketProcessor.h"
+#include "octree/OctreeFade.h"
+#include "octree/OctreePacketProcessor.h"
 
 
 #include "UndoStackScriptingInterface.h"
@@ -535,8 +535,8 @@ private:
 
     NodeBounds _nodeBoundsDisplay;
 
-    std::vector<VoxelFade> _voxelFades;
-    QReadWriteLock _voxelFadesLock;
+    std::vector<OctreeFade> _octreeFades;
+    QReadWriteLock _octreeFadesLock;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;

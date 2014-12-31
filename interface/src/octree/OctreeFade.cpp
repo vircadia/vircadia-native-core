@@ -1,5 +1,5 @@
 //
-//  VoxelFade.cpp
+//  OctreeFade.cpp
 //  interface/src/voxels
 //
 //  Created by Brad Hefta-Gaub on 8/6/13.
@@ -16,19 +16,19 @@
 #include <OctreeConstants.h>
 
 #include "Application.h"
-#include "VoxelFade.h"
+#include "OctreeFade.h"
 
-const float VoxelFade::FADE_OUT_START =  0.5f;
-const float VoxelFade::FADE_OUT_END   =  0.05f;
-const float VoxelFade::FADE_OUT_STEP  =  0.9f;
-const float VoxelFade::FADE_IN_START  =  0.05f;
-const float VoxelFade::FADE_IN_END    =  0.5f;
-const float VoxelFade::FADE_IN_STEP   =  1.1f;
-const float VoxelFade::DEFAULT_RED    =  0.5f;
-const float VoxelFade::DEFAULT_GREEN  =  0.5f;
-const float VoxelFade::DEFAULT_BLUE   =  0.5f;
+const float OctreeFade::FADE_OUT_START =  0.5f;
+const float OctreeFade::FADE_OUT_END   =  0.05f;
+const float OctreeFade::FADE_OUT_STEP  =  0.9f;
+const float OctreeFade::FADE_IN_START  =  0.05f;
+const float OctreeFade::FADE_IN_END    =  0.5f;
+const float OctreeFade::FADE_IN_STEP   =  1.1f;
+const float OctreeFade::DEFAULT_RED    =  0.5f;
+const float OctreeFade::DEFAULT_GREEN  =  0.5f;
+const float OctreeFade::DEFAULT_BLUE   =  0.5f;
 
-VoxelFade::VoxelFade(FadeDirection direction, float red, float green, float blue) :
+OctreeFade::OctreeFade(FadeDirection direction, float red, float green, float blue) :
     direction(direction),
     red(red),
     green(green),
@@ -37,7 +37,7 @@ VoxelFade::VoxelFade(FadeDirection direction, float red, float green, float blue
     opacity = (direction == FADE_OUT) ? FADE_OUT_START : FADE_IN_START;
 }
 
-void VoxelFade::render() {
+void OctreeFade::render() {
     DependencyManager::get<GlowEffect>()->begin();
 
     glDisable(GL_LIGHTING);
@@ -59,7 +59,7 @@ void VoxelFade::render() {
     opacity *= (direction == FADE_OUT) ? FADE_OUT_STEP : FADE_IN_STEP;
 }
 
-bool VoxelFade::isDone() const {
+bool OctreeFade::isDone() const {
     if (direction == FADE_OUT) {
         return opacity <= FADE_OUT_END;
     } else {
