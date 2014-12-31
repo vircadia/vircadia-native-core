@@ -89,12 +89,13 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             }            
         }
+        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
+        //  since everyone else will see the full joint rotations for other people.
+        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
+        const float BODY_FOLLOW_HEAD_FACTOR = 1.5f;
+        setTorsoTwist((1.0f - BODY_FOLLOW_HEAD_YAW_RATE) * getTorsoTwist() + getFinalYaw() * BODY_FOLLOW_HEAD_YAW_RATE / BODY_FOLLOW_HEAD_FACTOR);
     }
-    //  Twist the upper body to follow the rotation of the head
-    const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-    const float BODY_FOLLOW_HEAD_FACTOR = 1.5f;
-    setTorsoTwist((1.0f - BODY_FOLLOW_HEAD_YAW_RATE) * getTorsoTwist() + getFinalYaw() * BODY_FOLLOW_HEAD_YAW_RATE / BODY_FOLLOW_HEAD_FACTOR);
-    
+   
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
