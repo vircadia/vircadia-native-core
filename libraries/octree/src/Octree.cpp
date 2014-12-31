@@ -29,8 +29,6 @@
 #include <Shape.h>
 #include <ShapeCollider.h>
 
-//#include "Tags.h"
-
 #include "CoverageMap.h"
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
