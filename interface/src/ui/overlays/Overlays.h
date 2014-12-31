@@ -15,6 +15,7 @@
 #include <QScriptValue>
 #include <QSignalMapper>
 
+#include "Base3DOverlay.h"
 #include "Overlay.h"
 
 class OverlayPropertyResult {
@@ -81,6 +82,9 @@ public slots:
 
     /// returns details about the closest 3D Overlay hit by the pick ray
     RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray);
+
+    // called by Base3DOverlay when drawOnHUD changes
+    void overlayDrawOnChanged(Base3DOverlay* overlay);
     
     /// returns whether the overlay's assets are loaded or not
     bool isLoaded(unsigned int id);

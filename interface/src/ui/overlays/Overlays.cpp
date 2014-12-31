@@ -228,11 +228,13 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
 
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     Overlay* thisOverlay = NULL;
-    QWriteLocker lock(&_lock);
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
+    {
+        QReadLocker lock(&_lock);
+        if (_overlaysHUD.contains(id)) {
+            thisOverlay = _overlaysHUD[id];
+        } else if (_overlaysWorld.contains(id)) {
+            thisOverlay = _overlaysWorld[id];
+        }
     }
     if (thisOverlay) {
         thisOverlay->setProperties(properties);
@@ -449,6 +451,26 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
         vec3FromScriptValue(intersection, value.intersection);
     }
     value.extraInfo = object.property("extraInfo").toVariant().toString();
+}
+
+void Overlays::overlayDrawOnChanged(Base3DOverlay* overlay) {
+    if (overlay->getDrawOnHUD()) {
+        for (unsigned int id : _overlaysWorld.keys()) {
+            if (_overlaysWorld[id] == overlay) {
+                QWriteLocker lock(&_lock);
+                _overlaysWorld.remove(id);
+                _overlaysHUD[id] = overlay;
+            }
+        }
+    } else {
+        for (unsigned int id : _overlaysHUD.keys()) {
+            if (_overlaysHUD[id] == overlay) {
+                QWriteLocker lock(&_lock);
+                _overlaysHUD.remove(id);
+                _overlaysWorld[id] = overlay;
+            }
+        }
+    }
 }
 
 bool Overlays::isLoaded(unsigned int id) {

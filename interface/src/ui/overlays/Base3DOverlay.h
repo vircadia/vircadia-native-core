@@ -47,7 +47,7 @@ public:
     void setRotation(const glm::quat& value) { _rotation = value; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     void setDrawInFront(bool value) { _drawInFront = value; }
-    void setDrawOnHUD(bool value) { _drawOnHUD = value; }
+    void setDrawOnHUD(bool value);
 
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);

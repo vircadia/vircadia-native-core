@@ -14,6 +14,7 @@
 #include <QGLWidget>
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Base3DOverlay.h"
 
 const glm::vec3 DEFAULT_POSITION = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -45,6 +46,13 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
 }
 
 Base3DOverlay::~Base3DOverlay() {
+}
+
+void Base3DOverlay::setDrawOnHUD(bool value) {
+    if (_drawOnHUD != value) {
+        _drawOnHUD = value;
+        Application::getInstance()->getOverlays().overlayDrawOnChanged(this);
+    }
 }
 
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
