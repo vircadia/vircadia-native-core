@@ -117,7 +117,7 @@ Menu::Menu() :
     _avatarLODIncreaseFPS(ADJUST_LOD_UP_FPS),
     _avatarLODDistanceMultiplier(DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER),
     _boundaryLevelAdjust(0),
-    _maxOctreePacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
+    _maxOctreePacketsPerSecond(DEFAULT_MAX_OCTREE_PPS),
     _lastAdjust(usecTimestampNow()),
     _lastAvatarDetailDrop(usecTimestampNow()),
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),

@@ -17,7 +17,6 @@
 #include <AACube.h>
 #include <OctreeConstants.h>
 #include <SharedUtil.h>
-#include "VoxelConstants.h"
 
 struct VoxelDetail {
 	float x;

@@ -28,7 +28,6 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <UUID.h>
-//#include <VoxelConstants.h>
 
 #include "AnimationObject.h"
 #include "ArrayBufferViewClass.h"

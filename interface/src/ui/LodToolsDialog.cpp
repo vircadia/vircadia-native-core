@@ -20,8 +20,6 @@
 #include <QPushButton>
 #include <QString>
 
-#include <VoxelConstants.h>
-
 #include "Menu.h"
 #include "ui/LodToolsDialog.h"
 

@@ -13,7 +13,7 @@
 
 #include <GlowEffect.h>
 #include <GeometryCache.h>
-#include <VoxelConstants.h>
+#include <OctreeConstants.h>
 
 #include "Application.h"
 #include "VoxelFade.h"
