@@ -44,7 +44,7 @@ function updateTextOverlay() {
     var maxFontSize = 140;
     textFontSize = (suggestedFontSize > maxFontSize) ? maxFontSize : suggestedFontSize;
     var topMargin = (250 - textFontSize) / 4;
-    Overlays.editOverlay(text, {text: locationURL, font: {size: textFontSize}, topMargin: topMargin});
+    Overlays.editOverlay(text, {text: locationURL, font: {size: textFontSize}, topMargin: topMargin, visible: keyboard.visible});
     maxLineWidth = Overlays.textSize(text, locationURL).width;
     Overlays.editOverlay(text, {leftMargin: (windowDimensions.x - maxLineWidth) / 2});
 }
@@ -65,6 +65,7 @@ keyboard.onKeyRelease = function(event) {
            print("going to hifi://" + locationURL);
            location = "hifi://" + locationURL;
            locationURL = "";
+		   keyboard.hide();
            updateTextOverlay();
         }
     }
