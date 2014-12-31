@@ -169,7 +169,8 @@ KeyboardKey = (function(keyboard, keyProperties) {
                 width: this.bounds[i][BOUND_W] * keyboard.scale,
                 height: this.bounds[i][BOUND_H] * keyboard.scale,
                 subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
-                alpha: 1
+                alpha: 1,
+                visible: tthis.keyboard.visible
             });
         } else {
             Overlays.editOverlay(newOverlay, {
@@ -178,19 +179,20 @@ KeyboardKey = (function(keyboard, keyProperties) {
                 width: this.bounds[i][BOUND_W] * keyboard.scale,
                 height: this.bounds[i][BOUND_H] * keyboard.scale,
                 subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
-                alpha: 1
+                alpha: 1,
+                visible: tthis.keyboard.visible
             });
         }
         this.overlays.push(newOverlay);
     }
 });
 
-Keyboard = (function() {
+Keyboard = (function(params) {
     var tthis = this;
     this.focussed_key = -1;
     this.scale = (windowDimensions.x / KEYBOARD_WIDTH) * KEYBOARD_SCALE_MULTIPLIER;
     this.shift = false;
-    this.visible = true;
+    this.visible = params.visible != undefined ? params.visible :true;
     this.width = function() {
         return KEYBOARD_WIDTH * tthis.scale;
     };
@@ -213,7 +215,8 @@ Keyboard = (function() {
             subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
             isFacingAvatar: false,
             url: KEYBOARD_URL,
-            alpha: 1
+            alpha: 1,
+            visible: this.visible
         });
     } else {
         this.background = Overlays.addOverlay("image", {
@@ -223,7 +226,8 @@ Keyboard = (function() {
             height: this.height(),
             subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
             imageURL: KEYBOARD_URL,
-            alpha: 1
+            alpha: 1,
+            visible: this.visible
         });
     }
     this.rescale = function() {
@@ -265,6 +269,9 @@ Keyboard = (function() {
     };
 
     this.pressFocussedKey = function() {
+        if (!tthis.visible) {
+            return tthis;
+        }
         if (tthis.focussed_key != -1) {
             if (tthis.keys[tthis.focussed_key].event == 'shift') {
                 tthis.toggleShift();
