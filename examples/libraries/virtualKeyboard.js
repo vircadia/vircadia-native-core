@@ -44,9 +44,6 @@ KEYBOARD_SCALE_MULTIPLIER = 0.50;
 const VIEW_ANGLE = 40.0;
 const VIEW_ANGLE_BY_TWO = VIEW_ANGLE / 2;
 
-const SPAWN_DISTANCE = 1;
-const DEFAULT_TEXT_DIMENSION_Z = 0.02;
-
 const BOUND_X = 0;
 const BOUND_Y = 1;
 const BOUND_W = 2;
@@ -55,13 +52,7 @@ const BOUND_H = 3;
 KEY_STATE_LOWER = 0;
 KEY_STATE_UPPER = 1;
 
-const TEXT_MARGIN_TOP = 0.15;
-const TEXT_MARGIN_LEFT = 0.15;
-const TEXT_MARGIN_RIGHT = 0.17;
-const TEXT_MARGIN_BOTTOM = 0.17;
-
 var windowDimensions = Controller.getViewportDimensions();
-var cursor = null;
 
 KeyboardKey = (function(keyboard, keyProperties) {
     var tthis = this;
