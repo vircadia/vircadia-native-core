@@ -14,7 +14,6 @@
 #include "EntityItem.h"
 #include "SimpleEntitySimulation.h"
 
-
 void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     QSet<EntityItem*>::iterator itemItr = _movingEntities.begin();
     while (itemItr != _movingEntities.end()) {
@@ -57,6 +56,7 @@ void SimpleEntitySimulation::entityChangedInternal(EntityItem* entity) {
             _movableButStoppedEntities.remove(entity);
         }
     }
+    entity->clearDirtyFlags();
 }
 
 void SimpleEntitySimulation::clearEntitiesInternal() {

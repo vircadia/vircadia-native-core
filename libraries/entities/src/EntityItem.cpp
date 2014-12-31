@@ -92,6 +92,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
     _created = UNKNOWN_CREATED_TIME;
+    _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
@@ -106,10 +107,16 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
     _created = UNKNOWN_CREATED_TIME;
+    _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties);
+}
+
+EntityItem::~EntityItem() {
+    // be sure to clean up _physicsInfo before calling this dtor
+    assert(_physicsInfo == NULL);
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
@@ -138,7 +145,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
                                             EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const {
-                                            
     // ALL this fits...
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
@@ -516,7 +522,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
-        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
+        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, setScript);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
         READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
@@ -583,6 +589,11 @@ bool EntityItem::isRestingOnSurface() const {
 }
 
 void EntityItem::simulate(const quint64& now) {
+    if (_physicsInfo) {
+        // we rely on bullet for simulation, so bail
+        return;
+    }
+
     bool wantDebug = false;
     
     if (_lastSimulated == 0) {
@@ -795,7 +806,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, updateScript);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
@@ -977,15 +988,29 @@ float EntityItem::getRadius() const {
     return radius;
 }
 
+void EntityItem::computeShapeInfo(ShapeInfo& info) const {
+    info.clear();
+}
+
 void EntityItem::recalculateCollisionShape() {
     AACube entityAACube = getMinimumAACube();
     entityAACube.scale(TREE_SCALE); // scale to meters
     _collisionShape.setTranslation(entityAACube.calcCenter());
     _collisionShape.setScale(entityAACube.getScale());
+    // TODO: use motionState to update physics object
 }
 
+const float MIN_POSITION_DELTA = 0.0001f;
+const float MIN_DIMENSION_DELTA = 0.0001f;
+const float MIN_ALIGNMENT_DOT = 0.9999f;
+const float MIN_MASS_DELTA = 0.001f;
+const float MIN_VELOCITY_DELTA = 0.025f;
+const float MIN_GRAVITY_DELTA = 0.001f;
+const float MIN_SPIN_DELTA = 0.0003f;
+
 void EntityItem::updatePosition(const glm::vec3& value) { 
-    if (_position != value) {
+    glm::vec3 debugPosition = value * (float) TREE_SCALE;
+    if (glm::distance(_position, value) * (float)TREE_SCALE > MIN_POSITION_DELTA) {
         _position = value; 
         recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
@@ -994,7 +1019,7 @@ void EntityItem::updatePosition(const glm::vec3& value) {
 
 void EntityItem::updatePositionInMeters(const glm::vec3& value) { 
     glm::vec3 position = glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f);
-    if (_position != position) {
+    if (glm::distance(_position, position) * (float)TREE_SCALE > MIN_POSITION_DELTA) {
         _position = position;
         recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
@@ -1002,24 +1027,24 @@ void EntityItem::updatePositionInMeters(const glm::vec3& value) {
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) { 
-    if (_dimensions != value) {
+    if (glm::distance(_dimensions, value) * (float)TREE_SCALE > MIN_DIMENSION_DELTA) {
         _dimensions = value; 
         recalculateCollisionShape();
-        _dirtyFlags |= EntityItem::DIRTY_SHAPE;
+        _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
     }
 }
 
 void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
     glm::vec3 dimensions = value / (float) TREE_SCALE;
-    if (_dimensions != dimensions) {
+    if (glm::distance(_dimensions, dimensions) * (float)TREE_SCALE > MIN_DIMENSION_DELTA) {
         _dimensions = dimensions; 
         recalculateCollisionShape();
-        _dirtyFlags |= EntityItem::DIRTY_SHAPE;
+        _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
     }
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) { 
-    if (_rotation != rotation) {
+    if (glm::dot(_rotation, rotation) < MIN_ALIGNMENT_DOT) {
         _rotation = rotation; 
         recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
@@ -1027,29 +1052,37 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
 }
 
 void EntityItem::updateMass(float value) {
-    if (_mass != value) {
+    if (fabsf(_mass - value) > MIN_MASS_DELTA) {
         _mass = value;
         _dirtyFlags |= EntityItem::DIRTY_MASS;
     }
 }
 
-void EntityItem::updateVelocity(const glm::vec3& value) { 
-    if (_velocity != value) {
-        _velocity = value;
+void EntityItem::updateVelocity(const glm::vec3& value) {
+    if (glm::distance(_velocity, value) * (float)TREE_SCALE > MIN_VELOCITY_DELTA) {
+        if (glm::length(value) * (float)TREE_SCALE < MIN_VELOCITY_DELTA) {
+            _velocity = glm::vec3(0.0f);
+        } else {
+            _velocity = value;
+        }
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateVelocityInMeters(const glm::vec3& value) { 
     glm::vec3 velocity = value / (float) TREE_SCALE; 
-    if (_velocity != velocity) {
-        _velocity = velocity;
+    if (glm::distance(_velocity, velocity) * (float)TREE_SCALE > MIN_VELOCITY_DELTA) {
+        if (glm::length(value) < MIN_VELOCITY_DELTA) {
+            _velocity = glm::vec3(0.0f);
+        } else {
+            _velocity = velocity;
+        }
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
-    if (_gravity != value) {
+    if (glm::distance(_gravity, value) * (float)TREE_SCALE > MIN_GRAVITY_DELTA) {
         _gravity = value; 
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
@@ -1057,14 +1090,14 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 
 void EntityItem::updateGravityInMeters(const glm::vec3& value) { 
     glm::vec3 gravity = value / (float) TREE_SCALE;
-    if (_gravity != gravity) {
+    if ( glm::distance(_gravity, gravity) * (float)TREE_SCALE > MIN_GRAVITY_DELTA) {
         _gravity = gravity;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
-    if (_angularVelocity != value) {
+    if (glm::distance(_angularVelocity, value) > MIN_SPIN_DELTA) {
         _angularVelocity = value; 
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
@@ -1088,13 +1121,6 @@ void EntityItem::updateLifetime(float value) {
     if (_lifetime != value) {
         _lifetime = value;
         _dirtyFlags |= EntityItem::DIRTY_LIFETIME;
-    }
-}
-
-void EntityItem::updateScript(const QString& value) { 
-    if (_script != value) {
-        _script = value; 
-        _dirtyFlags |= EntityItem::DIRTY_SCRIPT;
     }
 }
 

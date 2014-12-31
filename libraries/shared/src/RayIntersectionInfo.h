@@ -1,6 +1,6 @@
 //
 //  RayIntersectionInfo.h
-//  interface/src/avatar
+//  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.09.09
 //  Copyright 2014 High Fidelity, Inc.
