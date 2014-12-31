@@ -65,11 +65,6 @@ public:
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
     
-    // degrees
-    void addYaw(float yaw);
-    void addPitch(float pitch);
-    void addRoll(float roll);
-    
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
     
