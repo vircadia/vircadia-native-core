@@ -2896,12 +2896,12 @@ void Application::updateShadowMap() {
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(false, RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(false, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         {
             PerformanceTimer perfTimer("3dOverlaysFront");
-            _overlays.render3D(true, RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -3129,7 +3129,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(false);
+            _overlays.renderWorld(false);
         }
 
         // render the ambient occlusion effect if enabled
@@ -3218,7 +3218,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     {
         PerformanceTimer perfTimer("3dOverlaysFront");
         glClear(GL_DEPTH_BUFFER_BIT);
-        _overlays.render3D(true);
+        _overlays.renderWorld(true);
     }
 }
 

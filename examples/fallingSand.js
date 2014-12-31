@@ -28,7 +28,7 @@ var MIN_VOXEL_SCALE = Math.pow(2.0, MIN_VOXEL_SCALE_POWER);
 
 
 var linePreviewTop = Overlays.addOverlay("line3d", {
-                                         position: { x: 0, y: 0, z: 0},
+                                         start: { x: 0, y: 0, z: 0},
                                          end: { x: 0, y: 0, z: 0},
                                          color: { red: 0, green: 0, blue: 255},
                                          alpha: 1,
@@ -37,7 +37,7 @@ var linePreviewTop = Overlays.addOverlay("line3d", {
                                          });
 
 var linePreviewBottom = Overlays.addOverlay("line3d", {
-                                            position: { x: 0, y: 0, z: 0},
+                                            start: { x: 0, y: 0, z: 0},
                                             end: { x: 0, y: 0, z: 0},
                                             color: { red: 0, green: 0, blue: 255},
                                             alpha: 1,
@@ -46,7 +46,7 @@ var linePreviewBottom = Overlays.addOverlay("line3d", {
                                             });
 
 var linePreviewLeft = Overlays.addOverlay("line3d", {
-                                          position: { x: 0, y: 0, z: 0},
+                                          start: { x: 0, y: 0, z: 0},
                                           end: { x: 0, y: 0, z: 0},
                                           color: { red: 0, green: 0, blue: 255},
                                           alpha: 1,
@@ -55,7 +55,7 @@ var linePreviewLeft = Overlays.addOverlay("line3d", {
                                           });
 
 var linePreviewRight = Overlays.addOverlay("line3d", {
-                                           position: { x: 0, y: 0, z: 0},
+                                           start: { x: 0, y: 0, z: 0},
                                            end: { x: 0, y: 0, z: 0},
                                            color: { red: 0, green: 0, blue: 255},
                                            alpha: 1,
@@ -362,10 +362,10 @@ function showPreviewLines() {
 
     if (intersection.intersects) {
         var resultVoxel = calculateVoxelFromIntersection(intersection, "");
-        Overlays.editOverlay(linePreviewTop, { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
-        Overlays.editOverlay(linePreviewBottom, { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
-        Overlays.editOverlay(linePreviewLeft, { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
-        Overlays.editOverlay(linePreviewRight, { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewTop, { start: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
+        Overlays.editOverlay(linePreviewBottom, { start: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewLeft, { start: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
+        Overlays.editOverlay(linePreviewRight, { start: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
    } else {
         Overlays.editOverlay(linePreviewTop, { visible: false });
         Overlays.editOverlay(linePreviewBottom, { visible: false });

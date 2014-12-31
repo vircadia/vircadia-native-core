@@ -76,7 +76,13 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     glPushMatrix();
                         glColor4f(1.0f, 1.0f, 1.0f, alpha);
                         glScalef(dimensions.x * _borderSize, dimensions.y * _borderSize, dimensions.z * _borderSize);
-                        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+
+                        if (_drawOnHUD) {
+                            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
+                        } else {
+                            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+                        }
+
                     glPopMatrix();
                     glDepthMask(GL_TRUE);
                 }
@@ -84,7 +90,11 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 glPushMatrix();
                     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
-                    DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+                    if (_drawOnHUD) {
+                        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
+                    } else {
+                        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+                    }
                 glPopMatrix();
             } else {
                 glLineWidth(_lineWidth);
