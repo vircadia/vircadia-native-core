@@ -3636,16 +3636,6 @@ void Application::updateWindowTitle(){
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
         + AddressManager::getInstance().getCurrentDomain() + connectionStatus + buildVersion;
 
-    AccountManager& accountManager = AccountManager::getInstance();
-    if (accountManager.getAccountInfo().hasBalance()) {
-        float creditBalance = accountManager.getAccountInfo().getBalance() / SATOSHIS_PER_CREDIT;
-
-        QString creditBalanceString;
-        creditBalanceString.sprintf("%.8f", creditBalance);
-
-        title += " - ₵" + creditBalanceString;
-    }
-
 #ifndef WIN32
     // crashes with vs2013/win32
     qDebug("Application title set to: %s", title.toStdString().c_str());

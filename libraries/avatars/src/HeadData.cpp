@@ -73,16 +73,3 @@ void HeadData::setBlendshape(QString name, float val) {
         _blendshapeCoefficients[it.value()] = val;
     }
 }
-
-void HeadData::addYaw(float yaw) {
-    setBaseYaw(_baseYaw + yaw);
-}
-
-void HeadData::addPitch(float pitch) {
-    setBasePitch(_basePitch + pitch);
-}
-
-void HeadData::addRoll(float roll) {
-    setBaseRoll(_baseRoll + roll);
-}
-
