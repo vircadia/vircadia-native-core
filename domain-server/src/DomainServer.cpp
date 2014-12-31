@@ -550,7 +550,8 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
         if (!excludedTypes.contains(defaultedType) 
-            && defaultedType != Assignment::UNUSED 
+            && defaultedType != Assignment::UNUSED_0
+            && defaultedType != Assignment::UNUSED_1
             && defaultedType != Assignment::AgentType) {
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload

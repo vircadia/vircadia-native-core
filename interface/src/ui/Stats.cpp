@@ -313,7 +313,7 @@ void Stats::display(
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth +1;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingVoxelMax = -1;
+        int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingOctreeMax = -1;
 
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -323,22 +323,22 @@ void Stats::display(
         pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : -1;
 
         // Now handle voxel servers, since there could be more than one, we average their ping times
-        unsigned long totalPingVoxel = 0;
-        int voxelServerCount = 0;
+        unsigned long totalPingOctree = 0;
+        int octreeServerCount = 0;
         
-        nodeList->eachNode([&totalPingVoxel, &pingVoxelMax, &voxelServerCount](const SharedNodePointer& node){
+        nodeList->eachNode([&totalPingOctree, &pingOctreeMax, &octreeServerCount](const SharedNodePointer& node){
             // TODO: this should also support entities
-            if (node->getType() == NodeType::VoxelServer) {
-                totalPingVoxel += node->getPingMs();
-                voxelServerCount++;
-                if (pingVoxelMax < node->getPingMs()) {
-                    pingVoxelMax = node->getPingMs();
+            if (node->getType() == NodeType::EntityServer) {
+                totalPingOctree += node->getPingMs();
+                octreeServerCount++;
+                if (pingOctreeMax < node->getPingMs()) {
+                    pingOctreeMax = node->getPingMs();
                 }
             }
         });
 
-        if (voxelServerCount) {
-            pingVoxel = totalPingVoxel/voxelServerCount;
+        if (octreeServerCount) {
+            pingVoxel = totalPingOctree / octreeServerCount;
         }
 
         lines = _expanded ? 4 : 3;
@@ -366,9 +366,9 @@ void Stats::display(
 
         char voxelAvgPing[30];
         if (pingVoxel >= 0) {
-            sprintf(voxelAvgPing, "Voxel avg ping: %d", pingVoxel);
+            sprintf(voxelAvgPing, "Entities avg ping: %d", pingVoxel);
         } else {
-            sprintf(voxelAvgPing, "Voxel avg ping: --");
+            sprintf(voxelAvgPing, "Entities avg ping: --");
         }
 
         verticalOffset += STATS_PELS_PER_LINE;
@@ -381,7 +381,7 @@ void Stats::display(
         if (_expanded) {
             char voxelMaxPing[30];
             if (pingVoxel >= 0) {  // Average is only meaningful if pingVoxel is valid.
-                sprintf(voxelMaxPing, "Voxel max ping: %d", pingVoxelMax);
+                sprintf(voxelMaxPing, "Voxel max ping: %d", pingOctreeMax);
             } else {
                 sprintf(voxelMaxPing, "Voxel max ping: --");
             }
