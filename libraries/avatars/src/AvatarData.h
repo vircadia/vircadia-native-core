@@ -130,7 +130,6 @@ class AvatarData : public QObject {
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
-    Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
@@ -242,12 +241,6 @@ public:
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
 
-    // chat message
-    void setChatMessage(const std::string& msg) { _chatMessage = msg; }
-    void setChatMessage(const QString& string) { _chatMessage = string.toLocal8Bit().constData(); }
-    const std::string& setChatMessage() const { return _chatMessage; }
-    QString getQStringChatMessage() { return QString(_chatMessage.data()); }
-
     bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
@@ -354,9 +347,6 @@ protected:
 
     // key state
     KeyState _keyState;
-
-    // chat message
-    std::string _chatMessage;
 
     bool _isChatCirclingEnabled;
     bool _forceFaceshiftConnected;
