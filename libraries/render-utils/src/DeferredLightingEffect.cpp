@@ -414,10 +414,6 @@ void DeferredLightingEffect::render() {
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations) {
-  /*  program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
-        (limited ? "shaders/deferred_light_limited.vert" : "shaders/deferred_light.vert"));
-    program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + name);
-    */
     program.addShaderFromSourceCode(QGLShader::Vertex, (limited ? deferred_light_limited_vert : deferred_light_vert));
     program.addShaderFromSourceCode(QGLShader::Fragment, fragSource);
     program.link();

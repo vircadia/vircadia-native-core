@@ -86,7 +86,6 @@ private:
         int radius;
     };
     
-    //static void loadLightProgram(const char* name, bool limited, ProgramObject& program, LightLocations& locations);
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
    
     ProgramObject _simpleProgram;
