@@ -23,9 +23,11 @@ public:
     virtual void render(RenderArgs* args);
 
     // getters
+    const glm::vec3& getStart() const { return _start; }
     const glm::vec3& getEnd() const { return _end; }
 
     // setters
+    void setStart(const glm::vec3& start) { _start = start; }
     void setEnd(const glm::vec3& end) { _end = end; }
 
     virtual void setProperties(const QScriptValue& properties);
@@ -34,6 +36,7 @@ public:
     virtual Line3DOverlay* createClone() const;
 
 protected:
+    glm::vec3 _start;
     glm::vec3 _end;
 };
 

@@ -154,16 +154,13 @@ void Stats::resetWidth(int width, int horizontalOffset) {
 
 // translucent background box that makes stats more readable
 void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int height) {
-    glBegin(GL_QUADS);
     glColor4f(((rgba >> 24) & 0xff) / 255.0f,
               ((rgba >> 16) & 0xff) / 255.0f, 
               ((rgba >> 8) & 0xff)  / 255.0f,
               (rgba & 0xff) / 255.0f);
-    glVertex3f(x, y, 0);
-    glVertex3f(x + width, y, 0);
-    glVertex3f(x + width, y + height, 0);
-    glVertex3f(x , y + height, 0);
-    glEnd();
+
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height);
+
     glColor4f(1, 1, 1, 1); 
 }
 

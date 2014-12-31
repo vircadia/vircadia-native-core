@@ -191,14 +191,6 @@ void Avatar::simulate(float deltaTime) {
             head->setScale(_scale);
             head->simulate(deltaTime, false, _shouldRenderBillboard);
         }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
-            PerformanceTimer perfTimer("hair");
-            _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setLoudness((float) getHeadData()->getAudioLoudness());
-            _hair.simulate(deltaTime);
-        }
     }
 
     // update animation for display name fade in/out
@@ -543,18 +535,6 @@ void Avatar::renderBody(RenderMode renderMode, bool postLighting, float glowLeve
         }
     }
     getHead()->render(1.0f, modelRenderMode, postLighting);
-    
-    if (!postLighting && Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
-        // Render Hair
-        glPushMatrix();
-        glm::vec3 headPosition = getHead()->getPosition();
-        glTranslatef(headPosition.x, headPosition.y, headPosition.z);
-        const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        _hair.render();
-        glPopMatrix();
-    }
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
@@ -633,17 +613,14 @@ void Avatar::renderBillboard() {
     glScalef(size, size, size);
     
     glColor3f(1.0f, 1.0f, 1.0f);
-    
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex2f(-1.0f, -1.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex2f(1.0f, -1.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex2f(1.0f, 1.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex2f(-1.0f, 1.0f);
-    glEnd();
+
+    glm::vec2 topLeft(-1.0f, -1.0f);
+    glm::vec2 bottomRight(1.0f, 1.0f);
+    glm::vec2 texCoordTopLeft(0.0f, 0.0f);
+    glm::vec2 texCoordBottomRight(1.0f, 1.0f);
+
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+
     
     glPopMatrix();
     
@@ -682,14 +659,16 @@ float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, boo
     
     double textWindowHeight;
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    float windowSizeX = glCanvas->getDeviceWidth();
-    float windowSizeY = glCanvas->getDeviceHeight();
-    
+    GLint viewportMatrix[4];
+    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
     glm::dmat4 modelViewMatrix;
+    float windowSizeX = viewportMatrix[2] - viewportMatrix[0];
+    float windowSizeY = viewportMatrix[3] - viewportMatrix[1];
+    
     glm::dmat4 projectionMatrix;
     Application::getInstance()->getModelViewMatrix(&modelViewMatrix);
     Application::getInstance()->getProjectionMatrix(&projectionMatrix);
+    
 
     glm::dvec4 p0 = modelViewMatrix * glm::dvec4(testPoint0, 1.0);
     p0 = projectionMatrix * p0;

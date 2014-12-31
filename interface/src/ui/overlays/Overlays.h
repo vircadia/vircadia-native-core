@@ -15,6 +15,7 @@
 #include <QScriptValue>
 #include <QSignalMapper>
 
+#include "Base3DOverlay.h"
 #include "Overlay.h"
 
 class OverlayPropertyResult {
@@ -52,9 +53,9 @@ public:
     ~Overlays();
     void init(QGLWidget* parent);
     void update(float deltatime);
-    void render3D(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
+    void renderWorld(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
                         RenderArgs::RenderSide renderSide = RenderArgs::MONO);
-    void render2D();
+    void renderHUD();
 
 public slots:
     /// adds an overlay with the specific properties
@@ -81,6 +82,9 @@ public slots:
 
     /// returns details about the closest 3D Overlay hit by the pick ray
     RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray);
+
+    // called by Base3DOverlay when drawOnHUD changes
+    void overlayDrawOnChanged(Base3DOverlay* overlay);
     
     /// returns whether the overlay's assets are loaded or not
     bool isLoaded(unsigned int id);
@@ -90,8 +94,8 @@ public slots:
     QSizeF textSize(unsigned int id, const QString& text) const;
 
 private:
-    QMap<unsigned int, Overlay*> _overlays2D;
-    QMap<unsigned int, Overlay*> _overlays3D;
+    QMap<unsigned int, Overlay*> _overlaysHUD;
+    QMap<unsigned int, Overlay*> _overlaysWorld;
     QList<Overlay*> _overlaysToDelete;
     unsigned int _nextOverlayID;
     QGLWidget* _parent;

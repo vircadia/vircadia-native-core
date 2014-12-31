@@ -50,7 +50,7 @@ int main (int argc, char** argv) {
             case READY: {
                 if (inputs.back() == "-o") {
                     mode = GRAB_OUTPUT;
-                } else if (inputs.back() == "-tn") {
+                } else if (inputs.back() == "-t") {
                     mode = GRAB_TARGET_NAME;
                 } else if (inputs.back() == "-D") {
                     mode = GRAB_VAR_NAME;
@@ -192,16 +192,9 @@ int main (int argc, char** argv) {
         targetStringStream << "#ifndef scribe_" << targetName << "_h" << std::endl;
         targetStringStream << "#define scribe_" << targetName << "_h" << std::endl << std::endl;
 
-        targetStringStream << "const char " << targetName << "[] = {\n\"";
+        targetStringStream << "const char " << targetName << "[] = R\"XXXX(" << destStringStream.str() << ")XXXX\";";
 
-        std::stringstream destStringStreamAgain(destStringStream.str());
-        while (!destStringStreamAgain.eof()) {
-            std::string line;
-            std::getline(destStringStreamAgain, line);
-            targetStringStream << line << " \\n\\\n";
-        }
-        targetStringStream << "\"};" << std::endl << std::endl;
-
+        targetStringStream << std::endl << std::endl;
         targetStringStream << "#endif" << std::endl;
     } else {
         targetStringStream << destStringStream.str();
