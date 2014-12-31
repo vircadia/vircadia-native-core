@@ -179,6 +179,9 @@ KeyboardKey = (function(keyboard, keyProperties) {
 });
 
 Keyboard = (function(params) {
+    if (params === undefined) {
+        params = {};
+    }
     var tthis = this;
     this.focussed_key = -1;
     this.scale = (windowDimensions.x / KEYBOARD_WIDTH) * KEYBOARD_SCALE_MULTIPLIER;

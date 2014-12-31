@@ -152,6 +152,21 @@ function scriptEnding() {
     Controller.releaseKeyEvents({key: SPACEBAR_CHARCODE});
 }
 
+function reportButtonValue(button, newValue, oldValue) {
+    if (button == Joysticks.BUTTON_FACE_LEFT) {
+        if (newValue) {
+            keyboard.pressFocussedKey();
+        } else {
+            keyboard.releaseKeys();
+        }
+    }
+}
+
+function addJoystick(gamepad) {
+    gamepad.buttonStateChanged.connect(reportButtonValue);
+}
+
+Joysticks.joystickAdded.connect(addJoystick);
 Controller.captureKeyEvents({key: SPACEBAR_CHARCODE});
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
