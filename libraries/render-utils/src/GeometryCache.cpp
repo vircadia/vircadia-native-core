@@ -23,7 +23,13 @@
 #include "TextureCache.h"
 #include "GeometryCache.h"
 
-GeometryCache::GeometryCache() {
+//#define WANT_DEBUG
+
+const int GeometryCache::UNKNOWN_QUAD_ID = -1;
+
+GeometryCache::GeometryCache() :
+    _nextQuadID(0) 
+{
 }
 
 GeometryCache::~GeometryCache() {
@@ -661,27 +667,49 @@ void GeometryCache::renderWireCube(float size) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight) {
-    Vec2Pair key(topLeft, bottomRight);
-    VerticesIndices& vbo = _quad2DVBOs[key];
+void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int quadID) {
+
+    bool registeredQuad = (quadID != UNKNOWN_QUAD_ID);
+    Vec2Pair key(minCorner, maxCorner);
+    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad2DVBOs[key];
+    
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (registeredQuad && vbo.first != 0) {
+        Vec2Pair& lastKey = _lastRegisteredQuad2D[quadID];
+        if (lastKey != key) {
+            glDeleteBuffers(1, &vbo.first);
+            glDeleteBuffers(1, &vbo.second);
+            vbo.first = vbo.second = 0;
+            #ifdef WANT_DEBUG
+                qDebug() << "renderQuad() vec2... RELEASING REGISTERED QUAD";
+            #endif // def WANT_DEBUG
+        }
+        #ifdef WANT_DEBUG
+        else {
+            qDebug() << "renderQuad() vec2... REUSING PREVIOUSLY REGISTERED QUAD";
+        }
+        #endif // def WANT_DEBUG
+    }
+
     const int FLOATS_PER_VERTEX = 2;
     const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
     const int indices = 4;
-    if (vbo.first == 0) {    
+    if (vbo.first == 0) {
+        _lastRegisteredQuad2D[quadID] = key;  
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices, no normals because we're a 2D quad
         GLfloat* vertex = vertexData;
         static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
 
-        vertex[0] = topLeft.x;
-        vertex[1] = topLeft.y;
-        vertex[2] = bottomRight.x;
-        vertex[3] = topLeft.y;
-        vertex[4] = bottomRight.x;
-        vertex[5] = bottomRight.y;
-        vertex[6] = topLeft.x;
-        vertex[7] = bottomRight.y;
+        vertex[0] = minCorner.x;
+        vertex[1] = minCorner.y;
+        vertex[2] = maxCorner.x;
+        vertex[3] = minCorner.y;
+        vertex[4] = maxCorner.x;
+        vertex[5] = maxCorner.y;
+        vertex[6] = minCorner.x;
+        vertex[7] = maxCorner.y;
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
@@ -700,7 +728,11 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
         delete[] indexData;
         
         #ifdef WANT_DEBUG
-            qDebug() << "new quad VBO made -- _quad2DVBOs.size():" << _quad2DVBOs.size();
+            if (quadID == UNKNOWN_QUAD_ID) {
+                qDebug() << "new quad VBO made -- _quad2DVBOs.size():" << _quad2DVBOs.size();
+            } else {
+                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
+            }
         #endif
     
     } else {
@@ -717,41 +749,62 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
 }
 
 
-void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight,
-                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight) {
-    Vec2PairPair key(Vec2Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
+void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, int quadID) {
+
+    bool registeredQuad = (quadID != UNKNOWN_QUAD_ID);
+    Vec2PairPair key(Vec2Pair(minCorner, maxCorner), Vec2Pair(texCoordMinCorner, texCoordMaxCorner));
+    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad2DTextureVBOs[key];
     
-    VerticesIndices& vbo = _quad2DTextureVBOs[key];
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (registeredQuad && vbo.first != 0) {
+        Vec2PairPair& lastKey = _lastRegisteredQuad2DTexture[quadID];
+        if (lastKey != key) {
+            glDeleteBuffers(1, &vbo.first);
+            glDeleteBuffers(1, &vbo.second);
+            vbo.first = vbo.second = 0;
+            #ifdef WANT_DEBUG
+                qDebug() << "renderQuad() vec2 + texture... RELEASING REGISTERED QUAD";
+            #endif // def WANT_DEBUG
+        }
+        #ifdef WANT_DEBUG
+        else {
+            qDebug() << "renderQuad()  vec2 + texture... REUSING PREVIOUSLY REGISTERED QUAD";
+        }
+        #endif // def WANT_DEBUG
+    }
+
     const int FLOATS_PER_VERTEX = 2 * 2; // text coords & vertices
     const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
     const int indices = 4;
-    if (vbo.first == 0) {    
+    if (vbo.first == 0) {
+        _lastRegisteredQuad2DTexture[quadID] = key;
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // text coords & vertices
         GLfloat* vertex = vertexData;
         static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
         int v = 0;
 
-        vertex[v++] = topLeft.x;
-        vertex[v++] = topLeft.y;
-        vertex[v++] = texCoordTopLeft.x;
-        vertex[v++] = texCoordTopLeft.y;
+        vertex[v++] = minCorner.x;
+        vertex[v++] = minCorner.y;
+        vertex[v++] = texCoordMinCorner.x;
+        vertex[v++] = texCoordMinCorner.y;
         
-        vertex[v++] = bottomRight.x;
-        vertex[v++] = topLeft.y;
-        vertex[v++] = texCoordBottomRight.x;
-        vertex[v++] = texCoordTopLeft.y;
+        vertex[v++] = maxCorner.x;
+        vertex[v++] = minCorner.y;
+        vertex[v++] = texCoordMaxCorner.x;
+        vertex[v++] = texCoordMinCorner.y;
         
-        vertex[v++] = bottomRight.x;
-        vertex[v++] = bottomRight.y;
-        vertex[v++] = texCoordBottomRight.x;
-        vertex[v++] = texCoordBottomRight.y;
+        vertex[v++] = maxCorner.x;
+        vertex[v++] = maxCorner.y;
+        vertex[v++] = texCoordMaxCorner.x;
+        vertex[v++] = texCoordMaxCorner.y;
         
-        vertex[v++] = topLeft.x;
-        vertex[v++] = bottomRight.y;
-        vertex[v++] = texCoordTopLeft.x;
-        vertex[v++] = texCoordBottomRight.y;
+        vertex[v++] = minCorner.x;
+        vertex[v++] = maxCorner.y;
+        vertex[v++] = texCoordMinCorner.x;
+        vertex[v++] = texCoordMaxCorner.y;
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
@@ -770,7 +823,11 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
         delete[] indexData;
        
         #ifdef WANT_DEBUG
-            qDebug() << "new quad + texture VBO made -- _quad2DTextureVBOs.size():" << _quad2DTextureVBOs.size();
+            if (quadID == UNKNOWN_QUAD_ID) {
+                qDebug() << "new quad + texture VBO made -- _quad2DTextureVBOs.size():" << _quad2DTextureVBOs.size();
+            } else {
+                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
+            }
         #endif
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
@@ -791,35 +848,57 @@ void GeometryCache::renderQuad(const glm::vec2& topLeft, const glm::vec2& bottom
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight) {
-    Vec3Pair key(topLeft, bottomRight);
-    VerticesIndices& vbo = _quad3DVBOs[key];
+void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, int quadID) {
+
+    bool registeredQuad = (quadID != UNKNOWN_QUAD_ID);
+    Vec3Pair key(minCorner, maxCorner);
+    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad3DVBOs[key];
+    
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (registeredQuad && vbo.first != 0) {
+        Vec3Pair& lastKey = _lastRegisteredQuad3D[quadID];
+        if (lastKey != key) {
+            glDeleteBuffers(1, &vbo.first);
+            glDeleteBuffers(1, &vbo.second);
+            vbo.first = vbo.second = 0;
+            #ifdef WANT_DEBUG
+                qDebug() << "renderQuad() vec3... RELEASING REGISTERED QUAD";
+            #endif // def WANT_DEBUG
+        }
+        #ifdef WANT_DEBUG
+        else {
+            qDebug() << "renderQuad()  vec3... REUSING PREVIOUSLY REGISTERED QUAD";
+        }
+        #endif // def WANT_DEBUG
+    }
+
     const int FLOATS_PER_VERTEX = 3;
     const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
     const int indices = 4;
     if (vbo.first == 0) {    
+        _lastRegisteredQuad3D[quadID] = key;
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices
         GLfloat* vertex = vertexData;
         static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
         int v = 0;
 
-        vertex[v++] = topLeft.x;
-        vertex[v++] = topLeft.y;
-        vertex[v++] = topLeft.z;
+        vertex[v++] = minCorner.x;
+        vertex[v++] = minCorner.y;
+        vertex[v++] = minCorner.z;
 
-        vertex[v++] = bottomRight.x;
-        vertex[v++] = topLeft.y;
-        vertex[v++] = topLeft.z;
+        vertex[v++] = maxCorner.x;
+        vertex[v++] = minCorner.y;
+        vertex[v++] = minCorner.z;
 
-        vertex[v++] = bottomRight.x;
-        vertex[v++] = bottomRight.y;
-        vertex[v++] = bottomRight.z;
+        vertex[v++] = maxCorner.x;
+        vertex[v++] = maxCorner.y;
+        vertex[v++] = maxCorner.z;
 
-        vertex[v++] = topLeft.x;
-        vertex[v++] = bottomRight.y;
-        vertex[v++] = bottomRight.z;
+        vertex[v++] = minCorner.x;
+        vertex[v++] = maxCorner.y;
+        vertex[v++] = maxCorner.z;
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
@@ -838,7 +917,11 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         delete[] indexData;
         
         #ifdef WANT_DEBUG
-            qDebug() << "new quad VBO made -- _quad3DVBOs.size():" << _quad3DVBOs.size();
+            if (quadID == UNKNOWN_QUAD_ID) {
+                qDebug() << "new quad VBO made -- _quad3DVBOs.size():" << _quad3DVBOs.size();
+            } else {
+                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
+            }
         #endif
     
     } else {
@@ -858,7 +941,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
 void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
-                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight) {
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int quadID) {
 
     #ifdef WANT_DEBUG
         qDebug() << "renderQuad() vec3 + texture VBO...";
@@ -869,15 +952,35 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         qDebug() << "    texCoordTopLeft:" << texCoordTopLeft;
         qDebug() << "    texCoordBottomRight:" << texCoordBottomRight;
     #endif //def WANT_DEBUG
-                    
-    Vec3PairVec2Pair key(Vec3Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
     
-    VerticesIndices& vbo = _quad3DTextureVBOs[key];
+    bool registeredQuad = (quadID != UNKNOWN_QUAD_ID);
+    Vec3PairVec2Pair key(Vec3Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
+    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[quadID] : _quad3DTextureVBOs[key];
+    
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (registeredQuad && vbo.first != 0) {
+        Vec3PairVec2Pair& lastKey = _lastRegisteredQuad3DTexture[quadID];
+        if (lastKey != key) {
+            glDeleteBuffers(1, &vbo.first);
+            glDeleteBuffers(1, &vbo.second);
+            vbo.first = vbo.second = 0;
+            #ifdef WANT_DEBUG
+                qDebug() << "renderQuad() vec3 + texture VBO... RELEASING REGISTERED QUAD";
+            #endif // def WANT_DEBUG
+        }
+        #ifdef WANT_DEBUG
+        else {
+            qDebug() << "renderQuad()  vec3 + texture... REUSING PREVIOUSLY REGISTERED QUAD";
+        }
+        #endif // def WANT_DEBUG
+    }
+    
     const int FLOATS_PER_VERTEX = 5; // text coords & vertices
     const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
     const int indices = 4;
-    if (vbo.first == 0) {    
+    if (vbo.first == 0) {
+        _lastRegisteredQuad3DTexture[quadID] = key;
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // text coords & vertices
         GLfloat* vertex = vertexData;
@@ -925,7 +1028,11 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         delete[] indexData;
 
         #ifdef WANT_DEBUG
-            qDebug() << "    _quad3DTextureVBOs.size():" << _quad3DTextureVBOs.size();
+            if (quadID == UNKNOWN_QUAD_ID) {
+                qDebug() << "    _quad3DTextureVBOs.size():" << _quad3DTextureVBOs.size();
+            } else {
+                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
+            }
         #endif
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
