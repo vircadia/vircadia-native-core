@@ -454,10 +454,10 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 }
 
 void Overlays::overlayDrawOnChanged(Base3DOverlay* overlay) {
+    QWriteLocker lock(&_lock);
     if (overlay->getDrawOnHUD()) {
         for (unsigned int id : _overlaysWorld.keys()) {
             if (_overlaysWorld[id] == overlay) {
-                QWriteLocker lock(&_lock);
                 _overlaysWorld.remove(id);
                 _overlaysHUD[id] = overlay;
             }
@@ -465,7 +465,6 @@ void Overlays::overlayDrawOnChanged(Base3DOverlay* overlay) {
     } else {
         for (unsigned int id : _overlaysHUD.keys()) {
             if (_overlaysHUD[id] == overlay) {
-                QWriteLocker lock(&_lock);
                 _overlaysHUD.remove(id);
                 _overlaysWorld[id] = overlay;
             }
