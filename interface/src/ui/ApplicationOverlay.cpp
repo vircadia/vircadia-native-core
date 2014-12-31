@@ -105,7 +105,7 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
     }
 }
 
-void renderReticle(glm::quat orientation, float alpha) {
+void ApplicationOverlay::renderReticle(glm::quat orientation, float alpha) {
     glPushMatrix(); {
         glm::vec3 axis = glm::axis(orientation);
         glRotatef(glm::degrees(glm::angle(orientation)), axis.x, axis.y, axis.z);
@@ -114,9 +114,12 @@ void renderReticle(glm::quat orientation, float alpha) {
         glm::vec3 bottomLeft = getPoint(reticleSize / 2.0f, reticleSize / 2.0f);
         glm::vec3 bottomRight = getPoint(-reticleSize / 2.0f, reticleSize / 2.0f);
         glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha);
+        if (_reticleQuad == GeometryCache::UNKNOWN_QUAD_ID) {
+            _reticleQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+        }
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomLeft, bottomRight, topRight,
                                                             glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f),
-                                                            glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f));
+                                                            glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f), _reticleQuad);
     } glPopMatrix();
 }
 
@@ -126,8 +129,13 @@ ApplicationOverlay::ApplicationOverlay() :
     _lastMouseMove(0),
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
-    _crosshairTexture(0) {
-
+    _crosshairTexture(0),
+    _reticleQuad(GeometryCache::UNKNOWN_QUAD_ID),
+    _magnifierQuad(GeometryCache::UNKNOWN_QUAD_ID),
+    _audioRedQuad(GeometryCache::UNKNOWN_QUAD_ID),
+    _audioGreenQuad(GeometryCache::UNKNOWN_QUAD_ID),
+    _audioBlueQuad(GeometryCache::UNKNOWN_QUAD_ID)
+{
     memset(_reticleActive, 0, sizeof(_reticleActive));
     memset(_magActive, 0, sizeof(_reticleActive));
     memset(_magSizeMult, 0, sizeof(_magSizeMult));
@@ -389,12 +397,17 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     
     glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
 
+    if (_reticleQuad == GeometryCache::UNKNOWN_QUAD_ID) {
+        _reticleQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+    }
+
     DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x + mouseX, y + mouseY, -distance), 
                                                 glm::vec3(x + mouseX + reticleSize, y + mouseY, -distance),
                                                 glm::vec3(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance),
                                                 glm::vec3(x + mouseX, y + mouseY - reticleSize, -distance),
                                                 glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f), 
-                                                glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f));
+                                                glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f),
+                                                _reticleQuad);
 
     glEnable(GL_DEPTH_TEST);
     
@@ -696,7 +709,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 }
 
 //Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) const {
+void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) {
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     
     const int widgetWidth = glCanvas->width();
@@ -742,11 +755,16 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
         }
         glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
+        if (_magnifierQuad == GeometryCache::UNKNOWN_QUAD_ID) {
+            _magnifierQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+        }
+
         DependencyManager::get<GeometryCache>()->renderQuad(bottomLeft, bottomRight, topRight, topLeft,
                                                     glm::vec2(magnifyULeft, magnifyVBottom), 
                                                     glm::vec2(magnifyURight, magnifyVBottom), 
                                                     glm::vec2(magnifyURight, magnifyVTop), 
-                                                    glm::vec2(magnifyULeft, magnifyVTop));
+                                                    glm::vec2(magnifyULeft, magnifyVTop),
+                                                    _magnifierQuad);
         
     } glPopMatrix();
 }
@@ -845,10 +863,14 @@ void ApplicationOverlay::renderAudioMeter() {
             glColor3f(1, 1, 1);
         }
         // Draw Red Quad
+        if (_audioRedQuad == GeometryCache::UNKNOWN_QUAD_ID) {
+            _audioRedQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+        }
         DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, 
                                                             audioMeterY + AUDIO_METER_INSET, 
                                                             audioLevel - AUDIO_RED_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                            _audioRedQuad);
         
         audioLevel = AUDIO_RED_START;
     }
@@ -860,10 +882,14 @@ void ApplicationOverlay::renderAudioMeter() {
             glColor3f(1, 1, 1);
         }
         // Draw Green Quad
+        if (_audioGreenQuad == GeometryCache::UNKNOWN_QUAD_ID) {
+            _audioGreenQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+        }
         DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, 
                                                             audioMeterY + AUDIO_METER_INSET, 
                                                             audioLevel - AUDIO_GREEN_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                            _audioGreenQuad);
 
         audioLevel = AUDIO_GREEN_START;
     }
@@ -874,9 +900,13 @@ void ApplicationOverlay::renderAudioMeter() {
         glColor3f(1, 1, 1);
     }
     // Draw Blue (low level) quad
+    if (_audioBlueQuad == GeometryCache::UNKNOWN_QUAD_ID) {
+        _audioBlueQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+    }
     DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET, 
                                                         audioMeterY + AUDIO_METER_INSET, 
-                                                        audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+                                                        audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                        _audioBlueQuad);
 }
 
 void ApplicationOverlay::renderStatsAndLogs() {
