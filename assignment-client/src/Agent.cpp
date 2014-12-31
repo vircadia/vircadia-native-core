@@ -25,7 +25,6 @@
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UUID.h>
-//#include <VoxelConstants.h>
 
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 

@@ -147,10 +147,10 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         int statsMessageLength = nodeData->stats.getStatsMessageLength();
         int piggyBackSize = nodeData->getPacketLength() + statsMessageLength;
 
-        // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
+        // If the size of the stats message and the octree message will fit in a packet, then piggyback them
         if (piggyBackSize < MAX_PACKET_SIZE) {
 
-            // copy voxel message to back of stats message
+            // copy octree message to back of stats message
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
             statsMessageLength += nodeData->getPacketLength();
 
@@ -240,7 +240,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     } else {
         // If there's actually a packet waiting, then send it.
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
-            // just send the voxel packet
+            // just send the octree packet
             OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;

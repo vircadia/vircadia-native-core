@@ -85,7 +85,7 @@ void Overlays::render2D() {
     QReadLocker lock(&_lock);
 
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
-        Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
+        Menu::getInstance()->getOctreeSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
         RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     foreach(Overlay* thisOverlay, _overlays2D) {
@@ -107,7 +107,7 @@ void Overlays::render3D(bool drawFront, RenderArgs::RenderMode renderMode, Rende
     float myAvatarScale = 1.0f;
     
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
-                        Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
+                        Menu::getInstance()->getOctreeSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
                         renderMode, renderSide, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
 

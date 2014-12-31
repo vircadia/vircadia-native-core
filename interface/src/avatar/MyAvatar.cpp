@@ -1924,8 +1924,7 @@ void MyAvatar::updateMotionBehavior() {
     if (menu->isOptionChecked(MenuOption::StandOnNearbyFloors)) {
         _motionBehaviors |= AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
         // standing on floors requires collision with voxels
-        _collisionGroups |= COLLISION_GROUP_VOXELS;
-        menu->setIsOptionChecked(MenuOption::CollideWithVoxels, true);
+        // TODO: determine what to do with this now that voxels are gone
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
     }
@@ -1978,7 +1977,8 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
     Menu* menu = Menu::getInstance();
     menu->setIsOptionChecked(MenuOption::CollideWithEnvironment, (bool)(_collisionGroups & COLLISION_GROUP_ENVIRONMENT));
     menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
-    menu->setIsOptionChecked(MenuOption::CollideWithVoxels, (bool)(_collisionGroups & COLLISION_GROUP_VOXELS));
+    
+    // TODO: what to do about this now that voxels are gone
     if (! (_collisionGroups & COLLISION_GROUP_VOXELS)) {
         // no collision with voxels --> disable standing on floors
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;

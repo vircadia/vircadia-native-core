@@ -1043,9 +1043,6 @@ void Avatar::updateCollisionGroups() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
         _collisionGroups |= COLLISION_GROUP_AVATARS;
     }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
-        _collisionGroups |= COLLISION_GROUP_VOXELS;
-    }
 }
 
 void Avatar::setScale(float scale) {

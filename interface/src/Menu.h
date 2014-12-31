@@ -122,7 +122,6 @@ public:
     OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
-    int getMaxVoxels() const { return _maxVoxels; }
 
     bool getShadowsEnabled() const;
 
@@ -132,8 +131,8 @@ public:
     QString getLODFeedbackText();
     void autoAdjustLOD(float currentFPS);
     void resetLODAdjust();
-    void setVoxelSizeScale(float sizeScale);
-    float getVoxelSizeScale() const { return _voxelSizeScale; }
+    void setOctreeSizeScale(float sizeScale);
+    float getOctreeSizeScale() const { return _octreeSizeScale; }
     void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; bumpSettings(); }
     bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
     void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; bumpSettings(); }
@@ -152,8 +151,8 @@ public:
 #endif
 
     // User Tweakable PPS from Voxel Server
-    int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
-    void setMaxVoxelPacketsPerSecond(int maxVoxelPacketsPerSecond) { _maxVoxelPacketsPerSecond = maxVoxelPacketsPerSecond; bumpSettings(); }
+    int getMaxOctreePacketsPerSecond() const { return _maxOctreePacketsPerSecond; }
+    void setMaxOctreePacketsPerSecond(int value) { _maxOctreePacketsPerSecond = value; bumpSettings(); }
 
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString& actionName,
@@ -292,8 +291,7 @@ private:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-    int _maxVoxels;
-    float _voxelSizeScale;
+    float _octreeSizeScale;
     float _oculusUIAngularSize;
     float _sixenseReticleMoveSpeed;
     bool _invertSixenseButtons;
@@ -302,7 +300,7 @@ private:
     float _avatarLODIncreaseFPS;
     float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
-    int _maxVoxelPacketsPerSecond;
+    int _maxOctreePacketsPerSecond;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
     quint64 _lastAvatarDetailDrop;
@@ -356,14 +354,12 @@ namespace MenuOption {
     const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
     const QString CollideWithAvatars = "Collide With Other Avatars";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
-    const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
-    const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableLightEntities = "Disable Light Entities";
@@ -377,7 +373,7 @@ namespace MenuOption {
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayTimingDetails = "Display Timing Details";
-    const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
+    const QString DontFadeOnOctreeServerChanges = "Don't Fade In/Out on Octree Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
@@ -403,7 +399,6 @@ namespace MenuOption {
     const QString HeadMouse = "Head Mouse";
     const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
-    const QString IncreaseVoxelSize = "Increase Voxel Size";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
@@ -484,9 +479,6 @@ namespace MenuOption {
     const QString UploadSkeleton = "Upload Skeleton Model";
     const QString UserInterface = "User Interface";
     const QString Visage = "Visage";
-    const QString VoxelMode = "Cycle Voxel Mode";
-    const QString Voxels = "Voxels";
-    const QString VoxelTextures = "Voxel Textures";
     const QString WalletPrivateKey = "Wallet Private Key...";
     const QString Wireframe = "Wireframe";
 }

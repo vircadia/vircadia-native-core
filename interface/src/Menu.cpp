@@ -108,8 +108,7 @@ Menu::Menu() :
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     _speechRecognizer(),
 #endif
-    _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
-    _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
+    _octreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
     _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
     _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
@@ -118,7 +117,7 @@ Menu::Menu() :
     _avatarLODIncreaseFPS(ADJUST_LOD_UP_FPS),
     _avatarLODDistanceMultiplier(DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER),
     _boundaryLevelAdjust(0),
-    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
+    _maxOctreePacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
     _lastAdjust(usecTimestampNow()),
     _lastAvatarDetailDrop(usecTimestampNow()),
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
@@ -315,8 +314,6 @@ Menu::Menu() :
             avatar, SLOT(onToggleRagdoll()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
             0, true, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithVoxels,
-            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithEnvironment,
             0, false, avatar, SLOT(updateCollisionGroups()));
 
@@ -390,6 +387,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Entities, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DontFadeOnOctreeServerChanges);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DisableAutoAdjustLOD);
     
     QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
@@ -424,12 +424,6 @@ Menu::Menu() :
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu,
-                                           MenuOption::Voxels,
-                                           Qt::SHIFT | Qt::Key_V,
-                                           true,
-                                           appInstance,
-                                           SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true, 
                                             DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
@@ -456,12 +450,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
 
-    QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
-    
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
         Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
@@ -671,9 +659,8 @@ void Menu::loadSettings(QSettings* settings) {
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
     _faceshiftHostname = settings->value("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME).toString();
-    _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
-    _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
-    _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
+    _maxOctreePacketsPerSecond = loadSetting(settings, "maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+    _octreeSizeScale = loadSetting(settings, "octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
     _automaticAvatarLOD = settings->value("automaticAvatarLOD", true).toBool();
     _avatarLODDecreaseFPS = loadSetting(settings, "avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS);
     _avatarLODIncreaseFPS = loadSetting(settings, "avatarLODIncreaseFPS", ADJUST_LOD_UP_FPS);
@@ -738,9 +725,8 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("faceshiftHostname", _faceshiftHostname);
-    settings->setValue("maxVoxels", _maxVoxels);
-    settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
-    settings->setValue("voxelSizeScale", _voxelSizeScale);
+    settings->setValue("maxOctreePPS", _maxOctreePacketsPerSecond);
+    settings->setValue("octreeSizeScale", _octreeSizeScale);
     settings->setValue("automaticAvatarLOD", _automaticAvatarLOD);
     settings->setValue("avatarLODDecreaseFPS", _avatarLODDecreaseFPS);
     settings->setValue("avatarLODIncreaseFPS", _avatarLODIncreaseFPS);
@@ -1423,8 +1409,8 @@ QString Menu::getLODFeedbackText() {
     }
 
     // distance feedback
-    float voxelSizeScale = getVoxelSizeScale();
-    float relativeToDefault = voxelSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    float octreeSizeScale = getOctreeSizeScale();
+    float relativeToDefault = octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
     QString result;
     if (relativeToDefault > 1.01) {
         result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
@@ -1475,29 +1461,29 @@ void Menu::autoAdjustLOD(float currentFPS) {
     quint64 elapsed = now - _lastAdjust;
 
     if (elapsed > ADJUST_LOD_DOWN_DELAY && _fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS
-            && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+            && _octreeSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
 
-        _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+        _octreeSizeScale *= ADJUST_LOD_DOWN_BY;
 
-        if (_voxelSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
-            _voxelSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+        if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
+            _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
         }
         changed = true;
         _lastAdjust = now;
         qDebug() << "adjusting LOD down... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-                     << "_voxelSizeScale=" << _voxelSizeScale;
+                     << "_octreeSizeScale=" << _octreeSizeScale;
     }
 
     if (elapsed > ADJUST_LOD_UP_DELAY && _fpsAverage.getAverage() > ADJUST_LOD_UP_FPS
-            && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
-        _voxelSizeScale *= ADJUST_LOD_UP_BY;
-        if (_voxelSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
-            _voxelSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
+            && _octreeSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+        _octreeSizeScale *= ADJUST_LOD_UP_BY;
+        if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
+            _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
         }
         changed = true;
         _lastAdjust = now;
         qDebug() << "adjusting LOD up... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-                     << "_voxelSizeScale=" << _voxelSizeScale;
+                     << "_octreeSizeScale=" << _octreeSizeScale;
     }
 
     if (changed) {
@@ -1514,8 +1500,8 @@ void Menu::resetLODAdjust() {
     _lastAvatarDetailDrop = _lastAdjust = usecTimestampNow();
 }
 
-void Menu::setVoxelSizeScale(float sizeScale) {
-    _voxelSizeScale = sizeScale;
+void Menu::setOctreeSizeScale(float sizeScale) {
+    _octreeSizeScale = sizeScale;
     _shouldRenderTableNeedsRebuilding = true;
     bumpSettings();
 }
@@ -1526,14 +1512,14 @@ void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     bumpSettings();
 }
 
-// TODO: This is essentially the same logic used to render voxels, but since models are more detailed then voxels
+// TODO: This is essentially the same logic used to render octree cells, but since models are more detailed then octree cells
 //       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
 bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) {
-    const float voxelToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
-    float voxelSizeScale = getVoxelSizeScale();
+    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
+    float octreeSizeScale = getOctreeSizeScale();
     int boundaryLevelAdjust = getBoundaryLevelAdjust();
     float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, voxelSizeScale) / voxelToMeshRatio;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
     
     if (_shouldRenderTableNeedsRebuilding) {
         _shouldRenderTable.clear();
