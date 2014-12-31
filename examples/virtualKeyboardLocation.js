@@ -84,7 +84,8 @@ keyboard.onFullyLoaded = function() {
          leftMargin: 0,
          font: {size: textFontSize},
          text: "",
-         alpha: 0.8
+         alpha: 0.8,
+         visible: keyboard.visible
     });
     updateTextOverlay();
     // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
@@ -99,8 +100,8 @@ function keyPressEvent(event) {
         keyboard.pressFocussedKey();
     } else if (event.key === ENTER_CHARCODE || event.key === RETURN_CHARCODE) {
         keyboard.toggle();
+        Overlays.editOverlay(text, {visible: keyboard.visible});
     }
-
 }
 
 function keyReleaseEvent(event) {
