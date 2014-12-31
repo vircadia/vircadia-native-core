@@ -1,5 +1,5 @@
 //
-//  virtualKeyboardTextEntityExample.js
+//  goTo.js
 //  examples
 //
 //  Created by Thijs Wenker on 12/28/14.
