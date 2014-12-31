@@ -32,17 +32,17 @@ typedef unsigned long long quint64;
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <QtCore/QElapsedTimer>
-#include <QtCore/QByteArray>
-#include <QtCore/QHash>
-#include <QtCore/QObject>
-#include <QtCore/QStringList>
-#include <QtCore/QUrl>
-#include <QtCore/QVector>
-#include <QtCore/QVariantMap>
+#include <QByteArray>
+#include <QElapsedTimer>
+#include <QHash>
+#include <QObject>
 #include <QRect>
 #include <QScriptable>
+#include <QStringList>
+#include <QUrl>
 #include <QUuid>
+#include <QVariantMap>
+#include <QVector>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -396,7 +396,6 @@ private:
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
 };
-
 Q_DECLARE_METATYPE(AvatarData*)
 
 class JointData {
