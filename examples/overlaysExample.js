@@ -154,7 +154,7 @@ var sphere = Overlays.addOverlay("sphere", {
                 });
 
 var line3d = Overlays.addOverlay("line3d", {
-                    position: { x: 0, y: 0, z:0 },
+                    start: { x: 0, y: 0, z:0 },
                     end: { x: 10, y: 10, z:10 },
                     color: { red: 0, green: 255, blue: 255},
                     alpha: 1,
