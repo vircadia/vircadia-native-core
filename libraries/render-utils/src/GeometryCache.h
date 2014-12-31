@@ -90,23 +90,23 @@ public:
     void renderSolidCube(float size);
     void renderWireCube(float size);
 
+    int allocateQuad() { return _nextQuadID++; }
+    static const int UNKNOWN_QUAD_ID;
 
-    void renderQuad(int x, int y, int width, int height) { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height)); }
-    void renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight);
+    void renderQuad(int x, int y, int width, int height, int quadID = UNKNOWN_QUAD_ID)
+            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), quadID); }
+            
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int quadID = UNKNOWN_QUAD_ID);
 
-    void renderQuad(const glm::vec2& topLeft, const glm::vec2& bottomRight,
-                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight);
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, int quadID = UNKNOWN_QUAD_ID);
 
-
-    void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight);
-
-    //void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomRight,
-    //                const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomRight);
+    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, int quadID = UNKNOWN_QUAD_ID);
 
     void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
-                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight);
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int quadID = UNKNOWN_QUAD_ID);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -136,6 +136,13 @@ private:
     QHash<Vec2PairPair, VerticesIndices> _quad2DTextureVBOs;
     QHash<Vec3Pair, VerticesIndices> _quad3DVBOs;
     QHash<Vec3PairVec2Pair, VerticesIndices> _quad3DTextureVBOs;
+    QHash<int, VerticesIndices> _registeredQuadVBOs;
+    int _nextQuadID;
+
+    QHash<int, Vec2Pair> _lastRegisteredQuad2D;
+    QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
+    QHash<int, Vec3Pair> _lastRegisteredQuad3D;
+    QHash<int, Vec3PairVec2Pair> _lastRegisteredQuad3DTexture;
 
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
