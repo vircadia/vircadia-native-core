@@ -1328,6 +1328,8 @@ public:
     glm::vec3 normal;
     QRgb color;
     char material;
+    
+    void setColorMaterial(const StackArray::Entry& entry) { color = entry.color; material = entry.material; }
 };
 
 const int MAX_NORMALS_PER_VERTEX = 4;
@@ -2290,7 +2292,6 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         int innerStackWidth = stackWidth - HeightfieldData::SHARED_EDGE;
         int innerStackHeight = stackHeight - HeightfieldData::SHARED_EDGE;
         const StackArray* src = node->getStack()->getContents().constData();
-        glm::vec3 pos;
         glm::vec3 step(1.0f / innerStackWidth, scale.x / (innerStackWidth * scale.y),
             1.0f / innerStackHeight);
         
@@ -2298,31 +2299,31 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         EdgeCrossing crossings[EDGES_PER_CUBE];
         
         for (int z = 0; z <= stackHeight; z++) {
-            pos.x = 0.0f;
             const StackArray* lineSrc = src;
             for (int x = 0; x <= stackWidth; x++) {
                 if (!lineSrc->isEmpty()) {
                     int y = lineSrc->getPosition();
-                    pos.y = y * step.y;
+                    NormalIndex lastIndexY;
                     for (const StackArray::Entry* entry = lineSrc->getEntryData(), *end = entry + lineSrc->getEntryCount();
-                            entry != end; entry++, pos.y += step.y, y++) {
+                            entry != end; entry++, y++) {
+                        int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
                         if (displayHermite && x != 0 && z != 0) {
                             glm::vec3 normal;
                             float distance = entry->getHermiteX(normal);
                             if (normal != glm::vec3()) {
-                                glm::vec3 start = pos + glm::vec3(distance * step.x, 0.0f, 0.0f);
+                                glm::vec3 start = glm::vec3(clampedX + distance, y, clampedZ) * step;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * step);
                             }
                             distance = entry->getHermiteY(normal);
                             if (normal != glm::vec3()) {
-                                glm::vec3 start = pos + glm::vec3(0.0f, distance * step.y, 0.0f);
+                                glm::vec3 start = glm::vec3(clampedX, y + distance, clampedZ) * step;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * step);
                             }
                             distance = entry->getHermiteZ(normal);
                             if (normal != glm::vec3()) {
-                                glm::vec3 start = pos + glm::vec3(0.0f, 0.0f, distance * step.z);
+                                glm::vec3 start = glm::vec3(clampedX, y, clampedZ + distance) * step;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * step);
                             }
@@ -2366,60 +2367,239 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         // the terrifying conditional code that follows checks each cube edge for a crossing, gathering
                         // its properties (color, material, normal) if one is present; as before, boundary edges are excluded
                         int crossingCount = 0;
+                        const StackArray::Entry& nextEntryY = lineSrc->getEntry(y + 1);
                         if (middleX) {
+                            const StackArray::Entry& nextEntryX = lineSrc[1].getEntry(y);
+                            const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1);    
                             if (alpha0 != alpha1) {
                                 EdgeCrossing& crossing = crossings[crossingCount++];
-                                float distance = entry->getHermiteX(crossing.normal);
-                                if (alpha0 == 0) {
-                                    const StackArray::Entry& nextEntry = lineSrc[1].getEntry(y);
-                                    crossing.color = nextEntry.color;
-                                    crossing.material = nextEntry.material;
-                                } else {
-                                    crossing.color = entry->color;
-                                    crossing.material = entry->material;
-                                }
-                                crossing.point = glm::vec3(distance, 0.0f, 0.0f);
+                                crossing.point = glm::vec3(entry->getHermiteX(crossing.normal), 0.0f, 0.0f);
+                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryX : *entry);
                             }
-                            
+                            if (alpha1 != alpha3) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(1.0f, nextEntryX.getHermiteY(crossing.normal), 0.0f);
+                                crossing.setColorMaterial(alpha1 == 0 ? nextEntryXY : nextEntryX);
+                            }
+                            if (alpha2 != alpha3) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(nextEntryY.getHermiteX(crossing.normal), 1.0f, 0.0f);
+                                crossing.setColorMaterial(alpha2 == 0 ? nextEntryXY : nextEntryY);
+                            }
+                            if (middleZ) {
+                                const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y);
+                                const StackArray::Entry& nextEntryXZ = lineSrc[stackWidth + 1].getEntry(y);
+                                const StackArray::Entry& nextEntryXYZ = lineSrc[stackWidth + 1].getEntry(y + 1);
+                                if (alpha1 != alpha5) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.point = glm::vec3(1.0f, 0.0f, nextEntryX.getHermiteZ(crossing.normal));
+                                    crossing.setColorMaterial(alpha1 == 0 ? nextEntryXZ : nextEntryX);
+                                }
+                                if (alpha3 != alpha7) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1);
+                                    crossing.point = glm::vec3(1.0f, 1.0f, nextEntryXY.getHermiteZ(crossing.normal));
+                                    crossing.setColorMaterial(alpha3 == 0 ? nextEntryXYZ : nextEntryXY);
+                                }
+                                if (alpha4 != alpha5) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.point = glm::vec3(nextEntryZ.getHermiteX(crossing.normal), 0.0f, 1.0f);
+                                    crossing.setColorMaterial(alpha4 == 0 ? nextEntryXZ : nextEntryZ);
+                                }
+                                if (alpha5 != alpha7) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    const StackArray::Entry& nextEntryXZ = lineSrc[stackWidth + 1].getEntry(y);
+                                    crossing.point = glm::vec3(1.0f, nextEntryXZ.getHermiteY(crossing.normal), 1.0f);
+                                    crossing.setColorMaterial(alpha5 == 0 ? nextEntryXYZ : nextEntryXZ);
+                                }
+                                if (alpha6 != alpha7) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(y + 1);
+                                    crossing.point = glm::vec3(nextEntryYZ.getHermiteX(crossing.normal), 1.0f, 1.0f);
+                                    crossing.setColorMaterial(alpha6 == 0 ? nextEntryXYZ : nextEntryYZ);
+                                }
+                            }
                         }
                         if (alpha0 != alpha2) {
                             EdgeCrossing& crossing = crossings[crossingCount++];
-                            float distance = entry->getHermiteY(crossing.normal);
-                            if (alpha0 == 0) {
-                                const StackArray::Entry& nextEntry = lineSrc->getEntry(y + 1);
-                                crossing.color = nextEntry.color;
-                                crossing.material = nextEntry.material;
-                            } else {
-                                crossing.color = entry->color;
-                                crossing.material = entry->material;
-                            }
-                            crossing.point = glm::vec3(0.0f, distance, 0.0f);
+                            crossing.point = glm::vec3(0.0f, entry->getHermiteY(crossing.normal), 0.0f);
+                            crossing.setColorMaterial(alpha0 == 0 ? nextEntryY : *entry);
                         }
                         if (middleZ) {
+                            const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y);
+                            const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(y + 1);
                             if (alpha0 != alpha4) {
                                 EdgeCrossing& crossing = crossings[crossingCount++];
-                                float distance = entry->getHermiteZ(crossing.normal);
-                                if (alpha0 == 0) {
-                                    const StackArray::Entry& nextEntry = lineSrc[stackWidth].getEntry(y);
-                                    crossing.color = nextEntry.color;
-                                    crossing.material = nextEntry.material;
-                                } else {
-                                    crossing.color = entry->color;
-                                    crossing.material = entry->material;
+                                crossing.point = glm::vec3(0.0f, 0.0f, entry->getHermiteZ(crossing.normal));
+                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryZ : *entry);
+                            }
+                            if (alpha2 != alpha6) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(0.0f, 1.0f, nextEntryY.getHermiteZ(crossing.normal));
+                                crossing.setColorMaterial(alpha2 == 0 ? nextEntryYZ : nextEntryY);
+                            }
+                            if (alpha4 != alpha6) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(0.0f, nextEntryZ.getHermiteY(crossing.normal), 1.0f);
+                                crossing.setColorMaterial(alpha4 == 0 ? nextEntryYZ : nextEntryZ);
+                            }
+                        }
+                        glm::vec3 center;
+                        glm::vec3 normals[MAX_NORMALS_PER_VERTEX];
+                        int normalCount = 0;
+                        const float CREASE_COS_NORMAL = glm::cos(glm::radians(45.0f));
+                        const int MAX_MATERIALS_PER_VERTEX = 4;
+                        quint8 materials[] = { 0, 0, 0, 0 };
+                        glm::vec4 materialWeights;
+                        float totalWeight = 0.0f;
+                        int red = 0, green = 0, blue = 0;
+                        for (int i = 0; i < crossingCount; i++) {
+                            const EdgeCrossing& crossing = crossings[i];
+                            center += crossing.point;
+                            
+                            int j = 0;
+                            for (; j < normalCount; j++) {
+                                if (glm::dot(normals[j], crossing.normal) > CREASE_COS_NORMAL) {
+                                    normals[j] = safeNormalize(normals[j] + crossing.normal);
+                                    break;
                                 }
-                                crossing.point = glm::vec3(0.0f, 0.0f, distance);
+                            }
+                            if (j == normalCount) {
+                                normals[normalCount++] = crossing.normal;
                             }
                             
+                            red += qRed(crossing.color);
+                            green += qGreen(crossing.color);
+                            blue += qBlue(crossing.color);
+                            
+                            // when assigning a material, search for its presence and, if not found,
+                            // place it in the first empty slot
+                            if (crossing.material != 0) {
+                                for (j = 0; j < MAX_MATERIALS_PER_VERTEX; j++) {
+                                    if (materials[j] == crossing.material) {
+                                        materialWeights[j] += 1.0f;
+                                        totalWeight += 1.0f;
+                                        break;
+                                        
+                                    } else if (materials[j] == 0) {
+                                        materials[j] = crossing.material;
+                                        materialWeights[j] = 1.0f;
+                                        totalWeight += 1.0f;
+                                        break;
+                                    }
+                                }
+                            }
                         }
+                        center /= crossingCount;
+                        
+                        // use a sequence of Givens rotations to perform a QR decomposition
+                        // see http://www.cs.rice.edu/~jwarren/papers/techreport02408.pdf
+                        glm::mat4 r(0.0f);
+                        glm::vec4 bottom;
+                        for (int i = 0; i < crossingCount; i++) {
+                            const EdgeCrossing& crossing = crossings[i];
+                            bottom = glm::vec4(crossing.normal, glm::dot(crossing.normal, crossing.point - center));
+                            
+                            for (int j = 0; j < 4; j++) {
+                                float angle = glm::atan(-bottom[j], r[j][j]);
+                                float sina = glm::sin(angle);
+                                float cosa = glm::cos(angle);
+                                
+                                for (int k = 0; k < 4; k++) {
+                                    float tmp = bottom[k];
+                                    bottom[k] = sina * r[k][j] + cosa * tmp;
+                                    r[k][j] = cosa * r[k][j] - sina * tmp;
+                                }
+                            }
+                        }
+                        
+                        // extract the submatrices, form ata
+                        glm::mat3 a(r);
+                        glm::vec3 b(r[3]);
+                        glm::mat3 atrans = glm::transpose(a);
+                        glm::mat3 ata = atrans * a;
+                        
+                        // find the eigenvalues and eigenvectors of ata
+                        // (see http://en.wikipedia.org/wiki/Jacobi_eigenvalue_algorithm)
+                        glm::mat3 d = ata;
+                        glm::quat combinedRotation;
+                        const int MAX_ITERATIONS = 20;
+                        for (int i = 0; i < MAX_ITERATIONS; i++) {
+                            glm::vec3 offDiagonals = glm::abs(glm::vec3(d[1][0], d[2][0], d[2][1]));
+                            int largestIndex = (offDiagonals[0] > offDiagonals[1]) ?
+                                (offDiagonals[0] > offDiagonals[2] ? 0 : 2) : (offDiagonals[1] > offDiagonals[2] ? 1 : 2);
+                            const float DESIRED_PRECISION = 0.00001f;
+                            if (offDiagonals[largestIndex] < DESIRED_PRECISION) {
+                                break;
+                            }
+                            int largestJ = (largestIndex == 2) ? 1 : 0;
+                            int largestI = (largestIndex == 0) ? 1 : 2; 
+                            float sjj = d[largestJ][largestJ];
+                            float sii = d[largestI][largestI];
+                            float angle = glm::atan(2.0f * d[largestJ][largestI], sjj - sii) / 2.0f;
+                            glm::quat rotation = glm::angleAxis(angle, largestIndex == 0 ? glm::vec3(0.0f, 0.0f, -1.0f) :
+                                (largestIndex == 1 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f)));
+                            combinedRotation = glm::normalize(rotation * combinedRotation);
+                            glm::mat3 matrix = glm::mat3_cast(combinedRotation);
+                            d = matrix * ata * glm::transpose(matrix);
+                        }
+                        
+                        // form the singular matrix from the eigenvalues
+                        const float MIN_SINGULAR_THRESHOLD = 0.1f;
+                        d[0][0] = (d[0][0] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[0][0];
+                        d[1][1] = (d[1][1] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[1][1];
+                        d[2][2] = (d[2][2] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[2][2];
+                        
+                        // compute the pseudo-inverse, ataplus, and use to find the minimizing solution
+                        glm::mat3 u = glm::mat3_cast(combinedRotation);
+                        glm::mat3 ataplus = glm::transpose(u) * d * u; 
+                        glm::vec3 solution = (ataplus * atrans * b) + center;
+                        
+                        // make sure it doesn't fall beyond the cell boundaries
+                        center = glm::clamp(solution, 0.0f, 1.0f);
+                    
+                        if (totalWeight > 0.0f) {
+                            materialWeights *= (numeric_limits<quint8>::max() / totalWeight);
+                        }
+                        VoxelPoint point = { (glm::vec3(clampedX, y, clampedZ) + center) * step,
+                            { (quint8)(red / crossingCount), (quint8)(green / crossingCount), (quint8)(blue / crossingCount) },
+                            { (char)(normals[0].x * 127.0f), (char)(normals[0].y * 127.0f), (char)(normals[0].z * 127.0f) },
+                            { materials[0], materials[1], materials[2], materials[3] },
+                            { (quint8)materialWeights[0], (quint8)materialWeights[1], (quint8)materialWeights[2],
+                                (quint8)materialWeights[3] } };
+                        
+                        NormalIndex index = { { vertices.size(), vertices.size(), vertices.size(), vertices.size() } };
+                        vertices.append(point);
+                        for (int i = 1; i < normalCount; i++) {
+                            index.indices[i] = vertices.size();
+                            point.setNormal(normals[i]);
+                            vertices.append(point);
+                        }
+                        
+                        // the first x, y, and z are repeated for the boundary edge; past that, we consider generating
+                        // quads for each edge that includes a transition, using indices of previously generated vertices
+                        if (x != 0 && z != 0) {
+                            if (alpha0 != alpha1) {
+                                
+                            }
+                            
+                            if (alpha0 != alpha2) {
+                                
+                            }
+                            
+                            if (alpha0 != alpha4) {
+                                
+                            }
+                        }
+                    
+                        lastIndexY = index;
                     }
                 }
                 if (x != 0) {
-                    pos.x += step.x;
                     lineSrc++;
                 }
             }
             if (z != 0) {
-                pos.z += step.z;
                 src += stackWidth;
             }
         }

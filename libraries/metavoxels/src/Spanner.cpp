@@ -1178,7 +1178,7 @@ static inline float getHermite(QRgb value, glm::vec3& normal) {
     normal.x = (char)qRed(value) / (float)numeric_limits<qint8>::max();
     normal.y = (char)qGreen(value) / (float)numeric_limits<qint8>::max();
     normal.z = (char)qBlue(value) / (float)numeric_limits<qint8>::max();
-    return qAlpha(value) / (float)numeric_limits<qint8>::max();   
+    return qAlpha(value) / (float)numeric_limits<quint8>::max();   
 }
 
 void StackArray::Entry::setHermiteX(const glm::vec3& normal, float position) {
