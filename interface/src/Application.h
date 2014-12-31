@@ -46,6 +46,7 @@
 #include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
+#include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
@@ -344,6 +345,7 @@ public slots:
     
     void openUrl(const QUrl& url);
 
+    void updateMyAvatarTransform();
     void bumpSettings() { ++_numChangedSettings; }
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
@@ -452,6 +454,10 @@ private:
     QElapsedTimer _lastTimeUpdated;
     bool _justStarted;
     Stars _stars;
+
+#ifdef USE_BULLET_PHYSICS
+    PhysicsEngine _physicsEngine;
+#endif // USE_BULLET_PHYSICS
 
     EntityTreeRenderer _entities;
     EntityCollisionSystem _entityCollisionSystem;

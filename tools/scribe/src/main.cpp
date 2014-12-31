@@ -50,7 +50,7 @@ int main (int argc, char** argv) {
             case READY: {
                 if (inputs.back() == "-o") {
                     mode = GRAB_OUTPUT;
-                } else if (inputs.back() == "-tn") {
+                } else if (inputs.back() == "-t") {
                     mode = GRAB_TARGET_NAME;
                 } else if (inputs.back() == "-D") {
                     mode = GRAB_VAR_NAME;

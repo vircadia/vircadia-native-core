@@ -10,10 +10,10 @@
 //
 
 
-#include <SharedUtil.h>
 
 #include "CollisionInfo.h"
 #include "Shape.h"
+#include "SharedUtil.h"
 
 CollisionInfo::CollisionInfo() :
         _data(NULL),

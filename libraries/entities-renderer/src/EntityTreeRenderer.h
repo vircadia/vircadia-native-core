@@ -134,6 +134,7 @@ private:
     
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
+    ScriptEngine* _sandboxScriptEngine;
 
     QScriptValue loadEntityScript(EntityItem* entity);
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);

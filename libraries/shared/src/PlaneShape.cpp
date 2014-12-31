@@ -9,10 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <SharedUtil.h>
-#include <GLMHelpers.h>
-
+#include "GLMHelpers.h"
 #include "PlaneShape.h"
+#include "SharedUtil.h"
 
 const glm::vec3 UNROTATED_NORMAL(0.0f, 1.0f, 0.0f);
 

@@ -37,6 +37,7 @@ public:
     const glm::quat& getRotation() const { return _rotation; }
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
+    bool getDrawOnHUD() const { return _drawOnHUD; }
 
     // setters
     void setPosition(const glm::vec3& position) { _position = position; }
@@ -46,6 +47,7 @@ public:
     void setRotation(const glm::quat& value) { _rotation = value; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     void setDrawInFront(bool value) { _drawInFront = value; }
+    void setDrawOnHUD(bool value);
 
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
@@ -67,6 +69,7 @@ protected:
     bool _isDashedLine;
     bool _ignoreRayIntersection;
     bool _drawInFront;
+    bool _drawOnHUD;
 };
  
 #endif // hifi_Base3DOverlay_h

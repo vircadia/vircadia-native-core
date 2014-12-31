@@ -22,6 +22,7 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
+#include <ShapeInfo.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
@@ -49,16 +50,13 @@ public:
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
         DIRTY_UPDATEABLE = 0x0080,
-        // add new simulation-relevant flags above
-        // all other flags below
-        DIRTY_SCRIPT = 0x8000
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
     EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual ~EntityItem() { }
+    virtual ~EntityItem();
 
     // ID and EntityItemID related methods
     QUuid getID() const { return _id; }
@@ -275,6 +273,7 @@ public:
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+    virtual void computeShapeInfo(ShapeInfo& info) const;
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
@@ -291,13 +290,15 @@ public:
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
-    void updateScript(const QString& value);
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }
     
     bool isMoving() const;
 
+    void* getPhysicsInfo() const { return _physicsInfo; }
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
+    
 protected:
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -309,9 +310,9 @@ protected:
     bool _newlyCreated;
     quint64 _lastSimulated; // last time this entity called simulate() 
     quint64 _lastUpdated; // last time this entity called update()
-    quint64 _lastEdited; // this is the last official local or remote edit time
-    quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
-    quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
+    quint64 _lastEdited; // last official local or remote edit time
+    quint64 _lastEditedFromRemote; // last time we received and edit from the server
+    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
     quint64 _created;
     quint64 _changedOnServer;
 
@@ -342,6 +343,10 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
+
+    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
+    // to a non-NULL value when the EntityItem has a representation in the physics engine.
+    void* _physicsInfo; // only set by EntitySimulation
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation

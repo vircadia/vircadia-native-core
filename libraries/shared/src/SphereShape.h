@@ -12,9 +12,8 @@
 #ifndef hifi_SphereShape_h
 #define hifi_SphereShape_h
 
-#include <SharedUtil.h>
-
 #include "Shape.h"
+#include "SharedUtil.h"
 
 
 class SphereShape : public Shape {

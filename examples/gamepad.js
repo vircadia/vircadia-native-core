@@ -75,7 +75,7 @@ var warpSphere = Overlays.addOverlay("sphere", {
 
 var WARP_LINE_HEIGHT = 10;
 var warpLine = Overlays.addOverlay("line3d", {
-    position: { x: 0, y: 0, z:0 },
+    start: { x: 0, y: 0, z:0 },
     end: { x: 0, y: 0, z: 0 },
     color: { red: 0, green: 255, blue: 255},
     alpha: 1,
@@ -131,7 +131,7 @@ function updateWarp() {
         visible: true,
     });
     Overlays.editOverlay(warpLine, {
-        position: warpPosition,
+        start: warpPosition,
         end: Vec3.sum(warpPosition, { x: 0, y: WARP_LINE_HEIGHT, z: 0 }),
         visible: true,
     });
