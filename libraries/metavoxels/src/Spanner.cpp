@@ -1234,6 +1234,15 @@ const StackArray::Entry& StackArray::getEntry(int y) const {
     return (relative < count) ? getEntryData()[qMax(relative, 0)] : emptyEntry;
 }
 
+void StackArray::getExtents(int& minimumY, int& maximumY) const {
+    int count = getEntryCount();
+    if (count > 0) {
+        int position = getPosition();
+        minimumY = qMin(minimumY, position);
+        maximumY = qMax(maximumY, position + count - 1);
+    }
+}
+
 HeightfieldStack::HeightfieldStack(int width, const QVector<StackArray>& contents,
         const QVector<SharedObjectPointer>& materials) :
     HeightfieldData(width),
@@ -2265,7 +2274,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             
             if (stackX >= 0.0f && stackX <= innerStackWidth && stackZ >= 0.0f && stackZ <= innerStackHeight) {
                 StackArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
-                if (stackDest->isEmpty() && *heightLineDest != 0) {
+                if (stackDest->isEmpty() && *heightLineDest != 0 && false) {
                     // initialize from heightfield
                     *stackDest = StackArray(1);
                     float voxelHeight = *heightLineDest * voxelScale;

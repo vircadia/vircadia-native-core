@@ -2331,42 +2331,57 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         QVector<IndexVector> lastIndicesZ(stackWidth + 1);
         
         for (int z = 0; z <= stackHeight; z++) {
+            bool middleZ = (z != 0 && z != stackHeight);
             const StackArray* lineSrc = src;
             for (int x = 0; x <= stackWidth; x++) {
-                if (!lineSrc->isEmpty()) {
-                    int position = lineSrc->getPosition();
-                    int count = lineSrc->getEntryCount();
-                    int y = position;
+                bool middleX = (x != 0 && x != stackWidth);
+                
+                // find the y extents of this and the neighboring columns
+                int minimumY = INT_MAX, maximumY = -1;
+                lineSrc->getExtents(minimumY, maximumY);
+                if (middleX) {
+                    lineSrc[1].getExtents(minimumY, maximumY);
+                    if (middleZ) {
+                        lineSrc[stackWidth + 1].getExtents(minimumY, maximumY);
+                    }
+                }
+                if (middleZ) {
+                    lineSrc[stackWidth].getExtents(minimumY, maximumY);
+                }
+                
+                if (maximumY >= minimumY) {
+                    int position = minimumY;
+                    int count = maximumY - minimumY + 1;
                     NormalIndex lastIndexY;
                     indicesX.position = position;
                     indicesX.resize(count);
                     indicesZ[x].position = position;
                     indicesZ[x].resize(count);
-                    for (const StackArray::Entry* entry = lineSrc->getEntryData(), *end = entry + lineSrc->getEntryCount();
-                            entry != end; entry++, y++) {
+                    for (int y = position, end = position + count; y < end; y++) {
+                        const StackArray::Entry& entry = lineSrc->getEntry(y);
                         int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
                         if (displayHermite && x != 0 && z != 0) {
                             glm::vec3 normal;
-                            float distance = entry->getHermiteX(normal);
+                            float distance = entry.getHermiteX(normal);
                             if (normal != glm::vec3()) {
                                 glm::vec3 start = glm::vec3(clampedX + distance, y, clampedZ) * step;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * step);
                             }
-                            distance = entry->getHermiteY(normal);
+                            distance = entry.getHermiteY(normal);
                             if (normal != glm::vec3()) {
                                 glm::vec3 start = glm::vec3(clampedX, y + distance, clampedZ) * step;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * step);
                             }
-                            distance = entry->getHermiteZ(normal);
+                            distance = entry.getHermiteZ(normal);
                             if (normal != glm::vec3()) {
                                 glm::vec3 start = glm::vec3(clampedX, y, clampedZ + distance) * step;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * step);
                             }
                         }
-                        int alpha0 = qAlpha(entry->color);
+                        int alpha0 = qAlpha(entry.color);
                         int alpha2 = lineSrc->getEntryAlpha(y + 1);
                         int alpha1 = alpha0, alpha3 = alpha2, alpha4 = alpha0, alpha6 = alpha2;
                         int alphaTotal = alpha0 + alpha2;
@@ -2374,8 +2389,6 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         
                         // cubes on the edge are two-dimensional: this ensures that their vertices will be shared between
                         // neighboring blocks, which share only one layer of points
-                        bool middleX = (x != 0 && x != stackWidth);
-                        bool middleZ = (z != 0 && z != stackHeight);
                         if (middleZ) {
                             alphaTotal += (alpha4 = lineSrc[stackWidth].getEntryAlpha(y));
                             possibleTotal += numeric_limits<uchar>::max();
@@ -2411,8 +2424,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1);    
                             if (alpha0 != alpha1) {
                                 EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.point = glm::vec3(entry->getHermiteX(crossing.normal), 0.0f, 0.0f);
-                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryX : *entry);
+                                crossing.point = glm::vec3(entry.getHermiteX(crossing.normal), 0.0f, 0.0f);
+                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryX : entry);
                             }
                             if (alpha1 != alpha3) {
                                 EdgeCrossing& crossing = crossings[crossingCount++];
@@ -2460,16 +2473,16 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         }
                         if (alpha0 != alpha2) {
                             EdgeCrossing& crossing = crossings[crossingCount++];
-                            crossing.point = glm::vec3(0.0f, entry->getHermiteY(crossing.normal), 0.0f);
-                            crossing.setColorMaterial(alpha0 == 0 ? nextEntryY : *entry);
+                            crossing.point = glm::vec3(0.0f, entry.getHermiteY(crossing.normal), 0.0f);
+                            crossing.setColorMaterial(alpha0 == 0 ? nextEntryY : entry);
                         }
                         if (middleZ) {
                             const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y);
                             const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(y + 1);
                             if (alpha0 != alpha4) {
                                 EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.point = glm::vec3(0.0f, 0.0f, entry->getHermiteZ(crossing.normal));
-                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryZ : *entry);
+                                crossing.point = glm::vec3(0.0f, 0.0f, entry.getHermiteZ(crossing.normal));
+                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryZ : entry);
                             }
                             if (alpha2 != alpha6) {
                                 EdgeCrossing& crossing = crossings[crossingCount++];
@@ -2672,13 +2685,13 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     vertices.at(index1.indices[0]).vertex - first);
                                 
                                 if (alpha0 == 0) { // quad faces negative y
-                                    indices.append(index1.getClosestIndex(normal = -normal, vertices));
-                                    indices.append(index2.getClosestIndex(normal, vertices));
-                                    indices.append(index3.getClosestIndex(normal, vertices));
-                                } else { // quad faces positive y
-                                    indices.append(index3.getClosestIndex(normal, vertices));
+                                    indices.append(index3.getClosestIndex(normal = -normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
                                     indices.append(index1.getClosestIndex(normal, vertices));
+                                } else { // quad faces positive y
+                                    indices.append(index1.getClosestIndex(normal, vertices));
+                                    indices.append(index2.getClosestIndex(normal, vertices));
+                                    indices.append(index3.getClosestIndex(normal, vertices));
                                 }
                                 indices.append(index.getClosestIndex(normal, vertices));
                             }
@@ -2704,13 +2717,13 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     vertices.at(index3.indices[0]).vertex - first);
                                 
                                 if (alpha0 == 0) { // quad faces negative z
-                                    indices.append(index3.getClosestIndex(normal = -normal, vertices));
-                                    indices.append(index2.getClosestIndex(normal, vertices));
-                                    indices.append(index1.getClosestIndex(normal, vertices));
-                                } else { // quad faces positive z
-                                    indices.append(index1.getClosestIndex(normal, vertices));
+                                    indices.append(index1.getClosestIndex(normal = -normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
                                     indices.append(index3.getClosestIndex(normal, vertices));
+                                } else { // quad faces positive z
+                                    indices.append(index3.getClosestIndex(normal, vertices));
+                                    indices.append(index2.getClosestIndex(normal, vertices));
+                                    indices.append(index1.getClosestIndex(normal, vertices));
                                 }
                                 indices.append(index.getClosestIndex(normal, vertices));
                             }

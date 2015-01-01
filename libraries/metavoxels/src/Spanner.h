@@ -523,6 +523,8 @@ public:
     Entry& getEntry(int y);
     const Entry& getEntry(int y) const;
     
+    void getExtents(int& minimumY, int& maximumY) const;
+    
     void removeEntries(int position, int count) { remove(sizeof(quint16) + position * sizeof(Entry), count * sizeof(Entry)); }
 };
 
