@@ -2907,7 +2907,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("entities");
-            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
+         //   _entities.render(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         // render JS/scriptable overlays
