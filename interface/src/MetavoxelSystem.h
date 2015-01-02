@@ -203,6 +203,7 @@ public:
 /// A batch containing a voxel splat.
 class VoxelSplatBatch : public MetavoxelBatch {
 public:
+    glm::vec3 splatTextureOffset;
     int splatTextureIDs[4];
     glm::vec4 splatTextureScalesS;
     glm::vec4 splatTextureScalesT;

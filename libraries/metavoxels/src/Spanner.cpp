@@ -1178,6 +1178,10 @@ static inline float getHermite(QRgb value, glm::vec3& normal) {
     normal.x = (char)qRed(value) / (float)numeric_limits<qint8>::max();
     normal.y = (char)qGreen(value) / (float)numeric_limits<qint8>::max();
     normal.z = (char)qBlue(value) / (float)numeric_limits<qint8>::max();
+    float length = glm::length(normal);
+    if (length > 0.0f) {
+        normal /= length;
+    }
     return qAlpha(value) / (float)numeric_limits<quint8>::max();   
 }
 

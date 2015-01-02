@@ -428,8 +428,9 @@ void MetavoxelSystem::render() {
                     GL_UNSIGNED_BYTE, (qint64)&point->materials, SPLAT_COUNT, sizeof(VoxelPoint));
                 _splatVoxelProgram.setAttributeBuffer(_splatVoxelLocations.materialWeights,
                     GL_UNSIGNED_BYTE, (qint64)&point->materialWeights, SPLAT_COUNT, sizeof(VoxelPoint));
-                
+                    
                 const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
+                _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureOffset, batch.splatTextureOffset);
                 _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureScalesS, batch.splatTextureScalesS);
                 _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureScalesT, batch.splatTextureScalesT);
                 _splatVoxelProgram.setUniformValue(
@@ -1244,7 +1245,11 @@ void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation
         splatBatch.indexBuffer = &_indexBuffer;
         splatBatch.vertexCount = _vertexCount;
         splatBatch.indexCount = _indexCount;
-    
+        splatBatch.splatTextureOffset = glm::vec3(
+            glm::dot(translation, rotation * glm::vec3(1.0f, 0.0f, 0.0f)) / scale.x,
+            glm::dot(translation, rotation * glm::vec3(0.0f, 1.0f, 0.0f)) / scale.y,
+            glm::dot(translation, rotation * glm::vec3(0.0f, 0.0f, 1.0f)) / scale.z);
+            
         for (int i = 0; i < _materials.size(); i += SPLAT_COUNT) {
             for (int j = 0; j < SPLAT_COUNT; j++) {
                 int index = i + j;
@@ -1252,8 +1257,8 @@ void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation
                     const NetworkTexturePointer& texture = _networkTextures.at(index);
                     if (texture) {
                         MaterialObject* material = static_cast<MaterialObject*>(_materials.at(index).data());
-                        splatBatch.splatTextureScalesS[j] = 1.0f / material->getScaleS();
-                        splatBatch.splatTextureScalesT[j] = 1.0f / material->getScaleT();
+                        splatBatch.splatTextureScalesS[j] = scale.x / material->getScaleS();
+                        splatBatch.splatTextureScalesT[j] = scale.z / material->getScaleT();
                         splatBatch.splatTextureIDs[j] = texture->getID();
                            
                     } else {
@@ -2317,10 +2322,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         int stackWidth = node->getStack()->getWidth();
         int stackHeight = node->getStack()->getContents().size() / stackWidth;
         int innerStackWidth = stackWidth - HeightfieldData::SHARED_EDGE;
-        int innerStackHeight = stackHeight - HeightfieldData::SHARED_EDGE;
         const StackArray* src = node->getStack()->getContents().constData();
-        glm::vec3 step(1.0f / innerStackWidth, scale.x / (innerStackWidth * scale.y),
-            1.0f / innerStackHeight);
         
         const int EDGES_PER_CUBE = 12;
         EdgeCrossing crossings[EDGES_PER_CUBE];
@@ -2329,6 +2331,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         IndexVector lastIndicesX;
         QVector<IndexVector> indicesZ(stackWidth + 1);
         QVector<IndexVector> lastIndicesZ(stackWidth + 1);
+        float scale = 1.0f / innerStackWidth;
         
         for (int z = 0; z <= stackHeight; z++) {
             bool middleZ = (z != 0 && z != stackHeight);
@@ -2364,21 +2367,21 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             glm::vec3 normal;
                             float distance = entry.getHermiteX(normal);
                             if (normal != glm::vec3()) {
-                                glm::vec3 start = glm::vec3(clampedX + distance, y, clampedZ) * step;
+                                glm::vec3 start = glm::vec3(clampedX + distance, y, clampedZ) * scale;
                                 hermiteSegments.append(start);
-                                hermiteSegments.append(start + normal * step);
+                                hermiteSegments.append(start + normal * scale);
                             }
                             distance = entry.getHermiteY(normal);
                             if (normal != glm::vec3()) {
-                                glm::vec3 start = glm::vec3(clampedX, y + distance, clampedZ) * step;
+                                glm::vec3 start = glm::vec3(clampedX, y + distance, clampedZ) * scale;
                                 hermiteSegments.append(start);
-                                hermiteSegments.append(start + normal * step);
+                                hermiteSegments.append(start + normal * scale);
                             }
                             distance = entry.getHermiteZ(normal);
                             if (normal != glm::vec3()) {
-                                glm::vec3 start = glm::vec3(clampedX, y, clampedZ + distance) * step;
+                                glm::vec3 start = glm::vec3(clampedX, y, clampedZ + distance) * scale;
                                 hermiteSegments.append(start);
-                                hermiteSegments.append(start + normal * step);
+                                hermiteSegments.append(start + normal * scale);
                             }
                         }
                         int alpha0 = qAlpha(entry.color);
@@ -2612,7 +2615,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         if (totalWeight > 0.0f) {
                             materialWeights *= (numeric_limits<quint8>::max() / totalWeight);
                         }
-                        VoxelPoint point = { (glm::vec3(clampedX, y, clampedZ) + center) * step,
+                        VoxelPoint point = { (glm::vec3(clampedX, y, clampedZ) + center) * scale,
                             { (quint8)(red / crossingCount), (quint8)(green / crossingCount), (quint8)(blue / crossingCount) },
                             { (char)(normals[0].x * 127.0f), (char)(normals[0].y * 127.0f), (char)(normals[0].z * 127.0f) },
                             { materials[0], materials[1], materials[2], materials[3] },
@@ -2748,7 +2751,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     }
     
     if (_voxels) {
-        _voxels->render(translation, rotation, scale, cursor);
+        _voxels->render(translation, rotation, glm::vec3(scale.x, scale.x, scale.x), cursor);
     }
     
     if (cursor) {
