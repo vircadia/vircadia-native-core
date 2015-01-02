@@ -243,9 +243,9 @@ CameraManager = function() {
     }
 
     that.mousePressEvent = function(event) {
-        if (cameraTool.mousePressEvent(event)) {
-            return true;
-        }
+        // if (cameraTool.mousePressEvent(event)) {
+        //     return true;
+        // }
 
         if (!that.enabled) return;
 
@@ -291,7 +291,7 @@ CameraManager = function() {
 
     that.updateCamera = function() {
         if (!that.enabled || Camera.mode != "independent") {
-            cameraTool.update();
+            // cameraTool.update();
             return;
         }
 
@@ -313,7 +313,7 @@ CameraManager = function() {
 
         Camera.setOrientation(q);
 
-        cameraTool.update();
+        // cameraTool.update();
     }
 
     function normalizeDegrees(degrees) {
@@ -383,7 +383,7 @@ CameraManager = function() {
 
     Controller.wheelEvent.connect(that.wheelEvent);
 
-    var cameraTool = new CameraTool(that);
+    // var cameraTool = new CameraTool(that);
 
     return that;
 }
