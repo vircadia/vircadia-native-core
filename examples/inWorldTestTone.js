@@ -17,9 +17,13 @@ var sound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
 
 var soundPlaying = false;
 
+var offset = Vec3.normalize(Quat.getFront(MyAvatar.orientation));
+var position = Vec3.sum(MyAvatar.position, offset);
+
 function update(deltaTime) {
     if (!Audio.isInjectorPlaying(soundPlaying)) {
         soundPlaying = Audio.playSound(sound, {
+          position: position,
           loop: true
         });
         print("Started sound loop");
