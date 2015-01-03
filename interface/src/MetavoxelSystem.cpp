@@ -2365,21 +2365,18 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
                         if (displayHermite && x != 0 && z != 0) {
                             glm::vec3 normal;
-                            float distance = entry.getHermiteX(normal);
-                            if (normal != glm::vec3()) {
-                                glm::vec3 start = glm::vec3(clampedX + distance, y, clampedZ) * scale;
+                            if (entry.hermiteX != 0) {
+                                glm::vec3 start = glm::vec3(clampedX + entry.getHermiteX(normal), y, clampedZ) * scale;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * scale);
                             }
-                            distance = entry.getHermiteY(normal);
-                            if (normal != glm::vec3()) {
-                                glm::vec3 start = glm::vec3(clampedX, y + distance, clampedZ) * scale;
+                            if (entry.hermiteY != 0) {
+                                glm::vec3 start = glm::vec3(clampedX, y + entry.getHermiteY(normal), clampedZ) * scale;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * scale);
                             }
-                            distance = entry.getHermiteZ(normal);
-                            if (normal != glm::vec3()) {
-                                glm::vec3 start = glm::vec3(clampedX, y, clampedZ + distance) * scale;
+                            if (entry.hermiteZ != 0) {
+                                glm::vec3 start = glm::vec3(clampedX, y, clampedZ + entry.getHermiteZ(normal)) * scale;
                                 hermiteSegments.append(start);
                                 hermiteSegments.append(start + normal * scale);
                             }
