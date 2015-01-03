@@ -60,6 +60,8 @@ static const int MUTE_ICON_SIZE = 24;
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
+static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
+
 Audio::Audio(QObject* parent) :
     AbstractAudioInterface(parent),
     _audioInput(NULL),
@@ -123,6 +125,7 @@ Audio::Audio(QObject* parent) :
     _inputRingBufferMsecsAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _lastSentAudioPacket(0),
+    _outputBufferSizeFrames(DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
     _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS),
     _audioOutputIODevice(_receivedAudioStream)
 {
@@ -443,6 +446,7 @@ void Audio::start() {
     QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
     qDebug() << "The default audio output device is" << outputDeviceInfo.deviceName();
     bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
+    outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
     
     if (!inputFormatSupported) {
         qDebug() << "Unable to set up audio input because of a problem with input format.";
@@ -1852,11 +1856,9 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             
             outputFormatChanged();
 
-            const int AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
-
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFrameSize * sizeof(int16_t));
+            _audioOutput->setBufferSize(_outputBufferSizeFrames * _outputFrameSize * sizeof(int16_t));
             qDebug() << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize;
             
             _audioOutputIODevice.start();
@@ -1875,6 +1877,20 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
     }
     
     return supportedFormat;
+}
+
+void Audio::setOutputBufferSize(int numFrames) {
+    if (numFrames != _outputBufferSizeFrames) {
+        qDebug() << "Audio output buffer size (frames): " << numFrames;
+        _outputBufferSizeFrames = numFrames;
+
+        if (_audioOutput) {
+            // The buffer size can't be adjusted after QAudioOutput::start() has been called, so
+            // recreate the device by switching to the default.
+            QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
+            switchOutputToAudioDevice(outputDeviceInfo);
+        }
+    }
 }
 
 // The following constant is operating system dependent due to differences in

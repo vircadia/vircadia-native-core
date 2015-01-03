@@ -123,6 +123,8 @@ public:
     
     void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
 
+    int getOutputBufferSize() { return _outputBufferSizeFrames; }
+
 public slots:
     void start();
     void stop();
@@ -150,6 +152,7 @@ public slots:
     void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
     void addStereoSamplesToScope(const QByteArray& samples);
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
+    void setOutputBufferSize(int numFrames);
 
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
@@ -201,6 +204,8 @@ private:
 
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;
+
+    int _outputBufferSizeFrames;
     
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
