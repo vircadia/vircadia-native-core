@@ -41,6 +41,7 @@
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "Audio.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "devices/Visage.h"
@@ -671,6 +672,10 @@ void Menu::loadSettings(QSettings* settings) {
     _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves = settings->value("windowSecondsForDesiredCalcOnTooManyStarves", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES).toInt();
     _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
     _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
+
+    Audio* audio = Application::getInstance()->getAudio();
+    int bufferSize = settings->value("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES).toInt();
+    QMetaObject::invokeMethod(audio, "setOutputBufferSize", Q_ARG(int, bufferSize));
     
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
@@ -739,6 +744,8 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("windowSecondsForDesiredCalcOnTooManyStarves", _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
     settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
     settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
+
+    settings->setValue("audioOutputBufferSize", Application::getInstance()->getAudio()->getOutputBufferSize());
 
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
