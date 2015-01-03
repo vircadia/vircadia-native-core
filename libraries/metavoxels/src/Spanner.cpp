@@ -2119,8 +2119,8 @@ void HeightfieldNode::getRangeAfterEdit(const glm::vec3& translation, const glm:
 }
 
 static inline bool isSet(const StackArray& array, int y) {
-    return !array.isEmpty() && y >= array.getPosition() && y < array.getPosition() + array.getEntryCount() &&
-        array.getEntryData()[y - array.getPosition()].isSet();
+    return !array.isEmpty() && y < array.getPosition() + array.getEntryCount() &&
+        array.getEntryData()[qMax(0, y - array.getPosition())].isSet();
 }
 
 static inline bool isSet(const QVector<StackArray>& stackContents, int stackWidth, int x, int y, int z) {
@@ -2232,21 +2232,16 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     glm::vec3 start = glm::ceil(transformedBounds.maximum);
     glm::vec3 end = glm::floor(transformedBounds.minimum);
     
-    float stepX = (float)innerHeightWidth / qMax(innerHeightWidth, qMax(innerColorWidth, innerMaterialWidth));
-    float stepZ = (float)innerHeightHeight / qMax(innerHeightHeight, qMax(innerColorHeight, innerMaterialHeight));
-    
     float startX = glm::clamp(start.x, 0.0f, (float)highestHeightX), endX = glm::clamp(end.x, 0.0f, (float)highestHeightX);
     float startZ = glm::clamp(start.z, 0.0f, (float)highestHeightZ), endZ = glm::clamp(end.z, 0.0f, (float)highestHeightZ);
-    glm::vec3 worldStart = glm::vec3(transform * glm::vec4(startX, start.y, startZ, 1.0f));
-    glm::vec3 worldStepX = glm::vec3(transform * glm::vec4(stepX, 0.0f, 0.0f, 0.0f));
-    glm::vec3 worldStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, stepZ, 0.0f));
     float voxelStep = scale.x / innerHeightWidth;
     float voxelScale = scale.y / (numeric_limits<quint16>::max() * voxelStep);
-    glm::vec3 voxelStepX = glm::vec3(transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
-    glm::vec3 voxelStepY = glm::vec3(transform * glm::vec4(0.0f, 1.0f / voxelScale, 0.0f, 0.0f));
-    glm::vec3 voxelStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
     int newTop = start.y * voxelScale;
     int newBottom = end.y * voxelScale;
+    glm::vec3 worldStart = glm::vec3(transform * glm::vec4(startX, newTop / voxelScale, startZ, 1.0f));
+    glm::vec3 worldStepX = glm::vec3(transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+    glm::vec3 worldStepY = glm::vec3(transform * glm::vec4(0.0f, 1.0f / voxelScale, 0.0f, 0.0f));
+    glm::vec3 worldStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
     QRgb rgba = color.rgba();
     bool erase = (color.alpha() == 0);
     QByteArray dummyContents;
@@ -2254,10 +2249,10 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     bool hasOwnColors = spanner->hasOwnColors();
     bool hasOwnMaterials = spanner->hasOwnMaterials();
     QHash<int, int> materialMappings;
-    for (float z = startZ; z >= endZ; z -= stepZ, worldStart -= worldStepZ) {
+    for (float z = startZ; z >= endZ; z -= 1.0f, worldStart -= worldStepZ) {
         quint16* heightDest = newHeightContents.data() + (int)z * heightWidth;
         glm::vec3 worldPos = worldStart;
-        for (float x = startX; x >= endX; x -= stepX, worldPos -= worldStepX) {
+        for (float x = startX; x >= endX; x -= 1.0f, worldPos -= worldStepX) {
             quint16* heightLineDest = heightDest + (int)x;
             float distance;
             glm::vec3 normal;
@@ -2333,8 +2328,8 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     stackDest->setPosition(newBottom);
                 }
                 StackArray::Entry* entryDest = stackDest->getEntryData() + (newTop - stackDest->getPosition());
-                glm::vec3 pos = glm::vec3(transform * glm::vec4(x, 0.0f, z, 1.0f)) + voxelStepY * (float)newTop;
-                for (int y = newTop; y >= newBottom; y--, entryDest--, pos -= voxelStepY) {
+                glm::vec3 pos = worldPos;
+                for (int y = newTop; y >= newBottom; y--, entryDest--, pos -= worldStepY) {
                     bool oldCurrentSet = entryDest->isSet();
                     if (spanner->contains(pos)) {
                         if (hasOwnColors && !erase) {
@@ -2373,9 +2368,9 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                                     nextStackX, y, (int)stackZ)) {
                                 oldDistance = qAlpha(entryDest->hermiteX) / (float)numeric_limits<quint8>::max();
                             }
-                            if (flipped ? (spanner->intersects(pos + voxelStepX, pos, distance, normal) &&
+                            if (flipped ? (spanner->intersects(pos + worldStepX, pos, distance, normal) &&
                                     (distance = 1.0f - distance) >= oldDistance) :
-                                (spanner->intersects(pos, pos + voxelStepX, distance, normal) &&
+                                (spanner->intersects(pos, pos + worldStepX, distance, normal) &&
                                     distance <= oldDistance)) {
                                 entryDest->setHermiteX(erase ? -normal : normal, distance);
                             }
@@ -2393,9 +2388,9 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                                 (int)stackX, y + 1, (int)stackZ)) {
                             oldDistance = qAlpha(entryDest->hermiteY) / (float)numeric_limits<quint8>::max();
                         }
-                        if (flipped ? (spanner->intersects(pos + voxelStepY, pos, distance, normal) &&
+                        if (flipped ? (spanner->intersects(pos + worldStepY, pos, distance, normal) &&
                                 (distance = 1.0f - distance) >= oldDistance) :
-                            (spanner->intersects(pos, pos + voxelStepY, distance, normal) &&
+                            (spanner->intersects(pos, pos + worldStepY, distance, normal) &&
                                 distance <= oldDistance)) {
                             entryDest->setHermiteY(erase ? -normal : normal, distance);
                         }
@@ -2413,9 +2408,9 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                                     (int)stackX, y, nextStackZ)) {
                                 oldDistance = qAlpha(entryDest->hermiteZ) / (float)numeric_limits<quint8>::max();
                             }
-                            if (flipped ? (spanner->intersects(pos + voxelStepZ, pos, distance, normal) &&
+                            if (flipped ? (spanner->intersects(pos + worldStepZ, pos, distance, normal) &&
                                     (distance = 1.0f - distance) >= oldDistance) :
-                                (spanner->intersects(pos, pos + voxelStepZ, distance, normal) &&
+                                (spanner->intersects(pos, pos + worldStepZ, distance, normal) &&
                                     distance <= oldDistance)) {
                                 entryDest->setHermiteZ(erase ? -normal : normal, distance);
                             }

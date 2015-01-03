@@ -2688,11 +2688,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     vertices.at(index1.indices[0]).vertex - first);
                                 
                                 if (alpha0 == 0) { // quad faces negative y
-                                    indices.append(index3.getClosestIndex(normal = -normal, vertices));
+                                    indices.append(index3.getClosestIndex(normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
                                     indices.append(index1.getClosestIndex(normal, vertices));
                                 } else { // quad faces positive y
-                                    indices.append(index1.getClosestIndex(normal, vertices));
+                                    indices.append(index1.getClosestIndex(normal = -normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
                                     indices.append(index3.getClosestIndex(normal, vertices));
                                 }
@@ -2720,11 +2720,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     vertices.at(index3.indices[0]).vertex - first);
                                 
                                 if (alpha0 == 0) { // quad faces negative z
-                                    indices.append(index1.getClosestIndex(normal = -normal, vertices));
+                                    indices.append(index1.getClosestIndex(normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
                                     indices.append(index3.getClosestIndex(normal, vertices));
                                 } else { // quad faces positive z
-                                    indices.append(index3.getClosestIndex(normal, vertices));
+                                    indices.append(index3.getClosestIndex(normal = -normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
                                     indices.append(index1.getClosestIndex(normal, vertices));
                                 }
