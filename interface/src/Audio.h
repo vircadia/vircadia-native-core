@@ -61,6 +61,9 @@ static const int NUM_AUDIO_CHANNELS = 2;
 
 static const int MAX_16_BIT_AUDIO_SAMPLE = 32767;
 
+static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
+static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
+static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 50;
 
 class QAudioInput;
 class QAudioOutput;

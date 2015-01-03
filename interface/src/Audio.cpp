@@ -60,8 +60,6 @@ static const int MUTE_ICON_SIZE = 24;
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
-static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
-
 Audio::Audio(QObject* parent) :
     AbstractAudioInterface(parent),
     _audioInput(NULL),
@@ -1880,6 +1878,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 }
 
 void Audio::setOutputBufferSize(int numFrames) {
+    numFrames = std::min(std::max(numFrames, MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES), MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
     if (numFrames != _outputBufferSizeFrames) {
         qDebug() << "Audio output buffer size (frames): " << numFrames;
         _outputBufferSizeFrames = numFrames;

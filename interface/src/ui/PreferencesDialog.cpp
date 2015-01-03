@@ -11,6 +11,7 @@
 
 
 #include "Application.h"
+#include "Audio.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
@@ -26,6 +27,9 @@ PreferencesDialog::PreferencesDialog() :
 
     ui.setupUi(this);
     loadPreferences();
+
+    ui.outputBufferSizeSpinner->setMinimum(MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
+    ui.outputBufferSizeSpinner->setMaximum(MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
 
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
