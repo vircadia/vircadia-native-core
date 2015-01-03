@@ -135,6 +135,8 @@ void PreferencesDialog::loadPreferences() {
     ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
     ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
 
+    ui.outputBufferSizeSpinner->setValue(Application::getInstance()->getAudio()->getOutputBufferSize());
+
     ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
 
     ui.fieldOfViewSpin->setValue(menuInstance->getFieldOfView());
@@ -245,8 +247,13 @@ void PreferencesDialog::savePreferences() {
     streamSettings._windowSecondsForDesiredReduction = ui.windowSecondsForDesiredReductionSpin->value();
     streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
 
+    Audio* audio = Application::getInstance()->getAudio();
+
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
+    audio->setReceivedAudioStreamSettings(streamSettings);
     Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
+
+    QMetaObject::invokeMethod(audio, "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
