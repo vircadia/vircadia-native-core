@@ -72,16 +72,22 @@ public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream) : _receivedAudioStream(receivedAudioStream) {};
+        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, Audio* audio) : 
+            _receivedAudioStream(receivedAudioStream), _audio(audio), _unfulfilledReads(0) {};
 
         void start() { open(QIODevice::ReadOnly); }
         void stop() { close(); }
         qint64	readData(char * data, qint64 maxSize);
         qint64	writeData(const char * data, qint64 maxSize) { return 0; }
+        
+        int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         MixedProcessedAudioStream& _receivedAudioStream;
+        Audio* _audio;
+        int _unfulfilledReads;
     };
 
+    friend class AudioOutputIODevice;
 
     // setup for audio I/O
     Audio(QObject* parent = 0);
@@ -170,11 +176,15 @@ public slots:
     const AudioStreamStats& getAudioMixerAvatarStreamAudioStats() const { return _audioMixerAvatarStreamAudioStats; }
     const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamAudioStatsMap() const { return _audioMixerInjectedStreamAudioStatsMap; }
 
+    void outputNotify();
+
 signals:
     bool muteToggled();
     void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
+    
+    
 private:
     void outputFormatChanged();
 
