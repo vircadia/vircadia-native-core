@@ -14,6 +14,7 @@
 #include <QGLWidget>
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Base3DOverlay.h"
 
 const glm::vec3 DEFAULT_POSITION = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -28,7 +29,8 @@ Base3DOverlay::Base3DOverlay() :
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false),
-    _drawInFront(false)
+    _drawInFront(false),
+    _drawOnHUD(false)
 {
 }
 
@@ -46,6 +48,13 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
 Base3DOverlay::~Base3DOverlay() {
 }
 
+void Base3DOverlay::setDrawOnHUD(bool value) {
+    if (_drawOnHUD != value) {
+        _drawOnHUD = value;
+        Application::getInstance()->getOverlays().overlayDrawOnChanged(this);
+    }
+}
+
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
 
@@ -56,16 +65,20 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
         setDrawInFront(value);
     }
 
+    QScriptValue drawOnHUD = properties.property("drawOnHUD");
+
+    if (drawOnHUD.isValid()) {
+        bool value = drawOnHUD.toVariant().toBool();
+        setDrawOnHUD(value);
+    }
+
     QScriptValue position = properties.property("position");
 
-    // if "position" property was not there, check to see if they included aliases: start, point, p1
+    // if "position" property was not there, check to see if they included aliases: point, p1
     if (!position.isValid()) {
-        position = properties.property("start");
+        position = properties.property("p1");
         if (!position.isValid()) {
-            position = properties.property("p1");
-            if (!position.isValid()) {
-                position = properties.property("point");
-            }
+            position = properties.property("point");
         }
     }
 
@@ -161,6 +174,9 @@ QScriptValue Base3DOverlay::getProperty(const QString& property) {
     }
     if (property == "drawInFront") {
         return _drawInFront;
+    }
+    if (property == "drawOnHUD") {
+        return _drawOnHUD;
     }
 
     return Overlay::getProperty(property);

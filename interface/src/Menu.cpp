@@ -636,9 +636,6 @@ Menu::Menu() :
 
     connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
-    QMenu* experimentalOptionsMenu = developerMenu->addMenu("Experimental");
-    addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::StringHair, 0, false);
-
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
                 this,

@@ -470,7 +470,6 @@ namespace MenuOption {
     const QString Stats = "Stats";
     const QString StereoAudio = "Stereo Audio";
     const QString StopAllScripts = "Stop All Scripts";
-    const QString StringHair = "String Hair";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString ToolWindow = "Tool Window";

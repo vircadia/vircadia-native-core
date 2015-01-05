@@ -31,6 +31,50 @@ class NetworkGeometry;
 class NetworkMesh;
 class NetworkTexture;
 
+
+typedef QPair<glm::vec2, glm::vec2> Vec2Pair;
+typedef QPair<Vec2Pair, Vec2Pair> Vec2PairPair;
+typedef QPair<glm::vec3, glm::vec3> Vec3Pair;
+typedef QPair<Vec3Pair, Vec2Pair> Vec3PairVec2Pair;
+
+inline uint qHash(const glm::vec2& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.x + 5009 * v.y, seed);
+}
+
+inline uint qHash(const Vec2Pair& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.x + 5009 * v.first.y + 5011 * v.second.x + 5021 * v.second.y, seed);
+}
+
+inline uint qHash(const Vec2PairPair& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.first.x + 5009 * v.first.first.y 
+                 + 5011 * v.first.second.x + 5021 * v.first.second.y
+                 + 5023 * v.second.first.x + 5039 * v.second.first.y
+                 + 5051 * v.second.second.x + 5059 * v.second.second.y, seed);
+}
+
+inline uint qHash(const glm::vec3& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.x + 5009 * v.y + 5011 * v.z,  seed);
+}
+
+inline uint qHash(const Vec3Pair& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.x + 5009 * v.first.y + 5011 * v.first.z 
+                 + 5021 * v.second.x + 5023 * v.second.y + 5039 * v.second.z, seed);
+}
+
+inline uint qHash(const Vec3PairVec2Pair& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.first.x + 5009 * v.first.first.y + 5011 * v.first.first.z +
+                 5021 * v.first.second.x + 5023 * v.first.second.y + 5039 * v.first.second.z +
+                 5051 * v.second.first.x + 5059 * v.second.first.y +
+                 5077 * v.second.second.x + 5081 * v.second.second.y, seed);
+}
+
+
 /// Stores cached geometry.
 class GeometryCache : public ResourceCache  {
     Q_OBJECT
@@ -45,6 +89,24 @@ public:
     void renderGrid(int xDivisions, int yDivisions);
     void renderSolidCube(float size);
     void renderWireCube(float size);
+
+    int allocateQuad() { return _nextQuadID++; }
+    static const int UNKNOWN_QUAD_ID;
+
+    void renderQuad(int x, int y, int width, int height, int quadID = UNKNOWN_QUAD_ID)
+            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), quadID); }
+            
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int quadID = UNKNOWN_QUAD_ID);
+
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, int quadID = UNKNOWN_QUAD_ID);
+
+    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, int quadID = UNKNOWN_QUAD_ID);
+
+    void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
+                    const glm::vec3& bottomRight, const glm::vec3& topRight,
+                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int quadID = UNKNOWN_QUAD_ID);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -70,6 +132,18 @@ private:
     QHash<IntPair, VerticesIndices> _coneVBOs;
     QHash<float, VerticesIndices> _wireCubeVBOs;
     QHash<float, VerticesIndices> _solidCubeVBOs;
+    QHash<Vec2Pair, VerticesIndices> _quad2DVBOs;
+    QHash<Vec2PairPair, VerticesIndices> _quad2DTextureVBOs;
+    QHash<Vec3Pair, VerticesIndices> _quad3DVBOs;
+    QHash<Vec3PairVec2Pair, VerticesIndices> _quad3DTextureVBOs;
+    QHash<int, VerticesIndices> _registeredQuadVBOs;
+    int _nextQuadID;
+
+    QHash<int, Vec2Pair> _lastRegisteredQuad2D;
+    QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
+    QHash<int, Vec3Pair> _lastRegisteredQuad3D;
+    QHash<int, Vec3PairVec2Pair> _lastRegisteredQuad3DTexture;
+
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;

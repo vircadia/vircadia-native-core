@@ -296,11 +296,13 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, Joint
     }
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+    glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
     glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
     glm::quat inverse = glm::inverse(parentState.getRotation() * state.getDefaultRotationInParentFrame());
     state.setRotationInConstrainedFrame(
               glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), inverse * zAxis) 
-            * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), inverse * xAxis) 
+            * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), inverse * xAxis)
+            * glm::angleAxis(RADIANS_PER_DEGREE * _owningAvatar->getHead()->getTorsoTwist(), inverse * yAxis)
             * state.getFBXJoint().rotation, LEAN_PRIORITY);
 }
 

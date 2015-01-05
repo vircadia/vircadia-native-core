@@ -38,6 +38,7 @@ endif ()
 
 # set up the external glm library
 include_glm()
+include_bullet()
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")

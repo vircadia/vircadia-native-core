@@ -71,6 +71,7 @@
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
+#include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
@@ -157,6 +158,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
+#ifdef USE_BULLET_PHYSICS
+        _physicsEngine(glm::vec3(0.0f)),
+#endif // USE_BULLET_PHYSICS
         _entities(true, this, this),
         _entityCollisionSystem(),
         _entityClipboardRenderer(false, this, this),
@@ -2028,6 +2032,12 @@ void Application::init() {
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 
+#ifdef USE_BULLET_PHYSICS
+    EntityTree* tree = _entities.getTree();
+    _physicsEngine.setEntityTree(tree);
+    tree->setSimulation(&_physicsEngine);
+    _physicsEngine.init(&_entityEditSender);
+#endif // USE_BULLET_PHYSICS
     // make sure our texture cache knows about window size changes
     DependencyManager::get<TextureCache>()->associateWithWidget(glCanvas.data());
 
@@ -2336,6 +2346,13 @@ void Application::update(float deltaTime) {
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
+
+#ifdef USE_BULLET_PHYSICS
+    {
+        PerformanceTimer perfTimer("physics");
+        _physicsEngine.stepSimulation();
+    }
+#endif // USE_BULLET_PHYSICS
 
     if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
@@ -2880,18 +2897,18 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("entities");
-            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
+         //   _entities.render(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(false, RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(false, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         {
             PerformanceTimer perfTimer("3dOverlaysFront");
-            _overlays.render3D(true, RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -3119,7 +3136,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(false);
+            _overlays.renderWorld(false);
         }
 
         // render the ambient occlusion effect if enabled
@@ -3208,7 +3225,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     {
         PerformanceTimer perfTimer("3dOverlaysFront");
         glClear(GL_DEPTH_BUFFER_BIT);
-        _overlays.render3D(true);
+        _overlays.renderWorld(true);
     }
 }
 
@@ -3625,16 +3642,6 @@ void Application::updateWindowTitle(){
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
         + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
-
-    AccountManager& accountManager = AccountManager::getInstance();
-    if (accountManager.getAccountInfo().hasBalance()) {
-        float creditBalance = accountManager.getAccountInfo().getBalance() / SATOSHIS_PER_CREDIT;
-
-        QString creditBalanceString;
-        creditBalanceString.sprintf("%.8f", creditBalance);
-
-        title += " - ₵" + creditBalanceString;
-    }
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -4195,6 +4202,25 @@ void Application::openUrl(const QUrl& url) {
             QDesktopServices::openUrl(url);
         }
     }
+}
+
+void Application::updateMyAvatarTransform() {
+    bumpSettings();
+#ifdef USE_BULLET_PHYSICS
+    const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
+    glm::vec3 avatarPosition = _myAvatar->getPosition();
+    glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();
+    if (glm::distance(avatarPosition, physicsWorldOffset) > SIMULATION_OFFSET_QUANTIZATION) {
+        glm::vec3 newOriginOffset = avatarPosition;
+        int halfExtent = (int)HALF_SIMULATION_EXTENT;
+        for (int i = 0; i < 3; ++i) {
+            newOriginOffset[i] = (float)(glm::max(halfExtent, 
+                    ((int)(avatarPosition[i] / SIMULATION_OFFSET_QUANTIZATION)) * (int)SIMULATION_OFFSET_QUANTIZATION));
+        }
+        // TODO: Andrew to replace this with method that actually moves existing object positions in PhysicsEngine
+        _physicsEngine.setOriginOffset(newOriginOffset);
+    }
+#endif // USE_BULLET_PHYSICS
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {

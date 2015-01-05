@@ -130,37 +130,9 @@ void renderCollisionOverlay(int width, int height, float magnitude, float red, f
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {
         glColor4f(red, blue, green, magnitude);
-        glBegin(GL_QUADS);
-        glVertex2f(0, 0);
-        glVertex2d(width, 0);
-        glVertex2d(width, height);
-        glVertex2d(0, height);
-        glEnd();
+        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height);
     }
 }
-
-
-
-void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides) {
-    glm::vec3 perp1 = glm::vec3(surfaceNormal.y, surfaceNormal.z, surfaceNormal.x);
-    glm::vec3 perp2 = glm::vec3(surfaceNormal.z, surfaceNormal.x, surfaceNormal.y);
-
-    glBegin(GL_LINE_STRIP);
-
-    for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * TWO_PI;
-        float s = radius * sinf(r);
-        float c = radius * cosf(r);
-        glVertex3f
-        (
-            position.x + perp1.x * s + perp2.x * c,
-            position.y + perp1.y * s + perp2.y * c,
-            position.z + perp1.z * s + perp2.z * c
-        );
-    }
-    glEnd();
-}
-
 
 void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
     glBegin(GL_POLYGON);

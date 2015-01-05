@@ -227,17 +227,6 @@ void MyAvatar::simulate(float deltaTime) {
     }
     
     {
-        PerformanceTimer perfTimer("hair");
-        if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
-            _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setLoudness((float)getHeadData()->getAudioLoudness());
-            _hair.simulate(deltaTime);
-        }
-    }
-
-    {
         PerformanceTimer perfTimer("physics");
         const float minError = 0.00001f;
         const float maxIterations = 3;
@@ -1140,18 +1129,6 @@ void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLe
     const glm::vec3 cameraPos = camera->getPosition();
     if (shouldRenderHead(cameraPos, renderMode)) {
         getHead()->render(1.0f, modelRenderMode, postLighting);
-        
-        if (!postLighting && Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
-            // Render Hair
-            glPushMatrix();
-            glm::vec3 headPosition = getHead()->getPosition();
-            glTranslatef(headPosition.x, headPosition.y, headPosition.z);
-            const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            _hair.render();
-            glPopMatrix();
-        }
     }
     if (postLighting) {
         getHand()->render(true, modelRenderMode);

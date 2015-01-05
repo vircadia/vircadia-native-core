@@ -84,10 +84,8 @@ void SixenseManager::initialize() {
 #ifdef HAVE_SIXENSE
     
     if (!_isInitialized) {
-        _lastMovement = 0;
-        _amountMoved = glm::vec3(0.0f);
         _lowVelocityFilter = false;
-        
+        _controllersAtBase = true;
         _calibrationState = CALIBRATION_STATE_IDLE;
         // By default we assume the _neckBase (in orb frame) is as high above the orb
         // as the "torso" is below it.
@@ -146,17 +144,8 @@ void SixenseManager::setFilter(bool filter) {
 
 void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
+    Hand* hand = Application::getInstance()->getAvatar()->getHand();
     if (_isInitialized && _isEnabled) {
-        // if the controllers haven't been moved in a while, disable
-        const unsigned int MOVEMENT_DISABLE_SECONDS = 3;
-        if (usecTimestampNow() - _lastMovement > (MOVEMENT_DISABLE_SECONDS * USECS_PER_SECOND)) {
-            Hand* hand = Application::getInstance()->getAvatar()->getHand();
-            for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
-                it->setActive(false);
-            }
-            _lastMovement = usecTimestampNow();
-        }
-        
 #ifdef __APPLE__
         SixenseBaseFunction sixenseGetNumActiveControllers =
         (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
@@ -172,8 +161,6 @@ void SixenseManager::update(float deltaTime) {
             _hydrasConnected = true;
             UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
         }
-        MyAvatar* avatar = Application::getInstance()->getAvatar();
-        Hand* hand = avatar->getHand();
         
 #ifdef __APPLE__
         SixenseBaseFunction sixenseGetMaxControllers =
@@ -192,7 +179,7 @@ void SixenseManager::update(float deltaTime) {
         SixenseTakeIntAndSixenseControllerData sixenseGetNewestData =
         (SixenseTakeIntAndSixenseControllerData) _sixenseLibrary->resolve("sixenseGetNewestData");
 #endif
-        
+        int numControllersAtBase = 0;
         int numActiveControllers = 0;
         for (int i = 0; i < maxControllers && numActiveControllers < 2; i++) {
             if (!sixenseIsControllerEnabled(i)) {
@@ -221,13 +208,18 @@ void SixenseManager::update(float deltaTime) {
                 qDebug("Found new Sixense controller, ID %i", data->controller_index);
             }
             
-            palm->setActive(true);
+            // Disable the hands (and return to default pose) if both controllers are at base station
+            if (foundHand) {
+                palm->setActive(!_controllersAtBase);
+            } else {
+                palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
+            }
+            
             
             //  Read controller buttons and joystick into the hand
             palm->setControllerButtons(data->buttons);
             palm->setTrigger(data->trigger);
             palm->setJoystick(data->joystick_x, data->joystick_y);
-            
             
             // Emulate the mouse so we can use scripts
             if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
@@ -237,6 +229,12 @@ void SixenseManager::update(float deltaTime) {
             // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
             glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
             position *= METERS_PER_MILLIMETER;
+            
+            // Check to see if this hand/controller is on the base
+            const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
+            if (glm::length(position) < CONTROLLER_AT_BASE_DISTANCE) {
+                numControllersAtBase++;
+            }
             
             // Transform the measured position into body frame.
             glm::vec3 neck = _neckBase;
@@ -274,14 +272,6 @@ void SixenseManager::update(float deltaTime) {
                 palm->setRawRotation(rotation);
             }
             
-            // use the velocity to determine whether there's any movement (if the hand isn't new)
-            const float MOVEMENT_DISTANCE_THRESHOLD = 0.003f;
-            _amountMoved += rawVelocity * deltaTime;
-            if (glm::length(_amountMoved) > MOVEMENT_DISTANCE_THRESHOLD && foundHand) {
-                _lastMovement = usecTimestampNow();
-                _amountMoved = glm::vec3(0.0f);
-            }
-            
             // Store the one fingertip in the palm structure so we can track velocity
             const float FINGER_LENGTH = 0.3f;   //  meters
             const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
@@ -298,7 +288,7 @@ void SixenseManager::update(float deltaTime) {
         if (numActiveControllers == 2) {
             updateCalibration(controllers);
         }
-
+        _controllersAtBase = (numControllersAtBase == 2);
     }
 #endif  // HAVE_SIXENSE
 }
