@@ -662,13 +662,14 @@ void EntityItem::simulate(const quint64& now) {
         
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // ~0.1 degree/sec
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            setAngularVelocity(NO_ANGULAR_VELOCITY);
+            angularVelocity = NO_ANGULAR_VELOCITY;
         } else {
             float angle = timeElapsed * angularSpeed;
             glm::quat  dQ = glm::angleAxis(angle, glm::normalize(angularVelocity));
             rotation = glm::normalize(dQ * rotation);
             setRotation(rotation);
         }
+        setAngularVelocity(angularVelocity);
     }
 
 #ifdef USE_BULLET_PHYSICS
