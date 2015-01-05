@@ -2505,8 +2505,10 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 }
 
 glm::vec3 Application::getSunDirection() {
-    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()) -
-        _myCamera.getPosition());
+ /*   return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()) -
+        _myCamera.getPosition());*/
+    // Sun direction is in fact just the location of the sun relative to the origin
+    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()));
 }
 
 void Application::updateShadowMap() {
