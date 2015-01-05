@@ -79,7 +79,7 @@ function addButterfly() {
         rotation: Quat.fromPitchYawRollDegrees(-80 + Math.random() * 20, Math.random() * 360.0, 0.0),
         velocity: { x: 0, y: 0, z: 0 },
         gravity: { x: 0, y: GRAVITY, z: 0 },
-		damping: 0.9999,
+		damping: 0.00001,
 		dimensions: dimensions,
         color: color,
 		animationURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/content/butterfly/butterfly.fbx",

@@ -145,7 +145,7 @@ function shootTarget() {
           velocity: velocity, 
           gravity: {  x: 0, y: TARGET_GRAVITY, z: 0 }, 
           lifetime: 1000.0,
-          damping: 0.99 });
+          damping: 0.0001 });
 
     // Record start time 
     shotTime = new Date();
