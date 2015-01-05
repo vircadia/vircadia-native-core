@@ -1,11 +1,11 @@
-set(TARGET_NAME voxels)
+set(TARGET_NAME environment)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(Widgets Script)
+setup_hifi_library()
 
 include_glm()
 
-link_hifi_libraries(shared octree networking)
+link_hifi_libraries(shared networking)
 
 # find ZLIB
 find_package(ZLIB REQUIRED)

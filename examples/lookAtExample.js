@@ -61,7 +61,7 @@ function mousePressEvent(event) {
         cancelLookAt();
     } else {
         var pickRay = Camera.computePickRay(event.x, event.y);
-        var intersection = Voxels.findRayIntersection(pickRay);
+        var intersection = Entities.findRayIntersection(pickRay);
         if (intersection.intersects) {
         
             // remember the old mode we were in

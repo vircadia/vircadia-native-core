@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QFileDialog>
 
 #include "Application.h"
 #include "Audio.h"
@@ -149,9 +150,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
-    ui.maxVoxelsSpin->setValue(menuInstance->getMaxVoxels());
-    
-    ui.maxVoxelsPPSSpin->setValue(menuInstance->getMaxVoxelPacketsPerSecond());
+    ui.maxVoxelsPPSSpin->setValue(menuInstance->getMaxOctreePacketsPerSecond());
 
     ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
 
@@ -220,7 +219,6 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    Application::getInstance()->getVoxels()->setMaxVoxels(ui.maxVoxelsSpin->value());
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
@@ -233,7 +231,7 @@ void PreferencesDialog::savePreferences() {
     
     Menu::getInstance()->setFaceshiftHostname(ui.faceshiftHostnameEdit->text());    
     
-    Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
+    Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxVoxelsPPSSpin->value());
 
     Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
 

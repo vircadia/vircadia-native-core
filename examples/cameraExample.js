@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var damping = 0.9;
+var damping = 0.001;
 var yaw = 0.0;
 var pitch = 0.0;
 var roll = 0.0;

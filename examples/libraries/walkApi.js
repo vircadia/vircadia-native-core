@@ -181,7 +181,9 @@ spatialInformation = (function() {
 
             // use the blocking version of findRayIntersection to avoid errors
             var pickRay = {origin: MyAvatar.position, direction: {x:0, y:-1, z:0}};
-            return Voxels.findRayIntersectionBlocking(pickRay).distance - motion.calibration.hipsToFeet;;
+            
+            // TODO: change this to use entities?
+            return false; // Voxels.findRayIntersectionBlocking(pickRay).distance - motion.calibration.hipsToFeet;;
         }
     }
 

@@ -1,5 +1,5 @@
 //
-//  VoxelFade.h
+//  OctreeFade.h
 //  interface/src/voxels
 //
 //  Created by Brad Hefta-Gaub on 8/6/13.
@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_VoxelFade_h
-#define hifi_VoxelFade_h
+#ifndef hifi_OctreeFade_h
+#define hifi_OctreeFade_h
 
 #include <OctalCode.h> // for VoxelPositionSize
 
-class VoxelFade {
+class OctreeFade {
 public:
 
     enum FadeDirection { FADE_OUT, FADE_IN};
@@ -36,11 +36,11 @@ public:
     float               green;
     float               blue;
     
-    VoxelFade(FadeDirection direction = FADE_OUT, float red = DEFAULT_RED, 
+    OctreeFade(FadeDirection direction = FADE_OUT, float red = DEFAULT_RED, 
               float green = DEFAULT_GREEN, float blue = DEFAULT_BLUE);
     
     void render();
     bool isDone() const;
 };
 
-#endif // hifi_VoxelFade_h
+#endif // hifi_OctreeFade_h
