@@ -2899,9 +2899,8 @@ void Application::updateShadowMap() {
         viewTransform.setRotation(rotation);
         setViewTransform(viewTransform);
 
-        glDisable(GL_POLYGON_OFFSET_FILL);
-        //glEnable(GL_POLYGON_OFFSET_FILL);
-        //glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
         {
             PerformanceTimer perfTimer("avatarManager");
@@ -2924,7 +2923,7 @@ void Application::updateShadowMap() {
             _overlays.renderWorld(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
-        //glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_POLYGON_OFFSET_FILL);
 
         glPopMatrix();
 
