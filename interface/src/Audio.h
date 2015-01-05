@@ -152,9 +152,13 @@ public slots:
     void setReverbOptions(const AudioEffectOptions* options);
 
     void outputNotify();
-
+    
 signals:
     bool muteToggled();
+    void inputReceived(const QByteArray& inputSamples);
+
+protected:
+    Audio();
     
 private:
     void outputFormatChanged();
