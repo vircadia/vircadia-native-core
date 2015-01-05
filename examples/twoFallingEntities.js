@@ -12,7 +12,7 @@ var properties = {
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: -0.05, z: 0}, 
                 radius: radius,
-                damping: 0.999,
+                damping: 0.00001,
                 color: { red: 200, green: 0, blue: 0 },
                 lifetime: 60     
             };

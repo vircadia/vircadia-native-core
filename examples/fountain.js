@@ -46,7 +46,7 @@ function vInterpolate(a, b, fraction) {
 }
  
 var position = { x: 5.0, y: 0.6, z: 5.0 }; 
-Voxels.setVoxel(position.x, 0, position.z, 0.5, 0, 0, 255);
+//Voxels.setVoxel(position.x, 0, position.z, 0.5, 0, 0, 255);
 	
 var totalEntities = 0;
 function makeFountain(deltaTime) {

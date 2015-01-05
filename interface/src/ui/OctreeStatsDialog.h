@@ -60,12 +60,11 @@ private:
     int _statCount;
     
     int _sendingMode;
-    int _serverVoxels;
-    int _localVoxels;
-    int _localVoxelsMemory;
-    int _voxelsRendered;
-    int _voxelServerLables[MAX_VOXEL_SERVERS];
-    int _voxelServerLabelsCount;
+    int _serverElements;
+    int _localElements;
+    int _localElementsMemory;
+    int _octreeServerLables[MAX_VOXEL_SERVERS];
+    int _octreeServerLabelsCount;
     details _extraServerDetails[MAX_VOXEL_SERVERS];
 };
 

@@ -72,19 +72,25 @@ public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream) : _receivedAudioStream(receivedAudioStream) {};
+        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, Audio* audio) : 
+            _receivedAudioStream(receivedAudioStream), _audio(audio), _unfulfilledReads(0) {};
 
         void start() { open(QIODevice::ReadOnly); }
         void stop() { close(); }
         qint64	readData(char * data, qint64 maxSize);
         qint64	writeData(const char * data, qint64 maxSize) { return 0; }
+        
+        int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         MixedProcessedAudioStream& _receivedAudioStream;
+        Audio* _audio;
+        int _unfulfilledReads;
     };
     
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _inputGate.getMeasuredFloor(), 0.0f); }
+
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
@@ -145,13 +151,11 @@ public slots:
     void setReverb(bool reverb) { _reverb = reverb; }
     void setReverbOptions(const AudioEffectOptions* options);
 
+    void outputNotify();
+
 signals:
     bool muteToggled();
-    void inputReceived(const QByteArray& inputSamples);
     
-protected:
-    // setup for audio I/O
-    Audio();
 private:
     void outputFormatChanged();
 

@@ -1720,7 +1720,7 @@ var ModelImporter = function (opts) {
     this.mouseMoveEvent = function (event) {
         if (self._importing) {
             var pickRay = Camera.computePickRay(event.x, event.y);
-            var intersection = Voxels.findRayIntersection(pickRay);
+            var intersection = false; //Voxels.findRayIntersection(pickRay);
 
             var distance = 2;// * self._scale;
 

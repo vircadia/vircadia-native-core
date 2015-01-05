@@ -145,7 +145,7 @@ function shootTarget() {
           velocity: velocity, 
           gravity: {  x: 0, y: TARGET_GRAVITY, z: 0 }, 
           lifetime: 1000.0,
-          damping: 0.99 });
+          damping: 0.0001 });
 
     // Record start time 
     shotTime = new Date();
@@ -153,45 +153,6 @@ function shootTarget() {
     // Play target shoot sound
     audioOptions.position = newPosition;   
     Audio.playSound(targetLaunchSound, audioOptions);
-}
-
-
-
-function entityCollisionWithVoxel(entity, voxel, collision) {
-
-print("entityCollisionWithVoxel....");
-
-    var VOXEL_SIZE = 0.5;
-    // Don't make this big. I mean it.
-    var CRATER_RADIUS = 5;
-    var entityProperties = Entities.getEntityProperties(entity);
-    var position = entityProperties.position; 
-    Entities.deleteEntity(entity);
-    
-    audioOptions.position = collision.contactPoint;
-    Audio.playSound(impactSound, audioOptions); 
-    
-    //  Make a crater
-    var center = collision.contactPoint;
-    var RADIUS = CRATER_RADIUS * VOXEL_SIZE;
-    var RADIUS2 = RADIUS * RADIUS;
-    var distance2;
-    var dx;
-    var dy;
-    var dz;
-    for (var x = center.x - RADIUS; x <= center.x + RADIUS; x += VOXEL_SIZE) {
-        for (var y = center.y - RADIUS; y <= center.y + RADIUS; y += VOXEL_SIZE) {
-            for (var z = center.z - RADIUS; z <= center.z + RADIUS; z += VOXEL_SIZE) {
-                dx = Math.abs(x - center.x);
-                dy = Math.abs(y - center.y);
-                dz = Math.abs(z - center.z);
-                distance2 = dx * dx + dy * dy + dz * dz;
-                if (distance2 <= RADIUS2) {
-                    Voxels.eraseVoxel(x, y, z, VOXEL_SIZE);
-                }
-            }
-        }
-    }
 }
 
 function entityCollisionWithEntity(entity1, entity2, collision) {
@@ -355,7 +316,6 @@ function scriptEnding() {
     MyAvatar.detachOne(gunModel);
 }
 
-Entities.entityCollisionWithVoxel.connect(entityCollisionWithVoxel);
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);

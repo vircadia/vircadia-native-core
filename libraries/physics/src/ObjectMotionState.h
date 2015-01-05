@@ -66,6 +66,8 @@ public:
     void setDensity(float density);
     void setFriction(float friction);
     void setRestitution(float restitution);
+    void setLinearDamping(float damping);
+    void setAngularDamping(float damping);
     void setVolume(float volume);
 
     float getMass() const { return _volume * _density; }
@@ -93,6 +95,8 @@ protected:
     float _volume;
     float _friction;
     float _restitution;
+    float _linearDamping;
+    float _angularDamping;
     bool _wasInWorld;
     MotionType _motionType;
 

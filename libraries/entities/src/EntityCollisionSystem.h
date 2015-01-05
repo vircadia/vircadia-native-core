@@ -22,7 +22,6 @@
 #include <CollisionInfo.h>
 #include <OctreePacketData.h>
 #include <SharedUtil.h>
-#include <VoxelDetail.h>
 
 #include "EntityItem.h"
 #include "SimpleEntitySimulation.h"
@@ -31,38 +30,33 @@ class AbstractAudioInterface;
 class AvatarData;
 class EntityEditPacketSender;
 class EntityTree;
-class VoxelTree;
 
 class EntityCollisionSystem : public QObject, public SimpleEntitySimulation {
 Q_OBJECT
 public:
     EntityCollisionSystem();
 
-    void init(EntityEditPacketSender* packetSender, EntityTree* entities, VoxelTree* voxels, AvatarHashMap* _avatars = NULL);
+    void init(EntityEditPacketSender* packetSender, EntityTree* entities, AvatarHashMap* _avatars = NULL);
                                 
     ~EntityCollisionSystem();
 
     void updateCollisions();
 
     void checkEntity(EntityItem* Entity);
-    void updateCollisionWithVoxels(EntityItem* Entity);
     void updateCollisionWithEntities(EntityItem* Entity);
     void updateCollisionWithAvatars(EntityItem* Entity);
     void queueEntityPropertiesUpdate(EntityItem* Entity);
 
 signals:
-    void entityCollisionWithVoxel(const EntityItemID& entityItemID, const VoxelDetail& voxel, const Collision& collision);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 private:
     void applyHardCollision(EntityItem* entity, const CollisionInfo& collisionInfo);
 
     static bool updateOperation(OctreeElement* element, void* extraData);
-    void emitGlobalEntityCollisionWithVoxel(EntityItem* Entity, VoxelDetail* voxelDetails, const Collision& penetration);
     void emitGlobalEntityCollisionWithEntity(EntityItem* entityA, EntityItem* entityB, const Collision& penetration);
 
     EntityEditPacketSender* _packetSender;
-    VoxelTree* _voxels;
     AbstractAudioInterface* _audio;
     AvatarHashMap* _avatars;
     CollisionList _collisions;

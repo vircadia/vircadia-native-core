@@ -19,8 +19,6 @@
 #include <QScreen>
 #include <QWindow>
 
-#include <VoxelConstants.h>
-
 #include "MainWindow.h"
 #include "Menu.h"
 #include "devices/OculusManager.h"

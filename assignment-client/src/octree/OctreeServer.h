@@ -121,7 +121,7 @@ public:
     void forceNodeShutdown(SharedNodePointer node);
     
 public slots:
-    /// runs the voxel server assignment
+    /// runs the octree server assignment
     void run();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);

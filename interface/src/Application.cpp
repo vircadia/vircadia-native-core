@@ -62,7 +62,6 @@
 #include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
-#include <LocalVoxelsList.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <NetworkAccessManager.h>
@@ -154,10 +153,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _voxelImportDialog(NULL),
-        _voxelImporter(),
-        _importSucceded(false),
-        _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
 #ifdef USE_BULLET_PHYSICS
         _physicsEngine(glm::vec3(0.0f)),
 #endif // USE_BULLET_PHYSICS
@@ -165,7 +160,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _entityCollisionSystem(),
         _entityClipboardRenderer(false, this, this),
         _entityClipboard(),
-        _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
@@ -180,9 +174,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _enableProcessVoxelsThread(true),
+        _enableProcessOctreeThread(true),
         _octreeProcessor(),
-        _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _nodeBoundsDisplay(this),
@@ -281,8 +274,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
 
@@ -319,10 +310,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _settings = new QSettings(this);
     _numChangedSettings = 0;
 
-    // Check to see if the user passed in a command line option for loading a local
-    // Voxel File.
-    _voxelsFilename = getCmdOption(argc, constArgv, "-i");
-
     #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
@@ -330,11 +317,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer << NodeType::EntityServer
+                                                 << NodeType::EntityServer
                                                  << NodeType::MetavoxelServer);
 
-    // connect to the packet sent signal of the _voxelEditSender and the _entityEditSender
-    connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
+    // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
@@ -379,8 +365,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // initialization continues in initializeGL when OpenGL context is ready
 
-    // Tell our voxel edit sender about our known jurisdictions
-    _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
+    // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
 
     // For now we're going to set the PPS for outbound packets to be super high, this is
@@ -391,9 +376,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     checkVersion();
 
     _overlays.init(glCanvas.data()); // do this before scripts load
-
-    LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
-    LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
@@ -452,9 +434,6 @@ Application::~Application() {
     // make sure we don't call the idle timer any more
     delete idleTimer;
     
-    _sharedVoxelSystem.changeTree(new VoxelTree);
-    delete _voxelImportDialog;
-
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
 
@@ -475,11 +454,8 @@ Application::~Application() {
     audioIO->thread()->wait();
     
     _octreeProcessor.terminate();
-    _voxelHideShowThread.terminate();
-    _voxelEditSender.terminate();
     _entityEditSender.terminate();
 
-    VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
@@ -489,9 +465,6 @@ void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
 
-    if (_voxelImportDialog) {
-        _voxelImportDialog->saveSettings(_settings);
-    }
     _settings->sync();
     _numChangedSettings = 0;
 }
@@ -574,15 +547,9 @@ void Application::initializeGL() {
     init();
     qDebug( "init() complete.");
 
-    // create thread for parsing of voxel data independent of the main network and rendering threads
-    _octreeProcessor.initialize(_enableProcessVoxelsThread);
-    _voxelEditSender.initialize(_enableProcessVoxelsThread);
-    _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
-    _entityEditSender.initialize(_enableProcessVoxelsThread);
-
-    if (_enableProcessVoxelsThread) {
-        qDebug("Voxel parsing thread created.");
-    }
+    // create thread for parsing of octee data independent of the main network and rendering threads
+    _octreeProcessor.initialize(_enableProcessOctreeThread);
+    _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
     QTimer* timer = new QTimer(this);
@@ -805,10 +772,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     foreach(NodeType_t type, destinationNodeTypes) {
-        // Intercept data to voxel server when voxels are disabled
-        if (type == NodeType::VoxelServer && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-            continue;
-        }
 
         // Perform the broadcast for one type
         int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, NodeSet() << type);
@@ -820,9 +783,8 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
             case NodeType::AvatarMixer:
                 channel = BandwidthMeter::AVATARS;
                 break;
-            case NodeType::VoxelServer:
             case NodeType::EntityServer:
-                channel = BandwidthMeter::VOXELS;
+                channel = BandwidthMeter::OCTREE;
                 break;
             default:
                 continue;
@@ -1099,11 +1061,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_F:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::DisplayFrustum);
-                }
-                break;
-            case Qt::Key_V:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Voxels);
                 }
                 break;
             case Qt::Key_P:
@@ -1450,7 +1407,7 @@ void Application::dropEvent(QDropEvent *event) {
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::VoxelServer << NodeType::EntityServer
+                               << NodeType::EntityServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
 }
@@ -1596,61 +1553,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
-void Application::setRenderVoxels(bool voxelRender) {
-    _voxelEditSender.setShouldSend(voxelRender);
-    if (!voxelRender) {
-        doKillLocalVoxels();
-    }
-}
-
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     SixenseManager::getInstance().setLowVelocityFilter(lowVelocityFilter);
-}
-
-void Application::doKillLocalVoxels() {
-    _wantToKillLocalVoxels = true;
-}
-
-void Application::removeVoxel(glm::vec3 position,
-                              float scale) {
-    VoxelDetail voxel;
-    voxel.x = position.x / TREE_SCALE;
-    voxel.y = position.y / TREE_SCALE;
-    voxel.z = position.z / TREE_SCALE;
-    voxel.s = scale / TREE_SCALE;
-    _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
-
-    // delete it locally to see the effect immediately (and in case no voxel server is present)
-    _voxels.getTree()->deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
-}
-
-
-void Application::makeVoxel(glm::vec3 position,
-                            float scale,
-                            unsigned char red,
-                            unsigned char green,
-                            unsigned char blue,
-                            bool isDestructive) {
-    VoxelDetail voxel;
-    voxel.x = position.x / TREE_SCALE;
-    voxel.y = position.y / TREE_SCALE;
-    voxel.z = position.z / TREE_SCALE;
-    voxel.s = scale / TREE_SCALE;
-    voxel.red = red;
-    voxel.green = green;
-    voxel.blue = blue;
-    PacketType message = isDestructive ? PacketTypeVoxelSetDestructive : PacketTypeVoxelSet;
-    _voxelEditSender.sendVoxelEditMessage(message, voxel);
-
-    // create the voxel locally so it appears immediately
-    _voxels.getTree()->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
-                        voxel.red, voxel.green, voxel.blue,
-                        isDestructive);
-   }
-
-glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
-    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.0f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.0f) * TREE_SCALE,
-        (mouseVoxel.z + mouseVoxel.s / 2.0f) * TREE_SCALE);
 }
 
 bool Application::mouseOnScreen() const {
@@ -1706,10 +1610,6 @@ FaceTracker* Application::getActiveFaceTracker() {
              (visage->isActive() ? static_cast<FaceTracker*>(visage.data()) : NULL)));
 }
 
-struct SendVoxelsOperationArgs {
-    const unsigned char*  newBaseOctCode;
-};
-
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
@@ -1736,88 +1636,6 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     return true;
 }
 
-bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
-    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-    SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
-    if (voxel->isColored()) {
-        const unsigned char* nodeOctalCode = voxel->getOctalCode();
-        unsigned char* codeColorBuffer = NULL;
-        int codeLength  = 0;
-        int bytesInCode = 0;
-        int codeAndColorLength;
-
-        // If the newBase is NULL, then don't rebase
-        if (args->newBaseOctCode) {
-            codeColorBuffer = rebaseOctalCode(nodeOctalCode, args->newBaseOctCode, true);
-            codeLength  = numberOfThreeBitSectionsInCode(codeColorBuffer);
-            bytesInCode = bytesRequiredForCodeLength(codeLength);
-            codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
-        } else {
-            codeLength  = numberOfThreeBitSectionsInCode(nodeOctalCode);
-            bytesInCode = bytesRequiredForCodeLength(codeLength);
-            codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
-            codeColorBuffer = new unsigned char[codeAndColorLength];
-            memcpy(codeColorBuffer, nodeOctalCode, bytesInCode);
-        }
-
-        // copy the colors over
-        codeColorBuffer[bytesInCode + RED_INDEX] = voxel->getColor()[RED_INDEX];
-        codeColorBuffer[bytesInCode + GREEN_INDEX] = voxel->getColor()[GREEN_INDEX];
-        codeColorBuffer[bytesInCode + BLUE_INDEX] = voxel->getColor()[BLUE_INDEX];
-        getInstance()->_voxelEditSender.queueVoxelEditMessage(PacketTypeVoxelSetDestructive,
-                codeColorBuffer, codeAndColorLength);
-
-        delete[] codeColorBuffer;
-    }
-    return true; // keep going
-}
-
-void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString suggestedName = desktopLocation.append("/voxels.svo");
-
-    QString fileNameString = QFileDialog::getSaveFileName(DependencyManager::get<GLCanvas>().data(),
-                                                          tr("Export Voxels"), suggestedName,
-                                                          tr("Sparse Voxel Octree Files (*.svo)"));
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
-
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (selectedNode) {
-        VoxelTree exportTree;
-        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, &exportTree, true);
-        exportTree.writeToSVOFile(fileName);
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-}
-
-void Application::importVoxels() {
-    _importSucceded = false;
-
-    if (!_voxelImportDialog) {
-        _voxelImportDialog = new VoxelImportDialog(_window);
-        _voxelImportDialog->loadSettings(_settings);
-    }
-
-    if (!_voxelImportDialog->exec()) {
-        qDebug() << "Import succeeded." << endl;
-        _importSucceded = true;
-    } else {
-        qDebug() << "Import failed." << endl;
-        if (_sharedVoxelSystem.getTree() == _voxelImporter.getVoxelTree()) {
-            _sharedVoxelSystem.killLocalVoxels();
-            _sharedVoxelSystem.changeTree(&_clipboard);
-        }
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-
-    emit importDone();
-}
-
 bool Application::importEntities(const QString& filename) {
     _entityClipboard.eraseAllOctreeElements();
     bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
@@ -1831,71 +1649,6 @@ void Application::pasteEntities(float x, float y, float z) {
     _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
-void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
-    copyVoxels(sourceVoxel);
-    deleteVoxelAt(sourceVoxel);
-}
-
-void Application::copyVoxels(const VoxelDetail& sourceVoxel) {
-    // switch to and clear the clipboard first...
-    _sharedVoxelSystem.killLocalVoxels();
-    if (_sharedVoxelSystem.getTree() != &_clipboard) {
-        _clipboard.eraseAllOctreeElements();
-        _sharedVoxelSystem.changeTree(&_clipboard);
-    }
-
-    // then copy onto it if there is something to copy
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (selectedNode) {
-        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, _sharedVoxelSystem.getTree(), true);
-        _sharedVoxelSystem.forceRedrawEntireTree();
-    }
-}
-
-void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination) {
-    // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to
-    // the server as an set voxel message, this will also rebase the voxels to the new location
-    SendVoxelsOperationArgs args;
-    args.newBaseOctCode = octalCodeDestination;
-    _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
-
-    // Switch back to clipboard if it was an import
-    if (_sharedVoxelSystem.getTree() != &_clipboard) {
-        _sharedVoxelSystem.killLocalVoxels();
-        _sharedVoxelSystem.changeTree(&_clipboard);
-    }
-
-    _voxelEditSender.releaseQueuedMessages();
-}
-
-void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
-    unsigned char* calculatedOctCode = NULL;
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a
-    // target octalCode for where the user is pointing.
-    const unsigned char* octalCodeDestination;
-    if (selectedNode) {
-        octalCodeDestination = selectedNode->getOctalCode();
-    } else {
-        octalCodeDestination = calculatedOctCode = pointToVoxel(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    }
-
-    pasteVoxelsToOctalCode(octalCodeDestination);
-
-    if (calculatedOctCode) {
-        delete[] calculatedOctCode;
-    }
-}
-
-void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
-    VoxelTreeElement* nodeToNudge = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (nodeToNudge) {
-        _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
-    }
-}
-
 void Application::initDisplay() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
@@ -1906,23 +1659,6 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    _sharedVoxelSystemViewFrustum.setPosition(glm::vec3(TREE_SCALE / 2.0f,
-                                                        TREE_SCALE / 2.0f,
-                                                        3.0f * TREE_SCALE / 2.0f));
-    _sharedVoxelSystemViewFrustum.setNearClip(TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFarClip(3.0f * TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFieldOfView(90.0f);
-    _sharedVoxelSystemViewFrustum.setOrientation(glm::quat());
-    _sharedVoxelSystemViewFrustum.calculate();
-    _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
-
-    VoxelTreeElement::removeUpdateHook(&_sharedVoxelSystem);
-
-    // Cleanup of the original shared tree
-    _sharedVoxelSystem.init();
-
-    _voxelImportDialog = new VoxelImportDialog(_window);
-
     _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
@@ -1985,29 +1721,19 @@ void Application::init() {
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 
-    // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
-    _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
-    _voxels.setDisableFastVoxelPipeline(false);
-    _voxels.init();
-
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
     EntityTree* entityTree = _entities.getTree();
-    _entityCollisionSystem.init(&_entityEditSender, entityTree, _voxels.getTree(), &_avatarManager);
+    
+    _entityCollisionSystem.init(&_entityEditSender, entityTree, &_avatarManager);
+    
     entityTree->setSimulation(&_entityCollisionSystem);
-
-    // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface
-    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
-            ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithVoxel);
 
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
-            &_entities, &EntityTreeRenderer::entityCollisionWithVoxel);
-
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
 
@@ -2216,10 +1942,8 @@ void Application::updateThreads(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateThreads()");
 
     // parse voxel packets
-    if (!_enableProcessVoxelsThread) {
+    if (!_enableProcessOctreeThread) {
         _octreeProcessor.threadRoutine();
-        _voxelHideShowThread.threadRoutine();
-        _voxelEditSender.threadRoutine();
         _entityEditSender.threadRoutine();
     }
 }
@@ -2406,9 +2130,6 @@ void Application::update(float deltaTime) {
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-                queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-            }
             if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
                 queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
             }
@@ -2466,8 +2187,7 @@ int Application::sendNackPackets() {
     
     nodeList->eachNode([&](const SharedNodePointer& node){
         
-        if (node->getActiveSocket()
-            && (node->getType() == NodeType::VoxelServer || node->getType() == NodeType::EntityServer)) {
+        if (node->getActiveSocket() && node->getType() == NodeType::EntityServer) {
             
             QUuid nodeUUID = node->getUUID();
             
@@ -2551,7 +2271,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
-    _octreeQuery.setOctreeSizeScale(Menu::getInstance()->getVoxelSizeScale());
+    _octreeQuery.setOctreeSizeScale(Menu::getInstance()->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(Menu::getInstance()->getBoundaryLevelAdjust());
 
     unsigned char queryPacket[MAX_PACKET_SIZE];
@@ -2604,7 +2324,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = Menu::getInstance()->getMaxVoxelPacketsPerSecond();
+    int totalPPS = Menu::getInstance()->getMaxOctreePacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
@@ -2707,7 +2427,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
             
             // Feed number of bytes to corresponding channel of the bandwidth meter
-            _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
+            _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(packetLength);
         }
     });
 }
@@ -2785,7 +2505,7 @@ void Application::updateShadowMap() {
     QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
     glm::vec3 lightDirection = -getSunDirection();
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
@@ -2810,8 +2530,10 @@ void Application::updateShadowMap() {
         const glm::vec2& coord = MAP_COORDS[i];
         glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
 
+        // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
+        int regionIncrement = (matrixCount == 1 ? 2 : 1);
         float nearScale = SHADOW_MATRIX_DISTANCES[i] * frustumScale;
-        float farScale = SHADOW_MATRIX_DISTANCES[i + 1] * frustumScale;
+        float farScale = SHADOW_MATRIX_DISTANCES[i + regionIncrement] * frustumScale;
         glm::vec3 points[] = {
             glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
             glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
@@ -2897,7 +2619,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("entities");
-         //   _entities.render(RenderArgs::SHADOW_RENDER_MODE);
+            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         // render JS/scriptable overlays
@@ -2952,7 +2674,7 @@ bool Application::shouldRenderMesh(float largestDimension, float distanceToCamer
 }
 
 float Application::getSizeScale() const { 
-    return Menu::getInstance()->getVoxelSizeScale();
+    return Menu::getInstance()->getOctreeSizeScale();
 }
 
 int Application::getBoundaryLevelAdjust() const { 
@@ -3109,14 +2831,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         glColor3f(1,0,0);
         DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15);
         
-        //  Draw voxels
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-            PerformanceTimer perfTimer("voxels");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... voxels...");
-            _voxels.render();
-        }
-
         // also, metavoxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {
             PerformanceTimer perfTimer("metavoxels");
@@ -3193,21 +2907,21 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
             renderViewFrustum(_viewFrustum);
         }
 
-        // render voxel fades if they exist
-        if (_voxelFades.size() > 0) {
-            PerformanceTimer perfTimer("voxelFades");
+        // render octree fades if they exist
+        if (_octreeFades.size() > 0) {
+            PerformanceTimer perfTimer("octreeFades");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... voxel fades...");
-            _voxelFadesLock.lockForWrite();
-            for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
+                "Application::displaySide() ... octree fades...");
+            _octreeFadesLock.lockForWrite();
+            for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
                 fade->render();
                 if(fade->isDone()) {
-                    fade = _voxelFades.erase(fade);
+                    fade = _octreeFades.erase(fade);
                 } else {
                     ++fade;
                 }
             }
-            _voxelFadesLock.unlock();
+            _octreeFadesLock.unlock();
         }
 
         // give external parties a change to hook in
@@ -3580,20 +3294,6 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
     }
 }
 
-void Application::deleteVoxels(const VoxelDetail& voxel) {
-    deleteVoxelAt(voxel);
-}
-
-void Application::deleteVoxelAt(const VoxelDetail& voxel) {
-    if (voxel.s != 0) {
-        // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
-
-        // delete it locally to see the effect immediately (and in case no voxel server is present)
-        _voxels.getTree()->deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
-    }
-}
-
 void Application::resetSensors() {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<Visage>()->reset();
@@ -3684,10 +3384,6 @@ void Application::clearDomainOctreeDetails() {
     _environment.resetToDefault();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
-    _voxelServerJurisdictions.lockForWrite();
-    _voxelServerJurisdictions.clear();
-    _voxelServerJurisdictions.unlock();
-
     _entityServerJurisdictions.lockForWrite();
     _entityServerJurisdictions.clear();
     _entityServerJurisdictions.unlock();
@@ -3699,8 +3395,6 @@ void Application::clearDomainOctreeDetails() {
     // reset the model renderer
     _entities.clear();
 
-    // reset the voxels renderer
-    _voxels.killLocalVoxels();
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -3737,51 +3431,13 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     _octreeProcessor.nodeKilled(node);
 
-    _voxelEditSender.nodeKilled(node);
     _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "audioMixerKilled");
     }
 
-    if (node->getType() == NodeType::VoxelServer) {
-        QUuid nodeUUID = node->getUUID();
-        // see if this is the first we've heard of this node...
-        _voxelServerJurisdictions.lockForRead();
-        if (_voxelServerJurisdictions.find(nodeUUID) != _voxelServerJurisdictions.end()) {
-            unsigned char* rootCode = _voxelServerJurisdictions[nodeUUID].getRootOctalCode();
-            VoxelPositionSize rootDetails;
-            voxelDetailsForCode(rootCode, rootDetails);
-            _voxelServerJurisdictions.unlock();
-
-            qDebug("voxel server going away...... v[%f, %f, %f, %f]",
-                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
-
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
-            }
-
-            // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _voxelServerJurisdictions.lockForWrite();
-            _voxelServerJurisdictions.erase(_voxelServerJurisdictions.find(nodeUUID));
-        }
-        _voxelServerJurisdictions.unlock();
-
-        // also clean up scene stats for that server
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats.erase(nodeUUID);
-        }
-        _octreeSceneStatsLock.unlock();
-
-    } else if (node->getType() == NodeType::EntityServer) {
+    if (node->getType() == NodeType::EntityServer) {
 
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
@@ -3796,14 +3452,14 @@ void Application::nodeKilled(SharedNodePointer node) {
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
+                OctreeFade fade(OctreeFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
+                _octreeFadesLock.lockForWrite();
+                _octreeFades.push_back(fade);
+                _octreeFadesLock.unlock();
             }
 
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
@@ -3825,7 +3481,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     }
 }
 
-void Application::trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
+void Application::trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
 
     // Attempt to identify the sender from it's address.
     if (sendingNode) {
@@ -3869,10 +3525,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;
         QString serverType;
-        if (sendingNode->getType() == NodeType::VoxelServer) {
-            jurisdiction = &_voxelServerJurisdictions;
-            serverType = "Voxel";
-        } else {
+        if (sendingNode->getType() == NodeType::EntityServer) {
             jurisdiction = &_entityServerJurisdictions;
             serverType = "Entity";
         }
@@ -3885,14 +3538,14 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
                 qPrintable(serverType), rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
+                OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
+                _octreeFadesLock.lockForWrite();
+                _octreeFades.push_back(fade);
+                _octreeFadesLock.unlock();
             }
         } else {
             jurisdiction->unlock();
@@ -3911,7 +3564,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 }
 
 void Application::packetSent(quint64 length) {
-    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
+    _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(length);
 }
 
 void Application::loadScripts() {
@@ -3966,9 +3619,6 @@ void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
-    scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
-    scriptEngine->getVoxelsScriptingInterface()->setVoxelTree(_voxels.getTree());
-    scriptEngine->getVoxelsScriptingInterface()->setUndoStack(&_undoStack);
     scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
     scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
 
@@ -4249,10 +3899,6 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
     
     qDebug() << "Voxel costs are" << satoshisPerVoxel << "per voxel and" << satoshisPerMeterCubed << "per meter cubed";
     qDebug() << "Destination wallet UUID for voxel payments is" << voxelWalletUUID;
-    
-    _voxelEditSender.setSatoshisPerVoxel(satoshisPerVoxel);
-    _voxelEditSender.setSatoshisPerMeterCubed(satoshisPerMeterCubed);
-    _voxelEditSender.setDestinationWalletUUID(voxelWalletUUID);
 }
 
 QString Application::getPreviousScriptLocation() {

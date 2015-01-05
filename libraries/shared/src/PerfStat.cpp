@@ -13,7 +13,8 @@
 #include <map>
 #include <string>
 
-#include <QtCore/QDebug>
+#include <QDebug>
+#include <QThread>
 
 #include "PerfStat.h"
 
@@ -77,15 +78,26 @@ void PerformanceTimerRecord::tallyResult(const quint64& now) {
 // PerformanceTimer
 // ----------------------------------------------------------------------------
 
-QString PerformanceTimer::_fullName;
+QHash<QThread*, QString> PerformanceTimer::_fullNames;
 QMap<QString, PerformanceTimerRecord> PerformanceTimer::_records;
 
 
+PerformanceTimer::PerformanceTimer(const QString& name) :
+    _start(0),
+    _name(name) 
+{
+    QString& fullName = _fullNames[QThread::currentThread()];
+    fullName.append("/");
+    fullName.append(_name);
+    _start = usecTimestampNow();
+}
+
 PerformanceTimer::~PerformanceTimer() {
     quint64 elapsedusec = (usecTimestampNow() - _start);
-    PerformanceTimerRecord& namedRecord = _records[_fullName];
+    QString& fullName = _fullNames[QThread::currentThread()];
+    PerformanceTimerRecord& namedRecord = _records[fullName];
     namedRecord.accumulateResult(elapsedusec);
-    _fullName.resize(_fullName.size() - (_name.size() + 1));
+    fullName.resize(fullName.size() - (_name.size() + 1));
 }
 
 // static 

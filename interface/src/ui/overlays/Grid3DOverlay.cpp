@@ -37,6 +37,10 @@ void Grid3DOverlay::render(RenderArgs* args) {
     }
 
     if (!_gridProgram.isLinked()) {
+        if (!_gridProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/grid.vert")) {
+            qDebug() << "Failed to compile: " + _gridProgram.log();
+            return;
+        }
         if (!_gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag")) {
             qDebug() << "Failed to compile: " + _gridProgram.log();
             return;
@@ -70,8 +74,8 @@ void Grid3DOverlay::render(RenderArgs* args) {
     xColor color = getColor();
     glm::vec3 position = getPosition();
 
-    const int MINOR_GRID_DIVISIONS = 100;
-    const int MAJOR_GRID_DIVISIONS = 50;
+    const int MINOR_GRID_DIVISIONS = 200;
+    const int MAJOR_GRID_DIVISIONS = 100;
     const float MAX_COLOR = 255.0f;
 
 

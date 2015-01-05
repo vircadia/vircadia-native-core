@@ -358,7 +358,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += "Uptime: " + getUptime();
         statsString += "\r\n\r\n";
 
-        // display voxel file load time
+        // display octree file load time
         if (isInitialLoadComplete()) {
             if (isPersistEnabled()) {
                 statsString += QString("%1 File Persist Enabled...\r\n").arg(getMyServerName());
@@ -373,7 +373,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             statsString += "\r\n";
 
         } else {
-            statsString += "Voxels not yet loaded...\r\n";
+            statsString += "Octree file not yet loaded...\r\n";
         }
 
         statsString += "\r\n\r\n";
@@ -712,7 +712,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
 
         statsString += QString().sprintf("Element Node Memory Usage:       %8.2f %s\r\n",
-                                         OctreeElement::getVoxelMemoryUsage() / memoryScale, memoryScaleLabel);
+                                         OctreeElement::getOctreeMemoryUsage() / memoryScale, memoryScaleLabel);
         statsString += QString().sprintf("Octcode Memory Usage:            %8.2f %s\r\n",
                                          OctreeElement::getOctcodeMemoryUsage() / memoryScale, memoryScaleLabel);
         statsString += QString().sprintf("External Children Memory Usage:  %8.2f %s\r\n",
