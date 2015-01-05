@@ -34,6 +34,7 @@ REGISTER_META_OBJECT(Heightfield)
 REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(Cuboid)
 REGISTER_META_OBJECT(StaticModel)
+REGISTER_META_OBJECT(MaterialObject)
 
 static int heightfieldHeightTypeId = registerSimpleMetaType<HeightfieldHeightPointer>();
 static int heightfieldColorTypeId = registerSimpleMetaType<HeightfieldColorPointer>();
@@ -360,6 +361,9 @@ bool StaticModel::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
 
 QByteArray StaticModel::getRendererClassName() const {
     return "StaticModelRenderer";
+}
+
+DataBlock::~DataBlock() {
 }
 
 const int HeightfieldData::SHARED_EDGE = 1;
@@ -1112,6 +1116,74 @@ template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const
         value = HeightfieldMaterialPointer(); 
     } else {
         value = new HeightfieldMaterial(*this, size, reference);
+    }
+}
+
+MaterialObject::MaterialObject() :
+    _scaleS(1.0f),
+    _scaleT(1.0f) {
+}
+
+static QHash<uchar, int> countIndices(const QByteArray& contents) {
+    QHash<uchar, int> counts;
+    for (const uchar* src = (const uchar*)contents.constData(), *end = src + contents.size(); src != end; src++) {
+        if (*src != 0) {
+            counts[*src]++;
+        }
+    }
+    return counts;
+}
+
+const float EIGHT_BIT_MAXIMUM = 255.0f;
+
+uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials, QByteArray& contents) {
+    if (!(material && static_cast<MaterialObject*>(material.data())->getDiffuse().isValid())) {
+        return 0;
+    }
+    // first look for a matching existing material, noting the first reusable slot
+    int firstEmptyIndex = -1;
+    for (int i = 0; i < materials.size(); i++) {
+        const SharedObjectPointer& existingMaterial = materials.at(i);
+        if (existingMaterial) {
+            if (existingMaterial->equals(material.data())) {
+                return i + 1;
+            }
+        } else if (firstEmptyIndex == -1) {
+            firstEmptyIndex = i;
+        }
+    }
+    // if nothing found, use the first empty slot or append
+    if (firstEmptyIndex != -1) {
+        materials[firstEmptyIndex] = material;
+        return firstEmptyIndex + 1;
+    }
+    if (materials.size() < EIGHT_BIT_MAXIMUM) {
+        materials.append(material);
+        return materials.size();
+    }
+    // last resort: find the least-used material and remove it
+    QHash<uchar, int> counts = countIndices(contents);
+    uchar materialIndex = 0;
+    int lowestCount = INT_MAX;
+    for (QHash<uchar, int>::const_iterator it = counts.constBegin(); it != counts.constEnd(); it++) {
+        if (it.value() < lowestCount) {
+            materialIndex = it.key();
+            lowestCount = it.value();
+        }
+    }
+    contents.replace((char)materialIndex, (char)0);
+    return materialIndex;
+}
+
+void clearUnusedMaterials(QVector<SharedObjectPointer>& materials, const QByteArray& contents) {
+    QHash<uchar, int> counts = countIndices(contents);
+    for (int i = 0; i < materials.size(); i++) {
+        if (counts.value(i + 1) == 0) {
+            materials[i] = SharedObjectPointer();
+        }
+    }
+    while (!(materials.isEmpty() || materials.last())) {
+        materials.removeLast();
     }
 }
 
@@ -2273,44 +2345,12 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             
             if (stackX >= 0.0f && stackX <= innerStackWidth && stackZ >= 0.0f && stackZ <= innerStackHeight) {
                 StackArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
-                if (stackDest->isEmpty() && *heightLineDest != 0 && false) {
-                    // initialize from heightfield
-                    *stackDest = StackArray(1);
-                    float voxelHeight = *heightLineDest * voxelScale;
-                    stackDest->setPosition(glm::floor(voxelHeight));
-                    StackArray::Entry* entryDest = stackDest->getEntryData();
-                    
-                    if (colorDest) {
-                        entryDest->color = qRgb(colorDest[0], colorDest[1], colorDest[2]);
-                    }
-
-                    if (materialDest) {
-                        int index = *materialDest;
-                        if (index != 0) {
-                            int& mapping = materialMappings[index];
-                            if (mapping == 0) {
-                                mapping = getMaterialIndex(newMaterialMaterials.at(index - 1),
-                                    newStackMaterials, dummyContents);
-                            }
-                            index = mapping;
-                        }
-                        entryDest->material = index;
-                    }
-                    
-                    quint16 left = heightLineDest[-1];
-                    quint16 right = heightLineDest[1];
-                    quint16 up = heightLineDest[heightWidth];
-                    quint16 down = heightLineDest[-heightWidth];
-                    
-                    entryDest->setHermiteY(glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f :
-                        (left - right), 2.0f / voxelScale, (up == 0 || down == 0) ? 0.0f :
-                            (down - up))), glm::fract(voxelHeight));
-                }
+                int prepend = 0, append = 0;
                 if (!stackDest->isEmpty()) {
                     int oldBottom = stackDest->getPosition();
                     int oldTop = oldBottom + stackDest->getEntryCount() - 1;
-                    int prepend = qMax(0, oldBottom - newBottom);
-                    int append = qMax(0, newTop - oldTop);
+                    prepend = qMax(0, oldBottom - newBottom);
+                    append = qMax(0, newTop - oldTop);
                     if (prepend != 0 || append != 0) {
                         StackArray newStack(prepend + stackDest->getEntryCount() + append);
                         memcpy(newStack.getEntryData() + prepend, stackDest->getEntryData(),
@@ -2326,6 +2366,46 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 } else {
                     *stackDest = StackArray(newTop - newBottom + 1);
                     stackDest->setPosition(newBottom);
+                    prepend = stackDest->getEntryCount();
+                }
+                if (*heightLineDest != 0) {
+                    float voxelHeight = *heightLineDest * voxelScale;
+                    for (int i = 0, total = prepend + append; i < total; i++) {
+                        int offset = (i < prepend) ? i : stackDest->getEntryCount() - append + (i - prepend);
+                        int y = stackDest->getPosition() + offset;
+                        if (y <= voxelHeight) {
+                            StackArray::Entry* entryDest = stackDest->getEntryData() + offset;
+                            if (colorDest) {
+                                entryDest->color = qRgb(colorDest[0], colorDest[1], colorDest[2]);
+                            }
+                            if (materialDest) {
+                                int index = *materialDest;
+                                if (index != 0) {
+                                    int& mapping = materialMappings[index];
+                                    if (mapping == 0) {
+                                        mapping = getMaterialIndex(newMaterialMaterials.at(index - 1),
+                                            newStackMaterials, dummyContents);
+                                    }
+                                    index = mapping;
+                                }
+                                entryDest->material = index;
+                            }
+                            if (y + 1 > voxelHeight) {
+                                *heightLineDest = 0;
+                                
+                                const quint16* oldHeightLineDest = _height->getContents().constData() +
+                                    (int)z * heightWidth + (int)x;
+                                quint16 left = oldHeightLineDest[-1];
+                                quint16 right = oldHeightLineDest[1];
+                                quint16 up = oldHeightLineDest[heightWidth];
+                                quint16 down = oldHeightLineDest[-heightWidth];
+                                
+                                entryDest->setHermiteY(glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f :
+                                    (left - right), 2.0f / voxelScale, (up == 0 || down == 0) ? 0.0f :
+                                        (down - up))), voxelHeight - y);
+                            }
+                        }
+                    }
                 }
                 StackArray::Entry* entryDest = stackDest->getEntryData() + (newTop - stackDest->getPosition());
                 glm::vec3 pos = worldPos;

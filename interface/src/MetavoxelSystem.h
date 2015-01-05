@@ -59,17 +59,10 @@ public:
     void setNetworkSimulation(const NetworkSimulation& simulation);
     NetworkSimulation getNetworkSimulation();
     
-    const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
-    const AttributePointer& getVoxelBufferAttribute() { return _voxelBufferAttribute; }
-    
     void simulate(float deltaTime);
     void render();
 
     void renderHeightfieldCursor(const glm::vec3& position, float radius);
-
-    void renderVoxelCursor(const glm::vec3& position, float radius);
-
-    bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
 
     Q_INVOKABLE void paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color);
 
@@ -106,9 +99,6 @@ protected:
 private:
     
     void guideToAugmented(MetavoxelVisitor& visitor, bool render = false);
-    
-    AttributePointer _heightfieldBufferAttribute;
-    AttributePointer _voxelBufferAttribute;
     
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
@@ -267,8 +257,6 @@ public:
     void setRenderedAugmentedData(const MetavoxelData& data) { _renderedAugmentedData = data; }
 
     virtual int parseData(const QByteArray& packet);
-
-    Q_INVOKABLE void refreshVoxelData();
     
 protected:
     
@@ -360,19 +348,6 @@ private:
     QVector<NetworkTexturePointer> _networkTextures;
 };
 
-/// A client-side attribute that stores renderable buffers.
-class BufferDataAttribute : public InlineAttribute<BufferDataPointer> {
-    Q_OBJECT
-    
-public:
-    
-    Q_INVOKABLE BufferDataAttribute(const QString& name = QString());
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-    
-    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
-};
-
 /// Renders metavoxels as points.
 class DefaultMetavoxelRendererImplementation : public MetavoxelRendererImplementation {
     Q_OBJECT
@@ -381,7 +356,6 @@ public:
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
-    virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
 };

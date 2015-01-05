@@ -18,6 +18,7 @@
 #include "MetavoxelUtil.h"
 
 class AbstractHeightfieldNodeRenderer;
+class DataBlock;
 class Heightfield;
 class HeightfieldColor;
 class HeightfieldHeight;
@@ -293,6 +294,42 @@ private:
     QUrl _url;
 };
 
+typedef QExplicitlySharedDataPointer<DataBlock> DataBlockPointer;
+
+/// Base class for blocks of data.
+class DataBlock : public QSharedData {
+public:
+
+    static const int COLOR_BYTES = 3;
+    
+    virtual ~DataBlock();
+    
+    void setDeltaData(const DataBlockPointer& deltaData) { _deltaData = deltaData; }
+    const DataBlockPointer& getDeltaData() const { return _deltaData; }
+    
+    void setEncodedDelta(const QByteArray& encodedDelta) { _encodedDelta = encodedDelta; }
+    const QByteArray& getEncodedDelta() const { return _encodedDelta; }
+    
+    QMutex& getEncodedDeltaMutex() { return _encodedDeltaMutex; }
+
+protected:
+    
+    QByteArray _encoded;
+    QMutex _encodedMutex;
+    
+    DataBlockPointer _deltaData;
+    QByteArray _encodedDelta;
+    QMutex _encodedDeltaMutex;
+
+    class EncodedSubdivision {
+    public:
+        DataBlockPointer ancestor;
+        QByteArray data;
+    };
+    QVector<EncodedSubdivision> _encodedSubdivisions;
+    QMutex _encodedSubdivisionsMutex;
+};
+
 /// Base class for heightfield data blocks.
 class HeightfieldData : public DataBlock {
 public:
@@ -466,6 +503,36 @@ Bitstream& operator>>(Bitstream& in, HeightfieldMaterialPointer& value);
 
 template<> void Bitstream::writeRawDelta(const HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
+
+/// Contains the description of a material.
+class MaterialObject : public SharedObject {
+    Q_OBJECT
+    Q_PROPERTY(QUrl diffuse MEMBER _diffuse)
+    Q_PROPERTY(float scaleS MEMBER _scaleS)
+    Q_PROPERTY(float scaleT MEMBER _scaleT)
+    
+public:
+    
+    Q_INVOKABLE MaterialObject();
+
+    const QUrl& getDiffuse() const { return _diffuse; }
+
+    float getScaleS() const { return _scaleS; }
+    float getScaleT() const { return _scaleT; }
+
+private:
+    
+    QUrl _diffuse;
+    float _scaleS;
+    float _scaleT;
+};
+
+/// Utility method for editing: given a material pointer and a list of materials, returns the corresponding material index,
+/// creating a new entry in the list if necessary.
+uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials, QByteArray& contents);
+
+/// Utility method for editing: removes any unused materials from the supplied list.
+void clearUnusedMaterials(QVector<SharedObjectPointer>& materials, const QByteArray& contents);
 
 typedef QExplicitlySharedDataPointer<HeightfieldStack> HeightfieldStackPointer;
 
