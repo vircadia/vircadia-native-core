@@ -2795,7 +2795,7 @@ void Application::updateShadowMap() {
     QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);
-    glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
     glm::vec3 lightDirection = -getSunDirection();
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
