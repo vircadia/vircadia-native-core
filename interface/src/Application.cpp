@@ -447,7 +447,7 @@ Application::~Application() {
     Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
 
     // stop the audio process
-    QMetaObject::invokeMethod(audioIO.data(), "stop");
+    QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
     
     // ask the audio thread to quit and wait until it is done
     audioIO->thread()->quit();
