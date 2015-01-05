@@ -12,6 +12,7 @@
 #include "InterfaceConfig.h"
 
 #include <GlowEffect.h>
+#include <GeometryCache.h>
 
 #include "Line3DOverlay.h"
 
@@ -21,7 +22,8 @@ Line3DOverlay::Line3DOverlay() {
 
 Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
     Base3DOverlay(line3DOverlay),
-    _end(line3DOverlay->_end)
+    _end(line3DOverlay->_end),
+    _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
 }
 
@@ -59,10 +61,7 @@ void Line3DOverlay::render(RenderArgs* args) {
     if (getIsDashedLine()) {
         drawDashedLine(_position, _end);
     } else {
-        glBegin(GL_LINES);
-        glVertex3f(_start.x, _start.y, _start.z);
-        glVertex3f(_end.x, _end.y, _end.z);
-        glEnd();
+        DependencyManager::get<GeometryCache>()->renderLine(_start, _end, _geometryCacheID);
     }
     glEnable(GL_LIGHTING);
 

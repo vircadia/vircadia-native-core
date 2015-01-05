@@ -144,6 +144,14 @@ protected:
 private:
 
     void renderJointConstraints(int jointIndex);
+    void renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size);
+    
+    struct OrientationLineIDs {
+        int _up;
+        int _front;
+        int _right;
+    };
+    QHash<int, OrientationLineIDs> _jointOrientationLines;
 
     /// \param jointIndex index of joint in model
     /// \param position position of joint in model-frame

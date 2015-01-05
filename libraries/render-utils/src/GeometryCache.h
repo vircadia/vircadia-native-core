@@ -109,6 +109,10 @@ public:
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int id = UNKNOWN_ID);
 
+
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, int id = UNKNOWN_ID);
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2, int id = UNKNOWN_ID);
+
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
@@ -148,6 +152,14 @@ private:
     QHash<int, Vec3Pair> _lastRegisteredRect;
     QHash<Vec3Pair, VerticesIndices> _rectVBOs;
     QHash<int, VerticesIndices> _registeredRectVBOs;
+
+    QHash<int, Vec3Pair> _lastRegisteredLine3D;
+    QHash<Vec3Pair, VerticesIndices> _line3DVBOs;
+    QHash<int, VerticesIndices> _registeredLine3DVBOs;
+
+    QHash<int, Vec2Pair> _lastRegisteredLine2D;
+    QHash<Vec2Pair, VerticesIndices> _line2DVBOs;
+    QHash<int, VerticesIndices> _registeredLine2DVBOs;
 
 
 

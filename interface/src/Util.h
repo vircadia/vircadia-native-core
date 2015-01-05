@@ -27,9 +27,6 @@ void drawText(int x, int y, float scale, float radians, int mono,
 
 void renderCollisionOverlay(int width, int height, float magnitude, float red = 0, float blue = 0, float green = 0);
 
-void renderOrientationDirections( glm::vec3 position, const glm::quat& orientation, float size );
-
-
 void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance);
 
 void runTimingTests();

@@ -765,7 +765,6 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    
 }
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int id) {
@@ -1153,6 +1152,176 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
+
+void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, int id) {
+    bool registeredLine = (id != UNKNOWN_ID);
+    Vec3Pair key(p1, p2);
+    VerticesIndices& vbo = registeredLine ? _registeredLine3DVBOs[id] : _line3DVBOs[key];
+
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (registeredLine && vbo.first != 0) {
+        Vec3Pair& lastKey = _lastRegisteredLine3D[id];
+        if (lastKey != key) {
+            glDeleteBuffers(1, &vbo.first);
+            glDeleteBuffers(1, &vbo.second);
+            vbo.first = vbo.second = 0;
+            #if 1 // def WANT_DEBUG
+                qDebug() << "renderLine() 3D ... RELEASING REGISTERED line";
+            #endif // def WANT_DEBUG
+        }
+        #if 1 // def WANT_DEBUG
+        else {
+            qDebug() << "renderLine() 3D ... REUSING PREVIOUSLY REGISTERED line";
+        }
+        #endif // def WANT_DEBUG
+    }
+
+    const int FLOATS_PER_VERTEX = 3;
+    const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
+    const int vertices = 2;
+    const int indices = 2;
+    if (vbo.first == 0) {
+        _lastRegisteredLine3D[id] = key;  
+
+        int vertexPoints = vertices * FLOATS_PER_VERTEX;
+        GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices, no normals because we're a 2D quad
+        GLfloat* vertex = vertexData;
+        static GLubyte cannonicalIndices[indices] = {0, 1};
+        
+        int vertexPoint = 0;
+
+        // p1
+        vertex[vertexPoint++] = p1.x;
+        vertex[vertexPoint++] = p1.y;
+        vertex[vertexPoint++] = p1.z;
+
+        // p2
+        vertex[vertexPoint++] = p2.x;
+        vertex[vertexPoint++] = p2.y;
+        vertex[vertexPoint++] = p2.z;
+        
+
+        glGenBuffers(1, &vbo.first);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        delete[] vertexData;
+        
+        GLushort* indexData = new GLushort[indices];
+        GLushort* index = indexData;
+        for (int i = 0; i < indices; i++) {
+            index[i] = cannonicalIndices[i];
+        }
+        
+        glGenBuffers(1, &vbo.second);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        delete[] indexData;
+        
+        #if 1 // def WANT_DEBUG
+            if (id == UNKNOWN_ID) {
+                qDebug() << "new renderLine() 3D VBO made -- _line3DVBOs.size():" << _line3DVBOs.size();
+            } else {
+                qDebug() << "new registered renderLine() 3D VBO made -- _registeredLine3DVBOs.size():" << _registeredLine3DVBOs.size();
+            }
+        #endif
+    
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+    }
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(FLOATS_PER_VERTEX, GL_FLOAT, FLOATS_PER_VERTEX * sizeof(float), 0);
+    glDrawRangeElementsEXT(GL_LINES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2, int id) {
+    bool registeredLine = (id != UNKNOWN_ID);
+    Vec2Pair key(p1, p2);
+    VerticesIndices& vbo = registeredLine ? _registeredLine2DVBOs[id] : _line2DVBOs[key];
+
+    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (registeredLine && vbo.first != 0) {
+        Vec2Pair& lastKey = _lastRegisteredLine2D[id];
+        if (lastKey != key) {
+            glDeleteBuffers(1, &vbo.first);
+            glDeleteBuffers(1, &vbo.second);
+            vbo.first = vbo.second = 0;
+            #if 1 // def WANT_DEBUG
+                qDebug() << "renderLine() 2D... RELEASING REGISTERED line";
+            #endif // def WANT_DEBUG
+        }
+        #if 1 // def WANT_DEBUG
+        else {
+            qDebug() << "renderLine() 2D... REUSING PREVIOUSLY REGISTERED line";
+        }
+        #endif // def WANT_DEBUG
+    }
+
+    const int FLOATS_PER_VERTEX = 2;
+    const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
+    const int vertices = 2;
+    const int indices = 2;
+    if (vbo.first == 0) {
+        _lastRegisteredLine2D[id] = key;  
+
+        int vertexPoints = vertices * FLOATS_PER_VERTEX;
+        GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices, no normals because we're a 2D quad
+        GLfloat* vertex = vertexData;
+        static GLubyte cannonicalIndices[indices] = {0, 1};
+        
+        int vertexPoint = 0;
+
+        // p1
+        vertex[vertexPoint++] = p1.x;
+        vertex[vertexPoint++] = p1.y;
+
+        // p2
+        vertex[vertexPoint++] = p2.x;
+        vertex[vertexPoint++] = p2.y;
+        
+
+        glGenBuffers(1, &vbo.first);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        delete[] vertexData;
+        
+        GLushort* indexData = new GLushort[indices];
+        GLushort* index = indexData;
+        for (int i = 0; i < indices; i++) {
+            index[i] = cannonicalIndices[i];
+        }
+        
+        glGenBuffers(1, &vbo.second);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        delete[] indexData;
+        
+        #if 1 // def WANT_DEBUG
+            if (id == UNKNOWN_ID) {
+                qDebug() << "new renderLine() 2D VBO made -- _line2DVBOs.size():" << _line2DVBOs.size();
+            } else {
+                qDebug() << "new registered renderLine() 2D VBO made -- _registeredLine2DVBOs.size():" << _registeredLine2DVBOs.size();
+            }
+        #endif
+    
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+    }
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(FLOATS_PER_VERTEX, GL_FLOAT, FLOATS_PER_VERTEX * sizeof(float), 0);
+    glDrawRangeElementsEXT(GL_LINES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }
