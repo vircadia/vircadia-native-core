@@ -146,11 +146,6 @@ void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
     Hand* hand = Application::getInstance()->getAvatar()->getHand();
     if (_isInitialized && _isEnabled) {
-        // Disable the hands (and return to default pose) if both controllers are at base station
-        for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
-            it->setActive(!_controllersAtBase);
-        }
-        
 #ifdef __APPLE__
         SixenseBaseFunction sixenseGetNumActiveControllers =
         (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
@@ -212,6 +207,14 @@ void SixenseManager::update(float deltaTime) {
                 palm->setSixenseID(data->controller_index);
                 qDebug("Found new Sixense controller, ID %i", data->controller_index);
             }
+            
+            // Disable the hands (and return to default pose) if both controllers are at base station
+            if (foundHand) {
+                palm->setActive(!_controllersAtBase);
+            } else {
+                palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
+            }
+            
             
             //  Read controller buttons and joystick into the hand
             palm->setControllerButtons(data->buttons);

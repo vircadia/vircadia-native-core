@@ -63,8 +63,8 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _changedOnServer = 0;
 
     _position = glm::vec3(0,0,0);
-    _rotation = DEFAULT_ROTATION;
     _dimensions = DEFAULT_DIMENSIONS;
+    _rotation = DEFAULT_ROTATION;
     _glowLevel = DEFAULT_GLOW_LEVEL;
     _localRenderAlpha = DEFAULT_LOCAL_RENDER_ALPHA;
     _mass = DEFAULT_MASS;
@@ -72,13 +72,15 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _gravity = DEFAULT_GRAVITY;
     _damping = DEFAULT_DAMPING;
     _lifetime = DEFAULT_LIFETIME;
-    _userData = DEFAULT_USER_DATA;
+    _script = DEFAULT_SCRIPT;
     _registrationPoint = DEFAULT_REGISTRATION_POINT;
     _angularVelocity = DEFAULT_ANGULAR_VELOCITY;
     _angularDamping = DEFAULT_ANGULAR_DAMPING;
     _visible = DEFAULT_VISIBLE;
     _ignoreForCollisions = DEFAULT_IGNORE_FOR_COLLISIONS;
     _collisionsWillMove = DEFAULT_COLLISIONS_WILL_MOVE;
+    _locked = DEFAULT_LOCKED;
+    _userData = DEFAULT_USER_DATA;
     
     recalculateCollisionShape();
 }
