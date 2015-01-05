@@ -2801,8 +2801,7 @@ void Application::updateShadowMap() {
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
     glm::quat inverseRotation = glm::inverse(rotation);
     
-    //const float SHADOW_MATRIX_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
-    const float SHADOW_MATRIX_DISTANCES[] = { 1.0f, 2.5f, 5.0f, 10.0f, 20.0f };
+    const float SHADOW_MATRIX_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
     const glm::vec2 MAP_COORDS[] = { glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.0f),
         glm::vec2(0.0f, 0.5f), glm::vec2(0.5f, 0.5f) };
     
@@ -2821,8 +2820,10 @@ void Application::updateShadowMap() {
         const glm::vec2& coord = MAP_COORDS[i];
         glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
 
+        // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
+        int regionIncrement = (matrixCount == 1 ? 2 : 1);
         float nearScale = SHADOW_MATRIX_DISTANCES[i] * frustumScale;
-        float farScale = SHADOW_MATRIX_DISTANCES[i + 1] * frustumScale;
+        float farScale = SHADOW_MATRIX_DISTANCES[i + regionIncrement] * frustumScale;
         glm::vec3 points[] = {
             glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
             glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
@@ -2856,8 +2857,8 @@ void Application::updateShadowMap() {
         glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius);
 
         // stretch out our extents in z so that we get all of the avatars
-    //    minima.z -= _viewFrustum.getFarClip() * 0.5f;
-    //    maxima.z += _viewFrustum.getFarClip() * 0.5f;
+        minima.z -= _viewFrustum.getFarClip() * 0.5f;
+        maxima.z += _viewFrustum.getFarClip() * 0.5f;
 
         // save the combined matrix for rendering
         _shadowMatrices[i] = glm::transpose(glm::translate(glm::vec3(coord, 0.0f)) *
