@@ -157,9 +157,11 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
     // TODO: Andrew to reconcile Bullet and legacy damping coefficients.
 
     // compute position error
-    _sentVelocity += _sentAcceleration * dt;
-    _sentVelocity *= powf(1.0f - _linearDamping, dt);
-    _sentPosition += dt * _sentVelocity;
+    if (glm::length2(_sentVelocity) > 0.0f) {
+        _sentVelocity += _sentAcceleration * dt;
+        _sentVelocity *= powf(1.0f - _linearDamping, dt);
+        _sentPosition += dt * _sentVelocity;
+    }
 
     btTransform worldTrans = _body->getWorldTransform();
     glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
@@ -170,14 +172,16 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
         return true;
     }
 
-    // compute rotation error
-    _sentAngularVelocity *= powf(1.0f - _angularDamping, dt);
-
-    float spin = glm::length(_sentAngularVelocity);
-    const float MIN_SPIN = 1.0e-4f;
-    if (spin > MIN_SPIN) {
-        glm::vec3 axis = _sentAngularVelocity / spin;
-        _sentRotation = glm::normalize(glm::angleAxis(dt * spin, axis) * _sentRotation);
+    if (glm::length2(_sentAngularVelocity) > 0.0f) {
+        // compute rotation error
+        _sentAngularVelocity *= powf(1.0f - _angularDamping, dt);
+    
+        float spin = glm::length(_sentAngularVelocity);
+        const float MIN_SPIN = 1.0e-4f;
+        if (spin > MIN_SPIN) {
+            glm::vec3 axis = _sentAngularVelocity / spin;
+            _sentRotation = glm::normalize(glm::angleAxis(dt * spin, axis) * _sentRotation);
+        }
     }
     const float MIN_ROTATION_DOT = 0.98f;
     glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
