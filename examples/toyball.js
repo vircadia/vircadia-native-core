@@ -137,7 +137,7 @@ function checkControllerSide(whichSide) {
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
                 radius: { x: BALL_RADIUS * 2, y: BALL_RADIUS * 2, z: BALL_RADIUS * 2 },
-                damping: 0.999,
+                damping: 0.00001,
                 color: HELD_COLOR,
 
                 lifetime: 600 // 10 seconds - same as default, not needed but here as an example
