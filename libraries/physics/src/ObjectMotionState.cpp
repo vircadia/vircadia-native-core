@@ -48,6 +48,8 @@ ObjectMotionState::ObjectMotionState() :
     _volume(DEFAULT_VOLUME), 
     _friction(DEFAULT_FRICTION), 
     _restitution(DEFAULT_RESTITUTION), 
+    _linearDamping(0.0f),
+    _angularDamping(0.0f),
     _wasInWorld(false),
     _motionType(MOTION_TYPE_STATIC),
     _body(NULL),
@@ -77,6 +79,14 @@ void ObjectMotionState::setFriction(float friction) {
 
 void ObjectMotionState::setRestitution(float restitution) {
     _restitution = btMax(btMin(fabsf(restitution), 1.0f), 0.0f);
+}
+
+void ObjectMotionState::setLinearDamping(float damping) {
+    _linearDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
+}
+
+void ObjectMotionState::setAngularDamping(float damping) {
+    _angularDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
 }
 
 void ObjectMotionState::setVolume(float volume) {
