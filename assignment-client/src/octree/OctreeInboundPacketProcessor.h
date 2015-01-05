@@ -5,7 +5,7 @@
 //  Created by Brad Hefta-Gaub on 8/21/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
-//  Threaded or non-threaded network packet processor for the voxel-server 
+//  Threaded or non-threaded network packet processor for octree servers
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -53,7 +53,7 @@ typedef QHash<QUuid, SingleSenderStats>::iterator NodeToSenderStatsMapIterator;
 typedef QHash<QUuid, SingleSenderStats>::const_iterator NodeToSenderStatsMapConstIterator;
 
 
-/// Handles processing of incoming network packets for the voxel-server. As with other ReceivedPacketProcessor classes 
+/// Handles processing of incoming network packets for the octee servers. As with other ReceivedPacketProcessor classes 
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
 class OctreeInboundPacketProcessor : public ReceivedPacketProcessor {
     Q_OBJECT
@@ -89,7 +89,7 @@ private:
 
 private:
     void trackInboundPacket(const QUuid& nodeUUID, unsigned short int sequence, quint64 transitTime, 
-            int voxelsInPacket, quint64 processTime, quint64 lockWaitTime);
+            int elementsInPacket, quint64 processTime, quint64 lockWaitTime);
 
     OctreeServer* _myServer;
     int _receivedPacketCount;

@@ -511,7 +511,6 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
 
         //Only send the mouse event if the opposite left button isnt held down.
-        //This is specifically for edit voxels
         if (triggerButton == Qt::LeftButton) {
             if (!_triggerPressed[(int)(!index)]) {
                 application->mouseMoveEvent(&mouseEvent, deviceID);

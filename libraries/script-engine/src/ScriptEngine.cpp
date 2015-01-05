@@ -28,22 +28,18 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <UUID.h>
-#include <VoxelConstants.h>
-#include <VoxelDetail.h>
 
 #include "AnimationObject.h"
 #include "ArrayBufferViewClass.h"
 #include "DataViewClass.h"
 #include "EventTypes.h"
 #include "MenuItemProperties.h"
-#include "LocalVoxels.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 
 #include "MIDIEvent.h"
 
-VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
@@ -200,8 +196,6 @@ void ScriptEngine::handleScriptDownload() {
     }
 }
 
-Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
-
 void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
@@ -209,12 +203,9 @@ void ScriptEngine::init() {
     
     _isInitialized = true;
 
-    _voxelsScriptingInterface.init();
-
     // register various meta-types
     registerMetaTypes(this);
     registerMIDIMetaTypes(this);
-    registerVoxelMetaTypes(this);
     registerEventTypes(this);
     registerMenuItemProperties(this);
     registerAnimationTypes(this);
@@ -237,9 +228,6 @@ void ScriptEngine::init() {
     QScriptValue printConstructorValue = newFunction(debugPrint);
     globalObject().setProperty("print", printConstructorValue);
 
-    QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
-    globalObject().setProperty("LocalVoxels", localVoxelsValue);
-
     QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);
     globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
     
@@ -257,19 +245,14 @@ void ScriptEngine::init() {
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
 
-    registerGlobalObject("Voxels", &_voxelsScriptingInterface);
-
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
     globalObject().setProperty("COLLISION_GROUP_ENVIRONMENT", newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
     globalObject().setProperty("COLLISION_GROUP_AVATARS", newVariant(QVariant(COLLISION_GROUP_AVATARS)));
-    globalObject().setProperty("COLLISION_GROUP_VOXELS", newVariant(QVariant(COLLISION_GROUP_VOXELS)));
 
     globalObject().setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
     globalObject().setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
 
-    // let the VoxelPacketSender know how frequently we plan to call it
-    _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
 }
 
 QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -379,18 +362,8 @@ void ScriptEngine::run() {
             break;
         }
 
-        if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
-            // release the queue of edit voxel messages.
-            _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
-
-            // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
-                _voxelsScriptingInterface.getVoxelPacketSender()->process();
-            }
-        }
-
         if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
-            // release the queue of edit voxel messages.
+            // release the queue of edit entity messages.
             _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
 
             // since we're in non-threaded mode, call process so that the packets are sent
@@ -515,16 +488,6 @@ void ScriptEngine::run() {
 
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
-
-    if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
-        // release the queue of edit voxel messages.
-        _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
-
-        // since we're in non-threaded mode, call process so that the packets are sent
-        if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
-            _voxelsScriptingInterface.getVoxelPacketSender()->process();
-        }
-    }
 
     if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.

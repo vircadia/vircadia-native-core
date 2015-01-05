@@ -327,6 +327,7 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
         body->setFlags(BT_DISABLE_WORLD_GRAVITY);
         body->setRestitution(motionState->_restitution);
         body->setFriction(motionState->_friction);
+        body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
         _dynamicsWorld->addRigidBody(body);
         return true;
     }
@@ -438,6 +439,7 @@ void PhysicsEngine::updateObjectEasy(btRigidBody* body, ObjectMotionState* motio
     }
     body->setRestitution(motionState->_restitution);
     body->setFriction(motionState->_friction);
+    body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
 
     if (flags & EntityItem::DIRTY_MASS) {
         float mass = motionState->getMass();

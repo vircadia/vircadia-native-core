@@ -20,8 +20,6 @@
 #include <QPushButton>
 #include <QString>
 
-#include <VoxelConstants.h>
-
 #include "Menu.h"
 #include "ui/LodToolsDialog.h"
 
@@ -47,7 +45,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _lodSize->setTickPosition(QSlider::TicksBelow);
     _lodSize->setFixedWidth(SLIDER_WIDTH);
     _lodSize->setPageStep(PAGE_STEP_LOD_SIZE);
-    int sliderValue = Menu::getInstance()->getVoxelSizeScale() / TREE_SCALE;
+    int sliderValue = Menu::getInstance()->getOctreeSizeScale() / TREE_SCALE;
     _lodSize->setValue(sliderValue);
     form->addRow("LOD Size Scale:", _lodSize);
     connect(_lodSize,SIGNAL(valueChanged(int)),this,SLOT(sizeScaleValueChanged(int)));
@@ -116,7 +114,7 @@ LodToolsDialog::~LodToolsDialog() {
 }
 
 void LodToolsDialog::reloadSliders() {
-    _lodSize->setValue(Menu::getInstance()->getVoxelSizeScale() / TREE_SCALE);
+    _lodSize->setValue(Menu::getInstance()->getOctreeSizeScale() / TREE_SCALE);
     _boundaryLevelAdjust->setValue(Menu::getInstance()->getBoundaryLevelAdjust());
     _feedback->setText(Menu::getInstance()->getLODFeedbackText());
 }
@@ -156,7 +154,7 @@ void LodToolsDialog::updateAvatarLODValues() {
 
 void LodToolsDialog::sizeScaleValueChanged(int value) {
     float realValue = value * TREE_SCALE;
-    Menu::getInstance()->setVoxelSizeScale(realValue);
+    Menu::getInstance()->setOctreeSizeScale(realValue);
     
     _feedback->setText(Menu::getInstance()->getLODFeedbackText());
 }

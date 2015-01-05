@@ -87,12 +87,12 @@ public slots:
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<EntityItemID> findEntities(const glm::vec3& center, float radius) const;
 
-    /// If the scripting context has visible voxels, this will determine a ray intersection, the results
-    /// may be inaccurate if the engine is unable to access the visible voxels, in which case result.accurate
+    /// If the scripting context has visible entities, this will determine a ray intersection, the results
+    /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
     /// will be false.
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false);
 
-    /// If the scripting context has visible voxels, this will determine a ray intersection, and will block in
+    /// If the scripting context has visible entities, this will determine a ray intersection, and will block in
     /// order to return an accurate result
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false);
 
@@ -102,7 +102,6 @@ public slots:
     Q_INVOKABLE void dumpTree() const;
 
 signals:
-    void entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, const Collision& collision);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);

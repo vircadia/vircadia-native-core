@@ -25,7 +25,6 @@
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UUID.h>
-#include <VoxelConstants.h>
 
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
@@ -37,7 +36,6 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
-    _voxelEditSender(),
     _entityEditSender(),
     _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
         InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
@@ -48,7 +46,6 @@ Agent::Agent(const QByteArray& packet) :
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
     
-    _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     _scriptEngine.getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
 }
 
@@ -69,11 +66,6 @@ void Agent::readPendingDatagrams() {
                 if (matchedNode) {
                     // PacketType_JURISDICTION, first byte is the node type...
                     switch (receivedPacket[headerBytes]) {
-                        case NodeType::VoxelServer:
-                            _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->
-                                                                queueReceivedPacket(matchedNode,receivedPacket);
-                            break;
-                            break;
                         case NodeType::EntityServer:
                             _scriptEngine.getEntityScriptingInterface()->getJurisdictionListener()->
                                                                 queueReceivedPacket(matchedNode, receivedPacket);
@@ -93,7 +85,6 @@ void Agent::readPendingDatagrams() {
                 sourceNode->setLastHeardMicrostamp(usecTimestampNow());
 
             } else if (datagramPacketType == PacketTypeOctreeStats
-                        || datagramPacketType == PacketTypeVoxelData
                         || datagramPacketType == PacketTypeEntityData
                         || datagramPacketType == PacketTypeEntityErase
             ) {
@@ -127,10 +118,6 @@ void Agent::readPendingDatagrams() {
                     _entityViewer.processDatagram(mutablePacket, sourceNode);
                 }
                 
-                if (datagramPacketType == PacketTypeVoxelData) {
-                    _voxelViewer.processDatagram(mutablePacket, sourceNode);
-                }
-
             } else if (datagramPacketType == PacketTypeMixedAudio || datagramPacketType == PacketTypeSilentAudioFrame) {
 
                 _receivedAudioStream.parseData(receivedPacket);
@@ -168,7 +155,6 @@ void Agent::run() {
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer
                                                  << NodeType::EntityServer
                                                 );
     
@@ -221,12 +207,6 @@ void Agent::run() {
     
     _scriptEngine.registerGlobalObject("SoundCache", &SoundCache::getInstance());
 
-    _scriptEngine.registerGlobalObject("VoxelViewer", &_voxelViewer);
-    // connect the VoxelViewer and the VoxelScriptingInterface to each other
-    _voxelViewer.setJurisdictionListener(_scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener());
-    _voxelViewer.init();
-    _scriptEngine.getVoxelsScriptingInterface()->setVoxelTree(_voxelViewer.getTree());
-    
     _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
     _entityViewer.setJurisdictionListener(_scriptEngine.getEntityScriptingInterface()->getJurisdictionListener());
     _entityViewer.init();

@@ -116,7 +116,7 @@ function updateWarp() {
         direction: { x: 0, y: -1, z: 0 }
     };
 
-    var intersection = Voxels.findRayIntersection(pickRay);
+    var intersection = Entities.findRayIntersection(pickRay);
 
     if (intersection.intersects && intersection.distance < WARP_PICK_MAX_DISTANCE) {
         // Warp 1 meter above the object - this is an approximation

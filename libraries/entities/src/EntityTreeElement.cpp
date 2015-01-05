@@ -25,7 +25,7 @@ EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement()
 };
 
 EntityTreeElement::~EntityTreeElement() {
-    _voxelMemoryUsage -= sizeof(EntityTreeElement);
+    _octreeMemoryUsage -= sizeof(EntityTreeElement);
     delete _entityItems;
     _entityItems = NULL;
 }
@@ -43,7 +43,7 @@ OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
 void EntityTreeElement::init(unsigned char* octalCode) {
     OctreeElement::init(octalCode);
     _entityItems = new QList<EntityItem*>;
-    _voxelMemoryUsage += sizeof(EntityTreeElement);
+    _octreeMemoryUsage += sizeof(EntityTreeElement);
 }
 
 EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
