@@ -714,10 +714,12 @@ void EntityItem::simulate(const quint64& now) {
         if (position.y <= getDistanceToBottomOfEntity()) {
             velocity = velocity * glm::vec3(1,-1,1);
 
-            // if we've slowed considerably, then just stop moving
+#ifndef USE_BULLET_PHYSICS
+            // if we've slowed considerably, then just stop moving, but only if no BULLET
             if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
                 velocity = NO_VELOCITY;
             }
+#endif // !USE_BULLET_PHYSICS
             
             position.y = getDistanceToBottomOfEntity();
         }
