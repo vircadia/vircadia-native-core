@@ -124,7 +124,7 @@ Audio::Audio(QObject* parent) :
     _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _lastSentAudioPacket(0),
     _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS),
-    _audioOutputIODevice(_receivedAudioStream)
+    _audioOutputIODevice(_receivedAudioStream, this)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -1823,6 +1823,16 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
     return supportedFormat;
 }
 
+void Audio::outputNotify() {
+    int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
+    if (recentUnfulfilled > 0) {
+        qDebug() << "WARNING --- WE HAD at least:" << recentUnfulfilled << "recently unfulfilled readData() calls";
+
+        // TODO: Ryan Huffman -- add code here to increase the AUDIO_OUTPUT_BUFFER_SIZE_FRAMES... this code only
+        // runs in cases where the audio device requested data samples, and ran dry because we couldn't fulfill the request
+    }
+}
+
 bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
     bool supportedFormat = false;
 
@@ -1856,6 +1866,8 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            connect(_audioOutput, &QAudioOutput::notify, this, &Audio::outputNotify);
+
             _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFrameSize * sizeof(int16_t));
             qDebug() << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize;
             
@@ -1934,6 +1946,7 @@ qint64 Audio::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     int samplesRequested = maxSize / sizeof(int16_t);
     int samplesPopped;
     int bytesWritten;
+    
     if ((samplesPopped = _receivedAudioStream.popSamples(samplesRequested, false)) > 0) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
@@ -1941,6 +1954,11 @@ qint64 Audio::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     } else {
         memset(data, 0, maxSize);
         bytesWritten = maxSize;
+    }
+
+    int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
+    if (bytesAudioOutputUnplayed == 0 && bytesWritten == 0) {
+        _unfulfilledReads++;
     }
 
     return bytesWritten;
