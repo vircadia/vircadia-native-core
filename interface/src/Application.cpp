@@ -2795,13 +2795,14 @@ void Application::updateShadowMap() {
     QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
 
     glm::vec3 lightDirection = -getSunDirection();
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
     glm::quat inverseRotation = glm::inverse(rotation);
     
-    const float SHADOW_MATRIX_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
+    //const float SHADOW_MATRIX_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
+    const float SHADOW_MATRIX_DISTANCES[] = { 1.0f, 2.5f, 5.0f, 10.0f, 20.0f };
     const glm::vec2 MAP_COORDS[] = { glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.0f),
         glm::vec2(0.0f, 0.5f), glm::vec2(0.5f, 0.5f) };
     
@@ -2855,8 +2856,8 @@ void Application::updateShadowMap() {
         glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius);
 
         // stretch out our extents in z so that we get all of the avatars
-        minima.z -= _viewFrustum.getFarClip() * 0.5f;
-        maxima.z += _viewFrustum.getFarClip() * 0.5f;
+    //    minima.z -= _viewFrustum.getFarClip() * 0.5f;
+    //    maxima.z += _viewFrustum.getFarClip() * 0.5f;
 
         // save the combined matrix for rendering
         _shadowMatrices[i] = glm::transpose(glm::translate(glm::vec3(coord, 0.0f)) *
@@ -2897,8 +2898,9 @@ void Application::updateShadowMap() {
         viewTransform.setRotation(rotation);
         setViewTransform(viewTransform);
 
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        //glEnable(GL_POLYGON_OFFSET_FILL);
+        //glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
         {
             PerformanceTimer perfTimer("avatarManager");
@@ -2907,7 +2909,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("entities");
-         //   _entities.render(RenderArgs::SHADOW_RENDER_MODE);
+            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         // render JS/scriptable overlays
@@ -2921,7 +2923,7 @@ void Application::updateShadowMap() {
             _overlays.renderWorld(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
-        glDisable(GL_POLYGON_OFFSET_FILL);
+        //glDisable(GL_POLYGON_OFFSET_FILL);
 
         glPopMatrix();
 
