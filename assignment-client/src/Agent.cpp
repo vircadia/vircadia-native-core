@@ -185,6 +185,7 @@ void Agent::run() {
     loop.exec();
     
     QString scriptContents(reply->readAll());
+    delete reply;
     
     qDebug() << "Downloaded script:" << scriptContents;
     

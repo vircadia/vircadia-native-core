@@ -4008,7 +4008,7 @@ void Application::parseVersionXml() {
     QString latestVersion;
     QUrl downloadUrl;
     QString releaseNotes("Unavailable");
-    QObject* sender = QObject::sender();
+    QObject* sender = qobject_cast<QNetworkReply*>(QObject::sender());
 
     QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
 

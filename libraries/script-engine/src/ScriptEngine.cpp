@@ -194,6 +194,8 @@ void ScriptEngine::handleScriptDownload() {
         qDebug() << "ERROR Loading file:" << reply->url().toString();
         emit errorLoadingScript(_fileNameString);
     }
+    
+    reply->deleteLater();
 }
 
 void ScriptEngine::init() {
@@ -604,6 +606,7 @@ void ScriptEngine::include(const QString& includeFile) {
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
         loop.exec();
         includeContents = reply->readAll();
+        reply->deleteLater();
     } else {
 #ifdef _WIN32
         QString fileName = url.toString();

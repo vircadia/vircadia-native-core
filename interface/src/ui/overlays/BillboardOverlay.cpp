@@ -205,6 +205,7 @@ void BillboardOverlay::replyFinished() {
     QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     _billboard = reply->readAll();
     _isLoaded = true;
+    reply->deleteLater();
 }
 
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
