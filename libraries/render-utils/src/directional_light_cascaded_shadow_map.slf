@@ -24,6 +24,7 @@ uniform sampler2D specularMap;
 // the depth texture
 uniform sampler2D depthMap;
 
+// Everything about shadow
 <@include Shadow.slh@>
 
 // the distance to the near clip plane
@@ -49,7 +50,7 @@ void main(void) {
     vec4 position = vec4((depthTexCoordOffset + gl_TexCoord[0].st * depthTexCoordScale) * z, z, 1.0);
 
     // Eval shadow Texcoord and then Attenuation
-    vec4 shadowTexcoord = evalShadowTexcoord(position);
+    vec4 shadowTexcoord = evalCascadedShadowTexcoord(position);
     float shadowAttenuation = evalShadowAttenuation(shadowTexcoord);
 
     // get the normal from the map
@@ -94,7 +95,9 @@ void main(void) {
         gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb, normalVal.a);
     }
 
+/*  //DEBUG:
     if (gl_FragCoord.x > 1024) {
         gl_FragColor = vec4(debugShadowMap(shadowAttenuation, shadowTexcoord) * diffuse, normalVal.a);
     }
+*/
 }

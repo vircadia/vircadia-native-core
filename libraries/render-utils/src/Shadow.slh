@@ -14,6 +14,17 @@
 // the shadow texture
 uniform sampler2DShadow shadowMap;
 
+// Fetching it
+float fetchShadow(vec3 texcoord) {
+<@if GLPROFILE == PC_GL @>
+    return texture(shadowMap, texcoord);
+<@elif GLPROFILE == MAC_GL@>
+    return shadow2D(shadowMap, texcoord).r;
+<@else@>
+    return shadow2D(shadowMap, texcoord).r;
+<@endif@>
+}
+
 // the distances to the cascade sections
 uniform vec3 shadowDistances;
 
@@ -32,6 +43,12 @@ vec2 samples[8] = vec2[8](
 );
 
 vec4 evalShadowTexcoord(vec4 position) {
+    // compute the corresponding texture coordinates
+    vec3 shadowTexcoord = vec3(dot(gl_EyePlaneS[0], position), dot(gl_EyePlaneT[0], position), dot(gl_EyePlaneR[0], position));
+    return vec4(shadowTexcoord, 0.0);
+}
+
+vec4 evalCascadedShadowTexcoord(vec4 position) {
    // compute the index of the cascade to use and the corresponding texture coordinates
     int shadowIndex = int(dot(step(vec3(position.z), shadowDistances), vec3(1.0, 1.0, 1.0)));
     vec3 shadowTexcoord = vec3(dot(gl_EyePlaneS[shadowIndex], position), dot(gl_EyePlaneT[shadowIndex], position),
@@ -43,19 +60,19 @@ vec4 evalShadowTexcoord(vec4 position) {
 float evalShadowAttenuationPCF(vec4 shadowTexcoord) {
     float radiusScale = (shadowTexcoord.w + 1.0);
     float shadowAttenuation = (0.25 * (
-        texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[0], 0.0)) +
-        texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[1], 0.0)) +
-        texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[2], 0.0)) +
-        texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[3], 0.0))
+        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[0], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[1], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[2], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[3], 0.0))
     ));
 
     if ((shadowAttenuation > 0) && (shadowAttenuation < 1.0)) {
         radiusScale *= 0.5;
         shadowAttenuation = 0.5 * shadowAttenuation + (0.125 * (
-            texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[4], 0.0)) +
-            texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[5], 0.0)) +
-            texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[6], 0.0)) +
-            texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[7], 0.0))
+            fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[4], 0.0)) +
+            fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[5], 0.0)) +
+            fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[6], 0.0)) +
+            fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[7], 0.0))
         ));
     }
 
@@ -65,10 +82,10 @@ float evalShadowAttenuationPCF(vec4 shadowTexcoord) {
 float evalShadowAttenuationBasic(vec4 shadowTexcoord) {
     float radiusScale = 0.5;
     float shadowAttenuation = (0.25 * (
-        texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[0], 0.0)) +
-        texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[1], 0.0)) +
-        texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[2], 0.0)) +
-        texture(shadowMap, shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[3], 0.0))
+        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[0], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[1], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[2], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[3], 0.0))
     ));
 	return shadowAttenuation;
 }
