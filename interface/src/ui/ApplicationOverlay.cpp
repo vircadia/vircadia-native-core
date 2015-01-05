@@ -20,6 +20,7 @@
 #include "ApplicationOverlay.h"
 #include "devices/OculusManager.h"
 
+#include "Util.h"
 #include "ui/Stats.h"
 
 // Used to fade the UI

@@ -895,17 +895,6 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
     }
 }
 
-void EntityTreeRenderer::entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, 
-                                                    const Collision& collision) {
-    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
-    if (entityScript.property("collisionWithVoxel").isValid()) {
-        QScriptValueList args;
-        args << entityID.toScriptValue(_entitiesScriptEngine);
-        args << collisionToScriptValue(_entitiesScriptEngine, collision);
-        entityScript.property("collisionWithVoxel").call(entityScript, args);
-    }
-}
-
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
                                                     const Collision& collision) {
     QScriptValue entityScriptA = loadEntityScript(idA);

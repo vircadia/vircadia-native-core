@@ -145,13 +145,9 @@ function sendCommand(id, action) {
 		return;
 	}
 
-	Voxels.setVoxel(controlVoxelPosition.x + id * controlVoxelSize,
-									controlVoxelPosition.y,
-									controlVoxelPosition.z,
-									controlVoxelSize,
-									COLORS[action].red,
-									COLORS[action].green,
-									COLORS[action].blue);
+  // TODO: Fix this to use some mechanism other than voxels
+  //Voxels.setVoxel(controlVoxelPosition.x + id * controlVoxelSize, controlVoxelPosition.y, controlVoxelPosition.z, 
+  //            controlVoxelSize, COLORS[action].red, COLORS[action].green, COLORS[action].blue);
 }
 
 function mousePressEvent(event) {

@@ -1367,14 +1367,7 @@ void GeometryReader::run() {
         if (urlValid) {
             // Let's read the binaries from the network
             FBXGeometry fbxgeo;
-            if (_url.path().toLower().endsWith(".svo")) {
-                QByteArray fileBinary = _reply->readAll();
-                if (fileBinary.isEmpty() || fileBinary.isNull()) {
-                    throw QString("Read File binary is empty?!");
-                }    
-                fbxgeo = readSVO(fileBinary);
-                
-            } else if (_url.path().toLower().endsWith(".fbx")) {
+            if (_url.path().toLower().endsWith(".fbx")) {
                 bool grabLightmaps = true;
                 float lightmapLevel = 1.0f;
                 // HACK: For monday 12/01/2014 we need to kill lighmaps loading in starchamber...

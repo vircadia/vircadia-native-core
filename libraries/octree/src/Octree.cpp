@@ -29,8 +29,6 @@
 #include <Shape.h>
 #include <ShapeCollider.h>
 
-//#include "Tags.h"
-
 #include "CoverageMap.h"
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
@@ -1947,18 +1945,6 @@ bool Octree::readFromSVOFile(const char* fileName) {
             dataAt += sizeof(expectedType);
             dataLength -= sizeof(expectedType);
             gotVersion = *dataAt;
-            
-            // NOTE: SPECIAL CASE for old voxel svo files. The old voxel SVO files didn't have header
-            // details. They started with the the octalcode for the root. Which was always 00 which matches PacketTypeUnknown
-            unsigned char* firstByteAt = (unsigned char*)&fileHeader;
-            unsigned char firstByteValue = *firstByteAt;
-            if (expectedType == PacketTypeVoxelData && firstByteValue == 0) {
-                gotType = PacketTypeVoxelData;
-                gotVersion = 0;
-                qDebug() << "Detected OLD Voxels format.";
-                headerLength = 0; // old format files don't have headers
-                file.seekg( 0, std::ios::beg ); // rewind to the beginning so old logic will work
-            }
             
             if (gotType == expectedType) {
                 if (canProcessVersion(gotVersion)) {

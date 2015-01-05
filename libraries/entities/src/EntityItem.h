@@ -23,7 +23,6 @@
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <ShapeInfo.h>
-#include <VoxelDetail.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 

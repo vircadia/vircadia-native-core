@@ -13,6 +13,7 @@
 #include "ScriptEditorWidget.h"
 
 #include <QGridLayout>
+#include <QFileDialog>
 #include <QFrame>
 #include <QLayoutItem>
 #include <QMainWindow>

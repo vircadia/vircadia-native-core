@@ -32,12 +32,6 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
     bool wasStatsPacket = false;
 
 
-    // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
-    if (app->_wantToKillLocalVoxels) {
-        app->_voxels.killLocalVoxels();
-        app->_wantToKillLocalVoxels = false;
-    }
-    
     PacketType voxelPacketType = packetTypeForPacket(mutablePacket);
     
     // note: PacketType_OCTREE_STATS can have PacketType_VOXEL_DATA
@@ -80,7 +74,7 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
     }
 
     
-    app->trackIncomingVoxelPacket(mutablePacket, sendingNode, wasStatsPacket);
+    app->trackIncomingOctreePacket(mutablePacket, sendingNode, wasStatsPacket);
 
     if (sendingNode) {
 
@@ -101,12 +95,8 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
                 app->_environment.parseData(*sendingNode->getActiveSocket(), mutablePacket);
             } break;
 
-            default : {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-                    app->_voxels.setDataSourceUUID(sendingNode->getUUID());
-                    app->_voxels.parseData(mutablePacket);
-                    app->_voxels.setDataSourceUUID(QUuid());
-                }
+            default: {
+                // nothing to do
             } break;
         }
     }
