@@ -24,14 +24,8 @@ uniform sampler2D specularMap;
 // the depth texture
 uniform sampler2D depthMap;
 
-// the shadow texture
-uniform sampler2DShadow shadowMap;
-
-// the distances to the cascade sections
-uniform vec3 shadowDistances;
-
-// the inverse of the size of the shadow map
-uniform float shadowScale;
+// Everything about shadow
+<@include Shadow.slh@>
 
 // the distance to the near clip plane
 uniform float near;
@@ -55,17 +49,9 @@ void main(void) {
     float z = near / (depthVal * depthScale - 1.0);
     vec4 position = vec4((depthTexCoordOffset + gl_TexCoord[0].st * depthTexCoordScale) * z, z, 1.0);
 
-    // compute the index of the cascade to use and the corresponding texture coordinates
-    int shadowIndex = int(dot(step(vec3(position.z), shadowDistances), vec3(1.0, 1.0, 1.0)));
-    vec3 shadowTexCoord = vec3(dot(gl_EyePlaneS[shadowIndex], position), dot(gl_EyePlaneT[shadowIndex], position),
-        dot(gl_EyePlaneR[shadowIndex], position));
-
-    // evaluate the shadow test but only relevant for light facing fragments
-    float shadowAttenuation = (0.25 *
-        (shadow2D(shadowMap, shadowTexCoord + vec3(-shadowScale, -shadowScale, 0.0)).r +
-        shadow2D(shadowMap, shadowTexCoord + vec3(-shadowScale, shadowScale, 0.0)).r +
-        shadow2D(shadowMap, shadowTexCoord + vec3(shadowScale, -shadowScale, 0.0)).r +
-        shadow2D(shadowMap, shadowTexCoord + vec3(shadowScale, shadowScale, 0.0)).r));
+    // Eval shadow Texcoord and then Attenuation
+    vec4 shadowTexcoord = evalCascadedShadowTexcoord(position);
+    float shadowAttenuation = evalShadowAttenuation(shadowTexcoord);
 
     // get the normal from the map
     vec3 normalizedNormal = normalize(normalVal.xyz * 2.0 - vec3(1.0));
@@ -75,7 +61,7 @@ void main(void) {
 
     // Light mapped or not ?
     if ((normalVal.a >= 0.45) && (normalVal.a <= 0.55)) {
-        normalVal.a = 0.0;
+        normalVal.a = 1.0;
 
         // need to catch normals perpendicular to the projection plane hence the magic number for the threshold
         // it should be just 0, but we have innacurracy so we need to overshoot

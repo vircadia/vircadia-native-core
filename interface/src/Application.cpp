@@ -2514,7 +2514,7 @@ void Application::updateShadowMap() {
     QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
     glm::vec3 lightDirection = -getSunDirection();
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
@@ -2539,8 +2539,10 @@ void Application::updateShadowMap() {
         const glm::vec2& coord = MAP_COORDS[i];
         glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
 
+        // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
+        int regionIncrement = (matrixCount == 1 ? 2 : 1);
         float nearScale = SHADOW_MATRIX_DISTANCES[i] * frustumScale;
-        float farScale = SHADOW_MATRIX_DISTANCES[i + 1] * frustumScale;
+        float farScale = SHADOW_MATRIX_DISTANCES[i + regionIncrement] * frustumScale;
         glm::vec3 points[] = {
             glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
             glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
@@ -2626,7 +2628,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("entities");
-         //   _entities.render(RenderArgs::SHADOW_RENDER_MODE);
+            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         // render JS/scriptable overlays
