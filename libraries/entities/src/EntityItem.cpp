@@ -29,7 +29,7 @@ const float EntityItem::DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
 const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
 const QString EntityItem::DEFAULT_USER_DATA = QString("");
-const float EntityItem::DEFAULT_DAMPING = 2.0f;
+const float EntityItem::DEFAULT_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
 const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 1000.0f) / (float)TREE_SCALE; // really small: 1mm/second
 const glm::vec3 EntityItem::DEFAULT_VELOCITY = EntityItem::NO_VELOCITY;
@@ -647,7 +647,17 @@ void EntityItem::simulate(const quint64& now) {
 
     if (hasAngularVelocity()) {
         glm::quat rotation = getRotation();
+
+        // angular damping
         glm::vec3 angularVelocity = glm::radians(getAngularVelocity());
+        if (_angularDamping > 0.0f) {
+            angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
+            if (wantDebug) {        
+                qDebug() << "    angularDamping :" << _angularDamping;
+                qDebug() << "    newAngularVelocity:" << angularVelocity;
+            }
+        }
+
         float angularSpeed = glm::length(angularVelocity);
         
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // ~0.1 degree/sec
@@ -656,20 +666,8 @@ void EntityItem::simulate(const quint64& now) {
         } else {
             float angle = timeElapsed * angularSpeed;
             glm::quat  dQ = glm::angleAxis(angle, glm::normalize(angularVelocity));
-            rotation = dQ * rotation;
+            rotation = glm::normalize(dQ * rotation);
             setRotation(rotation);
-
-            // handle damping for angular velocity
-            float dampingTimescale = getAngularDamping();
-            if (dampingTimescale > 0.0f) {
-                float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
-                glm::vec3 newAngularVelocity = (1.0f - dampingFactor) * getAngularVelocity();
-                setAngularVelocity(newAngularVelocity);
-                if (wantDebug) {        
-                    qDebug() << "    dampingTimescale :" << dampingTimescale;
-                    qDebug() << "    newAngularVelocity:" << newAngularVelocity;
-                }
-            }
         }
     }
 
@@ -684,12 +682,10 @@ void EntityItem::simulate(const quint64& now) {
 
         // linear damping
         glm::vec3 velocity = getVelocity();
-        float dampingTimescale = getDamping();
-        if (dampingTimescale > 0.0f) {
-            float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
-            velocity *= (1.0f - dampingFactor);
+        if (_damping > 0.0f) {
+            velocity *= powf(1.0f - _damping, timeElapsed);
             if (wantDebug) {        
-                qDebug() << "    dampingTimescale:" << dampingTimescale;
+                qDebug() << "    damping:" << _damping;
                 qDebug() << "    velocity AFTER dampingResistance:" << velocity;
                 qDebug() << "    glm::length(velocity):" << glm::length(velocity);
                 qDebug() << "    EPSILON_VELOCITY_LENGTH:" << EPSILON_VELOCITY_LENGTH;
@@ -822,12 +818,12 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, updateMass);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, updateAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
@@ -1023,6 +1019,7 @@ const float MIN_DIMENSION_DELTA = 0.0001f;
 const float MIN_ALIGNMENT_DOT = 0.9999f;
 const float MIN_MASS_DELTA = 0.001f;
 const float MIN_VELOCITY_DELTA = 0.025f;
+const float MIN_DAMPING_DELTA = 0.001f;
 const float MIN_GRAVITY_DELTA = 0.001f;
 const float MIN_SPIN_DELTA = 0.0003f;
 
@@ -1098,6 +1095,13 @@ void EntityItem::updateVelocityInMeters(const glm::vec3& value) {
     }
 }
 
+void EntityItem::updateDamping(float value) { 
+    if (fabsf(_damping - value) > MIN_DAMPING_DELTA) {
+        _damping = glm::clamp(value, 0.0f, 1.0f);
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+    }
+}
+
 void EntityItem::updateGravity(const glm::vec3& value) { 
     if (glm::distance(_gravity, value) * (float)TREE_SCALE > MIN_GRAVITY_DELTA) {
         _gravity = value; 
@@ -1116,6 +1120,13 @@ void EntityItem::updateGravityInMeters(const glm::vec3& value) {
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
     if (glm::distance(_angularVelocity, value) > MIN_SPIN_DELTA) {
         _angularVelocity = value; 
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+    }
+}
+
+void EntityItem::updateAngularDamping(float value) { 
+    if (fabsf(_angularDamping - value) > MIN_DAMPING_DELTA) {
+        _angularDamping = glm::clamp(value, 0.0f, 1.0f);
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }

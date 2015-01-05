@@ -285,9 +285,11 @@ public:
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
     void updateVelocityInMeters(const glm::vec3& value);
+    void updateDamping(float value);
     void updateGravity(const glm::vec3& value);
     void updateGravityInMeters(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
+    void updateAngularDamping(float value);
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
@@ -325,17 +327,27 @@ protected:
     float _mass;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
-    float _damping; // timescale
+    float _damping;
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
-    float _angularDamping; // timescale
+    float _angularDamping;
     bool _visible;
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
+
+    // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
+    //
+    // Hence the damping coefficient must range from 0 (no damping) to 1 (immediate stop).
+    // Each damping value relates to a corresponding exponential decay timescale as follows:
+    //
+    // timescale = -1 / ln(1 - damping)
+    //
+    // damping = 1 - exp(-1 / timescale)
+    //
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams
