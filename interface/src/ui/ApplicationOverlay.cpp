@@ -114,8 +114,8 @@ void ApplicationOverlay::renderReticle(glm::quat orientation, float alpha) {
         glm::vec3 bottomLeft = getPoint(reticleSize / 2.0f, reticleSize / 2.0f);
         glm::vec3 bottomRight = getPoint(-reticleSize / 2.0f, reticleSize / 2.0f);
         glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha);
-        if (_reticleQuad == GeometryCache::UNKNOWN_QUAD_ID) {
-            _reticleQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+        if (_reticleQuad == GeometryCache::UNKNOWN_ID) {
+            _reticleQuad = DependencyManager::get<GeometryCache>()->allocateID();
         }
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomLeft, bottomRight, topRight,
                                                             glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f),
@@ -130,11 +130,11 @@ ApplicationOverlay::ApplicationOverlay() :
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
     _crosshairTexture(0),
-    _reticleQuad(GeometryCache::UNKNOWN_QUAD_ID),
-    _magnifierQuad(GeometryCache::UNKNOWN_QUAD_ID),
-    _audioRedQuad(GeometryCache::UNKNOWN_QUAD_ID),
-    _audioGreenQuad(GeometryCache::UNKNOWN_QUAD_ID),
-    _audioBlueQuad(GeometryCache::UNKNOWN_QUAD_ID)
+    _reticleQuad(GeometryCache::UNKNOWN_ID),
+    _magnifierQuad(GeometryCache::UNKNOWN_ID),
+    _audioRedQuad(GeometryCache::UNKNOWN_ID),
+    _audioGreenQuad(GeometryCache::UNKNOWN_ID),
+    _audioBlueQuad(GeometryCache::UNKNOWN_ID)
 {
     memset(_reticleActive, 0, sizeof(_reticleActive));
     memset(_magActive, 0, sizeof(_reticleActive));
@@ -399,8 +399,8 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     
     glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
 
-    if (_reticleQuad == GeometryCache::UNKNOWN_QUAD_ID) {
-        _reticleQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+    if (_reticleQuad == GeometryCache::UNKNOWN_ID) {
+        _reticleQuad = DependencyManager::get<GeometryCache>()->allocateID();
     }
 
     DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x + mouseX, y + mouseY, -distance), 
@@ -757,8 +757,8 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
         }
         glColor4f(1.0f, 1.0f, 1.0f, _alpha);
 
-        if (_magnifierQuad == GeometryCache::UNKNOWN_QUAD_ID) {
-            _magnifierQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+        if (_magnifierQuad == GeometryCache::UNKNOWN_ID) {
+            _magnifierQuad = DependencyManager::get<GeometryCache>()->allocateID();
         }
 
         DependencyManager::get<GeometryCache>()->renderQuad(bottomLeft, bottomRight, topRight, topLeft,
@@ -865,8 +865,8 @@ void ApplicationOverlay::renderAudioMeter() {
             glColor3f(1, 1, 1);
         }
         // Draw Red Quad
-        if (_audioRedQuad == GeometryCache::UNKNOWN_QUAD_ID) {
-            _audioRedQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+        if (_audioRedQuad == GeometryCache::UNKNOWN_ID) {
+            _audioRedQuad = DependencyManager::get<GeometryCache>()->allocateID();
         }
         DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, 
                                                             audioMeterY + AUDIO_METER_INSET, 
@@ -884,8 +884,8 @@ void ApplicationOverlay::renderAudioMeter() {
             glColor3f(1, 1, 1);
         }
         // Draw Green Quad
-        if (_audioGreenQuad == GeometryCache::UNKNOWN_QUAD_ID) {
-            _audioGreenQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+        if (_audioGreenQuad == GeometryCache::UNKNOWN_ID) {
+            _audioGreenQuad = DependencyManager::get<GeometryCache>()->allocateID();
         }
         DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, 
                                                             audioMeterY + AUDIO_METER_INSET, 
@@ -902,8 +902,8 @@ void ApplicationOverlay::renderAudioMeter() {
         glColor3f(1, 1, 1);
     }
     // Draw Blue (low level) quad
-    if (_audioBlueQuad == GeometryCache::UNKNOWN_QUAD_ID) {
-        _audioBlueQuad = DependencyManager::get<GeometryCache>()->allocateQuad();
+    if (_audioBlueQuad == GeometryCache::UNKNOWN_ID) {
+        _audioBlueQuad = DependencyManager::get<GeometryCache>()->allocateID();
     }
     DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET, 
                                                         audioMeterY + AUDIO_METER_INSET, 

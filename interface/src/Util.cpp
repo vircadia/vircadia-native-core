@@ -135,28 +135,8 @@ void renderCollisionOverlay(int width, int height, float magnitude, float red, f
 }
 
 void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
-    glBegin(GL_POLYGON);
-    
-    // left side
-    glVertex2f(x, y + bevelDistance);
-    glVertex2f(x, y + height - bevelDistance);
-    
-    // top side
-    glVertex2f(x + bevelDistance,  y + height);
-    glVertex2f(x + width - bevelDistance, y + height);
-    
-    // right
-    glVertex2f(x + width, y + height - bevelDistance);
-    glVertex2f(x + width, y + bevelDistance);
-    
-    // bottom
-    glVertex2f(x + width - bevelDistance,  y);
-    glVertex2f(x +bevelDistance, y);
-
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(x, y, width, height, bevelDistance);
 }
-
-
 
 void renderOrientationDirections(glm::vec3 position, const glm::quat& orientation, float size) {
 	glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
