@@ -5,7 +5,7 @@
 //  Created by Ryan Huffman on 05/14/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This class draws a border around the different Voxel, Entity nodes on the current domain,
+//  This class draws a border around the different Entity nodes on the current domain,
 //  and a semi-transparent cube around the currently mouse-overed node.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -22,19 +22,17 @@
 
 NodeBounds::NodeBounds(QObject* parent) :
     QObject(parent),
-    _showVoxelNodes(false),
     _showEntityNodes(false),
     _overlayText() {
 
 }
 
 void NodeBounds::draw() {
-    if (!(_showVoxelNodes || _showEntityNodes)) {
+    if (!_showEntityNodes) {
         _overlayText[0] = '\0';
         return;
     }
 
-    NodeToJurisdictionMap& voxelServerJurisdictions = Application::getInstance()->getVoxelServerJurisdictions();
     NodeToJurisdictionMap& entityServerJurisdictions = Application::getInstance()->getEntityServerJurisdictions();
     NodeToJurisdictionMap* serverJurisdictions;
 
@@ -55,9 +53,7 @@ void NodeBounds::draw() {
     nodeList->eachNode([&](const SharedNodePointer& node){
         NodeType_t nodeType = node->getType();
         
-        if (nodeType == NodeType::VoxelServer && _showVoxelNodes) {
-            serverJurisdictions = &voxelServerJurisdictions;
-        } else if (nodeType == NodeType::EntityServer && _showEntityNodes) {
+        if (nodeType == NodeType::EntityServer && _showEntityNodes) {
             serverJurisdictions = &entityServerJurisdictions;
         } else {
             return;
@@ -82,7 +78,6 @@ void NodeBounds::draw() {
                 glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR)
                 + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
                 
-                const float VOXEL_NODE_SCALE = 1.00f;
                 const float ENTITY_NODE_SCALE = 0.99f;
                 
                 float scaleFactor = rootDetails.s * TREE_SCALE;
@@ -92,9 +87,7 @@ void NodeBounds::draw() {
                 scaleFactor *= 0.92 + (rootDetails.s * 0.08);
                 
                 // Scale different node types slightly differently because it's common for them to overlap.
-                if (nodeType == NodeType::VoxelServer) {
-                    scaleFactor *= VOXEL_NODE_SCALE;
-                } else if (nodeType == NodeType::EntityServer) {
+                if (nodeType == NodeType::EntityServer) {
                     scaleFactor *= ENTITY_NODE_SCALE;
                 }
                 
@@ -165,7 +158,7 @@ void NodeBounds::drawNodeBorder(const glm::vec3& center, float scale, float red,
 }
 
 void NodeBounds::getColorForNodeType(NodeType_t nodeType, float& red, float& green, float& blue) {
-    red = nodeType == NodeType::VoxelServer ? 1.0 : 0.0;
+    red = nodeType == 0.0;
     green = 0.0;
     blue = nodeType == NodeType::EntityServer ? 1.0 : 0.0;
 }

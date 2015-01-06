@@ -41,6 +41,7 @@
 #include "ModelReferential.h"
 #include "Physics.h"
 #include "Recorder.h"
+#include "Util.h"
 #include "world.h"
 #include "devices/OculusManager.h"
 
@@ -1040,9 +1041,6 @@ void Avatar::updateCollisionGroups() {
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
         _collisionGroups |= COLLISION_GROUP_AVATARS;
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
-        _collisionGroups |= COLLISION_GROUP_VOXELS;
     }
 }
 

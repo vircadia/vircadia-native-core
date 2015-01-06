@@ -33,7 +33,7 @@ const int STATS_PELS_PER_LINE = 20;
 const int STATS_GENERAL_MIN_WIDTH = 165; 
 const int STATS_PING_MIN_WIDTH = 190;
 const int STATS_GEO_MIN_WIDTH = 240;
-const int STATS_VOXEL_MIN_WIDTH = 410;
+const int STATS_OCTREE_MIN_WIDTH = 410;
 
 Stats* Stats::getInstance() {
     static Stats stats;
@@ -47,7 +47,7 @@ Stats::Stats():
         _generalStatsWidth(STATS_GENERAL_MIN_WIDTH),
         _pingStatsWidth(STATS_PING_MIN_WIDTH),
         _geoStatsWidth(STATS_GEO_MIN_WIDTH),
-        _voxelStatsWidth(STATS_VOXEL_MIN_WIDTH),
+        _octreeStatsWidth(STATS_OCTREE_MIN_WIDTH),
         _lastHorizontalOffset(0),
         _metavoxelInternal(0),
         _metavoxelLeaves(0),
@@ -127,7 +127,7 @@ void Stats::resetWidth(int width, int horizontalOffset) {
                    - STATS_GENERAL_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
                    - STATS_GEO_MIN_WIDTH
-                   - STATS_VOXEL_MIN_WIDTH;
+                   - STATS_OCTREE_MIN_WIDTH;
 
     int panels = 4;
 
@@ -139,7 +139,7 @@ void Stats::resetWidth(int width, int horizontalOffset) {
         panels = 3;
     }
     _geoStatsWidth = STATS_GEO_MIN_WIDTH;
-    _voxelStatsWidth = STATS_VOXEL_MIN_WIDTH;
+    _octreeStatsWidth = STATS_OCTREE_MIN_WIDTH;
 
     if (extraSpace > panels) {
         _generalStatsWidth += (int) extraSpace / panels;
@@ -147,7 +147,7 @@ void Stats::resetWidth(int width, int horizontalOffset) {
             _pingStatsWidth += (int) extraSpace / panels;
         }
         _geoStatsWidth += (int) extraSpace / panels;
-        _voxelStatsWidth += glCanvas->width() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
+        _octreeStatsWidth += glCanvas->width() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
     }
 }
 
@@ -204,7 +204,7 @@ void Stats::display(
     int font = 2;
 
     QLocale locale(QLocale::English);
-    std::stringstream voxelStats;
+    std::stringstream octreeStats;
 
     if (_lastHorizontalOffset != horizontalOffset) {
         resetWidth(glCanvas->width(), horizontalOffset);
@@ -313,7 +313,7 @@ void Stats::display(
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth +1;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingVoxelMax = -1;
+        int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingOctreeMax = -1;
 
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -323,22 +323,22 @@ void Stats::display(
         pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : -1;
 
         // Now handle voxel servers, since there could be more than one, we average their ping times
-        unsigned long totalPingVoxel = 0;
-        int voxelServerCount = 0;
+        unsigned long totalPingOctree = 0;
+        int octreeServerCount = 0;
         
-        nodeList->eachNode([&totalPingVoxel, &pingVoxelMax, &voxelServerCount](const SharedNodePointer& node){
+        nodeList->eachNode([&totalPingOctree, &pingOctreeMax, &octreeServerCount](const SharedNodePointer& node){
             // TODO: this should also support entities
-            if (node->getType() == NodeType::VoxelServer) {
-                totalPingVoxel += node->getPingMs();
-                voxelServerCount++;
-                if (pingVoxelMax < node->getPingMs()) {
-                    pingVoxelMax = node->getPingMs();
+            if (node->getType() == NodeType::EntityServer) {
+                totalPingOctree += node->getPingMs();
+                octreeServerCount++;
+                if (pingOctreeMax < node->getPingMs()) {
+                    pingOctreeMax = node->getPingMs();
                 }
             }
         });
 
-        if (voxelServerCount) {
-            pingVoxel = totalPingVoxel/voxelServerCount;
+        if (octreeServerCount) {
+            pingVoxel = totalPingOctree / octreeServerCount;
         }
 
         lines = _expanded ? 4 : 3;
@@ -366,9 +366,9 @@ void Stats::display(
 
         char voxelAvgPing[30];
         if (pingVoxel >= 0) {
-            sprintf(voxelAvgPing, "Voxel avg ping: %d", pingVoxel);
+            sprintf(voxelAvgPing, "Entities avg ping: %d", pingVoxel);
         } else {
-            sprintf(voxelAvgPing, "Voxel avg ping: --");
+            sprintf(voxelAvgPing, "Entities avg ping: --");
         }
 
         verticalOffset += STATS_PELS_PER_LINE;
@@ -381,7 +381,7 @@ void Stats::display(
         if (_expanded) {
             char voxelMaxPing[30];
             if (pingVoxel >= 0) {  // Average is only meaningful if pingVoxel is valid.
-                sprintf(voxelMaxPing, "Voxel max ping: %d", pingVoxelMax);
+                sprintf(voxelMaxPing, "Voxel max ping: %d", pingOctreeMax);
             } else {
                 sprintf(voxelMaxPing, "Voxel max ping: --");
             }
@@ -471,8 +471,6 @@ void Stats::display(
     verticalOffset = 0;
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3;
 
-    VoxelSystem* voxels = Application::getInstance()->getVoxels();
-
     lines = _expanded ? 14 : 3;
 
     drawBackground(backgroundColor, horizontalOffset, 0, glCanvas->width() - horizontalOffset,
@@ -481,65 +479,33 @@ void Stats::display(
 
     // Model/Entity render details
     EntityTreeRenderer* entities = Application::getInstance()->getEntities();
-    voxelStats.str("");
-    voxelStats << "Entity Items rendered: " << entities->getItemsRendered() 
+    octreeStats.str("");
+    octreeStats << "Entity Items rendered: " << entities->getItemsRendered() 
                 << " / Out of view:" << entities->getItemsOutOfView()
                 << " / Too small:" << entities->getItemsTooSmall();
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 
     if (_expanded) {
-        voxelStats.str("");
-        voxelStats << "  Meshes rendered: " << entities->getMeshesRendered() 
+        octreeStats.str("");
+        octreeStats << "  Meshes rendered: " << entities->getMeshesRendered() 
                     << " / Out of view:" << entities->getMeshesOutOfView()
                     << " / Too small:" << entities->getMeshesTooSmall();
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 
-        voxelStats.str("");
-        voxelStats << "  Triangles: " << entities->getTrianglesRendered() 
+        octreeStats.str("");
+        octreeStats << "  Triangles: " << entities->getTrianglesRendered() 
                     << " / Quads:" << entities->getQuadsRendered()
                     << " / Material Switches:" << entities->getMaterialSwitches();
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 
-        voxelStats.str("");
-        voxelStats << "  Mesh Parts Rendered Opaque: " << entities->getOpaqueMeshPartsRendered() 
+        octreeStats.str("");
+        octreeStats << "  Mesh Parts Rendered Opaque: " << entities->getOpaqueMeshPartsRendered() 
                     << " / Translucent:" << entities->getTranslucentMeshPartsRendered();
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-    }
-
-    voxelStats.str("");
-    voxelStats.precision(4);
-    voxelStats << "Voxels Drawn: " << voxels->getVoxelsWritten() / 1000.0f << "K " <<
-        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.0f << "K ";
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-
-    if (_expanded) {
-        // Local Voxel Memory Usage
-        voxelStats.str("");
-        voxelStats << "  Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.0f << "MB";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-
-        voxelStats.str("");
-        voxelStats << 
-                "  Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.0f << "MB / " <<
-                "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.0f << "MB";
-        if (voxels->hasVoxelMemoryUsageGPU()) {
-            voxelStats << " / GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.0f << "MB";
-        }
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-
-        // Voxel Rendering
-        voxelStats.str("");
-        voxelStats.precision(4);
-        voxelStats << "  Voxel Rendering Slots Max: " << voxels->getMaxVoxels() / 1000.0f << "K";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
     }
 
     // iterate all the current voxel stats, and list their sending modes, and total voxel counts
@@ -590,13 +556,13 @@ void Stats::display(
 
     // Incoming packets
     if (_expanded) {
-        voxelStats.str("");
+        octreeStats.str("");
         QString packetsString = locale.toString((int)voxelPacketsToProcess);
         QString maxString = locale.toString((int)_recentMaxPackets);
-        voxelStats << "Voxel Packets to Process: " << qPrintable(packetsString)
+        octreeStats << "Octree Packets to Process: " << qPrintable(packetsString)
                     << " [Recent Max: " << qPrintable(maxString) << "]";        
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
     }
 
     if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
@@ -612,55 +578,55 @@ void Stats::display(
     }
 
     QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
-    unsigned long localTotal = VoxelTreeElement::getNodeCount();
+    unsigned long localTotal = OctreeElement::getNodeCount();
     QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
 
     // Server Octree Elements
     if (!_expanded) {
-        voxelStats.str("");
-        voxelStats << "Octree Elements Server: " << qPrintable(serversTotalString)
+        octreeStats.str("");
+        octreeStats << "Octree Elements Server: " << qPrintable(serversTotalString)
                         << " Local:" << qPrintable(localTotalString);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
     }
 
     if (_expanded) {
-        voxelStats.str("");
-        voxelStats << "Octree Elements -";
+        octreeStats.str("");
+        octreeStats << "Octree Elements -";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 
         QString serversInternalString = locale.toString((uint)totalInternal);
         QString serversLeavesString = locale.toString((uint)totalLeaves);
 
-        voxelStats.str("");
-        voxelStats << "  Server: " << qPrintable(serversTotalString) <<
+        octreeStats.str("");
+        octreeStats << "  Server: " << qPrintable(serversTotalString) <<
             " Internal: " << qPrintable(serversInternalString) <<
             " Leaves: " << qPrintable(serversLeavesString);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 
         // Local Voxels
-        unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
-        unsigned long localLeaves = VoxelTreeElement::getLeafNodeCount();
+        unsigned long localInternal = OctreeElement::getInternalNodeCount();
+        unsigned long localLeaves = OctreeElement::getLeafNodeCount();
         QString localInternalString = locale.toString((uint)localInternal);
         QString localLeavesString = locale.toString((uint)localLeaves);
 
-        voxelStats.str("");
-        voxelStats << "  Local: " << qPrintable(serversTotalString) <<
+        octreeStats.str("");
+        octreeStats << "  Local: " << qPrintable(serversTotalString) <<
             " Internal: " << qPrintable(localInternalString) <<
             " Leaves: " << qPrintable(localLeavesString) << "";
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
     }
 
     // LOD Details
     if (_expanded) {
-        voxelStats.str("");
+        octreeStats.str("");
         QString displayLODDetails = Menu::getInstance()->getLODFeedbackText();
-        voxelStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
+        octreeStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
     }
 }
 

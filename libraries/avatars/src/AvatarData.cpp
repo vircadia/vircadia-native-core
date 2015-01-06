@@ -25,7 +25,6 @@
 #include <GLMHelpers.h>
 #include <StreamUtils.h>
 #include <UUID.h>
-#include <VoxelConstants.h>
 
 #include "AvatarData.h"
 

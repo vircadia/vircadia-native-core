@@ -21,7 +21,6 @@
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
 #include "LocalModelsOverlay.h"
-#include "LocalVoxelsOverlay.h"
 #include "ModelOverlay.h"
 #include "Overlays.h"
 #include "Rectangle3DOverlay.h"
@@ -86,7 +85,7 @@ void Overlays::renderHUD() {
     QReadLocker lock(&_lock);
 
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
-        Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
+        Menu::getInstance()->getOctreeSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
         RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     foreach(Overlay* thisOverlay, _overlaysHUD) {
@@ -118,7 +117,7 @@ void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, Re
     float myAvatarScale = 1.0f;
     
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
-                        Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
+                        Menu::getInstance()->getOctreeSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
                         renderMode, renderSide, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
 
@@ -176,8 +175,6 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = new Line3DOverlay();
     } else if (type == "grid") {
         thisOverlay = new Grid3DOverlay();
-    } else if (type == "localvoxels") {
-        thisOverlay = new LocalVoxelsOverlay();
     } else if (type == "localmodels") {
         thisOverlay = new LocalModelsOverlay(Application::getInstance()->getEntityClipboardRenderer());
     } else if (type == "model") {

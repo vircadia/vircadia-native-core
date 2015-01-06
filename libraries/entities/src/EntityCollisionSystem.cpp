@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <AbstractAudioInterface.h>
-#include <VoxelTree.h>
 #include <AvatarData.h>
 #include <CollisionInfo.h>
 #include <HeadData.h>
@@ -30,19 +29,17 @@ const int MAX_COLLISIONS_PER_Entity = 16;
 EntityCollisionSystem::EntityCollisionSystem()
     :   SimpleEntitySimulation(), 
         _packetSender(NULL),
-        _voxels(NULL),
         _audio(NULL),
         _avatars(NULL),
         _collisions(MAX_COLLISIONS_PER_Entity) {
 }
 
 void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
-        EntityTree* entities, VoxelTree* voxels, AbstractAudioInterface* audio,
+        EntityTree* entities, AbstractAudioInterface* audio,
         AvatarHashMap* avatars) {
     assert(entities);
     setEntityTree(entities);
     _packetSender = packetSender;
-    _voxels = voxels;
     _audio = audio;
     _avatars = avatars;
 }
@@ -64,15 +61,8 @@ void EntityCollisionSystem::updateCollisions() {
 
 
 void EntityCollisionSystem::checkEntity(EntityItem* entity) {
-    updateCollisionWithVoxels(entity);
     updateCollisionWithEntities(entity);
     updateCollisionWithAvatars(entity);
-}
-
-void EntityCollisionSystem::emitGlobalEntityCollisionWithVoxel(EntityItem* entity, 
-                                            VoxelDetail* voxelDetails, const Collision& collision) {
-    EntityItemID entityItemID = entity->getEntityItemID();
-    emit entityCollisionWithVoxel(entityItemID, *voxelDetails, collision);
 }
 
 void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* entityA, 
@@ -81,39 +71,6 @@ void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* enti
     EntityItemID idA = entityA->getEntityItemID();
     EntityItemID idB = entityB->getEntityItemID();
     emit entityCollisionWithEntity(idA, idB, collision);
-}
-
-void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
-
-    if (entity->getIgnoreForCollisions() || !entity->getCollisionsWillMove()) {
-        return; // bail early if this entity is to be ignored or wont move
-    }
-
-    glm::vec3 center = entity->getPosition() * (float)(TREE_SCALE);
-    float radius = entity->getRadius() * (float)(TREE_SCALE);
-    const float ELASTICITY = 0.4f;
-    const float DAMPING = 0.05f;
-    CollisionInfo collisionInfo;
-    collisionInfo._damping = DAMPING;
-    collisionInfo._elasticity = ELASTICITY;
-    VoxelDetail* voxelDetails = NULL;
-    if (_voxels->findSpherePenetration(center, radius, collisionInfo._penetration, (void**)&voxelDetails)) {
-
-        // findSpherePenetration() only computes the penetration but we also want some other collision info
-        // so we compute it ourselves here.  Note that we must multiply scale by TREE_SCALE when feeding 
-        // the results to systems outside of this octree reference frame.
-        collisionInfo._contactPoint = (float)TREE_SCALE * (entity->getPosition() + entity->getRadius() * glm::normalize(collisionInfo._penetration));
-        // let the global script run their collision scripts for Entities if they have them
-        Collision collision(collisionInfo._contactPoint, collisionInfo._penetration);
-        emitGlobalEntityCollisionWithVoxel(entity, voxelDetails, collision);
-
-        // we must scale back down to the octree reference frame before updating the Entity properties
-        collisionInfo._penetration /= (float)(TREE_SCALE);
-        collisionInfo._contactPoint /= (float)(TREE_SCALE);
-
-        applyHardCollision(entity, collisionInfo);
-        delete voxelDetails; // cleanup returned details
-    }
 }
 
 void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {

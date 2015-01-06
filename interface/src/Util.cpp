@@ -25,7 +25,6 @@
 #include <TextRenderer.h>
 
 #include "InterfaceConfig.h"
-#include "VoxelConstants.h"
 #include "world.h"
 #include "Application.h"
 

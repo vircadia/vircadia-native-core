@@ -192,10 +192,10 @@ public:
     static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
     static unsigned long getLeafNodeCount() { return _voxelNodeLeafCount; }
 
-    static quint64 getVoxelMemoryUsage() { return _voxelMemoryUsage; }
+    static quint64 getOctreeMemoryUsage() { return _octreeMemoryUsage; }
     static quint64 getOctcodeMemoryUsage() { return _octcodeMemoryUsage; }
     static quint64 getExternalChildrenMemoryUsage() { return _externalChildrenMemoryUsage; }
-    static quint64 getTotalMemoryUsage() { return _voxelMemoryUsage + _octcodeMemoryUsage + _externalChildrenMemoryUsage; }
+    static quint64 getTotalMemoryUsage() { return _octreeMemoryUsage + _octcodeMemoryUsage + _externalChildrenMemoryUsage; }
 
     static quint64 getGetChildAtIndexTime() { return _getChildAtIndexTime; }
     static quint64 getGetChildAtIndexCalls() { return _getChildAtIndexCalls; }
@@ -334,7 +334,7 @@ protected:
     static quint64 _voxelNodeCount;
     static quint64 _voxelNodeLeafCount;
 
-    static quint64 _voxelMemoryUsage;
+    static quint64 _octreeMemoryUsage;
     static quint64 _octcodeMemoryUsage;
     static quint64 _externalChildrenMemoryUsage;
 

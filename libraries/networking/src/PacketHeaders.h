@@ -42,11 +42,11 @@ enum PacketType {
     PacketTypeMuteEnvironment,
     PacketTypeAudioStreamStats,
     PacketTypeDataServerConfirm, // 20
-    PacketTypeVoxelQuery,
-    PacketTypeVoxelData,
-    PacketTypeVoxelSet,
-    PacketTypeVoxelSetDestructive,
-    PacketTypeVoxelErase, // 25
+    UNUSED_5,
+    UNUSED_6,
+    UNUSED_7,
+    UNUSED_8,
+    UNUSED_9, // 25
     PacketTypeOctreeStats,
     PacketTypeJurisdiction,
     PacketTypeJurisdictionRequest,
@@ -67,7 +67,7 @@ enum PacketType {
     PacketTypeEntityErase,
     PacketTypeEntityAddResponse,
     PacketTypeOctreeDataNack, // 45
-    PacketTypeVoxelEditNack,
+    UNUSED_10,
     PacketTypeAudioEnvironment,
     PacketTypeEntityEditNack,
     PacketTypeSignedTransactionPayment,
@@ -83,8 +83,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
     << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
     << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
-    << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeEntityQuery
-    << PacketTypeOctreeDataNack << PacketTypeVoxelEditNack << PacketTypeEntityEditNack
+    << PacketTypeNodeJsonStats << PacketTypeEntityQuery
+    << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
     << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
     << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply;
 
