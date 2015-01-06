@@ -29,7 +29,7 @@ var RIGHT_BUTTON_FWD = 11;
 var RIGHT_BUTTON_3 = 9;
 
 var BALL_RADIUS = 0.08;
-var GRAVITY_STRENGTH = 0.5;
+var GRAVITY_STRENGTH = 1.0;
 
 var HELD_COLOR = { red: 240, green: 0, blue: 0 };
 var THROWN_COLOR = { red: 128, green: 0, blue: 0 };
@@ -136,7 +136,7 @@ function checkControllerSide(whichSide) {
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
-                radius: { x: BALL_RADIUS * 2, y: BALL_RADIUS * 2, z: BALL_RADIUS * 2 },
+                dimensions: { x: BALL_RADIUS * 2, y: BALL_RADIUS * 2, z: BALL_RADIUS * 2 },
                 damping: 0.00001,
                 color: HELD_COLOR,
 
@@ -185,6 +185,7 @@ function checkControllerSide(whichSide) {
                     velocity: { x: tipVelocity.x * THROWN_VELOCITY_SCALING, 
                                 y: tipVelocity.y * THROWN_VELOCITY_SCALING, 
                                 z: tipVelocity.z * THROWN_VELOCITY_SCALING } ,
+                    collisionsWillMove: true,
                     inHand: false,
                     color: THROWN_COLOR,
                     lifetime: 10,
