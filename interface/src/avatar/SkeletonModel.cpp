@@ -383,17 +383,17 @@ void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 positi
     }
     OrientationLineIDs& jointLineIDs = _jointOrientationLines[jointIndex];
 
-	glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
-	glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
-	glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
+    glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
+    glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
+    glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
 
-	glColor3f(1.0f, 0.0f, 0.0f);
+    glColor3f(1.0f, 0.0f, 0.0f);
     geometryCache->renderLine(position, pRight, jointLineIDs._right);
 
-	glColor3f(0.0f, 1.0f, 0.0f);
+    glColor3f(0.0f, 1.0f, 0.0f);
     geometryCache->renderLine(position, pUp, jointLineIDs._up);
 
-	glColor3f(0.0f, 0.0f, 1.0f);
+    glColor3f(0.0f, 0.0f, 1.0f);
     geometryCache->renderLine(position, pFront, jointLineIDs._front);
 }
 
