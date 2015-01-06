@@ -67,7 +67,8 @@ protected:
     
     int _quadVerticesID;
     int _lineVerticesID;
-    int _ticksVerticesID;
+    int _majorTicksVerticesID;
+    int _minorTicksVerticesID;
 
     float _lastStartAt;
     float _lastEndAt;
