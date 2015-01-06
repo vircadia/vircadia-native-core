@@ -64,6 +64,15 @@ protected:
     float _minorTickMarksLength;
     xColor _majorTickMarksColor;
     xColor _minorTickMarksColor;
+    
+    int _quadVerticesID;
+    int _lineVerticesID;
+    int _ticksVerticesID;
+
+    float _lastStartAt;
+    float _lastEndAt;
+    float _lastOuterRadius;
+    float _lastInnerRadius;
 };
 
  
