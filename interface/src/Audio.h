@@ -110,7 +110,7 @@ public:
     void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
     
     static const float CALLBACK_ACCELERATOR_RATIO;
-    friend class DependencyManager;
+    
 public slots:
     void start();
     void stop();
