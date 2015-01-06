@@ -1,6 +1,6 @@
 //
 //  EnvironmentData.cpp
-//  libraries/voxels/src
+//  libraries/environment/src
 //
 //  Created by Andrzej Kapolka on 5/6/13.
 //  Copyright 2013 High Fidelity, Inc.

@@ -88,7 +88,6 @@ MyAvatar::MyAvatar() :
     _shouldRender(true),
     _billboardValid(false),
     _physicsSimulation(),
-    _voxelShapeManager(),
     _feetTouchFloor(true),
     _isLookingAtLeftEye(true)
 {
@@ -97,7 +96,6 @@ MyAvatar::MyAvatar() :
         _driveKeys[i] = 0.0f;
     }
     _physicsSimulation.setEntity(&_skeletonModel);
-    _physicsSimulation.addEntity(&_voxelShapeManager);
 
     _skeletonModel.setEnableShapes(true);
     _skeletonModel.buildRagdoll();
@@ -1927,9 +1925,6 @@ void MyAvatar::updateMotionBehavior() {
         // TODO: determine what to do with this now that voxels are gone
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
-    }
-    if (!(_collisionGroups | COLLISION_GROUP_VOXELS)) {
-        _voxelShapeManager.clearShapes();
     }
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;

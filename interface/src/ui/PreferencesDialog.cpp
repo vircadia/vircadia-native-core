@@ -144,7 +144,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
-    ui.maxVoxelsPPSSpin->setValue(menuInstance->getMaxOctreePacketsPerSecond());
+    ui.maxOctreePPSSpin->setValue(menuInstance->getMaxOctreePacketsPerSecond());
 
     ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
 
@@ -225,7 +225,7 @@ void PreferencesDialog::savePreferences() {
     
     Menu::getInstance()->setFaceshiftHostname(ui.faceshiftHostnameEdit->text());    
     
-    Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxVoxelsPPSSpin->value());
+    Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
     Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
 

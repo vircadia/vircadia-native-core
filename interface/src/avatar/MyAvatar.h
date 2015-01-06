@@ -17,7 +17,6 @@
 #include <PhysicsSimulation.h>
 
 #include "Avatar.h"
-#include "VoxelShapeManager.h"
 
 class ModelItemID;
 
@@ -219,7 +218,6 @@ private:
 
     QList<AnimationHandlePointer> _animationHandles;
     PhysicsSimulation _physicsSimulation;
-    VoxelShapeManager _voxelShapeManager;
     
     bool _feetTouchFloor;
     bool _isLookingAtLeftEye;

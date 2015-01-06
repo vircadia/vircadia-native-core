@@ -12,7 +12,6 @@
 #include "ClipboardScriptingInterface.h"
 
 ClipboardScriptingInterface::ClipboardScriptingInterface() {
-    connect(this, SIGNAL(readyToImport()), Application::getInstance(), SLOT(importVoxels()));
 }
 
 bool ClipboardScriptingInterface::exportEntities(const QString& filename, float x, float y, float z, float s) {
