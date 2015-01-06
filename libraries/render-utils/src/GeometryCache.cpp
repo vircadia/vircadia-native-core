@@ -513,6 +513,90 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
     buffer.release();
 }
 
+void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, int id) {
+    bool registered = (id != UNKNOWN_ID);
+    Vec3Pair key(glm::vec3(x, y, width), glm::vec3(height, rows, cols));
+    QOpenGLBuffer& buffer = registered ? _registeredAlternateGridBuffers[id] : _alternateGridBuffers[key];
+
+    // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (registered && buffer.isCreated()) {
+        Vec3Pair& lastKey = _lastRegisteredGrid[id];
+        if (lastKey != key) {
+            buffer.destroy();
+            #if 1// def WANT_DEBUG
+                qDebug() << "renderGrid()... RELEASING REGISTERED";
+            #endif // def WANT_DEBUG
+        }
+        #if 1// def WANT_DEBUG
+        else {
+            qDebug() << "renderGrid()... REUSING PREVIOUSLY REGISTERED";
+        }
+        #endif // def WANT_DEBUG
+    }
+
+    int vertices = (cols + 1 + rows + 1) * 2;
+    if (!buffer.isCreated()) {
+    
+        _lastRegisteredGrid[id] = key;
+        
+        GLfloat* vertexData = new GLfloat[vertices * 2];
+        GLfloat* vertex = vertexData;
+
+        int dx = width / cols;
+        int dy = height / rows;
+        int tx = x;
+        int ty = y;
+
+        // Draw horizontal grid lines
+        for (int i = rows + 1; --i >= 0; ) {
+            *(vertex++) = x;
+            *(vertex++) = ty;
+
+            *(vertex++) = x + width;
+            *(vertex++) = ty;
+
+            ty += dy;
+        }
+        // Draw vertical grid lines
+        for (int i = cols + 1; --i >= 0; ) {
+            //glVertex2i(tx, y);
+            //glVertex2i(tx, y + height);
+            *(vertex++) = tx;
+            *(vertex++) = y;
+
+            *(vertex++) = tx;
+            *(vertex++) = y + height;
+            tx += dx;
+        }
+
+        buffer.create();
+        buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        buffer.bind();
+        buffer.allocate(vertexData, vertices * 2 * sizeof(GLfloat));
+        delete[] vertexData;
+
+        #if 1 //def WANT_DEBUG
+            if (id == UNKNOWN_ID) {
+                qDebug() << "new grid buffer made -- _alternateGridBuffers.size():" << _alternateGridBuffers.size();
+            } else {
+                qDebug() << "new registered grid buffer made -- _registeredAlternateGridBuffers.size():" << _registeredAlternateGridBuffers.size();
+            }
+        #endif
+        
+    } else {
+        buffer.bind();
+    }
+    glEnableClientState(GL_VERTEX_ARRAY);
+    
+    glVertexPointer(2, GL_FLOAT, 0, 0);
+    
+    glDrawArrays(GL_LINES, 0, vertices);
+    
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    buffer.release();
+}
+
 void GeometryCache::renderSolidCube(float size) {
     VerticesIndices& vbo = _solidCubeVBOs[size];
     const int FLOATS_PER_VERTEX = 3;
@@ -1165,11 +1249,11 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, int id)
             glDeleteBuffers(1, &vbo.first);
             glDeleteBuffers(1, &vbo.second);
             vbo.first = vbo.second = 0;
-            #if 1 // def WANT_DEBUG
+            #ifdef WANT_DEBUG
                 qDebug() << "renderLine() 3D ... RELEASING REGISTERED line";
             #endif // def WANT_DEBUG
         }
-        #if 1 // def WANT_DEBUG
+        #ifdef WANT_DEBUG
         else {
             qDebug() << "renderLine() 3D ... REUSING PREVIOUSLY REGISTERED line";
         }
@@ -1217,7 +1301,7 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, int id)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
         
-        #if 1 // def WANT_DEBUG
+        #ifdef WANT_DEBUG
             if (id == UNKNOWN_ID) {
                 qDebug() << "new renderLine() 3D VBO made -- _line3DVBOs.size():" << _line3DVBOs.size();
             } else {

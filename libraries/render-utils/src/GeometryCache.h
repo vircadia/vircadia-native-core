@@ -90,6 +90,7 @@ public:
     void renderHalfCylinder(int slices, int stacks);
     void renderCone(float base, float height, int slices, int stacks);
     void renderGrid(int xDivisions, int yDivisions);
+    void renderGrid(int x, int y, int width, int height, int rows, int cols, int id = UNKNOWN_ID);
     void renderSolidCube(float size);
     void renderWireCube(float size);
     void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, int id = UNKNOWN_ID);
@@ -164,6 +165,9 @@ private:
 
 
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
+    QHash<int, QOpenGLBuffer> _registeredAlternateGridBuffers;
+    QHash<Vec3Pair, QOpenGLBuffer> _alternateGridBuffers;
+    QHash<int, Vec3Pair> _lastRegisteredGrid;
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
 };

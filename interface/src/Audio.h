@@ -364,6 +364,8 @@ private:
     AudioOutputIODevice _audioOutputIODevice;
     
     WeakRecorderPointer _recorder;
+    
+    int _audioScopeGrid;
 };
 
 

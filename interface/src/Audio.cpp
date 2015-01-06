@@ -124,7 +124,8 @@ Audio::Audio(QObject* parent) :
     _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _lastSentAudioPacket(0),
     _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS),
-    _audioOutputIODevice(_receivedAudioStream, this)
+    _audioOutputIODevice(_receivedAudioStream, this),
+    _audioScopeGrid(DependencyManager::get<GeometryCache>()->allocateID())
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -1692,28 +1693,8 @@ void Audio::renderBackground(const float* color, int x, int y, int width, int he
 }
 
 void Audio::renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols) {
-
     glColor4fv(color);
-    glBegin(GL_LINES);
-
-    int dx = width / cols;
-    int dy = height / rows;
-    int tx = x;
-    int ty = y;
-
-    // Draw horizontal grid lines
-    for (int i = rows + 1; --i >= 0; ) {
-        glVertex2i(x, ty);
-        glVertex2i(x + width, ty);
-        ty += dy;
-    }
-    // Draw vertical grid lines
-    for (int i = cols + 1; --i >= 0; ) {
-        glVertex2i(tx, y);
-        glVertex2i(tx, y + height);
-        tx += dx;
-    }
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderGrid(x, y, width, height, rows, cols, _audioScopeGrid);
     glColor4f(1, 1, 1, 1); 
 }
 

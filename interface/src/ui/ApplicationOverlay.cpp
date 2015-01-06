@@ -151,7 +151,6 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     Application* application = Application::getInstance();
     Overlays& overlays = application->getOverlays();
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    MyAvatar* myAvatar = application->getAvatar();
     
     _textureFov = glm::radians(Menu::getInstance()->getOculusUIAngularSize());
     _textureAspectRatio = (float)glCanvas->getDeviceWidth() / (float)glCanvas->getDeviceHeight();
