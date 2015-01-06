@@ -364,7 +364,7 @@ function makeTableInputs(setting) {
   _.each(setting.columns, function(col) {
     html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
              <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
-             value='" + (col.default ? col.default : "") + "'>\
+             value='" + (col.default ? col.default : "") + "' data-default='" + (col.default ? col.default : "") + "'>\
              </td>"
   })
     
@@ -504,7 +504,7 @@ function addTableRow(add_glyphicon) {
   })
   
   input_clone.find('input').each(function(){
-    $(this).val('')
+    $(this).val($(this).attr('data-default'));
   });
   
   if (isArray) {
