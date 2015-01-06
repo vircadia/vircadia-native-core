@@ -410,49 +410,6 @@ void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bo
     }
 }
 
-void MyAvatar::renderHeadMouse(int screenWidth, int screenHeight) const {
-    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
-    
-    float pixelsPerDegree = screenHeight / Menu::getInstance()->getFieldOfView();
-    
-    //  Display small target box at center or head mouse target that can also be used to measure LOD
-    float headPitch = getHead()->getFinalPitch();
-    float headYaw = getHead()->getFinalYaw();
-
-    float aspectRatio = (float) screenWidth / (float) screenHeight;
-    int headMouseX = (int)((float)screenWidth / 2.0f - headYaw * aspectRatio * pixelsPerDegree);
-    int headMouseY = (int)((float)screenHeight / 2.0f - headPitch * pixelsPerDegree);
-    
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glDisable(GL_LINE_SMOOTH);
-    const int PIXEL_BOX = 16;
-    glBegin(GL_LINES);
-    glVertex2f(headMouseX - PIXEL_BOX/2, headMouseY);
-    glVertex2f(headMouseX + PIXEL_BOX/2, headMouseY);
-    glVertex2f(headMouseX, headMouseY - PIXEL_BOX/2);
-    glVertex2f(headMouseX, headMouseY + PIXEL_BOX/2);
-    glEnd();
-    glEnable(GL_LINE_SMOOTH);
-    //  If Faceshift is active, show eye pitch and yaw as separate pointer
-    if (faceshift->isActive()) {
-
-        float avgEyePitch = faceshift->getEstimatedEyePitch();
-        float avgEyeYaw = faceshift->getEstimatedEyeYaw();
-        int eyeTargetX = (int)((float)(screenWidth) / 2.0f - avgEyeYaw * aspectRatio * pixelsPerDegree);
-        int eyeTargetY = (int)((float)(screenHeight) / 2.0f - avgEyePitch * pixelsPerDegree);
-        
-        glColor3f(0.0f, 1.0f, 1.0f);
-        glDisable(GL_LINE_SMOOTH);
-        glBegin(GL_LINES);
-        glVertex2f(eyeTargetX - PIXEL_BOX/2, eyeTargetY);
-        glVertex2f(eyeTargetX + PIXEL_BOX/2, eyeTargetY);
-        glVertex2f(eyeTargetX, eyeTargetY - PIXEL_BOX/2);
-        glVertex2f(eyeTargetX, eyeTargetY + PIXEL_BOX/2);
-        glEnd();
-
-    }
-}
-
 const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 glm::vec3 MyAvatar::getLeftPalmPosition() {

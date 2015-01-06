@@ -188,10 +188,6 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         
         renderAudioMeter();
         
-        if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
-            myAvatar->renderHeadMouse(glCanvas->width(), glCanvas->height());
-        }
-        
         renderStatsAndLogs();
         
         // give external parties a change to hook in

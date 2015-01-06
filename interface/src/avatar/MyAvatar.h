@@ -43,7 +43,6 @@ public:
     void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
     bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
-    void renderHeadMouse(int screenWidth, int screenHeight) const;
 
     // setters
     void setLeanScale(float scale) { _leanScale = scale; }
