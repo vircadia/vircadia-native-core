@@ -26,6 +26,19 @@
 
 #endif // HAVE_QXMPP
 
+class DownloadInfoResult {
+public:
+    DownloadInfoResult();
+    QList<float> downloading;  // List of percentages
+    float pending;
+};
+
+Q_DECLARE_METATYPE(DownloadInfoResult)
+
+QScriptValue DownloadInfoResultToScriptValue(QScriptEngine* engine, const DownloadInfoResult& result);
+void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoResult& result);
+
+
 class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool isConnected READ isConnected)
@@ -42,6 +55,7 @@ public:
 
 public slots:
     QScriptValue chat(const QString& message);
+    DownloadInfoResult getDownloadInfo();
 
 private slots:
     void loggedOut();

@@ -11,6 +11,7 @@
 
 #include "AccountManager.h"
 #include "XmppClient.h"
+#include "ResourceCache.h"
 
 #include "GlobalServicesScriptingInterface.h"
 
@@ -113,3 +114,43 @@ void GlobalServicesScriptingInterface::messageReceived(const QXmppMessage& messa
     emit GlobalServicesScriptingInterface::incomingMessage(message.from().right(message.from().count() - 1 - publicChatRoom->jid().count()), message.body());
 }
 #endif // HAVE_QXMPP
+
+DownloadInfoResult GlobalServicesScriptingInterface::getDownloadInfo() {
+    DownloadInfoResult result;
+    foreach(Resource* resource, ResourceCache::getLoadingRequests()) {
+        result.downloading.append(resource->getProgress() * 100.0f);
+    }
+    result.pending = ResourceCache::getPendingRequestCount();
+
+    return result;
+}
+
+
+DownloadInfoResult::DownloadInfoResult() :
+    downloading(QList<float>()),
+    pending(0.0f)
+{
+}
+
+QScriptValue DownloadInfoResultToScriptValue(QScriptEngine* engine, const DownloadInfoResult& result) {
+    QScriptValue object = engine->newObject();
+
+    QScriptValue array = engine->newArray(result.downloading.count());
+    for (int i = 0; i < result.downloading.count(); i += 1) {
+        array.setProperty(i, result.downloading[i]);
+    }
+
+    object.setProperty("downloading", array);
+    object.setProperty("pending", result.pending);
+    return object;
+}
+
+void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoResult& result) {
+    QList<QVariant> downloading = object.property("downloading").toVariant().toList();
+    result.downloading.clear();
+    for (int i = 0; i < downloading.count(); i += 1) {
+        result.downloading.append(downloading[i].toFloat());
+    }
+
+    result.pending = object.property("pending").toVariant().toFloat();
+}
