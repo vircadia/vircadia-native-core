@@ -525,9 +525,9 @@ function deleteTableRow(delete_glyphicon) {
   var table = $(row).closest('table')
   var isArray = table.data('setting-type') === 'array'
   
+  row.empty();
+  
   if (!isArray) {
-    // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
-    row.empty()
     row.html("<input type='hidden' class='form-control' name='" 
       + row.attr('name') + "' data-changed='true' value=''>");
   } else {
@@ -538,7 +538,6 @@ function deleteTableRow(delete_glyphicon) {
       row.remove()
     } else {
       // this is the last row, we can't remove it completely since we need to post an empty array
-      row.empty()
     
       row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
       row.addClass('empty-array-row')
@@ -592,7 +591,7 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
     var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
     
     // if they are equal, we don't need data-changed
-    isTrue = _.isEqual(panelSettingJSON, initialPanelSettingJSON)
+    isTrue = !_.isEqual(panelSettingJSON, initialPanelSettingJSON)
   } else {
     isTrue = true
   }
