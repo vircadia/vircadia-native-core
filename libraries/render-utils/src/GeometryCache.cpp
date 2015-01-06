@@ -523,11 +523,11 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
         Vec3Pair& lastKey = _lastRegisteredGrid[id];
         if (lastKey != key) {
             buffer.destroy();
-            #if 1// def WANT_DEBUG
+            #ifdef WANT_DEBUG
                 qDebug() << "renderGrid()... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
-        #if 1// def WANT_DEBUG
+        #ifdef WANT_DEBUG
         else {
             qDebug() << "renderGrid()... REUSING PREVIOUSLY REGISTERED";
         }
@@ -575,7 +575,7 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
         buffer.allocate(vertexData, vertices * 2 * sizeof(GLfloat));
         delete[] vertexData;
 
-        #if 1 //def WANT_DEBUG
+        #ifdef WANT_DEBUG
             if (id == UNKNOWN_ID) {
                 qDebug() << "new grid buffer made -- _alternateGridBuffers.size():" << _alternateGridBuffers.size();
             } else {
@@ -602,7 +602,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points) {
 
     if (details.buffer.isCreated()) {
         details.buffer.destroy();
-        #if 1// def WANT_DEBUG
+        #ifdef WANT_DEBUG
             qDebug() << "updateVertices()... RELEASING REGISTERED";
         #endif // def WANT_DEBUG
     }
@@ -625,7 +625,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points) {
     details.buffer.allocate(vertexData, details.vertices * FLOATS_PER_VERTEX * sizeof(GLfloat));
     delete[] vertexData;
 
-    #if 1 //def WANT_DEBUG
+    #ifdef WANT_DEBUG
         qDebug() << "new registered vertices buffer made -- _registeredVertices.size():" << _registeredVertices.size();
     #endif
 }
@@ -635,7 +635,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points) {
 
     if (details.buffer.isCreated()) {
         details.buffer.destroy();
-        #if 1// def WANT_DEBUG
+        #ifdef WANT_DEBUG
             qDebug() << "updateVertices()... RELEASING REGISTERED";
         #endif // def WANT_DEBUG
     }
@@ -659,7 +659,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points) {
     details.buffer.allocate(vertexData, details.vertices * FLOATS_PER_VERTEX * sizeof(GLfloat));
     delete[] vertexData;
 
-    #if 1 //def WANT_DEBUG
+    #ifdef WANT_DEBUG
         qDebug() << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
     #endif
 }
@@ -1326,7 +1326,7 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
         if (_lastRegisteredDashedLines[id] != key) {
             details.buffer.destroy();
             _lastRegisteredDashedLines[id] = key;
-            #if 1// def WANT_DEBUG
+            #ifdef WANT_DEBUG
                 qDebug() << "renderDashedLine()... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
@@ -1379,7 +1379,7 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
         details.buffer.allocate(vertexData, details.vertices * FLOATS_PER_VERTEX * sizeof(GLfloat));
         delete[] vertexData;
 
-        #if 1 //def WANT_DEBUG
+        #ifdef WANT_DEBUG
         if (registered) {
             qDebug() << "new registered dashed line buffer made -- _registeredVertices:" << _registeredDashedLines.size();
         } else {
@@ -1494,11 +1494,11 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2, int id)
             glDeleteBuffers(1, &vbo.first);
             glDeleteBuffers(1, &vbo.second);
             vbo.first = vbo.second = 0;
-            #if 1 // def WANT_DEBUG
+            #ifdef WANT_DEBUG
                 qDebug() << "renderLine() 2D... RELEASING REGISTERED line";
             #endif // def WANT_DEBUG
         }
-        #if 1 // def WANT_DEBUG
+        #ifdef WANT_DEBUG
         else {
             qDebug() << "renderLine() 2D... REUSING PREVIOUSLY REGISTERED line";
         }
@@ -1544,7 +1544,7 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2, int id)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
         
-        #if 1 // def WANT_DEBUG
+        #ifdef WANT_DEBUG
             if (id == UNKNOWN_ID) {
                 qDebug() << "new renderLine() 2D VBO made -- _line2DVBOs.size():" << _line2DVBOs.size();
             } else {

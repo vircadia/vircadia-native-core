@@ -152,6 +152,7 @@ private:
         int _right;
     };
     QHash<int, OrientationLineIDs> _jointOrientationLines;
+    int _triangleFanID;
 
     /// \param jointIndex index of joint in model
     /// \param position position of joint in model-frame
