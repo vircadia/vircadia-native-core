@@ -72,6 +72,11 @@ public:
     AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
     AABox clamp(float min, float max) const;
 
+    AABox& operator += (const glm::vec3& point);
+    AABox& operator += (const AABox& box);
+
+    bool isInvalid() const { return _corner == glm::vec3(std::numeric_limits<float>::infinity()); }
+
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;

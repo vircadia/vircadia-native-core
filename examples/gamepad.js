@@ -75,7 +75,7 @@ var warpSphere = Overlays.addOverlay("sphere", {
 
 var WARP_LINE_HEIGHT = 10;
 var warpLine = Overlays.addOverlay("line3d", {
-    position: { x: 0, y: 0, z:0 },
+    start: { x: 0, y: 0, z:0 },
     end: { x: 0, y: 0, z: 0 },
     color: { red: 0, green: 255, blue: 255},
     alpha: 1,
@@ -116,7 +116,7 @@ function updateWarp() {
         direction: { x: 0, y: -1, z: 0 }
     };
 
-    var intersection = Voxels.findRayIntersection(pickRay);
+    var intersection = Entities.findRayIntersection(pickRay);
 
     if (intersection.intersects && intersection.distance < WARP_PICK_MAX_DISTANCE) {
         // Warp 1 meter above the object - this is an approximation
@@ -131,7 +131,7 @@ function updateWarp() {
         visible: true,
     });
     Overlays.editOverlay(warpLine, {
-        position: warpPosition,
+        start: warpPosition,
         end: Vec3.sum(warpPosition, { x: 0, y: WARP_LINE_HEIGHT, z: 0 }),
         visible: true,
     });

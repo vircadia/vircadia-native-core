@@ -100,12 +100,9 @@ void Text3DOverlay::render(RenderArgs* args) {
         
         const float SLIGHTLY_BEHIND = -0.005f;
 
-        glBegin(GL_QUADS);
-            glVertex3f(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
-            glVertex3f(halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
-            glVertex3f(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-            glVertex3f(-halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-        glEnd();
+        glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
+        glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
         
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         

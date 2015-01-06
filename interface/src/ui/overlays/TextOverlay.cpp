@@ -12,6 +12,9 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+
+#include <DependencyManager.h>
+#include <GeometryCache.h>
 #include <SharedUtil.h>
 #include <TextRenderer.h>
 
@@ -70,12 +73,14 @@ void TextOverlay::render(RenderArgs* args) {
     glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
         getBackgroundAlpha());
 
-    glBegin(GL_QUADS);
-        glVertex2f(_bounds.left(), _bounds.top());
-        glVertex2f(_bounds.right(), _bounds.top());
-        glVertex2f(_bounds.right(), _bounds.bottom());
-        glVertex2f(_bounds.left(), _bounds.bottom());
-    glEnd();
+    int left = _bounds.left();
+    int right = _bounds.right() + 1;
+    int top = _bounds.top();
+    int bottom = _bounds.bottom() + 1;
+
+    glm::vec2 topLeft(left, top);
+    glm::vec2 bottomRight(right, bottom);
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
 
     // Same font properties as textSize()
     TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);

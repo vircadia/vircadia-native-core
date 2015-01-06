@@ -1,6 +1,6 @@
 //
 //  AudioGain.h
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Craig Hansen-Sturm on 9/1/14.
 //  Copyright 2014 High Fidelity, Inc.

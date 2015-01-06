@@ -144,7 +144,7 @@ function shootTarget() {
           velocity: velocity, 
           gravity: {  x: 0, y: TARGET_GRAVITY, z: 0 }, 
           lifetime: TARGET_LIFETIME,
-          damping: 0.99 });
+          damping: 0.0001 });
 
     // Record start time 
     shotTime = new Date();
@@ -155,19 +155,6 @@ function shootTarget() {
 }
 
 
-
-function entityCollisionWithVoxel(entity, voxel, collision) {
-    var HOLE_SIZE = 0.125;
-    var entityProperties = Entities.getEntityProperties(entity);
-    var position = entityProperties.position; 
-    Entities.deleteEntity(entity);
-    //  Make a hole in this voxel 
-    //Vec3.print("voxel penetration", collision.penetration);
-    //Vec3.print("voxel contactPoint", collision.contactPoint);
-    Voxels.eraseVoxel(collision.contactPoint.x, collision.contactPoint.y, collision.contactPoint.z, HOLE_SIZE);
-    audioOptions.position = collision.contactPoint;
-    Audio.playSound(impactSound, audioOptions); 
-}
 
 function entityCollisionWithEntity(entity1, entity2, collision) {
     score++;
@@ -329,7 +316,6 @@ function scriptEnding() {
     MyAvatar.detachOne(gunModel);
 }
 
-Entities.entityCollisionWithVoxel.connect(entityCollisionWithVoxel);
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);

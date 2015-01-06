@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QMessageBox>
+
 #include <PathUtils.h>
 
 #include "AddressBarDialog.h"
@@ -24,6 +26,11 @@ AddressBarDialog::AddressBarDialog() :
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
     setupUI();
+    
+    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+    
+    connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
+    connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
 }
 
 void AddressBarDialog::setupUI() {
@@ -124,8 +131,18 @@ void AddressBarDialog::showEvent(QShowEvent* event) {
 void AddressBarDialog::accept() {
     if (!_addressLineEdit->text().isEmpty()) {
         _goButton->setIcon(QIcon(PathUtils::resourcesPath() + ADDRESSBAR_GO_BUTTON_ACTIVE_ICON));
-        AddressManager& addressManager = AddressManager::getInstance();
-        connect(&addressManager, &AddressManager::lookupResultsFinished, this, &QDialog::hide);
-        addressManager.handleLookupString(_addressLineEdit->text());
+        AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+        connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &QDialog::hide);
+        addressManager->handleLookupString(_addressLineEdit->text());
     }
+}
+
+void AddressBarDialog::displayAddressOfflineMessage() {
+    QMessageBox::information(Application::getInstance()->getWindow(), "Address offline",
+                             "That user or place is currently offline.");
+}
+
+void AddressBarDialog::displayAddressNotFoundMessage() {
+    QMessageBox::information(Application::getInstance()->getWindow(), "Address not found",
+                             "There is no address information for that user or place.");
 }

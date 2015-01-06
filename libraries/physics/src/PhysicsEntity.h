@@ -1,6 +1,6 @@
 //
 //  PhysicsEntity.h
-//  libraries/shared/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.05.30
 //  Copyright 2014 High Fidelity, Inc.
@@ -18,8 +18,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "CollisionInfo.h"
-#include "RayIntersectionInfo.h"
+#include <CollisionInfo.h>
+#include <RayIntersectionInfo.h>
+
+#ifdef USE_BULLET_PHYSICS
+#include "PhysicsEngine.h"
+#endif // USE_BULLET_PHYSICS
 
 class Shape;
 class PhysicsSimulation;

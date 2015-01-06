@@ -128,7 +128,7 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint texture
     glPushMatrix();
     glLoadIdentity();
     
-    gluOrtho2D(bounds.left(), bounds.right(), bounds.bottom(), bounds.top());
+    glOrtho(bounds.left(), bounds.right(), bounds.bottom(), bounds.top(), -1.0, 1.0);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_2D);
@@ -140,22 +140,14 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint texture
     }
     
     glBindTexture(GL_TEXTURE_2D, textureId);
-    glBegin(GL_QUADS);
-    {
-        glTexCoord2f(0, 0);
-        glVertex2f(iconBounds.left(), iconBounds.bottom());
-        
-        glTexCoord2f(0, 1);
-        glVertex2f(iconBounds.left(), iconBounds.top());
-        
-        glTexCoord2f(1, 1);
-        glVertex2f(iconBounds.right(), iconBounds.top());
-        
-        glTexCoord2f(1, 0);
-        glVertex2f(iconBounds.right(), iconBounds.bottom());
-        
-    }
-    glEnd();
+   
+    glm::vec2 topLeft(iconBounds.left(), iconBounds.top());
+    glm::vec2 bottomRight(iconBounds.right(), iconBounds.bottom());
+    glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+    glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+    
     glPopMatrix();
     
     glMatrixMode(GL_MODELVIEW);

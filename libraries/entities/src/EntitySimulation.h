@@ -16,7 +16,20 @@
 
 #include <PerfStat.h>
 
+#include "EntityItem.h"
 #include "EntityTree.h"
+
+// the EntitySimulation needs to know when these things change on an entity, 
+// so it can sort EntityItem or relay its state to the PhysicsEngine.
+const int DIRTY_SIMULATION_FLAGS = 
+        EntityItem::DIRTY_POSITION |
+        EntityItem::DIRTY_VELOCITY |
+        EntityItem::DIRTY_MASS |
+        EntityItem::DIRTY_COLLISION_GROUP |
+        EntityItem::DIRTY_MOTION_TYPE |
+        EntityItem::DIRTY_SHAPE |
+        EntityItem::DIRTY_LIFETIME |
+        EntityItem::DIRTY_UPDATEABLE;
 
 class EntitySimulation {
 public:
@@ -49,10 +62,18 @@ protected:
 
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
+
+    // NOTE: updateEntitiesInternal() should clear all dirty flags on each changed entity as side effect
     virtual void updateEntitiesInternal(const quint64& now) = 0;
+
     virtual void addEntityInternal(EntityItem* entity) = 0;
+
     virtual void removeEntityInternal(EntityItem* entity) = 0;
+
     virtual void entityChangedInternal(EntityItem* entity) = 0;
+
+    virtual void sortEntitiesThatMovedInternal() {}
+
     virtual void clearEntitiesInternal() = 0;
 
     void expireMortalEntities(const quint64& now);

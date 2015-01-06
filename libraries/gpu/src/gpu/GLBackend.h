@@ -122,6 +122,19 @@ protected:
             _lastMode(GL_TEXTURE) {}
     } _transform;
 
+    // Shader Stage
+    void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
+ 
+    void updateShader();
+    struct ShaderStageState {
+
+        GLuint _program;
+
+        ShaderStageState() :
+            _program(0) {}
+    } _shader;
+
+ 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -148,6 +161,7 @@ protected:
     void do_glUseProgram(Batch& batch, uint32 paramOffset);
     void do_glUniform1f(Batch& batch, uint32 paramOffset);
     void do_glUniform2f(Batch& batch, uint32 paramOffset);
+    void do_glUniform4fv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
     void do_glMatrixMode(Batch& batch, uint32 paramOffset);

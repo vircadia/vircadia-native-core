@@ -7,4 +7,4 @@ include_glm()
 # link in the shared libraries
 link_hifi_libraries(shared audio networking)
 
-link_shared_dependencies()
+include_dependency_includes()

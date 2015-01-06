@@ -22,7 +22,7 @@
 #include <AudioScriptingInterface.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
-#include <VoxelsScriptingInterface.h>
+#include <LimitedNodeList.h>
 
 #include "AbstractControllerScriptingInterface.h"
 #include "ArrayBufferClass.h"
@@ -31,7 +31,6 @@
 #include "Vec3.h"
 
 class EntityScriptingInterface;
-class VoxelsScriptingInterface;
 
 const QString NO_SCRIPT("");
 
@@ -43,9 +42,6 @@ public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
                  const QString& fileNameString = QString(""),
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
-
-    /// Access the VoxelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    static VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
 
     /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
@@ -89,6 +85,8 @@ public:
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
 
+    void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
+
 public slots:
     void loadURL(const QUrl& scriptURL);
     void stop();
@@ -120,6 +118,7 @@ signals:
 
 protected:
     QString _scriptContents;
+    QString _parentURL;
     bool _isFinished;
     bool _isRunning;
     bool _isInitialized;
@@ -138,7 +137,6 @@ private:
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
-    static VoxelsScriptingInterface _voxelsScriptingInterface;
     static EntityScriptingInterface _entityScriptingInterface;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;

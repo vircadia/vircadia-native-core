@@ -1,6 +1,6 @@
 //
 //  ContactConstraint.cpp
-//  interface/src/avatar
+//  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.07.24
 //  Copyright 2014 High Fidelity, Inc.

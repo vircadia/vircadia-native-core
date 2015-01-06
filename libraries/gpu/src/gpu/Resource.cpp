@@ -67,6 +67,26 @@ Resource::Sysmem::Sysmem(Size size, const Byte* bytes) :
     }
 }
 
+Resource::Sysmem::Sysmem(const Sysmem& sysmem) :
+    _stamp(0),
+    _size(0),
+    _data(NULL)
+{
+    if (sysmem.getSize() > 0) {
+        _size = allocateMemory(&_data, sysmem.getSize());
+        if (_size >= sysmem.getSize()) {
+            if (sysmem.readData()) {
+                memcpy(_data, sysmem.readData(), sysmem.getSize());
+            }
+        }
+    }
+}
+
+Resource::Sysmem& Resource::Sysmem::operator=(const Sysmem& sysmem) {
+    setData(sysmem.getSize(), sysmem.readData());
+    return (*this);
+}
+
 Resource::Sysmem::~Sysmem() {
     deallocateMemory( _data, _size );
     _data = NULL;
@@ -75,7 +95,7 @@ Resource::Sysmem::~Sysmem() {
 
 Resource::Size Resource::Sysmem::allocate(Size size) {
     if (size != _size) {
-        Byte* newData = 0;
+        Byte* newData = NULL;
         Size newSize = 0;
         if (size > 0) {
             Size allocated = allocateMemory(&newData, size);
@@ -96,7 +116,7 @@ Resource::Size Resource::Sysmem::allocate(Size size) {
 
 Resource::Size Resource::Sysmem::resize(Size size) {
     if (size != _size) {
-        Byte* newData = 0;
+        Byte* newData = NULL;
         Size newSize = 0;
         if (size > 0) {
             Size allocated = allocateMemory(&newData, size);
@@ -152,19 +172,35 @@ Resource::Size Resource::Sysmem::append(Size size, const Byte* bytes) {
 
 Buffer::Buffer() :
     Resource(),
-    _sysmem(NULL),
+    _sysmem(new Sysmem()),
     _gpuObject(NULL) {
-    _sysmem = new Sysmem();
+}
+
+Buffer::Buffer(Size size, const Byte* bytes) :
+    Resource(),
+    _sysmem(new Sysmem(size, bytes)),
+    _gpuObject(NULL) {
+}
+
+Buffer::Buffer(const Buffer& buf) :
+    Resource(),
+    _sysmem(new Sysmem(buf.getSysmem())),
+    _gpuObject(NULL) {
+}
+
+Buffer& Buffer::operator=(const Buffer& buf) {
+    (*_sysmem) = buf.getSysmem();
+    return (*this);
 }
 
 Buffer::~Buffer() {
     if (_sysmem) {
         delete _sysmem;
-        _sysmem = 0;
+        _sysmem = NULL;
     }
     if (_gpuObject) {
         delete _gpuObject;
-        _gpuObject = 0;
+        _gpuObject = NULL;
     }
 }
 

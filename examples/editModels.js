@@ -1720,7 +1720,7 @@ var ModelImporter = function (opts) {
     this.mouseMoveEvent = function (event) {
         if (self._importing) {
             var pickRay = Camera.computePickRay(event.x, event.y);
-            var intersection = Voxels.findRayIntersection(pickRay);
+            var intersection = false; //Voxels.findRayIntersection(pickRay);
 
             var distance = 2;// * self._scale;
 
@@ -1884,7 +1884,7 @@ function controller(wichSide) {
     this.jointsIntersectingFromStart = [];
 
     this.laser = Overlays.addOverlay("line3d", {
-        position: { x: 0, y: 0, z: 0 },
+        start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
         color: LASER_COLOR,
         alpha: 1,
@@ -1904,7 +1904,7 @@ function controller(wichSide) {
         anchor: "MyAvatar"
     });
     this.leftRight = Overlays.addOverlay("line3d", {
-        position: { x: 0, y: 0, z: 0 },
+        start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
         color: { red: 0, green: 0, blue: 255 },
         alpha: 1,
@@ -1913,7 +1913,7 @@ function controller(wichSide) {
         anchor: "MyAvatar"
     });
     this.topDown = Overlays.addOverlay("line3d", {
-                                       position: { x: 0, y: 0, z: 0 },
+                                       start: { x: 0, y: 0, z: 0 },
                                        end: { x: 0, y: 0, z: 0 },
                                        color: { red: 0, green: 0, blue: 255 },
                                        alpha: 1,
@@ -2066,7 +2066,7 @@ function controller(wichSide) {
         var endPosition = Vec3.sum(startPosition, direction);
 
         Overlays.editOverlay(this.laser, {
-            position: startPosition,
+            start: startPosition,
             end: endPosition
         });
 
@@ -2075,10 +2075,11 @@ function controller(wichSide) {
             position: endPosition
         });
         Overlays.editOverlay(this.leftRight, {
-            position: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
+            start: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
             end: Vec3.sum(endPosition, Vec3.multiply(this.right, -2 * this.guideScale))
         });
-        Overlays.editOverlay(this.topDown, { position: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
+        Overlays.editOverlay(this.topDown, {
+            start: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
         });
         this.showLaser(!this.grabbing || mode == 0);

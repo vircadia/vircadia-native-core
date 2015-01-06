@@ -18,7 +18,7 @@
 
 #include <HeadData.h>
 
-#include <VoxelConstants.h>
+#include <OctreeConstants.h> // for IDENTITY_*
 
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
@@ -75,6 +75,9 @@ public:
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     float getFinalLeanSideways() const { return _leanSideways + _deltaLeanSideways; }
     float getFinalLeanForward() const { return _leanForward + _deltaLeanForward; }
+    
+    float getTorsoTwist() const { return _torsoTwist; }
+    void setTorsoTwist(float torsoTwist) { _torsoTwist = torsoTwist; }
     
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
@@ -148,6 +151,8 @@ private:
     // delta lean angles for lean perturbations (driven by collisions)
     float _deltaLeanSideways;
     float _deltaLeanForward;
+    
+    float _torsoTwist;
 
     bool _isCameraMoving;
     bool _isLookingAtMe;
