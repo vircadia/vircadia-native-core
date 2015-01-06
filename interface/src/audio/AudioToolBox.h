@@ -19,8 +19,6 @@ class AudioToolBox : public QObject {
 public:
     void render(int x, int y, bool boxed);
     
-    friend class DependencyManager;
-    
     bool mousePressEvent(int x, int y);
 protected:
     AudioToolBox();

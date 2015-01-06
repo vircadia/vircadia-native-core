@@ -53,8 +53,6 @@ public:
     
     void loadSettings(const QString& lookupString = QString());
     
-    friend class DependencyManager;
-    
 public slots:
     void handleLookupString(const QString& lookupString);
     void goToUser(const QString& username);

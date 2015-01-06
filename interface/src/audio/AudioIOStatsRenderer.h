@@ -25,7 +25,6 @@ class AudioIOStatsRenderer : public QObject {
 public:
     void render(const float* color, int width, int height);
     
-    friend class DependencyManager;
 public slots:
     void toggle() { _isEnabled = !_isEnabled; }
     void toggleShowInjectedStreams() { _shouldShowInjectedStreams = !_shouldShowInjectedStreams; }

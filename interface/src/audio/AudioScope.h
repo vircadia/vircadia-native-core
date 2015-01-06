@@ -33,8 +33,6 @@ public:
     
     void render(int width, int height);
     
-    friend class DependencyManager;
-    
 public slots:
     void toggle();
     void togglePause() { _isPaused = !_isPaused; }
