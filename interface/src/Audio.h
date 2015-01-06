@@ -297,7 +297,7 @@ private:
     // Audio scope methods for rendering
     void renderBackground(const float* color, int x, int y, int width, int height);
     void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
-    void renderLineStrip(const float* color, int x, int  y, int n, int offset, const QByteArray* byteArray);
+    void renderLineStrip(int id, const float* color, int x, int  y, int n, int offset, const QByteArray* byteArray);
 
     // audio stats methods for rendering
     void renderAudioStreamStats(const AudioStreamStats& streamStats, int horizontalOffset, int& verticalOffset,
@@ -366,6 +366,9 @@ private:
     WeakRecorderPointer _recorder;
     
     int _audioScopeGrid;
+    int _inputID;
+    int _outputLeftID;
+    int _outputRightD;
 };
 
 

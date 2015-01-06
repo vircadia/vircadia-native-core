@@ -125,7 +125,10 @@ Audio::Audio(QObject* parent) :
     _lastSentAudioPacket(0),
     _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS),
     _audioOutputIODevice(_receivedAudioStream, this),
-    _audioScopeGrid(DependencyManager::get<GeometryCache>()->allocateID())
+    _audioScopeGrid(DependencyManager::get<GeometryCache>()->allocateID()),
+    _inputID(DependencyManager::get<GeometryCache>()->allocateID()),
+    _outputLeftID(DependencyManager::get<GeometryCache>()->allocateID()),
+    _outputRightD(DependencyManager::get<GeometryCache>()->allocateID())
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -1680,9 +1683,9 @@ void Audio::renderScope(int width, int height) {
     renderGrid(gridColor, x, y, w, h, gridRows, gridCols);
 
     QMutexLocker lock(&_guard);
-    renderLineStrip(inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
-    renderLineStrip(outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
-    renderLineStrip(outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
+    renderLineStrip(_inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
+    renderLineStrip(_outputLeftID, outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
+    renderLineStrip(_outputRightD, outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
 }
 
 void Audio::renderBackground(const float* color, int x, int y, int width, int height) {
@@ -1698,10 +1701,9 @@ void Audio::renderGrid(const float* color, int x, int y, int width, int height, 
     glColor4f(1, 1, 1, 1); 
 }
 
-void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray) {
+void Audio::renderLineStrip(int id, const float* color, int x, int y, int n, int offset, const QByteArray* byteArray) {
 
     glColor4fv(color);
-    glBegin(GL_LINE_STRIP);
 
     int16_t sample;
     int16_t* samples = ((int16_t*) byteArray->data()) + offset;
@@ -1709,6 +1711,11 @@ void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset,
     int count = (n - offset) / numSamplesToAverage;
     int remainder = (n - offset) % numSamplesToAverage;
     y += SCOPE_HEIGHT / 2;
+    
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+
+    QVector<glm::vec2> points;
+    
 
     // Compute and draw the sample averages from the offset position
     for (int i = count; --i >= 0; ) {
@@ -1717,7 +1724,7 @@ void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset,
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
+        points << glm::vec2(x++, y - sample);
     }
 
     // Compute and draw the sample average across the wrap boundary
@@ -1733,7 +1740,7 @@ void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset,
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
+        points << glm::vec2(x++, y - sample);
     } else {
         samples = (int16_t*) byteArray->data();
     }
@@ -1746,9 +1753,13 @@ void Audio::renderLineStrip(const float* color, int x, int y, int n, int offset,
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
+        points << glm::vec2(x++, y - sample);
     }
-    glEnd();
+    
+    
+    geometryCache->updateLinestrip(id, points);
+    geometryCache->renderLinestrip(id);
+    
     glColor4f(1, 1, 1, 1); 
 }
 

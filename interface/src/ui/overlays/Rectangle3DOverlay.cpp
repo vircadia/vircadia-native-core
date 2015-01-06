@@ -101,18 +101,6 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                         
                     }
                     geometryCache->renderLinestrip(_geometryCacheID);
-
-                    /*
-                    glBegin(GL_LINE_STRIP);
-
-                    glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glVertex3f(halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glVertex3f(halfDimensions.x, 0.0f, halfDimensions.y);
-                    glVertex3f(-halfDimensions.x, 0.0f, halfDimensions.y);
-                    glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                
-                    glEnd();
-                    */
                 }
             }
  
