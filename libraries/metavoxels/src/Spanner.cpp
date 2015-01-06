@@ -2217,11 +2217,35 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 }
                 if (*heightLineDest != 0) {
                     float voxelHeight = *heightLineDest * voxelScale;
+                    const quint16* oldHeightLineDest = _height->getContents().constData() + (int)z * heightWidth + (int)x;
+                    float left = oldHeightLineDest[-1] * voxelScale;
+                    float right = oldHeightLineDest[1] * voxelScale;
+                    float down = oldHeightLineDest[-heightWidth] * voxelScale;
+                    float up = oldHeightLineDest[heightWidth] * voxelScale;
+                    float deltaX = (left == 0.0f || right == 0.0f) ? 0.0f : (left - right);
+                    float deltaZ = (up == 0.0f || down == 0.0f) ? 0.0f : (down - up);
                     for (int i = 0, total = prepend + append; i < total; i++) {
                         int offset = (i < prepend) ? i : stackDest->getEntryCount() - append + (i - prepend);
                         int y = stackDest->getPosition() + offset;
-                        if (y <= voxelHeight) {
-                            StackArray::Entry* entryDest = stackDest->getEntryData() + offset;
+                        StackArray::Entry* entryDest = stackDest->getEntryData() + offset;
+                        if (y > voxelHeight) {
+                            if (y <= right) {
+                                entryDest->setHermiteX(glm::normalize(glm::vec3(voxelHeight - right, 1.0f, deltaZ * 0.5f)),
+                                    (right == voxelHeight) ? 0.5f : (y - voxelHeight) / (right - voxelHeight));   
+                            }
+                            if (y <= up) {
+                                entryDest->setHermiteZ(glm::normalize(glm::vec3(deltaX * 0.5f, 1.0f, voxelHeight - up)),
+                                    (up == voxelHeight) ? 0.5f : (y - voxelHeight) / (up - voxelHeight));   
+                            }
+                        } else {
+                            if (right != 0.0f && y > right) {
+                                entryDest->setHermiteX(glm::normalize(glm::vec3(voxelHeight - right, 1.0f, deltaZ * 0.5f)),
+                                    (right == voxelHeight) ? 0.5f : (y - voxelHeight) / (right - voxelHeight));   
+                            }
+                            if (up != 0.0f && y > up) {
+                                entryDest->setHermiteZ(glm::normalize(glm::vec3(deltaX * 0.5f, 1.0f, voxelHeight - up)),
+                                    (up == voxelHeight) ? 0.5f : (y - voxelHeight) / (up - voxelHeight));   
+                            }
                             if (colorDest) {
                                 entryDest->color = qRgb(colorDest[0], colorDest[1], colorDest[2]);
                             }
@@ -2239,17 +2263,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             }
                             if (y + 1 > voxelHeight) {
                                 *heightLineDest = 0;
-                                
-                                const quint16* oldHeightLineDest = _height->getContents().constData() +
-                                    (int)z * heightWidth + (int)x;
-                                quint16 left = oldHeightLineDest[-1];
-                                quint16 right = oldHeightLineDest[1];
-                                quint16 up = oldHeightLineDest[heightWidth];
-                                quint16 down = oldHeightLineDest[-heightWidth];
-                                
-                                entryDest->setHermiteY(glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f :
-                                    (left - right), 2.0f / voxelScale, (up == 0 || down == 0) ? 0.0f :
-                                        (down - up))), voxelHeight - y);
+                                entryDest->setHermiteY(glm::normalize(glm::vec3(deltaX, 2.0f, deltaZ)), voxelHeight - y);
                             }
                         }
                     }
