@@ -2014,6 +2014,8 @@ void Application::updateCursor(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
 
+    static QPoint lastMousePos = QPoint();
+    _lastMouseMove = (lastMousePos == QCursor::pos()) ? _lastMouseMove : usecTimestampNow();
     bool hideMouse = false;
     bool underMouse = QGuiApplication::topLevelAt(QCursor::pos()) ==
                       Application::getInstance()->getWindow()->windowHandle();
@@ -2026,6 +2028,7 @@ void Application::updateCursor(float deltaTime) {
     }
     
     setCursorVisible(!hideMouse);
+    lastMousePos = QCursor::pos();
 }
 
 void Application::setCursorVisible(bool visible) {
