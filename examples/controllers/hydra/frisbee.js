@@ -15,8 +15,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
-Script.include("libraries/toolBars.js");
+Script.include("../../libraries/globals.js");
+Script.include("../../libraries/toolBars.js");
 
 const LEFT_PALM = 0;
 const LEFT_TIP = 1;
@@ -192,15 +192,18 @@ function cleanupFrisbees() {
 }
 
 function checkControllerSide(hand) {
+ //   print("cCS");
     // If I don't currently have a frisbee in my hand, then try to catch closest one
     if (!hand.holdingFrisbee && hand.grabButtonPressed()) {
         var closestEntity = Entities.findClosestEntity(hand.palmPosition(), CATCH_RADIUS);
         var modelUrl = Entities.getEntityProperties(closestEntity).modelURL;
+        print("lol2"+closestEntity.isKnownID);
         if (closestEntity.isKnownID && validFrisbeeURL(Entities.getEntityProperties(closestEntity).modelURL)) {
+            print("lol");
             Entities.editEntity(closestEntity, {modelScale: 1, inHand: true, position: hand.holdPosition(), shouldDie: true});
             Entities.deleteEntity(closestEntity);
             debugPrint(hand.message + " HAND- CAUGHT SOMETHING!!");
-            
+            print("lol");
             var properties = {
                 type: "Model",
                 position: hand.holdPosition(), 
@@ -208,10 +211,10 @@ function checkControllerSide(hand) {
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
                 dimensions: { x: FRISBEE_RADIUS, y: FRISBEE_RADIUS / 5, z: FRISBEE_RADIUS },
-                damping: 0.00001,
+                damping: 0.999,
                 modelURL: modelUrl,
-                modelScale: FRISBEE_MODEL_SCALE,
-                modelRotation: hand.holdRotation(),
+                scale: FRISBEE_MODEL_SCALE,
+                rotation: hand.holdRotation(),
                 lifetime: FRISBEE_LIFETIME
             };
 
@@ -235,10 +238,10 @@ function checkControllerSide(hand) {
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
                 dimensions: { x: FRISBEE_RADIUS, y: FRISBEE_RADIUS / 5, z: FRISBEE_RADIUS },
-                damping: 0.00001,
+                damping: 0,
                 modelURL: frisbeeURL(),
-                modelScale: FRISBEE_MODEL_SCALE,
-                modelRotation: hand.holdRotation(),
+                scale: FRISBEE_MODEL_SCALE,
+                rotation: hand.holdRotation(),
                 lifetime: FRISBEE_LIFETIME
             };
 
@@ -270,7 +273,7 @@ function checkControllerSide(hand) {
                     inHand: false,
                     lifetime: FRISBEE_LIFETIME,
                     gravity: { x: 0, y: -GRAVITY_STRENGTH, z: 0},
-                    modelRotation: hand.holdRotation()
+                    rotation: hand.holdRotation()
                 };
 
             Entities.editEntity(hand.entity, properties);
@@ -304,7 +307,7 @@ function hydraCheck() {
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
     hydrasConnected = (numberOfButtons == 12 && numberOfTriggers == 2 && controllersPerTrigger == 2);
-    return hydrasConnected;
+    return true;//hydrasConnected;
 }
 
 function checkController(deltaTime) {
@@ -314,6 +317,7 @@ function checkController(deltaTime) {
     }
     // this is expected for hydras
     if (hydraCheck()) {
+///print("testrr ");
         checkControllerSide(leftHand);
         checkControllerSide(rightHand);
     }
@@ -333,7 +337,7 @@ function controlFrisbees(deltaTime) {
             killSimulations.push(frisbee);
             continue;
         }
-        Entities.editEntity(simulatedFrisbees[frisbee], {modelRotation: Quat.multiply(properties.modelRotation, Quat.fromPitchYawRollDegrees(0, speed * deltaTime * SPIN_MULTIPLIER, 0))});
+        Entities.editEntity(simulatedFrisbees[frisbee], {rotation: Quat.multiply(properties.modelRotation, Quat.fromPitchYawRollDegrees(0, speed * deltaTime * SPIN_MULTIPLIER, 0))});
         
     }
     for (var i = killSimulations.length - 1; i >= 0; i--) {
