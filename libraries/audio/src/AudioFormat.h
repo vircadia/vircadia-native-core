@@ -1,6 +1,6 @@
 //
 //  AudioFormat.h
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Craig Hansen-Sturm on 8/28/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -21,6 +21,10 @@ typedef float float32_t;
 #define _FLOAT64_T
 typedef double float64_t;
 #endif
+
+#include <cstring>
+
+#include "AudioConstants.h"
 
 //
 // Audio format structure (currently for uncompressed streams only)
@@ -63,7 +67,7 @@ struct AudioFormat {
 
     void setCanonicalFloat32(uint32_t channels) {
         assert(channels > 0 && channels <= 2);
-        _sampleRate = SAMPLE_RATE; // todo:  create audio constants header
+        _sampleRate = AudioConstants::SAMPLE_RATE;
         _bitsPerChannel = sizeof(float32_t) * 8;
         _channelsPerFrame = channels;
         _bytesPerFrame = _channelsPerFrame * _bitsPerChannel / 8;
@@ -73,7 +77,7 @@ struct AudioFormat {
     
     void setCanonicalInt16(uint32_t channels) {
         assert(channels > 0 && channels <= 2);
-        _sampleRate = SAMPLE_RATE; // todo:  create audio constants header
+        _sampleRate = AudioConstants::SAMPLE_RATE;
         _bitsPerChannel = sizeof(int16_t) * 8;
         _channelsPerFrame = channels;
         _bytesPerFrame = _channelsPerFrame * _bitsPerChannel / 8;

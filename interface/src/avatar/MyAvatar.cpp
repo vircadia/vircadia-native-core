@@ -103,7 +103,8 @@ MyAvatar::MyAvatar() :
     _skeletonModel.buildRagdoll();
     
     // connect to AddressManager signal for location jumps
-    connect(&AddressManager::getInstance(), &AddressManager::locationChangeRequired, this, &MyAvatar::goToLocation);
+    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
+            this, &MyAvatar::goToLocation);
 }
 
 MyAvatar::~MyAvatar() {
@@ -147,7 +148,7 @@ void MyAvatar::update(float deltaTime) {
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
     //  Get audio loudness data from audio input device
-    Audio* audio = Application::getInstance()->getAudio();
+    Audio::SharedPointer audio = DependencyManager::get<Audio>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
@@ -534,7 +535,7 @@ void MyAvatar::startRecording() {
     if (!_recorder) {
         _recorder = RecorderPointer(new Recorder(this));
     }
-    Application::getInstance()->getAudio()->setRecorder(_recorder);
+    DependencyManager::get<Audio>()->setRecorder(_recorder);
     _recorder->startRecording();
     
 }
@@ -1605,33 +1606,7 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
-    //  consider whether to have the collision make a sound
-    const float AUDIBLE_COLLISION_THRESHOLD = 0.02f;
-    const float COLLISION_LOUDNESS = 1.0f;
-    const float DURATION_SCALING = 0.004f;
-    const float NOISE_SCALING = 0.1f;
-    glm::vec3 velocity = _velocity;
-    glm::vec3 gravity = getGravity();
-
-    if (glm::length(gravity) > EPSILON) {
-        //  If gravity is on, remove the effect of gravity on velocity for this
-        //  frame, so that we are not constantly colliding with the surface
-        velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
-    }
-    float velocityTowardCollision = glm::dot(velocity, glm::normalize(penetration));
-    float velocityTangentToCollision = glm::length(velocity) - velocityTowardCollision;
-
-    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
-        //  Volume is proportional to collision velocity
-        //  Base frequency is modified upward by the angle of the collision
-        //  Noise is a function of the angle of collision
-        //  Duration of the sound is a function of both base frequency and velocity of impact
-        Application::getInstance()->getAudio()->startCollisionSound(
-            std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.0f),
-            frequency * (1.0f + velocityTangentToCollision / velocityTowardCollision),
-            std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.0f),
-            1.0f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, false);
-    }
+    // COLLISION SOUND API in Audio has been removed
 }
 
 bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float heightA,
