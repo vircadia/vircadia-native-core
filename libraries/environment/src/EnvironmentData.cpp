@@ -21,12 +21,12 @@ EnvironmentData::EnvironmentData(int id) :
     _flat(true),
     _gravity(0.0f),
     _atmosphereCenter(0, -1000, 0),
-    _atmosphereInnerRadius(1000),
-    _atmosphereOuterRadius(1025),
+    _atmosphereInnerRadius(1000.0),
+    _atmosphereOuterRadius(1025.0),
     _rayleighScattering(0.0025f),
     _mieScattering(0.0010f),
     _scatteringWavelengths(0.650f, 0.570f, 0.475f),
-    _sunLocation(1000, 1000, 0),
+    _sunLocation(1000, 900, 1000),
     _sunBrightness(20.0f) {
 }
 
@@ -35,7 +35,7 @@ glm::vec3 EnvironmentData::getAtmosphereCenter(const glm::vec3& cameraPosition) 
 }
 
 glm::vec3 EnvironmentData::getSunLocation(const glm::vec3& cameraPosition) const {
-    return _sunLocation + (_flat ? glm::vec3(cameraPosition.x, 0.0f, cameraPosition.z) : glm::vec3());
+    return _sunLocation;
 }
 
 int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
