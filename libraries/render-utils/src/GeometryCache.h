@@ -115,10 +115,9 @@ public:
     void renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id = UNKNOWN_ID);
     void renderLine(const glm::vec2& p1, const glm::vec2& p2, int id = UNKNOWN_ID);
 
-    void updateLinestrip(int id, const QVector<glm::vec2>& points);
-    void updateLinestrip(int id, const QVector<glm::vec3>& points);
-    void renderLinestrip(int id);
-    void renderLines(int id);
+    void updateVertices(int id, const QVector<glm::vec2>& points);
+    void updateVertices(int id, const QVector<glm::vec3>& points);
+    void renderVertices(GLenum mode, int id);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -174,7 +173,7 @@ private:
         int vertexSize;
     };
 
-    QHash<int, BufferDetails> _registeredLinestrips;
+    QHash<int, BufferDetails> _registeredVertices;
 
     QHash<int, Vec3Pair> _lastRegisteredDashedLines;
     QHash<Vec3Pair, BufferDetails> _dashedLines;

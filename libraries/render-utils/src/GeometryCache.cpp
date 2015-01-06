@@ -597,14 +597,13 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
     buffer.release();
 }
 
-void GeometryCache::updateLinestrip(int id, const QVector<glm::vec2>& points) {
-    BufferDetails& details = _registeredLinestrips[id];
+void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points) {
+    BufferDetails& details = _registeredVertices[id];
 
-    // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (details.buffer.isCreated()) {
         details.buffer.destroy();
         #if 1// def WANT_DEBUG
-            qDebug() << "updateLinestrip()... RELEASING REGISTERED";
+            qDebug() << "updateVertices()... RELEASING REGISTERED";
         #endif // def WANT_DEBUG
     }
 
@@ -627,18 +626,17 @@ void GeometryCache::updateLinestrip(int id, const QVector<glm::vec2>& points) {
     delete[] vertexData;
 
     #if 1 //def WANT_DEBUG
-        qDebug() << "new registered linestrip buffer made -- _registeredLinestrips.size():" << _registeredLinestrips.size();
+        qDebug() << "new registered vertices buffer made -- _registeredVertices.size():" << _registeredVertices.size();
     #endif
 }
 
-void GeometryCache::updateLinestrip(int id, const QVector<glm::vec3>& points) {
-    BufferDetails& details = _registeredLinestrips[id];
+void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points) {
+    BufferDetails& details = _registeredVertices[id];
 
-    // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (details.buffer.isCreated()) {
         details.buffer.destroy();
         #if 1// def WANT_DEBUG
-            qDebug() << "updateLinestrip()... RELEASING REGISTERED";
+            qDebug() << "updateVertices()... RELEASING REGISTERED";
         #endif // def WANT_DEBUG
     }
 
@@ -662,29 +660,17 @@ void GeometryCache::updateLinestrip(int id, const QVector<glm::vec3>& points) {
     delete[] vertexData;
 
     #if 1 //def WANT_DEBUG
-        qDebug() << "new registered linestrip buffer made -- _registeredLinestrips.size():" << _registeredLinestrips.size();
+        qDebug() << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
     #endif
 }
 
-void GeometryCache::renderLinestrip(int id) {
-    BufferDetails& details = _registeredLinestrips[id];
+void GeometryCache::renderVertices(GLenum mode, int id) {
+    BufferDetails& details = _registeredVertices[id];
     if (details.buffer.isCreated()) {
         details.buffer.bind();
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(details.vertexSize, GL_FLOAT, 0, 0);
-        glDrawArrays(GL_LINE_STRIP, 0, details.vertices);
-        glDisableClientState(GL_VERTEX_ARRAY);
-        details.buffer.release();
-    }
-}
-
-void GeometryCache::renderLines(int id) {
-    BufferDetails& details = _registeredLinestrips[id];
-    if (details.buffer.isCreated()) {
-        details.buffer.bind();
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(details.vertexSize, GL_FLOAT, 0, 0);
-        glDrawArrays(GL_LINES, 0, details.vertices);
+        glDrawArrays(mode, 0, details.vertices);
         glDisableClientState(GL_VERTEX_ARRAY);
         details.buffer.release();
     }
@@ -1394,7 +1380,11 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
         delete[] vertexData;
 
         #if 1 //def WANT_DEBUG
-            qDebug() << "new registered linestrip buffer made -- _registeredLinestrips.size():" << _registeredLinestrips.size();
+        if (registered) {
+            qDebug() << "new registered dashed line buffer made -- _registeredVertices:" << _registeredDashedLines.size();
+        } else {
+            qDebug() << "new dashed lines buffer made -- _dashedLines:" << _dashedLines.size();
+        }
         #endif
     } else {
         details.buffer.bind();

@@ -749,7 +749,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
         border << bottomRight;
         border << topRight;
         border << topLeft;
-        geometryCache->updateLinestrip(_magnifierBorder, border);
+        geometryCache->updateVertices(_magnifierBorder, border);
 
         _previousMagnifierBottomLeft = bottomLeft;
         _previousMagnifierBottomRight = bottomRight;
@@ -763,7 +763,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
             glLineWidth(1.0f);
             //Outer Line
             glColor4f(1.0f, 0.0f, 0.0f, _alpha);
-            geometryCache->renderLinestrip(_magnifierBorder);
+            geometryCache->renderVertices(GL_LINE_STRIP, _magnifierBorder);
             glEnable(GL_TEXTURE_2D);
         }
         glColor4f(1.0f, 1.0f, 1.0f, _alpha);
@@ -967,7 +967,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
             border << glm::vec2(width, height);
             border << glm::vec2(width, 0);
             border << glm::vec2(0, 0);
-            geometryCache->updateLinestrip(_domainStatusBorder, border);
+            geometryCache->updateVertices(_domainStatusBorder, border);
             _previousBorderWidth = width;
             _previousBorderHeight = height;
         }
@@ -977,7 +977,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
                   CONNECTION_STATUS_BORDER_COLOR[2]);
         glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
 
-        geometryCache->renderLinestrip(_domainStatusBorder);
+        geometryCache->renderVertices(GL_LINE_STRIP, _domainStatusBorder);
     }
 }
 

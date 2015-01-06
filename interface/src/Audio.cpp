@@ -1757,8 +1757,8 @@ void Audio::renderLineStrip(int id, const float* color, int x, int y, int n, int
     }
     
     
-    geometryCache->updateLinestrip(id, points);
-    geometryCache->renderLinestrip(id);
+    geometryCache->updateVertices(id, points);
+    geometryCache->renderVertices(GL_LINE_STRIP, id);
     
     glColor4f(1, 1, 1, 1); 
 }

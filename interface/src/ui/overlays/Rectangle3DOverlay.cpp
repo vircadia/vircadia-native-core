@@ -95,12 +95,12 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                         border << glm::vec3(halfDimensions.x, 0.0f, halfDimensions.y);
                         border << glm::vec3(-halfDimensions.x, 0.0f, halfDimensions.y);
                         border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                        geometryCache->updateLinestrip(_geometryCacheID, border);
+                        geometryCache->updateVertices(_geometryCacheID, border);
 
                         _previousHalfDimensions = halfDimensions;
                         
                     }
-                    geometryCache->renderLinestrip(_geometryCacheID);
+                    geometryCache->renderVertices(GL_LINE_STRIP, _geometryCacheID);
                 }
             }
  
