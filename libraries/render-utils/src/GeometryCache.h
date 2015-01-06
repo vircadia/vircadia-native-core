@@ -114,6 +114,10 @@ public:
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, int id = UNKNOWN_ID);
     void renderLine(const glm::vec2& p1, const glm::vec2& p2, int id = UNKNOWN_ID);
 
+    void updateLinestrip(int id, const QVector<glm::vec2>& points);
+    void updateLinestrip(int id, const QVector<glm::vec3>& points);
+    void renderLinestrip(int id);
+
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
@@ -161,6 +165,14 @@ private:
     QHash<int, Vec2Pair> _lastRegisteredLine2D;
     QHash<Vec2Pair, VerticesIndices> _line2DVBOs;
     QHash<int, VerticesIndices> _registeredLine2DVBOs;
+    
+    struct BufferDetails {
+        QOpenGLBuffer buffer;
+        int vertices;
+        int vertexSize;
+    };
+
+    QHash<int, BufferDetails> _registeredLinestrips;
 
 
 

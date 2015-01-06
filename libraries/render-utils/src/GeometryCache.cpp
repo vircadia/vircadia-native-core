@@ -597,6 +597,87 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
     buffer.release();
 }
 
+void GeometryCache::updateLinestrip(int id, const QVector<glm::vec2>& points) {
+    BufferDetails& details = _registeredLinestrips[id];
+
+    // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (details.buffer.isCreated()) {
+        details.buffer.destroy();
+        #if 1// def WANT_DEBUG
+            qDebug() << "renderGrid()... RELEASING REGISTERED";
+        #endif // def WANT_DEBUG
+    }
+
+    const int FLOATS_PER_VERTEX = 2;
+    details.vertices = points.size();
+    details.vertexSize = FLOATS_PER_VERTEX;
+
+    GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
+    GLfloat* vertex = vertexData;
+
+    foreach (const glm::vec2& point, points) {
+        *(vertex++) = point.x;
+        *(vertex++) = point.y;
+    }
+
+    details.buffer.create();
+    details.buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    details.buffer.bind();
+    details.buffer.allocate(vertexData, details.vertices * FLOATS_PER_VERTEX * sizeof(GLfloat));
+    delete[] vertexData;
+
+    #if 1 //def WANT_DEBUG
+        qDebug() << "new registered linestrip buffer made -- _registeredLinestrips.size():" << _registeredLinestrips.size();
+    #endif
+}
+
+void GeometryCache::updateLinestrip(int id, const QVector<glm::vec3>& points) {
+    BufferDetails& details = _registeredLinestrips[id];
+
+    // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (details.buffer.isCreated()) {
+        details.buffer.destroy();
+        #if 1// def WANT_DEBUG
+            qDebug() << "renderGrid()... RELEASING REGISTERED";
+        #endif // def WANT_DEBUG
+    }
+
+    const int FLOATS_PER_VERTEX = 3;
+    details.vertices = points.size();
+    details.vertexSize = FLOATS_PER_VERTEX;
+
+    GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
+    GLfloat* vertex = vertexData;
+
+    foreach (const glm::vec3& point, points) {
+        *(vertex++) = point.x;
+        *(vertex++) = point.y;
+        *(vertex++) = point.z;
+    }
+
+    details.buffer.create();
+    details.buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    details.buffer.bind();
+    details.buffer.allocate(vertexData, details.vertices * FLOATS_PER_VERTEX * sizeof(GLfloat));
+    delete[] vertexData;
+
+    #if 1 //def WANT_DEBUG
+        qDebug() << "new registered linestrip buffer made -- _registeredLinestrips.size():" << _registeredLinestrips.size();
+    #endif
+}
+
+void GeometryCache::renderLinestrip(int id) {
+    BufferDetails& details = _registeredLinestrips[id];
+    if (details.buffer.isCreated()) {
+        details.buffer.bind();
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(details.vertexSize, GL_FLOAT, 0, 0);
+        glDrawArrays(GL_LINE_STRIP, 0, details.vertices);
+        glDisableClientState(GL_VERTEX_ARRAY);
+        details.buffer.release();
+    }
+}
+
 void GeometryCache::renderSolidCube(float size) {
     VerticesIndices& vbo = _solidCubeVBOs[size];
     const int FLOATS_PER_VERTEX = 3;

@@ -99,11 +99,7 @@ void BandwidthMeter::renderBox(int x, int y, int w, int h) {
 }
 
 void BandwidthMeter::renderVerticalLine(int x, int y, int h) {
-
-    glBegin(GL_LINES);
-    glVertex2i(x, y);
-    glVertex2i(x, y + h);
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderLine(glm::vec2(x, y), glm::vec2(x, y + h));
 }
 
 inline int BandwidthMeter::centered(int subject, int object) {

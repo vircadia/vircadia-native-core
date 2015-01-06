@@ -23,7 +23,8 @@ Rectangle3DOverlay::Rectangle3DOverlay() {
 }
 
 Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay) :
-    Planar3DOverlay(rectangle3DOverlay)
+    Planar3DOverlay(rectangle3DOverlay),
+    _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
 }
 
@@ -84,6 +85,24 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                     drawDashedLine(point4, point1);
 
                 } else {
+
+                    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+                
+                    if (halfDimensions != _previousHalfDimensions) {
+                        QVector<glm::vec3> border;
+                        border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                        border << glm::vec3(halfDimensions.x, 0.0f, -halfDimensions.y);
+                        border << glm::vec3(halfDimensions.x, 0.0f, halfDimensions.y);
+                        border << glm::vec3(-halfDimensions.x, 0.0f, halfDimensions.y);
+                        border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                        geometryCache->updateLinestrip(_geometryCacheID, border);
+
+                        _previousHalfDimensions = halfDimensions;
+                        
+                    }
+                    geometryCache->renderLinestrip(_geometryCacheID);
+
+                    /*
                     glBegin(GL_LINE_STRIP);
 
                     glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
@@ -93,6 +112,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                     glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
                 
                     glEnd();
+                    */
                 }
             }
  
