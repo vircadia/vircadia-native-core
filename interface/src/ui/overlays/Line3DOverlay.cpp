@@ -59,7 +59,7 @@ void Line3DOverlay::render(RenderArgs* args) {
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     if (getIsDashedLine()) {
-        drawDashedLine(_position, _end);
+        DependencyManager::get<GeometryCache>()->renderDashedLine(_position, _end, _geometryCacheID);
     } else {
         DependencyManager::get<GeometryCache>()->renderLine(_start, _end, _geometryCacheID);
     }

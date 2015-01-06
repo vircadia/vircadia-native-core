@@ -1318,6 +1318,83 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id) {
+    bool registered = (id != UNKNOWN_ID);
+    Vec3Pair key(start, end);
+    BufferDetails& details = registered ? _registeredDashedLines[id] : _dashedLines[key];
+
+    // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
+    if (registered && details.buffer.isCreated()) {
+        if (_lastRegisteredDashedLines[id] != key) {
+            details.buffer.destroy();
+            _lastRegisteredDashedLines[id] = key;
+            #if 1// def WANT_DEBUG
+                qDebug() << "renderDashedLine()... RELEASING REGISTERED";
+            #endif // def WANT_DEBUG
+        }
+    }
+
+    if (!details.buffer.isCreated()) {
+    
+        // draw each line segment with appropriate gaps
+        const float DASH_LENGTH = 0.05f;
+        const float GAP_LENGTH = 0.025f;
+        const float SEGMENT_LENGTH = DASH_LENGTH + GAP_LENGTH;
+        float length = glm::distance(start, end);
+        float segmentCount = length / SEGMENT_LENGTH;
+        int segmentCountFloor = (int)glm::floor(segmentCount);
+
+        glm::vec3 segmentVector = (end - start) / segmentCount;
+        glm::vec3 dashVector = segmentVector / SEGMENT_LENGTH * DASH_LENGTH;
+        glm::vec3 gapVector = segmentVector / SEGMENT_LENGTH * GAP_LENGTH;
+
+        const int FLOATS_PER_VERTEX = 3;
+        details.vertices = (segmentCountFloor + 1) * 2;
+        details.vertexSize = FLOATS_PER_VERTEX;
+
+        GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
+        GLfloat* vertex = vertexData;
+
+        glm::vec3 point = start;
+        *(vertex++) = point.x;
+        *(vertex++) = point.y;
+        *(vertex++) = point.z;
+        
+        for (int i = 0; i < segmentCountFloor; i++) {
+            point += dashVector;
+            *(vertex++) = point.x;
+            *(vertex++) = point.y;
+            *(vertex++) = point.z;
+
+            point += gapVector;
+            *(vertex++) = point.x;
+            *(vertex++) = point.y;
+            *(vertex++) = point.z;
+        }
+        *(vertex++) = end.x;
+        *(vertex++) = end.y;
+        *(vertex++) = end.z;
+
+        details.buffer.create();
+        details.buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        details.buffer.bind();
+        details.buffer.allocate(vertexData, details.vertices * FLOATS_PER_VERTEX * sizeof(GLfloat));
+        delete[] vertexData;
+
+        #if 1 //def WANT_DEBUG
+            qDebug() << "new registered linestrip buffer made -- _registeredLinestrips.size():" << _registeredLinestrips.size();
+        #endif
+    } else {
+        details.buffer.bind();
+    }
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(details.vertexSize, GL_FLOAT, 0, 0);
+    glDrawArrays(GL_LINES, 0, details.vertices);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    details.buffer.release();
+}
+
 void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, int id) {
     bool registeredLine = (id != UNKNOWN_ID);
     Vec3Pair key(p1, p2);

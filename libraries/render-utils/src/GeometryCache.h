@@ -112,6 +112,7 @@ public:
 
 
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, int id = UNKNOWN_ID);
+    void renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id = UNKNOWN_ID);
     void renderLine(const glm::vec2& p1, const glm::vec2& p2, int id = UNKNOWN_ID);
 
     void updateLinestrip(int id, const QVector<glm::vec2>& points);
@@ -173,6 +174,11 @@ private:
     };
 
     QHash<int, BufferDetails> _registeredLinestrips;
+
+    QHash<int, Vec3Pair> _lastRegisteredDashedLines;
+    QHash<Vec3Pair, BufferDetails> _dashedLines;
+    QHash<int, BufferDetails> _registeredDashedLines;
+
 
 
 

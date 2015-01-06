@@ -65,6 +65,8 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
             //glScalef(dimensions.x, dimensions.y, 1.0f);
 
             glLineWidth(_lineWidth);
+
+            GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
             
             // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
             if (getIsSolid()) {
@@ -79,14 +81,12 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                     glm::vec3 point3(halfDimensions.x, 0.0f, halfDimensions.y);
                     glm::vec3 point4(-halfDimensions.x, 0.0f, halfDimensions.y);
                 
-                    drawDashedLine(point1, point2);
-                    drawDashedLine(point2, point3);
-                    drawDashedLine(point3, point4);
-                    drawDashedLine(point4, point1);
+                    geometryCache->renderDashedLine(point1, point2);
+                    geometryCache->renderDashedLine(point2, point3);
+                    geometryCache->renderDashedLine(point3, point4);
+                    geometryCache->renderDashedLine(point4, point1);
 
                 } else {
-
-                    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
                 
                     if (halfDimensions != _previousHalfDimensions) {
                         QVector<glm::vec3> border;
