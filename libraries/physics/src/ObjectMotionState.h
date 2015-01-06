@@ -84,7 +84,7 @@ public:
     void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
 
     bool doesNotNeedToSendUpdate() const;
-    virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const;
+    virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder);
     virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
     virtual MotionType computeMotionType() const = 0;

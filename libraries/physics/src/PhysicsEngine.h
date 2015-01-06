@@ -24,10 +24,8 @@ typedef unsigned int uint32_t;
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
-#include "PositionHashKey.h"
 #include "ShapeManager.h"
 #include "ThreadSafeDynamicsWorld.h"
-#include "VoxelObject.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
@@ -55,16 +53,6 @@ public:
 
     /// \return position of simulation origin in domain-frame
     const glm::vec3& getOriginOffset() const { return _originOffset; }
-
-    /// \param position the minimum corner of the voxel
-    /// \param scale the length of the voxel side
-    /// \return true if Voxel added
-    bool addVoxel(const glm::vec3& position, float scale);
-
-    /// \param position the minimum corner of the voxel
-    /// \param scale the length of the voxel side
-    /// \return true if Voxel removed
-    bool removeVoxel(const glm::vec3& position, float scale);
 
     /// \param motionState pointer to Object's MotionState
     /// \return true if Object added
@@ -103,7 +91,6 @@ protected:
 
 private:
     glm::vec3 _originOffset;
-    btHashMap<PositionHashKey, VoxelObject> _voxels;
 
     // EntitySimulation stuff
     QSet<EntityMotionState*> _entityMotionStates; // all entities that we track

@@ -279,7 +279,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     return packetsSent;
 }
 
-/// Version of voxel distributor that sends the deepest LOD level at once
+/// Version of octree element distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged) {
         
     OctreeServer::didPacketDistributor(this);
@@ -595,7 +595,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         //int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all
-        // the voxels from the current view frustum
+        // the octree elements from the current view frustum
         if (nodeData->elementBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);

@@ -52,7 +52,6 @@ const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
 const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
 
 const QString SETTINGS_ADDRESS_KEY = "address";
-
 class QSettings;
 
 class AnimationsDialog;
@@ -206,9 +205,6 @@ private slots:
     void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
-    void displayAddressOfflineMessage();
-    void displayAddressNotFoundMessage();
-    void muteEnvironment();
     void changeVSync();
 
 private:

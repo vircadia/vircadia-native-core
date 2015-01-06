@@ -84,6 +84,8 @@
 #include "ModelUploader.h"
 #include "Util.h"
 
+#include "audio/AudioToolBox.h"
+
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
@@ -172,7 +174,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _audio(),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
         _packetsPerSecond(0),
@@ -246,9 +247,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
-
-    _audio.moveToThread(audioThread);
-    connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
+    
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    audioIO->moveToThread(audioThread);
+    connect(audioThread, &QThread::started, audioIO.data(), &Audio::start);
 
     audioThread->start();
     
@@ -299,11 +301,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
     
-    AddressManager& addressManager = AddressManager::getInstance();
+    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
     
     // use our MyAvatar position and quat for address manager path
-    addressManager.setPositionGetter(getPositionForPath);
-    addressManager.setOrientationGetter(getOrientationForPath);
+    addressManager->setPositionGetter(getPositionForPath);
+    addressManager->setOrientationGetter(getOrientationForPath);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -402,7 +404,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
-    AudioScriptingInterface::getInstance().setLocalAudioInterface(&_audio);
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
     
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
@@ -441,13 +443,15 @@ Application::~Application() {
     
     // kill any audio injectors that are still around
     AudioScriptingInterface::getInstance().stopAllInjectors();
+    
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
 
     // stop the audio process
-    QMetaObject::invokeMethod(&_audio, "stop");
+    QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
     
     // ask the audio thread to quit and wait until it is done
-    _audio.thread()->quit();
-    _audio.thread()->wait();
+    audioIO->thread()->quit();
+    audioIO->thread()->wait();
     
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
@@ -757,7 +761,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         
         if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toString());
+            DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
         }
         
         return false;
@@ -1183,7 +1187,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             _mousePressed = true;
             
             if (mouseOnScreen()) {
-                if (_audio.mousePressEvent(getMouseX(), getMouseY())) {
+                if (DependencyManager::get<AudioToolBox>()->mousePressEvent(getMouseX(), getMouseY())) {
                     // stop propagation
                     return;
                 }
@@ -1621,26 +1625,16 @@ void Application::init() {
     _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
-    _audio.setReceivedAudioStreamSettings(Menu::getInstance()->getReceivedAudioStreamSettings());
     
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
     int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+    QString addressLookupString;
     if (urlIndex != -1) {
-        AddressManager::getInstance().handleLookupString(arguments().value(urlIndex + 1));
-    } else {
-        // check if we have a URL in settings to load to jump back to
-        // we load this separate from the other settings so we don't double lookup a URL
-        QSettings* interfaceSettings = lockSettings();
-        QVariant addressVariant = interfaceSettings->value(SETTINGS_ADDRESS_KEY);
-        
-        QString addressString = addressVariant.isNull()
-            ? DEFAULT_HIFI_ADDRESS : addressVariant.toUrl().toString();
-        
-        unlockSettings();
-        
-        AddressManager::getInstance().handleLookupString(addressString);
+        addressLookupString = arguments().value(urlIndex + 1);
     }
+    
+    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
     
     qDebug() << "Loaded settings";
     
@@ -1668,9 +1662,10 @@ void Application::init() {
     _entities.setViewFrustum(getViewFrustum());
 
     EntityTree* entityTree = _entities.getTree();
-    _entityCollisionSystem.init(&_entityEditSender, entityTree, &_audio, &_avatarManager);
+    
+    _entityCollisionSystem.init(&_entityEditSender, entityTree, &_avatarManager);
+    
     entityTree->setSimulation(&_entityCollisionSystem);
-
 
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
@@ -1690,16 +1685,12 @@ void Application::init() {
     _metavoxels.init();
 
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    _audio.init(glCanvas.data());
     _rearMirrorTools = new RearMirrorTools(glCanvas.data(), _mirrorViewRect, _settings);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-
-    connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
-        &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
@@ -1960,6 +1951,8 @@ void Application::updateCursor(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
 
+    static QPoint lastMousePos = QPoint();
+    _lastMouseMove = (lastMousePos == QCursor::pos()) ? _lastMouseMove : usecTimestampNow();
     bool hideMouse = false;
     bool underMouse = QGuiApplication::topLevelAt(QCursor::pos()) ==
                       Application::getInstance()->getWindow()->windowHandle();
@@ -1972,6 +1965,7 @@ void Application::updateCursor(float deltaTime) {
     }
     
     setCursorVisible(!hideMouse);
+    lastMousePos = QCursor::pos();
 }
 
 void Application::setCursorVisible(bool visible) {
@@ -2099,7 +2093,7 @@ void Application::update(float deltaTime) {
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
 
-            QMetaObject::invokeMethod(&_audio, "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
 }
@@ -2442,8 +2436,8 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 }
 
 glm::vec3 Application::getSunDirection() {
-    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()) -
-        _myCamera.getPosition());
+    // Sun direction is in fact just the location of the sun relative to the origin
+    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()));
 }
 
 void Application::updateShadowMap() {
@@ -3088,7 +3082,7 @@ void Application::resetSensors() {
     
     _myAvatar->reset();
 
-    QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -3118,7 +3112,7 @@ void Application::updateWindowTitle(){
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + AddressManager::getInstance().getCurrentDomain() + connectionStatus + buildVersion;
+        + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -3139,7 +3133,7 @@ void Application::updateLocationInServer() {
 
         QJsonObject locationObject;
         
-        QString pathString = AddressManager::getInstance().currentPath();
+        QString pathString = DependencyManager::get<AddressManager>()->currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
         const QString PATH_KEY_IN_LOCATION = "path";
@@ -3211,7 +3205,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
-        QMetaObject::invokeMethod(&_audio, "audioMixerKilled");
+        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "audioMixerKilled");
     }
 
     if (node->getType() == NodeType::EntityServer) {
@@ -3623,7 +3617,7 @@ void Application::uploadEntity() {
 void Application::openUrl(const QUrl& url) {
     if (!url.isEmpty()) {
         if (url.scheme() == HIFI_URL_SCHEME) {
-            AddressManager::getInstance().handleLookupString(url.toString());
+            DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);
