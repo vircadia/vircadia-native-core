@@ -53,24 +53,6 @@ const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
 
 const QString SETTINGS_ADDRESS_KEY = "address";
 
-enum FrustumDrawMode {
-    FRUSTUM_DRAW_MODE_ALL,
-    FRUSTUM_DRAW_MODE_VECTORS,
-    FRUSTUM_DRAW_MODE_PLANES,
-    FRUSTUM_DRAW_MODE_NEAR_PLANE,
-    FRUSTUM_DRAW_MODE_FAR_PLANE,
-    FRUSTUM_DRAW_MODE_KEYHOLE,
-    FRUSTUM_DRAW_MODE_COUNT
-};
-
-struct ViewFrustumOffset {
-    float yaw;
-    float pitch;
-    float roll;
-    float distance;
-    float up;
-};
-
 class QSettings;
 
 class AnimationsDialog;
@@ -117,15 +99,11 @@ public:
     void setScriptsLocation(const QString& scriptsLocation);
 
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
-    FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
-    ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
 
     bool getShadowsEnabled() const;
-
-    void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
     QString getLODFeedbackText();
@@ -218,7 +196,6 @@ private slots:
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
     void hmdToolsClosed();
-    void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
     void showMetavoxelNetworkSimulator();
@@ -257,8 +234,6 @@ private:
                                                     const char* member = NULL,
                                                     int menuItemLocation = UNSPECIFIED_POSITION);
 
-    void updateFrustumRenderModeAction();
-
     QAction* getActionFromName(const QString& menuName, QMenu* menu);
     QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
     QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
@@ -276,8 +251,6 @@ private:
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
     float _faceshiftEyeDeflection;
     QString _faceshiftHostname;
-    FrustumDrawMode _frustumDrawMode;
-    ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<ScriptEditorWindow> _ScriptEditor;
@@ -364,7 +337,6 @@ namespace MenuOption {
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable NACK Packets";
-    const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayHermiteData = "Display Hermite Data";
@@ -390,7 +362,6 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
-    const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";

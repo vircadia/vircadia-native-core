@@ -531,12 +531,6 @@ void Application::initializeGL() {
     }*/
 #endif
 
-    // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
-    // field of view and near and far clip to make it interesting.
-    //viewFrustumOffsetCamera.setFieldOfView(90.0);
-    _viewFrustumOffsetCamera.setNearClip(DEFAULT_NEAR_CLIP);
-    _viewFrustumOffsetCamera.setFarClip(DEFAULT_FAR_CLIP);
-
     initDisplay();
     qDebug( "Initialized Display.");
 
@@ -623,32 +617,6 @@ void Application::paintGL() {
         _myCamera.update(1.0f / _fps);
     }
 
-    // Note: whichCamera is used to pick between the normal camera myCamera for our
-    // main camera, vs, an alternate camera. The alternate camera we support right now
-    // is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
-    // to add other cameras.
-    //
-    // Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
-    // code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
-    // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
-    Camera* whichCamera = &_myCamera;
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
-
-        ViewFrustumOffset viewFrustumOffset = Menu::getInstance()->getViewFrustumOffset();
-
-        // set the camera to third-person view but offset so we can see the frustum
-        glm::quat frustumRotation = glm::quat(glm::radians(glm::vec3(viewFrustumOffset.pitch, viewFrustumOffset.yaw, viewFrustumOffset.roll)));
-        
-        _viewFrustumOffsetCamera.setPosition(_myCamera.getPosition() +
-                                             frustumRotation * glm::vec3(0.0f, viewFrustumOffset.up, -viewFrustumOffset.distance));
-        
-        _viewFrustumOffsetCamera.setRotation(_myCamera.getRotation() * frustumRotation);
-        
-        _viewFrustumOffsetCamera.update(1.0f/_fps);
-        whichCamera = &_viewFrustumOffsetCamera;
-    }
-
     if (Menu::getInstance()->getShadowsEnabled()) {
         updateShadowMap();
     }
@@ -659,16 +627,16 @@ void Application::paintGL() {
         glClear(GL_COLOR_BUFFER_BIT);
         
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
-        if (whichCamera->getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(whichCamera->getRotation(), whichCamera->getPosition(), *whichCamera);
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
         } else {
-            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), *whichCamera);
+            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
         }
         _myCamera.update(1.0f / _fps);
 
     } else if (TV3DManager::isConnected()) {
        
-        TV3DManager::display(*whichCamera);
+        TV3DManager::display(_myCamera);
 
     } else {
         DependencyManager::get<GlowEffect>()->prepare();
@@ -680,7 +648,7 @@ void Application::paintGL() {
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
-        displaySide(*whichCamera);
+        displaySide(_myCamera);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -717,7 +685,6 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
 }
 
 void Application::resizeGL(int width, int height) {
-    resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
     resetCamerasOnResizeGL(_myCamera, width, height);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
@@ -746,13 +713,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
         _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-
-        // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
-        // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
-        if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
-            nearVal = _viewFrustumOffsetCamera.getNearClip();
-            farVal = _viewFrustumOffsetCamera.getFarClip();
-        }
     } else {
         ViewFrustum tempViewFrustum;
         loadViewFrustum(camera, tempViewFrustum);
@@ -839,19 +799,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
-                break;
-            case Qt::Key_BracketLeft:
-            case Qt::Key_BracketRight:
-            case Qt::Key_BraceLeft:
-            case Qt::Key_BraceRight:
-            case Qt::Key_ParenLeft:
-            case Qt::Key_ParenRight:
-            case Qt::Key_Less:
-            case Qt::Key_Greater:
-            case Qt::Key_Comma:
-            case Qt::Key_Period:
-            case Qt::Key_QuoteDbl:
-                Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
                 break;
             case Qt::Key_L:
                 if (isShifted) {
@@ -1054,19 +1001,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::UserInterface);
                 break;
-            case Qt::Key_F:
-                if (isShifted)  {
-                    Menu::getInstance()->triggerOption(MenuOption::DisplayFrustum);
-                }
-                break;
             case Qt::Key_P:
                  Menu::getInstance()->triggerOption(MenuOption::FirstPerson);
                  break;
-            case Qt::Key_R:
-                if (isShifted)  {
-                    Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
-                }
-                break;
             case Qt::Key_Percent:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
@@ -2713,17 +2650,17 @@ QImage Application::renderAvatarBillboard() {
     return image;
 }
 
-void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
+void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
     // load the view frustum
-    loadViewFrustum(whichCamera, _displayViewFrustum);
+    loadViewFrustum(theCamera, _displayViewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
-    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
         glScalef(-1.0f, 1.0f, 1.0f);
         glFrontFace(GL_CW);
 
@@ -2731,32 +2668,32 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         glFrontFace(GL_CCW);
     }
 
-    glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
-    glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
+    glm::vec3 eyeOffsetPos = theCamera.getEyeOffsetPosition();
+    glm::quat eyeOffsetOrient = theCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
     glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
     glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
 
-    // transform view according to whichCamera
+    // transform view according to theCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
 
-    glm::quat rotation = whichCamera.getRotation();
+    glm::quat rotation = theCamera.getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
-    updateUntranslatedViewMatrix(-whichCamera.getPosition());
+    updateUntranslatedViewMatrix(-theCamera.getPosition());
 
     // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
     // the viewTransofmr object is updatded with the correct values and saved,
     // this is what is used for rendering the Entities and avatars
     Transform viewTransform;
-    viewTransform.setTranslation(whichCamera.getPosition());
+    viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
     viewTransform.postTranslate(eyeOffsetPos);
     viewTransform.postRotate(eyeOffsetOrient);
-    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
     if (renderSide != RenderArgs::MONO) {
@@ -2802,9 +2739,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // compute starfield alpha based on distance from atmosphere
         float alpha = 1.0f;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-            const EnvironmentData& closestData = _environment.getClosestData(whichCamera.getPosition());
-            float height = glm::distance(whichCamera.getPosition(),
-                closestData.getAtmosphereCenter(whichCamera.getPosition()));
+            const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
+            float height = glm::distance(theCamera.getPosition(),
+                closestData.getAtmosphereCenter(theCamera.getPosition()));
             if (height < closestData.getAtmosphereInnerRadius()) {
                 alpha = 0.0f;
 
@@ -2815,7 +2752,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         }
 
         // finally render the starfield
-        _stars.render(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(), whichCamera.getNearClip(), alpha);
+        _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
@@ -2827,7 +2764,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         PerformanceTimer perfTimer("atmosphere");
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
             "Application::displaySide() ... atmosphere...");
-        _environment.renderAtmospheres(whichCamera);
+        _environment.renderAtmospheres(theCamera);
     }
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
@@ -2873,7 +2810,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
 
 
 
-    bool mirrorMode = (whichCamera.getMode() == CAMERA_MODE_MIRROR);
+    bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
@@ -2902,18 +2839,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         _nodeBoundsDisplay.draw();
     
         //  Render the world box
-        if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
+        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
                 Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
             PerformanceTimer perfTimer("worldBox");
             renderWorldBox();
-        }
-
-        // view frustum for debugging
-        if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum) && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
-            PerformanceTimer perfTimer("viewFrustum");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... renderViewFrustum...");
-            renderViewFrustum(_viewFrustum);
         }
 
         // render octree fades if they exist
@@ -3140,167 +3069,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     glDisable(GL_SCISSOR_TEST);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
-}
-
-// renderViewFrustum()
-//
-// Description: this will render the view frustum bounds for EITHER the head
-//                 or the "myCamera".
-//
-// Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
-// We can draw it with each of these parts:
-//    * Origin Direction/Up/Right vectors - these will be drawn at the point of the camera
-//    * Near plane - this plane is drawn very close to the origin point.
-//    * Right/Left planes - these two planes are drawn between the near and far planes.
-//    * Far plane - the plane is drawn in the distance.
-// Modes - the following modes, will draw the following parts.
-//    * All - draws all the parts listed above
-//    * Planes - draws the planes but not the origin vectors
-//    * Origin Vectors - draws the origin vectors ONLY
-//    * Near Plane - draws only the near plane
-//    * Far Plane - draws only the far plane
-void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
-    // Load it with the latest details!
-    loadViewFrustum(_myCamera, viewFrustum);
-
-    glm::vec3 position  = viewFrustum.getOffsetPosition();
-    glm::vec3 direction = viewFrustum.getOffsetDirection();
-    glm::vec3 up        = viewFrustum.getOffsetUp();
-    glm::vec3 right     = viewFrustum.getOffsetRight();
-
-    //  Get ready to draw some lines
-    glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glLineWidth(1.0);
-    glBegin(GL_LINES);
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_VECTORS) {
-        // Calculate the origin direction vectors
-        glm::vec3 lookingAt      = position + (direction * 0.2f);
-        glm::vec3 lookingAtUp    = position + (up * 0.2f);
-        glm::vec3 lookingAtRight = position + (right * 0.2f);
-
-        // Looking At = white
-        glColor3f(1,1,1);
-        glVertex3f(position.x, position.y, position.z);
-        glVertex3f(lookingAt.x, lookingAt.y, lookingAt.z);
-
-        // Looking At Up = purple
-        glColor3f(1,0,1);
-        glVertex3f(position.x, position.y, position.z);
-        glVertex3f(lookingAtUp.x, lookingAtUp.y, lookingAtUp.z);
-
-        // Looking At Right = cyan
-        glColor3f(0,1,1);
-        glVertex3f(position.x, position.y, position.z);
-        glVertex3f(lookingAtRight.x, lookingAtRight.y, lookingAtRight.z);
-    }
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_PLANES
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_NEAR_PLANE) {
-        // Drawing the bounds of the frustum
-        // viewFrustum.getNear plane - bottom edge
-        glColor3f(1,0,0);
-        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
-
-        // viewFrustum.getNear plane - top edge
-        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
-
-        // viewFrustum.getNear plane - right edge
-        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
-        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
-
-        // viewFrustum.getNear plane - left edge
-        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-    }
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_PLANES
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_FAR_PLANE) {
-        // viewFrustum.getFar plane - bottom edge
-        glColor3f(0,1,0);
-        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
-        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
-
-        // viewFrustum.getFar plane - top edge
-        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
-
-        // viewFrustum.getFar plane - right edge
-        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
-        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
-
-        // viewFrustum.getFar plane - left edge
-        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
-        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-    }
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_PLANES) {
-        // RIGHT PLANE IS CYAN
-        // right plane - bottom edge - viewFrustum.getNear to distant
-        glColor3f(0,1,1);
-        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
-        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
-
-        // right plane - top edge - viewFrustum.getNear to distant
-        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
-        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
-
-        // LEFT PLANE IS BLUE
-        // left plane - bottom edge - viewFrustum.getNear to distant
-        glColor3f(0,0,1);
-        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
-
-        // left plane - top edge - viewFrustum.getNear to distant
-        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-
-        // focal plane - bottom edge
-        glColor3f(1.0f, 0.0f, 1.0f);
-        float focalProportion = (viewFrustum.getFocalLength() - viewFrustum.getNearClip()) /
-            (viewFrustum.getFarClip() - viewFrustum.getNearClip());
-        glm::vec3 focalBottomLeft = glm::mix(viewFrustum.getNearBottomLeft(), viewFrustum.getFarBottomLeft(), focalProportion);
-        glm::vec3 focalBottomRight = glm::mix(viewFrustum.getNearBottomRight(),
-            viewFrustum.getFarBottomRight(), focalProportion);
-        glVertex3f(focalBottomLeft.x, focalBottomLeft.y, focalBottomLeft.z);
-        glVertex3f(focalBottomRight.x, focalBottomRight.y, focalBottomRight.z);
-
-        // focal plane - top edge
-        glm::vec3 focalTopLeft = glm::mix(viewFrustum.getNearTopLeft(), viewFrustum.getFarTopLeft(), focalProportion);
-        glm::vec3 focalTopRight = glm::mix(viewFrustum.getNearTopRight(), viewFrustum.getFarTopRight(), focalProportion);
-        glVertex3f(focalTopLeft.x, focalTopLeft.y, focalTopLeft.z);
-        glVertex3f(focalTopRight.x, focalTopRight.y, focalTopRight.z);
-
-        // focal plane - left edge
-        glVertex3f(focalBottomLeft.x, focalBottomLeft.y, focalBottomLeft.z);
-        glVertex3f(focalTopLeft.x, focalTopLeft.y, focalTopLeft.z);
-
-        // focal plane - right edge
-        glVertex3f(focalBottomRight.x, focalBottomRight.y, focalBottomRight.z);
-        glVertex3f(focalTopRight.x, focalTopRight.y, focalTopRight.z);
-    }
-    glEnd();
-    glEnable(GL_LIGHTING);
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_KEYHOLE) {
-        // Draw the keyhole
-        float keyholeRadius = viewFrustum.getKeyholeRadius();
-        if (keyholeRadius > 0.0f) {
-            glPushMatrix();
-            glColor4f(1, 1, 0, 1);
-            glTranslatef(position.x, position.y, position.z); // where we actually want it!
-            DependencyManager::get<GeometryCache>()->renderSphere(keyholeRadius, 20, 20, false); 
-            glPopMatrix();
-        }
-    }
 }
 
 void Application::resetSensors() {
