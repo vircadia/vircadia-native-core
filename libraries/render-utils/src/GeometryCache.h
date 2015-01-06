@@ -118,6 +118,7 @@ public:
     void updateLinestrip(int id, const QVector<glm::vec2>& points);
     void updateLinestrip(int id, const QVector<glm::vec3>& points);
     void renderLinestrip(int id);
+    void renderLines(int id);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable

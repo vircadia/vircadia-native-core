@@ -604,7 +604,7 @@ void GeometryCache::updateLinestrip(int id, const QVector<glm::vec2>& points) {
     if (details.buffer.isCreated()) {
         details.buffer.destroy();
         #if 1// def WANT_DEBUG
-            qDebug() << "renderGrid()... RELEASING REGISTERED";
+            qDebug() << "updateLinestrip()... RELEASING REGISTERED";
         #endif // def WANT_DEBUG
     }
 
@@ -638,7 +638,7 @@ void GeometryCache::updateLinestrip(int id, const QVector<glm::vec3>& points) {
     if (details.buffer.isCreated()) {
         details.buffer.destroy();
         #if 1// def WANT_DEBUG
-            qDebug() << "renderGrid()... RELEASING REGISTERED";
+            qDebug() << "updateLinestrip()... RELEASING REGISTERED";
         #endif // def WANT_DEBUG
     }
 
@@ -673,6 +673,18 @@ void GeometryCache::renderLinestrip(int id) {
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(details.vertexSize, GL_FLOAT, 0, 0);
         glDrawArrays(GL_LINE_STRIP, 0, details.vertices);
+        glDisableClientState(GL_VERTEX_ARRAY);
+        details.buffer.release();
+    }
+}
+
+void GeometryCache::renderLines(int id) {
+    BufferDetails& details = _registeredLinestrips[id];
+    if (details.buffer.isCreated()) {
+        details.buffer.bind();
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(details.vertexSize, GL_FLOAT, 0, 0);
+        glDrawArrays(GL_LINES, 0, details.vertices);
         glDisableClientState(GL_VERTEX_ARRAY);
         details.buffer.release();
     }
