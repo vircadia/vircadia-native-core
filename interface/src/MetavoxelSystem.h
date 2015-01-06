@@ -323,9 +323,7 @@ public:
     bool isHermiteEnabled() const { return _hermiteEnabled; }
 
     /// Finds the first intersection between the described ray and the voxel data.
-    /// \param entry the entry point of the ray in relative coordinates, from (0, 0, 0) to (1, 1, 1)
-    bool findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
-        const glm::vec3& direction, float& distance) const;
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float boundsDistance, float& distance) const;
         
     virtual void render(const glm::vec3& translation, const glm::quat& rotation,
         const glm::vec3& scale, bool cursor = false);
@@ -425,6 +423,9 @@ public:
     HeightfieldNodeRenderer();
     virtual ~HeightfieldNodeRenderer();
     
+    virtual bool findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& origin, const glm::vec3& direction, float boundsDistance, float& distance) const; 
+        
     void render(const HeightfieldNodePointer& node, const glm::vec3& translation,
         const glm::quat& rotation, const glm::vec3& scale, bool cursor);
     

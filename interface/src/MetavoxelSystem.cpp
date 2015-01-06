@@ -1044,16 +1044,17 @@ VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>
     _materials(materials) {
 }
 
-bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
-        const glm::vec3& direction, float& distance) const {
+bool VoxelBuffer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        float boundsDistance, float& distance) const {
     float highest = _size - 1.0f;
-    glm::vec3 position = entry * highest;
+    glm::vec3 position = (origin + direction * boundsDistance) * highest;
     glm::vec3 floors = glm::floor(position);
     int max = _size - 2;
     int x = qMin((int)floors.x, max), y = qMin((int)floors.y, max), z = qMin((int)floors.z, max);
     forever {
-        for (QMultiHash<VoxelCoord, int>::const_iterator it = _quadIndices.constFind(qRgb(x + 1, y + 1, z + 1));
-                it != _quadIndices.constEnd(); it++) {
+        VoxelCoord key(qRgb(x, y, z));
+        for (QMultiHash<VoxelCoord, int>::const_iterator it = _quadIndices.constFind(key);
+                it != _quadIndices.constEnd() && it.key() == key; it++) {
             const int* indices = _indices.constData() + *it;
             if (findRayTriangleIntersection(origin, direction, _vertices.at(indices[0]).vertex,
                     _vertices.at(indices[1]).vertex, _vertices.at(indices[2]).vertex, distance) ||
@@ -1395,6 +1396,19 @@ HeightfieldNodeRenderer::HeightfieldNodeRenderer() :
 HeightfieldNodeRenderer::~HeightfieldNodeRenderer() {
     QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "deleteTextures", Q_ARG(int, _heightTextureID),
         Q_ARG(int, _colorTextureID), Q_ARG(int, _materialTextureID));
+}
+
+bool HeightfieldNodeRenderer::findRayIntersection(const glm::vec3& translation, const glm::quat& rotation,
+        const glm::vec3& scale, const glm::vec3& origin, const glm::vec3& direction,
+        float boundsDistance, float& distance) const {
+    if (!_voxels) {
+        return false;
+    }
+    glm::quat inverseRotation = glm::inverse(rotation);
+    float inverseScale = 1.0f / scale.x;
+    return static_cast<const VoxelBuffer*>(_voxels.data())->findRayIntersection(
+        inverseRotation * (origin - translation) * inverseScale, inverseRotation * direction * inverseScale,
+        boundsDistance, distance);
 }
 
 class EdgeCrossing {
@@ -2030,8 +2044,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
             }
             indicesZ.swap(lastIndicesZ);
         }
-        
-        _voxels = new VoxelBuffer(vertices, indices, hermiteSegments, quadIndices, width, node->getStack()->getMaterials());
+        _voxels = new VoxelBuffer(vertices, indices, hermiteSegments, quadIndices, stackWidth,
+            node->getStack()->getMaterials());
     }
     
     if (_voxels) {

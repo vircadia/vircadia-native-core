@@ -527,13 +527,6 @@ private:
     float _scaleT;
 };
 
-/// Utility method for editing: given a material pointer and a list of materials, returns the corresponding material index,
-/// creating a new entry in the list if necessary.
-uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials, QByteArray& contents);
-
-/// Utility method for editing: removes any unused materials from the supplied list.
-void clearUnusedMaterials(QVector<SharedObjectPointer>& materials, const QByteArray& contents);
-
 typedef QExplicitlySharedDataPointer<HeightfieldStack> HeightfieldStackPointer;
 
 /// A single column within a stack block.
@@ -690,7 +683,8 @@ public:
     
     float getHeight(const glm::vec3& location) const;
     
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    bool findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     
     HeightfieldNode* paintMaterial(const glm::vec3& position, const glm::vec3& radius, const SharedObjectPointer& material,
         const QColor& color);
@@ -733,6 +727,9 @@ private:
     void maybeRenormalize(const glm::vec3& scale, float normalizeScale, float normalizeOffset, int innerStackWidth,
         QVector<quint16>& heightContents, QVector<StackArray>& stackContents);
     
+    bool findHeightfieldRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        float boundsDistance, float& distance) const;
+    
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
     HeightfieldMaterialPointer _material;
@@ -748,6 +745,9 @@ class AbstractHeightfieldNodeRenderer {
 public:
     
     virtual ~AbstractHeightfieldNodeRenderer();
+    
+    virtual bool findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& origin, const glm::vec3& direction, float boundsDistance, float& distance) const; 
 };
 
 /// A heightfield represented as a spanner.
