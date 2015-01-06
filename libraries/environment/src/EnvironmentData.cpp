@@ -22,7 +22,7 @@ EnvironmentData::EnvironmentData(int id) :
     _gravity(0.0f),
     _atmosphereCenter(0, -1000, 0),
     _atmosphereInnerRadius(1000.0),
-    _atmosphereOuterRadius(1100.0),
+    _atmosphereOuterRadius(1025.0),
     _rayleighScattering(0.0025f),
     _mieScattering(0.0010f),
     _scatteringWavelengths(0.650f, 0.570f, 0.475f),
