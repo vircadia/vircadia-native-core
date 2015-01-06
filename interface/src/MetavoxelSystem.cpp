@@ -528,23 +528,28 @@ void MetavoxelSystem::refreshVoxelData() {
 }
 
 void MetavoxelSystem::paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldMaterialEdit(position, radius,
-        SharedObjectPointer(), color)) };
-    applyEdit(edit, true);
+    Sphere* sphere = new Sphere();
+    sphere->setTranslation(position);
+    sphere->setScale(radius);
+    setHeightfieldColor(SharedObjectPointer(sphere), color, true);
 }
 
 void MetavoxelSystem::paintHeightfieldMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldMaterialEdit(position, radius, material)) };
-    applyMaterialEdit(edit, true);
+    Sphere* sphere = new Sphere();
+    sphere->setTranslation(position);
+    sphere->setScale(radius);
+    setHeightfieldMaterial(SharedObjectPointer(sphere), material, true);
 }
 
-void MetavoxelSystem::setHeightfieldColor(const SharedObjectPointer& spanner, const QColor& color) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner, SharedObjectPointer(), color)) };
+void MetavoxelSystem::setHeightfieldColor(const SharedObjectPointer& spanner, const QColor& color, bool paint) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner,
+        SharedObjectPointer(), color, paint)) };
     applyEdit(edit, true);
 }
 
-void MetavoxelSystem::setHeightfieldMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner, material)) };
+void MetavoxelSystem::setHeightfieldMaterial(const SharedObjectPointer& spanner,
+        const SharedObjectPointer& material, bool paint) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner, material, QColor(), paint)) };
     applyMaterialEdit(edit, true);
 }
 

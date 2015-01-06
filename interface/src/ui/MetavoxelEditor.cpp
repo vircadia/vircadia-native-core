@@ -937,12 +937,16 @@ HeightfieldMaterialBrushTool::HeightfieldMaterialBrushTool(MetavoxelEditor* edit
 }
 
 QVariant HeightfieldMaterialBrushTool::createEdit(bool alternate) {
+    Sphere* sphere = new Sphere();
+    sphere->setTranslation(_position);
+    sphere->setScale(_radius->value());
     if (alternate) {
-        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
+        return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
+            SharedObjectPointer(), QColor(0, 0, 0, 0), true));
     } else {
-        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), _materialControl->getMaterial(),
-            _materialControl->getColor()));
-    }   
+        return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
+            _materialControl->getMaterial(), _materialControl->getColor(), true));
+    }
 }
 
 HeightfieldSculptBrushTool::HeightfieldSculptBrushTool(MetavoxelEditor* editor) :

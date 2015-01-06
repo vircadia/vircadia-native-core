@@ -73,19 +73,14 @@ public:
     /// Finds the intersection between the described ray and this spanner.
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    /// Attempts to paint on the spanner.
-    /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* paintMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material,
-        const QColor& color);
-
     /// Attempts to modify the spanner's height.
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
 
-    /// Attempts to "sculpt" with the supplied spanner.
+    /// Attempts to "sculpt" or "paint" with the supplied spanner.
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color);
+        const QColor& color, bool paint);
 
     /// Checks whether this spanner has its own colors.
     virtual bool hasOwnColors() const;
@@ -686,9 +681,6 @@ public:
     bool findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     
-    HeightfieldNode* paintMaterial(const glm::vec3& position, const glm::vec3& radius, const SharedObjectPointer& material,
-        const QColor& color);
-    
     void getRangeAfterHeightPaint(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& position, float radius, float height, float& minimum, float& maximum) const;
     
@@ -699,7 +691,7 @@ public:
         const Box& editBounds, float& minimum, float& maximum) const;
             
     HeightfieldNode* setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        Spanner* spanner, const SharedObjectPointer& material, const QColor& color,
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint,
         float normalizeScale, float normalizeOffset);
         
     void read(HeightfieldStreamState& state);
@@ -797,13 +789,10 @@ public:
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    virtual Spanner* paintMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material,
-        const QColor& color);
-
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
     
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color);
+        const QColor& color, bool paint);
         
     virtual bool hasOwnColors() const;
     virtual bool hasOwnMaterials() const;

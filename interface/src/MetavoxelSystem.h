@@ -68,9 +68,10 @@ public:
 
     Q_INVOKABLE void paintHeightfieldMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material);
         
-    Q_INVOKABLE void setHeightfieldColor(const SharedObjectPointer& spanner, const QColor& color);
+    Q_INVOKABLE void setHeightfieldColor(const SharedObjectPointer& spanner, const QColor& color, bool paint = false);
         
-    Q_INVOKABLE void setHeightfieldMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material);
+    Q_INVOKABLE void setHeightfieldMaterial(const SharedObjectPointer& spanner,
+        const SharedObjectPointer& material, bool paint = false);
     
     void addHeightfieldBaseBatch(const HeightfieldBaseLayerBatch& batch) { _heightfieldBaseBatches.append(batch); }
     void addHeightfieldSplatBatch(const HeightfieldSplatBatch& batch) { _heightfieldSplatBatches.append(batch); }

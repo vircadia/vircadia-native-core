@@ -173,44 +173,28 @@ MaterialEdit::MaterialEdit(const SharedObjectPointer& material, const QColor& av
     averageColor(averageColor) {
 }
 
-PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& averageColor) :
-    MaterialEdit(material, averageColor),
-    position(position),
-    radius(radius) {
-}
-
-void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    glm::vec3 extents(radius, radius, radius);
-    QVector<SharedObjectPointer> results;
-    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
-        Box(position - extents, position + extents), results);
-    
-    foreach (const SharedObjectPointer& spanner, results) {
-        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintMaterial(position, radius, material, averageColor);
-        if (newSpanner != spanner) {
-            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
-        }
-    }
-}
-
 HeightfieldMaterialSpannerEdit::HeightfieldMaterialSpannerEdit(const SharedObjectPointer& spanner,
-        const SharedObjectPointer& material, const QColor& averageColor) :
+        const SharedObjectPointer& material, const QColor& averageColor, bool paint) :
     MaterialEdit(material, averageColor),
-    spanner(spanner) {
+    spanner(spanner),
+    paint(paint) {
 }
 
 void HeightfieldMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    // make sure the color is either 100% transparent or 100% opaque
+    // make sure the color meets our transparency requirements
     QColor color = averageColor;
-    color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
+    if (paint) {
+        color.setAlphaF(1.0f);
     
+    } else if (color.alphaF() < 0.5f) {
+        color = QColor(0, 0, 0, 0);    
+    }
     QVector<SharedObjectPointer> results;
     data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
         static_cast<Spanner*>(spanner.data())->getBounds(), results);
     
     foreach (const SharedObjectPointer& result, results) {
-        Spanner* newResult = static_cast<Spanner*>(result.data())->setMaterial(spanner, material, color);
+        Spanner* newResult = static_cast<Spanner*>(result.data())->setMaterial(spanner, material, color, paint);
         if (newResult != result) {
             data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), result, newResult);
         }

@@ -111,17 +111,12 @@ bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& dire
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
-Spanner* Spanner::paintMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material,
-        const QColor& color) {
-    return this;
-}
-
 Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float height) {
     return this;
 }
 
 Spanner* Spanner::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color) {
+        const QColor& color, bool paint) {
     return this;
 }
 
@@ -1811,139 +1806,6 @@ bool HeightfieldNode::findRayIntersection(const glm::vec3& translation, const gl
     return true;
 }
 
-HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const glm::vec3& radius,
-        const SharedObjectPointer& material, const QColor& color) {
-    if (position.x + radius.x < 0.0f || position.z + radius.z < 0.0f ||
-            position.x - radius.x > 1.0f || position.z - radius.z > 1.0f) {
-        return this;
-    }
-    if (!isLeaf()) {
-        HeightfieldNode* newNode = this;
-        for (int i = 0; i < CHILD_COUNT; i++) {
-            HeightfieldNode* newChild = _children[i]->paintMaterial(position * glm::vec3(2.0f, 1.0f, 2.0f) -
-                glm::vec3(i & X_MAXIMUM_FLAG ? 1.0f : 0.0f, 0.0f, i & Y_MAXIMUM_FLAG ? 1.0f : 0.0f),
-                radius * glm::vec3(2.0f, 1.0f, 2.0f), material, color);
-            if (_children[i] != newChild) {
-                if (newNode == this) {
-                    newNode = new HeightfieldNode(*this);
-                }
-                newNode->setChild(i, HeightfieldNodePointer(newChild));
-            }
-        }
-        if (newNode != this) {
-            newNode->mergeChildren(false, true);
-        }
-        return newNode;
-    }
-    if (!_height) {
-        return this;
-    }
-    int heightWidth = _height->getWidth();
-    int heightHeight = _height->getContents().size() / heightWidth;
-    int baseWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
-    int baseHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
-    
-    int colorWidth = baseWidth, colorHeight = baseHeight;
-    QByteArray colorContents;
-    if (_color) {
-        colorWidth = _color->getWidth();
-        colorHeight = _color->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
-        colorContents = _color->getContents();
-        
-    } else {
-        colorContents = QByteArray(baseWidth * baseHeight * DataBlock::COLOR_BYTES, 0xFF); 
-    }
-    
-    int materialWidth = colorWidth, materialHeight = colorHeight;
-    QByteArray materialContents;
-    QVector<SharedObjectPointer> materials;
-    if (_material) {
-        materialWidth = _material->getWidth();
-        materialHeight = _material->getContents().size() / materialWidth;
-        materialContents = _material->getContents();
-        materials = _material->getMaterials();
-        
-    } else {
-        materialContents = QByteArray(materialWidth * materialHeight, 0);
-    }
-    
-    int highestX = colorWidth - 1;
-    int highestZ = colorHeight - 1;
-    glm::vec3 scale((float)highestX, 1.0f, (float)highestZ);
-    glm::vec3 center = position * scale;
-    
-    glm::vec3 extents = radius * scale;
-    glm::vec3 start = glm::floor(center - extents);
-    glm::vec3 end = glm::ceil(center + extents);
-    
-    // paint all points within the radius
-    float z = qMax(start.z, 0.0f);
-    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
-    int stride = colorWidth * DataBlock::COLOR_BYTES;
-    uchar* lineDest = (uchar*)colorContents.data() + (int)z * stride + (int)startX * DataBlock::COLOR_BYTES;
-    float squaredRadius = extents.x * extents.x;
-    float multiplierZ = extents.x / extents.z;
-    char red = color.red(), green = color.green(), blue = color.blue();
-    bool changed = false;
-    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
-        uchar* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest += DataBlock::COLOR_BYTES) {
-            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
-            if (dx * dx + dz * dz <= squaredRadius) {
-                dest[0] = red;
-                dest[1] = green;
-                dest[2] = blue;
-                changed = true;
-            }
-        }
-        lineDest += stride;
-    }
-    HeightfieldNode* newNode = this;    
-    if (changed) {
-        newNode = new HeightfieldNode(*this);
-        newNode->setColor(HeightfieldColorPointer(new HeightfieldColor(colorWidth, colorContents)));
-    }
-    
-    highestX = materialWidth - 1;
-    highestZ = materialHeight - 1;
-    scale = glm::vec3((float)highestX, 1.0f, (float)highestZ);
-    center = position * scale;
-    
-    extents = radius * scale;
-    start = glm::floor(center - extents);
-    end = glm::ceil(center + extents);
-     
-    // paint all points within the radius
-    z = qMax(start.z, 0.0f);
-    startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
-    lineDest = (uchar*)materialContents.data() + (int)z * materialWidth + (int)startX;
-    squaredRadius = extents.x * extents.x;
-    multiplierZ = extents.x / extents.z;
-    uchar materialIndex = getMaterialIndex(material, materials, materialContents);
-    changed = false;
-    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
-        uchar* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest++) {
-            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
-            if (dx * dx + dz * dz <= squaredRadius) {
-                *dest = materialIndex;
-                changed = true;
-            }
-        }
-        lineDest += materialWidth;
-    }
-    if (changed) {
-        if (newNode == this) {
-            newNode = new HeightfieldNode(*this);
-        }
-        clearUnusedMaterials(materials, materialContents);
-        newNode->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth,
-            materialContents, materials)));
-    }
-    
-    return newNode;
-}
-
 const float HERMITE_GRANULARITY = 1.0f / numeric_limits<quint8>::max();
 
 void HeightfieldNode::getRangeAfterHeightPaint(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
@@ -2158,7 +2020,7 @@ static inline bool isSet(const QVector<StackArray>& stackContents, int stackWidt
 }
 
 HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        Spanner* spanner, const SharedObjectPointer& material, const QColor& color,
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint,
         float normalizeScale, float normalizeOffset) {
     Box bounds = glm::translate(translation) * glm::mat4_cast(rotation) * Box(glm::vec3(), scale);
     bool intersects = bounds.intersects(spanner->getBounds());
@@ -2172,7 +2034,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             HeightfieldNode* newChild = _children[i]->setMaterial(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
-                nextScale, spanner, material, color, normalizeScale, normalizeOffset);
+                nextScale, spanner, material, color, paint, normalizeScale, normalizeOffset);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -2262,26 +2124,33 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     glm::vec3 start = glm::ceil(transformedBounds.maximum);
     glm::vec3 end = glm::floor(transformedBounds.minimum);
     
+    float stepX = 1.0f, stepZ = 1.0f;
+    if (paint) {
+        stepX = (float)innerHeightWidth / qMax(innerHeightWidth, qMax(innerColorWidth, innerMaterialWidth));
+        stepZ = (float)innerHeightHeight / qMax(innerHeightHeight, qMax(innerColorHeight, innerMaterialHeight));
+    }
+    
     float startX = glm::clamp(start.x, 0.0f, (float)highestHeightX), endX = glm::clamp(end.x, 0.0f, (float)highestHeightX);
     float startZ = glm::clamp(start.z, 0.0f, (float)highestHeightZ), endZ = glm::clamp(end.z, 0.0f, (float)highestHeightZ);
     float voxelStep = scale.x / innerHeightWidth;
     float voxelScale = scale.y / (numeric_limits<quint16>::max() * voxelStep);
     int newTop = start.y * voxelScale;
     int newBottom = end.y * voxelScale;
-    glm::vec3 worldStart = glm::vec3(transform * glm::vec4(startX, newTop / voxelScale, startZ, 1.0f));
-    glm::vec3 worldStepX = glm::vec3(transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+    glm::vec3 worldStart = glm::vec3(transform * glm::vec4(startX, paint ? 0.0f : newTop / voxelScale, startZ, 1.0f));
+    glm::vec3 worldStepX = glm::vec3(transform * glm::vec4(stepX, 0.0f, 0.0f, 0.0f));
     glm::vec3 worldStepY = glm::vec3(transform * glm::vec4(0.0f, 1.0f / voxelScale, 0.0f, 0.0f));
-    glm::vec3 worldStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+    glm::vec3 worldStepZ = glm::vec3(transform * glm::vec4(0.0f, 0.0f, stepZ, 0.0f));
     QRgb rgba = color.rgba();
     bool erase = (color.alpha() == 0);
+    uchar materialMaterialIndex = getMaterialIndex(material, newMaterialMaterials, newMaterialContents);
     uchar stackMaterialIndex = getMaterialIndex(material, newStackMaterials, newStackContents);
     bool hasOwnColors = spanner->hasOwnColors();
     bool hasOwnMaterials = spanner->hasOwnMaterials();
     QHash<int, int> materialMappings;
-    for (float z = startZ; z >= endZ; z -= 1.0f, worldStart -= worldStepZ) {
+    for (float z = startZ; z >= endZ; z -= stepZ, worldStart -= worldStepZ) {
         quint16* heightDest = newHeightContents.data() + (int)z * heightWidth;
         glm::vec3 worldPos = worldStart;
-        for (float x = startX; x >= endX; x -= 1.0f, worldPos -= worldStepX) {
+        for (float x = startX; x >= endX; x -= stepX, worldPos -= worldStepX) {
             quint16* heightLineDest = heightDest + (int)x;
             float distance;
             glm::vec3 normal;
@@ -2297,11 +2166,32 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 materialZ <= innerMaterialHeight) ? (newMaterialContents.data() + 
                     (int)materialZ * materialWidth + (int)materialX) : NULL;
             
+            if (paint && *heightLineDest != 0 && spanner->contains(worldPos + worldStepY * (*heightLineDest * voxelScale))) {
+                colorDest[0] = qRed(rgba);
+                colorDest[1] = qGreen(rgba);
+                colorDest[2] = qBlue(rgba);
+                *materialDest = materialMaterialIndex;
+            }
+            
             float stackX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerStackWidth / innerHeightWidth;
             float stackZ = (z - HeightfieldHeight::HEIGHT_BORDER) * innerStackHeight / innerHeightHeight;
             
             if (stackX >= 0.0f && stackX <= innerStackWidth && stackZ >= 0.0f && stackZ <= innerStackHeight) {
                 StackArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
+                if (paint) {
+                    if (stackDest->isEmpty()) {
+                        continue;
+                    }
+                    glm::vec3 pos = worldPos + worldStepY * (float)stackDest->getPosition();
+                    for (StackArray::Entry* entryDest = stackDest->getEntryData(), *end = entryDest +
+                            stackDest->getEntryCount(); entryDest != end; entryDest++, pos += worldStepY) {
+                        if (entryDest->isSet() && spanner->contains(pos)) {
+                            entryDest->color = rgba;
+                            entryDest->material = stackMaterialIndex;
+                        }
+                    }
+                    continue;
+                }
                 int prepend = 0, append = 0;
                 if (!stackDest->isEmpty()) {
                     int oldBottom = stackDest->getPosition();
@@ -2479,7 +2369,8 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     clearUnusedMaterials(newMaterialMaterials, newMaterialContents);
     clearUnusedMaterials(newStackMaterials, newStackContents);    
     
-    return new HeightfieldNode(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)),
+    return new HeightfieldNode(paint ? _height : HeightfieldHeightPointer(
+            new HeightfieldHeight(heightWidth, newHeightContents)),
         HeightfieldColorPointer(new HeightfieldColor(colorWidth, newColorContents)),
         HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth, newMaterialContents, newMaterialMaterials)),
         HeightfieldStackPointer(new HeightfieldStack(stackWidth, newStackContents, newStackMaterials)));
@@ -3212,19 +3103,6 @@ bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
         getScale() * _aspectZ), origin, direction, distance);
 }
 
-Spanner* Heightfield::paintMaterial(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& color) {
-    glm::vec3 inverseScale(1.0f / getScale(), 1.0f, 1.0f / (getScale() * _aspectZ));
-    HeightfieldNode* newRoot = _root->paintMaterial(glm::inverse(getRotation()) * (position - getTranslation()) *
-        inverseScale, radius * inverseScale, material, color);
-    if (_root == newRoot) {
-        return this;
-    }
-    Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
-    newHeightfield->setRoot(HeightfieldNodePointer(newRoot));
-    return newHeightfield;
-}
-
 Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height) {
     // first see if we're going to exceed the range limits
     float minimumValue = 1.0f, maximumValue = numeric_limits<quint16>::max();
@@ -3241,19 +3119,22 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
 }
 
 Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color) {
-    // first see if we're going to exceed the range limits
+        const QColor& color, bool paint) {
+    // first see if we're going to exceed the range limits, normalizing if necessary
     Spanner* spannerData = static_cast<Spanner*>(spanner.data());
-    float minimumValue = 1.0f, maximumValue = numeric_limits<quint16>::max();
-    _root->getRangeAfterEdit(getTranslation(), getRotation(), glm::vec3(getScale(), getScale() * _aspectY,
-        getScale() * _aspectZ), spannerData->getBounds(), minimumValue, maximumValue);
-        
-    // normalize if necessary
-    float normalizeScale, normalizeOffset;
-    Heightfield* newHeightfield = prepareEdit(minimumValue, maximumValue, normalizeScale, normalizeOffset);
+    float normalizeScale = 1.0f, normalizeOffset = 0.0f;
+    Heightfield* newHeightfield;
+    if (paint) {
+        newHeightfield = static_cast<Heightfield*>(clone(true));
+    } else {    
+        float minimumValue = 1.0f, maximumValue = numeric_limits<quint16>::max();
+        _root->getRangeAfterEdit(getTranslation(), getRotation(), glm::vec3(getScale(), getScale() * _aspectY,
+            getScale() * _aspectZ), spannerData->getBounds(), minimumValue, maximumValue);
+        newHeightfield = prepareEdit(minimumValue, maximumValue, normalizeScale, normalizeOffset);
+    }
     newHeightfield->setRoot(HeightfieldNodePointer(_root->setMaterial(newHeightfield->getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), spannerData,
-        material, color, normalizeScale, normalizeOffset)));
+        material, color, paint, normalizeScale, normalizeOffset)));
     return newHeightfield;
 }
 
