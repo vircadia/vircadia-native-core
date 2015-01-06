@@ -271,6 +271,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     }
     
     if (postLighting && glm::distance(Application::getInstance()->getAvatar()->getPosition(), _position) < 10.0f) {
+        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
         float laserLength = 50.0f;
@@ -297,11 +299,10 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     float angle = glm::degrees(glm::angle(rotation));
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
-                    glBegin(GL_LINES);
+                    
                     glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    glVertex3f(0.0f, 0.0f, 0.0f);
-                    glVertex3f(0.0f, laserLength, 0.0f);
-                    glEnd();
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    
                 } glPopMatrix();
             }
         }
@@ -325,11 +326,9 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     float angle = glm::degrees(glm::angle(rotation));
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
-                    glBegin(GL_LINES);
                     glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    glVertex3f(0.0f, 0.0f, 0.0f);
-                    glVertex3f(0.0f, laserLength, 0.0f);
-                    glEnd();
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    
                 } glPopMatrix();
             }
         }

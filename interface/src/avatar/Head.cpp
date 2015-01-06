@@ -57,7 +57,9 @@ Head::Head(Avatar* owningAvatar) :
     _torsoTwist(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
-    _faceModel(this)
+    _faceModel(this),
+    _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
+    _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
 {
   
 }
@@ -338,21 +340,17 @@ void Head::addLeanDeltas(float sideways, float forward) {
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
-
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     DependencyManager::get<GlowEffect>()->begin();
     
     glLineWidth(2.0);
-    glBegin(GL_LINES);
-    glColor4f(0.2f, 0.2f, 0.2f, 1.0f);
-    glVertex3f(leftEyePosition.x, leftEyePosition.y, leftEyePosition.z);
-    glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
-    glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
-    glColor4f(0.2f, 0.2f, 0.2f, 1.0f);
-    glVertex3f(rightEyePosition.x, rightEyePosition.y, rightEyePosition.z);
-    glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
-    glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
-    glEnd();
     
+    // TODO: implement support for lines with gradient colors
+    // glColor4f(0.2f, 0.2f, 0.2f, 1.0f); --> to --> glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
+    glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
+    geometryCache->renderLine(leftEyePosition, lookatPosition, _leftEyeLookAtID);
+    geometryCache->renderLine(rightEyePosition, lookatPosition, _rightEyeLookAtID);
+
     DependencyManager::get<GlowEffect>()->end();
 }
 
