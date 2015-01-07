@@ -59,9 +59,9 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>-690</y>
+      <y>-825</y>
       <width>485</width>
-      <height>1499</height>
+      <height>1611</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -1909,6 +1909,218 @@
          </property>
          <property name="maximum">
           <number>20</number>
+         </property>
+         <property name="value">
+          <number>1</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="outputStarveDetectionCheckBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>32</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="baseSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>Arial</family>
+        </font>
+       </property>
+       <property name="text">
+        <string>Output Starve Detection (Automatic Buffer Size Increase)</string>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>32</width>
+         <height>32</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_27">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>7</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>7</number>
+       </property>
+       <item alignment="Qt::AlignLeft">
+        <widget class="QLabel" name="label_24">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="text">
+          <string>Output Starve Detection Threshold</string>
+         </property>
+         <property name="indent">
+          <number>0</number>
+         </property>
+         <property name="buddy">
+          <cstring>windowSecondsForDesiredReductionSpin</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_29">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="outputStarveDetectionThresholdSpinner">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>500</number>
+         </property>
+         <property name="value">
+          <number>1</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_25">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>7</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>7</number>
+       </property>
+       <item alignment="Qt::AlignLeft">
+        <widget class="QLabel" name="label_22">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="text">
+          <string>Output Starve Detection Period (ms)</string>
+         </property>
+         <property name="indent">
+          <number>0</number>
+         </property>
+         <property name="buddy">
+          <cstring>windowSecondsForDesiredReductionSpin</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_27">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="outputStarveDetectionPeriodSpinner">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>999999999</number>
          </property>
          <property name="value">
           <number>1</number>

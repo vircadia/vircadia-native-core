@@ -140,7 +140,12 @@ void PreferencesDialog::loadPreferences() {
     ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
     ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
 
-    ui.outputBufferSizeSpinner->setValue(Application::getInstance()->getAudio()->getOutputBufferSize());
+    Audio* audio = Application::getInstance()->getAudio();
+    ui.outputBufferSizeSpinner->setValue(audio->getOutputBufferSize());
+
+    ui.outputStarveDetectionCheckBox->setChecked(audio->getOutputStarveDetectionEnabled());
+    ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
+    ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
     ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
 
@@ -253,9 +258,13 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
     audio->setReceivedAudioStreamSettings(streamSettings);
-    Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
 
+    Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
     QMetaObject::invokeMethod(audio, "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
+
+    audio->setOutputStarveDetectionEnabled(ui.outputStarveDetectionCheckBox->isChecked());
+    audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
+    audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
