@@ -254,7 +254,7 @@ void PreferencesDialog::savePreferences() {
     streamSettings._windowSecondsForDesiredReduction = ui.windowSecondsForDesiredReductionSpin->value();
     streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
 
-    Audio* audio = Application::getInstance()->getAudio();
+    Audio* audio = DependencyManager::get<Audio>();
 
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
 
@@ -265,7 +265,7 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
-    DependencyManager::get<Audio>()->setReceivedAudioStreamSettings(streamSettings);
+    audio->setReceivedAudioStreamSettings(streamSettings);
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
