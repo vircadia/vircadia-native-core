@@ -32,8 +32,7 @@ EntityTreeElement::~EntityTreeElement() {
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
 // own type to our own tree. This means we should initialize that child with any tree and type
-// specific settings that our children must have. One example is out VoxelSystem, which
-// we know must match ours.
+// specific settings that our children must have. 
 OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
     EntityTreeElement* newChild = new EntityTreeElement(octalCode);
     newChild->setTree(_myTree);

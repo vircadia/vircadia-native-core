@@ -29,18 +29,15 @@ const int MAX_COLLISIONS_PER_Entity = 16;
 EntityCollisionSystem::EntityCollisionSystem()
     :   SimpleEntitySimulation(), 
         _packetSender(NULL),
-        _audio(NULL),
         _avatars(NULL),
         _collisions(MAX_COLLISIONS_PER_Entity) {
 }
 
 void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
-        EntityTree* entities, AbstractAudioInterface* audio,
-        AvatarHashMap* avatars) {
+        EntityTree* entities, AvatarHashMap* avatars) {
     assert(entities);
     setEntityTree(entities);
     _packetSender = packetSender;
-    _audio = audio;
     _avatars = avatars;
 }
 

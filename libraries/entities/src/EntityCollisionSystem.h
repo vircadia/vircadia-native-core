@@ -36,8 +36,7 @@ Q_OBJECT
 public:
     EntityCollisionSystem();
 
-    void init(EntityEditPacketSender* packetSender, EntityTree* entities, 
-                                AbstractAudioInterface* audio = NULL, AvatarHashMap* _avatars = NULL);
+    void init(EntityEditPacketSender* packetSender, EntityTree* entities, AvatarHashMap* _avatars = NULL);
                                 
     ~EntityCollisionSystem();
 
@@ -47,7 +46,6 @@ public:
     void updateCollisionWithEntities(EntityItem* Entity);
     void updateCollisionWithAvatars(EntityItem* Entity);
     void queueEntityPropertiesUpdate(EntityItem* Entity);
-    void updateCollisionSound(EntityItem* Entity, const glm::vec3 &penetration, float frequency);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

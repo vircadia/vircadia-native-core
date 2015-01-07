@@ -17,9 +17,9 @@
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
 
+#include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AudioInjector.h>
-#include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <Bitstream.h>
 #include <CollisionInfo.h>
@@ -374,7 +374,8 @@ void ScriptEngine::run() {
 
         if (_isAvatar && _avatarData) {
 
-            const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
+            const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
+                                                           / (1000 * 1000)) + 0.5);
             const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
             QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);

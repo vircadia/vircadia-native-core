@@ -148,7 +148,7 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << qPrintable(localLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
-    // iterate all the current voxel stats, and list their sending modes, total their voxels, etc...
+    // iterate all the current octree stats, and list their sending modes, total their octree elements, etc...
     std::stringstream sendingMode("");
 
     int serverCount = 0;

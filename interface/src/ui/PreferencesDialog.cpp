@@ -155,7 +155,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
-    ui.maxVoxelsPPSSpin->setValue(menuInstance->getMaxOctreePacketsPerSecond());
+    ui.maxOctreePPSSpin->setValue(menuInstance->getMaxOctreePacketsPerSecond());
 
     ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
 
@@ -236,7 +236,7 @@ void PreferencesDialog::savePreferences() {
     
     Menu::getInstance()->setFaceshiftHostname(ui.faceshiftHostnameEdit->text());    
     
-    Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxVoxelsPPSSpin->value());
+    Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
     Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
 
@@ -257,7 +257,6 @@ void PreferencesDialog::savePreferences() {
     Audio* audio = Application::getInstance()->getAudio();
 
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
-    audio->setReceivedAudioStreamSettings(streamSettings);
 
     Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
     QMetaObject::invokeMethod(audio, "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
@@ -265,6 +264,8 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionEnabled(ui.outputStarveDetectionCheckBox->isChecked());
     audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
+
+    DependencyManager::get<Audio>()->setReceivedAudioStreamSettings(streamSettings);
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
