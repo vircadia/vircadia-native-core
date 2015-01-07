@@ -10,7 +10,7 @@
 //
 
 
-var buttonImageUrl = "https://worklist-prod.s3.amazonaws.com/attachment/0aca88e1-9bd8-5c1d.svg";
+var buttonImageUrl = "https://public.highfidelity.io/images/tools/sit.svg";
 
 var windowDimensions = Controller.getViewportDimensions();
 

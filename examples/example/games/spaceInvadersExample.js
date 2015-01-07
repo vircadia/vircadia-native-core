@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("../libraries/globals.js");
+Script.include("../../libraries/globals.js");
 
 var iteration = 0;
 
@@ -106,22 +106,22 @@ invaderModels[0] = {
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[1] = {
-        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-cyan.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/space_invader.fbx",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[2] = {
-        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-medium-cyan.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/space_invader.fbx",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[3] = {
-        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-medium-green.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/space_invader.fbx",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[4] = {
-        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-small-green.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/space_invader.fbx",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };

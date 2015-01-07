@@ -11,30 +11,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+Script.include("../libraries/globals.js");
 
 var count = 0;
-var stopAfter = 100;
+var stopAfter = 1000;
 
 var modelPropertiesA = {
     type: "Model",
     position: { x: 1, y: 1, z: 1 },
     velocity: { x: 0.5, y: 0, z: 0.5 },
     damping: 0, 
-    dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+    dimensions: {
+                x: 2.16,
+                y: 3.34,
+                z: 0.54
+				},
     modelURL: HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
     lifetime: 20
 };
 
-var modelPropertiesB = {
-    type: "Model",
-    position: { x: 1, y: 1.5, z: 1 },
-    velocity: { x: 0.5, y: 0, z: 0.5 },
-    damping: 0, 
-    dimensions: { x: 0.5, y: 0.5, z: 0.5 },
-    modelURL: HIFI_PUBLIC_BUCKET + "meshes/orc.fbx",
-    lifetime: 20
-};
 
 var ballProperties = {
     type: "Sphere",
@@ -47,7 +42,6 @@ var ballProperties = {
 };
 
 var modelAEntityID = Entities.addEntity(modelPropertiesA);
-var modelBEntityID = Entities.addEntity(modelPropertiesB);
 var ballEntityID = Entities.addEntity(ballProperties);
 
 function endAfterAWhile(deltaTime) {

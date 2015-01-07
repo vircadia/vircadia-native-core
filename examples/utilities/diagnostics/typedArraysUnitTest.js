@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("Test.js");
+Script.include("../../libraries/unitTest.js");
 
 // e.g. extractbits([0xff, 0x80, 0x00, 0x00], 23, 30); inclusive
 function extractbits(bytes, lo, hi) {

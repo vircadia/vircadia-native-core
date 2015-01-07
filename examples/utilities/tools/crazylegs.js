@@ -4,6 +4,8 @@
 //
 //  Created by Andrzej Kapolka on 3/6/14.
 //  Copyright 2014 High Fidelity, Inc.
+// 
+//  Outputs the joint index of an avatar, this is useful for avatar procedural animations 
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

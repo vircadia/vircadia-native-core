@@ -15,10 +15,10 @@ const NUM_OF_TREES = 40;
 const NUM_OF_SANTAS = 20;
 
 // Image source: https://openclipart.org/detail/447/christmas-tree-by-theresaknott (heavily edited by Maximillian Merlin)
-const CHRISTMAS_TREE_SPRITES_URL = "http://test.thoys.nl/hifi/images/santa/christmas-tree.svg";
+const CHRISTMAS_TREE_SPRITES_URL = "https://s3.amazonaws.com/hifi-public/models/props/xmas/christmas-tree.svg";
 
 // Image source: http://opengameart.org/content/santa-claus (CC-BY 3.0)
-const SANTA_SPRITES_URL = "http://test.thoys.nl/hifi/images/santa/Santa.png";
+const SANTA_SPRITES_URL = "https://s3.amazonaws.com/hifi-public/models/props/xmas/Santa.png";
 
 Array.prototype.contains = function(obj) {
     var i = this.length;
