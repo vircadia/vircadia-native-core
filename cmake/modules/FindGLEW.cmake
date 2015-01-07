@@ -21,10 +21,10 @@
 if (WIN32)
   include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
   hifi_library_search_hints("glew")
-     
-    find_path(GLEW_INCLUDE_DIRS GL/glew.h PATH_SUFFIXES include HINTS ${GLEW_SEARCH_DIRS})
   
-    find_library(GLEW_LIBRARY_RELEASE glew32s PATH_SUFFIXES "lib/Release/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
+  find_path(GLEW_INCLUDE_DIRS GL/glew.h PATH_SUFFIXES include HINTS ${GLEW_SEARCH_DIRS})
+  
+  find_library(GLEW_LIBRARY_RELEASE glew32s PATH_SUFFIXES "lib/Release/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
   find_library(GLEW_LIBRARY_DEBUG glew32sd PATH_SUFFIXES "lib/Debug/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
   
   include(SelectLibraryConfigurations)
