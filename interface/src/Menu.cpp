@@ -720,6 +720,8 @@ void Menu::saveSettings(QSettings* settings) {
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
+    
+    DependencyManager::get<AddressManager>()->storeCurrentAddress();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
