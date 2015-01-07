@@ -449,7 +449,6 @@ void Audio::start() {
     QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
     qDebug() << "The default audio output device is" << outputDeviceInfo.deviceName();
     bool outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
-    outputFormatSupported = switchOutputToAudioDevice(outputDeviceInfo);
     
     if (!inputFormatSupported) {
         qDebug() << "Unable to set up audio input because of a problem with input format.";
