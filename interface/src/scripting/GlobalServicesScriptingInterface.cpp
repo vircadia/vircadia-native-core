@@ -10,8 +10,9 @@
 //
 
 #include "AccountManager.h"
-#include "XmppClient.h"
+#include "Application.h"
 #include "ResourceCache.h"
+#include "XmppClient.h"
 
 #include "GlobalServicesScriptingInterface.h"
 
@@ -26,6 +27,9 @@ GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
     const QXmppClient& qxmppClient = XmppClient::getInstance().getXMPPClient();
     connect(&qxmppClient, &QXmppClient::messageReceived, this, &GlobalServicesScriptingInterface::messageReceived);
 #endif // HAVE_QXMPP
+
+    _downloading = false;
+    connect(Application::getInstance(), &Application::renderingInWorldInterface, this, &GlobalServicesScriptingInterface::checkDownloadInfo);
 }
 
 GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
@@ -115,16 +119,6 @@ void GlobalServicesScriptingInterface::messageReceived(const QXmppMessage& messa
 }
 #endif // HAVE_QXMPP
 
-DownloadInfoResult GlobalServicesScriptingInterface::getDownloadInfo() {
-    DownloadInfoResult result;
-    foreach(Resource* resource, ResourceCache::getLoadingRequests()) {
-        result.downloading.append(resource->getProgress() * 100.0f);
-    }
-    result.pending = ResourceCache::getPendingRequestCount();
-
-    return result;
-}
-
 
 DownloadInfoResult::DownloadInfoResult() :
     downloading(QList<float>()),
@@ -153,4 +147,28 @@ void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoR
     }
 
     result.pending = object.property("pending").toVariant().toFloat();
+}
+
+DownloadInfoResult GlobalServicesScriptingInterface::getDownloadInfo() {
+    DownloadInfoResult result;
+    foreach(Resource* resource, ResourceCache::getLoadingRequests()) {
+        result.downloading.append(resource->getProgress() * 100.0f);
+    }
+    result.pending = ResourceCache::getPendingRequestCount();
+    return result;
+}
+
+void GlobalServicesScriptingInterface::checkDownloadInfo() {
+    DownloadInfoResult downloadInfo = getDownloadInfo();
+    bool downloading = downloadInfo.downloading.count() > 0 || downloadInfo.pending > 0;
+
+    // Emit signal if downloading or have just finished.
+    if (downloading || _downloading) {
+        _downloading = downloading;
+        emit downloadInfoChanged(downloadInfo);
+    }
+}
+
+void GlobalServicesScriptingInterface::updateDownloadInfo() {
+    emit downloadInfoChanged(getDownloadInfo());
 }
