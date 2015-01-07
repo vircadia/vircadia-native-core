@@ -15,7 +15,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/virtualKeyboard.js");
+Script.include("../../libraries/virtualKeyboard.js");
 
 const SPAWN_DISTANCE = 1;
 const DEFAULT_TEXT_DIMENSION_Z = 0.02;
