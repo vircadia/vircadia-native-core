@@ -507,9 +507,9 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
+void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat, bool noEcho) {
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-    float dryFraction = (!_shouldEchoLocally) ? 0.0f : (1.0f - wetFraction);
+    float dryFraction = (noEcho) ? 0.0f : (1.0f - wetFraction);
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
@@ -568,7 +568,7 @@ void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
         int numLoopbackSamples = loopBackByteArray.size() / sizeof(int16_t);
         updateGverbOptions();
-        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat);
+        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat, !_shouldEchoLocally);
     }
     
     if (_loopbackOutputDevice) {
