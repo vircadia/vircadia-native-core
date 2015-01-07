@@ -599,7 +599,7 @@ Menu::Menu() :
     
     AudioIOStatsRenderer::SharedPointer statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                           Qt::CTRL | Qt::Key_A,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
                                            false,
                                            statsRenderer.data(),
                                            SLOT(toggle()));

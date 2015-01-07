@@ -96,6 +96,10 @@ input {
     background-color: #eee;
 }
 
+input.url {
+    width: 100%;
+}
+
 table#entity-table {
     border-collapse: collapse;
     font-family: Sans-Serif;
@@ -171,7 +175,7 @@ table#properties-table {
 }
 
 #properties-table td {
-    padding: 5px 0px 5px 10px;
+    padding: 5px;
 }
 
 col#col-label {

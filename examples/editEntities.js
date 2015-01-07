@@ -42,7 +42,15 @@ gridTool = GridTool({ horizontalGrid: grid });
 Script.include("libraries/entityList.js");
 var entityListTool = EntityListTool();
 
-selectionManager.addEventListener(selectionDisplay.updateHandles);
+var hasShownPropertiesTool = false;
+
+selectionManager.addEventListener(function() {
+    selectionDisplay.updateHandles();
+    if (selectionManager.hasSelection() && !hasShownPropertiesTool) {
+        propertiesTool.setVisible(true);
+        hasShownPropertiesTool = true;
+    }
+});
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -223,10 +231,9 @@ var toolBar = (function () {
                 selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
+                hasShownPropertiesTool = false;
                 cameraManager.enable();
-                entityListTool.setVisible(true);
                 gridTool.setVisible(true);
-                propertiesTool.setVisible(true);
                 grid.setEnabled(true);
             }
         }
