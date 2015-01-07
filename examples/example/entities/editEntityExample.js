@@ -79,7 +79,6 @@ function moveEntity(deltaTime) {
                 y: originalProperties.position.y + (count * positionDelta.y),
                 z: originalProperties.position.z + (count * positionDelta.z)
         },
-        //radius : 0.05,
 
     };
 

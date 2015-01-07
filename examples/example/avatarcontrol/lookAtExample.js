@@ -22,6 +22,7 @@ var oldMode = Camera.mode;
 function cancelLookAt() {
     if (lookingAtSomething) {
         lookingAtSomething = false;
+        //Camera.stopLooking();
         Camera.mode = oldMode;
         releaseMovementKeys();
     }
@@ -71,6 +72,9 @@ function mousePressEvent(event) {
 
             // switch to independent mode
             Camera.mode = "independent";
+
+              // tell the camera to fix it's look at on the point we clicked
+-            //Camera.keepLookingAt(intersection.intersection);
 
             // keep track of the fact that we're in this looking at mode
             lookingAtSomething = true;
