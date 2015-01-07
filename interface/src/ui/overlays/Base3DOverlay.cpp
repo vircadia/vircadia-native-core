@@ -48,13 +48,6 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
 Base3DOverlay::~Base3DOverlay() {
 }
 
-void Base3DOverlay::setDrawOnHUD(bool value) {
-    if (_drawOnHUD != value) {
-        _drawOnHUD = value;
-        Application::getInstance()->getOverlays().overlayDrawOnChanged(this);
-    }
-}
-
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
 
