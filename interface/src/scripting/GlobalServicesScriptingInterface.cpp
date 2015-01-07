@@ -29,7 +29,8 @@ GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
 #endif // HAVE_QXMPP
 
     _downloading = false;
-    connect(Application::getInstance(), &Application::renderingInWorldInterface, this, &GlobalServicesScriptingInterface::checkDownloadInfo);
+    connect(Application::getInstance(), &Application::renderingInWorldInterface, 
+            this, &GlobalServicesScriptingInterface::checkDownloadInfo);
 }
 
 GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
@@ -43,14 +44,16 @@ GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
     const QXmppClient& qxmppClient = XmppClient::getInstance().getXMPPClient();
     disconnect(&qxmppClient, &QXmppClient::messageReceived, this, &GlobalServicesScriptingInterface::messageReceived);
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-    disconnect(publicChatRoom, &QXmppMucRoom::participantsChanged, this, &GlobalServicesScriptingInterface::participantsChanged);
+    disconnect(publicChatRoom, &QXmppMucRoom::participantsChanged, 
+               this, &GlobalServicesScriptingInterface::participantsChanged);
 #endif // HAVE_QXMPP
 }
 
 void GlobalServicesScriptingInterface::onConnected() {
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-    connect(publicChatRoom, &QXmppMucRoom::participantsChanged, this, &GlobalServicesScriptingInterface::participantsChanged, Qt::UniqueConnection);
+    connect(publicChatRoom, &QXmppMucRoom::participantsChanged, 
+            this, &GlobalServicesScriptingInterface::participantsChanged, Qt::UniqueConnection);
 #endif // HAVE_QXMPP
 }
 
@@ -115,7 +118,8 @@ void GlobalServicesScriptingInterface::messageReceived(const QXmppMessage& messa
         return;
     }
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-    emit GlobalServicesScriptingInterface::incomingMessage(message.from().right(message.from().count() - 1 - publicChatRoom->jid().count()), message.body());
+    QString username = message.from().right(message.from().count() - 1 - publicChatRoom->jid().count());
+    emit GlobalServicesScriptingInterface::incomingMessage(username, message.body());
 }
 #endif // HAVE_QXMPP
 
