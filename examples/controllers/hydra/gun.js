@@ -14,7 +14,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+Script.include("../../libraries/globals.js");
 
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
@@ -194,8 +194,8 @@ function playLoadSound() {
     Audio.playSound(loadSound, audioOptions);
 }
 
-//MyAvatar.attach(gunModel, "RightHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
-MyAvatar.attach(gunModel, "LeftHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
+MyAvatar.attach(gunModel, "RightHand", {x:0.02, y: 0.11, z: 0.04}, Quat.fromPitchYawRollDegrees(-0, -160, -79), 0.20);
+//MyAvatar.attach(gunModel, "LeftHand", {x: -0.02, y: -.14, z: 0.07}, Quat.fromPitchYawRollDegrees(-70, -151, 72), 0.20);
 
 //  Give a bit of time to load before playing sound
 Script.setTimeout(playLoadSound, 2000); 

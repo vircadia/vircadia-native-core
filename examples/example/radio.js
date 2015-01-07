@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+Script.include("../libraries/globals.js");
 
 var modelURL = HIFI_PUBLIC_BUCKET + "models/entities/radio/Speakers.fbx";
 var soundURL = HIFI_PUBLIC_BUCKET + "sounds/family.stereo.raw";

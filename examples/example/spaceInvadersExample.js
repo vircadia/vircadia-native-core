@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+Script.include("../libraries/globals.js");
 
 var iteration = 0;
 
@@ -59,7 +59,7 @@ var middleY = gameAt.y + (gameSize.y/2);
 
 var invaderSize = 0.4;
 var shipSize = 0.25;
-var missileSize = 0.1;
+var missileSize = 1.0;
 var myShip;
 var myShipProperties;
 
@@ -101,7 +101,7 @@ var soundInMyHead = true;
 // models...
 var invaderModels = new Array();
 invaderModels[0] = {
-        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/space_invader.fbx",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
@@ -141,7 +141,7 @@ function initializeMyShip() {
             damping: 0,
             dimensions: { x: shipSize * 2, y: shipSize * 2, z: shipSize * 2 },
             color: { red: 0, green: 255, blue: 0 },
-            modelURL: HIFI_PUBLIC_BUCKET + "meshes/myCannon16x16.svo",
+            modelURL: HIFI_PUBLIC_BUCKET + "meshes/space_invader.fbx",
             lifetime: itemLifetimes
         };
     myShip = Entities.addEntity(myShipProperties);
@@ -360,7 +360,7 @@ function keyPressEvent(key) {
             myShipProperties.position.x = gameAt.x + gameSize.x;
         }
         moveShipTo(myShipProperties.position);
-    } else if (key.text == " ") {
+    } else if (key.text == "f") {
         fireMissile();
     } else if (key.text == "q") {
         endGame();
