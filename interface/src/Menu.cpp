@@ -657,6 +657,9 @@ void Menu::loadSettings(QSettings* settings) {
     _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
 
     Audio* audio = Application::getInstance()->getAudio();
+    audio->setOutputStarveDetectionEnabled(settings->value("audioOutputStarveDetectionEnabled", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED).toBool());
+    audio->setOutputStarveDetectionThreshold(settings->value("audioOutputStarveDetectionThreshold", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD).toInt());
+    audio->setOutputStarveDetectionPeriod(settings->value("audioOutputStarveDetectionPeriod", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD).toInt());
     int bufferSize = settings->value("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES).toInt();
     QMetaObject::invokeMethod(audio, "setOutputBufferSize", Q_ARG(int, bufferSize));
     
@@ -727,7 +730,11 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
     settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
 
-    settings->setValue("audioOutputBufferSize", Application::getInstance()->getAudio()->getOutputBufferSize());
+    Audio* audio = Application::getInstance()->getAudio();
+    settings->setValue("audioOutputStarveDetectionEnabled", audio->getOutputStarveDetectionEnabled());
+    settings->setValue("audioOutputStarveDetectionThreshold", audio->getOutputStarveDetectionThreshold());
+    settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
+    settings->setValue("audioOutputBufferSize", audio->getOutputBufferSize());
 
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
