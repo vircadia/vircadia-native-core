@@ -60,8 +60,6 @@ public:
     }
 
 protected:
-    void drawDashedLine(const glm::vec3& start, const glm::vec3& end);
-
     glm::vec3 _position;
     float _lineWidth;
     glm::quat _rotation;

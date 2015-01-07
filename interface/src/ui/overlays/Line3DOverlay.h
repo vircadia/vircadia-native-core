@@ -38,6 +38,7 @@ public:
 protected:
     glm::vec3 _start;
     glm::vec3 _end;
+    int _geometryCacheID;
 };
 
  

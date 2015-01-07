@@ -24,6 +24,9 @@ public:
     virtual void setProperties(const QScriptValue& properties);
 
     virtual Rectangle3DOverlay* createClone() const;
+private:
+    int _geometryCacheID;
+    glm::vec2 _previousHalfDimensions;
 };
 
  

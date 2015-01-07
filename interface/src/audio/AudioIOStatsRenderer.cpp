@@ -13,6 +13,7 @@
 
 #include <AudioConstants.h>
 #include <DependencyManager.h>
+#include <GeometryCache.h>
 #include <NodeList.h>
 #include <Util.h>
 
@@ -50,21 +51,13 @@ void AudioIOStatsRenderer::render(const float* color, int width, int height) {
     
     
     static const float backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 0.6f };
-    
     int x = std::max((width - (int)STATS_WIDTH) / 2, 0);
     int y = std::max((height - CENTERED_BACKGROUND_HEIGHT) / 2, 0);
-    int backgroundHeight = statsHeight;
-    
+    int w = STATS_WIDTH;
+    int h = statsHeight;
     glColor4fv(backgroundColor);
-    glBegin(GL_QUADS);
-    
-    glVertex2i(x, y);
-    glVertex2i(x + STATS_WIDTH, y);
-    glVertex2i(x + STATS_WIDTH, y + backgroundHeight);
-    glVertex2i(x , y + backgroundHeight);
-    
-    glEnd();
-    glColor4f(1, 1, 1, 1);
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h);
+    glColor4f(1, 1, 1, 1); 
     
     int horizontalOffset = x + 5;
     int verticalOffset = y;

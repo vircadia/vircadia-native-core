@@ -244,6 +244,8 @@ private:
     void renderBillboard();
     
     float getBillboardSize() const;
+    
+    static int _jointConesID;
 };
 
 #endif // hifi_Avatar_h
