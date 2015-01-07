@@ -953,8 +953,6 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
 void Audio::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
     if (recentUnfulfilled > 0) {
-        qDebug() << "WARNING --- WE HAD at least:" << recentUnfulfilled << "recently unfulfilled readData() calls";
-
         if (_outputStarveDetectionEnabled) {
             quint64 now = usecTimestampNow() / 1000;
             quint64 dt = now - _outputStarveDetectionStartTimeMsec;
