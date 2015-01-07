@@ -82,9 +82,9 @@ function addButterfly() {
 		damping: 0.00001,
 		dimensions: dimensions,
         color: color,
-		animationURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/content/butterfly/butterfly.fbx",
+		animationURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx",
         animationSettings: "{\"firstFrame\":0,\"fps\":" + newFrameRate + ",\"frameIndex\":0,\"hold\":false,\"lastFrame\":10000,\"loop\":true,\"running\":true,\"startAutomatically\":false}",
-		modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/content/butterfly/butterfly.fbx"
+		modelURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx"
     };
     butterflies.push(Entities.addEntity(properties));
 }

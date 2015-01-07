@@ -4,6 +4,10 @@
 //
 //  Copyright 2014 High Fidelity, Inc.
 //
+//
+//  Gives the ability to be set various reverb settings.
+//
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -14,7 +18,7 @@ var audioOptions = new AudioEffectOptions({
                                           roomSize: 50,
                                           
                                           // Seconds
-                                          reverbTime: 4,
+                                          reverbTime: 10,
                                           
                                           // Between 0 - 1
                                           damping: 0.50,
