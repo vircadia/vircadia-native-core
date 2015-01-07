@@ -659,7 +659,7 @@ void EntityItem::simulate(const quint64& now) {
 
         float angularSpeed = glm::length(_angularVelocity);
         
-        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1; // 
+        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
             setAngularVelocity(NO_ANGULAR_VELOCITY);
         } else {
