@@ -1,45 +1,49 @@
 //
-//  editParticleExample.js
+//  editModelExample.js
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This is an example script that demonstrates creating and editing a particle
+//  This is an example script that demonstrates creating and editing a model
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("../../libraries/globals.js");
+
 var count = 0;
 var moveUntil = 2000;
 var stopAfter = moveUntil + 100;
-var expectedLifetime = (moveUntil/60) + 1; // 1 second after done moving...
+
+var pitch = 90.0;
+var yaw = 0.0;
+var roll = 180.0;
+var rotation = Quat.fromPitchYawRollDegrees(pitch, yaw, roll)
 
 var originalProperties = {
-    type: "Sphere",
-    position: { x: 10,
-                y: 0,
-                z: 0 },
+type: "Model",
+    position: { x: 2.0,
+                y: 2.0,
+                z: 0.5 },
 
-    velocity: { x: 0,
-                y: 0,
-                z: 0 },
-
-    gravity: { x: 0,
-                y: 0,
-                z: 0 },
-
-
-    color: { red: 0,
+ dimensions: {
+                x: 2.16,
+                y: 3.34,
+                z: 0.54
+            },    
+  color: { red: 0,
              green: 255,
              blue: 0 },
-             
-    lifetime: expectedLifetime
 
+    modelURL: HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
+
+    
+    rotation: rotation
 };
 
-var positionDelta = { x: 0.05, y: 0, z: 0 };
+var positionDelta = { x: 0.002, y: 0.002, z: 0.0 };
 
 
 var entityID = Entities.addEntity(originalProperties);
@@ -74,13 +78,11 @@ function moveEntity(deltaTime) {
                 y: originalProperties.position.y + (count * positionDelta.y),
                 z: originalProperties.position.z + (count * positionDelta.z)
         },
-        radius : 0.25,
-
     };
 
 
     //print("entityID = " + entityID);
-    print("newProperties.position = " + newProperties.position.x + "," + newProperties.position.y+ "," + newProperties.position.z);
+    //print("newProperties.position = " + newProperties.position.x + "," + newProperties.position.y+ "," + newProperties.position.z);
 
     Entities.editEntity(entityID, newProperties);
 }

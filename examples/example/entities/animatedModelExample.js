@@ -12,7 +12,7 @@
 //
 
 var count = 0;
-var moveUntil = 6000;
+var moveUntil = 1000;
 var stopAfter = moveUntil + 100;
 
 var pitch = 0.0;
@@ -25,16 +25,19 @@ var originalProperties = {
     position: { x: MyAvatar.position.x,
                 y: MyAvatar.position.y,
                 z: MyAvatar.position.z },
-
-    radius : 1,
+    dimensions: {
+                x: 1.62,
+                y: 0.41,
+                z: 1.13
+                },
 
     color: { red: 0,
              green: 255,
              blue: 0 },
 
-    modelURL: "http://www.fungibleinsight.com/faces/beta.fst",
+    modelURL: "http://public.highfidelity.io/cozza13/club/dragon/dragon.fbx",
     rotation: rotation,
-    animationURL: "http://www.fungibleinsight.com/faces/gangnam_style_2.fbx",
+    animationURL: "http://public.highfidelity.io/cozza13/club/dragon/flying.fbx",
     animationIsPlaying: true,
 };
 

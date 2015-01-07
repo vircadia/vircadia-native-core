@@ -27,7 +27,7 @@ var lightID = Entities.addEntity({
     angularVelocity: { x: 0, y: 0, z: 0 },
     angularDamping: 0,
 
-    isSpotlight: false,
+    isSpotlight: true,
     diffuseColor: { red: 255, green: 255, blue: 0 },
     ambientColor: { red: 0, green: 0, blue: 0 },
     specularColor: { red: 255, green: 255, blue: 255 },

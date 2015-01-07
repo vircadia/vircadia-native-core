@@ -12,7 +12,7 @@
 
 //For procedural walk animation
 Script.include("../libraries/globals.js");
-Script.include(HIFI_PUBLIC_BUCKET + "scripts/proceduralAnimationAPI.js");
+Script.include("proceduralAnimationAPI.js");
 
 var procAnimAPI = new ProcAnimAPI();
 

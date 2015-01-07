@@ -73,7 +73,7 @@ var soundPlaying = false;
 var selectorPressed = false;
 var position;
 
-MyAvatar.attach(guitarModel, "Hips", {x: -0.0, y: -0.0, z: 0.0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.0);
+MyAvatar.attach(guitarModel, "Hips", {x: -0.2, y: 0.0, z: 0.1}, Quat.fromPitchYawRollDegrees(90, 00, 90), 1.0);
 
 function checkHands(deltaTime) {
 	for (var palm = 0; palm < 2; palm++) {

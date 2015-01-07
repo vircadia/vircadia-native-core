@@ -8,8 +8,8 @@
 //  This is an example script that demonstrates use of the Camera class's lookAt(), keepLookingAt(), and stopLookingAt()
 //  features.
 //
-//  To use the script, click on a voxel, and the camera will switch into independent mode and fix it's lookAt on the point
-//  on the face of the voxel that you clicked. Click again and it will stop looking at that point. While in this fixed mode
+//  To use the script, click on a entity, and the camera will switch into independent mode and fix it's lookAt on the point
+//  on the face of the entity that you clicked. Click again and it will stop looking at that point. While in this fixed mode
 //  you can use the arrow keys to change the position of the camera.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -22,7 +22,7 @@ var oldMode = Camera.mode;
 function cancelLookAt() {
     if (lookingAtSomething) {
         lookingAtSomething = false;
-        Camera.stopLooking();
+        //Camera.stopLooking();
         Camera.mode = oldMode;
         releaseMovementKeys();
     }
@@ -74,7 +74,7 @@ function mousePressEvent(event) {
             Camera.mode = "independent";
 
             // tell the camera to fix it's look at on the point we clicked
-            Camera.keepLookingAt(intersection.intersection);
+            //Camera.keepLookingAt(intersection.intersection);
 
             // keep track of the fact that we're in this looking at mode
             lookingAtSomething = true;

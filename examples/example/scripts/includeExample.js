@@ -15,5 +15,5 @@
 Script.include("http://public.highfidelity.io/scripts/lookWithTouch.js");
 
 // You can also include scripts that are relative to the current script
-Script.include("editVoxels.js");
-Script.include("../examples/selectAudioDevice.js");
+//Script.include("../../editEntities.js");
+//Script.include("../../examples/selectAudioDevice.js");
