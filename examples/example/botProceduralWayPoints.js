@@ -1,7 +1,16 @@
+// botProceduralWayPoints.js 
+
+// modified by Adrian McCarlie for worklist job hifi: #19977
+// 1 September 2014.
+// this script enables a user to define unlimited number of way points on the Domain,
+// these points form a path that the bot will follow, once the final way point is reached, 
+// the bot will return to the start and continue until script is stopped.
+// pause times for each way point can be set individually.
+// User must input the x, y, z co-ords for wayPoints[] and time in milliseconds for pauseTimes[]. 
 //
+// original script
 // bot_procedural.js
 // hifi
-//
 // Created by Ben Arnold on 7/29/2013
 //
 // Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
@@ -11,7 +20,7 @@
 //
 
 //For procedural walk animation
-Script.include("libraries/globals.js");
+Script.include("../libraries/globals.js");
 Script.include(HIFI_PUBLIC_BUCKET + "scripts/proceduralAnimationAPI.js");
 
 var procAnimAPI = new ProcAnimAPI();
@@ -28,6 +37,40 @@ function printVector(string, vector) {
     print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
+//input co-ords for start position and 7 other positions
+
+var AVATAR_PELVIS_HEIGHT = 0.84;//only change this if you have an odd size avatar
+
+var wayPoints = []; //input locations for all the waypoints
+	wayPoints[0] = {x:8131.5, y:202.0, z:8261.5}; //input the location of the start position
+	wayPoints[1] = {x: 8160.5, y: 202.0, z: 8261.5}; //input the location of the first way point
+	wayPoints[2] = {x: 8160.5, y: 203.0, z: 8270.5}; 
+	wayPoints[3] = {x: 8142.5, y: 204.0, z: 8270.5};
+	wayPoints[4] = {x: 8142.5, y: 204.0, z: 8272.5};
+	wayPoints[5] = {x: 8160.5, y: 203.0, z: 8272.5};
+	wayPoints[6] = {x: 8160.5, y: 202.0, z: 8284.5};
+	wayPoints[7] = {x: 8111.5, y: 202.0, z: 8284.5};// continue to add locations and add or remove lines as needed.
+	
+var pauseTimes = []; // the number of pauseTimes must equal the number of wayPoints. Time is in milliseconds
+	pauseTimes[0] = 5000; //waiting to go to wayPoint0 (startPoint)
+	pauseTimes[1] = 10000; //waiting to go to wayPoint1
+	pauseTimes[2] = 3000;
+	pauseTimes[3] = 3000;
+	pauseTimes[4] = 8000;
+	pauseTimes[5] = 6000;
+	pauseTimes[6] = 3000;
+	pauseTimes[7] = 3000;// add or delete to match way points.
+
+	
+wayPoints[0].y = wayPoints[0].y + AVATAR_PELVIS_HEIGHT;
+wayPoints[1].y = wayPoints[1].y + AVATAR_PELVIS_HEIGHT;
+wayPoints[2].y = wayPoints[2].y + AVATAR_PELVIS_HEIGHT;
+wayPoints[3].y = wayPoints[3].y + AVATAR_PELVIS_HEIGHT;
+wayPoints[4].y = wayPoints[4].y + AVATAR_PELVIS_HEIGHT;
+wayPoints[5].y = wayPoints[5].y + AVATAR_PELVIS_HEIGHT;
+wayPoints[6].y = wayPoints[6].y + AVATAR_PELVIS_HEIGHT;
+wayPoints[7].y = wayPoints[7].y + AVATAR_PELVIS_HEIGHT;
+
 var CHANCE_OF_MOVING = 0.005;
 var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.01;
@@ -37,13 +80,8 @@ var isMoving = false;
 var isTurningHead = false;
 var isPlayingAudio = false; 
 
-var X_MIN = 0.50;
-var X_MAX = 15.60;
-var Z_MIN = 0.50;
-var Z_MAX = 15.10;
-var Y_FEET = 0.0; 
-var AVATAR_PELVIS_HEIGHT = 0.84;
-var Y_PELVIS = Y_FEET + AVATAR_PELVIS_HEIGHT;
+
+var AVATAR_PELVIS_HEIGHT = 1.84;
 var MAX_PELVIS_DELTA = 2.5;
 
 var MOVE_RANGE_SMALL = 3.0;
@@ -56,7 +94,7 @@ var HEAD_TURN_RATE = 0.05;
 var PITCH_RANGE = 15.0;
 var YAW_RANGE = 35.0;
 
-var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: Y_PELVIS, z: getRandomFloat(Z_MIN, Z_MAX) };
+var firstPosition = wayPoints[0]; 
 var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetOrientation = { x: 0, y: 0, z: 0, w: 0 };
 var currentOrientation = { x: 0, y: 0, z: 0, w: 0 };
@@ -90,7 +128,7 @@ Avatar.billboardURL = HIFI_PUBLIC_BUCKET + "meshes/billboards/bot" + botNumber +
 Agent.isAvatar = true;
 Agent.isListeningToAudioStream = true;
 
-// change the avatar's position to the random one
+// change the avatar's position to wayPoints[0]
 Avatar.position = firstPosition;  
 basePelvisHeight = firstPosition.y; 
 printVector("New dancer, position = ", Avatar.position);
@@ -134,14 +172,14 @@ function playRandomSound() {
 }
 
 function playRandomFootstepSound() {
-  var whichSound = Math.floor((Math.random() * footstepSounds.length));
+  var whichSound = Math.floor((Math.random() * footstepSounds.length));  
 	Audio.playSound(footstepSounds[whichSound], {
 	  position: Avatar.position,
     volume: 1.0
 	});
 }
 
-// ************************************ Facial Animation **********************************
+//  Facial Animation 
 var allBlendShapes = [];
 var targetBlendCoefficient = [];
 var currentBlendCoefficient = [];
@@ -351,7 +389,7 @@ function updateBlinking(deltaTime) {
     targetBlendCoefficient[1] = blink;
 }
 
-// *************************************************************************************
+//
 
 //Procedural walk animation using two keyframes
 //We use a separate array for front and back joints
@@ -378,7 +416,7 @@ var JOINT_L_FOOT = 8;
 var JOINT_R_TOE = 4;
 var JOINT_L_TOE = 9;
 
-// ******************************* Animation Is Defined Below *************************************
+//  Animation Is Defined Below 
 
 var NUM_FRAMES = 2;
 for (var i = 0; i < NUM_FRAMES; i++) {
@@ -452,9 +490,9 @@ middleAngles[1][SPINE] = [0.0, 0.0, 0.0];
 //Actual keyframes for the animation
 var walkKeyFrames = procAnimAPI.generateKeyframes(rightAngles, leftAngles, middleAngles, NUM_FRAMES);
 
-// ******************************* Animation Is Defined Above *************************************
+//  Animation Is Defined Above
 
-// ********************************** Standing Key Frame ******************************************
+//  Standing Key Frame 
 //We don't have to do any mirroring or anything, since this is just a single pose.
 var rightQuats = [];
 var leftQuats = [];
@@ -478,8 +516,7 @@ middleQuats[SPINE] = Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0);
 
 var standingKeyFrame = new procAnimAPI.KeyFrame(rightQuats, leftQuats, middleQuats);
 
-// ************************************************************************************************
-
+//
 
 var currentFrame = 0;
 
@@ -576,41 +613,66 @@ function handleHeadTurn() {
 function stopWalking() {
     avatarVelocity = 0.0;
     isMoving = false;
+
 }
 
-var MAX_ATTEMPTS = 40;
+
+
+var pauseTimer;
+
+	function pause(checkPoint, rotation, delay){
+
+		pauseTimer = Script.setTimeout(function() { 
+			targetPosition = checkPoint;
+			targetOrientation = rotation;
+		
+			isMoving = true;			
+			}, delay);
+
+			
+	}
+
+
 function handleWalking(deltaTime) {
 
-    if (forcedMove || (!isMoving && Math.random() < CHANCE_OF_MOVING)) {
-        // Set new target location
+	
+	if (!isMoving){ 
+		if(targetPosition.x == 0){targetPosition = wayPoints[1]; isMoving = true;} //Start by heading for wayPoint1
+		
+			else{
+				for (var j = 0; j <= wayPoints.length; j++) {  
+				if (targetPosition == wayPoints[j]) {   
 
-        var moveRange;
-        if (Math.random() < CHANCE_OF_BIG_MOVE) {
-            moveRange = MOVE_RANGE_BIG;
-        } else {
-            moveRange = MOVE_RANGE_SMALL;
-        }   
-        
-        //Keep trying new orientations if the desired target location is out of bounds
-        var attempts = 0;
-        do {
-            targetOrientation = Quat.multiply(Avatar.orientation, Quat.angleAxis(getRandomFloat(-TURN_RANGE, TURN_RANGE), { x:0, y:1, z:0 }));
-            var front = Quat.getFront(targetOrientation);
-            
-            targetPosition = Vec3.sum(Avatar.position, Vec3.multiply(front, getRandomFloat(0.0, moveRange)));
-        }
-        while ((targetPosition.x < X_MIN || targetPosition.x > X_MAX || targetPosition.z < Z_MIN || targetPosition.z > Z_MAX) 
-        && attempts < MAX_ATTEMPTS);
-            
-        targetPosition.x = clamp(targetPosition.x, X_MIN, X_MAX);
-        targetPosition.z = clamp(targetPosition.z, Z_MIN, Z_MAX);
-        targetPosition.y = Y_PELVIS;
+				if(j == wayPoints.length -1){ j= -1;}
+				var k = j + 1;
+				var toTarget =  Vec3.normalize(Vec3.subtract(wayPoints[k], Avatar.position));
+					var localVector = Vec3.multiplyQbyV(Avatar.orientation, { x: 0, y: 0, z: -1 });
+					toTarget.y = 0; // I recommend doing that if you don't want weird rotation to occur that are not around Y.
 
-        wasMovingLastFrame = true;
-        isMoving = true;
-        forcedMove = false;
-    } else if (isMoving) { 
+					var axis = Vec3.normalize(Vec3.cross(toTarget, localVector));
+					var angle = Math.acos(Vec3.dot(toTarget, localVector)) * 180 / Math.PI;
 
+					if (Vec3.dot(Vec3.cross(axis, localVector), toTarget) < 0) {
+						angle = -angle;
+					}
+					var delta = 1;
+		
+						var quat = Quat.angleAxis(angle, axis);
+						Avatar.orientation = Quat.multiply(quat, Avatar.orientation);	
+				
+
+				pause(wayPoints[k], Avatar.orientation, pauseTimes[k]);
+
+			
+				break;
+				}
+			}
+		}	
+	}
+
+	else
+	if (isMoving) { 
+			
         var targetVector = Vec3.subtract(targetPosition, Avatar.position);
         var distance = Vec3.length(targetVector);
         if (distance <= avatarVelocity * deltaTime) {
@@ -631,7 +693,7 @@ function handleWalking(deltaTime) {
                 if (avatarVelocity > avatarMaxVelocity) avatarVelocity = avatarMaxVelocity;
             }
             Avatar.position = Vec3.sum(Avatar.position, Vec3.multiply(direction, avatarVelocity * deltaTime));
-            Avatar.orientation = Quat.mix(Avatar.orientation, targetOrientation, TURN_RATE);
+	
             
             wasMovingLastFrame = true; 
 
@@ -671,3 +733,4 @@ function updateBehavior(deltaTime) {
 }
 
 Script.update.connect(updateBehavior);
+

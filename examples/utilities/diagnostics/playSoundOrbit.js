@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+Script.include("../../libraries/globals.js");
 
-var soundClip = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Voxels/voxel create 3.raw");
+var soundClip = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw");
 
 var currentTime = 1.570079; // pi/2
 var deltaTime = 0.05;
@@ -38,6 +38,6 @@ function playSound() {
   });
 }
 
-Script.setInterval(playSound, 250);
+Script.setInterval(playSound, 850);
 
 
