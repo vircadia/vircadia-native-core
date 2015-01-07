@@ -1,6 +1,6 @@
 //
 //  AudioFilterBank.h
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Craig Hansen-Sturm on 8/23/14.
 //  Copyright 2014 High Fidelity, Inc.

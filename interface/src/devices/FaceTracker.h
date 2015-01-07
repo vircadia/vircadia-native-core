@@ -18,7 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-/// Base class for face trackers (Faceshift, Visage, Faceplus).
+/// Base class for face trackers (Faceshift, Visage).
 class FaceTracker : public QObject {
     Q_OBJECT
     

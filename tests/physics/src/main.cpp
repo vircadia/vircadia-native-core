@@ -10,9 +10,15 @@
 
 #include "ShapeColliderTests.h"
 #include "VerletShapeTests.h"
+#include "ShapeInfoTests.h"
+#include "ShapeManagerTests.h"
+#include "BulletUtilTests.h"
 
 int main(int argc, char** argv) {
     ShapeColliderTests::runAllTests();
     VerletShapeTests::runAllTests();
+    ShapeInfoTests::runAllTests();
+    ShapeManagerTests::runAllTests();
+    BulletUtilTests::runAllTests();
     return 0;
 }

@@ -24,7 +24,7 @@
 class PerListenerSourcePairData {
 public:
     PerListenerSourcePairData() { 
-        _penumbraFilter.initialize(SAMPLE_RATE, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+        _penumbraFilter.initialize(AudioConstants::SAMPLE_RATE, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / 2);
     };
     AudioFilterHSF1s& getPenumbraFilter() { return _penumbraFilter; }
 

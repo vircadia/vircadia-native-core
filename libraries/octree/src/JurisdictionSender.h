@@ -27,7 +27,7 @@ class JurisdictionSender : public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
-    JurisdictionSender(JurisdictionMap* map, NodeType_t type = NodeType::VoxelServer);
+    JurisdictionSender(JurisdictionMap* map, NodeType_t type = NodeType::EntityServer);
     ~JurisdictionSender();
 
     void setJurisdiction(JurisdictionMap* map) { _jurisdictionMap = map; }

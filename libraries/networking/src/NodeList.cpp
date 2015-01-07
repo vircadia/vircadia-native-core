@@ -63,13 +63,13 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _hasCompletedInitialSTUNFailure(false),
     _stunRequestsSinceSuccess(0)
 {
-    AddressManager& addressManager = AddressManager::getInstance();
+    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
     
     // handle domain change signals from AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
+    connect(addressManager.data(), &AddressManager::possibleDomainChangeRequired,
             &_domainHandler, &DomainHandler::setHostnameAndPort);
     
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
+    connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &_domainHandler, &DomainHandler::setIceServerHostnameAndID);
     
     // clear our NodeList when the domain changes

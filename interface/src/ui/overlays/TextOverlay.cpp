@@ -12,6 +12,9 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+
+#include <DependencyManager.h>
+#include <GeometryCache.h>
 #include <SharedUtil.h>
 #include <TextRenderer.h>
 
@@ -75,12 +78,9 @@ void TextOverlay::render(RenderArgs* args) {
     int top = _bounds.top();
     int bottom = _bounds.bottom() + 1;
 
-    glBegin(GL_QUADS);
-        glVertex2f(left, top);
-        glVertex2f(right, top);
-        glVertex2f(right, bottom);
-        glVertex2f(left, bottom);
-    glEnd();
+    glm::vec2 topLeft(left, top);
+    glm::vec2 bottomRight(right, bottom);
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
 
     // Same font properties as textSize()
     TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
