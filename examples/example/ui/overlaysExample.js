@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("../libraries/globals.js");
+Script.include("../../libraries/globals.js");
 
 // The "Swatches" example of this script will create 9 different image overlays, that use the color feature to
 // display different colors as color swatches. The overlays can be clicked on, to change the "selectedSwatch" variable

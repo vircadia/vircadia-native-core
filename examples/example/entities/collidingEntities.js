@@ -64,7 +64,7 @@ function draw(deltaTime) {
             y: 1,
             z: 0 };
 
-        var entitySize = 0.1;
+        var entitySize = 1.1;
 
         print("number of entitys=" + numberEntitiesAdded +"\n");
         
@@ -99,7 +99,7 @@ function draw(deltaTime) {
             Script.stop();
         }
         
-        print("Particles Stats: " + Entities.getLifetimeInSeconds() + " seconds," + 
+        print("Entity Stats: " + Entities.getLifetimeInSeconds() + " seconds," + 
             " Queued packets:" + Entities.getLifetimePacketsQueued() + "," +
             " PPS:" + Entities.getLifetimePPSQueued() + "," +
             " BPS:" + Entities.getLifetimeBPSQueued() + "," +

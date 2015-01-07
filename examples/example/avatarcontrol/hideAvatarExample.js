@@ -12,7 +12,7 @@
 //
 
 function keyReleaseEvent(event) {
-    if (event.text == "F2") {
+    if (event.text == "r") {
         MyAvatar.shouldRenderLocally = !MyAvatar.shouldRenderLocally;
     }
 }

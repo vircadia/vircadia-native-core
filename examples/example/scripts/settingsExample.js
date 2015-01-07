@@ -15,4 +15,4 @@ print("mySetting: " + Settings.getValue("mySetting"));
 Settings.setValue("mySetting", "spam");
 print("mySetting: " + Settings.getValue("mySetting"));
 
-Script.stop();
+//Script.stop();

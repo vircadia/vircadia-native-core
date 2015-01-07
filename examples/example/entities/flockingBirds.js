@@ -5,7 +5,7 @@
 //  Created by Brad Hefta-Gaub on 3/4/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This is an example script that generates particles that act like flocking birds
+//  This is an example script that generates entities that act like flocking birds
 //
 // All birds, even flying solo...
 //    birds don't like to fall too fast
