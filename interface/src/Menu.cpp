@@ -750,8 +750,7 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     
-    const QString SETTINGS_ADDRESS_KEY = "address";
-    settings->setValue(SETTINGS_ADDRESS_KEY, DependencyManager::get<AddressManager>()->currentAddress());
+    DependencyManager::get<AddressManager>()->storeCurrentAddress();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();

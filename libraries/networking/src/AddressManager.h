@@ -58,6 +58,8 @@ public slots:
     void goToUser(const QString& username);
     void goToAddressFromObject(const QVariantMap& addressMap);
     
+    void storeCurrentAddress();
+    
 signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
@@ -72,7 +74,6 @@ protected:
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
-    void storeCurrentAddress();
 private:
     void setDomainInfo(const QString& hostname, quint16 port, const QString& domainName = QString());
     
