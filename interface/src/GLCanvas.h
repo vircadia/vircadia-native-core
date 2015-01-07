@@ -12,6 +12,7 @@
 #ifndef hifi_GLCanvas_h
 #define hifi_GLCanvas_h
 
+#include <QDebug>
 #include <QGLWidget>
 #include <QTimer>
 

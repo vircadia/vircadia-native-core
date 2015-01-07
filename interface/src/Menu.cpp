@@ -41,6 +41,8 @@
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "audio/AudioIOStatsRenderer.h"
+#include "audio/AudioScope.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "devices/Visage.h"
@@ -82,7 +84,6 @@ const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
 const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
-const float MUTE_RADIUS = 50;
 
 const QString CONSOLE_TITLE = "Scripting Console";
 const float CONSOLE_WINDOW_OPACITY = 0.95f;
@@ -108,8 +109,7 @@ Menu::Menu() :
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     _speechRecognizer(),
 #endif
-    _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
-    _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
+    _octreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
     _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
     _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
@@ -118,7 +118,7 @@ Menu::Menu() :
     _avatarLODIncreaseFPS(ADJUST_LOD_UP_FPS),
     _avatarLODDistanceMultiplier(DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER),
     _boundaryLevelAdjust(0),
-    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
+    _maxOctreePacketsPerSecond(DEFAULT_MAX_OCTREE_PPS),
     _lastAdjust(usecTimestampNow()),
     _lastAvatarDetailDrop(usecTimestampNow()),
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
@@ -155,11 +155,6 @@ Menu::Menu() :
     // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
     connect(&accountManager, &AccountManager::profileChanged, this, &Menu::toggleLoginMenuItem);
     connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
-    
-    // connect to signal of account manager so we can tell user when the user/place they looked at is offline
-    AddressManager& addressManager = AddressManager::getInstance();
-    connect(&addressManager, &AddressManager::lookupResultIsOffline, this, &Menu::displayAddressOfflineMessage);
-    connect(&addressManager, &AddressManager::lookupResultIsNotFound, this, &Menu::displayAddressNotFoundMessage);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
@@ -315,8 +310,6 @@ Menu::Menu() :
             avatar, SLOT(onToggleRagdoll()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
             0, true, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithVoxels,
-            0, false, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithEnvironment,
             0, false, avatar, SLOT(updateCollisionGroups()));
 
@@ -390,6 +383,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Entities, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DontFadeOnOctreeServerChanges);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DisableAutoAdjustLOD);
     
     QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
@@ -424,12 +420,6 @@ Menu::Menu() :
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu,
-                                           MenuOption::Voxels,
-                                           Qt::SHIFT | Qt::Key_V,
-                                           true,
-                                           appInstance,
-                                           SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true, 
                                             DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
@@ -456,12 +446,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
 
-    QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
-    
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
         Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
@@ -538,81 +522,85 @@ Menu::Menu() :
                                   SLOT(cycleFrustumRenderMode()));
     updateFrustumRenderModeAction();
 
-
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
                                            true,
-                                           appInstance->getAudio(),
+                                           audioIO.data(),
                                            SLOT(toggleAudioNoiseReduction()));
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
+                                           audioIO.data(), SLOT(toggleServerEcho()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
+                                           audioIO.data(), SLOT(toggleLocalEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
-                                           appInstance->getAudio(), SLOT(toggleStereoInput()));
+                                           audioIO.data(), SLOT(toggleStereoInput()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
                                            Qt::CTRL | Qt::Key_M,
                                            false,
-                                           appInstance->getAudio(),
+                                           audioIO.data(),
                                            SLOT(toggleMute()));
     addActionToQMenuAndActionHash(audioDebugMenu,
                                   MenuOption::MuteEnvironment,
                                   0,
-                                  this,
-                                  SLOT(muteEnvironment()));
+                                  audioIO.data(),
+                                  SLOT(sendMuteEnvironmentPacket()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
                                            0,
                                            false,
-                                           appInstance->getAudio(),
+                                           audioIO.data(),
                                            SLOT(toggleAudioSourceInject()));
     QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
     {
         QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
                                                                0,
                                                                false,
-                                                               appInstance->getAudio(),
+                                                               audioIO.data(),
                                                                SLOT(selectAudioSourcePinkNoise()));
         
         QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
                                                                     0,
                                                                     true,
-                                                                    appInstance->getAudio(),
+                                                                    audioIO.data(),
                                                                     SLOT(selectAudioSourceSine440()));
 
         QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
         audioSourceGroup->addAction(pinkNoise);
         audioSourceGroup->addAction(sine440);
     }
+    
+    AudioScope::SharedPointer scope = DependencyManager::get<AudioScope>();
 
     QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleScope()));
+                                           scope.data(),
+                                           SLOT(toggle()));
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
                                            false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleScopePause()));
+                                           scope.data(),
+                                           SLOT(togglePause()));
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
     {
         QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
                                                0,
                                                true,
-                                               appInstance->getAudio(),
+                                               scope.data(),
                                                SLOT(selectAudioScopeFiveFrames()));
 
         QAction *twentyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeTwentyFrames,
                                                0,
                                                false,
-                                               appInstance->getAudio(),
+                                               scope.data(),
                                                SLOT(selectAudioScopeTwentyFrames()));
 
         QAction *fiftyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiftyFrames,
                                                0,
                                                false,
-                                               appInstance->getAudio(),
+                                               scope.data(),
                                                SLOT(selectAudioScopeFiftyFrames()));
 
         QActionGroup* audioScopeFramesGroup = new QActionGroup(audioScopeMenu);
@@ -620,25 +608,21 @@ Menu::Menu() :
         audioScopeFramesGroup->addAction(twentyFrames);
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
-
+    
+    AudioIOStatsRenderer::SharedPointer statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                            Qt::CTRL | Qt::Key_A,
-                                            false,
-                                            appInstance->getAudio(),
-                                            SLOT(toggleStats()));
+                                           Qt::CTRL | Qt::Key_A,
+                                           false,
+                                           statsRenderer.data(),
+                                           SLOT(toggle()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
                                             0,
                                             false,
-                                            appInstance->getAudio(),
-                                            SLOT(toggleStatsShowInjectedStreams()));
+                                            statsRenderer.data(),
+                                            SLOT(toggleShowInjectedStreams()));
 
-    connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
-
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
-                Qt::CTRL | Qt::SHIFT | Qt::Key_V,
-                this,
-                SLOT(pasteToVoxel()));
+    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
@@ -676,9 +660,8 @@ void Menu::loadSettings(QSettings* settings) {
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
     _faceshiftHostname = settings->value("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME).toString();
-    _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
-    _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
-    _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
+    _maxOctreePacketsPerSecond = loadSetting(settings, "maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+    _octreeSizeScale = loadSetting(settings, "octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
     _automaticAvatarLOD = settings->value("automaticAvatarLOD", true).toBool();
     _avatarLODDecreaseFPS = loadSetting(settings, "avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS);
     _avatarLODIncreaseFPS = loadSetting(settings, "avatarLODIncreaseFPS", ADJUST_LOD_UP_FPS);
@@ -743,9 +726,8 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("faceshiftHostname", _faceshiftHostname);
-    settings->setValue("maxVoxels", _maxVoxels);
-    settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
-    settings->setValue("voxelSizeScale", _voxelSizeScale);
+    settings->setValue("maxOctreePPS", _maxOctreePacketsPerSecond);
+    settings->setValue("octreeSizeScale", _octreeSizeScale);
     settings->setValue("automaticAvatarLOD", _automaticAvatarLOD);
     settings->setValue("avatarLODDecreaseFPS", _avatarLODDecreaseFPS);
     settings->setValue("avatarLODIncreaseFPS", _avatarLODIncreaseFPS);
@@ -768,7 +750,7 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     
-    settings->setValue(SETTINGS_ADDRESS_KEY, AddressManager::getInstance().currentAddress());
+    DependencyManager::get<AddressManager>()->storeCurrentAddress();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
@@ -1152,40 +1134,6 @@ void Menu::toggleAddressBar() {
     }
 }
 
-void Menu::displayAddressOfflineMessage() {
-    QMessageBox::information(Application::getInstance()->getWindow(), "Address offline",
-                             "That user or place is currently offline.");
-}
-
-void Menu::displayAddressNotFoundMessage() {
-    QMessageBox::information(Application::getInstance()->getWindow(), "Address not found",
-                             "There is no address information for that user or place.");
-}
-
-void Menu::muteEnvironment() {
-    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
-    int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
-
-    glm::vec3 position = Application::getInstance()->getAvatar()->getPosition();
-
-    char* packet = (char*)malloc(packetSize);
-    populatePacketHeader(packet, PacketTypeMuteEnvironment);
-    memcpy(packet + headerSize, &position, sizeof(glm::vec3));
-    memcpy(packet + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
-
-    QByteArray mutePacket(packet, packetSize);
-
-    // grab our audio mixer from the NodeList, if it exists
-    SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
-
-    if (audioMixer) {
-        // send off this mute packet
-        NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
-    }
-
-    free(packet);
-}
-
 void Menu::changeVSync() {
     Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
 }
@@ -1202,7 +1150,7 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
+        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
         _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
     }
     
@@ -1246,7 +1194,7 @@ void Menu::nameLocation() {
     
     if (!_newLocationDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
+        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
         _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
     }
     
@@ -1257,33 +1205,6 @@ void Menu::nameLocation() {
     _newLocationDialog->raise();
     _newLocationDialog->activateWindow();
     _newLocationDialog->showNormal();
-}
-
-void Menu::pasteToVoxel() {
-    QInputDialog pasteToOctalCodeDialog(Application::getInstance()->getWindow());
-    pasteToOctalCodeDialog.setWindowTitle("Paste to Voxel");
-    pasteToOctalCodeDialog.setLabelText("Octal Code:");
-    QString octalCode = "";
-    pasteToOctalCodeDialog.setTextValue(octalCode);
-    pasteToOctalCodeDialog.setWindowFlags(Qt::Sheet);
-    pasteToOctalCodeDialog.resize(pasteToOctalCodeDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
-        pasteToOctalCodeDialog.size().height());
-
-    int dialogReturn = pasteToOctalCodeDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !pasteToOctalCodeDialog.textValue().isEmpty()) {
-        // we got an octalCode to paste to...
-        QString locationToPaste = pasteToOctalCodeDialog.textValue();
-        unsigned char* octalCodeDestination = hexStringToOctalCode(locationToPaste);
-
-        // check to see if it was a legit octcode...
-        if (locationToPaste == octalCodeToHexString(octalCodeDestination)) {
-            Application::getInstance()->pasteVoxelsToOctalCode(octalCodeDestination);
-        } else {
-            qDebug() << "Problem with octcode...";
-        }
-    }
-
-    sendFakeEnterEvent();
 }
 
 void Menu::toggleLoginMenuItem() {
@@ -1403,7 +1324,7 @@ void Menu::toggleToolWindow() {
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     if (muteAction) {
-        muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
+        muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
     }
 }
 
@@ -1455,8 +1376,8 @@ QString Menu::getLODFeedbackText() {
     }
 
     // distance feedback
-    float voxelSizeScale = getVoxelSizeScale();
-    float relativeToDefault = voxelSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    float octreeSizeScale = getOctreeSizeScale();
+    float relativeToDefault = octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
     QString result;
     if (relativeToDefault > 1.01) {
         result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
@@ -1507,29 +1428,29 @@ void Menu::autoAdjustLOD(float currentFPS) {
     quint64 elapsed = now - _lastAdjust;
 
     if (elapsed > ADJUST_LOD_DOWN_DELAY && _fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS
-            && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+            && _octreeSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
 
-        _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+        _octreeSizeScale *= ADJUST_LOD_DOWN_BY;
 
-        if (_voxelSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
-            _voxelSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+        if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
+            _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
         }
         changed = true;
         _lastAdjust = now;
         qDebug() << "adjusting LOD down... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-                     << "_voxelSizeScale=" << _voxelSizeScale;
+                     << "_octreeSizeScale=" << _octreeSizeScale;
     }
 
     if (elapsed > ADJUST_LOD_UP_DELAY && _fpsAverage.getAverage() > ADJUST_LOD_UP_FPS
-            && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
-        _voxelSizeScale *= ADJUST_LOD_UP_BY;
-        if (_voxelSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
-            _voxelSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
+            && _octreeSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+        _octreeSizeScale *= ADJUST_LOD_UP_BY;
+        if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
+            _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
         }
         changed = true;
         _lastAdjust = now;
         qDebug() << "adjusting LOD up... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-                     << "_voxelSizeScale=" << _voxelSizeScale;
+                     << "_octreeSizeScale=" << _octreeSizeScale;
     }
 
     if (changed) {
@@ -1546,8 +1467,8 @@ void Menu::resetLODAdjust() {
     _lastAvatarDetailDrop = _lastAdjust = usecTimestampNow();
 }
 
-void Menu::setVoxelSizeScale(float sizeScale) {
-    _voxelSizeScale = sizeScale;
+void Menu::setOctreeSizeScale(float sizeScale) {
+    _octreeSizeScale = sizeScale;
     _shouldRenderTableNeedsRebuilding = true;
     bumpSettings();
 }
@@ -1558,14 +1479,14 @@ void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     bumpSettings();
 }
 
-// TODO: This is essentially the same logic used to render voxels, but since models are more detailed then voxels
+// TODO: This is essentially the same logic used to render octree cells, but since models are more detailed then octree cells
 //       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
 bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) {
-    const float voxelToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
-    float voxelSizeScale = getVoxelSizeScale();
+    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
+    float octreeSizeScale = getOctreeSizeScale();
     int boundaryLevelAdjust = getBoundaryLevelAdjust();
     float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, voxelSizeScale) / voxelToMeshRatio;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
     
     if (_shouldRenderTableNeedsRebuilding) {
         _shouldRenderTable.clear();

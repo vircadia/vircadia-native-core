@@ -73,14 +73,7 @@ private:
 class PerformanceTimer {
 public:
 
-    PerformanceTimer(const QString& name) :
-        _start(0),
-        _name(name) {
-            _fullName.append("/");
-            _fullName.append(_name);
-            _start = usecTimestampNow();
-        }
-        
+    PerformanceTimer(const QString& name);
     ~PerformanceTimer();
     
     static const PerformanceTimerRecord& getTimerRecord(const QString& name) { return _records[name]; };
@@ -91,7 +84,7 @@ public:
 private:
     quint64 _start;
     QString _name;
-    static QString _fullName;
+    static QHash<QThread*, QString> _fullNames;
     static QMap<QString, PerformanceTimerRecord> _records;
 };
 

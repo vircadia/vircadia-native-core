@@ -66,6 +66,8 @@ public:
     void setDensity(float density);
     void setFriction(float friction);
     void setRestitution(float restitution);
+    void setLinearDamping(float damping);
+    void setAngularDamping(float damping);
     void setVolume(float volume);
 
     float getMass() const { return _volume * _density; }
@@ -82,7 +84,7 @@ public:
     void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
 
     bool doesNotNeedToSendUpdate() const;
-    virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const;
+    virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder);
     virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
     virtual MotionType computeMotionType() const = 0;
@@ -93,6 +95,8 @@ protected:
     float _volume;
     float _friction;
     float _restitution;
+    float _linearDamping;
+    float _angularDamping;
     bool _wasInWorld;
     MotionType _motionType;
 

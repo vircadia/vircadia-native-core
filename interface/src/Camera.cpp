@@ -11,7 +11,6 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <SharedUtil.h>
-#include <VoxelConstants.h>
 #include <EventTypes.h>
 
 #include "Application.h"

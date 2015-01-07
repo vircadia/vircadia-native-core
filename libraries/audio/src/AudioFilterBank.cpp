@@ -1,6 +1,6 @@
 //
 //  AudioFilterBank.cpp
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Craig Hansen-Sturm on 8/10/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <math.h>
 #include <SharedUtil.h>
-#include "AudioRingBuffer.h"
 #include "AudioFormat.h"
 #include "AudioBuffer.h"
 #include "AudioFilter.h"

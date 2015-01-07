@@ -55,11 +55,11 @@ private:
 
     // used on a per stream basis to run the filter on before mixing, large enough to handle the historical
     // data from a phase delay as well as an entire network buffer
-    int16_t _preMixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
+    int16_t _preMixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
     
     // client samples capacity is larger than what will be sent to optimize mixing
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
-    int16_t _mixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
+    int16_t _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
 
     void perSecondActions();
     

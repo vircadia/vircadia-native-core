@@ -42,11 +42,11 @@ enum PacketType {
     PacketTypeMuteEnvironment,
     PacketTypeAudioStreamStats,
     PacketTypeDataServerConfirm, // 20
-    PacketTypeVoxelQuery,
-    PacketTypeVoxelData,
-    PacketTypeVoxelSet,
-    PacketTypeVoxelSetDestructive,
-    PacketTypeVoxelErase, // 25
+    UNUSED_5,
+    UNUSED_6,
+    UNUSED_7,
+    UNUSED_8,
+    UNUSED_9, // 25
     PacketTypeOctreeStats,
     PacketTypeJurisdiction,
     PacketTypeJurisdictionRequest,
@@ -67,7 +67,7 @@ enum PacketType {
     PacketTypeEntityErase,
     PacketTypeEntityAddResponse,
     PacketTypeOctreeDataNack, // 45
-    PacketTypeVoxelEditNack,
+    UNUSED_10,
     PacketTypeAudioEnvironment,
     PacketTypeEntityEditNack,
     PacketTypeSignedTransactionPayment,
@@ -83,8 +83,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
     << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
     << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
-    << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeEntityQuery
-    << PacketTypeOctreeDataNack << PacketTypeVoxelEditNack << PacketTypeEntityEditNack
+    << PacketTypeNodeJsonStats << PacketTypeEntityQuery
+    << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
     << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
     << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply;
 
@@ -126,6 +126,6 @@ const PacketVersion VERSION_ENTITIES_HAS_FILE_BREAKS = VERSION_ENTITIES_SUPPORT_
 const PacketVersion VERSION_ENTITIES_SUPPORT_DIMENSIONS = 4;
 const PacketVersion VERSION_ENTITIES_MODELS_HAVE_ANIMATION_SETTINGS = 5;
 const PacketVersion VERSION_ENTITIES_HAVE_USER_DATA = 6;
-const PacketVersion VERSION_VOXELS_HAS_FILE_BREAKS = 1;
+const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
 
 #endif // hifi_PacketHeaders_h

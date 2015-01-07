@@ -9,7 +9,7 @@ Grid = function(opts) {
         { red: 255, green: 0, blue: 0 },
     ];
     var colorIndex = 0;
-    var gridAlpha = 1.0;
+    var gridAlpha = 0.6;
     var origin = { x: 0, y: 0, z: 0 };
     var majorGridEvery = 5;
     var minorGridWidth = 0.2;
@@ -24,7 +24,7 @@ Grid = function(opts) {
         position: { x: 0 , y: 0, z: 0 },
         visible: true,
         color: colors[0],
-        alpha: 1.0,
+        alpha: gridAlpha,
         rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         minorGridWidth: 0.1,
         majorGridEvery: 2,

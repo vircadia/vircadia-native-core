@@ -590,7 +590,7 @@ SelectionDisplay = (function () {
                 });
 
     var yawHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png",
+                                        url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png",
                                         position: { x:0, y: 0, z: 0},
                                         color: rotateHandleColor,
                                         alpha: rotateHandleAlpha,
@@ -603,7 +603,7 @@ SelectionDisplay = (function () {
 
 
     var pitchHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png",
+                                        url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png",
                                         position: { x:0, y: 0, z: 0},
                                         color: rotateHandleColor,
                                         alpha: rotateHandleAlpha,
@@ -616,7 +616,7 @@ SelectionDisplay = (function () {
 
 
     var rollHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png",
+                                        url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png",
                                         position: { x:0, y: 0, z: 0},
                                         color: rotateHandleColor,
                                         alpha: rotateHandleAlpha,
@@ -835,8 +835,8 @@ SelectionDisplay = (function () {
                 rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: far };
                 
 
-                Overlays.editOverlay(pitchHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-south.png" });
-                Overlays.editOverlay(rollHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-south.png" });
+                Overlays.editOverlay(pitchHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-south.png" });
+                Overlays.editOverlay(rollHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-south.png" });
                 
 
             } else {
@@ -867,8 +867,8 @@ SelectionDisplay = (function () {
                 pitchCenter = { x: right, y: boundsCenter.y, z: boundsCenter.z };
                 rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: near};
 
-                Overlays.editOverlay(pitchHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
-                Overlays.editOverlay(rollHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(pitchHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(rollHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
             }
         } else {
         
@@ -899,8 +899,8 @@ SelectionDisplay = (function () {
                 pitchCenter = { x: left, y: boundsCenter.y, z: boundsCenter.z };
                 rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: far};
 
-                Overlays.editOverlay(pitchHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
-                Overlays.editOverlay(rollHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(pitchHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(rollHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
 
             } else {
             
@@ -928,8 +928,8 @@ SelectionDisplay = (function () {
                 rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: near };
                 pitchCenter = { x: left, y: boundsCenter.y, z: boundsCenter.z};
 
-                Overlays.editOverlay(pitchHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
-                Overlays.editOverlay(rollHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(pitchHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(rollHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
 
             }
         }

@@ -16,10 +16,14 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 
+#include "audio/AudioIOStatsRenderer.h"
+#include "audio/AudioScope.h"
+#include "audio/AudioToolBox.h"
 #include "Application.h"
 #include "ApplicationOverlay.h"
 #include "devices/OculusManager.h"
 
+#include "Util.h"
 #include "ui/Stats.h"
 
 // Used to fade the UI
@@ -772,21 +776,9 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
 }
 
 void ApplicationOverlay::renderAudioMeter() {
-
-    Application* application = Application::getInstance();
     
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    Audio* audio = application->getAudio();
-
-    //  Display a single screen-size quad to create an alpha blended 'collision' flash
-    if (audio->getCollisionFlashesScreen()) {
-        float collisionSoundMagnitude = audio->getCollisionSoundMagnitude();
-        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
-        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
-            renderCollisionOverlay(glCanvas->width(), glCanvas->height(),
-                audio->getCollisionSoundMagnitude());
-        }
-    }
+    Audio::SharedPointer audio = DependencyManager::get<Audio>();
 
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
@@ -840,11 +832,10 @@ void ApplicationOverlay::renderAudioMeter() {
         renderCollisionOverlay(glCanvas->width(), glCanvas->height(), magnitude, 1.0f);
     }
 
-    audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
-
-    audio->renderScope(glCanvas->width(), glCanvas->height());
-
-    audio->renderStats(WHITE_TEXT, glCanvas->width(), glCanvas->height());
+    DependencyManager::get<AudioToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
+    
+    DependencyManager::get<AudioScope>()->render(glCanvas->width(), glCanvas->height());
+    DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, glCanvas->width(), glCanvas->height());
 
     if (isClipping) {
         glColor3f(1, 0, 0);

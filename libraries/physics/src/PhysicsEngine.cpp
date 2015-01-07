@@ -24,7 +24,6 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
         _constraintSolver(NULL), 
         _dynamicsWorld(NULL),
         _originOffset(offset),
-        _voxels(),
         _entityPacketSender(NULL),
         _frameCount(0) {
 }
@@ -221,62 +220,6 @@ void PhysicsEngine::stepSimulation() {
     _frameCount += (uint32_t)numSubSteps;
 }
 
-bool PhysicsEngine::addVoxel(const glm::vec3& position, float scale) {
-    glm::vec3 halfExtents = glm::vec3(0.5f * scale);
-    glm::vec3 trueCenter = position + halfExtents;
-    PositionHashKey key(trueCenter);
-    VoxelObject* proxy = _voxels.find(key);
-    if (!proxy) {
-        // create a shape
-        ShapeInfo info;
-        info.setBox(halfExtents);
-        btCollisionShape* shape = _shapeManager.getShape(info);
-
-        // NOTE: the shape creation will fail when the size of the voxel is out of range
-        if (shape) {
-            // create a collisionObject
-            btCollisionObject* object = new btCollisionObject();
-            object->setCollisionShape(shape);
-            btTransform transform;
-            transform.setIdentity();
-            // we shift the center into the simulation's frame
-            glm::vec3 shiftedCenter = (position - _originOffset) + halfExtents;
-            transform.setOrigin(btVector3(shiftedCenter.x, shiftedCenter.y, shiftedCenter.z));
-            object->setWorldTransform(transform);
-
-            // add to map and world
-            _voxels.insert(key, VoxelObject(trueCenter, object));
-            _dynamicsWorld->addCollisionObject(object);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool PhysicsEngine::removeVoxel(const glm::vec3& position, float scale) {
-    glm::vec3 halfExtents = glm::vec3(0.5f * scale);
-    glm::vec3 trueCenter = position + halfExtents;
-    PositionHashKey key(trueCenter);
-    VoxelObject* proxy = _voxels.find(key);
-    if (proxy) {
-        // remove from world
-        assert(proxy->_object);
-        _dynamicsWorld->removeCollisionObject(proxy->_object);
-
-        // release shape
-        ShapeInfo info;
-        info.setBox(halfExtents);
-        bool released = _shapeManager.releaseShape(info);
-        assert(released);
-
-        // delete object and remove from voxel map
-        delete proxy->_object;
-        _voxels.remove(key);
-        return true;
-    }
-    return false;
-}
-
 // Bullet collision flags are as follows:
 // CF_STATIC_OBJECT= 1,
 // CF_KINEMATIC_OBJECT= 2,
@@ -327,6 +270,7 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
         body->setFlags(BT_DISABLE_WORLD_GRAVITY);
         body->setRestitution(motionState->_restitution);
         body->setFriction(motionState->_friction);
+        body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
         _dynamicsWorld->addRigidBody(body);
         return true;
     }
@@ -438,6 +382,7 @@ void PhysicsEngine::updateObjectEasy(btRigidBody* body, ObjectMotionState* motio
     }
     body->setRestitution(motionState->_restitution);
     body->setFriction(motionState->_friction);
+    body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
 
     if (flags & EntityItem::DIRTY_MASS) {
         float mass = motionState->getMass();

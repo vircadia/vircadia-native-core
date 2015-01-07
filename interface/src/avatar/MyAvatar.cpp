@@ -42,6 +42,7 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
+#include "Util.h"
 
 using namespace std;
 
@@ -87,7 +88,6 @@ MyAvatar::MyAvatar() :
     _shouldRender(true),
     _billboardValid(false),
     _physicsSimulation(),
-    _voxelShapeManager(),
     _feetTouchFloor(true),
     _isLookingAtLeftEye(true)
 {
@@ -96,13 +96,13 @@ MyAvatar::MyAvatar() :
         _driveKeys[i] = 0.0f;
     }
     _physicsSimulation.setEntity(&_skeletonModel);
-    _physicsSimulation.addEntity(&_voxelShapeManager);
 
     _skeletonModel.setEnableShapes(true);
     _skeletonModel.buildRagdoll();
     
     // connect to AddressManager signal for location jumps
-    connect(&AddressManager::getInstance(), &AddressManager::locationChangeRequired, this, &MyAvatar::goToLocation);
+    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
+            this, &MyAvatar::goToLocation);
 }
 
 MyAvatar::~MyAvatar() {
@@ -146,7 +146,7 @@ void MyAvatar::update(float deltaTime) {
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
     //  Get audio loudness data from audio input device
-    Audio* audio = Application::getInstance()->getAudio();
+    Audio::SharedPointer audio = DependencyManager::get<Audio>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
@@ -533,7 +533,7 @@ void MyAvatar::startRecording() {
     if (!_recorder) {
         _recorder = RecorderPointer(new Recorder(this));
     }
-    Application::getInstance()->getAudio()->setRecorder(_recorder);
+    DependencyManager::get<Audio>()->setRecorder(_recorder);
     _recorder->startRecording();
     
 }
@@ -1459,20 +1459,6 @@ static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
 
-    quint64 now = usecTimestampNow();
-    if (_voxelShapeManager.needsUpdate(now)) {
-        // We use a multiple of the avatar's boundingRadius as the size of the cube of interest.
-        float cubeScale = 6.0f * getBoundingRadius();
-        glm::vec3 corner = getPosition() - glm::vec3(0.5f * cubeScale);
-        AACube boundingCube(corner, cubeScale);
-
-        // query the VoxelTree for cubes that touch avatar's boundingCube
-        CubeList cubes;
-        if (Application::getInstance()->getVoxelTree()->findContentInCube(boundingCube, cubes)) {
-            _voxelShapeManager.updateVoxels(now, cubes);
-        }
-    }
-
     // TODO: Andrew to do ground/walking detection in ragdoll mode
     if (!Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
         const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
@@ -1618,33 +1604,7 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
-    //  consider whether to have the collision make a sound
-    const float AUDIBLE_COLLISION_THRESHOLD = 0.02f;
-    const float COLLISION_LOUDNESS = 1.0f;
-    const float DURATION_SCALING = 0.004f;
-    const float NOISE_SCALING = 0.1f;
-    glm::vec3 velocity = _velocity;
-    glm::vec3 gravity = getGravity();
-
-    if (glm::length(gravity) > EPSILON) {
-        //  If gravity is on, remove the effect of gravity on velocity for this
-        //  frame, so that we are not constantly colliding with the surface
-        velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
-    }
-    float velocityTowardCollision = glm::dot(velocity, glm::normalize(penetration));
-    float velocityTangentToCollision = glm::length(velocity) - velocityTowardCollision;
-
-    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
-        //  Volume is proportional to collision velocity
-        //  Base frequency is modified upward by the angle of the collision
-        //  Noise is a function of the angle of collision
-        //  Duration of the sound is a function of both base frequency and velocity of impact
-        Application::getInstance()->getAudio()->startCollisionSound(
-            std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.0f),
-            frequency * (1.0f + velocityTangentToCollision / velocityTowardCollision),
-            std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.0f),
-            1.0f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, false);
-    }
+    // COLLISION SOUND API in Audio has been removed
 }
 
 bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float heightA,
@@ -1937,13 +1897,9 @@ void MyAvatar::updateMotionBehavior() {
     if (menu->isOptionChecked(MenuOption::StandOnNearbyFloors)) {
         _motionBehaviors |= AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
         // standing on floors requires collision with voxels
-        _collisionGroups |= COLLISION_GROUP_VOXELS;
-        menu->setIsOptionChecked(MenuOption::CollideWithVoxels, true);
+        // TODO: determine what to do with this now that voxels are gone
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
-    }
-    if (!(_collisionGroups | COLLISION_GROUP_VOXELS)) {
-        _voxelShapeManager.clearShapes();
     }
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
@@ -1991,7 +1947,8 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
     Menu* menu = Menu::getInstance();
     menu->setIsOptionChecked(MenuOption::CollideWithEnvironment, (bool)(_collisionGroups & COLLISION_GROUP_ENVIRONMENT));
     menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
-    menu->setIsOptionChecked(MenuOption::CollideWithVoxels, (bool)(_collisionGroups & COLLISION_GROUP_VOXELS));
+    
+    // TODO: what to do about this now that voxels are gone
     if (! (_collisionGroups & COLLISION_GROUP_VOXELS)) {
         // no collision with voxels --> disable standing on floors
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;

@@ -82,10 +82,9 @@ function getAction(controlVoxel) {
     if (controlVoxel.red === COLORS[i].red &&
         controlVoxel.green === COLORS[i].green &&
         controlVoxel.blue === COLORS[i].blue) {
-          Voxels.eraseVoxel(controlVoxelPosition.x,
-                          controlVoxelPosition.y,
-                          controlVoxelPosition.z,
-                          controlVoxelSize);
+        
+          // TODO: Fix this to use some mechanism other than voxels
+          //Voxels.eraseVoxel(controlVoxelPosition.x, controlVoxelPosition.y, controlVoxelPosition.z, controlVoxelSize);
           return parseInt(i);
     }
   }
@@ -101,10 +100,9 @@ function update(event) {
     return;
   }
 
-  var controlVoxel = Voxels.getVoxelAt(controlVoxelPosition.x,
-                                       controlVoxelPosition.y,
-                                       controlVoxelPosition.z,
-                                       controlVoxelSize);
+  // TODO: Fix this to use some mechanism other than voxels
+  // Voxels.getVoxelAt(controlVoxelPosition.x, controlVoxelPosition.y, controlVoxelPosition.z, controlVoxelSize);
+  var controlVoxel = false; 
   var action = getAction(controlVoxel);
 
   switch(action) {

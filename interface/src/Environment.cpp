@@ -72,6 +72,7 @@ void Environment::renderAtmospheres(Camera& camera) {
     QMutexLocker locker(&_mutex);
     
     foreach (const ServerData& serverData, _data) {
+        // TODO: do something about EnvironmentData
         foreach (const EnvironmentData& environmentData, serverData) {
             renderAtmosphere(camera, environmentData);
         }
