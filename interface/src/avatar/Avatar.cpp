@@ -272,6 +272,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     }
     
     if (postLighting && glm::distance(Application::getInstance()->getAvatar()->getPosition(), _position) < 10.0f) {
+        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
         float laserLength = 50.0f;
@@ -298,11 +300,10 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     float angle = glm::degrees(glm::angle(rotation));
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
-                    glBegin(GL_LINES);
+                    
                     glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    glVertex3f(0.0f, 0.0f, 0.0f);
-                    glVertex3f(0.0f, laserLength, 0.0f);
-                    glEnd();
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    
                 } glPopMatrix();
             }
         }
@@ -326,11 +327,9 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     float angle = glm::degrees(glm::angle(rotation));
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
-                    glBegin(GL_LINES);
                     glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    glVertex3f(0.0f, 0.0f, 0.0f);
-                    glVertex3f(0.0f, laserLength, 0.0f);
-                    glEnd();
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    
                 } glPopMatrix();
             }
         }
@@ -987,10 +986,16 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     return bytesRead;
 }
 
+int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
+
 // render a makeshift cone section that serves as a body part connecting joint spheres
 void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
+   
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     
-    glBegin(GL_TRIANGLES);
+    if (_jointConesID == GeometryCache::UNKNOWN_ID) {
+        _jointConesID = geometryCache->allocateID();
+    }
     
     glm::vec3 axis = position2 - position1;
     float length = glm::length(axis);
@@ -1005,6 +1010,7 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         
         float anglea = 0.0f;
         float angleb = 0.0f;
+        QVector<glm::vec3> points;
         
         for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
             
@@ -1023,16 +1029,14 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
             glm::vec3 p2a = position2 + perpSin * sa * radius2 + perpCos * ca * radius2;   
             glm::vec3 p2b = position2 + perpSin * sb * radius2 + perpCos * cb * radius2;  
             
-            glVertex3f(p1a.x, p1a.y, p1a.z); 
-            glVertex3f(p1b.x, p1b.y, p1b.z); 
-            glVertex3f(p2a.x, p2a.y, p2a.z); 
-            glVertex3f(p1b.x, p1b.y, p1b.z); 
-            glVertex3f(p2a.x, p2a.y, p2a.z); 
-            glVertex3f(p2b.x, p2b.y, p2b.z); 
+            points << p1a << p1b << p2a << p1b << p2a << p2b;
         }
+        
+        // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
+        // better if the avatars cached these buffers for each of the joints they are rendering
+        geometryCache->updateVertices(_jointConesID, points);
+        geometryCache->renderVertices(GL_TRIANGLES, _jointConesID);
     }
-    
-    glEnd();
 }
 
 void Avatar::updateCollisionGroups() {

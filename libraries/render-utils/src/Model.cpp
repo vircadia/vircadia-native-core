@@ -447,59 +447,6 @@ void Model::setJointStates(QVector<JointState> states) {
     _boundingRadius = radius;
 }
 
-bool Model::renderTriangleProxies() {
-    if (!isActive()) {
-        return false;
-    }
-    if (_calculatedMeshTrianglesValid) {
-        int color = 0;
-        foreach (const QVector<Triangle>& meshTriangles, _calculatedMeshTriangles) {
-            switch(color) {
-                case  0: glColor3ub(  0,   0, 255); break;
-                case  1: glColor3ub(  0, 255,   0); break;
-                case  2: glColor3ub(  0, 255, 255); break;
-                case  3: glColor3ub(255,   0,   0); break;
-                case  4: glColor3ub(255,   0, 255); break;
-                case  5: glColor3ub(255, 255,   0); break;
-                case  6: glColor3ub(  0,   0, 128); break;
-                case  7: glColor3ub(  0, 128,   0); break;
-                case  8: glColor3ub(  0, 128, 128); break;
-                case  9: glColor3ub(128,   0,   0); break;
-                case 10: glColor3ub(128,   0, 128); break;
-                case 11: glColor3ub(128, 128,   0); break;
-                case 12: glColor3ub(128, 128, 255); break;
-                case 13: glColor3ub(128, 255, 128); break;
-                case 14: glColor3ub(128, 255, 255); break;
-                case 15: glColor3ub(255, 128, 128); break;
-                case 16: glColor3ub(255, 128, 255); break;
-                case 17: glColor3ub(255, 255, 128); break;
-                default: glColor3ub(255,255, 255); break;
-            }
-            
-            if (_calculatedMeshBoxes.size() > color) {
-                const AABox& box = _calculatedMeshBoxes[color];
-                glm::vec3 center = box.calcCenter();
-                glm::vec3 dimensions = box.getDimensions();
-                glPushMatrix();
-                    glTranslatef(center.x, center.y, center.z);
-                    glScalef(dimensions.x, dimensions.y, dimensions.z);
-                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f);
-                glPopMatrix();
-            }
-
-            glBegin(GL_TRIANGLES);
-            foreach (const Triangle& triangle, meshTriangles) {
-                glVertex3f( triangle.v0.x,  triangle.v0.y,  triangle.v0.z); 
-                glVertex3f( triangle.v1.x,  triangle.v1.y,  triangle.v1.z); 
-                glVertex3f( triangle.v2.x,  triangle.v2.y,  triangle.v2.z); 
-            }
-            glEnd();
-            color++;
-        }
-    }
-    return _calculatedMeshTrianglesValid;
-}
-
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                                     BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
 
