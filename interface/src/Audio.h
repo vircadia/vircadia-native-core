@@ -63,7 +63,10 @@ static const int MAX_16_BIT_AUDIO_SAMPLE = 32767;
 
 static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
 static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
-static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 50;
+static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
+static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
+static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
+static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
 
 class QAudioInput;
 class QAudioOutput;
@@ -134,6 +137,15 @@ public:
 
     int getOutputBufferSize() { return _outputBufferSizeFrames; }
 
+    bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled; }
+    void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled = enabled; }
+
+    int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec; }
+    void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec = msecs; }
+
+    int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold; }
+    void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold = threshold; }
+
 public slots:
     void start();
     void stop();
@@ -161,6 +173,7 @@ public slots:
     void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
     void addStereoSamplesToScope(const QByteArray& samples);
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
+
     void setOutputBufferSize(int numFrames);
 
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
@@ -219,6 +232,12 @@ private:
     QString _outputAudioDeviceName;
 
     int _outputBufferSizeFrames;
+    bool _outputStarveDetectionEnabled;
+    quint64 _outputStarveDetectionStartTimeMsec;
+    int _outputStarveDetectionCount;
+    int _outputStarveDetectionPeriodMsec;
+    int _outputStarveDetectionThreshold; // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
+
     
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;

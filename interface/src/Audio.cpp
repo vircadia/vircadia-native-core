@@ -124,6 +124,11 @@ Audio::Audio(QObject* parent) :
     _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _lastSentAudioPacket(0),
     _outputBufferSizeFrames(DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
+    _outputStarveDetectionStartTimeMsec(0),
+    _outputStarveDetectionCount(0),
+    _outputStarveDetectionEnabled(true),
+    _outputStarveDetectionPeriodMsec(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
+    _outputStarveDetectionThreshold(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
     _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS),
     _audioOutputIODevice(_receivedAudioStream, this)
 {
@@ -1830,8 +1835,24 @@ void Audio::outputNotify() {
     if (recentUnfulfilled > 0) {
         qDebug() << "WARNING --- WE HAD at least:" << recentUnfulfilled << "recently unfulfilled readData() calls";
 
-        // TODO: Ryan Huffman -- add code here to increase the AUDIO_OUTPUT_BUFFER_SIZE_FRAMES... this code only
-        // runs in cases where the audio device requested data samples, and ran dry because we couldn't fulfill the request
+        if (_outputStarveDetectionEnabled) {
+            quint64 now = QDateTime::currentMSecsSinceEpoch();
+            quint64 dt = now - _outputStarveDetectionStartTimeMsec;
+            if (dt > _outputStarveDetectionPeriodMsec) {
+                _outputStarveDetectionStartTimeMsec = now;
+                _outputStarveDetectionCount = 0;
+            } else {
+                _outputStarveDetectionCount += recentUnfulfilled;
+                if (_outputStarveDetectionCount > _outputStarveDetectionThreshold) {
+                    int newOutputBufferSizeFrames = _outputBufferSizeFrames + 1;
+                    qDebug() << "Starve detection threshold met, increasing buffer size to " << newOutputBufferSizeFrames;
+                    setOutputBufferSize(newOutputBufferSizeFrames);
+
+                    _outputStarveDetectionStartTimeMsec = now;
+                    _outputStarveDetectionCount = 0;
+                }
+            }
+        }
     }
 }
 
