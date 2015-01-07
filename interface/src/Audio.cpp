@@ -956,7 +956,7 @@ void Audio::outputNotify() {
         qDebug() << "WARNING --- WE HAD at least:" << recentUnfulfilled << "recently unfulfilled readData() calls";
 
         if (_outputStarveDetectionEnabled) {
-            quint64 now = QDateTime::currentMSecsSinceEpoch();
+            quint64 now = usecTimestampNow() / 1000;
             quint64 dt = now - _outputStarveDetectionStartTimeMsec;
             if (dt > _outputStarveDetectionPeriodMsec) {
                 _outputStarveDetectionStartTimeMsec = now;
