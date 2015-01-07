@@ -58,7 +58,7 @@ var button1 = Overlays.addOverlay("image", { // green button
     width: 40,
     height: 35,
     subImage: { x: 0, y: 0, width: 39, height: 35 },
-    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+    imageURL: "https://public.highfidelity.io/images/thumb.png",
     color: readyColor,
     visible: true
 });
@@ -69,7 +69,7 @@ var button2 = Overlays.addOverlay("image", { // red button
     width: 40,
     height: 35,
     subImage: { x: 0, y: 0, width: 39, height: 35 },
-    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+    imageURL: "https://public.highfidelity.io/images/thumb.png",
     color: { red: 250, green: 2, blue: 2},
     visible: true,
 });											
