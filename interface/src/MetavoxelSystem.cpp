@@ -1645,6 +1645,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                 // find the y extents of this and the neighboring columns
                 int minimumY = INT_MAX, maximumY = -1;
                 lineSrc->getExtents(minimumY, maximumY);
+                int localMinimumY = minimumY, localMaximumY = maximumY;
                 if (middleX) {
                     lineSrc[1].getExtents(minimumY, maximumY);
                     if (middleZ) {
@@ -1654,10 +1655,9 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                 if (middleZ) {
                     lineSrc[stackWidth].getExtents(minimumY, maximumY);
                 }
-                
                 if (maximumY >= minimumY) {
-                    int position = minimumY;
-                    int count = maximumY - minimumY + 1;
+                    int position = minimumY - 1;
+                    int count = maximumY - minimumY + 2;
                     NormalIndex lastIndexY;
                     indicesX.position = position;
                     indicesX.resize(count);
@@ -1935,104 +1935,102 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         
                         // the first x, y, and z are repeated for the boundary edge; past that, we consider generating
                         // quads for each edge that includes a transition, using indices of previously generated vertices
-                        if (x != 0 && z != 0) {
-                            int reclampedX = qMin(clampedX, stackWidth - 1);
-                            int reclampedZ = qMin(clampedZ, stackHeight - 1);
-                            if (alpha0 != alpha1) {
-                                quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
+                        int reclampedX = qMin(clampedX, stackWidth - 1);
+                        int reclampedZ = qMin(clampedZ, stackHeight - 1);
+                        if (alpha0 != alpha1 && y >= localMinimumY && y <= localMaximumY && z != 0) {
+                            quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
+                            if (y > 0) {
+                                quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
+                            }
+                            if (reclampedZ > 0) {
                                 if (y > 0) {
-                                    quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
+                                    quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ - 1), indices.size());
                                 }
-                                if (reclampedZ > 0) {
-                                    if (y > 0) {
-                                        quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ - 1), indices.size());
-                                    }
-                                    quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
-                                }
-                                
-                                const NormalIndex& index1 = lastIndexY;
-                                const NormalIndex& index2 = lastIndicesZ[x].get(y - 1);
-                                const NormalIndex& index3 = lastIndicesZ[x].get(y);
-                                
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                    vertices.at(index3.indices[0]).vertex - first);
-                                
-                                if (alpha0 == 0) { // quad faces negative x
-                                    indices.append(index3.getClosestIndex(normal = -normal, vertices));
-                                    indices.append(index2.getClosestIndex(normal, vertices));
-                                    indices.append(index1.getClosestIndex(normal, vertices));
-                                } else { // quad faces positive x
-                                    indices.append(index1.getClosestIndex(normal, vertices));
-                                    indices.append(index2.getClosestIndex(normal, vertices));
-                                    indices.append(index3.getClosestIndex(normal, vertices));
-                                }
-                                indices.append(index.getClosestIndex(normal, vertices));
+                                quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
                             }
                             
-                            if (alpha0 != alpha2) {
-                                quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
-                                if (reclampedX > 0) {
-                                    quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ), indices.size());
-                                    if (reclampedZ > 0) {
-                                        quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ - 1), indices.size());
-                                    }
-                                }
+                            const NormalIndex& index1 = lastIndexY;
+                            const NormalIndex& index2 = lastIndicesZ[x].get(y - 1);
+                            const NormalIndex& index3 = lastIndicesZ[x].get(y);
+                            
+                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                            glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
+                                vertices.at(index3.indices[0]).vertex - first);
+                            
+                            if (alpha0 == 0) { // quad faces negative x
+                                indices.append(index3.getClosestIndex(normal = -normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index1.getClosestIndex(normal, vertices));
+                            } else { // quad faces positive x
+                                indices.append(index1.getClosestIndex(normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index3.getClosestIndex(normal, vertices));
+                            }
+                            indices.append(index.getClosestIndex(normal, vertices));
+                        }
+                        
+                        if (alpha0 != alpha2 && x != 0 && z != 0) {
+                            quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
+                            if (reclampedX > 0) {
+                                quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ), indices.size());
                                 if (reclampedZ > 0) {
-                                    quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
+                                    quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ - 1), indices.size());
                                 }
-                                
-                                const NormalIndex& index1 = lastIndicesZ[x].get(y);
-                                const NormalIndex& index2 = lastIndicesZ[x - 1].get(y);
-                                const NormalIndex& index3 = lastIndicesX.get(y);
-                                
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index3.indices[0]).vertex - first,
-                                    vertices.at(index1.indices[0]).vertex - first);
-                                
-                                if (alpha0 == 0) { // quad faces negative y
-                                    indices.append(index3.getClosestIndex(normal, vertices));
-                                    indices.append(index2.getClosestIndex(normal, vertices));
-                                    indices.append(index1.getClosestIndex(normal, vertices));
-                                } else { // quad faces positive y
-                                    indices.append(index1.getClosestIndex(normal = -normal, vertices));
-                                    indices.append(index2.getClosestIndex(normal, vertices));
-                                    indices.append(index3.getClosestIndex(normal, vertices));
-                                }
-                                indices.append(index.getClosestIndex(normal, vertices));
+                            }
+                            if (reclampedZ > 0) {
+                                quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
                             }
                             
-                            if (alpha0 != alpha4) {
-                                quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
-                                if (reclampedX > 0) {
-                                    quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ), indices.size());
-                                    if (y > 0) {
-                                        quadIndices.insert(qRgb(reclampedX - 1, y - 1, reclampedZ), indices.size());
-                                    }
-                                }
-                                if (y > 0) {
-                                    quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
-                                }
-                                
-                                const NormalIndex& index1 = lastIndexY;
-                                const NormalIndex& index2 = lastIndicesX.get(y - 1);
-                                const NormalIndex& index3 = lastIndicesX.get(y);
-                                
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                    vertices.at(index3.indices[0]).vertex - first);
-                                
-                                if (alpha0 == 0) { // quad faces negative z
-                                    indices.append(index1.getClosestIndex(normal, vertices));
-                                    indices.append(index2.getClosestIndex(normal, vertices));
-                                    indices.append(index3.getClosestIndex(normal, vertices));
-                                } else { // quad faces positive z
-                                    indices.append(index3.getClosestIndex(normal = -normal, vertices));
-                                    indices.append(index2.getClosestIndex(normal, vertices));
-                                    indices.append(index1.getClosestIndex(normal, vertices));
-                                }
-                                indices.append(index.getClosestIndex(normal, vertices));
+                            const NormalIndex& index1 = lastIndicesZ[x].get(y);
+                            const NormalIndex& index2 = lastIndicesZ[x - 1].get(y);
+                            const NormalIndex& index3 = lastIndicesX.get(y);
+                            
+                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                            glm::vec3 normal = glm::cross(vertices.at(index3.indices[0]).vertex - first,
+                                vertices.at(index1.indices[0]).vertex - first);
+                            
+                            if (alpha0 == 0) { // quad faces negative y
+                                indices.append(index3.getClosestIndex(normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index1.getClosestIndex(normal, vertices));
+                            } else { // quad faces positive y
+                                indices.append(index1.getClosestIndex(normal = -normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index3.getClosestIndex(normal, vertices));
                             }
+                            indices.append(index.getClosestIndex(normal, vertices));
+                        }
+                        
+                        if (alpha0 != alpha4 && x != 0 && y >= localMinimumY && y <= localMaximumY) {
+                            quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
+                            if (reclampedX > 0) {
+                                quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ), indices.size());
+                                if (y > 0) {
+                                    quadIndices.insert(qRgb(reclampedX - 1, y - 1, reclampedZ), indices.size());
+                                }
+                            }
+                            if (y > 0) {
+                                quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
+                            }
+                            
+                            const NormalIndex& index1 = lastIndexY;
+                            const NormalIndex& index2 = lastIndicesX.get(y - 1);
+                            const NormalIndex& index3 = lastIndicesX.get(y);
+                            
+                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                            glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
+                                vertices.at(index3.indices[0]).vertex - first);
+                            
+                            if (alpha0 == 0) { // quad faces negative z
+                                indices.append(index1.getClosestIndex(normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index3.getClosestIndex(normal, vertices));
+                            } else { // quad faces positive z
+                                indices.append(index3.getClosestIndex(normal = -normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index1.getClosestIndex(normal, vertices));
+                            }
+                            indices.append(index.getClosestIndex(normal, vertices));
                         }
                         lastIndexY = index;
                         indicesX[y - position] = index;

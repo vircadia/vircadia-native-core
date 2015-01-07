@@ -2179,7 +2179,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             if (stackX >= 0.0f && stackX <= innerStackWidth && stackZ >= 0.0f && stackZ <= innerStackHeight) {
                 StackArray* stackDest = newStackContents.data() + (int)stackZ * stackWidth + (int)stackX;
                 if (paint) {
-                    if (stackDest->isEmpty()) {
+                    if (stackDest->isEmpty() || glm::fract(x) != 0.0f || glm::fract(z) != 0.0f) {
                         continue;
                     }
                     glm::vec3 pos = worldPos + worldStepY * (float)stackDest->getPosition();
