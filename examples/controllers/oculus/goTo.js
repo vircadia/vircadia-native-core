@@ -123,17 +123,24 @@ function scriptEnding() {
 }
 
 function reportButtonValue(button, newValue, oldValue) {
-    if (button == Joysticks.BUTTON_FACE_LEFT) {
+    if (button == Joysticks.BUTTON_FACE_BOTTOM) {
         if (newValue) {
             keyboard.pressFocussedKey();
         } else {
             keyboard.releaseKeys();
         }
+    } else if (button == Joysticks.BUTTON_FACE_RIGHT && newValue) {
+        deleteChar();
     }
 }
 
 function addJoystick(gamepad) {
     gamepad.buttonStateChanged.connect(reportButtonValue);
+}
+
+var allJoysticks = Joysticks.getAllJoysticks();
+for (var i = 0; i < allJoysticks.length; i++) {
+    addJoystick(allJoysticks[i]);
 }
 
 Joysticks.joystickAdded.connect(addJoystick);
