@@ -111,7 +111,20 @@ public:
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int id = UNKNOWN_ID);
 
 
-    void renderLine(const glm::vec3& p1, const glm::vec3& p2, int id = UNKNOWN_ID);
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 
+                    { renderLine(p1, p2, color, color, id); }
+    
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
+
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, color, color, id); }
+
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
+                    
     void renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id = UNKNOWN_ID);
     void renderLine(const glm::vec2& p1, const glm::vec2& p2, int id = UNKNOWN_ID);
 
@@ -128,13 +141,46 @@ protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
-        
+
 private:
     GeometryCache();
     virtual ~GeometryCache();
     
     typedef QPair<int, int> IntPair;
     typedef QPair<GLuint, GLuint> VerticesIndices;
+    struct BufferDetails {
+        QOpenGLBuffer buffer;
+        int vertices;
+        int vertexSize;
+    };
+    
+    class BatchItemDetails {
+    public:
+        gpu::BufferPointer verticesBuffer;
+        gpu::BufferPointer colorBuffer;
+        gpu::Stream::FormatPointer streamFormat;
+        gpu::BufferStreamPointer stream;
+
+        int vertices;
+        int vertexSize;
+        bool isCreated;
+        
+        BatchItemDetails() :
+            verticesBuffer(NULL),
+            colorBuffer(NULL),
+            streamFormat(NULL),
+            stream(NULL),
+            vertices(0),
+            vertexSize(0),
+            isCreated(false)
+        {
+        }
+        
+        void clear() {
+            // TODO: add the proper de-allocation of the gpu items
+            isCreated = false;
+        }
+    };
     
     QHash<IntPair, VerticesIndices> _hemisphereVBOs;
     QHash<IntPair, VerticesIndices> _sphereVBOs;
@@ -160,27 +206,20 @@ private:
     QHash<int, VerticesIndices> _registeredRectVBOs;
 
     QHash<int, Vec3Pair> _lastRegisteredLine3D;
-    QHash<Vec3Pair, VerticesIndices> _line3DVBOs;
-    QHash<int, VerticesIndices> _registeredLine3DVBOs;
+    QHash<Vec3Pair, BatchItemDetails> _line3DVBOs;
+    QHash<int, BatchItemDetails> _registeredLine3DVBOs;
 
     QHash<int, Vec2Pair> _lastRegisteredLine2D;
     QHash<Vec2Pair, VerticesIndices> _line2DVBOs;
     QHash<int, VerticesIndices> _registeredLine2DVBOs;
     
-    struct BufferDetails {
-        QOpenGLBuffer buffer;
-        int vertices;
-        int vertexSize;
-    };
-
     QHash<int, BufferDetails> _registeredVertices;
 
     QHash<int, Vec3Pair> _lastRegisteredDashedLines;
     QHash<Vec3Pair, BufferDetails> _dashedLines;
     QHash<int, BufferDetails> _registeredDashedLines;
 
-
-
+    QHash<IntPair, BufferDetails> _colors;
 
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     QHash<int, QOpenGLBuffer> _registeredAlternateGridBuffers;

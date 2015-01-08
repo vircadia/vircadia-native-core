@@ -301,8 +301,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
                     
-                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
                     
                 } glPopMatrix();
             }
@@ -327,8 +326,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     float angle = glm::degrees(glm::angle(rotation));
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
-                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
                     
                 } glPopMatrix();
             }

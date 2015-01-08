@@ -345,11 +345,10 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     
     glLineWidth(2.0);
     
-    // TODO: implement support for lines with gradient colors
-    // glColor4f(0.2f, 0.2f, 0.2f, 1.0f); --> to --> glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
-    glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
-    geometryCache->renderLine(leftEyePosition, lookatPosition, _leftEyeLookAtID);
-    geometryCache->renderLine(rightEyePosition, lookatPosition, _rightEyeLookAtID);
+    glm::vec4 startColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glm::vec4 endColor(1.0f, 1.0f, 1.0f, 0.0f);
+    geometryCache->renderLine(leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
+    geometryCache->renderLine(rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
 
     DependencyManager::get<GlowEffect>()->end();
 }

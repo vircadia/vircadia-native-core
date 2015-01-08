@@ -36,22 +36,18 @@ void renderWorldBox() {
     GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
 
     //  Show edge of world
-    float red[] = {1, 0, 0};
-    float green[] = {0, 1, 0};
-    float blue[] = {0, 0, 1};
-    float gray[] = {0.5, 0.5, 0.5};
+    glm::vec3 red(1.0f, 0.0f, 0.0f);
+    glm::vec3 green(0.0f, 1.0f, 0.0f);
+    glm::vec3 blue(0.0f, 0.0f, 1.0f);
+    glm::vec3 grey(0.5f, 0.5f, 0.5f);
 
     glDisable(GL_LIGHTING);
     glLineWidth(1.0);
-    glColor3fv(red);
-    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(TREE_SCALE, 0, 0));
-    glColor3fv(green);
-    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, TREE_SCALE, 0));
-    glColor3fv(blue);
-    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, TREE_SCALE));
-    glColor3fv(gray);
-    geometryCache->renderLine(glm::vec3(0, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, TREE_SCALE));
-    geometryCache->renderLine(glm::vec3(TREE_SCALE, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, 0));
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(TREE_SCALE, 0, 0), red);
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, TREE_SCALE, 0), green);
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, TREE_SCALE), blue);
+    geometryCache->renderLine(glm::vec3(0, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, TREE_SCALE), grey);
+    geometryCache->renderLine(glm::vec3(TREE_SCALE, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, 0), grey);
     
     
     //  Draw meter markers along the 3 axis to help with measuring things
@@ -60,21 +56,21 @@ void renderWorldBox() {
     glEnable(GL_LIGHTING);
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
-    glColor3fv(red);
+    glColor3f(red.x, red.y, red.z);
     geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, MARKER_DISTANCE, 0);
-    glColor3fv(green);
+    glColor3f(green.x, green.y, green.z);
     geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, 0, MARKER_DISTANCE);
-    glColor3fv(blue);
+    glColor3f(blue.x, blue.y, blue.z);
     geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glColor3fv(gray);
+    glColor3f(grey.x, grey.y, grey.z);
     glTranslatef(MARKER_DISTANCE, 0, MARKER_DISTANCE);
     geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
