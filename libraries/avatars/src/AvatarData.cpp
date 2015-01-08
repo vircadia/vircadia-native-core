@@ -295,11 +295,10 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     //     lookAt        = 12
     //     audioLoudness =  4
     // }
-    // + 1 byte for messageSize (0)
     // + 1 byte for pupilSize
     // + 1 byte for numJoints (0)
     // = 53 bytes
-    int minPossibleSize = 53; 
+    int minPossibleSize = 52;
     
     int maxAvailableSize = packet.size() - offset;
     if (minPossibleSize > maxAvailableSize) {
