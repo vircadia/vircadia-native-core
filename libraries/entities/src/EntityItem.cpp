@@ -1019,7 +1019,6 @@ void EntityItem::recalculateCollisionShape() {
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;
-const float MIN_DIMENSION_DELTA = 0.0001f;
 const float MIN_ALIGNMENT_DOT = 0.9999f;
 const float MIN_MASS_DELTA = 0.001f;
 const float MIN_VELOCITY_DELTA = 0.025f;
@@ -1045,17 +1044,17 @@ void EntityItem::updatePositionInMeters(const glm::vec3& value) {
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) { 
-    if (glm::distance(_dimensions, value) * (float)TREE_SCALE > MIN_DIMENSION_DELTA) {
-        _dimensions = value; 
+    if (_dimensions != value) {
+        _dimensions = glm::abs(value);
         recalculateCollisionShape();
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
     }
 }
 
 void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
-    glm::vec3 dimensions = value / (float) TREE_SCALE;
-    if (glm::distance(_dimensions, dimensions) * (float)TREE_SCALE > MIN_DIMENSION_DELTA) {
-        _dimensions = dimensions; 
+    glm::vec3 dimensions = glm::abs(value) / (float) TREE_SCALE;
+    if (_dimensions != dimensions) {
+        _dimensions = dimensions;
         recalculateCollisionShape();
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
     }
