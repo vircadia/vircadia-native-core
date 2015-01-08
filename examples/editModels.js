@@ -56,7 +56,6 @@ var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush6.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed2.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed4.fbx",
@@ -1215,8 +1214,7 @@ var toolBar = (function () {
         });
         
         newTextButton = toolBar.addTool({
-            //imageURL: toolIconUrl + "add-text.svg",
-            imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/add-text.svg", // temporarily
+            imageURL: toolIconUrl + "add-text.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
@@ -1720,7 +1718,7 @@ var ModelImporter = function (opts) {
     this.mouseMoveEvent = function (event) {
         if (self._importing) {
             var pickRay = Camera.computePickRay(event.x, event.y);
-            var intersection = Voxels.findRayIntersection(pickRay);
+            var intersection = false; //Voxels.findRayIntersection(pickRay);
 
             var distance = 2;// * self._scale;
 
@@ -1884,7 +1882,7 @@ function controller(wichSide) {
     this.jointsIntersectingFromStart = [];
 
     this.laser = Overlays.addOverlay("line3d", {
-        position: { x: 0, y: 0, z: 0 },
+        start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
         color: LASER_COLOR,
         alpha: 1,
@@ -1904,7 +1902,7 @@ function controller(wichSide) {
         anchor: "MyAvatar"
     });
     this.leftRight = Overlays.addOverlay("line3d", {
-        position: { x: 0, y: 0, z: 0 },
+        start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
         color: { red: 0, green: 0, blue: 255 },
         alpha: 1,
@@ -1913,7 +1911,7 @@ function controller(wichSide) {
         anchor: "MyAvatar"
     });
     this.topDown = Overlays.addOverlay("line3d", {
-                                       position: { x: 0, y: 0, z: 0 },
+                                       start: { x: 0, y: 0, z: 0 },
                                        end: { x: 0, y: 0, z: 0 },
                                        color: { red: 0, green: 0, blue: 255 },
                                        alpha: 1,
@@ -2066,7 +2064,7 @@ function controller(wichSide) {
         var endPosition = Vec3.sum(startPosition, direction);
 
         Overlays.editOverlay(this.laser, {
-            position: startPosition,
+            start: startPosition,
             end: endPosition
         });
 
@@ -2075,10 +2073,11 @@ function controller(wichSide) {
             position: endPosition
         });
         Overlays.editOverlay(this.leftRight, {
-            position: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
+            start: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
             end: Vec3.sum(endPosition, Vec3.multiply(this.right, -2 * this.guideScale))
         });
-        Overlays.editOverlay(this.topDown, { position: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
+        Overlays.editOverlay(this.topDown, {
+            start: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
         });
         this.showLaser(!this.grabbing || mode == 0);

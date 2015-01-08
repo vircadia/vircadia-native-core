@@ -39,6 +39,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     OctreeRenderer(),
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
+    _sandboxScriptEngine(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -58,7 +59,10 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    // do we need to delete the _entitiesScriptEngine?? or is it deleted by default
+    // NOTE: we don't need to delete _entitiesScriptEngine because it's owned by the application and gets cleaned up 
+    // automatically but we do need to delete our sandbox script engine.
+    delete _sandboxScriptEngine;
+    _sandboxScriptEngine = NULL;
 }
 
 void EntityTreeRenderer::clear() {
@@ -79,6 +83,8 @@ void EntityTreeRenderer::init() {
         _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities",
                                         _scriptingServices->getControllerScriptingInterface());
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
+
+        _sandboxScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities Sandbox", NULL);
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
@@ -190,13 +196,15 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     if (isURL) {
         _entitiesScriptEngine->setParentURL(entity->getScript());
     }
-    QScriptValue entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);
+    QScriptValue entityScriptConstructor = _sandboxScriptEngine->evaluate(scriptContents);
     
     if (!entityScriptConstructor.isFunction()) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    NOT CONSTRUCTOR";
         qDebug() << "    SCRIPT:" << entityScript;
         return QScriptValue(); // invalid script
+    } else {
+        entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);
     }
 
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
@@ -884,17 +892,6 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
         EntityScriptDetails details = _entityScripts[oldEntityID];
         _entityScripts.remove(oldEntityID);
         _entityScripts[newEntityID] = details;
-    }
-}
-
-void EntityTreeRenderer::entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, 
-                                                    const Collision& collision) {
-    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
-    if (entityScript.property("collisionWithVoxel").isValid()) {
-        QScriptValueList args;
-        args << entityID.toScriptValue(_entitiesScriptEngine);
-        args << collisionToScriptValue(_entitiesScriptEngine, collision);
-        entityScript.property("collisionWithVoxel").call(entityScript, args);
     }
 }
 

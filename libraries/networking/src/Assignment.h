@@ -29,8 +29,8 @@ public:
         AudioMixerType,
         AvatarMixerType,
         AgentType,
-        VoxelServerType,
-        UNUSED,
+        UNUSED_0,
+        UNUSED_1,
         MetavoxelServerType,
         EntityServerType,
         AllTypes

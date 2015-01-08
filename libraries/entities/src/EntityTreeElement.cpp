@@ -25,15 +25,14 @@ EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement()
 };
 
 EntityTreeElement::~EntityTreeElement() {
-    _voxelMemoryUsage -= sizeof(EntityTreeElement);
+    _octreeMemoryUsage -= sizeof(EntityTreeElement);
     delete _entityItems;
     _entityItems = NULL;
 }
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
 // own type to our own tree. This means we should initialize that child with any tree and type
-// specific settings that our children must have. One example is out VoxelSystem, which
-// we know must match ours.
+// specific settings that our children must have. 
 OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
     EntityTreeElement* newChild = new EntityTreeElement(octalCode);
     newChild->setTree(_myTree);
@@ -43,7 +42,7 @@ OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
 void EntityTreeElement::init(unsigned char* octalCode) {
     OctreeElement::init(octalCode);
     _entityItems = new QList<EntityItem*>;
-    _voxelMemoryUsage += sizeof(EntityTreeElement);
+    _octreeMemoryUsage += sizeof(EntityTreeElement);
 }
 
 EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {

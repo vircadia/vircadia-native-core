@@ -42,7 +42,15 @@ gridTool = GridTool({ horizontalGrid: grid });
 Script.include("libraries/entityList.js");
 var entityListTool = EntityListTool();
 
-selectionManager.addEventListener(selectionDisplay.updateHandles);
+var hasShownPropertiesTool = false;
+
+selectionManager.addEventListener(function() {
+    selectionDisplay.updateHandles();
+    if (selectionManager.hasSelection() && !hasShownPropertiesTool) {
+        propertiesTool.setVisible(true);
+        hasShownPropertiesTool = true;
+    }
+});
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -77,7 +85,6 @@ var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush6.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed2.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed4.fbx",
@@ -192,8 +199,7 @@ var toolBar = (function () {
         });
 
         newTextButton = toolBar.addTool({
-            //imageURL: toolIconUrl + "add-text.svg",
-            imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/add-text.svg", // temporarily
+            imageURL: toolIconUrl + "add-text.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
@@ -225,10 +231,9 @@ var toolBar = (function () {
                 selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
+                hasShownPropertiesTool = false;
                 cameraManager.enable();
-                entityListTool.setVisible(true);
                 gridTool.setVisible(true);
-                propertiesTool.setVisible(true);
                 grid.setEnabled(true);
             }
         }

@@ -46,7 +46,7 @@ private:
     int _generalStatsWidth;
     int _pingStatsWidth;
     int _geoStatsWidth;
-    int _voxelStatsWidth;
+    int _octreeStatsWidth;
 
     int _lastHorizontalOffset;
     

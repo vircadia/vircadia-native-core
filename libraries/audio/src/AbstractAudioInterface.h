@@ -25,8 +25,6 @@ class AbstractAudioInterface : public QObject {
 public:
     AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
     
-    virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen) = 0;
-    virtual void startDrumSound(float volume, float frequency, float duration, float decay) = 0;
 public slots:
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) = 0;
 };

@@ -14,6 +14,8 @@
 
 #include <typeinfo>
 
+#include <QDebug>
+
 template< typename T >
 class AudioFrameBuffer {
     
@@ -150,13 +152,13 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
         _channelCount = channelCount; 
     } else {
         qDebug() << "Audio framing error:  _channelCount=" 
-        << _channelCount 
-        << "channelCountMax=" 
-        << _channelCountMax
-        << "_frameCount=" 
-        << _frameCount 
-        << "frameCountMax=" 
-        << _frameCountMax;
+            << _channelCount
+            << "channelCountMax="
+            << _channelCountMax
+            << "_frameCount="
+            << _frameCount
+            << "frameCountMax="
+            << _frameCountMax;
         
         _channelCount = std::min(_channelCount,_channelCountMax);
         _frameCount = std::min(_frameCount,_frameCountMax);

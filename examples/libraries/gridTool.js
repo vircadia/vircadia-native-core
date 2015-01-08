@@ -9,7 +9,7 @@ Grid = function(opts) {
         { red: 255, green: 0, blue: 0 },
     ];
     var colorIndex = 0;
-    var gridAlpha = 1.0;
+    var gridAlpha = 0.6;
     var origin = { x: 0, y: 0, z: 0 };
     var majorGridEvery = 5;
     var minorGridWidth = 0.2;
@@ -24,7 +24,7 @@ Grid = function(opts) {
         position: { x: 0 , y: 0, z: 0 },
         visible: true,
         color: colors[0],
-        alpha: 1.0,
+        alpha: gridAlpha,
         rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         minorGridWidth: 0.1,
         majorGridEvery: 2,
@@ -439,7 +439,11 @@ GridTool = function(opts) {
             } else if (overlay == uiOverlays.snapToGridCheckbox.overlay) {
                 horizontalGrid.setSnapToGrid(!horizontalGrid.getSnapToGrid());
             } else if (overlay == uiOverlays.moveToAvatar.overlay) {
-                horizontalGrid.setPosition(MyAvatar.position);
+                var position = MyAvatar.getJointPosition("LeftFoot");
+                if (position.x == 0 && position.y == 0 && position.z == 0) {
+                    position = MyAvatar.position;
+                }
+                horizontalGrid.setPosition(position);
             } else if (overlay == uiOverlays.moveToSelection.overlay) {
                 var newPosition = selectionManager.worldPosition;
                 newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });

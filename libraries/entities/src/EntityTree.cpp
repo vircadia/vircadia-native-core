@@ -132,19 +132,21 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             }
         }
     } else {
-        QString entityScriptBefore = entity->getScript();
-    
+        uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
         _isDirty = true;
 
-        if (_simulation && entity->getDirtyFlags() != 0) {
-            _simulation->entityChanged(entity);
-        }
-
-        QString entityScriptAfter = entity->getScript();
-        if (entityScriptBefore != entityScriptAfter) {
-            emit entityScriptChanging(entity->getEntityItemID()); // the entity script has changed
+        uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
+        if (newFlags) {
+            if (_simulation) { 
+                if (newFlags & DIRTY_SIMULATION_FLAGS) {
+                    _simulation->entityChanged(entity);
+                }
+            } else {
+                // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
+                entity->clearDirtyFlags();
+            }
         }
     }
     

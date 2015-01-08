@@ -22,7 +22,7 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
-#include <VoxelDetail.h>
+#include <ShapeInfo.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
@@ -50,16 +50,13 @@ public:
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
         DIRTY_UPDATEABLE = 0x0080,
-        // add new simulation-relevant flags above
-        // all other flags below
-        DIRTY_SCRIPT = 0x8000
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
     EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual ~EntityItem() { }
+    virtual ~EntityItem();
 
     // ID and EntityItemID related methods
     QUuid getID() const { return _id; }
@@ -276,6 +273,7 @@ public:
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+    virtual void computeShapeInfo(ShapeInfo& info) const;
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
@@ -286,19 +284,23 @@ public:
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
     void updateVelocityInMeters(const glm::vec3& value);
+    void updateDamping(float value);
     void updateGravity(const glm::vec3& value);
     void updateGravityInMeters(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
+    void updateAngularDamping(float value);
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
-    void updateScript(const QString& value);
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }
     
     bool isMoving() const;
 
+    void* getPhysicsInfo() const { return _physicsInfo; }
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
+    
 protected:
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -310,9 +312,9 @@ protected:
     bool _newlyCreated;
     quint64 _lastSimulated; // last time this entity called simulate() 
     quint64 _lastUpdated; // last time this entity called update()
-    quint64 _lastEdited; // this is the last official local or remote edit time
-    quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
-    quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
+    quint64 _lastEdited; // last official local or remote edit time
+    quint64 _lastEditedFromRemote; // last time we received and edit from the server
+    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
     quint64 _created;
     quint64 _changedOnServer;
 
@@ -324,17 +326,27 @@ protected:
     float _mass;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
-    float _damping; // timescale
+    float _damping;
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
-    float _angularDamping; // timescale
+    float _angularDamping;
     bool _visible;
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
+
+    // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
+    //
+    // Hence the damping coefficient must range from 0 (no damping) to 1 (immediate stop).
+    // Each damping value relates to a corresponding exponential decay timescale as follows:
+    //
+    // timescale = -1 / ln(1 - damping)
+    //
+    // damping = 1 - exp(-1 / timescale)
+    //
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams
@@ -343,6 +355,10 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
+
+    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
+    // to a non-NULL value when the EntityItem has a representation in the physics engine.
+    void* _physicsInfo; // only set by EntitySimulation
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation

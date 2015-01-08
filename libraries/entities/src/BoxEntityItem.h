@@ -46,11 +46,13 @@ public:
 
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
-            _color[RED_INDEX] = value.red;
-            _color[GREEN_INDEX] = value.green;
-            _color[BLUE_INDEX] = value.blue;
+        _color[RED_INDEX] = value.red;
+        _color[GREEN_INDEX] = value.green;
+        _color[BLUE_INDEX] = value.blue;
     }
     
+    void computeShapeInfo(ShapeInfo& info) const;
+
 protected:
     rgbColor _color;
 };

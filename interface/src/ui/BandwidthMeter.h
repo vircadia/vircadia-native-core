@@ -34,7 +34,7 @@ public:
     static size_t const N_STREAMS = N_CHANNELS * 2;
 
     // Channel usage.
-    enum ChannelIndex { AUDIO, AVATARS, VOXELS, METAVOXELS };
+    enum ChannelIndex { AUDIO, AVATARS, OCTREE, METAVOXELS };
 
     // Meta information held for a communication channel (bidirectional).
     struct ChannelInfo {
