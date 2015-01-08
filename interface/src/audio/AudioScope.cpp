@@ -14,6 +14,7 @@
 #include <limits>
 
 #include <AudioConstants.h>
+#include <GeometryCache.h>
 
 #include "Audio.h"
 
@@ -34,7 +35,11 @@ AudioScope::AudioScope() :
     _scopeInput(NULL),
     _scopeOutputLeft(NULL),
     _scopeOutputRight(NULL),
-    _scopeLastFrame()
+    _scopeLastFrame(),
+    _audioScopeGrid(DependencyManager::get<GeometryCache>()->allocateID()),
+    _inputID(DependencyManager::get<GeometryCache>()->allocateID()),
+    _outputLeftID(DependencyManager::get<GeometryCache>()->allocateID()),
+    _outputRightD(DependencyManager::get<GeometryCache>()->allocateID())
 {
     Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedSilence,
@@ -122,55 +127,27 @@ void AudioScope::render(int width, int height) {
     renderBackground(backgroundColor, x, y, w, h);
     renderGrid(gridColor, x, y, w, h, gridRows, gridCols);
     
-    renderLineStrip(inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
-    renderLineStrip(outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
-    renderLineStrip(outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
+    renderLineStrip(_inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
+    renderLineStrip(_outputLeftID, outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
+    renderLineStrip(_outputRightD, outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
 }
 
 void AudioScope::renderBackground(const float* color, int x, int y, int width, int height) {
     glColor4fv(color);
-    glBegin(GL_QUADS);
-    
-    glVertex2i(x, y);
-    glVertex2i(x + width, y);
-    glVertex2i(x + width, y + height);
-    glVertex2i(x , y + height);
-    
-    glEnd();
-    glColor4f(1, 1, 1, 1);
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height);
+    glColor4f(1, 1, 1, 1); 
 }
 
 void AudioScope::renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols) {
-    
     glColor4fv(color);
-    glBegin(GL_LINES);
-    
-    int dx = width / cols;
-    int dy = height / rows;
-    int tx = x;
-    int ty = y;
-    
-    // Draw horizontal grid lines
-    for (int i = rows + 1; --i >= 0; ) {
-        glVertex2i(x, ty);
-        glVertex2i(x + width, ty);
-        ty += dy;
-    }
-    // Draw vertical grid lines
-    for (int i = cols + 1; --i >= 0; ) {
-        glVertex2i(tx, y);
-        glVertex2i(tx, y + height);
-        tx += dx;
-    }
-    glEnd();
-    glColor4f(1, 1, 1, 1);
+    DependencyManager::get<GeometryCache>()->renderGrid(x, y, width, height, rows, cols, _audioScopeGrid);
+    glColor4f(1, 1, 1, 1); 
 }
 
-void AudioScope::renderLineStrip(const float* color, int x, int y, int n, int offset, const QByteArray* byteArray) {
-    
+void AudioScope::renderLineStrip(int id, const float* color, int x, int y, int n, int offset, const QByteArray* byteArray) {
+
     glColor4fv(color);
-    glBegin(GL_LINE_STRIP);
-    
+
     int16_t sample;
     int16_t* samples = ((int16_t*) byteArray->data()) + offset;
     int numSamplesToAverage = _framesPerScope / DEFAULT_FRAMES_PER_SCOPE;
@@ -178,6 +155,11 @@ void AudioScope::renderLineStrip(const float* color, int x, int y, int n, int of
     int remainder = (n - offset) % numSamplesToAverage;
     y += SCOPE_HEIGHT / 2;
     
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+
+    QVector<glm::vec2> points;
+    
+
     // Compute and draw the sample averages from the offset position
     for (int i = count; --i >= 0; ) {
         sample = 0;
@@ -185,27 +167,27 @@ void AudioScope::renderLineStrip(const float* color, int x, int y, int n, int of
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
+        points << glm::vec2(x++, y - sample);
     }
-    
+
     // Compute and draw the sample average across the wrap boundary
     if (remainder != 0) {
         sample = 0;
         for (int j = remainder; --j >= 0; ) {
             sample += *samples++;
         }
-        
+    
         samples = (int16_t*) byteArray->data();
-        
+
         for (int j = numSamplesToAverage - remainder; --j >= 0; ) {
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
+        points << glm::vec2(x++, y - sample);
     } else {
         samples = (int16_t*) byteArray->data();
     }
-    
+
     // Compute and draw the sample average from the beginning to the offset
     count = (offset - remainder) / numSamplesToAverage;
     for (int i = count; --i >= 0; ) {
@@ -214,9 +196,13 @@ void AudioScope::renderLineStrip(const float* color, int x, int y, int n, int of
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        glVertex2i(x++, y - sample);
+        points << glm::vec2(x++, y - sample);
     }
-    glEnd();
+    
+    
+    geometryCache->updateVertices(id, points);
+    geometryCache->renderVertices(GL_LINE_STRIP, id);
+    
     glColor4f(1, 1, 1, 1); 
 }
 

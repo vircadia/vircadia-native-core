@@ -417,7 +417,6 @@ private:
 
     void updateShadowMap();
     void renderRearViewMirror(const QRect& region, bool billboard = false);
-    void renderViewFrustum(ViewFrustum& viewFrustum);
     void checkBandwidthMeterClick();
     void setMenuShortcutsEnabled(bool enabled);
 
@@ -481,7 +480,6 @@ private:
     PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
-    Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;

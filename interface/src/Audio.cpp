@@ -66,6 +66,12 @@ Audio::Audio() :
     _inputRingBuffer(0),
     _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, InboundAudioStream::Settings()),
     _isStereoInput(false),
+    _outputBufferSizeFrames(DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
+    _outputStarveDetectionEnabled(true),
+    _outputStarveDetectionStartTimeMsec(0),
+    _outputStarveDetectionCount(0),
+    _outputStarveDetectionPeriodMsec(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
+    _outputStarveDetectionThreshold(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
     _averagedLatency(0.0f),
     _lastInputLoudness(0.0f),
     _timeSinceLastClip(-1.0f),
@@ -507,9 +513,9 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
+void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat, bool noEcho) {
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-    float dryFraction = (!_shouldEchoLocally) ? 0.0f : (1.0f - wetFraction);
+    float dryFraction = (noEcho) ? 0.0f : (1.0f - wetFraction);
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
@@ -568,7 +574,7 @@ void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
         int numLoopbackSamples = loopBackByteArray.size() / sizeof(int16_t);
         updateGverbOptions();
-        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat);
+        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat, !_shouldEchoLocally);
     }
     
     if (_loopbackOutputDevice) {
@@ -947,10 +953,24 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
 void Audio::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
     if (recentUnfulfilled > 0) {
-        qDebug() << "WARNING --- WE HAD at least:" << recentUnfulfilled << "recently unfulfilled readData() calls";
+        if (_outputStarveDetectionEnabled) {
+            quint64 now = usecTimestampNow() / 1000;
+            quint64 dt = now - _outputStarveDetectionStartTimeMsec;
+            if (dt > _outputStarveDetectionPeriodMsec) {
+                _outputStarveDetectionStartTimeMsec = now;
+                _outputStarveDetectionCount = 0;
+            } else {
+                _outputStarveDetectionCount += recentUnfulfilled;
+                if (_outputStarveDetectionCount > _outputStarveDetectionThreshold) {
+                    int newOutputBufferSizeFrames = _outputBufferSizeFrames + 1;
+                    qDebug() << "Starve detection threshold met, increasing buffer size to " << newOutputBufferSizeFrames;
+                    setOutputBufferSize(newOutputBufferSizeFrames);
 
-        // TODO: Ryan Huffman -- add code here to increase the AUDIO_OUTPUT_BUFFER_SIZE_FRAMES... this code only
-        // runs in cases where the audio device requested data samples, and ran dry because we couldn't fulfill the request
+                    _outputStarveDetectionStartTimeMsec = now;
+                    _outputStarveDetectionCount = 0;
+                }
+            }
+        }
     }
 }
 
@@ -978,13 +998,12 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             
             outputFormatChanged();
 
-            const int AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
-
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            _audioOutput->setBufferSize(_outputBufferSizeFrames * _outputFrameSize * sizeof(int16_t));
+
             connect(_audioOutput, &QAudioOutput::notify, this, &Audio::outputNotify);
 
-            _audioOutput->setBufferSize(AUDIO_OUTPUT_BUFFER_SIZE_FRAMES * _outputFrameSize * sizeof(int16_t));
             qDebug() << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / sizeof(int16_t) / (float)_outputFrameSize;
             
             _audioOutputIODevice.start();
@@ -1000,6 +1019,21 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
     }
     
     return supportedFormat;
+}
+
+void Audio::setOutputBufferSize(int numFrames) {
+    numFrames = std::min(std::max(numFrames, MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES), MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
+    if (numFrames != _outputBufferSizeFrames) {
+        qDebug() << "Audio output buffer size (frames): " << numFrames;
+        _outputBufferSizeFrames = numFrames;
+
+        if (_audioOutput) {
+            // The buffer size can't be adjusted after QAudioOutput::start() has been called, so
+            // recreate the device by switching to the default.
+            QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
+            switchOutputToAudioDevice(outputDeviceInfo);
+        }
+    }
 }
 
 // The following constant is operating system dependent due to differences in
