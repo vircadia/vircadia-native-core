@@ -146,8 +146,6 @@ public:
 
     void entityChanged(EntityItem* entity);
 
-    void trackDeletedEntity(EntityItem* entity);
-
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     void setSimulation(EntitySimulation* simulation);

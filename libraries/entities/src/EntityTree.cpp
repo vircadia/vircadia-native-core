@@ -40,7 +40,9 @@ EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     // this would be a good place to clean up our entities...
     if (_simulation) {
+        _simulation->lock();
         _simulation->clearEntities();
+        _simulation->unlock();
     }
     foreach (EntityTreeElement* element, _entityToElementMap) {
         element->cleanupEntities();
@@ -84,7 +86,9 @@ void EntityTree::postAddEntity(EntityItem* entity) {
     assert(entity);
     // check to see if we need to simulate this entity..
     if (_simulation) {
+        _simulation->lock();
         _simulation->addEntity(entity);
+        _simulation->unlock();
     }
     _isDirty = true;
     emit addingEntity(entity->getEntityItemID());
@@ -141,7 +145,9 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
         if (newFlags) {
             if (_simulation) { 
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
+                    _simulation->lock();
                     _simulation->entityChanged(entity);
+                    _simulation->unlock();
                 }
             } else {
                 // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
@@ -204,21 +210,6 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     return result;
 }
 
-
-void EntityTree::trackDeletedEntity(EntityItem* entity) {
-    if (_simulation) {
-        _simulation->removeEntity(entity);
-    }
-    // this is only needed on the server to send delete messages for recently deleted entities to the viewers
-    if (getIsServer()) {
-        // set up the deleted entities ID
-        quint64 deletedAt = usecTimestampNow();
-        _recentlyDeletedEntitiesLock.lockForWrite();
-        _recentlyDeletedEntityItemIDs.insert(deletedAt, entity->getEntityItemID().id);
-        _recentlyDeletedEntitiesLock.unlock();
-    }
-}
-
 void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
     emit entityScriptChanging(entityItemID);
 }
@@ -231,7 +222,9 @@ void EntityTree::setSimulation(EntitySimulation* simulation) {
     if (_simulation && _simulation != simulation) {
         // It's important to clearEntities() on the simulation since taht will update each
         // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
+        _simulation->lock();
         _simulation->clearEntities();
+        _simulation->unlock();
     }
     _simulation = simulation;
 }
@@ -255,6 +248,31 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     }
 
     recurseTreeWithOperator(&theOperator);
+
+    const RemovedEntities& entities = theOperator.getEntities();
+    if (_simulation) {
+        _simulation->lock();
+    }
+    foreach(const EntityToDeleteDetails& details, entities) {
+        EntityItem* theEntity = details.entity;
+
+        if (getIsServer()) {
+            // set up the deleted entities ID
+            quint64 deletedAt = usecTimestampNow();
+            _recentlyDeletedEntitiesLock.lockForWrite();
+            _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID().id);
+            _recentlyDeletedEntitiesLock.unlock();
+        }
+
+        if (_simulation) {
+            _simulation->removeEntity(theEntity);
+        }
+        delete theEntity; // now actually delete the entity!
+    }
+    if (_simulation) {
+        _simulation->unlock();
+    }
+
     _isDirty = true;
 }
 
@@ -592,7 +610,9 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 
 void EntityTree::entityChanged(EntityItem* entity) {
     if (_simulation) {
+        _simulation->lock();
         _simulation->entityChanged(entity);
+        _simulation->unlock();
     }
 }
 
@@ -600,7 +620,9 @@ void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
         QSet<EntityItem*> entitiesToDelete;
+        _simulation->lock();
         _simulation->updateEntities(entitiesToDelete);
+        _simulation->unlock();
         if (entitiesToDelete.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
