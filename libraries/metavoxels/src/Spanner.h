@@ -522,6 +522,10 @@ private:
     float _scaleT;
 };
 
+/// Finds a material index for the supplied material in the provided list, adding an entry if necessary.  Returns -1
+/// on failure (no room to add new material).
+int getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials);
+
 typedef QExplicitlySharedDataPointer<HeightfieldStack> HeightfieldStackPointer;
 
 /// A single column within a stack block.
@@ -573,10 +577,10 @@ public:
     Entry* getEntryData() { return (Entry*)(data() + sizeof(quint16)); }
     const Entry* getEntryData() const { return (const Entry*)(constData() + sizeof(quint16)); }
     
-    int getEntryAlpha(int y) const;
+    int getEntryAlpha(int y, float heightfieldHeight) const;
     
-    Entry& getEntry(int y);
-    const Entry& getEntry(int y) const;
+    Entry& getEntry(int y, float heightfieldHeight);
+    const Entry& getEntry(int y, float heightfieldHeight) const;
     
     void getExtents(int& minimumY, int& maximumY) const;
     

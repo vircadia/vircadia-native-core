@@ -1119,18 +1119,7 @@ MaterialObject::MaterialObject() :
     _scaleT(1.0f) {
 }
 
-static QHash<uchar, int> countIndices(const QByteArray& contents) {
-    QHash<uchar, int> counts;
-    for (const uchar* src = (const uchar*)contents.constData(), *end = src + contents.size(); src != end; src++) {
-        if (*src != 0) {
-            counts[*src]++;
-        }
-    }
-    return counts;
-}
-
-static uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials,
-        QByteArray& contents) {
+int getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials) {
     if (!(material && static_cast<MaterialObject*>(material.data())->getDiffuse().isValid())) {
         return 0;
     }
@@ -1154,6 +1143,25 @@ static uchar getMaterialIndex(const SharedObjectPointer& material, QVector<Share
     if (materials.size() < numeric_limits<quint8>::max()) {
         materials.append(material);
         return materials.size();
+    }
+    return -1;
+}
+        
+static QHash<uchar, int> countIndices(const QByteArray& contents) {
+    QHash<uchar, int> counts;
+    for (const uchar* src = (const uchar*)contents.constData(), *end = src + contents.size(); src != end; src++) {
+        if (*src != 0) {
+            counts[*src]++;
+        }
+    }
+    return counts;
+}
+
+static uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials,
+        QByteArray& contents) {
+    int index = getMaterialIndex(material, materials);
+    if (index != -1) {
+        return index;
     }
     // last resort: find the least-used material and remove it
     QHash<uchar, int> counts = countIndices(contents);
@@ -1199,30 +1207,10 @@ static QHash<uchar, int> countIndices(const QVector<StackArray>& contents) {
 
 static uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials,
         QVector<StackArray>& contents) {
-    if (!(material && static_cast<MaterialObject*>(material.data())->getDiffuse().isValid())) {
-        return 0;
-    }
-    // first look for a matching existing material, noting the first reusable slot
-    int firstEmptyIndex = -1;
-    for (int i = 0; i < materials.size(); i++) {
-        const SharedObjectPointer& existingMaterial = materials.at(i);
-        if (existingMaterial) {
-            if (existingMaterial->equals(material.data())) {
-                return i + 1;
-            }
-        } else if (firstEmptyIndex == -1) {
-            firstEmptyIndex = i;
-        }
-    }
-    // if nothing found, use the first empty slot or append
-    if (firstEmptyIndex != -1) {
-        materials[firstEmptyIndex] = material;
-        return firstEmptyIndex + 1;
-    }
-    if (materials.size() < numeric_limits<quint8>::max()) {
-        materials.append(material);
-        return materials.size();
-    }
+    int index = getMaterialIndex(material, materials);
+    if (index != -1) {
+        return index;
+    }    
     // last resort: find the least-used material and remove it
     QHash<uchar, int> counts = countIndices(contents);
     uchar materialIndex = 0;
@@ -1353,33 +1341,39 @@ float StackArray::Entry::getHermiteZ(glm::vec3& normal) const {
     return getHermite(hermiteZ, normal);
 }
 
-int StackArray::getEntryAlpha(int y) const {
+int StackArray::getEntryAlpha(int y, float heightfieldHeight) const {
     int count = getEntryCount();
-    if (count == 0) {
-        return 0;
+    if (count != 0) {
+        int relative = y - getPosition();
+        if (relative < count && (relative >= 0 || heightfieldHeight == 0.0f || y < heightfieldHeight)) {
+            return qAlpha(getEntryData()[qMax(relative, 0)].color);
+        }
     }
-    int relative = y - getPosition();
-    return (relative < count) ? qAlpha(getEntryData()[qMax(relative, 0)].color) : 0;
+    return (heightfieldHeight != 0.0f && y <= heightfieldHeight) ? numeric_limits<quint8>::max() : 0;
 }
 
-StackArray::Entry& StackArray::getEntry(int y) {
+StackArray::Entry& StackArray::getEntry(int y, float heightfieldHeight) {
     static Entry emptyEntry;
     int count = getEntryCount();
-    if (count == 0) {
-        return emptyEntry;
+    if (count != 0) {
+        int relative = y - getPosition();
+        if (relative < count && (relative >= 0 || heightfieldHeight == 0.0f || y < heightfieldHeight)) {
+            return getEntryData()[qMax(relative, 0)];
+        }
     }
-    int relative = y - getPosition();
-    return (relative < count) ? getEntryData()[qMax(relative, 0)] : emptyEntry;
+    return emptyEntry;
 }
 
-const StackArray::Entry& StackArray::getEntry(int y) const {
+const StackArray::Entry& StackArray::getEntry(int y, float heightfieldHeight) const {
     static Entry emptyEntry;
     int count = getEntryCount();
-    if (count == 0) {
-        return emptyEntry;
+    if (count != 0) {
+        int relative = y - getPosition();
+        if (relative < count && (relative >= 0 || heightfieldHeight == 0.0f || y < heightfieldHeight)) {
+            return getEntryData()[qMax(relative, 0)];
+        }
     }
-    int relative = y - getPosition();
-    return (relative < count) ? getEntryData()[qMax(relative, 0)] : emptyEntry;
+    return emptyEntry;
 }
 
 void StackArray::getExtents(int& minimumY, int& maximumY) const {
