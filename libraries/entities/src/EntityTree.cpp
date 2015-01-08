@@ -15,7 +15,6 @@
 #include "EntitySimulation.h"
 
 #include "AddEntityOperator.h"
-#include "DeleteEntityOperator.h"
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
@@ -235,6 +234,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(this, entityID);
     recurseTreeWithOperator(&theOperator);
+    processRemovedEntities(theOperator);
     _isDirty = true;
 }
 
@@ -248,7 +248,11 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     }
 
     recurseTreeWithOperator(&theOperator);
+    processRemovedEntities(theOperator);
+    _isDirty = true;
+}
 
+void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator) {
     const RemovedEntities& entities = theOperator.getEntities();
     if (_simulation) {
         _simulation->lock();
@@ -272,8 +276,6 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     if (_simulation) {
         _simulation->unlock();
     }
-
-    _isDirty = true;
 }
 
 /// This method is used to find and fix entity IDs that are shifting from creator token based to known ID based entity IDs. 

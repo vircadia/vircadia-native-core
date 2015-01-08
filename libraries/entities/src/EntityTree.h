@@ -16,6 +16,7 @@
 
 #include <Octree.h>
 #include "EntityTreeElement.h"
+#include "DeleteEntityOperator.h"
 
 
 class Model;
@@ -158,6 +159,7 @@ signals:
 
 private:
 
+    void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
             EntityTreeElement* containingElement);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
