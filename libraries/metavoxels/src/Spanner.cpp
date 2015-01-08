@@ -1529,7 +1529,7 @@ HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const
         colorContents = _color->getContents();
         
     } else {
-        colorContents = QByteArray(baseWidth * baseHeight * DataBlock::COLOR_BYTES, 0xFF); 
+        colorContents = QByteArray(baseWidth * baseHeight * DataBlock::COLOR_BYTES, 0xFFu); 
     }
     
     int materialWidth = baseWidth, materialHeight = baseHeight;
@@ -1885,7 +1885,7 @@ HeightfieldNode* HeightfieldNode::clearAndFetchHeight(const glm::vec3& translati
         spanner->setHeight(HeightfieldHeightPointer(new HeightfieldHeight(spannerHeightWidth,
             QVector<quint16>(spannerHeightWidth * spannerHeightHeight))));
         spanner->setColor(HeightfieldColorPointer(new HeightfieldColor(spannerColorWidth,
-            QByteArray(spannerColorWidth * spannerColorHeight * DataBlock::COLOR_BYTES, 0xFF))));
+            QByteArray(spannerColorWidth * spannerColorHeight * DataBlock::COLOR_BYTES, 0xFFu))));
         spanner->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(spannerMaterialWidth,
             QByteArray(spannerMaterialWidth * spannerMaterialHeight, 0), QVector<SharedObjectPointer>())));
     }
@@ -2358,7 +2358,7 @@ void HeightfieldNode::mergeChildren(bool height, bool colorMaterial) {
         return;
     }
     if (colorWidth > 0) {
-        QByteArray colorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFF);
+        QByteArray colorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFFu);
         for (int i = 0; i < CHILD_COUNT; i++) {
             HeightfieldColorPointer childColor = _children[i]->getColor();
             if (!childColor) {

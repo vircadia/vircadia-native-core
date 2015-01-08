@@ -802,7 +802,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             qDebug() << "fill encoded byte array with extra garbage (as if it was bitstream with more content)";
         }
         QByteArray extraContent;
-        extraContent.fill(0xba, 10);
+        extraContent.fill(0xbau, 10);
         encoded.append(extraContent);
 
         if (verbose) {
