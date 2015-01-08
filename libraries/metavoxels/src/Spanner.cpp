@@ -2209,9 +2209,9 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     stackDest->setPosition(newBottom);
                     prepend = stackDest->getEntryCount();
                 }
+                const quint16* oldHeightLineDest = _height->getContents().constData() + (int)z * heightWidth + (int)x;
                 if (*heightLineDest != 0) {
                     float voxelHeight = *heightLineDest * voxelScale;
-                    const quint16* oldHeightLineDest = _height->getContents().constData() + (int)z * heightWidth + (int)x;
                     float left = oldHeightLineDest[-1] * voxelScale;
                     float right = oldHeightLineDest[1] * voxelScale;
                     float down = oldHeightLineDest[-heightWidth] * voxelScale;
@@ -2264,8 +2264,14 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 }
                 StackArray::Entry* entryDest = stackDest->getEntryData() + (newTop - stackDest->getPosition());
                 glm::vec3 pos = worldPos;
+                float voxelHeight = *heightLineDest * voxelScale;
+                float nextVoxelHeightX = heightLineDest[1] * voxelScale;
+                float nextVoxelHeightZ = heightLineDest[heightWidth] * voxelScale;
+                float oldVoxelHeight = *oldHeightLineDest * voxelScale;
+                float oldNextVoxelHeightX = oldHeightLineDest[1] * voxelScale;
+                float oldNextVoxelHeightZ = oldHeightLineDest[heightWidth] * voxelScale;
                 for (int y = newTop; y >= newBottom; y--, entryDest--, pos -= worldStepY) {
-                    bool oldCurrentSet = entryDest->isSet();
+                    int oldCurrentAlpha = stackDest->getEntryAlpha(y, oldVoxelHeight);
                     if (spanner->contains(pos)) {
                         if (hasOwnColors && !erase) {
                             entryDest->color = spanner->getColorAt(pos);
@@ -2289,18 +2295,20 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             entryDest->material = stackMaterialIndex;
                         }
                     }
-                    bool currentSet = entryDest->isSet();
+                    
+                    int currentAlpha = stackDest->getEntryAlpha(y, voxelHeight);
+                    bool flipped = (color.alpha() == currentAlpha);
                     int nextStackX = (int)stackX + 1;
                     if (nextStackX <= innerStackWidth) {
-                        bool nextSetX = isSet(newStackContents, stackWidth, nextStackX, y, (int)stackZ);
-                        if (nextSetX == currentSet) {
+                        int nextAlphaX = newStackContents.at((int)stackZ * stackWidth + nextStackX).getEntryAlpha(
+                            y, nextVoxelHeightX);
+                        if (nextAlphaX == currentAlpha) {
                             entryDest->hermiteX = 0;
                             
                         } else {
-                            bool flipped = (erase == nextSetX);
                             float oldDistance = flipped ? 0.0f : 1.0f;
-                            if (currentSet == oldCurrentSet && nextSetX == isSet(oldStackContents, stackWidth,
-                                    nextStackX, y, (int)stackZ)) {
+                            if (currentAlpha == oldCurrentAlpha && nextAlphaX == oldStackContents.at((int)stackZ * stackWidth +
+                                    nextStackX).getEntryAlpha(y, oldNextVoxelHeightX) && entryDest->hermiteX != 0) {
                                 oldDistance = qAlpha(entryDest->hermiteX) / (float)numeric_limits<quint8>::max();
                             }
                             if (flipped ? (spanner->intersects(pos + worldStepX, pos, distance, normal) &&
@@ -2311,16 +2319,14 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             }
                         }
                     }
-                    bool nextSetY = (entryDest != stackDest->getEntryData() + stackDest->getEntryCount() - 1 &&
-                        (entryDest + 1)->isSet());
-                    if (nextSetY == currentSet) {
+                    bool nextAlphaY = stackDest->getEntryAlpha(y + 1, voxelHeight);
+                    if (nextAlphaY == currentAlpha) {
                         entryDest->hermiteY = 0;
                     
                     } else {
-                        bool flipped = (erase == nextSetY);
                         float oldDistance = flipped ? 0.0f : 1.0f;
-                        if (currentSet == oldCurrentSet && nextSetY == isSet(oldStackContents, stackWidth,
-                                (int)stackX, y + 1, (int)stackZ)) {
+                        if (currentAlpha == oldCurrentAlpha && nextAlphaY == oldStackContents.at((int)stackZ * stackWidth +
+                                (int)stackX).getEntryAlpha(y + 1, oldVoxelHeight) && entryDest->hermiteY != 0) {
                             oldDistance = qAlpha(entryDest->hermiteY) / (float)numeric_limits<quint8>::max();
                         }
                         if (flipped ? (spanner->intersects(pos + worldStepY, pos, distance, normal) &&
@@ -2332,15 +2338,15 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     }
                     int nextStackZ = (int)stackZ + 1;
                     if (nextStackZ <= innerStackHeight) {
-                        bool nextSetZ = isSet(newStackContents, stackWidth, (int)stackX, y, nextStackZ);
-                        if (nextSetZ == currentSet) {
+                        bool nextAlphaZ = newStackContents.at(nextStackZ * stackWidth + (int)stackX).getEntryAlpha(
+                            y, nextVoxelHeightZ);
+                        if (nextAlphaZ == currentAlpha) {
                             entryDest->hermiteZ = 0;
                             
                         } else {
-                            bool flipped = (erase == nextSetZ);
                             float oldDistance = flipped ? 0.0f : 1.0f;
-                            if (currentSet == oldCurrentSet && nextSetZ == isSet(oldStackContents, stackWidth,
-                                    (int)stackX, y, nextStackZ)) {
+                            if (currentAlpha == oldCurrentAlpha && nextAlphaZ == oldStackContents.at(nextStackZ * stackWidth +
+                                    (int)stackX).getEntryAlpha(y, oldNextVoxelHeightZ) && entryDest->hermiteZ != 0) {
                                 oldDistance = qAlpha(entryDest->hermiteZ) / (float)numeric_limits<quint8>::max();
                             }
                             if (flipped ? (spanner->intersects(pos + worldStepZ, pos, distance, normal) &&

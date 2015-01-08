@@ -1857,29 +1857,21 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 }
                             }
                             // fall into four cases based on set corners
-                            glm::vec3 center;
                             int offsetX = 0, offsetZ = 0;
                             switch(corners) {
                                 case 3:
                                 case 11: // z- edge, x+/z- corner
-                                    center = glm::vec3(1.0f, nextHeightfieldHeightX, 0.0f);
                                     offsetX = 1;
                                     break;
                                     
                                 case 12: 
                                 case 13: // z+ edge, x-/z+ corner
-                                    center = glm::vec3(0.0f, nextHeightfieldHeightZ, 1.0f);
                                     offsetZ = 1;
                                     break;
                                 
                                 case 10:
                                 case 14: // x+ edge, x+/z+ corner
-                                    center = glm::vec3(1.0f, nextHeightfieldHeightXZ, 1.0f);
                                     offsetX = offsetZ = 1;
-                                    break;
-                                    
-                                default: // x- edge, x-/z- corner
-                                    center = glm::vec3(0.0f, heightfieldHeight, 0.0f);
                                     break;
                             }
                             const quint16* height = heightLineSrc + width * offsetZ + offsetX;
