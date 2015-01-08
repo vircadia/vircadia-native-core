@@ -1884,17 +1884,18 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             quint8 red = numeric_limits<quint8>::max();
                             quint8 green = numeric_limits<quint8>::max();
                             quint8 blue = numeric_limits<quint8>::max();
+                            int clampedOffsetX = clampedX + offsetX, clampedOffsetZ = clampedZ + offsetZ;
                             if (colorSrc) {
-                                const uchar* color = colorSrc + ((int)(clampedZ * colorStepZ) * colorWidth +
-                                    (int)(clampedX * colorStepX)) * DataBlock::COLOR_BYTES;
+                                const uchar* color = colorSrc + ((int)(clampedOffsetZ * colorStepZ) * colorWidth +
+                                    (int)(clampedOffsetX * colorStepX)) * DataBlock::COLOR_BYTES;
                                 red = color[0];
                                 green = color[1];
                                 blue = color[2];
                             }
                             quint8 material = 0;
                             if (materialSrc) {
-                                material = materialSrc[(int)(clampedZ * materialStepZ) * materialWidth +
-                                    (int)(clampedX * materialStepX)];
+                                material = materialSrc[(int)(clampedOffsetZ * materialStepZ) * materialWidth +
+                                    (int)(clampedOffsetX * materialStepX)];
                                 if (material != 0) {
                                     int& mapping = materialMap[material];
                                     if (mapping == 0) {
