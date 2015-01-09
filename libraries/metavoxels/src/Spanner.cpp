@@ -1697,67 +1697,6 @@ bool HeightfieldNode::isLeaf() const {
     return true;
 }
 
-float HeightfieldNode::getHeight(const glm::vec3& location) const {
-    if (location.x < 0.0f || location.z < 0.0f || location.x > 1.0f || location.z > 1.0f) {
-        return -FLT_MAX;
-    }
-    if (!isLeaf()) {
-        if (location.x < 0.5f) {
-            if (location.z < 0.5f) {
-                return _children[0]->getHeight(location * 2.0f);
-            } else {
-                return _children[Y_MAXIMUM_FLAG]->getHeight(location * 2.0f - glm::vec3(0.0f, 0.0f, 1.0f));
-            }
-        } else {
-            if (location.z < 0.5f) {
-                return _children[X_MAXIMUM_FLAG]->getHeight(location * 2.0f - glm::vec3(1.0f, 0.0f, 0.0f));
-            } else {
-                return _children[X_MAXIMUM_FLAG | Y_MAXIMUM_FLAG]->getHeight(location * 2.0f - glm::vec3(1.0f, 0.0f, 1.0f));
-            }
-        }
-    }
-    if (!_height) {
-        return -FLT_MAX;
-    }
-    int width = _height->getWidth();
-    const QVector<quint16>& contents = _height->getContents();
-    const quint16* src = contents.constData();
-    int height = contents.size() / width;
-    int innerWidth = width - HeightfieldHeight::HEIGHT_EXTENSION;
-    int innerHeight = height - HeightfieldHeight::HEIGHT_EXTENSION;
-    
-    glm::vec3 relative = location;
-    relative.x = relative.x * innerWidth + HeightfieldHeight::HEIGHT_BORDER;
-    relative.z = relative.z * innerHeight + HeightfieldHeight::HEIGHT_BORDER;
-    
-    // find the bounds of the cell containing the point and the shared vertex heights
-    glm::vec3 floors = glm::floor(relative);
-    glm::vec3 ceils = glm::ceil(relative);
-    glm::vec3 fracts = glm::fract(relative);
-    int floorX = (int)floors.x;
-    int floorZ = (int)floors.z;
-    int ceilX = (int)ceils.x;
-    int ceilZ = (int)ceils.z;
-    float upperLeft = src[floorZ * width + floorX];
-    float lowerRight = src[ceilZ * width + ceilX];
-    float interpolatedHeight = glm::mix(upperLeft, lowerRight, fracts.z);
-    
-    // the final vertex (and thus which triangle we check) depends on which half we're on
-    if (fracts.x >= fracts.z) {
-        float upperRight = src[floorZ * width + ceilX];
-        interpolatedHeight = glm::mix(interpolatedHeight, glm::mix(upperRight, lowerRight, fracts.z),
-            (fracts.x - fracts.z) / (1.0f - fracts.z));
-        
-    } else {
-        float lowerLeft = src[ceilZ * width + floorX];
-        interpolatedHeight = glm::mix(glm::mix(upperLeft, lowerLeft, fracts.z), interpolatedHeight, fracts.x / fracts.z);
-    }
-    if (interpolatedHeight == 0.0f) {
-        return -FLT_MAX; // ignore zero values
-    }
-    return interpolatedHeight / numeric_limits<quint16>::max();
-}
-
 bool HeightfieldNode::findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     glm::quat inverseRotation = glm::inverse(rotation);
@@ -3380,9 +3319,13 @@ bool Heightfield::isHeightfield() const {
 }
 
 float Heightfield::getHeight(const glm::vec3& location) const {
-    float result = _root->getHeight(glm::inverse(getRotation()) * (location - getTranslation()) * glm::vec3(1.0f / getScale(),
-        0.0f, 1.0f / (getScale() * _aspectZ)));
-    return (result == -FLT_MAX) ? -FLT_MAX : (getTranslation().y + result * getScale() * _aspectY);
+    float distance;
+    glm::vec3 down = getRotation() * glm::vec3(0.0f, -1.0f, 0.0f);
+    glm::vec3 origin = location - down * (glm::dot(down, location) + getScale() * _aspectY - glm::dot(down, getTranslation()));
+    if (findRayIntersection(origin, down, distance)) {
+        return origin.y + distance * down.y;
+    }
+    return -FLT_MAX;
 }
 
 bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {

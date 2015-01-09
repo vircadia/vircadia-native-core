@@ -684,8 +684,6 @@ public:
     void setChild(int index, const HeightfieldNodePointer& child) { _children[index] = child; }
     const HeightfieldNodePointer& getChild(int index) const { return _children[index]; }
     
-    float getHeight(const glm::vec3& location) const;
-    
     bool findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     
