@@ -577,10 +577,10 @@ public:
     Entry* getEntryData() { return (Entry*)(data() + sizeof(quint16)); }
     const Entry* getEntryData() const { return (const Entry*)(constData() + sizeof(quint16)); }
     
-    int getEntryAlpha(int y, float heightfieldHeight) const;
+    int getEntryAlpha(int y, float heightfieldHeight = 0.0f) const;
     
-    Entry& getEntry(int y, float heightfieldHeight);
-    const Entry& getEntry(int y, float heightfieldHeight) const;
+    Entry& getEntry(int y, float heightfieldHeight = 0.0f);
+    const Entry& getEntry(int y, float heightfieldHeight = 0.0f) const;
     
     void getExtents(int& minimumY, int& maximumY) const;
     

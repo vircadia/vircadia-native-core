@@ -2016,7 +2016,15 @@ static inline bool isSet(const QVector<StackArray>& stackContents, int stackWidt
 HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint,
         float normalizeScale, float normalizeOffset) {
-    Box bounds = glm::translate(translation) * glm::mat4_cast(rotation) * Box(glm::vec3(), scale);
+    if (!_height) {
+        return this;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
+    glm::vec3 expansion(1.0f / innerHeightWidth, 0.0f, 1.0f / innerHeightHeight);
+    Box bounds = glm::translate(translation) * glm::mat4_cast(rotation) * Box(-expansion, scale + expansion);
     bool intersects = bounds.intersects(spanner->getBounds());
     if (!intersects && normalizeScale == 1.0f && normalizeOffset == 0.0f) {
         return this;
@@ -2041,13 +2049,6 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
         }
         return newNode;
     }
-    if (!_height) {
-        return this;
-    }
-    int heightWidth = _height->getWidth();
-    int heightHeight = _height->getContents().size() / heightWidth;
-    int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
-    int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;    
     int highestHeightX = heightWidth - 1;
     int highestHeightZ = heightHeight - 1;
     QVector<quint16> newHeightContents = _height->getContents();
@@ -2122,6 +2123,12 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     if (paint) {
         stepX = (float)innerHeightWidth / qMax(innerHeightWidth, qMax(innerColorWidth, innerMaterialWidth));
         stepZ = (float)innerHeightHeight / qMax(innerHeightHeight, qMax(innerColorHeight, innerMaterialHeight));
+    
+    } else {
+        start.x += 1.0f;
+        start.z += 1.0f;
+        end.x -= 1.0f;
+        end.z -= 1.0f;
     }
     
     float startX = glm::clamp(start.x, 0.0f, (float)highestHeightX), endX = glm::clamp(end.x, 0.0f, (float)highestHeightX);
@@ -2651,6 +2658,8 @@ void HeightfieldNode::mergeChildren(bool height, bool colorMaterial) {
     int colorHeight = 0;
     int materialWidth = 0;
     int materialHeight = 0;
+    int stackWidth = 0;
+    int stackHeight = 0;
     for (int i = 0; i < CHILD_COUNT; i++) {
         HeightfieldHeightPointer childHeight = _children[i]->getHeight();
         if (childHeight) {
@@ -2672,6 +2681,13 @@ void HeightfieldNode::mergeChildren(bool height, bool colorMaterial) {
             int childMaterialHeight = childMaterial->getContents().size() / childMaterialWidth;
             materialWidth = qMax(materialWidth, childMaterialWidth);
             materialHeight = qMax(materialHeight, childMaterialHeight);
+        }
+        HeightfieldStackPointer childStack = _children[i]->getStack();
+        if (childStack) {
+            int childStackWidth = childStack->getWidth();
+            int childStackHeight = childStack->getContents().size() / childStackWidth;
+            stackWidth = qMax(stackWidth, childStackWidth);
+            stackHeight = qMax(stackHeight, childStackHeight);
         }
     }
     if (heightWidth > 0 && height) {
@@ -2705,6 +2721,97 @@ void HeightfieldNode::mergeChildren(bool height, bool colorMaterial) {
         
     } else if (height) {
         _height.reset();
+    }
+    if (stackWidth > 0) {
+        QVector<StackArray> stackContents(stackWidth * stackHeight);
+        QVector<SharedObjectPointer> stackMaterials;
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            HeightfieldStackPointer childStack = _children[i]->getStack();
+            int childStackWidth = childStack->getWidth();
+            int childStackHeight = childStack->getContents().size() / childStackWidth;
+            if (childStackWidth != stackWidth || childStackHeight != stackHeight) {
+                qWarning() << "Stack dimension mismatch [stackWidth=" << stackWidth << ", stackHeight=" << stackHeight <<
+                    ", childStackWidth=" << childStackWidth << ", childStackHeight=" << childStackHeight << "]";
+                continue;
+            }
+            int innerStackWidth = stackWidth - HeightfieldData::SHARED_EDGE;
+            int innerStackHeight = stackHeight - HeightfieldData::SHARED_EDGE;
+            int innerQuadrantStackWidth = innerStackWidth / 2;
+            int innerQuadrantStackHeight = innerStackHeight / 2;
+            int quadrantStackWidth = innerQuadrantStackWidth + HeightfieldData::SHARED_EDGE;
+            int quadrantStackHeight = innerQuadrantStackHeight + HeightfieldData::SHARED_EDGE;
+            StackArray* dest = stackContents.data() + (i & Y_MAXIMUM_FLAG ? innerQuadrantStackHeight * stackWidth : 0) +
+                (i & X_MAXIMUM_FLAG ? innerQuadrantStackWidth : 0);
+            const StackArray* src = childStack->getContents().constData();
+            QHash<int, int> materialMap;
+            for (int z = 0; z < quadrantStackHeight; z++, dest += stackWidth, src += stackWidth * 2) {
+                const StackArray* lineSrc = src;
+                StackArray* lineDest = dest;
+                for (int x = 0; x < quadrantStackWidth; x++, lineDest++, lineSrc += 2) {
+                    if (lineSrc->isEmpty()) {
+                        continue;
+                    }
+                    int minimumY = lineSrc->getPosition();
+                    int maximumY = lineSrc->getPosition() + lineSrc->getEntryCount() - 1;
+                    int newMinimumY = minimumY / 2;
+                    int newMaximumY = maximumY / 2;
+                    *lineDest = StackArray(newMaximumY - newMinimumY + 1);
+                    lineDest->setPosition(newMinimumY);
+                    int y = newMinimumY;
+                    for (StackArray::Entry* destEntry = lineDest->getEntryData(), *end = destEntry + lineDest->getEntryCount();
+                            destEntry != end; destEntry++, y++) {
+                        int srcY = y * 2;
+                        const StackArray::Entry& srcEntry = lineSrc->getEntry(srcY);
+                        destEntry->color = srcEntry.color;
+                        destEntry->material = srcEntry.material;
+                        if (destEntry->material != 0) {
+                            int& mapping = materialMap[destEntry->material];
+                            if (mapping == 0) {
+                                mapping = getMaterialIndex(childStack->getMaterials().at(destEntry->material - 1),
+                                    stackMaterials, stackContents);
+                            }
+                            destEntry->material = mapping;
+                        }
+                        int srcAlpha = qAlpha(srcEntry.color);
+                        glm::vec3 normal;
+                        if (srcAlpha != lineSrc->getEntryAlpha(srcY + 2)) {
+                            const StackArray::Entry& nextSrcEntry = lineSrc->getEntry(srcY + 1);
+                            if (qAlpha(nextSrcEntry.color) == srcAlpha) {
+                                float distance = nextSrcEntry.getHermiteY(normal);
+                                destEntry->setHermiteY(normal, distance * 0.5f + 0.5f);
+                            } else {
+                                float distance = srcEntry.getHermiteY(normal);
+                                destEntry->setHermiteY(normal, distance * 0.5f);
+                            }
+                        }
+                        if (x != quadrantStackWidth - 1 && srcAlpha != lineSrc[2].getEntryAlpha(srcY)) {
+                            const StackArray::Entry& nextSrcEntry = lineSrc[1].getEntry(srcY);
+                            if (qAlpha(nextSrcEntry.color) == srcAlpha) {
+                                float distance = nextSrcEntry.getHermiteX(normal);
+                                destEntry->setHermiteX(normal, distance * 0.5f + 0.5f);
+                            } else {
+                                float distance = srcEntry.getHermiteX(normal);
+                                destEntry->setHermiteX(normal, distance * 0.5f);
+                            }
+                        }
+                        if (z != quadrantStackHeight - 1 && srcAlpha != lineSrc[2 * stackWidth].getEntryAlpha(srcY)) {
+                            const StackArray::Entry& nextSrcEntry = lineSrc[stackWidth].getEntry(srcY);
+                            if (qAlpha(nextSrcEntry.color) == srcAlpha) {
+                                float distance = nextSrcEntry.getHermiteZ(normal);
+                                destEntry->setHermiteZ(normal, distance * 0.5f + 0.5f);
+                            } else {
+                                float distance = srcEntry.getHermiteZ(normal);
+                                destEntry->setHermiteZ(normal, distance * 0.5f);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        _stack = new HeightfieldStack(stackWidth, stackContents, stackMaterials);
+        
+    } else {
+        _stack.reset();
     }
     if (!colorMaterial) {
         return;
