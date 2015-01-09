@@ -158,15 +158,18 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalYaw());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalPitch());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalRoll());
-    
-    // Head lean X,Z (head lateral and fwd/back motion relative to torso)
-    memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
-    destinationBuffer += sizeof(_headData->_leanSideways);
-    memcpy(destinationBuffer, &_headData->_leanForward, sizeof(_headData->_leanForward));
-    destinationBuffer += sizeof(_headData->_leanForward);
+    glm::vec3 pitchYawRoll = glm::vec3(_headData->getFinalPitch(),
+                                       _headData->getFinalYaw(),
+                                       _headData->getFinalRoll());
+    if (this->isMyAvatar()) {
+        glm::vec3 lean = glm::radians(glm::vec3(_headData->getFinalLeanForward(),
+                                                _headData->getTorsoTwist(),
+                                                _headData->getFinalLeanSideways()));
+        pitchYawRoll -= lean;
+    }
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, pitchYawRoll.x);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, pitchYawRoll.y);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, pitchYawRoll.z);
 
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
@@ -287,18 +290,16 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     //     bodyPitch     =  2 (compressed float)
     //     bodyRoll      =  2 (compressed float)
     //     targetScale   =  2 (compressed float)
-    //     headYaw       =  2 (compressed float)
     //     headPitch     =  2 (compressed float)
+    //     headYaw       =  2 (compressed float)
     //     headRoll      =  2 (compressed float)
-    //     leanSideways  =  4
-    //     leanForward   =  4
     //     lookAt        = 12
     //     audioLoudness =  4
     // }
     // + 1 byte for pupilSize
     // + 1 byte for numJoints (0)
-    // = 53 bytes
-    int minPossibleSize = 52;
+    // = 45 bytes
+    int minPossibleSize = 45;
     
     int maxAvailableSize = packet.size() - offset;
     if (minPossibleSize > maxAvailableSize) {
@@ -356,8 +357,8 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     { // Head rotation 
         //(NOTE: This needs to become a quaternion to save two bytes)
         float headYaw, headPitch, headRoll;
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
         sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
         sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
         if (glm::isnan(headYaw) || glm::isnan(headPitch) || glm::isnan(headRoll)) {
             if (shouldLogError(now)) {
@@ -365,27 +366,10 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
             return maxAvailableSize;
         }
-        _headData->setBaseYaw(headYaw);
         _headData->setBasePitch(headPitch);
+        _headData->setBaseYaw(headYaw);
         _headData->setBaseRoll(headRoll);
     } // 6 bytes
-        
-    // Head lean (relative to pelvis)
-    {
-        float leanSideways, leanForward;
-        memcpy(&leanSideways, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-        memcpy(&leanForward, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-        if (glm::isnan(leanSideways) || glm::isnan(leanForward)) {
-            if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::leanSideways,leanForward; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-        }
-        _headData->_leanSideways = leanSideways;
-        _headData->_leanForward = leanForward;
-    } // 8 bytes
     
     { // Lookat Position
         glm::vec3 lookAt;
