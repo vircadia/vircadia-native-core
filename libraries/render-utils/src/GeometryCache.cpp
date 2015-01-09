@@ -40,6 +40,10 @@ GeometryCache::~GeometryCache() {
         glDeleteBuffers(1, &vbo.first);
         glDeleteBuffers(1, &vbo.second);
     }
+    qDebug() << "GeometryCache::~GeometryCache()... ";
+    qDebug() << "    _registeredLine3DVBOs.size():" << _registeredLine3DVBOs.size();
+    qDebug() << "    _line3DVBOs.size():" << _line3DVBOs.size();
+    qDebug() << "    BatchItemDetails... population:" << GeometryCache::BatchItemDetails::population;
 }
 
 void GeometryCache::renderHemisphere(int slices, int stacks) {
@@ -1400,11 +1404,51 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
     details.buffer.release();
 }
 
+int GeometryCache::BatchItemDetails::population = 0;
+GeometryCache::BatchItemDetails::BatchItemDetails() :
+    verticesBuffer(NULL),
+    colorBuffer(NULL),
+    streamFormat(NULL),
+    stream(NULL),
+    vertices(0),
+    vertexSize(0),
+    isCreated(false)
+{
+    population++;
+}
+
+GeometryCache::BatchItemDetails::BatchItemDetails(const GeometryCache::BatchItemDetails& other) :
+    verticesBuffer(other.verticesBuffer),
+    colorBuffer(other.colorBuffer),
+    streamFormat(other.streamFormat),
+    stream(other.stream),
+    vertices(other.vertices),
+    vertexSize(other.vertexSize),
+    isCreated(other.isCreated)
+{
+    population++;
+}
+
+GeometryCache::BatchItemDetails::~BatchItemDetails() {
+    population--;
+    clear(); 
+    qDebug() << "~BatchItemDetails()... population:" << population << "**********************************";
+}
+
+void GeometryCache::BatchItemDetails::clear() {
+    isCreated = false;
+    verticesBuffer.clear();
+    colorBuffer.clear();
+    streamFormat.clear();
+    stream.clear();
+}
+
 void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, 
                                const glm::vec4& color1, const glm::vec4& color2, int id) {
                                
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(p1, p2);
+
     BatchItemDetails& details = registered ? _registeredLine3DVBOs[id] : _line3DVBOs[key];
 
     int compactColor1 = ((int(color1.x * 255.0f) & 0xFF)) |

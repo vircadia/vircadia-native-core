@@ -156,6 +156,7 @@ private:
     
     class BatchItemDetails {
     public:
+        static int population;
         gpu::BufferPointer verticesBuffer;
         gpu::BufferPointer colorBuffer;
         gpu::Stream::FormatPointer streamFormat;
@@ -165,21 +166,10 @@ private:
         int vertexSize;
         bool isCreated;
         
-        BatchItemDetails() :
-            verticesBuffer(NULL),
-            colorBuffer(NULL),
-            streamFormat(NULL),
-            stream(NULL),
-            vertices(0),
-            vertexSize(0),
-            isCreated(false)
-        {
-        }
-        
-        void clear() {
-            // TODO: add the proper de-allocation of the gpu items
-            isCreated = false;
-        }
+        BatchItemDetails();
+        BatchItemDetails(const GeometryCache::BatchItemDetails& other);
+        ~BatchItemDetails();
+        void clear();
     };
     
     QHash<IntPair, VerticesIndices> _hemisphereVBOs;
