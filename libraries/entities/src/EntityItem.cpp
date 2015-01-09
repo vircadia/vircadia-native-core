@@ -1015,7 +1015,6 @@ void EntityItem::recalculateCollisionShape() {
     entityAACube.scale(TREE_SCALE); // scale to meters
     _collisionShape.setTranslation(entityAACube.calcCenter());
     _collisionShape.setScale(entityAACube.getScale());
-    // TODO: use motionState to update physics object
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;

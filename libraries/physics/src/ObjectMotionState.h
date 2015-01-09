@@ -111,7 +111,7 @@ protected:
     glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
     glm::quat _sentRotation;;
     glm::vec3 _sentVelocity;
-    glm::vec3 _sentAngularVelocity;
+    glm::vec3 _sentAngularVelocity; // radians per second
     glm::vec3 _sentAcceleration;
 };
 
