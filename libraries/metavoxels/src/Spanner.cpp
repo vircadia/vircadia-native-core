@@ -115,6 +115,10 @@ Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float hei
     return this;
 }
 
+Spanner* Spanner::fillHeight(const glm::vec3& position, float radius) {
+    return this;
+}
+
 Spanner* Spanner::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
         const QColor& color, bool paint) {
     return this;
@@ -1926,7 +1930,8 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
     maybeRenormalize(scale, normalizeScale, normalizeOffset, innerStackWidth, newHeightContents, newStackContents);
     if (!intersects) {
         return new HeightfieldNode(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)),
-            _color, _material, HeightfieldStackPointer(new HeightfieldStack(stackWidth, newStackContents, newStackMaterials)));
+            _color, _material, HeightfieldStackPointer(newStackContents.isEmpty() ? NULL :
+                new HeightfieldStack(stackWidth, newStackContents, newStackMaterials)));
     }
     
     // now apply the actual change
@@ -1951,6 +1956,80 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
                 if (value != 0) {
                     *dest = value + relativeHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
                 }
+            }
+        }
+        lineDest += heightWidth;
+    }
+    
+    return new HeightfieldNode(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)),
+        _color, _material, HeightfieldStackPointer(newStackContents.isEmpty() ? NULL :
+            new HeightfieldStack(stackWidth, newStackContents, newStackMaterials)));
+}
+
+HeightfieldNode* HeightfieldNode::fillHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& position, float radius) {
+    if (!_height) {
+        return this;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
+    int highestHeightX = heightWidth - 1;
+    int highestHeightZ = heightHeight - 1;
+    
+    glm::vec3 inverseScale(innerHeightWidth / scale.x, numeric_limits<quint16>::max() / scale.y, innerHeightHeight / scale.z);
+    glm::vec3 center = glm::inverse(rotation) * (position - translation) * inverseScale + glm::vec3(1.0f, 0.0f, 1.0f);
+    glm::vec3 extents = radius * inverseScale;
+    
+    if (center.x + extents.x < 0.0f || center.z + extents.z < 0.0f || center.x - extents.x > highestHeightX ||
+            center.z - extents.z > highestHeightZ) {
+        return this;
+    }
+    if (!isLeaf()) {
+        HeightfieldNode* newNode = this;
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            glm::vec3 nextScale = scale * glm::vec3(0.5f, 1.0f, 0.5f);
+            HeightfieldNode* newChild = _children[i]->fillHeight(translation +
+                rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
+                    i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
+                nextScale, position, radius);
+            if (_children[i] != newChild) {
+                if (newNode == this) {
+                    newNode = new HeightfieldNode(*this);
+                }
+                newNode->setChild(i, HeightfieldNodePointer(newChild));
+            }
+        }
+        if (newNode != this) {
+            newNode->mergeChildren(true, false);
+        }
+        return newNode;
+    }
+    if (!_stack) {
+        return this;
+    }
+    QVector<quint16> newHeightContents = _height->getContents();
+    
+    int stackWidth = _stack->getWidth();
+    QVector<StackArray> newStackContents = _stack->getContents();
+    QVector<SharedObjectPointer> newStackMaterials = _stack->getMaterials();
+    
+    glm::vec3 start = glm::clamp(glm::floor(center - extents), glm::vec3(),
+        glm::vec3((float)highestHeightX, 0.0f, (float)highestHeightZ));
+    glm::vec3 end = glm::clamp(glm::ceil(center + extents), glm::vec3(),
+        glm::vec3((float)highestHeightX, 0.0f, (float)highestHeightZ));
+    
+    quint16* lineDest = newHeightContents.data() + (int)start.z * heightWidth + (int)start.x;
+    float squaredRadius = extents.x * extents.x;
+    float multiplierZ = extents.x / extents.z;
+    for (float z = start.z; z <= end.z; z += 1.0f) {
+        quint16* dest = lineDest;
+        for (float x = start.x; x <= end.x; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            float distanceSquared = dx * dx + dz * dz;
+            if (distanceSquared <= squaredRadius) {
+                
             }
         }
         lineDest += heightWidth;
@@ -3236,6 +3315,13 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
     newHeightfield->setRoot(HeightfieldNodePointer(_root->paintHeight(newHeightfield->getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), position, radius, height,
         normalizeScale, normalizeOffset)));
+    return newHeightfield;
+}
+
+Spanner* Heightfield::fillHeight(const glm::vec3& position, float radius) {
+    Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
+    newHeightfield->setRoot(HeightfieldNodePointer(_root->fillHeight(getTranslation(), getRotation(),
+        glm::vec3(getScale(), getScale() * _aspectY, getScale() * _aspectZ), position, radius)));
     return newHeightfield;
 }
 

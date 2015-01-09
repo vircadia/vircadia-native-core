@@ -201,3 +201,21 @@ void HeightfieldMaterialSpannerEdit::apply(MetavoxelData& data, const WeakShared
     }
 }
 
+FillHeightfieldHeightEdit::FillHeightfieldHeightEdit(const glm::vec3& position, float radius) :
+    position(position),
+    radius(radius) {
+}
+
+void FillHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    glm::vec3 extents = glm::vec3(radius, radius, radius);
+    QVector<SharedObjectPointer> results;
+    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
+        Box(position - extents, position + extents), results);
+    
+    foreach (const SharedObjectPointer& spanner, results) {
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->fillHeight(position, radius);
+        if (newSpanner != spanner) {
+            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
+        }
+    }
+}

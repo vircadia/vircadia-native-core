@@ -243,4 +243,20 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(HeightfieldMaterialSpannerEdit)
 
+/// An edit that sets a region of a heightfield height.
+class FillHeightfieldHeightEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM glm::vec3 position;
+    STREAM float radius;
+    
+    FillHeightfieldHeightEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f);
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(FillHeightfieldHeightEdit)
+
 #endif // hifi_MetavoxelMessages_h

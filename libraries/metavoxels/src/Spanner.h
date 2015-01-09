@@ -77,6 +77,10 @@ public:
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
 
+    /// Attempts to fill the spanner's height (removing volumetric information).
+    /// \return the modified spanner, or this if no modification was performed
+    virtual Spanner* fillHeight(const glm::vec3& position, float radius);
+
     /// Attempts to "sculpt" or "paint" with the supplied spanner.
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
@@ -691,6 +695,9 @@ public:
     HeightfieldNode* paintHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& position, float radius, float height, float normalizeScale, float normalizeOffset);
     
+    HeightfieldNode* fillHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& position, float radius);
+    
     void getRangeAfterEdit(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const Box& editBounds, float& minimum, float& maximum) const;
             
@@ -794,6 +801,8 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
+    
+    virtual Spanner* fillHeight(const glm::vec3& position, float radius);
     
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
         const QColor& color, bool paint);

@@ -92,11 +92,14 @@ class MetavoxelTool : public QWidget {
 
 public:
 
-    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true, bool userFacing = true);
+    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true,
+        bool userFacing = true, bool usesGrid = true);
     
     bool getUsesValue() const { return _usesValue; }
     
     bool isUserFacing() const { return _userFacing; }
+    
+    bool getUsesGrid() const { return _usesGrid; }
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
     
@@ -113,6 +116,7 @@ protected:
     MetavoxelEditor* _editor;
     bool _usesValue;
     bool _userFacing;
+    bool _usesGrid;
 };
 
 /// Base class for tools that allow dragging out a 3D box.
@@ -402,6 +406,19 @@ protected:
 private:
     
     MaterialControl* _materialControl;
+};
+
+/// Allows "filling" (removing dual contour stack data) parts of the heightfield.
+class HeightfieldFillBrushTool : public HeightfieldBrushTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldFillBrushTool(MetavoxelEditor* editor);
+    
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
 };
 
 /// Allows setting heightfield materials by dragging out a box.

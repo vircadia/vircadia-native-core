@@ -129,6 +129,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new HeightfieldHeightBrushTool(this));
     addTool(new HeightfieldMaterialBrushTool(this));
     addTool(new HeightfieldSculptBrushTool(this));
+    addTool(new HeightfieldFillBrushTool(this));    
     addTool(new HeightfieldMaterialBoxTool(this));
     addTool(new HeightfieldMaterialSpannerTool(this));
     
@@ -330,6 +331,9 @@ void MetavoxelEditor::render() {
     MetavoxelTool* tool = getActiveTool();
     if (tool) {
         tool->render();
+        if (!tool->getUsesGrid()) {
+            return;
+        }
     }
     
     glDepthMask(GL_FALSE);
@@ -385,10 +389,11 @@ MetavoxelTool* MetavoxelEditor::getActiveTool() const {
 
 ProgramObject MetavoxelEditor::_gridProgram;
 
-MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue, bool userFacing) :
+MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue, bool userFacing, bool usesGrid) :
     _editor(editor),
     _usesValue(usesValue),
-    _userFacing(userFacing) {
+    _userFacing(userFacing),
+    _usesGrid(usesGrid) {
     
     QVBoxLayout* layout = new QVBoxLayout();
     setLayout(layout);
@@ -669,7 +674,7 @@ void InsertSpannerTool::applyEdit(const AttributePointer& attribute, const Share
 }
 
 RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor, "Remove Spanner", false) {
+    MetavoxelTool(editor, "Remove Spanner", false, true, false) {
 }
 
 bool RemoveSpannerTool::appliesTo(const AttributePointer& attribute) const {
@@ -696,7 +701,7 @@ bool RemoveSpannerTool::eventFilter(QObject* watched, QEvent* event) {
 }
 
 ClearSpannersTool::ClearSpannersTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor, "Clear Spanners", false) {
+    MetavoxelTool(editor, "Clear Spanners", false, true, false) {
     
     QPushButton* button = new QPushButton("Clear");
     layout()->addWidget(button);
@@ -717,7 +722,7 @@ void ClearSpannersTool::clear() {
 }
 
 HeightfieldTool::HeightfieldTool(MetavoxelEditor* editor, const QString& name) :
-    MetavoxelTool(editor, name, false) {
+    MetavoxelTool(editor, name, false, true, false) {
     
     QWidget* widget = new QWidget();
     widget->setLayout(_form = new QFormLayout());
@@ -806,7 +811,7 @@ void ImportHeightfieldTool::updateSpanner() {
 }
 
 HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name) :
-    MetavoxelTool(editor, name, false),
+    MetavoxelTool(editor, name, false, true, false),
     _positionValid(false) {
     
     QWidget* widget = new QWidget();
@@ -966,6 +971,14 @@ QVariant HeightfieldSculptBrushTool::createEdit(bool alternate) {
         return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
             _materialControl->getMaterial(), _materialControl->getColor()));
     }
+}
+
+HeightfieldFillBrushTool::HeightfieldFillBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Fill Brush") {
+}
+
+QVariant HeightfieldFillBrushTool::createEdit(bool alternate) {
+    return QVariant::fromValue(FillHeightfieldHeightEdit(_position, _radius->value()));
 }
 
 HeightfieldMaterialBoxTool::HeightfieldMaterialBoxTool(MetavoxelEditor* editor) :
