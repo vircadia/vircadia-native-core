@@ -14,10 +14,12 @@
 
 class EntityToDeleteDetails {
 public:
-    const EntityItem* entity;
+    EntityItem* entity;
     AACube cube;
     EntityTreeElement* containingElement;
 };
+
+typedef QSet<EntityToDeleteDetails> RemovedEntities;
 
 inline uint qHash(const EntityToDeleteDetails& a, uint seed) {
     return qHash(a.entity->getEntityItemID(), seed);
@@ -36,9 +38,11 @@ public:
     void addEntityIDToDeleteList(const EntityItemID& searchEntityID);
     virtual bool preRecursion(OctreeElement* element);
     virtual bool postRecursion(OctreeElement* element);
+
+    const RemovedEntities& getEntities() const { return _entitiesToDelete; }
 private:
     EntityTree* _tree;
-    QSet<EntityToDeleteDetails> _entitiesToDelete;
+    RemovedEntities _entitiesToDelete;
     quint64 _changeTime;
     int _foundCount;
     int _lookingCount;

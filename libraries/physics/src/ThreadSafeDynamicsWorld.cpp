@@ -15,8 +15,6 @@
  * Copied and modified from btDiscreteDynamicsWorld.cpp by AndrewMeadows on 2014.11.12.
  * */
 
-#include <EntityTree.h>
-
 #include "ThreadSafeDynamicsWorld.h"
 
 #ifdef USE_BULLET_PHYSICS
@@ -24,17 +22,8 @@ ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
         btDispatcher* dispatcher,
         btBroadphaseInterface* pairCache,
         btConstraintSolver* constraintSolver,
-        btCollisionConfiguration* collisionConfiguration,
-        EntityTree* entities)
+        btCollisionConfiguration* collisionConfiguration)
     :   btDiscreteDynamicsWorld(dispatcher, pairCache, constraintSolver, collisionConfiguration) {
-    assert(entities);
-    _entities = entities;
-}
-
-void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
-    _entities->lockForWrite();
-    btDiscreteDynamicsWorld::synchronizeMotionStates();
-    _entities->unlock();
 }
 
 int	ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps, btScalar fixedTimeStep) {
@@ -82,10 +71,15 @@ int	ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps,
 		}
 	}
 
-    // We only sync motion states once at the end of all substeps.  
-    // This is to avoid placing multiple, repeated thread locks on _entities.
-    synchronizeMotionStates();
+    // NOTE: We do NOT call synchronizeMotionState() after each substep (to avoid multiple locks on the
+    // object data outside of the physics engine).  A consequence of this is that the transforms of the
+    // external objects only ever update at the end of the full step.
+
+    // NOTE: We do NOT call synchronizeMotionStates() here.  Instead it is called by an external class
+    // that knows how to lock threads correctly.
+
 	clearForces();
-	return subSteps;
+
+    return subSteps;
 }
 #endif // USE_BULLET_PHYSICS

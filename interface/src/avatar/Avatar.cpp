@@ -452,47 +452,6 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         return;
     }
     renderDisplayName();
-    
-    if (!_chatMessage.empty()) {
-        int width = 0;
-        int lastWidth = 0;
-        for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += (lastWidth = textRenderer(CHAT)->computeWidth(*it));
-        }
-        glPushMatrix();
-        
-        glm::vec3 chatPosition = getHead()->getEyePosition() + getBodyUpDirection() * CHAT_MESSAGE_HEIGHT * _scale;
-        glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
-        glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
-        glm::vec3 chatAxis = glm::axis(chatRotation);
-        glRotatef(glm::degrees(glm::angle(chatRotation)), chatAxis.x, chatAxis.y, chatAxis.z);
-        
-        glColor3f(0.0f, 0.8f, 0.0f);
-        glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
-        glRotatef(180.0f, 0.0f, 0.0f, 1.0f);
-        glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
-        
-        glDisable(GL_LIGHTING);
-        glDepthMask(false);
-        if (_keyState == NO_KEY_DOWN) {
-            textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
-            
-        } else {
-            // rather than using substr and allocating a new string, just replace the last
-            // character with a null, then restore it
-            int lastIndex = _chatMessage.size() - 1;
-            char lastChar = _chatMessage[lastIndex];
-            _chatMessage[lastIndex] = '\0';
-            textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
-            _chatMessage[lastIndex] = lastChar;
-            glColor3f(0.0f, 1.0f, 0.0f);
-            textRenderer(CHAT)->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
-        }
-        glEnable(GL_LIGHTING);
-        glDepthMask(true);
-        
-        glPopMatrix();
-    }
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {

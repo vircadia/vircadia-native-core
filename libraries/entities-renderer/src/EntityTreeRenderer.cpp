@@ -145,6 +145,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
             } else {
                 qDebug() << "ERROR Loading file:" << url.toString();
             }
+            delete reply;
         }
     }
     
