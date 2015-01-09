@@ -19,7 +19,6 @@
 
 #include <AvatarData.h>
 
-#include "Hair.h"
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
@@ -33,10 +32,6 @@ static const float RESCALING_TOLERANCE = .02f;
 
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
-
-const int HAIR_STRANDS = 150;           //  Number of strands of hair
-const int HAIR_LINKS = 10;              //  Number of links in a hair strand
-const int HAIR_MAX_CONSTRAINTS = 2;     //  Hair verlet is connected to at most how many others
 
 enum DriveKeys {
     FWD = 0,
@@ -187,7 +182,6 @@ signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
-    Hair _hair;
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
     QVector<Model*> _attachmentModels;
@@ -250,6 +244,8 @@ private:
     void renderBillboard();
     
     float getBillboardSize() const;
+    
+    static int _jointConesID;
 };
 
 #endif // hifi_Avatar_h

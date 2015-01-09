@@ -3,7 +3,7 @@ Instructions for adding the RtMidi library to Interface
 Stephen Birarda, June 30, 2014
 
 1. Download the RtMidi tarball from High Fidelity S3.
-  http://highfidelity-public.s3.amazonaws.com/dependencies/rtmidi-2.1.0.tar.gz
+  http://public.highfidelity.io/dependencies/rtmidi-2.1.0.tar.gz
    
 2. Copy RtMidi.h to externals/rtmidi/include.
 

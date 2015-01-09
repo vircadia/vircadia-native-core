@@ -38,6 +38,7 @@ void EntitySimulation::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
     _entitiesToDelete.clear();
 }
 
+// private
 void EntitySimulation::expireMortalEntities(const quint64& now) {
     if (now > _nextExpiry) {
         // only search for expired entities if we expect to find one
@@ -63,6 +64,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
     }
 }
 
+// private
 void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
     PerformanceTimer perfTimer("updatingEntities");
     QSet<EntityItem*>::iterator itemItr = _updateableEntities.begin();
@@ -79,6 +81,7 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
     }
 }
 
+// private
 void EntitySimulation::sortEntitiesThatMoved() {
     // NOTE: this is only for entities that have been moved by THIS EntitySimulation.
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.
@@ -101,12 +104,13 @@ void EntitySimulation::sortEntitiesThatMoved() {
         }
         ++itemItr;
     }
-    _entitiesToBeSorted.clear();
-
     if (moveOperator.hasMovingEntities()) {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         _entityTree->recurseTreeWithOperator(&moveOperator);
     }
+
+    sortEntitiesThatMovedInternal();
+    _entitiesToBeSorted.clear();
 }
 
 void EntitySimulation::addEntity(EntityItem* entity) {
@@ -122,6 +126,10 @@ void EntitySimulation::addEntity(EntityItem* entity) {
         _updateableEntities.insert(entity);
     }
     addEntityInternal(entity);
+
+    // DirtyFlags are used to signal changes to entities that have already been added, 
+    // so we can clear them for this entity which has just been added.
+    entity->clearDirtyFlags();
 }
 
 void EntitySimulation::removeEntity(EntityItem* entity) {
@@ -173,7 +181,6 @@ void EntitySimulation::entityChanged(EntityItem* entity) {
         }
         entityChangedInternal(entity);
     }
-    entity->clearDirtyFlags();
 }
 
 void EntitySimulation::clearEntities() {

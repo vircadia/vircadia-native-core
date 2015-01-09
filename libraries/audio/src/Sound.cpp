@@ -80,6 +80,7 @@ void Sound::downloadFinished(QNetworkReply* reply) {
     }
     
     _isReady = true;
+    reply->deleteLater();
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {

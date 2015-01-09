@@ -16,10 +16,14 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 
+#include "audio/AudioIOStatsRenderer.h"
+#include "audio/AudioScope.h"
+#include "audio/AudioToolBox.h"
 #include "Application.h"
 #include "ApplicationOverlay.h"
 #include "devices/OculusManager.h"
 
+#include "Util.h"
 #include "ui/Stats.h"
 
 // Used to fade the UI
@@ -105,7 +109,7 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
     }
 }
 
-void renderReticle(glm::quat orientation, float alpha) {
+void ApplicationOverlay::renderReticle(glm::quat orientation, float alpha) {
     glPushMatrix(); {
         glm::vec3 axis = glm::axis(orientation);
         glRotatef(glm::degrees(glm::angle(orientation)), axis.x, axis.y, axis.z);
@@ -116,7 +120,7 @@ void renderReticle(glm::quat orientation, float alpha) {
         glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha);
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomLeft, bottomRight, topRight,
                                                             glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f),
-                                                            glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f));
+                                                            glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f), _reticleQuad);
     } glPopMatrix();
 }
 
@@ -126,11 +130,28 @@ ApplicationOverlay::ApplicationOverlay() :
     _lastMouseMove(0),
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
-    _crosshairTexture(0) {
-
+    _crosshairTexture(0),
+    _previousBorderWidth(-1),
+    _previousBorderHeight(-1),
+    _previousMagnifierBottomLeft(),
+    _previousMagnifierBottomRight(),
+    _previousMagnifierTopLeft(),
+    _previousMagnifierTopRight()
+{
     memset(_reticleActive, 0, sizeof(_reticleActive));
     memset(_magActive, 0, sizeof(_reticleActive));
     memset(_magSizeMult, 0, sizeof(_magSizeMult));
+
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    
+    _reticleQuad = geometryCache->allocateID();
+    _magnifierQuad = geometryCache->allocateID();
+    _audioRedQuad = geometryCache->allocateID();
+    _audioGreenQuad = geometryCache->allocateID();
+    _audioBlueQuad = geometryCache->allocateID();
+    _domainStatusBorder = geometryCache->allocateID();
+    _magnifierBorder = geometryCache->allocateID();
+    
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
@@ -142,7 +163,6 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     Application* application = Application::getInstance();
     Overlays& overlays = application->getOverlays();
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    MyAvatar* myAvatar = application->getAvatar();
     
     _textureFov = glm::radians(Menu::getInstance()->getOculusUIAngularSize());
     _textureAspectRatio = (float)glCanvas->getDeviceWidth() / (float)glCanvas->getDeviceHeight();
@@ -173,21 +193,19 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     }
     
     glPushMatrix(); {
+        const float NEAR_CLIP = -10000;
+        const float FAR_CLIP = 10000;
         glLoadIdentity();
-        glOrtho(0, glCanvas->width(), glCanvas->height(), 0, -1.0, 1.0);
+        glOrtho(0, glCanvas->width(), glCanvas->height(), 0, NEAR_CLIP, FAR_CLIP);
         
         renderAudioMeter();
-        
-        if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
-            myAvatar->renderHeadMouse(glCanvas->width(), glCanvas->height());
-        }
         
         renderStatsAndLogs();
         
         // give external parties a change to hook in
         emit application->renderingOverlay();
         
-        overlays.render2D();
+        overlays.renderHUD();
         
         renderPointers();
         
@@ -394,7 +412,8 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
                                                 glm::vec3(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance),
                                                 glm::vec3(x + mouseX, y + mouseY - reticleSize, -distance),
                                                 glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f), 
-                                                glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f));
+                                                glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f),
+                                                _reticleQuad);
 
     glEnable(GL_DEPTH_TEST);
     
@@ -696,7 +715,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 }
 
 //Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) const {
+void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) {
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     
     const int widgetWidth = glCanvas->width();
@@ -722,22 +741,32 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
     const glm::vec3 bottomRight = getPoint(bottomRightYawPitch.x, bottomRightYawPitch.y);
     const glm::vec3 topLeft = getPoint(topLeftYawPitch.x, topLeftYawPitch.y);
     const glm::vec3 topRight = getPoint(bottomRightYawPitch.x, topLeftYawPitch.y);
+
+    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+
+    if (bottomLeft != _previousMagnifierBottomLeft || bottomRight != _previousMagnifierBottomRight
+        || topLeft != _previousMagnifierTopLeft || topRight != _previousMagnifierTopRight) {
+        QVector<glm::vec3> border;
+        border << topLeft;
+        border << bottomLeft;
+        border << bottomRight;
+        border << topRight;
+        border << topLeft;
+        geometryCache->updateVertices(_magnifierBorder, border);
+
+        _previousMagnifierBottomLeft = bottomLeft;
+        _previousMagnifierBottomRight = bottomRight;
+        _previousMagnifierTopLeft = topLeft;
+        _previousMagnifierTopRight = topRight;
+    }
     
     glPushMatrix(); {
         if (showBorder) {
             glDisable(GL_TEXTURE_2D);
             glLineWidth(1.0f);
             //Outer Line
-            glBegin(GL_LINE_STRIP); {
-                glColor4f(1.0f, 0.0f, 0.0f, _alpha);
-                
-                glVertex3f(topLeft.x, topLeft.y, topLeft.z);
-                glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
-                glVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
-                glVertex3f(topRight.x, topRight.y, topRight.z);
-                glVertex3f(topLeft.x, topLeft.y, topLeft.z);
-            } glEnd();
-            
+            glColor4f(1.0f, 0.0f, 0.0f, _alpha);
+            geometryCache->renderVertices(GL_LINE_STRIP, _magnifierBorder);
             glEnable(GL_TEXTURE_2D);
         }
         glColor4f(1.0f, 1.0f, 1.0f, _alpha);
@@ -746,27 +775,16 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
                                                     glm::vec2(magnifyULeft, magnifyVBottom), 
                                                     glm::vec2(magnifyURight, magnifyVBottom), 
                                                     glm::vec2(magnifyURight, magnifyVTop), 
-                                                    glm::vec2(magnifyULeft, magnifyVTop));
+                                                    glm::vec2(magnifyULeft, magnifyVTop),
+                                                    _magnifierQuad);
         
     } glPopMatrix();
 }
 
 void ApplicationOverlay::renderAudioMeter() {
-
-    Application* application = Application::getInstance();
     
     GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    Audio* audio = application->getAudio();
-
-    //  Display a single screen-size quad to create an alpha blended 'collision' flash
-    if (audio->getCollisionFlashesScreen()) {
-        float collisionSoundMagnitude = audio->getCollisionSoundMagnitude();
-        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
-        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
-            renderCollisionOverlay(glCanvas->width(), glCanvas->height(),
-                audio->getCollisionSoundMagnitude());
-        }
-    }
+    Audio::SharedPointer audio = DependencyManager::get<Audio>();
 
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
@@ -820,11 +838,10 @@ void ApplicationOverlay::renderAudioMeter() {
         renderCollisionOverlay(glCanvas->width(), glCanvas->height(), magnitude, 1.0f);
     }
 
-    audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
-
-    audio->renderScope(glCanvas->width(), glCanvas->height());
-
-    audio->renderStats(WHITE_TEXT, glCanvas->width(), glCanvas->height());
+    DependencyManager::get<AudioToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
+    
+    DependencyManager::get<AudioScope>()->render(glCanvas->width(), glCanvas->height());
+    DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, glCanvas->width(), glCanvas->height());
 
     if (isClipping) {
         glColor3f(1, 0, 0);
@@ -848,7 +865,8 @@ void ApplicationOverlay::renderAudioMeter() {
         DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, 
                                                             audioMeterY + AUDIO_METER_INSET, 
                                                             audioLevel - AUDIO_RED_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                            _audioRedQuad);
         
         audioLevel = AUDIO_RED_START;
     }
@@ -863,7 +881,8 @@ void ApplicationOverlay::renderAudioMeter() {
         DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, 
                                                             audioMeterY + AUDIO_METER_INSET, 
                                                             audioLevel - AUDIO_GREEN_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                            _audioGreenQuad);
 
         audioLevel = AUDIO_GREEN_START;
     }
@@ -876,7 +895,8 @@ void ApplicationOverlay::renderAudioMeter() {
     // Draw Blue (low level) quad
     DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET, 
                                                         audioMeterY + AUDIO_METER_INSET, 
-                                                        audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET);
+                                                        audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                        _audioBlueQuad);
 }
 
 void ApplicationOverlay::renderStatsAndLogs() {
@@ -925,23 +945,29 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     NodeList* nodeList = NodeList::getInstance();
 
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
+        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
         GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-        int right = glCanvas->width();
-        int bottom = glCanvas->height();
+        int width = glCanvas->width();
+        int height = glCanvas->height();
+
+        if (width != _previousBorderWidth || height != _previousBorderHeight) {
+            QVector<glm::vec2> border;
+            border << glm::vec2(0, 0);
+            border << glm::vec2(0, height);
+            border << glm::vec2(width, height);
+            border << glm::vec2(width, 0);
+            border << glm::vec2(0, 0);
+            geometryCache->updateVertices(_domainStatusBorder, border);
+            _previousBorderWidth = width;
+            _previousBorderHeight = height;
+        }
 
         glColor3f(CONNECTION_STATUS_BORDER_COLOR[0],
                   CONNECTION_STATUS_BORDER_COLOR[1],
                   CONNECTION_STATUS_BORDER_COLOR[2]);
         glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
 
-        glBegin(GL_LINE_LOOP);
-
-        glVertex2i(0, 0);
-        glVertex2i(0, bottom);
-        glVertex2i(right, bottom);
-        glVertex2i(right, 0);
-
-        glEnd();
+        geometryCache->renderVertices(GL_LINE_STRIP, _domainStatusBorder);
     }
 }
 
@@ -1072,7 +1098,7 @@ void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
         delete _framebufferObject;
     }
     
-    _framebufferObject = new QOpenGLFramebufferObject(size);
+    _framebufferObject = new QOpenGLFramebufferObject(size, QOpenGLFramebufferObject::Depth);
     bindTexture();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

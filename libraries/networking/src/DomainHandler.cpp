@@ -240,6 +240,7 @@ void DomainHandler::settingsRequestFinished() {
             requestDomainSettings();
         }        
     }
+    settingsReply->deleteLater();
 }
 
 void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket) {

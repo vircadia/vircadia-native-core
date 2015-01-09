@@ -14,9 +14,9 @@
 
 #include <ByteCountCoding.h>
 
+#include "BoxEntityItem.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "BoxEntityItem.h"
 
 
 EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -95,3 +95,9 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
+
+void BoxEntityItem::computeShapeInfo(ShapeInfo& info) const {
+    glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
+    info.setBox(halfExtents);
+}
+

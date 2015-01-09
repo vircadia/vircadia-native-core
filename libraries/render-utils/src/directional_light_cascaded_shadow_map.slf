@@ -1,0 +1,97 @@
+<@include Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  directional_light.frag
+//  fragment shader
+//
+//  Created by Andrzej Kapolka on 9/3/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+// the diffuse texture
+uniform sampler2D diffuseMap;
+
+// the normal texture
+uniform sampler2D normalMap;
+
+// the specular texture
+uniform sampler2D specularMap;
+
+// the depth texture
+uniform sampler2D depthMap;
+
+// Everything about shadow
+<@include Shadow.slh@>
+
+// the distance to the near clip plane
+uniform float near;
+
+// scale factor for depth: (far - near) / far
+uniform float depthScale;
+
+// offset for depth texture coordinates
+uniform vec2 depthTexCoordOffset;
+
+// scale for depth texture coordinates
+uniform vec2 depthTexCoordScale;
+
+void main(void) {
+    float depthVal = texture2D(depthMap, gl_TexCoord[0].st).r;
+    vec4 normalVal = texture2D(normalMap, gl_TexCoord[0].st);
+    vec4 diffuseVal = texture2D(diffuseMap, gl_TexCoord[0].st);
+    vec4 specularVal = texture2D(specularMap, gl_TexCoord[0].st);
+
+    // compute the view space position using the depth
+    float z = near / (depthVal * depthScale - 1.0);
+    vec4 position = vec4((depthTexCoordOffset + gl_TexCoord[0].st * depthTexCoordScale) * z, z, 1.0);
+
+    // Eval shadow Texcoord and then Attenuation
+    vec4 shadowTexcoord = evalCascadedShadowTexcoord(position);
+    float shadowAttenuation = evalShadowAttenuation(shadowTexcoord);
+
+    // get the normal from the map
+    vec3 normalizedNormal = normalize(normalVal.xyz * 2.0 - vec3(1.0));
+
+    // how much this fragment faces the light direction
+    float diffuse = dot(normalizedNormal, gl_LightSource[0].position.xyz);
+
+    // Light mapped or not ?
+    if ((normalVal.a >= 0.45) && (normalVal.a <= 0.55)) {
+        normalVal.a = 1.0;
+
+        // need to catch normals perpendicular to the projection plane hence the magic number for the threshold
+        // it should be just 0, but we have innacurracy so we need to overshoot
+        const float PERPENDICULAR_THRESHOLD = -0.005;
+        float facingLight = step(PERPENDICULAR_THRESHOLD, diffuse); 
+        
+        // evaluate the shadow test but only relevant for light facing fragments
+        float lightAttenuation = (1 - facingLight) + facingLight * shadowAttenuation;
+            
+        // diffuse light is the lightmap dimmed by shadow
+        vec3 diffuseLight = lightAttenuation * specularVal.rgb;
+        // ambient is a tiny percentage of the lightmap and only when in the shadow
+        vec3 ambientLight = (1 - lightAttenuation) * 0.5 * specularVal.rgb; 
+
+        gl_FragColor = vec4(diffuseVal.rgb * (ambientLight +  diffuseLight), 1.0);
+    } else {
+
+        // average values from the shadow map
+        float facingLight = step(0.0, diffuse) * shadowAttenuation;
+        
+        // compute the base color based on OpenGL lighting model
+        vec3 baseColor = diffuseVal.rgb * (gl_FrontLightModelProduct.sceneColor.rgb +
+            gl_FrontLightProduct[0].ambient.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuse * facingLight));
+        
+        // compute the specular multiplier (sans exponent)
+        float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position.xyz - normalize(position.xyz)),
+            normalizedNormal));    
+        
+        // add specular contribution
+        vec4 specularColor = specularVal;
+        gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb, normalVal.a);
+    }
+}

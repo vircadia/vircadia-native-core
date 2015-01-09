@@ -148,6 +148,7 @@ MetavoxelEditor::MetavoxelEditor() :
         return;
     }
         
+    _gridProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/grid.vert");
     _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag");
     _gridProgram.link();
 }

@@ -20,7 +20,7 @@ MixedProcessedAudioStream::MixedProcessedAudioStream(int numFrameSamples, int nu
 
 void MixedProcessedAudioStream::outputFormatChanged(int outputFormatChannelCountTimesSampleRate) {
     _outputFormatChannelsTimesSampleRate = outputFormatChannelCountTimesSampleRate;
-    int deviceOutputFrameSize = networkToDeviceSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+    int deviceOutputFrameSize = networkToDeviceSamples(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
     _ringBuffer.resizeForFrameSize(deviceOutputFrameSize);
 }
 
@@ -55,9 +55,11 @@ int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray&
 }
 
 int MixedProcessedAudioStream::networkToDeviceSamples(int networkSamples) {
-    return (quint64)networkSamples * (quint64)_outputFormatChannelsTimesSampleRate / (quint64)(STEREO_FACTOR * SAMPLE_RATE);
+    return (quint64)networkSamples * (quint64)_outputFormatChannelsTimesSampleRate / (quint64)(STEREO_FACTOR
+                                                                                               * AudioConstants::SAMPLE_RATE);
 }
 
 int MixedProcessedAudioStream::deviceToNetworkSamples(int deviceSamples) {
-    return (quint64)deviceSamples * (quint64)(STEREO_FACTOR * SAMPLE_RATE) / (quint64)_outputFormatChannelsTimesSampleRate;
+    return (quint64)deviceSamples * (quint64)(STEREO_FACTOR * AudioConstants::SAMPLE_RATE)
+        / (quint64)_outputFormatChannelsTimesSampleRate;
 }

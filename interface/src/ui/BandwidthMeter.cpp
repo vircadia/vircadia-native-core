@@ -48,7 +48,7 @@ namespace { // .cpp-local
 BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
     { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x33cc99ff },
     { "Avatars" , "Kbps", 8000.0 / 1024.0, 0xffef40c0 },
-    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 },
+    { "Octree"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 },
     { "Metavoxels", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
@@ -99,11 +99,7 @@ void BandwidthMeter::renderBox(int x, int y, int w, int h) {
 }
 
 void BandwidthMeter::renderVerticalLine(int x, int y, int h) {
-
-    glBegin(GL_LINES);
-    glVertex2i(x, y);
-    glVertex2i(x, y + h);
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderLine(glm::vec2(x, y), glm::vec2(x, y + h));
 }
 
 inline int BandwidthMeter::centered(int subject, int object) {

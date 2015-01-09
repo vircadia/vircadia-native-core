@@ -5,7 +5,7 @@
 //  Created by Brad Hefta-Gaub on 8/21/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
-//  Threaded or non-threaded object for sending voxels to a client
+//  Threaded or non-threaded object for sending octree data packets to a client
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,7 +22,7 @@
 
 class OctreeServer;
 
-/// Threaded processor for sending voxel packets to a single client
+/// Threaded processor for sending octree packets to a single client
 class OctreeSendThread : public GenericThread {
     Q_OBJECT
 public:

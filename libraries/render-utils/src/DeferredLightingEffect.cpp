@@ -25,24 +25,37 @@
 #include "RenderUtil.h"
 #include "TextureCache.h"
 
+#include "simple_vert.h"
+#include "simple_frag.h"
+
+#include "deferred_light_vert.h"
+#include "deferred_light_limited_vert.h"
+
+#include "directional_light_frag.h"
+#include "directional_light_shadow_map_frag.h"
+#include "directional_light_cascaded_shadow_map_frag.h"
+
+#include "point_light_frag.h"
+#include "spot_light_frag.h"
+
 
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     _viewState = viewState;
-    _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/simple.vert");
-    _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/simple.frag");
+    _simpleProgram.addShaderFromSourceCode(QGLShader::Vertex, simple_vert);
+    _simpleProgram.addShaderFromSourceCode(QGLShader::Fragment, simple_frag);
     _simpleProgram.link();
     
     _simpleProgram.bind();
     _glowIntensityLocation = _simpleProgram.uniformLocation("glowIntensity");
     _simpleProgram.release();
     
-    loadLightProgram("shaders/directional_light.frag", false, _directionalLight, _directionalLightLocations);
-    loadLightProgram("shaders/directional_light_shadow_map.frag", false, _directionalLightShadowMap,
+    loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
+    loadLightProgram(directional_light_shadow_map_frag, false, _directionalLightShadowMap,
         _directionalLightShadowMapLocations);
-    loadLightProgram("shaders/directional_light_cascaded_shadow_map.frag", false, _directionalLightCascadedShadowMap,
+    loadLightProgram(directional_light_cascaded_shadow_map_frag, false, _directionalLightCascadedShadowMap,
         _directionalLightCascadedShadowMapLocations);
-    loadLightProgram("shaders/point_light.frag", true, _pointLight, _pointLightLocations);
-    loadLightProgram("shaders/spot_light.frag", true, _spotLight, _spotLightLocations);
+    loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
+    loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
@@ -400,10 +413,9 @@ void DeferredLightingEffect::render() {
     _postLightingRenderables.clear();
 }
 
-void DeferredLightingEffect::loadLightProgram(const char* name, bool limited, ProgramObject& program, LightLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
-        (limited ? "shaders/deferred_light_limited.vert" : "shaders/deferred_light.vert"));
-    program.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + name);
+void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations) {
+    program.addShaderFromSourceCode(QGLShader::Vertex, (limited ? deferred_light_limited_vert : deferred_light_vert));
+    program.addShaderFromSourceCode(QGLShader::Fragment, fragSource);
     program.link();
     
     program.bind();

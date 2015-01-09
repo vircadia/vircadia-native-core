@@ -31,7 +31,7 @@ public:
     };
     
     // standard constructors
-    JurisdictionMap(NodeType_t type = NodeType::VoxelServer); // default constructor
+    JurisdictionMap(NodeType_t type = NodeType::EntityServer); // default constructor
     JurisdictionMap(const JurisdictionMap& other); // copy constructor
 
     // standard assignment

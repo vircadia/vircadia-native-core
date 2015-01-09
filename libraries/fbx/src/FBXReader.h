@@ -283,7 +283,4 @@ FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool l
 /// \exception QString if an error occurs in parsing
 FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
-/// Reads SVO geometry from the supplied model data.
-FBXGeometry readSVO(const QByteArray& model);
-
 #endif // hifi_FBXReader_h
