@@ -162,9 +162,9 @@ QByteArray AvatarData::toByteArray() {
                                        _headData->getFinalYaw(),
                                        _headData->getFinalRoll());
     if (this->isMyAvatar()) {
-        glm::vec3 lean = glm::radians(glm::vec3(_headData->getFinalLeanForward(),
-                                                _headData->getTorsoTwist(),
-                                                _headData->getFinalLeanSideways()));
+        glm::vec3 lean = glm::vec3(_headData->getFinalLeanForward(),
+                                   _headData->getTorsoTwist(),
+                                   _headData->getFinalLeanSideways());
         pitchYawRoll -= lean;
     }
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, pitchYawRoll.x);
