@@ -73,7 +73,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
 }
 
 void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
-    static constexpr int BYTES_PER_MEGABYTES = 1024 * 1024;
+    static const int BYTES_PER_MEGABYTES = 1024 * 1024;
     const int RETAINED_RESOURCE_COUNT = 50;
     const int RETAINED_RESOURCE_SIZE = 100 * BYTES_PER_MEGABYTES;
     
