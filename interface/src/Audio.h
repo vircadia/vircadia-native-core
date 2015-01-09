@@ -49,6 +49,7 @@
 
 #ifdef _WIN32
 #pragma warning( push )
+#pragma warning( disable : 4273 )
 #pragma warning( disable : 4305 )
 #endif
 extern "C" {
@@ -60,6 +61,13 @@ extern "C" {
 #endif
 
 static const int NUM_AUDIO_CHANNELS = 2;
+
+static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
+static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
+static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
+static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
+static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
+static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
 
 class QAudioInput;
 class QAudioOutput;
@@ -108,7 +116,18 @@ public:
     float getAudioOutputMsecsUnplayed() const;
     
     void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
-    
+
+    int getOutputBufferSize() { return _outputBufferSizeFrames; }
+
+    bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled; }
+    void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled = enabled; }
+
+    int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec; }
+    void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec = msecs; }
+
+    int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold; }
+    void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold = threshold; }
+
     static const float CALLBACK_ACCELERATOR_RATIO;
     
 public slots:
@@ -136,6 +155,8 @@ public slots:
   
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
+
+    void setOutputBufferSize(int numFrames);
 
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
@@ -184,6 +205,14 @@ private:
 
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;
+
+    int _outputBufferSizeFrames;
+    bool _outputStarveDetectionEnabled;
+    quint64 _outputStarveDetectionStartTimeMsec;
+    int _outputStarveDetectionCount;
+    int _outputStarveDetectionPeriodMsec;
+    int _outputStarveDetectionThreshold; // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
+
     
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
@@ -208,7 +237,7 @@ private:
     // Adds Reverb
     void initGverb();
     void updateGverbOptions();
-    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format);
+    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 

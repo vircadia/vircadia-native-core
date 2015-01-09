@@ -224,17 +224,36 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
 }
 
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
+    QWriteLocker lock(&_lock);
     Overlay* thisOverlay = NULL;
-    {
-        QReadLocker lock(&_lock);
-        if (_overlaysHUD.contains(id)) {
-            thisOverlay = _overlaysHUD[id];
-        } else if (_overlaysWorld.contains(id)) {
-            thisOverlay = _overlaysWorld[id];
-        }
+
+    if (_overlaysHUD.contains(id)) {
+        thisOverlay = _overlaysHUD[id];
+    } else if (_overlaysWorld.contains(id)) {
+        thisOverlay = _overlaysWorld[id];
     }
+
     if (thisOverlay) {
-        thisOverlay->setProperties(properties);
+        if (thisOverlay->is3D()) {
+            Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay);
+
+            bool oldDrawOnHUD = overlay3D->getDrawOnHUD();
+            thisOverlay->setProperties(properties);
+            bool drawOnHUD = overlay3D->getDrawOnHUD();
+
+            if (drawOnHUD != oldDrawOnHUD) {
+                if (drawOnHUD) {
+                    _overlaysWorld.remove(id);
+                    _overlaysHUD[id] = thisOverlay;
+                } else {
+                    _overlaysHUD.remove(id);
+                    _overlaysWorld[id] = thisOverlay;
+                }
+            }
+        } else {
+            thisOverlay->setProperties(properties);
+        }
+
         return true;
     }
     return false;
@@ -448,25 +467,6 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
         vec3FromScriptValue(intersection, value.intersection);
     }
     value.extraInfo = object.property("extraInfo").toVariant().toString();
-}
-
-void Overlays::overlayDrawOnChanged(Base3DOverlay* overlay) {
-    QWriteLocker lock(&_lock);
-    if (overlay->getDrawOnHUD()) {
-        for (unsigned int id : _overlaysWorld.keys()) {
-            if (_overlaysWorld[id] == overlay) {
-                _overlaysWorld.remove(id);
-                _overlaysHUD[id] = overlay;
-            }
-        }
-    } else {
-        for (unsigned int id : _overlaysHUD.keys()) {
-            if (_overlaysHUD[id] == overlay) {
-                _overlaysHUD.remove(id);
-                _overlaysWorld[id] = overlay;
-            }
-        }
-    }
 }
 
 bool Overlays::isLoaded(unsigned int id) {

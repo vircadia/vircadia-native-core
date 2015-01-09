@@ -21,8 +21,6 @@
 #ifdef USE_BULLET_PHYSICS
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
-class EntityTree;
-
 ATTRIBUTE_ALIGNED16(class) ThreadSafeDynamicsWorld : public btDiscreteDynamicsWorld {
 public:
     BT_DECLARE_ALIGNED_ALLOCATOR();
@@ -31,20 +29,15 @@ public:
             btDispatcher* dispatcher,
             btBroadphaseInterface* pairCache,
             btConstraintSolver* constraintSolver,
-            btCollisionConfiguration* collisionConfiguration,
-            EntityTree* entities);
+            btCollisionConfiguration* collisionConfiguration);
 
     // virtual overrides from btDiscreteDynamicsWorld
     int stepSimulation( btScalar timeStep, int maxSubSteps=1, btScalar fixedTimeStep=btScalar(1.)/btScalar(60.));
-    void synchronizeMotionStates();
 
     // btDiscreteDynamicsWorld::m_localTime is the portion of real-time that has not yet been simulated
     // but is used for MotionState::setWorldTransform() extrapolation (a feature that Bullet uses to provide 
     // smoother rendering of objects when the physics simulation loop is ansynchronous to the render loop).
     float getLocalTimeAccumulation() const { return m_localTime; }
-
-private:
-    EntityTree* _entities;
 };
 
 #else // USE_BULLET_PHYSICS

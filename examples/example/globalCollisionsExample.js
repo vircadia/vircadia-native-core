@@ -14,13 +14,6 @@
 
 print("hello...");
 
-function entityCollisionWithVoxel(entity, voxel, collision) {
-    print("entityCollisionWithVoxel()..");
-    print("   entity.getID()=" + entity.id);
-    print("   voxel color...=" + voxel.red + ", " + voxel.green + ", " + voxel.blue);
-    Vec3.print('penetration=', collision.penetration);
-    Vec3.print('contactPoint=', collision.contactPoint);
-}
 
 function entityCollisionWithEntity(entityA, entityB, collision) {
     print("entityCollisionWithParticle()..");
@@ -30,7 +23,6 @@ function entityCollisionWithEntity(entityA, entityB, collision) {
     Vec3.print('contactPoint=', collision.contactPoint);
 }
 
-Entities.entityCollisionWithVoxel.connect(entityCollisionWithVoxel);
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 
 print("here... hello...");

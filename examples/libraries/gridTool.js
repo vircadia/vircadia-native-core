@@ -439,7 +439,11 @@ GridTool = function(opts) {
             } else if (overlay == uiOverlays.snapToGridCheckbox.overlay) {
                 horizontalGrid.setSnapToGrid(!horizontalGrid.getSnapToGrid());
             } else if (overlay == uiOverlays.moveToAvatar.overlay) {
-                horizontalGrid.setPosition(MyAvatar.position);
+                var position = MyAvatar.getJointPosition("LeftFoot");
+                if (position.x == 0 && position.y == 0 && position.z == 0) {
+                    position = MyAvatar.position;
+                }
+                horizontalGrid.setPosition(position);
             } else if (overlay == uiOverlays.moveToSelection.overlay) {
                 var newPosition = selectionManager.worldPosition;
                 newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });

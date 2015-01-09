@@ -13,6 +13,7 @@
 
 #include <GLCanvas.h>
 #include <PathUtils.h>
+#include <GeometryCache.h>
 
 #include "Audio.h"
 
@@ -60,21 +61,12 @@ void AudioToolBox::render(int x, int y, bool boxed) {
         } else {
             glColor3f(0.41f, 0.41f, 0.41f);
         }
-        glBegin(GL_QUADS);
-        
-        glTexCoord2f(1, 1);
-        glVertex2f(boxBounds.left(), boxBounds.top());
-        
-        glTexCoord2f(0, 1);
-        glVertex2f(boxBounds.right(), boxBounds.top());
-        
-        glTexCoord2f(0, 0);
-        glVertex2f(boxBounds.right(), boxBounds.bottom());
-        
-        glTexCoord2f(1, 0);
-        glVertex2f(boxBounds.left(), boxBounds.bottom());
-        
-        glEnd();
+        glm::vec2 topLeft(boxBounds.left(), boxBounds.top());
+        glm::vec2 bottomRight(boxBounds.right(), boxBounds.bottom());
+        glm::vec2 texCoordTopLeft(1,1);
+        glm::vec2 texCoordBottomRight(0,0);
+
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
     }
     
     float iconColor = 1.0f;
@@ -101,21 +93,13 @@ void AudioToolBox::render(int x, int y, bool boxed) {
     }
     
     glColor3f(iconColor, iconColor, iconColor);
-    glBegin(GL_QUADS);
-    
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex2f(_iconBounds.left(), _iconBounds.top());
-    
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex2f(_iconBounds.right(), _iconBounds.top());
-    
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex2f(_iconBounds.right(), _iconBounds.bottom());
-    
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex2f(_iconBounds.left(), _iconBounds.bottom());
-    
-    glEnd();
+
+    glm::vec2 topLeft(_iconBounds.left(), _iconBounds.top());
+    glm::vec2 bottomRight(_iconBounds.right(), _iconBounds.bottom());
+    glm::vec2 texCoordTopLeft(1,1);
+    glm::vec2 texCoordBottomRight(0,0);
+
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
     
     glDisable(GL_TEXTURE_2D);
 }

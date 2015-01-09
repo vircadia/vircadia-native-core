@@ -647,27 +647,30 @@ void EntityItem::simulate(const quint64& now) {
         glm::quat rotation = getRotation();
 
         // angular damping
-        glm::vec3 angularVelocity = glm::radians(getAngularVelocity());
+        glm::vec3 angularVelocity = getAngularVelocity();
         if (_angularDamping > 0.0f) {
             angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
             if (wantDebug) {        
                 qDebug() << "    angularDamping :" << _angularDamping;
                 qDebug() << "    newAngularVelocity:" << angularVelocity;
             }
+            setAngularVelocity(angularVelocity);
         }
 
-        float angularSpeed = glm::length(angularVelocity);
+        float angularSpeed = glm::length(_angularVelocity);
         
-        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // ~0.1 degree/sec
+        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            angularVelocity = NO_ANGULAR_VELOCITY;
+            setAngularVelocity(NO_ANGULAR_VELOCITY);
         } else {
-            float angle = timeElapsed * angularSpeed;
-            glm::quat  dQ = glm::angleAxis(angle, glm::normalize(angularVelocity));
+            // NOTE: angularSpeed is currently in degrees/sec!!!
+            // TODO: Andrew to convert to radians/sec
+            float angle = timeElapsed * glm::radians(angularSpeed);
+            glm::vec3 axis = _angularVelocity / angularSpeed;
+            glm::quat  dQ = glm::angleAxis(angle, axis);
             rotation = glm::normalize(dQ * rotation);
             setRotation(rotation);
         }
-        setAngularVelocity(angularVelocity);
     }
 
 #ifdef USE_BULLET_PHYSICS
@@ -1016,7 +1019,6 @@ void EntityItem::recalculateCollisionShape() {
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;
-const float MIN_DIMENSION_DELTA = 0.0001f;
 const float MIN_ALIGNMENT_DOT = 0.9999f;
 const float MIN_MASS_DELTA = 0.001f;
 const float MIN_VELOCITY_DELTA = 0.025f;
@@ -1042,17 +1044,17 @@ void EntityItem::updatePositionInMeters(const glm::vec3& value) {
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) { 
-    if (glm::distance(_dimensions, value) * (float)TREE_SCALE > MIN_DIMENSION_DELTA) {
-        _dimensions = value; 
+    if (_dimensions != value) {
+        _dimensions = glm::abs(value);
         recalculateCollisionShape();
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
     }
 }
 
 void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
-    glm::vec3 dimensions = value / (float) TREE_SCALE;
-    if (glm::distance(_dimensions, dimensions) * (float)TREE_SCALE > MIN_DIMENSION_DELTA) {
-        _dimensions = dimensions; 
+    glm::vec3 dimensions = glm::abs(value) / (float) TREE_SCALE;
+    if (_dimensions != dimensions) {
+        _dimensions = dimensions;
         recalculateCollisionShape();
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
     }

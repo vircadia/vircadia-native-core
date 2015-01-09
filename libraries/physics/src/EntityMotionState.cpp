@@ -71,7 +71,8 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     _entity->setVelocityInMeters(v);
 
     getAngularVelocity(v);
-    _entity->setAngularVelocity(v);
+    // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
+    _entity->setAngularVelocity(glm::degrees(v));
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
@@ -82,7 +83,8 @@ void EntityMotionState::applyVelocities() const {
 #ifdef USE_BULLET_PHYSICS
     if (_body) {
         setVelocity(_entity->getVelocityInMeters());
-        setAngularVelocity(_entity->getAngularVelocity());
+        // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
+        setAngularVelocity(glm::radians(_entity->getAngularVelocity()));
         _body->setActivationState(ACTIVE_TAG);
     }
 #endif // USE_BULLET_PHYSICS
@@ -140,7 +142,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setVelocity(_sentVelocity);
             _sentAcceleration = bulletToGLM(_body->getGravity());
             properties.setGravity(_sentAcceleration);
-            properties.setAngularVelocity(_sentAngularVelocity);
+            // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
+            properties.setAngularVelocity(glm::degrees(_sentAngularVelocity));
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
