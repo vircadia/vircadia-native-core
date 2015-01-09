@@ -26,9 +26,6 @@ EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement()
 
 EntityTreeElement::~EntityTreeElement() {
     _octreeMemoryUsage -= sizeof(EntityTreeElement);
-    foreach(EntityItem* item, *_entityItems) {
-        delete item;
-    }
     delete _entityItems;
     _entityItems = NULL;
 }

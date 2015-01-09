@@ -4008,9 +4008,9 @@ void Application::parseVersionXml() {
     QString latestVersion;
     QUrl downloadUrl;
     QString releaseNotes("Unavailable");
-    QObject* sender = qobject_cast<QNetworkReply*>(QObject::sender());
+    QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
 
-    QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
+    QXmlStreamReader xml(sender);
 
     while (!xml.atEnd() && !xml.hasError()) {
         if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == operatingSystem) {
