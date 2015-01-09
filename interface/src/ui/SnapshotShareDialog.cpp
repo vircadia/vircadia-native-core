@@ -148,6 +148,7 @@ void SnapshotShareDialog::postRequestFinished() {
 
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
     QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    requestReply->deleteLater();
     const QJsonObject& responseObject = jsonResponse.object();
 
     if (responseObject.contains("id")) {

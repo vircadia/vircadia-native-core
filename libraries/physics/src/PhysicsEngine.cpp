@@ -169,7 +169,7 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         _collisionDispatcher = new btCollisionDispatcher(_collisionConfig);
         _broadphaseFilter = new btDbvtBroadphase();
         _constraintSolver = new btSequentialImpulseConstraintSolver;
-        _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig, _entityTree);
+        _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
 
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
@@ -200,13 +200,14 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
 const float FIXED_SUBSTEP = 1.0f / 60.0f;
 
 void PhysicsEngine::stepSimulation() {
+    lock();
     // NOTE: the grand order of operations is:
     // (1) relay incoming changes
     // (2) step simulation
     // (3) synchronize outgoing motion states
     // (4) send outgoing packets
 
-    // this is step (1)
+    // This is step (1).
     relayIncomingChangesToSimulation();
 
     const int MAX_NUM_SUBSTEPS = 4;
@@ -215,9 +216,24 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    // steps (2) and (3) are performed by ThreadSafeDynamicsWorld::stepSimulation())
+    // This is step (2).
     int numSubSteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, FIXED_SUBSTEP);
     _frameCount += (uint32_t)numSubSteps;
+    unlock();
+
+    // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
+    //
+    // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
+    // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
+    // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
+    // lock on the tree before we re-lock ourselves.
+    //
+    // TODO: untangle these lock sequences.
+    _entityTree->lockForWrite();
+    lock();
+    _dynamicsWorld->synchronizeMotionStates();
+    unlock();
+    _entityTree->unlock();
 }
 
 // Bullet collision flags are as follows:

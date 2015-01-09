@@ -49,16 +49,22 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(glm::quat());
-    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() * glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
-        joint.preTransform * glm::mat4_cast(joint.preRotation)));
-    state.setRotationInConstrainedFrame(
-        glm::angleAxis(- RADIANS_PER_DEGREE * (_owningHead->getFinalRoll() - owningAvatar->getHead()->getFinalLeanSideways()),
-                                                       glm::normalize(inverse * axes[2]))
-        * glm::angleAxis(RADIANS_PER_DEGREE * (_owningHead->getFinalYaw() - _owningHead->getTorsoTwist()),
-                         glm::normalize(inverse * axes[1]))
-        * glm::angleAxis(- RADIANS_PER_DEGREE * (_owningHead->getFinalPitch() - owningAvatar->getHead()->getFinalLeanForward()),
-                         glm::normalize(inverse * axes[0]))
-        * joint.rotation, DEFAULT_PRIORITY);
+    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
+                                               glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
+                                               joint.preTransform * glm::mat4_cast(joint.preRotation)));
+    glm::vec3 pitchYawRoll = safeEulerAngles(_owningHead->getFinalOrientationInLocalFrame());
+    if (owningAvatar->isMyAvatar()) {
+        glm::vec3 lean = glm::radians(glm::vec3(_owningHead->getFinalLeanForward(),
+                                                _owningHead->getTorsoTwist(),
+                                                _owningHead->getFinalLeanSideways()));
+        pitchYawRoll -= lean;
+    }
+    
+    state.setRotationInConstrainedFrame(glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * axes[2]))
+                                        * glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * axes[1]))
+                                        * glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * axes[0]))
+                                        * joint.rotation, DEFAULT_PRIORITY);
+    
 }
 
 void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentState, const FBXJoint& joint, JointState& state) {

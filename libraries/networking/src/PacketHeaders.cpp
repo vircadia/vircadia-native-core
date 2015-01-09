@@ -57,7 +57,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeInjectAudio:
             return 1;
         case PacketTypeAvatarData:
-            return 3;
+            return 4;
         case PacketTypeAvatarIdentity:
             return 1;
         case PacketTypeEnvironmentData:

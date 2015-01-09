@@ -837,7 +837,7 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
             if (block->command.arguments.size()) {
                 // THe actual value of the var defined sneeds to be evaluated:
                 String val;
-                for (int t = 1; t < block->command.arguments.size(); t++) {
+                for (unsigned int t = 1; t < block->command.arguments.size(); t++) {
                     // detect if a param is a var
                     int len = block->command.arguments[t].length();
                     if ((block->command.arguments[t][0] == Tag::VAR)
