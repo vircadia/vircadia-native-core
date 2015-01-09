@@ -175,11 +175,6 @@ QByteArray AvatarData::toByteArray() {
     // Instantaneous audio loudness (used to drive facial animation)
     memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
     destinationBuffer += sizeof(float);
-
-    // chat message
-    *destinationBuffer++ = _chatMessage.size();
-    memcpy(destinationBuffer, _chatMessage.data(), _chatMessage.size() * sizeof(char));
-    destinationBuffer += _chatMessage.size() * sizeof(char);
     
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
@@ -300,11 +295,10 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     //     lookAt        = 12
     //     audioLoudness =  4
     // }
-    // + 1 byte for messageSize (0)
     // + 1 byte for pupilSize
     // + 1 byte for numJoints (0)
     // = 53 bytes
-    int minPossibleSize = 53; 
+    int minPossibleSize = 52;
     
     int maxAvailableSize = packet.size() - offset;
     if (minPossibleSize > maxAvailableSize) {
@@ -419,23 +413,6 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
          }
         _headData->_audioLoudness = audioLoudness;
     } // 4 bytes
-    
-    // chat
-    int chatMessageSize = *sourceBuffer++;
-    minPossibleSize += chatMessageSize;
-    if (minPossibleSize > maxAvailableSize) {
-        if (shouldLogError(now)) {
-            qDebug() << "Malformed AvatarData packet before ChatMessage;"
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize 
-                << " maxAvailableSize = " << maxAvailableSize;
-        }
-        return maxAvailableSize;
-    }
-    { // chat payload
-        _chatMessage = string((char*)sourceBuffer, chatMessageSize);
-        sourceBuffer += chatMessageSize * sizeof(char);
-    } // 1 + chatMessageSize bytes
     
     { // bitFlags and face data
         unsigned char bitItems = *sourceBuffer++;
