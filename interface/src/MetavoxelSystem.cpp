@@ -1847,34 +1847,32 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         }
                         NormalIndex index = { { vertices.size(), vertices.size(), vertices.size(), vertices.size() } };
                         if (stitch) {
-                            // pack the corners set into a set of flags
-                            int corners = 0;
+                            glm::vec2 position;
+                            int count = 0;
                             for (int i = 0; i < crossingCount; i++) {
                                 const EdgeCrossing& crossing = crossings[i];
                                 if (qAlpha(crossing.color) == 0) {
-                                    int corner = (crossing.point.x == 1.0f) | ((crossing.point.z == 1.0f) << 1);
-                                    corners |= (1 << corner);
+                                    position += glm::vec2(crossing.point.x, crossing.point.z);
+                                    count++;
                                 }
                             }
-                            // fall into four cases based on set corners
-                            int offsetX = 0, offsetZ = 0;
-                            switch(corners) {
-                                case 3:
-                                case 11: // z- edge, x+/z- corner
-                                    offsetX = 1;
-                                    break;
-                                    
-                                case 12: 
-                                case 13: // z+ edge, x-/z+ corner
-                                    offsetZ = 1;
-                                    break;
-                                
-                                case 10:
-                                case 14: // x+ edge, x+/z+ corner
-                                    offsetX = offsetZ = 1;
-                                    break;
+                            position /= count;
+                            
+                            const int CORNER_COUNT = 4;
+                            float closestDistance = FLT_MAX;
+                            int closestOffsetX = 0;
+                            int closestOffsetZ = 0;
+                            for (int i = 0; i < CORNER_COUNT; i++) {
+                                int offsetX = (i & X_MAXIMUM_FLAG) ? 1 : 0;
+                                int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
+                                float distance = glm::distance(position, glm::vec2(offsetX, offsetZ));
+                                if (distance < closestDistance && heightLineSrc[width * offsetZ + offsetX] != 0) {
+                                    closestDistance = distance;
+                                    closestOffsetX = offsetX;
+                                    closestOffsetZ = offsetZ;
+                                }
                             }
-                            const quint16* height = heightLineSrc + width * offsetZ + offsetX;
+                            const quint16* height = heightLineSrc + width * closestOffsetZ + closestOffsetX;
                             int left = height[-1];
                             int right = height[1];
                             int down = height[-width];
@@ -1884,7 +1882,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             quint8 red = numeric_limits<quint8>::max();
                             quint8 green = numeric_limits<quint8>::max();
                             quint8 blue = numeric_limits<quint8>::max();
-                            int clampedOffsetX = clampedX + offsetX, clampedOffsetZ = clampedZ + offsetZ;
+                            int clampedOffsetX = clampedX + closestOffsetX, clampedOffsetZ = clampedZ + closestOffsetZ;
                             if (colorSrc) {
                                 const uchar* color = colorSrc + ((int)(clampedOffsetZ * colorStepZ) * colorWidth +
                                     (int)(clampedOffsetX * colorStepX)) * DataBlock::COLOR_BYTES;
@@ -1905,8 +1903,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     material = mapping;
                                 }
                             }
-                            VoxelPoint point = { glm::vec3(clampedX + offsetX, *height * voxelScale,
-                                    clampedZ + offsetZ) * step, { red, green, blue },
+                            VoxelPoint point = { glm::vec3(clampedOffsetX, *height * voxelScale, clampedOffsetZ) * step,
+                                { red, green, blue },
                                 { (char)(normal.x * numeric_limits<qint8>::max()),
                                     (char)(normal.y * numeric_limits<qint8>::max()),
                                     (char)(normal.z * numeric_limits<qint8>::max()) }, { material, 0, 0, 0 },
