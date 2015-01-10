@@ -98,7 +98,9 @@ void EntityTreeRenderer::init() {
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
+    _tree->lockForRead();
     EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
+    _tree->unlock();
     return loadEntityScript(entity);
 }
 
