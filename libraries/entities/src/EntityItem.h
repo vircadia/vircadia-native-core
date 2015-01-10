@@ -64,6 +64,7 @@ const QString DEFAULT_USER_DATA = QString("");
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem  {
+    friend class EntityTreeElement;
 
 public:
     enum EntityDirtyFlags {
@@ -302,6 +303,7 @@ public:
     void* getPhysicsInfo() const { return _physicsInfo; }
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     
+    EntityTreeElement* getElement() const { return _element; }
 protected:
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -363,6 +365,8 @@ protected:
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
+
+    EntityTreeElement* _element;    // back pointer to containing Element
 };
 
 

@@ -179,7 +179,7 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
 
             // If this is one of the old elements we're looking for, then ask it to remove the old entity
             if (!details.oldFound && entityTreeElement == details.oldContainingElement) {
-                entityTreeElement->removeEntityItem(details.entity);
+                // DO NOT remove the entity here.  It will be removed when added to the destination element.
                 _foundOldCount++;
                 //details.oldFound = true; // TODO: would be nice to add this optimization
                 if (_wantDebug) {
@@ -193,8 +193,15 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
             // If this element is the best fit for the new bounds of this entity then add the entity to the element
             if (!details.newFound && entityTreeElement->bestFitBounds(details.newCube)) {
                 EntityItemID entityItemID = details.entity->getEntityItemID();
-                entityTreeElement->addEntityItem(details.entity);
-                _tree->setContainingElement(entityItemID, entityTreeElement);
+                // remove from the old before adding
+                EntityTreeElement* oldElement = details.entity->getElement();
+                if (oldElement != entityTreeElement) {
+                    if (oldElement) {
+                        oldElement->removeEntityItem(details.entity);
+                    }
+                    entityTreeElement->addEntityItem(details.entity);
+                    _tree->setContainingElement(entityItemID, entityTreeElement);
+                }
                 _foundNewCount++;
                 //details.newFound = true; // TODO: would be nice to add this optimization
                 if (_wantDebug) {
@@ -227,7 +234,7 @@ bool MovingEntitiesOperator::postRecursion(OctreeElement* element) {
     
 
 
-    // It's not OK to prune if we have the potential of deleting the original containig element.
+    // It's not OK to prune if we have the potential of deleting the original containing element
     // because if we prune the containing element then new might end up reallocating the same memory later 
     // and that will confuse our logic.
     // 

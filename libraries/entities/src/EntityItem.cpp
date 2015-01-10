@@ -97,6 +97,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
+    _element = NULL;
     initFromEntityItemID(entityItemID);
 }
 
@@ -112,6 +113,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
+    _element = NULL;
     initFromEntityItemID(entityItemID);
     setProperties(properties);
 }
@@ -119,6 +121,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 EntityItem::~EntityItem() {
     // be sure to clean up _physicsInfo before calling this dtor
     assert(_physicsInfo == NULL);
+    assert(_element == NULL);
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
