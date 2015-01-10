@@ -665,7 +665,7 @@ const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
     }
     return foundEntity;
 }
-
+   
 EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) {
     EntityItem* foundEntity = NULL;
     uint16_t numberOfEntities = _entityItems->size();
