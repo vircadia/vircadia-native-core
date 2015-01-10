@@ -50,10 +50,10 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     _proxyModel.setSourceModel(&_scriptsModel);
     _proxyModel.sort(0, Qt::AscendingOrder);
     _proxyModel.setDynamicSortFilter(true);
-    ui->scriptListView->setModel(&_proxyModel);
+    ui->scriptTreeView->setModel(&_proxyModel);
 
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
-    connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
+    connect(ui->scriptTreeView, &QTreeView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
 
     connect(ui->reloadAllButton, &QPushButton::clicked,
             Application::getInstance(), &Application::reloadAllScripts);
@@ -80,7 +80,7 @@ void RunningScriptsWidget::loadScriptFromList(const QModelIndex& index) {
 }
 
 void RunningScriptsWidget::loadSelectedScript() {
-    QModelIndex selectedIndex = ui->scriptListView->currentIndex();
+    QModelIndex selectedIndex = ui->scriptTreeView->currentIndex();
     if (selectedIndex.isValid()) {
         loadScriptFromList(selectedIndex);
     }
@@ -166,7 +166,7 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
 
 void RunningScriptsWidget::selectFirstInList() {
     if (_proxyModel.rowCount() > 0) {
-        ui->scriptListView->setCurrentIndex(_proxyModel.index(0, 0));
+        ui->scriptTreeView->setCurrentIndex(_proxyModel.index(0, 0));
     }
 }
 
@@ -177,7 +177,7 @@ bool RunningScriptsWidget::eventFilter(QObject* sender, QEvent* event) {
         }
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
-            QModelIndex selectedIndex = ui->scriptListView->currentIndex();
+            QModelIndex selectedIndex = ui->scriptTreeView->currentIndex();
             if (selectedIndex.isValid()) {
                 loadScriptFromList(selectedIndex);
             }
