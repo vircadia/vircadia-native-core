@@ -21,6 +21,7 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
+/*
 const float EntityItem::IMMORTAL = -1.0f; /// special lifetime which means the entity lives for ever. default lifetime
 const float EntityItem::DEFAULT_GLOW_LEVEL = 0.0f;
 const float EntityItem::DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
@@ -45,6 +46,7 @@ const bool EntityItem::DEFAULT_VISIBLE = true;
 const bool EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS = false;
 const bool EntityItem::DEFAULT_COLLISIONS_WILL_MOVE = false;
 const bool EntityItem::DEFAULT_LOCKED = false;
+*/
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;

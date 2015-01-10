@@ -35,6 +35,31 @@ class EntityTreeElementExtraEncodeData;
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
+const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f);
+const glm::quat DEFAULT_ROTATION;
+const float DEFAULT_GLOW_LEVEL = 0.0f;
+const float DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
+const float DEFAULT_MASS = 1.0f;
+const glm::vec3 NO_VELOCITY= glm::vec3(0.0f);
+const glm::vec3 DEFAULT_VELOCITY = NO_VELOCITY;
+const float EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
+const glm::vec3 NO_GRAVITY = glm::vec3(0.0f);
+const glm::vec3 DEFAULT_GRAVITY = NO_GRAVITY;
+const glm::vec3 REGULAR_GRAVITY = glm::vec3(0, -9.8f / (float)TREE_SCALE, 0);
+const float DEFAULT_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
+const float IMMORTAL = -1.0f; /// special lifetime which means the entity lives for ever. default lifetime
+const float DEFAULT_LIFETIME = IMMORTAL;
+const QString DEFAULT_SCRIPT = QString("");
+const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
+const glm::vec3 NO_ANGULAR_VELOCITY = glm::vec3(0.0f);
+const glm::vec3 DEFAULT_ANGULAR_VELOCITY = NO_ANGULAR_VELOCITY;
+const float DEFAULT_ANGULAR_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
+const bool DEFAULT_VISIBLE = true;
+const bool DEFAULT_IGNORE_FOR_COLLISIONS = false;
+const bool DEFAULT_COLLISIONS_WILL_MOVE = false;
+const bool DEFAULT_LOCKED = false;
+const QString DEFAULT_USER_DATA = QString("");
+
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
@@ -148,7 +173,6 @@ public:
     glm::vec3 getCenter() const; /// calculates center of the entity in domain scale units (0.0 - 1.0)
     glm::vec3 getCenterInMeters() const { return getCenter() * (float) TREE_SCALE; }
 
-    static const glm::vec3 DEFAULT_DIMENSIONS;
     const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
     glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
     float getDistanceToBottomOfEntity() const; /// get the distance from the position of the entity to its "bottom" in y axis
@@ -160,34 +184,24 @@ public:
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
 
-    static const glm::quat DEFAULT_ROTATION;
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; recalculateCollisionShape(); }
 
-    static const float DEFAULT_GLOW_LEVEL;
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
 
-    static const float DEFAULT_LOCAL_RENDER_ALPHA;
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     void setLocalRenderAlpha(float localRenderAlpha) { _localRenderAlpha = localRenderAlpha; }
 
-    static const float DEFAULT_MASS;
     float getMass() const { return _mass; }
     void setMass(float value) { _mass = value; }
 
-    static const glm::vec3 DEFAULT_VELOCITY;
-    static const glm::vec3 NO_VELOCITY;
-    static const float EPSILON_VELOCITY_LENGTH;
     const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
     bool hasVelocity() const { return _velocity != NO_VELOCITY; }
 
-    static const glm::vec3 DEFAULT_GRAVITY;
-    static const glm::vec3 REGULAR_GRAVITY;
-    static const glm::vec3 NO_GRAVITY;
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
     glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
@@ -197,13 +211,10 @@ public:
     // TODO: this should eventually be updated to support resting on collisions with other surfaces
     bool isRestingOnSurface() const;
 
-    static const float DEFAULT_DAMPING;
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
 
     // lifetime related properties.
-    static const float IMMORTAL; /// special lifetime which means the entity lives for ever. default lifetime
-    static const float DEFAULT_LIFETIME;
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
     void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
 
@@ -224,46 +235,36 @@ public:
     AACube getMinimumAACube() const;
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
-    static const QString DEFAULT_SCRIPT;
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 
-    static const glm::vec3 DEFAULT_REGISTRATION_POINT;
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
     /// registration point as ratio of entity
     void setRegistrationPoint(const glm::vec3& value) 
             { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); recalculateCollisionShape(); }
 
-    static const glm::vec3 NO_ANGULAR_VELOCITY;
-    static const glm::vec3 DEFAULT_ANGULAR_VELOCITY;
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
     bool hasAngularVelocity() const { return _angularVelocity != NO_ANGULAR_VELOCITY; }
 
-    static const float DEFAULT_ANGULAR_DAMPING;
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
 
-    static const bool DEFAULT_VISIBLE;
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
     bool isVisible() const { return _visible; }
     bool isInvisible() const { return !_visible; }
 
-    static const bool DEFAULT_IGNORE_FOR_COLLISIONS;
     bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
     void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
 
-    static const bool DEFAULT_COLLISIONS_WILL_MOVE;
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
 
-    static const bool DEFAULT_LOCKED;
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
     
-    static const QString DEFAULT_USER_DATA;
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
     
