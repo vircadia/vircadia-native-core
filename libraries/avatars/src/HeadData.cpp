@@ -24,6 +24,7 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _baseRoll(0.0f),
     _leanSideways(0.0f),
     _leanForward(0.0f),
+    _torsoTwist(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
     _audioLoudness(0.0f),
     _isFaceshiftConnected(false),
