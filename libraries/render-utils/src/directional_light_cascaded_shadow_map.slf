@@ -83,7 +83,7 @@ void main(void) {
         float facingLight = step(0.0, diffuse) * shadowAttenuation;
         
         // compute the base color based on OpenGL lighting model
-        vec3 baseColor = diffuseVal.rgb * (gl_FrontLightModelProduct.sceneColor.rgb +
+        vec3 baseColor = diffuseVal.rgb * (/*gl_FrontLightModelProduct.sceneColor.rgb + */
             gl_FrontLightProduct[0].ambient.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuse * facingLight));
         
         // compute the specular multiplier (sans exponent)
@@ -93,5 +93,9 @@ void main(void) {
         // add specular contribution
         vec4 specularColor = specularVal;
         gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb, normalVal.a);
+    
+        if (gl_FragCoord.x > 1024) {
+            gl_FragColor = vec4( (gl_FrontLightProduct[0].ambient.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuse * facingLight)), normalVal.a);
+        }
     }
 }
