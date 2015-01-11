@@ -59,8 +59,10 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
             Application::getInstance(), &Application::reloadAllScripts);
     connect(ui->stopAllButton, &QPushButton::clicked,
             this, &RunningScriptsWidget::allScriptsStopped);
-    connect(ui->loadScriptButton, &QPushButton::clicked,
+    connect(ui->loadScriptFromDiskButton, &QPushButton::clicked,
             Application::getInstance(), &Application::loadDialog);
+    connect(ui->loadScriptFromURLButton, &QPushButton::clicked,
+            Application::getInstance(), &Application::loadScriptURLDialog);
     connect(&_signalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
 }
 

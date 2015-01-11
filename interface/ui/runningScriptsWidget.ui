@@ -401,14 +401,14 @@ font: bold 16px;</string>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton">
+          <widget class="QPushButton" name="loadScriptFromURLButton">
            <property name="text">
             <string>from URL</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="loadScriptButton">
+          <widget class="QPushButton" name="loadScriptFromDiskButton">
            <property name="text">
             <string>from Disk</string>
            </property>
@@ -463,7 +463,7 @@ font: bold 16px;</string>
             <bool>true</bool>
            </property>
            <attribute name="headerVisible">
-            <bool>true</bool>
+            <bool>false</bool>
            </attribute>
           </widget>
          </item>
