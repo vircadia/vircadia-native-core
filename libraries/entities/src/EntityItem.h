@@ -35,7 +35,7 @@ class EntityTreeElementExtraEncodeData;
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
-const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f);
+const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f) / (float)TREE_SCALE;
 const glm::quat DEFAULT_ROTATION;
 const float DEFAULT_GLOW_LEVEL = 0.0f;
 const float DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
