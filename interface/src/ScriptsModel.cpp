@@ -11,7 +11,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <typeinfo>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QXmlStreamReader>
@@ -32,22 +31,21 @@ static const QString IS_TRUNCATED_NAME = "IsTruncated";
 static const QString CONTAINER_NAME = "Contents";
 static const QString KEY_NAME = "Key";
 
-TreeNodeBase::TreeNodeBase(TreeNodeFolder* parent, TreeNodeType type) :
+TreeNodeBase::TreeNodeBase(TreeNodeFolder* parent, const QString& name, TreeNodeType type) :
     _parent(parent),
+    _name(name),
     _type(type) {
 };
 
-TreeNodeScript::TreeNodeScript(const QString& filename, const QString& fullPath, ScriptOrigin origin) :
-    TreeNodeBase(NULL, TREE_NODE_TYPE_SCRIPT),
-    _filename(filename),
+TreeNodeScript::TreeNodeScript(const QString& localPath, const QString& fullPath, ScriptOrigin origin) :
+    TreeNodeBase(NULL, localPath.split("/").last(), TREE_NODE_TYPE_SCRIPT),
+    _localPath(localPath),
     _fullPath(fullPath),
-    _origin(origin)
-{
+    _origin(origin) {
 };
 
 TreeNodeFolder::TreeNodeFolder(const QString& foldername, TreeNodeFolder* parent) :
-    TreeNodeBase(parent, TREE_NODE_TYPE_FOLDER),
-    _foldername(foldername) {
+    TreeNodeBase(parent, foldername, TREE_NODE_TYPE_FOLDER) {
 };
 
 ScriptsModel::ScriptsModel(QObject* parent) :
@@ -57,7 +55,6 @@ ScriptsModel::ScriptsModel(QObject* parent) :
     _fsWatcher(),
     _treeNodes()
 {
-    
     _localDirectory.setFilter(QDir::Files | QDir::Readable);
     _localDirectory.setNameFilters(QStringList("*.js"));
 
@@ -70,45 +67,55 @@ ScriptsModel::ScriptsModel(QObject* parent) :
     reloadRemoteFiles();
 }
 
+TreeNodeBase* ScriptsModel::getTreeNodeFromIndex(const QModelIndex& index) const {
+    if (index.isValid()) {
+        return static_cast<TreeNodeBase*>(index.internalPointer());
+    }
+    return NULL;
+}
+
 QModelIndex ScriptsModel::index(int row, int column, const QModelIndex& parent) const {
-    return QModelIndex();
+    if (row < 0 || column < 0) {
+        return QModelIndex();
+    }
+    return createIndex(row, column, getFolderNodes(static_cast<TreeNodeFolder*>(getTreeNodeFromIndex(parent))).at(row));
 }
 
 QModelIndex ScriptsModel::parent(const QModelIndex& child) const {
-    return QModelIndex();
+    TreeNodeFolder* parent = (static_cast<TreeNodeBase*>(child.internalPointer()))->getParent();
+    if (!parent) {
+        return QModelIndex();
+    }
+    TreeNodeFolder* grandParent = parent->getParent();
+    int row = getFolderNodes(grandParent).indexOf(parent);
+    return createIndex(row, 0, parent);
 }
 
 QVariant ScriptsModel::data(const QModelIndex& index, int role) const {
-    /*const QList<TreeNodeScript*>* files = NULL;
-    int row = 0;
-    bool isLocal = index.row() < _localFiles.size();
-    if (isLocal) {
-        files = &_localFiles;
-        row = index.row();
-    } else {
-        files = &_remoteFiles;
-        row = index.row() - _localFiles.size();
+    TreeNodeBase* node = getTreeNodeFromIndex(index);
+    if (node->getType() == TREE_NODE_TYPE_SCRIPT) {
+        TreeNodeScript* script = static_cast<TreeNodeScript*>(node);
+        if (role == Qt::DisplayRole) {
+            return QVariant(script->getName() + (script->getOrigin() == SCRIPT_ORIGIN_LOCAL ? " (local)" : ""));
+        } else if (role == ScriptPath) {
+            return QVariant(script->getFullPath());
+        }
+    } else if (node->getType() == TREE_NODE_TYPE_FOLDER) {
+        TreeNodeFolder* folder = static_cast<TreeNodeFolder*>(node);
+        if (role == Qt::DisplayRole) {
+            return QVariant(folder->getName());
+        }
     }
-
-    if (role == Qt::DisplayRole) {
-        return QVariant((*files)[row]->getFilename() + (isLocal ? " (local)" : ""));
-    } else if (role == ScriptPath) {
-        return QVariant((*files)[row]->getFullPath());
-    }*/
     return QVariant();
 }
 
 int ScriptsModel::rowCount(const QModelIndex& parent) const {
-    if (parent.isValid()) {
-        return 0;
-    }
-    return 0;// _localFiles.length() + _remoteFiles.length();
+    return getFolderNodes(static_cast<TreeNodeFolder*>(getTreeNodeFromIndex(parent))).count();
 }
 
 int ScriptsModel::columnCount(const QModelIndex& parent) const {
     return 1;
 }
-
 
 void ScriptsModel::updateScriptsLocation(const QString& newPath) {
     _fsWatcher.removePath(_localDirectory.absolutePath());
@@ -129,7 +136,9 @@ void ScriptsModel::reloadRemoteFiles() {
         _loadingScripts = true;
         for (int i = _treeNodes.size() - 1; i >= 0; i--) {
             TreeNodeBase* node = _treeNodes.at(i);
-            if (typeid(*node) == typeid(TreeNodeScript) && static_cast<TreeNodeScript*>(node)->getOrigin() == SCRIPT_ORIGIN_REMOTE) {
+            if (node->getType() == TREE_NODE_TYPE_SCRIPT &&
+                static_cast<TreeNodeScript*>(node)->getOrigin() == SCRIPT_ORIGIN_REMOTE)
+            {
                 delete node;
                 _treeNodes.removeAt(i);
             }
@@ -229,7 +238,6 @@ void ScriptsModel::reloadLocalFiles() {
 
     for (int i = _treeNodes.size() - 1; i >= 0; i--) {
         TreeNodeBase* node = _treeNodes.at(i);
-        qDebug() << "deleting local " << i << " " << typeid(*node).name();
         if (node->getType() == TREE_NODE_TYPE_SCRIPT &&
             static_cast<TreeNodeScript*>(node)->getOrigin() == SCRIPT_ORIGIN_LOCAL)
         {
@@ -251,7 +259,6 @@ void ScriptsModel::reloadLocalFiles() {
 
 void ScriptsModel::rebuildTree() {
     for (int i = _treeNodes.size() - 1; i >= 0; i--) {
-        
         if (_treeNodes.at(i)->getType() == TREE_NODE_TYPE_FOLDER) {
             delete _treeNodes.at(i);
             _treeNodes.removeAt(i);
@@ -260,18 +267,37 @@ void ScriptsModel::rebuildTree() {
     QHash<QString, TreeNodeFolder*> folders;
     for (int i = 0; i < _treeNodes.size(); i++) {
         TreeNodeBase* node = _treeNodes.at(i);
-        qDebug() << "blup" << i << typeid(*node).name();
-        if (typeid(*node) == typeid(TreeNodeScript)) {
+        if (node->getType() == TREE_NODE_TYPE_SCRIPT) {
             TreeNodeScript* script = static_cast<TreeNodeScript*>(node);
             TreeNodeFolder* parent = NULL;
             QString hash;
-            QStringList pathList = script->getFilename().split(tr("/"));
+            QStringList pathList = script->getLocalPath().split(tr("/"));
+            pathList.removeLast();
             QStringList::const_iterator pathIterator;
             for (pathIterator = pathList.constBegin(); pathIterator != pathList.constEnd(); ++pathIterator) {
-                hash.append("/" + *pathIterator);
-                qDebug() << hash;
+                hash.append(*pathIterator + "/");
+                if (!folders.contains(hash)) {
+                    folders[hash] = new TreeNodeFolder(*pathIterator, parent);
+                }
+                parent = folders[hash];
             }
+            script->setParent(parent);
         }
     }
+    QHash<QString, TreeNodeFolder*>::const_iterator folderIterator;
+    for (folderIterator = folders.constBegin(); folderIterator != folders.constEnd(); ++folderIterator) {
+        _treeNodes.append(*folderIterator);
+    }
     folders.clear();
+}
+
+QList<TreeNodeBase*> ScriptsModel::getFolderNodes(TreeNodeFolder* parent) const {
+    QList<TreeNodeBase*> result;
+    for (int i = 0; i < _treeNodes.size(); i++) {
+        TreeNodeBase* node = _treeNodes.at(i);
+        if (node->getParent() == parent) {
+            result.append(node);
+        }
+    }
+    return result;
 }
