@@ -21,31 +21,6 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-const float EntityItem::IMMORTAL = -1.0f; /// special lifetime which means the entity lives for ever. default lifetime
-const float EntityItem::DEFAULT_GLOW_LEVEL = 0.0f;
-const float EntityItem::DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
-const float EntityItem::DEFAULT_MASS = 1.0f;
-const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
-const QString EntityItem::DEFAULT_USER_DATA = QString("");
-const float EntityItem::DEFAULT_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
-const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
-const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 1000.0f) / (float)TREE_SCALE; // really small: 1mm/second
-const glm::vec3 EntityItem::DEFAULT_VELOCITY = EntityItem::NO_VELOCITY;
-const glm::vec3 EntityItem::NO_GRAVITY = glm::vec3(0, 0, 0);
-const glm::vec3 EntityItem::REGULAR_GRAVITY = glm::vec3(0, (-9.8f / TREE_SCALE), 0);
-const glm::vec3 EntityItem::DEFAULT_GRAVITY = EntityItem::NO_GRAVITY;
-const QString EntityItem::DEFAULT_SCRIPT = QString("");
-const glm::quat EntityItem::DEFAULT_ROTATION;
-const glm::vec3 EntityItem::DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
-const glm::vec3 EntityItem::DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
-const glm::vec3 EntityItem::NO_ANGULAR_VELOCITY = glm::vec3(0.0f, 0.0f, 0.0f);
-const glm::vec3 EntityItem::DEFAULT_ANGULAR_VELOCITY = NO_ANGULAR_VELOCITY;
-const float EntityItem::DEFAULT_ANGULAR_DAMPING = 2.0f;
-const bool EntityItem::DEFAULT_VISIBLE = true;
-const bool EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS = false;
-const bool EntityItem::DEFAULT_COLLISIONS_WILL_MOVE = false;
-const bool EntityItem::DEFAULT_LOCKED = false;
-
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
     _creatorTokenID = entityItemID.creatorTokenID;
@@ -1018,7 +993,6 @@ void EntityItem::recalculateCollisionShape() {
     entityAACube.scale(TREE_SCALE); // scale to meters
     _collisionShape.setTranslation(entityAACube.calcCenter());
     _collisionShape.setScale(entityAACube.getScale());
-    // TODO: use motionState to update physics object
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;
