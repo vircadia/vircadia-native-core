@@ -164,7 +164,6 @@ public:
 
     MyAvatar* getAvatar() { return _myAvatar; }
     const MyAvatar* getAvatar() const { return _myAvatar; }
-    Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
@@ -418,7 +417,6 @@ private:
 
     void updateShadowMap();
     void renderRearViewMirror(const QRect& region, bool billboard = false);
-    void renderViewFrustum(ViewFrustum& viewFrustum);
     void checkBandwidthMeterClick();
     void setMenuShortcutsEnabled(bool enabled);
 
@@ -482,7 +480,6 @@ private:
     PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
-    Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
@@ -520,9 +517,8 @@ private:
 
     QSet<int> _keysPressed;
 
-    Audio _audio;
-
     bool _enableProcessOctreeThread;
+
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;
 

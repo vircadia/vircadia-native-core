@@ -212,7 +212,7 @@ float AudioRingBuffer::getFrameLoudness(const int16_t* frameStart) const {
         sampleAt = sampleAt == _bufferLastAt ? _buffer : sampleAt + 1;
     }
     loudness /= _numFrameSamples;
-    loudness /= MAX_SAMPLE_VALUE;
+    loudness /= AudioConstants::MAX_SAMPLE_VALUE;
 
     return loudness;
 }

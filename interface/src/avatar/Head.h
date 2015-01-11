@@ -76,9 +76,6 @@ public:
     float getFinalLeanSideways() const { return _leanSideways + _deltaLeanSideways; }
     float getFinalLeanForward() const { return _leanForward + _deltaLeanForward; }
     
-    float getTorsoTwist() const { return _torsoTwist; }
-    void setTorsoTwist(float torsoTwist) { _torsoTwist = torsoTwist; }
-    
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
     const glm::vec3& getRightEyePosition() const { return _rightEyePosition; }
@@ -151,14 +148,15 @@ private:
     // delta lean angles for lean perturbations (driven by collisions)
     float _deltaLeanSideways;
     float _deltaLeanForward;
-    
-    float _torsoTwist;
 
     bool _isCameraMoving;
     bool _isLookingAtMe;
     FaceModel _faceModel;
     
     glm::vec3 _correctedLookAtPosition;
+    
+    int _leftEyeLookAtID;
+    int _rightEyeLookAtID;
     
     // private methods
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);

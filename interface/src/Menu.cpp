@@ -41,6 +41,9 @@
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "Audio.h"
+#include "audio/AudioIOStatsRenderer.h"
+#include "audio/AudioScope.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "devices/Visage.h"
@@ -76,13 +79,11 @@ Menu* Menu::getInstance() {
     return _instance;
 }
 
-const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
 const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
 const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
-const float MUTE_RADIUS = 50;
 
 const QString CONSOLE_TITLE = "Scripting Console";
 const float CONSOLE_WINDOW_OPACITY = 0.95f;
@@ -97,8 +98,6 @@ Menu::Menu() :
     _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _faceshiftHostname(DEFAULT_FACESHIFT_HOSTNAME),
-    _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
-    _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
@@ -154,11 +153,6 @@ Menu::Menu() :
     // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
     connect(&accountManager, &AccountManager::profileChanged, this, &Menu::toggleLoginMenuItem);
     connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
-    
-    // connect to signal of account manager so we can tell user when the user/place they looked at is offline
-    AddressManager& addressManager = AddressManager::getInstance();
-    connect(&addressManager, &AddressManager::lookupResultIsOffline, this, &Menu::displayAddressOfflineMessage);
-    connect(&addressManager, &AddressManager::lookupResultIsNotFound, this, &Menu::displayAddressNotFoundMessage);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
@@ -369,7 +363,6 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
 
 
     addDisabledActionAndSeparator(viewMenu, "Stats");
@@ -517,90 +510,85 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
 
-    QMenu* frustumMenu = developerMenu->addMenu("View Frustum");
-    addCheckableActionToQMenuAndActionHash(frustumMenu, MenuOption::DisplayFrustum, Qt::SHIFT | Qt::Key_F);
-    addActionToQMenuAndActionHash(frustumMenu,
-                                  MenuOption::FrustumRenderMode,
-                                  Qt::SHIFT | Qt::Key_R,
-                                  this,
-                                  SLOT(cycleFrustumRenderMode()));
-    updateFrustumRenderModeAction();
-
-
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
                                            true,
-                                           appInstance->getAudio(),
+                                           audioIO.data(),
                                            SLOT(toggleAudioNoiseReduction()));
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
+                                           audioIO.data(), SLOT(toggleServerEcho()));
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
+                                           audioIO.data(), SLOT(toggleLocalEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
-                                           appInstance->getAudio(), SLOT(toggleStereoInput()));
+                                           audioIO.data(), SLOT(toggleStereoInput()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
                                            Qt::CTRL | Qt::Key_M,
                                            false,
-                                           appInstance->getAudio(),
+                                           audioIO.data(),
                                            SLOT(toggleMute()));
     addActionToQMenuAndActionHash(audioDebugMenu,
                                   MenuOption::MuteEnvironment,
                                   0,
-                                  this,
-                                  SLOT(muteEnvironment()));
+                                  audioIO.data(),
+                                  SLOT(sendMuteEnvironmentPacket()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
                                            0,
                                            false,
-                                           appInstance->getAudio(),
+                                           audioIO.data(),
                                            SLOT(toggleAudioSourceInject()));
     QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
     {
         QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
                                                                0,
                                                                false,
-                                                               appInstance->getAudio(),
+                                                               audioIO.data(),
                                                                SLOT(selectAudioSourcePinkNoise()));
         
         QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
                                                                     0,
                                                                     true,
-                                                                    appInstance->getAudio(),
+                                                                    audioIO.data(),
                                                                     SLOT(selectAudioSourceSine440()));
 
         QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
         audioSourceGroup->addAction(pinkNoise);
         audioSourceGroup->addAction(sine440);
     }
+    
+    AudioScope::SharedPointer scope = DependencyManager::get<AudioScope>();
 
     QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleScope()));
+                                           scope.data(),
+                                           SLOT(toggle()));
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
                                            false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleScopePause()));
+                                           scope.data(),
+                                           SLOT(togglePause()));
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
     {
         QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
                                                0,
                                                true,
-                                               appInstance->getAudio(),
+                                               scope.data(),
                                                SLOT(selectAudioScopeFiveFrames()));
 
         QAction *twentyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeTwentyFrames,
                                                0,
                                                false,
-                                               appInstance->getAudio(),
+                                               scope.data(),
                                                SLOT(selectAudioScopeTwentyFrames()));
 
         QAction *fiftyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiftyFrames,
                                                0,
                                                false,
-                                               appInstance->getAudio(),
+                                               scope.data(),
                                                SLOT(selectAudioScopeFiftyFrames()));
 
         QActionGroup* audioScopeFramesGroup = new QActionGroup(audioScopeMenu);
@@ -608,20 +596,21 @@ Menu::Menu() :
         audioScopeFramesGroup->addAction(twentyFrames);
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
-
+    
+    AudioIOStatsRenderer::SharedPointer statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                            Qt::CTRL | Qt::Key_A,
-                                            false,
-                                            appInstance->getAudio(),
-                                            SLOT(toggleStats()));
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
+                                           false,
+                                           statsRenderer.data(),
+                                           SLOT(toggle()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
                                             0,
                                             false,
-                                            appInstance->getAudio(),
-                                            SLOT(toggleStatsShowInjectedStreams()));
+                                            statsRenderer.data(),
+                                            SLOT(toggleShowInjectedStreams()));
 
-    connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
@@ -654,6 +643,13 @@ void Menu::loadSettings(QSettings* settings) {
     _receivedAudioStreamSettings._windowSecondsForDesiredCalcOnTooManyStarves = settings->value("windowSecondsForDesiredCalcOnTooManyStarves", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES).toInt();
     _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
     _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
+
+    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    audio->setOutputStarveDetectionEnabled(settings->value("audioOutputStarveDetectionEnabled", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED).toBool());
+    audio->setOutputStarveDetectionThreshold(settings->value("audioOutputStarveDetectionThreshold", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD).toInt());
+    audio->setOutputStarveDetectionPeriod(settings->value("audioOutputStarveDetectionPeriod", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD).toInt());
+    int bufferSize = settings->value("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES).toInt();
+    QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, bufferSize));
     
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
@@ -675,15 +671,6 @@ void Menu::loadSettings(QSettings* settings) {
     _speechRecognizer.setEnabled(settings->value("speechRecognitionEnabled", false).toBool());
 #endif
 
-    settings->beginGroup("View Frustum Offset Camera");
-    // in case settings is corrupt or missing loadSetting() will check for NaN
-    _viewFrustumOffset.yaw = loadSetting(settings, "viewFrustumOffsetYaw", 0.0f);
-    _viewFrustumOffset.pitch = loadSetting(settings, "viewFrustumOffsetPitch", 0.0f);
-    _viewFrustumOffset.roll = loadSetting(settings, "viewFrustumOffsetRoll", 0.0f);
-    _viewFrustumOffset.distance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
-    _viewFrustumOffset.up = loadSetting(settings, "viewFrustumOffsetUp", 0.0f);
-    settings->endGroup();
-    
     _walletPrivateKey = settings->value("privateKey").toByteArray();
 
     scanMenuBar(&loadAction, settings);
@@ -722,6 +709,12 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
     settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
 
+    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    settings->setValue("audioOutputStarveDetectionEnabled", audio->getOutputStarveDetectionEnabled());
+    settings->setValue("audioOutputStarveDetectionThreshold", audio->getOutputStarveDetectionThreshold());
+    settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
+    settings->setValue("audioOutputBufferSize", audio->getOutputBufferSize());
+
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("faceshiftHostname", _faceshiftHostname);
@@ -737,19 +730,12 @@ void Menu::saveSettings(QSettings* settings) {
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     settings->setValue("speechRecognitionEnabled", _speechRecognizer.getEnabled());
 #endif
-    settings->beginGroup("View Frustum Offset Camera");
-    settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
-    settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
-    settings->setValue("viewFrustumOffsetRoll", _viewFrustumOffset.roll);
-    settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffset.distance);
-    settings->setValue("viewFrustumOffsetUp", _viewFrustumOffset.up);
-    settings->endGroup();
     settings->setValue("privateKey", _walletPrivateKey);
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     
-    settings->setValue(SETTINGS_ADDRESS_KEY, AddressManager::getInstance().currentAddress());
+    DependencyManager::get<AddressManager>()->storeCurrentAddress();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
@@ -816,66 +802,6 @@ void Menu::scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set) {
 
 bool Menu::getShadowsEnabled() const {
     return isOptionChecked(MenuOption::SimpleShadows) || isOptionChecked(MenuOption::CascadedShadows);
-}
-
-void Menu::handleViewFrustumOffsetKeyModifier(int key) {
-    const float VIEW_FRUSTUM_OFFSET_DELTA = 0.5f;
-    const float VIEW_FRUSTUM_OFFSET_UP_DELTA = 0.05f;
-
-    switch (key) {
-        case Qt::Key_QuoteDbl:
-            _viewFrustumOffset.yaw = 0.0f;
-            _viewFrustumOffset.pitch = 0.0f;
-            _viewFrustumOffset.roll = 0.0f;
-            _viewFrustumOffset.up = 0.0f;
-            _viewFrustumOffset.distance = 0.0f;
-            break;
-
-        case Qt::Key_BracketLeft:
-            _viewFrustumOffset.yaw -= VIEW_FRUSTUM_OFFSET_DELTA;
-            break;
-
-        case Qt::Key_BracketRight:
-            _viewFrustumOffset.yaw += VIEW_FRUSTUM_OFFSET_DELTA;
-            break;
-
-        case Qt::Key_BraceLeft:
-            _viewFrustumOffset.pitch -= VIEW_FRUSTUM_OFFSET_DELTA;
-            break;
-
-        case Qt::Key_BraceRight:
-            _viewFrustumOffset.pitch += VIEW_FRUSTUM_OFFSET_DELTA;
-            break;
-
-        case Qt::Key_ParenLeft:
-            _viewFrustumOffset.roll -= VIEW_FRUSTUM_OFFSET_DELTA;
-            break;
-
-        case Qt::Key_ParenRight:
-            _viewFrustumOffset.roll += VIEW_FRUSTUM_OFFSET_DELTA;
-            break;
-
-        case Qt::Key_Less:
-            _viewFrustumOffset.distance -= VIEW_FRUSTUM_OFFSET_DELTA;
-            break;
-
-        case Qt::Key_Greater:
-            _viewFrustumOffset.distance += VIEW_FRUSTUM_OFFSET_DELTA;
-            break;
-
-        case Qt::Key_Comma:
-            _viewFrustumOffset.up -= VIEW_FRUSTUM_OFFSET_UP_DELTA;
-            break;
-
-        case Qt::Key_Period:
-            _viewFrustumOffset.up += VIEW_FRUSTUM_OFFSET_UP_DELTA;
-            break;
-
-        default:
-            break;
-    }
-
-    bumpSettings();
 }
 
 void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, int menuItemLocation) {
@@ -1133,40 +1059,6 @@ void Menu::toggleAddressBar() {
     }
 }
 
-void Menu::displayAddressOfflineMessage() {
-    QMessageBox::information(Application::getInstance()->getWindow(), "Address offline",
-                             "That user or place is currently offline.");
-}
-
-void Menu::displayAddressNotFoundMessage() {
-    QMessageBox::information(Application::getInstance()->getWindow(), "Address not found",
-                             "There is no address information for that user or place.");
-}
-
-void Menu::muteEnvironment() {
-    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
-    int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
-
-    glm::vec3 position = Application::getInstance()->getAvatar()->getPosition();
-
-    char* packet = (char*)malloc(packetSize);
-    populatePacketHeader(packet, PacketTypeMuteEnvironment);
-    memcpy(packet + headerSize, &position, sizeof(glm::vec3));
-    memcpy(packet + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
-
-    QByteArray mutePacket(packet, packetSize);
-
-    // grab our audio mixer from the NodeList, if it exists
-    SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
-
-    if (audioMixer) {
-        // send off this mute packet
-        NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
-    }
-
-    free(packet);
-}
-
 void Menu::changeVSync() {
     Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
 }
@@ -1183,7 +1075,7 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
+        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
         _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
     }
     
@@ -1227,7 +1119,7 @@ void Menu::nameLocation() {
     
     if (!_newLocationDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
+        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
         _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
     }
     
@@ -1357,7 +1249,7 @@ void Menu::toggleToolWindow() {
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     if (muteAction) {
-        muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
+        muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
     }
 }
 
@@ -1590,40 +1482,8 @@ void Menu::hmdToolsClosed() {
     _hmdToolsDialog->hide();
 }
 
-void Menu::cycleFrustumRenderMode() {
-    _frustumDrawMode = (FrustumDrawMode)((_frustumDrawMode + 1) % FRUSTUM_DRAW_MODE_COUNT);
-    updateFrustumRenderModeAction();
-}
-
 void Menu::runTests() {
     runTimingTests();
-}
-
-void Menu::updateFrustumRenderModeAction() {
-    QAction* frustumRenderModeAction = _actionHash.value(MenuOption::FrustumRenderMode);
-    if (frustumRenderModeAction) {
-        switch (_frustumDrawMode) {
-            default:
-            case FRUSTUM_DRAW_MODE_ALL:
-                frustumRenderModeAction->setText("Render Mode - All");
-                break;
-            case FRUSTUM_DRAW_MODE_VECTORS:
-                frustumRenderModeAction->setText("Render Mode - Vectors");
-                break;
-            case FRUSTUM_DRAW_MODE_PLANES:
-                frustumRenderModeAction->setText("Render Mode - Planes");
-                break;
-            case FRUSTUM_DRAW_MODE_NEAR_PLANE:
-                frustumRenderModeAction->setText("Render Mode - Near");
-                break;
-            case FRUSTUM_DRAW_MODE_FAR_PLANE:
-                frustumRenderModeAction->setText("Render Mode - Far");
-                break;
-            case FRUSTUM_DRAW_MODE_KEYHOLE:
-                frustumRenderModeAction->setText("Render Mode - Keyhole");
-                break;
-        }
-    }
 }
 
 QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {

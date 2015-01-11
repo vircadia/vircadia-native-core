@@ -81,32 +81,43 @@ class GeometryCache : public ResourceCache  {
     SINGLETON_DEPENDENCY(GeometryCache)
 
 public:
+    int allocateID() { return _nextID++; }
+    static const int UNKNOWN_ID;
+
     void renderHemisphere(int slices, int stacks);
     void renderSphere(float radius, int slices, int stacks, bool solid = true);
     void renderSquare(int xDivisions, int yDivisions);
     void renderHalfCylinder(int slices, int stacks);
     void renderCone(float base, float height, int slices, int stacks);
     void renderGrid(int xDivisions, int yDivisions);
+    void renderGrid(int x, int y, int width, int height, int rows, int cols, int id = UNKNOWN_ID);
     void renderSolidCube(float size);
     void renderWireCube(float size);
+    void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, int id = UNKNOWN_ID);
 
-    int allocateQuad() { return _nextQuadID++; }
-    static const int UNKNOWN_QUAD_ID;
-
-    void renderQuad(int x, int y, int width, int height, int quadID = UNKNOWN_QUAD_ID)
-            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), quadID); }
+    void renderQuad(int x, int y, int width, int height, int id = UNKNOWN_ID)
+            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), id); }
             
-    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int quadID = UNKNOWN_QUAD_ID);
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
-                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, int quadID = UNKNOWN_QUAD_ID);
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, int id = UNKNOWN_ID);
 
-    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, int quadID = UNKNOWN_QUAD_ID);
+    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
-                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int quadID = UNKNOWN_QUAD_ID);
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int id = UNKNOWN_ID);
+
+
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, int id = UNKNOWN_ID);
+    void renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id = UNKNOWN_ID);
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2, int id = UNKNOWN_ID);
+
+    void updateVertices(int id, const QVector<glm::vec2>& points);
+    void updateVertices(int id, const QVector<glm::vec3>& points);
+    void renderVertices(GLenum mode, int id);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -137,14 +148,44 @@ private:
     QHash<Vec3Pair, VerticesIndices> _quad3DVBOs;
     QHash<Vec3PairVec2Pair, VerticesIndices> _quad3DTextureVBOs;
     QHash<int, VerticesIndices> _registeredQuadVBOs;
-    int _nextQuadID;
+    int _nextID;
 
     QHash<int, Vec2Pair> _lastRegisteredQuad2D;
     QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
     QHash<int, Vec3Pair> _lastRegisteredQuad3D;
     QHash<int, Vec3PairVec2Pair> _lastRegisteredQuad3DTexture;
 
+    QHash<int, Vec3Pair> _lastRegisteredRect;
+    QHash<Vec3Pair, VerticesIndices> _rectVBOs;
+    QHash<int, VerticesIndices> _registeredRectVBOs;
+
+    QHash<int, Vec3Pair> _lastRegisteredLine3D;
+    QHash<Vec3Pair, VerticesIndices> _line3DVBOs;
+    QHash<int, VerticesIndices> _registeredLine3DVBOs;
+
+    QHash<int, Vec2Pair> _lastRegisteredLine2D;
+    QHash<Vec2Pair, VerticesIndices> _line2DVBOs;
+    QHash<int, VerticesIndices> _registeredLine2DVBOs;
+    
+    struct BufferDetails {
+        QOpenGLBuffer buffer;
+        int vertices;
+        int vertexSize;
+    };
+
+    QHash<int, BufferDetails> _registeredVertices;
+
+    QHash<int, Vec3Pair> _lastRegisteredDashedLines;
+    QHash<Vec3Pair, BufferDetails> _dashedLines;
+    QHash<int, BufferDetails> _registeredDashedLines;
+
+
+
+
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
+    QHash<int, QOpenGLBuffer> _registeredAlternateGridBuffers;
+    QHash<Vec3Pair, QOpenGLBuffer> _alternateGridBuffers;
+    QHash<int, Vec3Pair> _lastRegisteredGrid;
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
 };

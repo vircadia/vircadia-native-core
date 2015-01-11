@@ -24,7 +24,6 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
         _constraintSolver(NULL), 
         _dynamicsWorld(NULL),
         _originOffset(offset),
-        _voxels(),
         _entityPacketSender(NULL),
         _frameCount(0) {
 }
@@ -170,7 +169,7 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         _collisionDispatcher = new btCollisionDispatcher(_collisionConfig);
         _broadphaseFilter = new btDbvtBroadphase();
         _constraintSolver = new btSequentialImpulseConstraintSolver;
-        _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig, _entityTree);
+        _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
 
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
@@ -201,13 +200,14 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
 const float FIXED_SUBSTEP = 1.0f / 60.0f;
 
 void PhysicsEngine::stepSimulation() {
+    lock();
     // NOTE: the grand order of operations is:
     // (1) relay incoming changes
     // (2) step simulation
     // (3) synchronize outgoing motion states
     // (4) send outgoing packets
 
-    // this is step (1)
+    // This is step (1).
     relayIncomingChangesToSimulation();
 
     const int MAX_NUM_SUBSTEPS = 4;
@@ -216,65 +216,24 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    // steps (2) and (3) are performed by ThreadSafeDynamicsWorld::stepSimulation())
+    // This is step (2).
     int numSubSteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, FIXED_SUBSTEP);
     _frameCount += (uint32_t)numSubSteps;
-}
+    unlock();
 
-bool PhysicsEngine::addVoxel(const glm::vec3& position, float scale) {
-    glm::vec3 halfExtents = glm::vec3(0.5f * scale);
-    glm::vec3 trueCenter = position + halfExtents;
-    PositionHashKey key(trueCenter);
-    VoxelObject* proxy = _voxels.find(key);
-    if (!proxy) {
-        // create a shape
-        ShapeInfo info;
-        info.setBox(halfExtents);
-        btCollisionShape* shape = _shapeManager.getShape(info);
-
-        // NOTE: the shape creation will fail when the size of the voxel is out of range
-        if (shape) {
-            // create a collisionObject
-            btCollisionObject* object = new btCollisionObject();
-            object->setCollisionShape(shape);
-            btTransform transform;
-            transform.setIdentity();
-            // we shift the center into the simulation's frame
-            glm::vec3 shiftedCenter = (position - _originOffset) + halfExtents;
-            transform.setOrigin(btVector3(shiftedCenter.x, shiftedCenter.y, shiftedCenter.z));
-            object->setWorldTransform(transform);
-
-            // add to map and world
-            _voxels.insert(key, VoxelObject(trueCenter, object));
-            _dynamicsWorld->addCollisionObject(object);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool PhysicsEngine::removeVoxel(const glm::vec3& position, float scale) {
-    glm::vec3 halfExtents = glm::vec3(0.5f * scale);
-    glm::vec3 trueCenter = position + halfExtents;
-    PositionHashKey key(trueCenter);
-    VoxelObject* proxy = _voxels.find(key);
-    if (proxy) {
-        // remove from world
-        assert(proxy->_object);
-        _dynamicsWorld->removeCollisionObject(proxy->_object);
-
-        // release shape
-        ShapeInfo info;
-        info.setBox(halfExtents);
-        bool released = _shapeManager.releaseShape(info);
-        assert(released);
-
-        // delete object and remove from voxel map
-        delete proxy->_object;
-        _voxels.remove(key);
-        return true;
-    }
-    return false;
+    // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
+    //
+    // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
+    // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
+    // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
+    // lock on the tree before we re-lock ourselves.
+    //
+    // TODO: untangle these lock sequences.
+    _entityTree->lockForWrite();
+    lock();
+    _dynamicsWorld->synchronizeMotionStates();
+    unlock();
+    _entityTree->unlock();
 }
 
 // Bullet collision flags are as follows:

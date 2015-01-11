@@ -47,7 +47,7 @@ public:
     void setRotation(const glm::quat& value) { _rotation = value; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     void setDrawInFront(bool value) { _drawInFront = value; }
-    void setDrawOnHUD(bool value);
+    void setDrawOnHUD(bool value) { _drawOnHUD = value; }
 
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
@@ -60,8 +60,6 @@ public:
     }
 
 protected:
-    void drawDashedLine(const glm::vec3& start, const glm::vec3& end);
-
     glm::vec3 _position;
     float _lineWidth;
     glm::quat _rotation;

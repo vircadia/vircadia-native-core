@@ -332,7 +332,7 @@ void XMLHttpRequestClass::abortRequest() {
     if (_reply) {
         disconnectFromReply(_reply);
         _reply->abort();
-        delete _reply;
+        _reply->deleteLater();
         _reply = NULL;
     }
 

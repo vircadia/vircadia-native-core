@@ -33,8 +33,11 @@ const int DIRTY_SIMULATION_FLAGS =
 
 class EntitySimulation {
 public:
-    EntitySimulation() : _entityTree(NULL) { }
+    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
+
+    void lock() { _mutex.lock(); }
+    void unlock() { _mutex.unlock(); }
 
     /// \param tree pointer to EntityTree which is stored internally
     void setEntityTree(EntityTree* tree);
@@ -79,6 +82,8 @@ protected:
     void expireMortalEntities(const quint64& now);
     void callUpdateOnEntitiesThatNeedIt(const quint64& now);
     void sortEntitiesThatMoved();
+
+    QMutex _mutex;
 
     // back pointer to EntityTree structure
     EntityTree* _entityTree;

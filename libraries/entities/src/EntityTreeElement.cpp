@@ -32,8 +32,7 @@ EntityTreeElement::~EntityTreeElement() {
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
 // own type to our own tree. This means we should initialize that child with any tree and type
-// specific settings that our children must have. One example is out VoxelSystem, which
-// we know must match ours.
+// specific settings that our children must have. 
 OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
     EntityTreeElement* newChild = new EntityTreeElement(octalCode);
     newChild->setTree(_myTree);
@@ -683,6 +682,7 @@ void EntityTreeElement::cleanupEntities() {
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem* entity = (*_entityItems)[i];
+        entity->_element = NULL;
         delete entity;
     }
     _entityItems->clear();
@@ -694,6 +694,7 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = true;
+            (*_entityItems)[i]->_element = NULL;
             _entityItems->removeAt(i);
             break;
         }
@@ -702,7 +703,13 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
 }
 
 bool EntityTreeElement::removeEntityItem(EntityItem* entity) {
-    return _entityItems->removeAll(entity) > 0;
+    int numEntries = _entityItems->removeAll(entity);
+    if (numEntries > 0) {
+        assert(entity->_element == this);
+        entity->_element = NULL;
+        return true;
+    }
+    return false;
 }
 
 
@@ -809,7 +816,10 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
 }
 
 void EntityTreeElement::addEntityItem(EntityItem* entity) {
+    assert(entity);
+    assert(entity->_element == NULL);
     _entityItems->push_back(entity);
+    entity->_element = this;
 }
 
 // will average a "common reduced LOD view" from the the child elements...

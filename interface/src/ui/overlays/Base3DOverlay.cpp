@@ -48,13 +48,6 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
 Base3DOverlay::~Base3DOverlay() {
 }
 
-void Base3DOverlay::setDrawOnHUD(bool value) {
-    if (_drawOnHUD != value) {
-        _drawOnHUD = value;
-        Application::getInstance()->getOverlays().overlayDrawOnChanged(this);
-    }
-}
-
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
 
@@ -185,35 +178,4 @@ QScriptValue Base3DOverlay::getProperty(const QString& property) {
 bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
     return false;
-}
-
-
-void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end) {
-
-    glBegin(GL_LINES);
-
-    // draw each line segment with appropriate gaps
-    const float DASH_LENGTH = 0.05f;
-    const float GAP_LENGTH = 0.025f;
-    const float SEGMENT_LENGTH = DASH_LENGTH + GAP_LENGTH;
-    float length = glm::distance(start, end);
-    float segmentCount = length / SEGMENT_LENGTH;
-    int segmentCountFloor = (int)glm::floor(segmentCount);
-
-    glm::vec3 segmentVector = (end - start) / segmentCount;
-    glm::vec3 dashVector = segmentVector / SEGMENT_LENGTH * DASH_LENGTH;
-    glm::vec3 gapVector = segmentVector / SEGMENT_LENGTH * GAP_LENGTH;
-
-    glm::vec3 point = start;
-    glVertex3f(point.x, point.y, point.z);
-    for (int i = 0; i < segmentCountFloor; i++) {
-        point += dashVector;
-        glVertex3f(point.x, point.y, point.z);
-
-        point += gapVector;
-        glVertex3f(point.x, point.y, point.z);
-    }
-    glVertex3f(end.x, end.y, end.z);
-
-    glEnd();
 }

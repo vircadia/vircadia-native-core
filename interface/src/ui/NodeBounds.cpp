@@ -12,6 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <DependencyManager.h>
 #include <GeometryCache.h>
 
 #include "Application.h"
@@ -148,52 +149,11 @@ void NodeBounds::draw() {
 
 void NodeBounds::drawNodeBorder(const glm::vec3& center, float scale, float red, float green, float blue) {
     glPushMatrix();
-
     glTranslatef(center.x, center.y, center.z);
     glScalef(scale, scale, scale);
-
     glLineWidth(2.5);
     glColor3f(red, green, blue);
-    glBegin(GL_LINES);
-
-    glVertex3f(-0.5, -0.5, -0.5);
-    glVertex3f( 0.5, -0.5, -0.5);
-
-    glVertex3f(-0.5, -0.5, -0.5);
-    glVertex3f(-0.5,  0.5, -0.5);
-
-    glVertex3f(-0.5, -0.5, -0.5);
-    glVertex3f(-0.5, -0.5,  0.5);
-
-    glVertex3f(-0.5,  0.5, -0.5);
-    glVertex3f( 0.5,  0.5, -0.5);
-
-    glVertex3f(-0.5,  0.5, -0.5);
-    glVertex3f(-0.5,  0.5,  0.5);
-
-    glVertex3f( 0.5,  0.5,  0.5);
-    glVertex3f(-0.5,  0.5,  0.5);
-
-    glVertex3f( 0.5,  0.5,  0.5);
-    glVertex3f( 0.5, -0.5,  0.5);
-
-    glVertex3f( 0.5,  0.5,  0.5);
-    glVertex3f( 0.5,  0.5, -0.5);
-
-    glVertex3f( 0.5, -0.5,  0.5);
-    glVertex3f(-0.5, -0.5,  0.5);
-
-    glVertex3f( 0.5, -0.5,  0.5);
-    glVertex3f( 0.5, -0.5, -0.5);
-
-    glVertex3f( 0.5,  0.5, -0.5);
-    glVertex3f( 0.5, -0.5, -0.5);
-
-    glVertex3f(-0.5,  0.5,  0.5);
-    glVertex3f(-0.5, -0.5,  0.5);
-
-    glEnd();
-
+    DependencyManager::get<GeometryCache>()->renderWireCube(1.0f);
     glPopMatrix();
 }
 
