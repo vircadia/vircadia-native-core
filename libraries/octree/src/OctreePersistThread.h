@@ -48,6 +48,8 @@ protected:
     void persist();
     void backup();
     void rollOldBackupVersions();
+    void restoreFromMostRecentBackup();
+    
 private:
     Octree* _tree;
     QString _filename;

@@ -13,7 +13,10 @@
 #include <fstream>
 #include <time.h>
 
+#include <QDateTime>
 #include <QDebug>
+#include <QDir>
+#include <QDirIterator>
 #include <QFile>
 
 #include <PerfStat.h>
@@ -65,6 +68,10 @@ bool OctreePersistThread::process() {
             if(lockFile.is_open()) {
                 qDebug() << "WARNING: Octree lock file detected at startup:" << lockFileName
                          << "-- Attempting to restore from previous backup file.";
+                         
+                // This is where we should attempt to find the most recent backup and restore from
+                // that file as our persist file.
+                restoreFromMostRecentBackup();
 
                 lockFile.close();
                 qDebug() << "Loading Octree... lock file closed:" << lockFileName;
@@ -181,6 +188,66 @@ void OctreePersistThread::persist() {
             remove(qPrintable(lockFileName));
             qDebug() << "saving Octree lock file removed:" << lockFileName;
         }
+    }
+}
+
+void OctreePersistThread::restoreFromMostRecentBackup() {
+    qDebug() << "Restoring from most recent backup...";
+
+    // Based on our backup file name, determine the path and file name pattern for backup files
+    QFileInfo persistFileInfo(_filename);
+    QString path = persistFileInfo.path();
+    QString fileNamePart = persistFileInfo.fileName();
+
+    // Create a file filter that will find all backup files of this extension format
+    QString backupExtension = _backupExtensionFormat;
+    
+    if (_backupExtensionFormat.contains("%N")) {
+        backupExtension.replace(QString("%N"), "*");
+    } else {
+        qDebug() << "This backup extension format does not yet support restoring from most recent backup...";
+        return; // exit early, unable to restore from backup
+    }
+    
+    QString backupFileNamePart = fileNamePart + backupExtension;
+    QStringList filters;
+    filters << backupFileNamePart;
+
+    bool bestBackupFound = false;        
+    QString bestBackupFile;
+    QDateTime bestBackupFileTime;
+
+    // Iterate over all of the backup files in the persist location
+    QDirIterator dirIterator(path, filters, QDir::Files|QDir::NoSymLinks, QDirIterator::NoIteratorFlags);
+    while(dirIterator.hasNext()) {
+
+        dirIterator.next();
+        QDateTime lastModified = dirIterator.fileInfo().lastModified();
+
+        // Based on last modified date, track the most recently modified file as the best backup
+        if (lastModified > bestBackupFileTime) {
+            bestBackupFound = true;
+            bestBackupFile = dirIterator.filePath();
+            bestBackupFileTime = lastModified;
+        }
+    }
+    
+    // If we found a backup file, restore from that file.
+    if (bestBackupFound) {
+        qDebug() << "BEST backup file:" << bestBackupFile << " last modified:" << bestBackupFileTime.toString();
+
+        qDebug() << "Removing old file:" << _filename;
+        remove(qPrintable(_filename));
+
+        qDebug() << "Restoring backup file " << bestBackupFile << "...";
+        bool result = QFile::copy(bestBackupFile, _filename);
+        if (result) {
+            qDebug() << "DONE restoring backup file " << bestBackupFile << "to" << _filename << "...";
+        } else {
+            qDebug() << "ERROR while restoring backup file " << bestBackupFile << "to" << _filename << "...";
+        }
+    } else {
+        qDebug() << "NO BEST backup file found.";
     }
 }
 
