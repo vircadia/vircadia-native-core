@@ -37,6 +37,9 @@ class ResourceCache : public QObject {
 public:
     static void setRequestLimit(int limit) { _requestLimit = limit; }
     static int getRequestLimit() { return _requestLimit; }
+    
+    void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
+    qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
     static const QList<Resource*>& getLoadingRequests() { return _loadingRequests; }
 

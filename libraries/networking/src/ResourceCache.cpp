@@ -72,6 +72,11 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
     return resource;
 }
 
+void ResourceCache::setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize) {
+    _unusedResourcesMaxSize = unusedResourcesMaxSize;
+    reserveUnusedResource(0);
+}
+
 void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
     if (resource->getBytesTotal() > _unusedResourcesMaxSize) {
         // If it doesn't fit anyway, let's leave whatever is already in the cache.
