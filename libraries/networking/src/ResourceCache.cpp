@@ -83,13 +83,6 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
         _unusedResources.erase(it);
     }
     
-    
-    if (_unusedResources.size() > _unusedResourcesMaxCount) {
-        // unload the oldest resource
-        QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
-        it.value()->setCache(NULL);
-        _unusedResources.erase(it);
-    }
     resource->setLRUKey(++_lastLRUKey);
     _unusedResources.insert(resource->getLRUKey(), resource);
     _unusedResourcesSize += resource->getBytesTotal();
