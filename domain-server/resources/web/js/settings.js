@@ -363,7 +363,8 @@ function makeTableInputs(setting) {
   
   _.each(setting.columns, function(col) {
     html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
-             <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' value=''>\
+             <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
+             value='" + (col.default ? col.default : "") + "' data-default='" + (col.default ? col.default : "") + "'>\
              </td>"
   })
     
@@ -389,8 +390,9 @@ function badgeSidebarForDifferences(changedElement) {
   
   // badge for any settings we have that are not the same or are not present in initialValues
   for (var setting in panelJSON) {
-    if (!_.isEqual(panelJSON[setting], initialPanelJSON[setting]) 
-        && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting))) {
+    if ((!_.has(initialPanelJSON, setting) && panelJSON[setting] !== "") || 
+      (!_.isEqual(panelJSON[setting], initialPanelJSON[setting]) 
+      && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting)))) {
       badgeValue += 1
     }
   }
@@ -502,7 +504,7 @@ function addTableRow(add_glyphicon) {
   })
   
   input_clone.find('input').each(function(){
-    $(this).val('')
+    $(this).val($(this).attr('data-default'));
   });
   
   if (isArray) {
@@ -523,9 +525,9 @@ function deleteTableRow(delete_glyphicon) {
   var table = $(row).closest('table')
   var isArray = table.data('setting-type') === 'array'
   
+  row.empty();
+  
   if (!isArray) {
-    // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
-    row.empty()
     row.html("<input type='hidden' class='form-control' name='" 
       + row.attr('name') + "' data-changed='true' value=''>");
   } else {
@@ -536,7 +538,6 @@ function deleteTableRow(delete_glyphicon) {
       row.remove()
     } else {
       // this is the last row, we can't remove it completely since we need to post an empty array
-      row.empty()
     
       row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
       row.addClass('empty-array-row')
@@ -590,7 +591,7 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
     var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
     
     // if they are equal, we don't need data-changed
-    isTrue = _.isEqual(panelSettingJSON, initialPanelSettingJSON)
+    isTrue = !_.isEqual(panelSettingJSON, initialPanelSettingJSON)
   } else {
     isTrue = true
   }

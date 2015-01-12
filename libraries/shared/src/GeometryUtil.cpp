@@ -131,9 +131,9 @@ bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius
         if (glm::length(localCenter - axialOffset) < diskRadius) {
             // yes, hit the disk
             penetration = (std::fabs(axialDistance) - (sphereRadius + 0.5f * diskThickness) ) * diskNormal;
-            if (axialDistance < 0.f) {
+            if (axialDistance < 0.0f) {
                 // hit the backside of the disk, so negate penetration vector
-                penetration *= -1.f;
+                penetration *= -1.0f;
             }
             return true;
         }
@@ -250,6 +250,30 @@ bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direct
     } 
     distance = t; // between start and end
     return true;
+}
+
+bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance) {
+    glm::vec3 firstSide = v0 - v1;
+    glm::vec3 secondSide = v2 - v1;
+    glm::vec3 normal = glm::cross(secondSide, firstSide);
+    float dividend = glm::dot(normal, v1) - glm::dot(origin, normal);
+    if (dividend > 0.0f) {
+        return false; // origin below plane
+    }
+    float divisor = glm::dot(normal, direction);
+    if (divisor > -EPSILON) {
+        return false;
+    }
+    float t = dividend / divisor;
+    glm::vec3 point = origin + direction * t;
+    if (glm::dot(normal, glm::cross(point - v1, firstSide)) > 0.0f &&
+            glm::dot(normal, glm::cross(secondSide, point - v1)) > 0.0f &&
+            glm::dot(normal, glm::cross(point - v0, v2 - v0)) > 0.0f) {
+        distance = t;
+        return true;
+    }
+    return false;
 }
 
 // Do line segments (r1p1.x, r1p1.y)--(r1p2.x, r1p2.y) and (r2p1.x, r2p1.y)--(r2p2.x, r2p2.y) intersect?

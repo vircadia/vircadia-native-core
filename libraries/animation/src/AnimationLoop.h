@@ -16,6 +16,8 @@ class AnimationDetails;
 
 class AnimationLoop {
 public:
+    static const float MAXIMUM_POSSIBLE_FRAME;
+
     AnimationLoop();
     AnimationLoop(const AnimationDetails& animationDetails);
     AnimationLoop(float fps, bool loop, bool hold, bool startAutomatically, float firstFrame, 
@@ -33,10 +35,10 @@ public:
     void setStartAutomatically(bool startAutomatically);
     bool getStartAutomatically() const { return _startAutomatically; }
     
-    void setFirstFrame(float firstFrame) { _firstFrame = firstFrame; }
+    void setFirstFrame(float firstFrame) { _firstFrame = glm::clamp(firstFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
     float getFirstFrame() const { return _firstFrame; }
     
-    void setLastFrame(float lastFrame) { _lastFrame = lastFrame; }
+    void setLastFrame(float lastFrame) { _lastFrame = glm::clamp(lastFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
     float getLastFrame() const { return _lastFrame; }
     
     void setRunning(bool running);
@@ -44,6 +46,9 @@ public:
 
     void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(frameIndex, _firstFrame, _lastFrame); }
     float getFrameIndex() const { return _frameIndex; }
+
+    void setMaxFrameIndexHint(float value) { _maxFrameIndexHint = glm::clamp(value, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
+    float getMaxFrameIndexHint() const { return _maxFrameIndexHint; }
     
     void start() { setRunning(true); }
     void stop() { setRunning(false); }
@@ -58,6 +63,7 @@ private:
     float _lastFrame;
     bool _running;
     float _frameIndex;
+    float _maxFrameIndexHint;
 };
 
 #endif // hifi_AnimationLoop_h

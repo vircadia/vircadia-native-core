@@ -77,6 +77,33 @@
     ]
   },
   {
+    "name": "scripts",
+    "label": "Scripts",
+    "settings": [
+      {
+        "name": "persistent_scripts",
+        "type": "table",
+        "label": "Persistent Scripts",
+        "help": "Add the URLs for scripts that you would like to ensure are always running in your domain.",
+        "columns": [
+          {
+            "name": "url",
+            "label": "Script URL"
+          },
+          {
+            "name": "num_instances",
+            "label": "# instances",
+            "default": 1
+          },
+          {
+            "name": "pool",
+            "label": "Pool"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "name": "audio_env",
     "label": "Audio Environment",
     "assignment-types": [0],
@@ -167,7 +194,7 @@
         "name": "reverb",
         "type": "table",
         "label": "Reverb Settings",
-        "help": "In this table you can set custom reverb values for each audio zones",
+        "help": "In this table you can set reverb levels for audio zones.  For a medium-sized (e.g., 100 square meter) meeting room, try a decay time of around 1.5 seconds and a wet level of -10 db. For an airplane hangar or cathedral, try a decay time of 4 seconds and a wet level of -5 db.",
         "numbered": true,
         "columns": [
           {
@@ -277,6 +304,60 @@
     "assignment-types": [6],
     "settings": [
       {
+        "name": "persistFilename",
+        "label": "Persistant Filename",
+        "help": "the filename for your entities",
+        "placeholder": "resources/models.svo",
+        "default": "resources/models.svo",
+        "advanced": true
+      },
+      {
+        "name": "persistInterval",
+        "label": "Persist Interval",
+        "help": "Interval between persist checks in msecs.",
+        "placeholder": "30000",
+        "default": "30000",
+        "advanced": true
+      },
+      {
+        "name": "NoPersist",
+        "type": "checkbox",
+        "help": "Don't persist your entities to a file.",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "backupExtensionFormat",
+        "label": "Backup File Extension Format:",
+        "help": "Format used to create the extension for the backup of your persisted entities. Use a format with %N to get rolling. Or use date formatting like %Y-%m-%d.%H:%M:%S.%z",
+        "placeholder": ".backup.%N",
+        "default": ".backup.%N",
+        "advanced": true
+      },
+      {
+        "name": "backupInterval",
+        "label": "Backup Interval",
+        "help": "Interval between backup checks in msecs.",
+        "placeholder": "1800000",
+        "default": "1800000",
+        "advanced": true
+      },
+      {
+        "name": "maxBackupVersions",
+        "label": "Max Rolled Backup Versions",
+        "help": "If your backup extension format uses 'rolling', how many versions do you want us to keep?",
+        "placeholder": "5",
+        "default": "5",
+        "advanced": true
+      },
+      {
+        "name": "NoBackup",
+        "type": "checkbox",
+        "help": "Don't regularly backup your persisted entities to a backup file.",
+        "default": false,
+        "advanced": true
+      },
+      {
         "name": "statusHost",
         "label": "Status Hostname",
         "help": "host name or IP address of the server for accessing the status page",
@@ -314,37 +395,10 @@
         "advanced": true
       },
       {
-        "name": "clockSkew",
-        "label": "Clock Skew",
-        "help": "Number of msecs to skew the server clock by to test clock skew",
-        "placeholder": "0",
-        "default": "0",
-        "advanced": true
-      }
-    ]
-  },
-  
-  
-  {
-    "name": "voxel_server_settings",
-    "label": "Voxel Server Settings",
-    "assignment-types": [3],
-    "settings": [
-
-      {
-        "name": "statusHost",
-        "label": "Status Hostname",
-        "help": "host name or IP address of the server for accessing the status page",
-        "placeholder": "",
-        "default": "",
-        "advanced": true
-      },
-      {
-        "name": "statusPort",
-        "label": "Status Port",
-        "help": "port of the server for accessing the status page",
-        "placeholder": "",
-        "default": "",
+        "name": "debugTimestampNow",
+        "type": "checkbox",
+        "help": "extra debugging for usecTimestampNow() function",
+        "default": false,
         "advanced": true
       },
       {
@@ -354,22 +408,7 @@
         "placeholder": "0",
         "default": "0",
         "advanced": true
-      },
-      {
-        "name": "sendEnvironments",
-        "type": "checkbox",
-        "help": "send environmental data",
-        "default": false,
-        "advanced": true
-      },
-      {
-        "name": "minimalEnvironment",
-        "type": "checkbox",
-        "help": "send minimal environmental data if sending environmental data",
-        "default": false,
-        "advanced": true
       }
     ]
-  }  
-  
+  }
 ]

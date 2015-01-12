@@ -64,11 +64,11 @@ void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) 
 }
 
 PalmData::PalmData(HandData* owningHandData) :
-_rawRotation(0.f, 0.f, 0.f, 1.f),
-_rawPosition(0.f),
-_rawVelocity(0.f),
-_rotationalVelocity(0.f),
-_totalPenetration(0.f),
+_rawRotation(0.0f, 0.0f, 0.0f, 1.0f),
+_rawPosition(0.0f),
+_rawVelocity(0.0f),
+_rotationalVelocity(0.0f),
+_totalPenetration(0.0f),
 _controllerButtons(0),
 _isActive(false),
 _sixenseID(SIXENSEID_INVALID),

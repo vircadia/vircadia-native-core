@@ -11,6 +11,9 @@
 
 #include <cstdio>
 
+#include <DependencyManager.h>
+#include <GeometryCache.h>
+
 #include "BandwidthMeter.h"
 #include "InterfaceConfig.h"
 
@@ -45,12 +48,12 @@ namespace { // .cpp-local
 BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
     { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x33cc99ff },
     { "Avatars" , "Kbps", 8000.0 / 1024.0, 0xffef40c0 },
-    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 },
+    { "Octree"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 },
     { "Metavoxels", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
 BandwidthMeter::BandwidthMeter() :
-    _textRenderer(TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false)),
+    _textRenderer(TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT, false)),
     _scaleMaxIndex(INITIAL_SCALE_MAXIMUM_INDEX) {
 
     _channels = static_cast<ChannelInfo*>( malloc(sizeof(_CHANNELS)) );
@@ -92,21 +95,11 @@ void BandwidthMeter::setColorRGBA(unsigned c) {
 }
 
 void BandwidthMeter::renderBox(int x, int y, int w, int h) {
-
-    glBegin(GL_QUADS);
-    glVertex2i(x, y);
-    glVertex2i(x + w, y);
-    glVertex2i(x + w, y + h);
-    glVertex2i(x, y + h);
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h);
 }
 
 void BandwidthMeter::renderVerticalLine(int x, int y, int h) {
-
-    glBegin(GL_LINES);
-    glVertex2i(x, y);
-    glVertex2i(x, y + h);
-    glEnd();
+    DependencyManager::get<GeometryCache>()->renderLine(glm::vec2(x, y), glm::vec2(x, y + h));
 }
 
 inline int BandwidthMeter::centered(int subject, int object) {

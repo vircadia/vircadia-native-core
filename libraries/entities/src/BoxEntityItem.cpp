@@ -14,9 +14,9 @@
 
 #include <ByteCountCoding.h>
 
+#include "BoxEntityItem.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "BoxEntityItem.h"
 
 
 EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -29,7 +29,7 @@ BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemP
 {
     _type = EntityTypes::Box;
     _created = properties.getCreated();
-    setProperties(properties, true);
+    setProperties(properties);
 }
 
 EntityItemProperties BoxEntityItem::getProperties() const {
@@ -44,9 +44,9 @@ EntityItemProperties BoxEntityItem::getProperties() const {
     return properties;
 }
 
-bool BoxEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool BoxEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
 
@@ -95,3 +95,9 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
+
+void BoxEntityItem::computeShapeInfo(ShapeInfo& info) const {
+    glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
+    info.setBox(halfExtents);
+}
+

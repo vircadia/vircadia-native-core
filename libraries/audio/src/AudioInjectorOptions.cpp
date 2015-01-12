@@ -20,7 +20,8 @@ AudioInjectorOptions::AudioInjectorOptions() :
     orientation(glm::vec3(0.0f, 0.0f, 0.0f)),
     stereo(false),
     ignorePenumbra(false),
-    localOnly(false)
+    localOnly(false),
+    secondOffset(0.0)
 {
 
 }
@@ -31,9 +32,9 @@ QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInje
     obj.setProperty("volume", injectorOptions.volume);
     obj.setProperty("loop", injectorOptions.loop);
     obj.setProperty("orientation", quatToScriptValue(engine, injectorOptions.orientation));
-    obj.setProperty("stereo", injectorOptions.stereo);
     obj.setProperty("ignorePenumbra", injectorOptions.ignorePenumbra);
     obj.setProperty("localOnly", injectorOptions.localOnly);
+    obj.setProperty("secondOffset", injectorOptions.secondOffset);
     return obj;
 }
 
@@ -54,15 +55,15 @@ void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOpt
         quatFromScriptValue(object.property("orientation"), injectorOptions.orientation);
     }
     
-    if (object.property("stereo").isValid()) {
-        injectorOptions.stereo = object.property("stereo").toBool();
-    }
-    
     if (object.property("ignorePenumbra").isValid()) {
         injectorOptions.ignorePenumbra = object.property("ignorePenumbra").toBool();
     }
     
     if (object.property("localOnly").isValid()) {
         injectorOptions.localOnly = object.property("localOnly").toBool();
+    }
+    
+    if (object.property("secondOffset").isValid()) {
+        injectorOptions.secondOffset = object.property("secondOffset").toNumber();
     }
  }

@@ -26,6 +26,12 @@ Planar3DOverlay::Planar3DOverlay() :
 {
 }
 
+Planar3DOverlay::Planar3DOverlay(const Planar3DOverlay* planar3DOverlay) :
+    Base3DOverlay(planar3DOverlay),
+    _dimensions(planar3DOverlay->_dimensions)
+{
+}
+
 Planar3DOverlay::~Planar3DOverlay() {
 }
 
@@ -77,8 +83,16 @@ void Planar3DOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue Planar3DOverlay::getProperty(const QString& property) {
+    if (property == "dimensions" || property == "scale" || property == "size") {
+        return vec2toScriptValue(_scriptEngine, _dimensions);
+    }
+
+    return Base3DOverlay::getProperty(property);
+}
+
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face) {
 
     RayIntersectionInfo rayInfo;
     rayInfo._rayStart = origin;

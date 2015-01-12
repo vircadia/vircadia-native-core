@@ -9,9 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QMessageBox>
+
+#include <PathUtils.h>
+
 #include "AddressBarDialog.h"
 #include "AddressManager.h"
 #include "Application.h"
+#include "MainWindow.h"
 
 const QString ADDRESSBAR_GO_BUTTON_ICON = "images/address-bar-submit.svg";
 const QString ADDRESSBAR_GO_BUTTON_ACTIVE_ICON = "images/address-bar-submit-active.svg";
@@ -21,6 +26,11 @@ AddressBarDialog::AddressBarDialog() :
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
     setupUI();
+    
+    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+    
+    connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
+    connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
 }
 
 void AddressBarDialog::setupUI() {
@@ -82,7 +92,7 @@ void AddressBarDialog::setupUI() {
     _goButton->setSizePolicy(sizePolicy);
     _goButton->setMinimumSize(QSize(GO_BUTTON_SIZE, GO_BUTTON_SIZE));
     _goButton->setMaximumSize(QSize(GO_BUTTON_SIZE, GO_BUTTON_SIZE));
-    _goButton->setIcon(QIcon(Application::resourcesPath() + ADDRESSBAR_GO_BUTTON_ICON));
+    _goButton->setIcon(QIcon(PathUtils::resourcesPath() + ADDRESSBAR_GO_BUTTON_ICON));
     _goButton->setIconSize(QSize(GO_BUTTON_SIZE, GO_BUTTON_SIZE));
     _goButton->setDefault(true);
     _goButton->setFlat(true);
@@ -99,7 +109,7 @@ void AddressBarDialog::setupUI() {
     _closeButton->setSizePolicy(sizePolicy);
     _closeButton->setMinimumSize(QSize(CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE));
     _closeButton->setMaximumSize(QSize(CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE));
-    QIcon icon(Application::resourcesPath() + CLOSE_BUTTON_ICON);
+    QIcon icon(PathUtils::resourcesPath() + CLOSE_BUTTON_ICON);
     _closeButton->setIcon(icon);
     _closeButton->setIconSize(QSize(CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE));
     _closeButton->setFlat(true);
@@ -112,7 +122,7 @@ void AddressBarDialog::setupUI() {
 }
 
 void AddressBarDialog::showEvent(QShowEvent* event) {
-    _goButton->setIcon(QIcon(Application::resourcesPath() + ADDRESSBAR_GO_BUTTON_ICON));
+    _goButton->setIcon(QIcon(PathUtils::resourcesPath() + ADDRESSBAR_GO_BUTTON_ICON));
     _addressLineEdit->setText(QString());
     _addressLineEdit->setFocus();
     FramelessDialog::showEvent(event);
@@ -120,9 +130,19 @@ void AddressBarDialog::showEvent(QShowEvent* event) {
 
 void AddressBarDialog::accept() {
     if (!_addressLineEdit->text().isEmpty()) {
-        _goButton->setIcon(QIcon(Application::resourcesPath() + ADDRESSBAR_GO_BUTTON_ACTIVE_ICON));
-        AddressManager& addressManager = AddressManager::getInstance();
-        connect(&addressManager, &AddressManager::lookupResultsFinished, this, &QDialog::hide);
-        addressManager.handleLookupString(_addressLineEdit->text());
+        _goButton->setIcon(QIcon(PathUtils::resourcesPath() + ADDRESSBAR_GO_BUTTON_ACTIVE_ICON));
+        AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+        connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &QDialog::hide);
+        addressManager->handleLookupString(_addressLineEdit->text());
     }
+}
+
+void AddressBarDialog::displayAddressOfflineMessage() {
+    QMessageBox::information(Application::getInstance()->getWindow(), "Address offline",
+                             "That user or place is currently offline.");
+}
+
+void AddressBarDialog::displayAddressNotFoundMessage() {
+    QMessageBox::information(Application::getInstance()->getWindow(), "Address not found",
+                             "There is no address information for that user or place.");
 }

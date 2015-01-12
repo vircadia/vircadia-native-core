@@ -72,27 +72,27 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
 
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float degrees) {
-    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.f);
+    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0f);
     
-    uint16_t angleHolder = floorf((degrees + 180.f) * ANGLE_CONVERSION_RATIO);
+    uint16_t angleHolder = floorf((degrees + 180.0f) * ANGLE_CONVERSION_RATIO);
     memcpy(buffer, &angleHolder, sizeof(uint16_t));
     
     return sizeof(uint16_t);
 }
 
 int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.f - 180.f;
+    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0f - 180.0f;
     return sizeof(uint16_t);
 }
 
 int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput) {
     glm::quat quatNormalized = glm::normalize(quatInput);
-    const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.f);
+    const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.0f);
     uint16_t quatParts[4];
-    quatParts[0] = floorf((quatNormalized.x + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[1] = floorf((quatNormalized.y + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[2] = floorf((quatNormalized.z + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[3] = floorf((quatNormalized.w + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[0] = floorf((quatNormalized.x + 1.0f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[1] = floorf((quatNormalized.y + 1.0f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[2] = floorf((quatNormalized.z + 1.0f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[3] = floorf((quatNormalized.w + 1.0f) * QUAT_PART_CONVERSION_RATIO);
     
     memcpy(buffer, &quatParts, sizeof(quatParts));
     return sizeof(quatParts);
@@ -102,10 +102,10 @@ int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatO
     uint16_t quatParts[4];
     memcpy(&quatParts, buffer, sizeof(quatParts));
     
-    quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
-    quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
-    quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
-    quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
+    quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
+    quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
+    quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
+    quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
     
     return sizeof(quatParts);
 }

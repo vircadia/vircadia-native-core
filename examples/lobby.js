@@ -13,19 +13,27 @@ Script.include("libraries/globals.js");
 
 var panelWall = false;
 var orbShell = false;
-var reticle = false;
+var descriptionText = false;
+var showText = false;
+
+// used for formating the description text, in meters
+var textWidth = 4;
+var textHeight = .5;
+var numberOfLines = 2;
+var textMargin = 0.0625;
+var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
 
 var avatarStickPosition = {};
 
-var orbNaturalExtentsMin = { x: -1230, y: -1223, z: -1210 };
-var orbNaturalExtentsMax = { x: 1230, y: 1229, z: 1210 };
-var panelsNaturalExtentsMin = { x: -1223, y: -348, z: 45 };
-var panelsNaturalExtentsMax = { x: 1223, y: 604, z: 1223 };
+var orbNaturalExtentsMin = { x: -1.230354, y: -1.22077, z: -1.210487 };
+var orbNaturalExtentsMax = { x: 1.230353, y: 1.229819, z: 1.210487 };
+var panelsNaturalExtentsMin = { x: -1.223182, y: -0.348487, z: 0.0451369 };
+var panelsNaturalExtentsMax = { x: 1.223039, y: 0.602978, z: 1.224298 };
 
 var orbNaturalDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
 var panelsNaturalDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
 
-var SCALING_FACTOR = 0.01;
+var SCALING_FACTOR = 10;
 var orbDimensions = Vec3.multiply(orbNaturalDimensions, SCALING_FACTOR);
 var panelsDimensions = Vec3.multiply(panelsNaturalDimensions, SCALING_FACTOR);
 
@@ -37,19 +45,45 @@ var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
 var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
-var HELMET_ATTACHMENT_URL =  HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
+var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
-var droneSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.raw")
+var LOBBY_PANEL_WALL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/PanelWallForInterface.fbx";
+var LOBBY_BLANK_PANEL_TEXTURE_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Texture.jpg";
+var LOBBY_SHELL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyShellForInterface.fbx";
+
+var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.stereo.raw")
 var currentDrone = null;
 
-var latinSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.raw")
-var elevatorSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.raw")
-var currentMusak = null;
+var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.stereo.raw")
+var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
+var currentMuzakInjector = null;
+var currentSound = null;
 
-function reticlePosition() {
-  var RETICLE_DISTANCE = 1;
-  return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
+function textOverlayPosition() {
+  var TEXT_DISTANCE_OUT = 6;
+  var TEXT_DISTANCE_DOWN = -2;
+  return Vec3.sum(Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), TEXT_DISTANCE_OUT)),
+                              Vec3.multiply(Quat.getUp(Camera.orientation), TEXT_DISTANCE_DOWN));
 }
+
+var panelLocationOrder = [
+  7, 8, 9, 10, 11, 12, 13,
+  0, 1, 2, 3, 4, 5, 6,
+  14, 15, 16, 17, 18, 19, 20
+];
+
+// Location index is 0-based
+function locationIndexToPanelIndex(locationIndex) {
+  return panelLocationOrder.indexOf(locationIndex) + 1;
+}
+
+// Panel index is 1-based
+function panelIndexToLocationIndex(panelIndex) {
+  return panelLocationOrder[panelIndex - 1];
+}
+
+var MAX_NUM_PANELS = 21;
+var DRONE_VOLUME = 0.3;
 
 function drawLobby() {
   if (!panelWall) {
@@ -61,45 +95,54 @@ function drawLobby() {
     var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_PanelsWithFrames.fbx",
+      url: LOBBY_PANEL_WALL_URL,
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
       rotation: towardsMe,
       dimensions: panelsDimensions
     };
     
     var orbShellProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_OrbNoFrames.fbx",
+      url: LOBBY_SHELL_URL,
       position: orbPosition,
       rotation: towardsMe,
       dimensions: orbDimensions,
       ignoreRayIntersection: true
     };
+
+    var windowDimensions = Controller.getViewportDimensions();
+
+    var descriptionTextProps = {
+        position: textOverlayPosition(),
+        dimensions: { x: textWidth, y: textHeight },
+        backgroundColor: { red: 0, green: 0, blue: 0},
+        color: { red: 255, green: 255, blue: 255},
+        topMargin: textMargin,
+        leftMargin: textMargin,
+        bottomMargin: textMargin,
+        rightMargin: textMargin,
+        text: "",
+        lineHeight: lineHeight,
+        alpha: 0.9,
+        backgroundAlpha: 0.9,
+        ignoreRayIntersection: true,
+        visible: false,
+        isFacingAvatar: true
+    };
     
     avatarStickPosition = MyAvatar.position;
 
-    panelWall = Overlays.addOverlay("model", panelWallProps);
+    panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
-    
-    // for HMD wearers, create a reticle in center of screen
-    var CURSOR_SCALE = 0.025;
-    
-    reticle = Overlays.addOverlay("billboard", {
-      url: HIFI_PUBLIC_BUCKET + "images/cursor.svg",
-      position: reticlePosition(),
-      ignoreRayIntersection: true,
-      isFacingAvatar: true,
-      alpha: 1.0,
-      scale: CURSOR_SCALE
-    });
-    
+    descriptionText = Overlays.addOverlay("text3d", descriptionTextProps);
+      
     // add an attachment on this avatar so other people see them in the lobby
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
     // start the drone sound
-    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true });
+    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
     
-    // start one of our musak sounds
-    playRandomMusak();
+    // start one of our muzak sounds
+    playRandomMuzak();
   }
 }
 
@@ -119,44 +162,75 @@ function changeLobbyTextures() {
   };
   
   for (var j = 0; j < NUM_PANELS; j++) {
-    textureProp["textures"]["file" + (j + 1)] = "http:" + locations[j].thumbnail_url
+    var panelIndex = locationIndexToPanelIndex(j);
+    textureProp["textures"]["file" + panelIndex] = HIFI_PUBLIC_BUCKET + "images/locations/" 
+      + locations[j].id + "/hifi-location-" + locations[j].id + "_640x360.jpg";
   };
   
   Overlays.editOverlay(panelWall, textureProp);
 }
 
-function playRandomMusak() {
-  chosenSound = null;
+var MUZAK_VOLUME = 0.1;
+
+function playNextMuzak() {
+  if (panelWall) {
+    if (currentSound == latinSound) {
+      if (elevatorSound.downloaded) {
+        currentSound = elevatorSound;
+      }
+    } else if (currentSound == elevatorSound) {
+      if (latinSound.downloaded) {
+        currentSound = latinSound;
+      }
+    }
+  
+    currentMuzakInjector = Audio.playSound(currentSound, { localOnly: true, volume: MUZAK_VOLUME });
+  }
+}
+
+function playRandomMuzak() {
+  currentSound = null;
   
   if (latinSound.downloaded && elevatorSound.downloaded) {
-    chosenSound = Math.random < 0.5 ? latinSound : elevatorSound;
+    currentSound = Math.random() < 0.5 ? latinSound : elevatorSound;
   } else if (latinSound.downloaded) {
-    chosenSound = latinSound;
+    currentSound = latinSound;
   } else if (elevatorSound.downloaded) {
-    chosenSound = elevatorSound;
+    currentSound = elevatorSound;
   }
   
-  if (chosenSound) {
-    currentMusak = Audio.playSound(chosenSound, { stereo: true, localOnly: true })
+  if (currentSound) {    
+    // pick a random number of seconds from 0-10 to offset the muzak
+    var secondOffset = Math.random() * 10;
+    currentMuzakInjector = Audio.playSound(currentSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
   } else {
-    currentMusak = null;
+    currentMuzakInjector = null;
   }
 }
 
 function cleanupLobby() {
+  // for each of the 21 placeholder textures, set them back to default so the cached model doesn't have changed textures
+  var panelTexturesReset = {};
+  panelTexturesReset["textures"] = {};
+      
+  for (var j = 0; j < MAX_NUM_PANELS; j++) { 
+    panelTexturesReset["textures"]["file" + (j + 1)] = LOBBY_BLANK_PANEL_TEXTURE_URL;
+  };
+  
+  Overlays.editOverlay(panelWall, panelTexturesReset);
+  
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
-  Overlays.deleteOverlay(reticle);
+  Overlays.deleteOverlay(descriptionText);
+  
+  panelWall = false;
+  orbShell = false;
   
   Audio.stopInjector(currentDrone);
   currentDrone = null;
   
-  Audio.stopInjector(currentMusak);
-  currentMusak = null;
-  
-  panelWall = false;
-  orbShell = false;
-  reticle = false;
+  Audio.stopInjector(currentMuzakInjector);
+  currentMuzakInjector = null;
   
   locations = {};
   toggleEnvironmentRendering(true);
@@ -166,22 +240,22 @@ function cleanupLobby() {
 
 function actionStartEvent(event) {
   if (panelWall) {
-        
     // we've got an action event and our panel wall is up
     // check if we hit a panel and if we should jump there
     var result = Overlays.findRayIntersection(event.actionRay);
-
     if (result.intersects && result.overlayID == panelWall) {
-      
+    
       var panelName = result.extraInfo;
+      
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
-        var panelIndex = parseInt(panelName.slice(5)) - 1;
-        if (panelIndex < locations.length) {
-          var actionLocation = locations[panelIndex];
+        var panelIndex = parseInt(panelName.slice(5));
+        var locationIndex = panelIndexToLocationIndex(panelIndex);
+        if (locationIndex < locations.length) {
+          var actionLocation = locations[locationIndex];
           
           print("Jumping to " + actionLocation.name + " at " + actionLocation.path 
-            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex);
+            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex + " with location index " + locationIndex);
           
           Window.location = actionLocation;
           maybeCleanupLobby();
@@ -201,7 +275,7 @@ function backStartEvent() {
   }
 }
 
-var CLEANUP_EPSILON_DISTANCE = 0.025
+var CLEANUP_EPSILON_DISTANCE = 0.05;
 
 function maybeCleanupLobby() {
   if (panelWall && Vec3.length(Vec3.subtract(avatarStickPosition, MyAvatar.position)) > CLEANUP_EPSILON_DISTANCE) {
@@ -216,16 +290,84 @@ function toggleEnvironmentRendering(shouldRender) {
   Menu.setIsOptionChecked("Avatars", shouldRender);
 }
 
+function handleLookAt(pickRay) {
+  if (panelWall && descriptionText) {
+    // we've got an action event and our panel wall is up
+    // check if we hit a panel and if we should jump there
+    var result = Overlays.findRayIntersection(pickRay);
+    if (result.intersects && result.overlayID == panelWall) {
+      var panelName = result.extraInfo;
+      var panelStringIndex = panelName.indexOf("Panel");
+      if (panelStringIndex != -1) {
+        var panelIndex = parseInt(panelName.slice(5));
+        var locationIndex = panelIndexToLocationIndex(panelIndex);
+        if (locationIndex < locations.length) {
+          var actionLocation = locations[locationIndex];
+          
+          if (actionLocation.description == "") {
+              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: showText });
+          } else {
+              // handle line wrapping
+              var allWords = actionLocation.description.split(" ");
+              var currentGoodLine = "";
+              var currentTestLine = "";
+              var formatedDescription = "";
+              var wordsFormated = 0;
+              var currentTestWord = 0;
+              var wordsOnLine = 0;
+              while (wordsFormated < allWords.length) {
+                // first add the "next word" to the line and test it.
+                currentTestLine = currentGoodLine;
+                if (wordsOnLine > 0) {
+                    currentTestLine += " " + allWords[currentTestWord];
+                } else {
+                    currentTestLine = allWords[currentTestWord];
+                }
+                var lineLength = Overlays.textSize(descriptionText, currentTestLine).width;
+                if (lineLength < textWidth || wordsOnLine == 0) {
+                  wordsFormated++;
+                  currentTestWord++;
+                  wordsOnLine++;
+                  currentGoodLine = currentTestLine;
+                } else {
+                  formatedDescription += currentGoodLine + "\n";
+                  wordsOnLine = 0;
+                  currentGoodLine = "";
+                  currentTestLine = "";
+                }
+              }
+              formatedDescription += currentGoodLine;
+              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: showText });
+            }
+        } else {
+          Overlays.editOverlay(descriptionText, { text: "", visible: false });
+        }
+      }
+    }
+  }
+}
+
 function update(deltaTime) {
   maybeCleanupLobby();
-  if (reticle) {
-    Overlays.editOverlay(reticle, {
-      position: reticlePosition()
-    });
+  if (panelWall) {
+    Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
+
+    // if the reticle is up then we may need to play the next muzak
+    if (!Audio.isInjectorPlaying(currentMuzakInjector)) {
+      playNextMuzak();
+    }
   }
+}
+
+function mouseMoveEvent(event) {
+  if (panelWall) {
+      var pickRay = Camera.computePickRay(event.x, event.y);
+      handleLookAt(pickRay);
+    }
 }
 
 Controller.actionStartEvent.connect(actionStartEvent);
 Controller.backStartEvent.connect(backStartEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(maybeCleanupLobby);
+Controller.mouseMoveEvent.connect(mouseMoveEvent);

@@ -47,6 +47,11 @@ qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
             _currentOffset += bytesRead;
         }
         
+        if (!_shouldLoop && bytesRead == bytesToEnd) {
+            // we hit the end of the buffer, emit a signal
+            emit bufferEmpty();
+        }
+        
         return bytesRead;
     } else {
         return 0;

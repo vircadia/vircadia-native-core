@@ -17,18 +17,8 @@
 #include <PhysicsSimulation.h>
 
 #include "Avatar.h"
-#include "VoxelShapeManager.h"
 
 class ModelItemID;
-
-enum AvatarHandState
-{
-    HAND_STATE_NULL = 0,
-    HAND_STATE_LEFT_POINTING,
-    HAND_STATE_RIGHT_POINTING,
-    HAND_STATE_BOTH_POINTING,
-    NUM_HAND_STATES
-};
 
 class MyAvatar : public Avatar {
     Q_OBJECT
@@ -52,18 +42,14 @@ public:
     void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
     bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
-    void renderHeadMouse(int screenWidth, int screenHeight) const;
 
     // setters
-    void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
     void setLeanScale(float scale) { _leanScale = scale; }
     void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
 
     // getters
     float getLeanScale() const { return _leanScale; }
-    const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
-    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
@@ -101,7 +87,7 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
-    bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
+    bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
     void jump() { _shouldJump = true; };
     
     bool isMyAvatar() { return true; }
@@ -203,9 +189,7 @@ protected:
     virtual void renderAttachments(RenderMode renderMode);
     
 private:
-    bool _mousePressed;
-    float _bodyPitchDelta;  // degrees
-    float _bodyRollDelta;   // degrees
+    float _turningKeyPressTime;
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
@@ -233,8 +217,8 @@ private:
 
     QList<AnimationHandlePointer> _animationHandles;
     PhysicsSimulation _physicsSimulation;
-    VoxelShapeManager _voxelShapeManager;
     
+    bool _feetTouchFloor;
     bool _isLookingAtLeftEye;
 
     RecorderPointer _recorder;

@@ -84,10 +84,8 @@ void SixenseManager::initialize() {
 #ifdef HAVE_SIXENSE
     
     if (!_isInitialized) {
-        _lastMovement = 0;
-        _amountMoved = glm::vec3(0.0f);
         _lowVelocityFilter = false;
-        
+        _controllersAtBase = true;
         _calibrationState = CALIBRATION_STATE_IDLE;
         // By default we assume the _neckBase (in orb frame) is as high above the orb
         // as the "torso" is below it.
@@ -146,17 +144,8 @@ void SixenseManager::setFilter(bool filter) {
 
 void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
+    Hand* hand = Application::getInstance()->getAvatar()->getHand();
     if (_isInitialized && _isEnabled) {
-        // if the controllers haven't been moved in a while, disable
-        const unsigned int MOVEMENT_DISABLE_SECONDS = 3;
-        if (usecTimestampNow() - _lastMovement > (MOVEMENT_DISABLE_SECONDS * USECS_PER_SECOND)) {
-            Hand* hand = Application::getInstance()->getAvatar()->getHand();
-            for (std::vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
-                it->setActive(false);
-            }
-            _lastMovement = usecTimestampNow();
-        }
-        
 #ifdef __APPLE__
         SixenseBaseFunction sixenseGetNumActiveControllers =
         (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
@@ -172,8 +161,6 @@ void SixenseManager::update(float deltaTime) {
             _hydrasConnected = true;
             UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
         }
-        MyAvatar* avatar = Application::getInstance()->getAvatar();
-        Hand* hand = avatar->getHand();
         
 #ifdef __APPLE__
         SixenseBaseFunction sixenseGetMaxControllers =
@@ -192,7 +179,7 @@ void SixenseManager::update(float deltaTime) {
         SixenseTakeIntAndSixenseControllerData sixenseGetNewestData =
         (SixenseTakeIntAndSixenseControllerData) _sixenseLibrary->resolve("sixenseGetNewestData");
 #endif
-        
+        int numControllersAtBase = 0;
         int numActiveControllers = 0;
         for (int i = 0; i < maxControllers && numActiveControllers < 2; i++) {
             if (!sixenseIsControllerEnabled(i)) {
@@ -221,13 +208,18 @@ void SixenseManager::update(float deltaTime) {
                 qDebug("Found new Sixense controller, ID %i", data->controller_index);
             }
             
-            palm->setActive(true);
+            // Disable the hands (and return to default pose) if both controllers are at base station
+            if (foundHand) {
+                palm->setActive(!_controllersAtBase);
+            } else {
+                palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
+            }
+            
             
             //  Read controller buttons and joystick into the hand
             palm->setControllerButtons(data->buttons);
             palm->setTrigger(data->trigger);
             palm->setJoystick(data->joystick_x, data->joystick_y);
-            
             
             // Emulate the mouse so we can use scripts
             if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
@@ -238,19 +230,25 @@ void SixenseManager::update(float deltaTime) {
             glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
             position *= METERS_PER_MILLIMETER;
             
+            // Check to see if this hand/controller is on the base
+            const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
+            if (glm::length(position) < CONTROLLER_AT_BASE_DISTANCE) {
+                numControllersAtBase++;
+            }
+            
             // Transform the measured position into body frame.
             glm::vec3 neck = _neckBase;
             // Zeroing y component of the "neck" effectively raises the measured position a little bit.
-            neck.y = 0.f;
+            neck.y = 0.0f;
             position = _orbRotation * (position - neck);
             
             //  Rotation of Palm
             glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
-            rotation = glm::angleAxis(PI, glm::vec3(0.f, 1.f, 0.f)) * _orbRotation * rotation;
+            rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * _orbRotation * rotation;
             
             //  Compute current velocity from position change
             glm::vec3 rawVelocity;
-            if (deltaTime > 0.f) {
+            if (deltaTime > 0.0f) {
                 rawVelocity = (position - palm->getRawPosition()) / deltaTime;
             } else {
                 rawVelocity = glm::vec3(0.0f);
@@ -274,23 +272,15 @@ void SixenseManager::update(float deltaTime) {
                 palm->setRawRotation(rotation);
             }
             
-            // use the velocity to determine whether there's any movement (if the hand isn't new)
-            const float MOVEMENT_DISTANCE_THRESHOLD = 0.003f;
-            _amountMoved += rawVelocity * deltaTime;
-            if (glm::length(_amountMoved) > MOVEMENT_DISTANCE_THRESHOLD && foundHand) {
-                _lastMovement = usecTimestampNow();
-                _amountMoved = glm::vec3(0.0f);
-            }
-            
             // Store the one fingertip in the palm structure so we can track velocity
             const float FINGER_LENGTH = 0.3f;   //  meters
             const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
             const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
             glm::vec3 oldTipPosition = palm->getTipRawPosition();
-            if (deltaTime > 0.f) {
+            if (deltaTime > 0.0f) {
                 palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
             } else {
-                palm->setTipVelocity(glm::vec3(0.f));
+                palm->setTipVelocity(glm::vec3(0.0f));
             }
             palm->setTipPosition(newTipPosition);
         }
@@ -298,7 +288,7 @@ void SixenseManager::update(float deltaTime) {
         if (numActiveControllers == 2) {
             updateCalibration(controllers);
         }
-
+        _controllersAtBase = (numControllersAtBase == 2);
     }
 #endif  // HAVE_SIXENSE
 }
@@ -348,7 +338,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
                 // to also handle the case where left and right controllers have been reversed.
                 _neckBase = 0.5f * (_reachLeft + _reachRight); // neck is midway between right and left reaches
                 glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
-                glm::vec3 yAxis(0.f, 1.f, 0.f);
+                glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
                 glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
                 xAxis = glm::normalize(glm::cross(yAxis, zAxis));
                 _orbRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
@@ -405,7 +395,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
         } else if (now > _lockExpiry) {
             // lock has expired so clamp the data and move on
             _lockExpiry = now + LOCK_DURATION;
-            _lastDistance = 0.f;
+            _lastDistance = 0.0f;
             _reachUp = 0.5f * (_reachLeft + _reachRight);
             _calibrationState = CALIBRATION_STATE_Y;
             qDebug("success: sixense calibration: left");
@@ -424,7 +414,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
             if (_lastDistance > MINIMUM_ARM_REACH) {
                 // lock has expired so clamp the data and move on
                 _reachForward = _reachUp;
-                _lastDistance = 0.f;
+                _lastDistance = 0.0f;
                 _lockExpiry = now + LOCK_DURATION;
                 _calibrationState = CALIBRATION_STATE_Z;
                 qDebug("success: sixense calibration: up");
@@ -435,7 +425,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
         glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
         glm::vec3 torso = 0.5f * (_reachLeft + _reachRight);
         //glm::vec3 yAxis = glm::normalize(_reachUp - torso);
-        glm::vec3 yAxis(0.f, 1.f, 0.f);
+        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
         glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
 
         glm::vec3 averagePosition = 0.5f * (_averageLeft + _averageRight);
@@ -461,7 +451,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
 void SixenseManager::emulateMouse(PalmData* palm, int index) {
     Application* application = Application::getInstance();
     MyAvatar* avatar = application->getAvatar();
-    GLCanvas* widget = application->getGLWidget();
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     QPoint pos;
     
     Qt::MouseButton bumperButton;
@@ -477,7 +467,8 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers) 
+        || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         pos = application->getApplicationOverlay().getPalmClickLocation(palm);
     } else {
         // Get directon relative to avatar orientation
@@ -488,10 +479,10 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = widget->width() * getCursorPixelRangeMult();
+        float cursorRange = glCanvas->width() * getCursorPixelRangeMult();
 
-        pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
-        pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
+        pos.setX(glCanvas->width() / 2.0f + cursorRange * xAngle);
+        pos.setY(glCanvas->height() / 2.0f + cursorRange * yAngle);
 
     }
 
@@ -520,7 +511,6 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
 
         //Only send the mouse event if the opposite left button isnt held down.
-        //This is specifically for edit voxels
         if (triggerButton == Qt::LeftButton) {
             if (!_triggerPressed[(int)(!index)]) {
                 application->mouseMoveEvent(&mouseEvent, deviceID);
@@ -539,8 +529,6 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     //a magnification window was clicked on
     int clickX = pos.x();
     int clickY = pos.y();
-    //Checks for magnification window click
-    application->getApplicationOverlay().getClickLocation(clickX, clickY);
     //Set pos to the new click location, which may be the same if no magnification window is open
     pos.setX(clickX);
     pos.setY(clickY);

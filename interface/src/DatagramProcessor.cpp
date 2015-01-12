@@ -54,13 +54,16 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeMixedAudio:
                 case PacketTypeSilentAudioFrame: {
                     if (incomingType == PacketTypeAudioStreamStats) {
-                        QMetaObject::invokeMethod(&application->_audio, "parseAudioStreamStatsPacket", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "parseAudioStreamStatsPacket",
+                                                  Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else if (incomingType == PacketTypeAudioEnvironment) {
-                        QMetaObject::invokeMethod(&application->_audio, "parseAudioEnvironmentData", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "parseAudioEnvironmentData",
+                                                  Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else {
-                        QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToStream", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "addReceivedAudioToStream",
+                                                  Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     }
                     
@@ -81,31 +84,15 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 case PacketTypeEntityData:
                 case PacketTypeEntityErase:
-                case PacketTypeVoxelData:
-                case PacketTypeVoxelErase:
                 case PacketTypeOctreeStats:
                 case PacketTypeEnvironmentData: {
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                             "Application::networkReceive()... _octreeProcessor.queueReceivedPacket()");
-                    bool wantExtraDebugging = application->getLogger()->extraDebugging();
-                    if (wantExtraDebugging && packetTypeForPacket(incomingPacket) == PacketTypeVoxelData) {
-                        int numBytesPacketHeader = numBytesForPacketHeader(incomingPacket);
-                        unsigned char* dataAt = reinterpret_cast<unsigned char*>(incomingPacket.data()) + numBytesPacketHeader;
-                        dataAt += sizeof(OCTREE_PACKET_FLAGS);
-                        OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
-                        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-                        OCTREE_PACKET_SENT_TIME sentAt = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
-                        dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
-                        OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
-                        int flightTime = arrivedAt - sentAt;
-                        
-                        qDebug("got an Octree data or erase message, sequence:%d flightTime:%d", sequence, flightTime);
-                    }
-                    
+
                     SharedNodePointer matchedNode = NodeList::getInstance()->sendingNodeForPacket(incomingPacket);
                     
                     if (matchedNode) {
-                        // add this packet to our list of voxel packets and process them on the voxel processing
+                        // add this packet to our list of octree packets and process them on the octree data processing
                         application->_octreeProcessor.queueReceivedPacket(matchedNode, incomingPacket);
                     }
                     
@@ -141,25 +128,32 @@ void DatagramProcessor::processDatagrams() {
                     AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;
                 }
+                case PacketTypeNoisyMute:
                 case PacketTypeMuteEnvironment: {
-                    glm::vec3 position;
-                    float radius;
+                    bool mute = !DependencyManager::get<Audio>()->isMuted();
                     
-                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
-                    memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
-                    memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
+                    if (incomingType == PacketTypeMuteEnvironment) {
+                        glm::vec3 position;
+                        float radius, distance;
+                        
+                        int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
+                        memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
+                        memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
+                        distance = glm::distance(Application::getInstance()->getAvatar()->getPosition(), position);
+                        
+                        mute = mute && (distance < radius);
+                    }
                     
-                    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(), position) < radius
-                        && !Application::getInstance()->getAudio()->getMuted()) {
-                        Application::getInstance()->getAudio()->toggleMute();
+                    if (mute) {
+                        DependencyManager::get<Audio>()->toggleMute();
+                        if (incomingType == PacketTypeMuteEnvironment) {
+                            AudioScriptingInterface::getInstance().environmentMuted();
+                        } else {
+                            AudioScriptingInterface::getInstance().mutedByMixer();
+                        }
                     }
                     break;
                 }
-                case PacketTypeVoxelEditNack:
-                    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-                        application->_voxelEditSender.processNackPacket(incomingPacket);
-                    }
-                    break;
                 case PacketTypeEntityEditNack:
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
                         application->_entityEditSender.processNackPacket(incomingPacket);

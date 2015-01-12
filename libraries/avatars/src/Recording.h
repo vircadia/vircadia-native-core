@@ -48,9 +48,6 @@ public:
 /// Stores a recording
 class Recording {
 public:
-    Recording();
-    ~Recording();
-    
     bool isEmpty() const { return _timestamps.isEmpty(); }
     int getLength() const; // in ms
     
@@ -58,11 +55,11 @@ public:
     int getFrameNumber() const { return _frames.size(); }
     qint32 getFrameTimestamp(int i) const;
     const RecordingFrame& getFrame(int i) const;
-    Sound* getAudio() const { return _audio; }
+    const QByteArray& getAudioData() const { return _audioData; }
     
 protected:
     void addFrame(int timestamp, RecordingFrame& frame);
-    void addAudioPacket(const QByteArray& byteArray);
+    void addAudioPacket(const QByteArray& byteArray) { _audioData.append(byteArray); }
     void clear();
     
 private:
@@ -70,7 +67,7 @@ private:
     QVector<qint32> _timestamps;
     QVector<RecordingFrame> _frames;
     
-    Sound* _audio;
+    QByteArray _audioData;
     
     friend class Recorder;
     friend class Player;

@@ -18,9 +18,11 @@ class Circle3DOverlay : public Planar3DOverlay {
     
 public:
     Circle3DOverlay();
+    Circle3DOverlay(const Circle3DOverlay* circle3DOverlay);
     ~Circle3DOverlay();
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
     float getStartAt() const { return _startAt; }
     float getEndAt() const { return _endAt; }
@@ -46,7 +48,9 @@ public:
     void setMajorTickMarksColor(const xColor& value) { _majorTickMarksColor = value; }
     void setMinorTickMarksColor(const xColor& value) { _minorTickMarksColor = value; }
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
+
+    virtual Circle3DOverlay* createClone() const;
     
 protected:
     float _startAt;
@@ -60,6 +64,16 @@ protected:
     float _minorTickMarksLength;
     xColor _majorTickMarksColor;
     xColor _minorTickMarksColor;
+    
+    int _quadVerticesID;
+    int _lineVerticesID;
+    int _majorTicksVerticesID;
+    int _minorTicksVerticesID;
+
+    float _lastStartAt;
+    float _lastEndAt;
+    float _lastOuterRadius;
+    float _lastInnerRadius;
 };
 
  

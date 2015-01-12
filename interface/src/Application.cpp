@@ -37,6 +37,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QObject>
 #include <QWheelEvent>
+#include <QScreen>
 #include <QSettings>
 #include <QShortcut>
 #include <QTimer>
@@ -53,18 +54,27 @@
 
 #include <AddressManager.h>
 #include <AccountManager.h>
+#include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
+#include <DeferredLightingEffect.h>
+#include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
+#include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
-#include <LocalVoxelsList.h>
 #include <LogHandler.h>
+#include <MainWindow.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
+#include <PhysicsEngine.h>
+#include <ProgramObject.h>
 #include <ResourceCache.h>
+#include <SoundCache.h>
+#include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -74,14 +84,19 @@
 #include "ModelUploader.h"
 #include "Util.h"
 
+#include "audio/AudioToolBox.h"
+
+#include "devices/DdeFaceTracker.h"
+#include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+#include "devices/Visage.h"
 
-#include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
+
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -98,7 +113,7 @@
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
-#include "ui/TextRenderer.h"
+
 
 
 using namespace std;
@@ -117,29 +132,20 @@ static QTimer* idleTimer = NULL;
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
-const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
+const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
     if (!logMessage.isEmpty()) {
-        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
+        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
-}
-
-QString& Application::resourcesPath() {
-#ifdef Q_OS_MAC
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
-#else
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
-#endif
-    return staticResourcePath;
 }
 
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _window(new MainWindow(desktop())),
-        _glWidget(new GLCanvas()),
+        _toolWindow(NULL),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _undoStack(),
@@ -147,15 +153,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-        _voxelImportDialog(NULL),
-        _voxelImporter(),
-        _importSucceded(false),
-        _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _entities(true),
+#ifdef USE_BULLET_PHYSICS
+        _physicsEngine(glm::vec3(0.0f)),
+#endif // USE_BULLET_PHYSICS
+        _entities(true, this, this),
         _entityCollisionSystem(),
-        _entityClipboardRenderer(false),
+        _entityClipboardRenderer(false, this, this),
         _entityClipboard(),
-        _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
@@ -164,20 +168,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
-        _mouseX(0),
-        _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
-        _mouseHidden(false),
-        _seenMouseMove(false),
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _audio(),
-        _enableProcessVoxelsThread(true),
+        _enableProcessOctreeThread(true),
         _octreeProcessor(),
-        _voxelHideShowThread(&_voxels),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _nodeBoundsDisplay(this),
@@ -191,9 +189,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
+    QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
@@ -211,7 +211,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _applicationStartupTime = startup_time;
 
-    QFontDatabase::addApplicationFont(Application::resourcesPath() + "styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
@@ -247,9 +247,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
-
-    _audio.moveToThread(audioThread);
-    connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
+    
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    audioIO->moveToThread(audioThread);
+    connect(audioThread, &QThread::started, audioIO.data(), &Audio::start);
 
     audioThread->start();
     
@@ -273,8 +274,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
 
@@ -302,25 +301,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
     
-    AddressManager& addressManager = AddressManager::getInstance();
+    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
     
     // use our MyAvatar position and quat for address manager path
-    addressManager.setPositionGetter(getPositionForPath);
-    addressManager.setOrientationGetter(getOrientationForPath);
-    
-    // handle domain change signals from AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
-            this, &Application::changeDomainHostname);
-    
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
-            &domainHandler, &DomainHandler::setIceServerHostnameAndID);
+    addressManager->setPositionGetter(getPositionForPath);
+    addressManager->setOrientationGetter(getOrientationForPath);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
-
-    // Check to see if the user passed in a command line option for loading a local
-    // Voxel File.
-    _voxelsFilename = getCmdOption(argc, constArgv, "-i");
 
     #ifdef _WIN32
     WSADATA WsaData;
@@ -329,11 +317,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer << NodeType::EntityServer
+                                                 << NodeType::EntityServer
                                                  << NodeType::MetavoxelServer);
 
-    // connect to the packet sent signal of the _voxelEditSender and the _entityEditSender
-    connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
+    // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
@@ -361,21 +348,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     ResourceCache::setRequestLimit(3);
 
-    _window->setCentralWidget(_glWidget);
+    _window->setCentralWidget(glCanvas.data());
 
     restoreSizeAndPosition();
 
     _window->setVisible(true);
-    _glWidget->setFocusPolicy(Qt::StrongFocus);
-    _glWidget->setFocus();
+    glCanvas->setFocusPolicy(Qt::StrongFocus);
+    glCanvas->setFocus();
 
     // enable mouse tracking; otherwise, we only get drag events
-    _glWidget->setMouseTracking(true);
+    glCanvas->setMouseTracking(true);
+
+    _toolWindow = new ToolWindow();
+    _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
+    _toolWindow->setWindowTitle("Tools");
 
     // initialization continues in initializeGL when OpenGL context is ready
 
-    // Tell our voxel edit sender about our known jurisdictions
-    _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
+    // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
 
     // For now we're going to set the PPS for outbound packets to be super high, this is
@@ -385,10 +375,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     checkVersion();
 
-    _overlays.init(_glWidget); // do this before scripts load
-
-    LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
-    LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
+    _overlays.init(glCanvas.data()); // do this before scripts load
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
@@ -414,13 +401,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
 
-    connect(_window, &MainWindow::windowGeometryChanged,
-            _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
-    AudioScriptingInterface::getInstance().setLocalAudioInterface(&_audio);
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
     
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
@@ -433,9 +417,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     _aboutToQuit = true;
+    setFullscreen(false); // if you exit while in full screen, you'll get bad behavior when you restart.
 }
 
 Application::~Application() {
+    
+    _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
     
     saveSettings();
@@ -447,9 +434,6 @@ Application::~Application() {
     // make sure we don't call the idle timer any more
     delete idleTimer;
     
-    _sharedVoxelSystem.changeTree(new VoxelTree);
-    delete _voxelImportDialog;
-
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
 
@@ -459,34 +443,28 @@ Application::~Application() {
     
     // kill any audio injectors that are still around
     AudioScriptingInterface::getInstance().stopAllInjectors();
+    
+    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
 
     // stop the audio process
-    QMetaObject::invokeMethod(&_audio, "stop");
+    QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
     
     // ask the audio thread to quit and wait until it is done
-    _audio.thread()->quit();
-    _audio.thread()->wait();
+    audioIO->thread()->quit();
+    audioIO->thread()->wait();
     
     _octreeProcessor.terminate();
-    _voxelHideShowThread.terminate();
-    _voxelEditSender.terminate();
     _entityEditSender.terminate();
 
-    VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
-
-    delete _glWidget;
 }
 
 void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
 
-    if (_voxelImportDialog) {
-        _voxelImportDialog->saveSettings(_settings);
-    }
     _settings->sync();
     _numChangedSettings = 0;
 }
@@ -533,8 +511,6 @@ void Application::initializeGL() {
     } else {
         isInitialized = true;
     }
-    int argc = 0;
-    glutInit(&argc, 0);
     #endif
 
     #ifdef WIN32
@@ -559,27 +535,15 @@ void Application::initializeGL() {
     }*/
 #endif
 
-    // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
-    // field of view and near and far clip to make it interesting.
-    //viewFrustumOffsetCamera.setFieldOfView(90.0);
-    _viewFrustumOffsetCamera.setNearClip(DEFAULT_NEAR_CLIP);
-    _viewFrustumOffsetCamera.setFarClip(DEFAULT_FAR_CLIP);
-
     initDisplay();
     qDebug( "Initialized Display.");
 
     init();
     qDebug( "init() complete.");
 
-    // create thread for parsing of voxel data independent of the main network and rendering threads
-    _octreeProcessor.initialize(_enableProcessVoxelsThread);
-    _voxelEditSender.initialize(_enableProcessVoxelsThread);
-    _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
-    _entityEditSender.initialize(_enableProcessVoxelsThread);
-
-    if (_enableProcessVoxelsThread) {
-        qDebug("Voxel parsing thread created.");
-    }
+    // create thread for parsing of octee data independent of the main network and rendering threads
+    _octreeProcessor.initialize(_enableProcessOctreeThread);
+    _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
     QTimer* timer = new QTimer(this);
@@ -599,7 +563,7 @@ void Application::initializeGL() {
     }
 
     // update before the first render
-    update(1.f / _fps);
+    update(1.0f / _fps);
 
     InfoView::showFirstTime(INFO_HELP_PATH);
 }
@@ -615,10 +579,10 @@ void Application::paintGL() {
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     if (OculusManager::isConnected()) {
-        _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
+        DependencyManager::get<TextureCache>()->setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
-        _textureCache.setFrameBufferSize(fbSize);
+        QSize fbSize = DependencyManager::get<GLCanvas>()->getDeviceSize() * getRenderResolutionScale();
+        DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -645,51 +609,16 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //Only behave like a true mirror when in the OR
-        if (OculusManager::isConnected()) {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                                   glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        } else {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                                  glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        }
+        _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                              glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
+                              (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                               glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
 
     // Update camera position
     if (!OculusManager::isConnected()) {
-        _myCamera.update(1.f / _fps);
-    }
-
-    // Note: whichCamera is used to pick between the normal camera myCamera for our
-    // main camera, vs, an alternate camera. The alternate camera we support right now
-    // is the viewFrustumOffsetCamera. But theoretically, we could use this same mechanism
-    // to add other cameras.
-    //
-    // Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
-    // code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
-    // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
-    Camera* whichCamera = &_myCamera;
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
-
-        ViewFrustumOffset viewFrustumOffset = Menu::getInstance()->getViewFrustumOffset();
-
-        // set the camera to third-person view but offset so we can see the frustum
-        glm::quat frustumRotation = glm::quat(glm::radians(glm::vec3(viewFrustumOffset.pitch, viewFrustumOffset.yaw, viewFrustumOffset.roll)));
-        
-        _viewFrustumOffsetCamera.setPosition(_myCamera.getPosition() +
-                                             frustumRotation * glm::vec3(0.0f, viewFrustumOffset.up, -viewFrustumOffset.distance));
-        
-        _viewFrustumOffsetCamera.setRotation(_myCamera.getRotation() * frustumRotation);
-        
-        _viewFrustumOffsetCamera.update(1.f/_fps);
-        whichCamera = &_viewFrustumOffsetCamera;
+        _myCamera.update(1.0f / _fps);
     }
 
     if (Menu::getInstance()->getShadowsEnabled()) {
@@ -702,28 +631,28 @@ void Application::paintGL() {
         glClear(GL_COLOR_BUFFER_BIT);
         
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
-        if (whichCamera->getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(whichCamera->getRotation(), whichCamera->getPosition(), *whichCamera);
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
         } else {
-            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), *whichCamera);
+            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
         }
-        _myCamera.update(1.f / _fps);
+        _myCamera.update(1.0f / _fps);
 
     } else if (TV3DManager::isConnected()) {
        
-        TV3DManager::display(*whichCamera);
+        TV3DManager::display(_myCamera);
 
     } else {
-        _glowEffect.prepare();
+        DependencyManager::get<GlowEffect>()->prepare();
 
         // Viewport is assigned to the size of the framebuffer
-        QSize size = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->size();
+        QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
         glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
-        displaySide(*whichCamera);
+        displaySide(_myCamera);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -733,7 +662,7 @@ void Application::paintGL() {
             renderRearViewMirror(_mirrorViewRect);       
         }
 
-        _glowEffect.render();
+        DependencyManager::get<GlowEffect>()->render();
 
         {
             PerformanceTimer perfTimer("renderOverlay");
@@ -760,7 +689,6 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
 }
 
 void Application::resizeGL(int width, int height) {
-    resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
     resetCamerasOnResizeGL(_myCamera, width, height);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
@@ -789,13 +717,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
         _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-
-        // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
-        // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
-        if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
-            nearVal = _viewFrustumOffsetCamera.getNearClip();
-            farVal = _viewFrustumOffsetCamera.getFarClip();
-        }
     } else {
         ViewFrustum tempViewFrustum;
         loadViewFrustum(camera, tempViewFrustum);
@@ -811,10 +732,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     foreach(NodeType_t type, destinationNodeTypes) {
-        // Intercept data to voxel server when voxels are disabled
-        if (type == NodeType::VoxelServer && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-            continue;
-        }
 
         // Perform the broadcast for one type
         int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, NodeSet() << type);
@@ -826,9 +743,8 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
             case NodeType::AvatarMixer:
                 channel = BandwidthMeter::AVATARS;
                 break;
-            case NodeType::VoxelServer:
             case NodeType::EntityServer:
-                channel = BandwidthMeter::VOXELS;
+                channel = BandwidthMeter::OCTREE;
                 break;
             default:
                 continue;
@@ -845,7 +761,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         
         if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+            DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
         }
         
         return false;
@@ -888,18 +804,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
                 break;
-            case Qt::Key_BracketLeft:
-            case Qt::Key_BracketRight:
-            case Qt::Key_BraceLeft:
-            case Qt::Key_BraceRight:
-            case Qt::Key_ParenLeft:
-            case Qt::Key_ParenRight:
-            case Qt::Key_Less:
-            case Qt::Key_Greater:
-            case Qt::Key_Comma:
-            case Qt::Key_Period:
-                Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
-                break;
             case Qt::Key_L:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::LodTools);
@@ -913,7 +817,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                if (!_myAvatar->getDriveKeys(UP)) {
                     _myAvatar->jump();
                 }
-                _myAvatar->setDriveKeys(UP, 1.f);
+                _myAvatar->setDriveKeys(UP, 1.0f);
                 break;
 
             case Qt::Key_Asterisk:
@@ -922,14 +826,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_C:
             case Qt::Key_PageDown:
-                _myAvatar->setDriveKeys(DOWN, 1.f);
+                _myAvatar->setDriveKeys(DOWN, 1.0f);
                 break;
 
             case Qt::Key_W:
                 if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Wireframe);
                 } else {
-                    _myAvatar->setDriveKeys(FWD, 1.f);
+                    _myAvatar->setDriveKeys(FWD, 1.0f);
                 }
                 break;
 
@@ -941,7 +845,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (!isOption && !isShifted && isMeta) {
                     takeSnapshot();
                 } else {
-                    _myAvatar->setDriveKeys(BACK, 1.f);
+                    _myAvatar->setDriveKeys(BACK, 1.0f);
                 }
                 break;
 
@@ -959,13 +863,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
                 } else {
-                    _myAvatar->setDriveKeys(ROT_LEFT, 1.f);
+                    _myAvatar->setDriveKeys(ROT_LEFT, 1.0f);
                 }
                 break;
 
             case Qt::Key_D:
                 if (!isMeta) {
-                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -993,7 +897,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         _raiseMirror += 0.05f;
                     }
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.0f);
                 }
                 break;
 
@@ -1005,23 +909,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         _raiseMirror -= 0.05f;
                     }
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.0f);
                 }
                 break;
 
             case Qt::Key_Left:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror += PI / 20.f;
+                    _rotateMirror += PI / 20.0f;
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.0f);
                 }
                 break;
 
             case Qt::Key_Right:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror -= PI / 20.f;
+                    _rotateMirror -= PI / 20.0f;
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -1049,7 +953,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+                        TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
@@ -1061,7 +966,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+                        TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
 
                 } else {
@@ -1099,24 +1005,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::UserInterface);
                 break;
-            case Qt::Key_F:
-                if (isShifted)  {
-                    Menu::getInstance()->triggerOption(MenuOption::DisplayFrustum);
-                }
-                break;
-            case Qt::Key_V:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Voxels);
-                }
-                break;
             case Qt::Key_P:
                  Menu::getInstance()->triggerOption(MenuOption::FirstPerson);
                  break;
-            case Qt::Key_R:
-                if (isShifted)  {
-                    Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
-                }
-                break;
             case Qt::Key_Percent:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
@@ -1133,7 +1024,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   _viewFrustum.computePickRay(0.5f, 0.5f));
+                                                   _myCamera.computePickRay(getTrueMouseX(),
+                                                                            getTrueMouseY()));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1172,48 +1064,48 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     switch (event->key()) {
         case Qt::Key_E:
         case Qt::Key_PageUp:
-            _myAvatar->setDriveKeys(UP, 0.f);
+            _myAvatar->setDriveKeys(UP, 0.0f);
             break;
 
         case Qt::Key_C:
         case Qt::Key_PageDown:
-            _myAvatar->setDriveKeys(DOWN, 0.f);
+            _myAvatar->setDriveKeys(DOWN, 0.0f);
             break;
 
         case Qt::Key_W:
-            _myAvatar->setDriveKeys(FWD, 0.f);
+            _myAvatar->setDriveKeys(FWD, 0.0f);
             break;
 
         case Qt::Key_S:
-            _myAvatar->setDriveKeys(BACK, 0.f);
+            _myAvatar->setDriveKeys(BACK, 0.0f);
             break;
 
         case Qt::Key_A:
-            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
             break;
 
         case Qt::Key_D:
-            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
             break;
 
         case Qt::Key_Up:
-            _myAvatar->setDriveKeys(FWD, 0.f);
-            _myAvatar->setDriveKeys(UP, 0.f);
+            _myAvatar->setDriveKeys(FWD, 0.0f);
+            _myAvatar->setDriveKeys(UP, 0.0f);
             break;
 
         case Qt::Key_Down:
-            _myAvatar->setDriveKeys(BACK, 0.f);
-            _myAvatar->setDriveKeys(DOWN, 0.f);
+            _myAvatar->setDriveKeys(BACK, 0.0f);
+            _myAvatar->setDriveKeys(DOWN, 0.0f);
             break;
 
         case Qt::Key_Left:
-            _myAvatar->setDriveKeys(LEFT, 0.f);
-            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            _myAvatar->setDriveKeys(LEFT, 0.0f);
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
             break;
 
         case Qt::Key_Right:
-            _myAvatar->setDriveKeys(RIGHT, 0.f);
-            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            _myAvatar->setDriveKeys(RIGHT, 0.0f);
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
             break;
         case Qt::Key_Control:
         case Qt::Key_Shift:
@@ -1224,10 +1116,11 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), _viewFrustum.computePickRay(0.5f, 0.5f));
+                HFActionEvent endActionEvent(HFActionEvent::endType(),
+                                             _myCamera.computePickRay(getTrueMouseX(),
+                                                                      getTrueMouseY()));
                 sendEvent(this, &endActionEvent);
             }
-            
             break;
         }
         case Qt::Key_Escape: {
@@ -1236,7 +1129,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
                 HFBackEvent endBackEvent(HFBackEvent::endType());
                 sendEvent(this, &endBackEvent);
             }
-            
             break;
         }
         default:
@@ -1255,42 +1147,27 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
-
-    bool showMouse = true;
-
     // Used by application overlay to determine how to draw cursor(s)
     _lastMouseMoveWasSimulated = deviceID > 0;
-
-    // If this mouse move event is emitted by a controller, dont show the mouse cursor
-    if (_lastMouseMoveWasSimulated) {
-        showMouse = false;
+    if (!_lastMouseMoveWasSimulated) {
+        _lastMouseMove = usecTimestampNow();
     }
     
-    if (!_aboutToQuit) {
-        _entities.mouseMoveEvent(event, deviceID);
+    if (_aboutToQuit) {
+        return;
     }
-
+    
+    _entities.mouseMoveEvent(event, deviceID);
+    
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
-
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
     }
-
-    _lastMouseMove = usecTimestampNow();
-
-    if (_mouseHidden && showMouse && !OculusManager::isConnected() && !TV3DManager::isConnected()) {
-        getGLWidget()->setCursor(Qt::ArrowCursor);
-        _mouseHidden = false;
-        _seenMouseMove = true;
-    }
-
-    _mouseX = event->x();
-    _mouseY = event->y();
+    
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-
     if (!_aboutToQuit) {
         _entities.mousePressEvent(event, deviceID);
     }
@@ -1305,20 +1182,20 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
-            _mouseDragStartedX = _mouseX;
-            _mouseDragStartedY = _mouseY;
+            _mouseDragStartedX = getTrueMouseX();
+            _mouseDragStartedY = getTrueMouseY();
             _mousePressed = true;
-
-            if (_audio.mousePressEvent(_mouseX, _mouseY)) {
-                // stop propagation
-                return;
-            }
-
-            if (_rearMirrorTools->mousePressEvent(_mouseX, _mouseY)) {
-                // stop propagation
-                return;
+            
+            if (mouseOnScreen()) {
+                if (DependencyManager::get<AudioToolBox>()->mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
+                
+                if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
             }
             
             // nobody handled this - make it an action event on the _window object
@@ -1347,15 +1224,14 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
             _mousePressed = false;
             
-            checkBandwidthMeterClick();
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && mouseOnScreen()) {
                 // let's set horizontal offset to give stats some margin to mirror
                 int horizontalOffset = MIRROR_VIEW_WIDTH;
-                Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
+                Stats::getInstance()->checkClick(getMouseX(), getMouseY(),
+                                                 getMouseDragStartedX(), getMouseDragStartedY(), horizontalOffset);
+                checkBandwidthMeterClick();
             }
             
             // fire an action end event
@@ -1452,7 +1328,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-            changeDomainHostname(snapshotData->getDomain());
+            NodeList::getInstance()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -1468,7 +1344,7 @@ void Application::dropEvent(QDropEvent *event) {
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::VoxelServer << NodeType::EntityServer
+                               << NodeType::EntityServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
 }
@@ -1517,12 +1393,12 @@ void Application::idle() {
             PerformanceTimer perfTimer("update");
             PerformanceWarning warn(showWarnings, "Application::idle()... update()");
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
-            update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
+            update(glm::clamp((float)timeSinceLastUpdate / 1000.0f, 0.0f, BIGGEST_DELTA_TIME_SECS));
         }
         {
             PerformanceTimer perfTimer("updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
-            _glWidget->updateGL();
+            DependencyManager::get<GLCanvas>()->updateGL();
         }
         {
             PerformanceTimer perfTimer("rest");
@@ -1548,11 +1424,14 @@ void Application::idle() {
 
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
-
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
-        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
-            <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
+        Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
+        Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
+        glm::compMax(glm::abs(glm::ivec2(getMouseX() - getMouseDragStartedX(),
+                                         getMouseY() - getMouseDragStartedY())))
+        <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
+        && _bandwidthMeter.isWithinArea(getMouseX(), getMouseY(), glCanvas->width(), glCanvas->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1561,6 +1440,10 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) != fullscreen) {
+        Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
+    }
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
             // Menu show() after hide() doesn't work with Rift VR display so set height instead.
@@ -1571,13 +1454,21 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
+    if (!_aboutToQuit) {
+        _window->show();
+    }
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->getDeviceWidth(),_glWidget->getDeviceHeight());
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
+    }
+
     if (enableVRMode) {
         if (!OculusManager::isConnected()) {
             // attempt to reconnect the Oculus manager - it's possible this was a workaround
@@ -1588,77 +1479,73 @@ void Application::setEnableVRMode(bool enableVRMode) {
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        
+        _mirrorCamera.setHmdPosition(glm::vec3());
+        _mirrorCamera.setHmdRotation(glm::quat());
+        _myCamera.setHmdPosition(glm::vec3());
+        _myCamera.setHmdRotation(glm::quat());
     }
     
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
-}
-
-void Application::setRenderVoxels(bool voxelRender) {
-    _voxelEditSender.setShouldSend(voxelRender);
-    if (!voxelRender) {
-        doKillLocalVoxels();
-    }
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     SixenseManager::getInstance().setLowVelocityFilter(lowVelocityFilter);
 }
 
-void Application::doKillLocalVoxels() {
-    _wantToKillLocalVoxels = true;
+bool Application::mouseOnScreen() const {
+    if (OculusManager::isConnected()) {
+        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+        return getMouseX() >= 0 && getMouseX() <= glCanvas->getDeviceWidth() &&
+               getMouseY() >= 0 && getMouseY() <= glCanvas->getDeviceHeight();
+    }
+    return true;
 }
 
-void Application::removeVoxel(glm::vec3 position,
-                              float scale) {
-    VoxelDetail voxel;
-    voxel.x = position.x / TREE_SCALE;
-    voxel.y = position.y / TREE_SCALE;
-    voxel.z = position.z / TREE_SCALE;
-    voxel.s = scale / TREE_SCALE;
-    _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
-
-    // delete it locally to see the effect immediately (and in case no voxel server is present)
-    _voxels.getTree()->deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
+int Application::getMouseX() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
+        return pos.x;
+    }
+    return getTrueMouseX();
 }
 
+int Application::getMouseY() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
+        return pos.y;
+    }
+    return getTrueMouseY();
+}
 
-void Application::makeVoxel(glm::vec3 position,
-                            float scale,
-                            unsigned char red,
-                            unsigned char green,
-                            unsigned char blue,
-                            bool isDestructive) {
-    VoxelDetail voxel;
-    voxel.x = position.x / TREE_SCALE;
-    voxel.y = position.y / TREE_SCALE;
-    voxel.z = position.z / TREE_SCALE;
-    voxel.s = scale / TREE_SCALE;
-    voxel.red = red;
-    voxel.green = green;
-    voxel.blue = blue;
-    PacketType message = isDestructive ? PacketTypeVoxelSetDestructive : PacketTypeVoxelSet;
-    _voxelEditSender.sendVoxelEditMessage(message, voxel);
+int Application::getMouseDragStartedX() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
+                                                                      getTrueMouseDragStartedY()));
+        return pos.x;
+    }
+    return getTrueMouseDragStartedX();
+}
 
-    // create the voxel locally so it appears immediately
-    _voxels.getTree()->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
-                        voxel.red, voxel.green, voxel.blue,
-                        isDestructive);
-   }
-
-glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
-    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.f) * TREE_SCALE,
-        (mouseVoxel.z + mouseVoxel.s / 2.f) * TREE_SCALE);
+int Application::getMouseDragStartedY() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
+                                                                      getTrueMouseDragStartedY()));
+        return pos.y;
+    }
+    return getTrueMouseDragStartedY();
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
-            (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
-             (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
+    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
+    Visage::SharedPointer visage = DependencyManager::get<Visage>();
+    DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
+    
+    return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
+            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) :
+             (visage->isActive() ? static_cast<FaceTracker*>(visage.data()) : NULL)));
 }
-
-struct SendVoxelsOperationArgs {
-    const unsigned char*  newBaseOctCode;
-};
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
@@ -1686,87 +1573,6 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     return true;
 }
 
-bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
-    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-    SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
-    if (voxel->isColored()) {
-        const unsigned char* nodeOctalCode = voxel->getOctalCode();
-        unsigned char* codeColorBuffer = NULL;
-        int codeLength  = 0;
-        int bytesInCode = 0;
-        int codeAndColorLength;
-
-        // If the newBase is NULL, then don't rebase
-        if (args->newBaseOctCode) {
-            codeColorBuffer = rebaseOctalCode(nodeOctalCode, args->newBaseOctCode, true);
-            codeLength  = numberOfThreeBitSectionsInCode(codeColorBuffer);
-            bytesInCode = bytesRequiredForCodeLength(codeLength);
-            codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
-        } else {
-            codeLength  = numberOfThreeBitSectionsInCode(nodeOctalCode);
-            bytesInCode = bytesRequiredForCodeLength(codeLength);
-            codeAndColorLength = bytesInCode + SIZE_OF_COLOR_DATA;
-            codeColorBuffer = new unsigned char[codeAndColorLength];
-            memcpy(codeColorBuffer, nodeOctalCode, bytesInCode);
-        }
-
-        // copy the colors over
-        codeColorBuffer[bytesInCode + RED_INDEX] = voxel->getColor()[RED_INDEX];
-        codeColorBuffer[bytesInCode + GREEN_INDEX] = voxel->getColor()[GREEN_INDEX];
-        codeColorBuffer[bytesInCode + BLUE_INDEX] = voxel->getColor()[BLUE_INDEX];
-        getInstance()->_voxelEditSender.queueVoxelEditMessage(PacketTypeVoxelSetDestructive,
-                codeColorBuffer, codeAndColorLength);
-
-        delete[] codeColorBuffer;
-    }
-    return true; // keep going
-}
-
-void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString suggestedName = desktopLocation.append("/voxels.svo");
-
-    QString fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), suggestedName,
-                                                          tr("Sparse Voxel Octree Files (*.svo)"));
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
-
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (selectedNode) {
-        VoxelTree exportTree;
-        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, &exportTree, true);
-        exportTree.writeToSVOFile(fileName);
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-}
-
-void Application::importVoxels() {
-    _importSucceded = false;
-
-    if (!_voxelImportDialog) {
-        _voxelImportDialog = new VoxelImportDialog(_window);
-        _voxelImportDialog->loadSettings(_settings);
-    }
-
-    if (!_voxelImportDialog->exec()) {
-        qDebug() << "Import succeeded." << endl;
-        _importSucceded = true;
-    } else {
-        qDebug() << "Import failed." << endl;
-        if (_sharedVoxelSystem.getTree() == _voxelImporter.getVoxelTree()) {
-            _sharedVoxelSystem.killLocalVoxels();
-            _sharedVoxelSystem.changeTree(&_clipboard);
-        }
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-
-    emit importDone();
-}
-
 bool Application::importEntities(const QString& filename) {
     _entityClipboard.eraseAllOctreeElements();
     bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
@@ -1780,71 +1586,6 @@ void Application::pasteEntities(float x, float y, float z) {
     _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
-void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
-    copyVoxels(sourceVoxel);
-    deleteVoxelAt(sourceVoxel);
-}
-
-void Application::copyVoxels(const VoxelDetail& sourceVoxel) {
-    // switch to and clear the clipboard first...
-    _sharedVoxelSystem.killLocalVoxels();
-    if (_sharedVoxelSystem.getTree() != &_clipboard) {
-        _clipboard.eraseAllOctreeElements();
-        _sharedVoxelSystem.changeTree(&_clipboard);
-    }
-
-    // then copy onto it if there is something to copy
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (selectedNode) {
-        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, _sharedVoxelSystem.getTree(), true);
-        _sharedVoxelSystem.forceRedrawEntireTree();
-    }
-}
-
-void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination) {
-    // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to
-    // the server as an set voxel message, this will also rebase the voxels to the new location
-    SendVoxelsOperationArgs args;
-    args.newBaseOctCode = octalCodeDestination;
-    _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
-
-    // Switch back to clipboard if it was an import
-    if (_sharedVoxelSystem.getTree() != &_clipboard) {
-        _sharedVoxelSystem.killLocalVoxels();
-        _sharedVoxelSystem.changeTree(&_clipboard);
-    }
-
-    _voxelEditSender.releaseQueuedMessages();
-}
-
-void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
-    unsigned char* calculatedOctCode = NULL;
-    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a
-    // target octalCode for where the user is pointing.
-    const unsigned char* octalCodeDestination;
-    if (selectedNode) {
-        octalCodeDestination = selectedNode->getOctalCode();
-    } else {
-        octalCodeDestination = calculatedOctCode = pointToVoxel(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    }
-
-    pasteVoxelsToOctalCode(octalCodeDestination);
-
-    if (calculatedOctCode) {
-        delete[] calculatedOctCode;
-    }
-}
-
-void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
-    VoxelTreeElement* nodeToNudge = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
-    if (nodeToNudge) {
-        _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
-    }
-}
-
 void Application::initDisplay() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
@@ -1855,34 +1596,10 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    _sharedVoxelSystemViewFrustum.setPosition(glm::vec3(TREE_SCALE / 2.0f,
-                                                        TREE_SCALE / 2.0f,
-                                                        3.0f * TREE_SCALE / 2.0f));
-    _sharedVoxelSystemViewFrustum.setNearClip(TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFarClip(3.0f * TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFieldOfView(90.f);
-    _sharedVoxelSystemViewFrustum.setOrientation(glm::quat());
-    _sharedVoxelSystemViewFrustum.calculate();
-    _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
-
-    VoxelTreeElement::removeUpdateHook(&_sharedVoxelSystem);
-
-    // Cleanup of the original shared tree
-    _sharedVoxelSystem.init();
-
-    _voxelImportDialog = new VoxelImportDialog(_window);
-
     _environment.init();
 
-    _deferredLightingEffect.init();
-    _glowEffect.init();
-    _ambientOcclusionEffect.init();
-    _voxelShader.init();
-    _pointShader.init();
-
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
-    QCursor::setPos(_mouseX, _mouseY);
+    DependencyManager::get<DeferredLightingEffect>()->init(this);
+    DependencyManager::get<AmbientOcclusionEffect>()->init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -1908,23 +1625,16 @@ void Application::init() {
     _lastTimeUpdated.start();
 
     Menu::getInstance()->loadSettings();
-    _audio.setReceivedAudioStreamSettings(Menu::getInstance()->getReceivedAudioStreamSettings());
     
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
     int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+    QString addressLookupString;
     if (urlIndex != -1) {
-        AddressManager::getInstance().handleLookupString(arguments().value(urlIndex + 1));
-    } else {
-        // check if we have a URL in settings to load to jump back to
-        // we load this separate from the other settings so we don't double lookup a URL
-        QSettings* interfaceSettings = lockSettings();
-        QUrl addressURL = interfaceSettings->value(SETTINGS_ADDRESS_KEY).toUrl();
-        
-        AddressManager::getInstance().handleLookupString(addressURL.toString());
-        
-        unlockSettings();
+        addressLookupString = arguments().value(urlIndex + 1);
     }
+    
+    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
     
     qDebug() << "Loaded settings";
     
@@ -1940,32 +1650,29 @@ void Application::init() {
 #endif
 
     // initialize our face trackers after loading the menu settings
-    _faceshift.init();
-    _visage.init();
+    DependencyManager::get<Faceshift>()->init();
+    DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     NodeList::getInstance()->sendDomainServerCheckIn();
 
-    // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
-    _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
-    _voxels.setUseVoxelShader(false);
-    _voxels.setVoxelsAsPoints(false);
-    _voxels.setDisableFastVoxelPipeline(false);
-    _voxels.init();
-
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
-    _entityCollisionSystem.init(&_entityEditSender, _entities.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
-
-    // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface
-    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
-            ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithVoxel);
+    EntityTree* entityTree = _entities.getTree();
+    
+    _entityCollisionSystem.init(&_entityEditSender, entityTree, &_avatarManager);
+    
+    entityTree->setSimulation(&_entityCollisionSystem);
 
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
+
+    // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
+    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
+            &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
@@ -1977,31 +1684,29 @@ void Application::init() {
 
     _metavoxels.init();
 
-    _audio.init(_glWidget);
-
-    _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    _rearMirrorTools = new RearMirrorTools(glCanvas.data(), _mirrorViewRect, _settings);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
 
-    // set up our audio reflector
-    _audioReflector.setMyAvatar(getAvatar());
-    _audioReflector.setVoxels(_voxels.getTree());
-    _audioReflector.setAudio(getAudio());
-    _audioReflector.setAvatarManager(&_avatarManager);
-
-    connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
-                        &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
-
-    connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
-        &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
-
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
+
+#ifdef USE_BULLET_PHYSICS
+    EntityTree* tree = _entities.getTree();
+    _physicsEngine.setEntityTree(tree);
+    tree->setSimulation(&_physicsEngine);
+    _physicsEngine.init(&_entityEditSender);
+#endif // USE_BULLET_PHYSICS
+    // make sure our texture cache knows about window size changes
+    DependencyManager::get<TextureCache>()->associateWithWidget(glCanvas.data());
+
+    // initialize the GlowEffect with our widget
+    DependencyManager::get<GlowEffect>()->init(glCanvas.data(),
+                                               Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
 }
 
 void Application::closeMirrorView() {
@@ -2052,14 +1757,10 @@ void Application::updateMouseRay() {
     // make sure the frustum is up-to-date
     loadViewFrustum(_myCamera, _viewFrustum);
 
-    // if the mouse pointer isn't visible, act like it's at the center of the screen
-    float x = 0.5f, y = 0.5f;
-    if (!_mouseHidden) {
-        x = _mouseX / (float)_glWidget->width();
-        y = _mouseY / (float)_glWidget->height();
-    }
-    _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
-
+    PickRay pickRay = _myCamera.computePickRay(getTrueMouseX(), getTrueMouseY());
+    _mouseRayOrigin = pickRay.origin;
+    _mouseRayDirection = pickRay.direction;
+    
     // adjust for mirroring
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         glm::vec3 mouseRayOffset = _mouseRayOrigin - _viewFrustum.getPosition();
@@ -2068,24 +1769,18 @@ void Application::updateMouseRay() {
         _mouseRayDirection -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), _mouseRayDirection) +
             _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), _mouseRayDirection));
     }
-
-    // tell my avatar if the mouse is being pressed...
-    _myAvatar->setMousePressed(_mousePressed);
-
-    // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position
-    _myAvatar->setMouseRay(_mouseRayOrigin, _mouseRayDirection);
 }
 
 void Application::updateFaceshift() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-
+    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
     //  Update faceshift
-    _faceshift.update();
+    faceshift->update();
 
     //  Copy angular velocity if measured by faceshift, to the head
-    if (_faceshift.isActive()) {
-        _myAvatar->getHead()->setAngularVelocity(_faceshift.getHeadAngularVelocity());
+    if (faceshift->isActive()) {
+        _myAvatar->getHead()->setAngularVelocity(faceshift->getHeadAngularVelocity());
     }
 }
 
@@ -2094,7 +1789,7 @@ void Application::updateVisage() {
     PerformanceWarning warn(showWarnings, "Application::updateVisage()");
 
     //  Update Visage
-    _visage.update();
+    DependencyManager::get<Visage>()->update();
 }
 
 void Application::updateDDE() {
@@ -2102,7 +1797,7 @@ void Application::updateDDE() {
     PerformanceWarning warn(showWarnings, "Application::updateDDE()");
     
     //  Update Cara
-    _dde.update();
+    DependencyManager::get<DdeFaceTracker>()->update();
 }
 
 void Application::updateMyAvatarLookAtPosition() {
@@ -2153,7 +1848,7 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             lookAtSpot = _myAvatar->getHead()->getEyePosition() +
-                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.f, 0.f, -TREE_SCALE));
+                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
         }
     }
     //
@@ -2184,10 +1879,8 @@ void Application::updateThreads(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateThreads()");
 
     // parse voxel packets
-    if (!_enableProcessVoxelsThread) {
+    if (!_enableProcessOctreeThread) {
         _octreeProcessor.threadRoutine();
-        _voxelHideShowThread.threadRoutine();
-        _voxelEditSender.threadRoutine();
         _entityEditSender.threadRoutine();
     }
 }
@@ -2258,22 +1951,33 @@ void Application::updateCursor(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
 
-    // watch mouse position, if it hasn't moved, hide the cursor
-    bool underMouse = _glWidget->underMouse();
-    if (!_mouseHidden) {
-        quint64 now = usecTimestampNow();
-        int elapsed = now - _lastMouseMove;
-        const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
-        if (elapsed > HIDE_CURSOR_TIMEOUT && (underMouse || !_seenMouseMove)) {
-            getGLWidget()->setCursor(Qt::BlankCursor);
-            _mouseHidden = true;
+    static QPoint lastMousePos = QPoint();
+    _lastMouseMove = (lastMousePos == QCursor::pos()) ? _lastMouseMove : usecTimestampNow();
+    bool hideMouse = false;
+    bool underMouse = QGuiApplication::topLevelAt(QCursor::pos()) ==
+                      Application::getInstance()->getWindow()->windowHandle();
+    
+    static const int HIDE_CURSOR_TIMEOUT = 3 * USECS_PER_SECOND; // 3 second
+    int elapsed = usecTimestampNow() - _lastMouseMove;
+    if ((elapsed > HIDE_CURSOR_TIMEOUT)  ||
+        (OculusManager::isConnected() && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode))) {
+        hideMouse = underMouse;
+    }
+    
+    setCursorVisible(!hideMouse);
+    lastMousePos = QCursor::pos();
+}
+
+void Application::setCursorVisible(bool visible) {
+    if (visible) {
+        if (overrideCursor() != NULL) {
+            restoreOverrideCursor();
         }
     } else {
-        // if the mouse is hidden, but we're not inside our window, then consider ourselves to be moving
-        if (!underMouse && _seenMouseMove) {
-            _lastMouseMove = usecTimestampNow();
-            getGLWidget()->setCursor(Qt::ArrowCursor);
-            _mouseHidden = false;
+        if (overrideCursor() != NULL) {
+            changeOverrideCursor(Qt::BlankCursor);
+        } else {
+            setOverrideCursor(Qt::BlankCursor);
         }
     }
 }
@@ -2294,7 +1998,7 @@ void Application::update(float deltaTime) {
         _prioVR.update(deltaTime);
 
     }
-
+    
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
 
@@ -2307,13 +2011,21 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
 
+#ifdef USE_BULLET_PHYSICS
     {
+        PerformanceTimer perfTimer("physics");
+        _physicsEngine.stepSimulation();
+    }
+#endif // USE_BULLET_PHYSICS
+
+    if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
+        // NOTE: the _entities.update() call below will wait for lock 
+        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
         _entities.update(); // update the models...
-        {
-            PerformanceTimer perfTimer("collisions");
-            _entityCollisionSystem.update(); // collide the entities...
-        }
+        // The _entityCollisionSystem.updateCollisions() call below merely tries for lock,
+        // and on failure it skips collision detection.
+        _entityCollisionSystem.updateCollisions(); // collide the entities...
     }
 
     {
@@ -2358,9 +2070,6 @@ void Application::update(float deltaTime) {
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-                queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-            }
             if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
                 queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
             }
@@ -2384,7 +2093,7 @@ void Application::update(float deltaTime) {
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
 
-            QMetaObject::invokeMethod(&_audio, "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
 }
@@ -2418,8 +2127,7 @@ int Application::sendNackPackets() {
     
     nodeList->eachNode([&](const SharedNodePointer& node){
         
-        if (node->getActiveSocket()
-            && (node->getType() == NodeType::VoxelServer || node->getType() == NodeType::EntityServer)) {
+        if (node->getActiveSocket() && node->getType() == NodeType::EntityServer) {
             
             QUuid nodeUUID = node->getUUID();
             
@@ -2503,7 +2211,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
-    _octreeQuery.setOctreeSizeScale(Menu::getInstance()->getVoxelSizeScale());
+    _octreeQuery.setOctreeSizeScale(Menu::getInstance()->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(Menu::getInstance()->getBoundaryLevelAdjust());
 
     unsigned char queryPacket[MAX_PACKET_SIZE];
@@ -2556,7 +2264,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = Menu::getInstance()->getMaxVoxelPacketsPerSecond();
+    int totalPPS = Menu::getInstance()->getMaxOctreePacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
@@ -2659,9 +2367,40 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
             
             // Feed number of bytes to corresponding channel of the bandwidth meter
-            _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
+            _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(packetLength);
         }
     });
+}
+
+bool Application::isHMDMode() const {
+    if (OculusManager::isConnected()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+QRect Application::getDesirableApplicationGeometry() {
+    QRect applicationGeometry = getWindow()->geometry();
+    
+    // If our parent window is on the HMD, then don't use it's geometry, instead use
+    // the "main screen" geometry.
+    HMDToolsDialog* hmdTools = Menu::getInstance()->getHMDToolsDialog();
+    if (hmdTools && hmdTools->hasHMDScreen()) {
+        QScreen* hmdScreen = hmdTools->getHMDScreen();
+        QWindow* appWindow = getWindow()->windowHandle();
+        QScreen* appScreen = appWindow->screen();
+
+        // if our app's screen is the hmd screen, we don't want to place the
+        // running scripts widget on it. So we need to pick a better screen.
+        // we will use the screen for the HMDTools since it's a guarenteed
+        // better screen.
+        if (appScreen == hmdScreen) {
+            QScreen* betterScreen = hmdTools->windowHandle()->screen();
+            applicationGeometry = betterScreen->geometry();
+        }
+    }
+    return applicationGeometry;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -2697,16 +2436,16 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 }
 
 glm::vec3 Application::getSunDirection() {
-    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()) -
-        _myCamera.getPosition());
+    // Sun direction is in fact just the location of the sun relative to the origin
+    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()));
 }
 
 void Application::updateShadowMap() {
     PerformanceTimer perfTimer("shadowMap");
-    QOpenGLFramebufferObject* fbo = _textureCache.getShadowFramebufferObject();
+    QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
     fbo->bind();
     glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
     glm::vec3 lightDirection = -getSunDirection();
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
@@ -2731,8 +2470,10 @@ void Application::updateShadowMap() {
         const glm::vec2& coord = MAP_COORDS[i];
         glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
 
+        // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
+        int regionIncrement = (matrixCount == 1 ? 2 : 1);
         float nearScale = SHADOW_MATRIX_DISTANCES[i] * frustumScale;
-        float farScale = SHADOW_MATRIX_DISTANCES[i + 1] * frustumScale;
+        float farScale = SHADOW_MATRIX_DISTANCES[i + regionIncrement] * frustumScale;
         glm::vec3 points[] = {
             glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
             glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
@@ -2800,8 +2541,13 @@ void Application::updateShadowMap() {
 
         // store view matrix without translation, which we'll use for precision-sensitive objects
         updateUntranslatedViewMatrix();
-        // TODO: assign an equivalent viewTransform object to the application to match the current path which uses glMatrixStack 
-        // setViewTransform(viewTransform);
+ 
+        // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
+        // the viewTransofmr object is updatded with the correct values and saved,
+        // this is what is used for rendering the Entities and avatars
+        Transform viewTransform;
+        viewTransform.setRotation(rotation);
+        setViewTransform(viewTransform);
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
@@ -2819,7 +2565,12 @@ void Application::updateShadowMap() {
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(false, RenderArgs::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("3dOverlaysFront");
+            _overlays.renderWorld(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -2833,8 +2584,9 @@ void Application::updateShadowMap() {
     }
     
     fbo->release();
-
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
@@ -2857,34 +2609,52 @@ void Application::setupWorldLight() {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
+bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
+    return Menu::getInstance()->shouldRenderMesh(largestDimension, distanceToCamera);
+}
+
+float Application::getSizeScale() const { 
+    return Menu::getInstance()->getOctreeSizeScale();
+}
+
+int Application::getBoundaryLevelAdjust() const { 
+    return Menu::getInstance()->getBoundaryLevelAdjust();
+}
+
+PickRay Application::computePickRay(float x, float y) {
+    return getCamera()->computePickRay(x, y);
+}
+
 QImage Application::renderAvatarBillboard() {
-    _textureCache.getPrimaryFramebufferObject()->bind();
+    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
 
     // the "glow" here causes an alpha of one
     Glower glower;
 
     const int BILLBOARD_SIZE = 64;
-    renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    renderRearViewMirror(QRect(0, DependencyManager::get<GLCanvas>()->getDeviceHeight() - BILLBOARD_SIZE,
+                               BILLBOARD_SIZE, BILLBOARD_SIZE),
+                         true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
 
-    _textureCache.getPrimaryFramebufferObject()->release();
+    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
 
     return image;
 }
 
-void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
+void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
     // load the view frustum
-    loadViewFrustum(whichCamera, _displayViewFrustum);
+    loadViewFrustum(theCamera, _displayViewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
-    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
         glScalef(-1.0f, 1.0f, 1.0f);
         glFrontFace(GL_CW);
 
@@ -2892,34 +2662,41 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         glFrontFace(GL_CCW);
     }
 
-    glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
-    glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
+    glm::vec3 eyeOffsetPos = theCamera.getEyeOffsetPosition();
+    glm::quat eyeOffsetOrient = theCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
     glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
     glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
 
-    // transform view according to whichCamera
+    // transform view according to theCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
 
-    glm::quat rotation = whichCamera.getRotation();
+    glm::quat rotation = theCamera.getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
-    updateUntranslatedViewMatrix(-whichCamera.getPosition());
+    updateUntranslatedViewMatrix(-theCamera.getPosition());
 
     // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
     // the viewTransofmr object is updatded with the correct values and saved,
     // this is what is used for rendering the Entities and avatars
     Transform viewTransform;
-    viewTransform.setTranslation(whichCamera.getPosition());
+    viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
     viewTransform.postTranslate(eyeOffsetPos);
     viewTransform.postRotate(eyeOffsetOrient);
-    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
+    if (renderSide != RenderArgs::MONO) {
+        glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
+        
+        viewTransform.evalFromRawMatrix(invView);
+        viewTransform.preTranslate(_viewMatrixTranslation);
+    }
+    
     setViewTransform(viewTransform);
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
@@ -2956,9 +2733,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // compute starfield alpha based on distance from atmosphere
         float alpha = 1.0f;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-            const EnvironmentData& closestData = _environment.getClosestData(whichCamera.getPosition());
-            float height = glm::distance(whichCamera.getPosition(),
-                closestData.getAtmosphereCenter(whichCamera.getPosition()));
+            const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
+            float height = glm::distance(theCamera.getPosition(),
+                closestData.getAtmosphereCenter(theCamera.getPosition()));
             if (height < closestData.getAtmosphereInnerRadius()) {
                 alpha = 0.0f;
 
@@ -2969,7 +2746,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
 
         // finally render the starfield
-        _stars.render(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(), whichCamera.getNearClip(), alpha);
+        _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
@@ -2981,33 +2758,19 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         PerformanceTimer perfTimer("atmosphere");
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
             "Application::displaySide() ... atmosphere...");
-        _environment.renderAtmospheres(whichCamera);
+        _environment.renderAtmospheres(theCamera);
     }
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
-    _deferredLightingEffect.prepare();
+    DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
         // draw a red sphere
         float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
-        _geometryCache.renderSphere(originSphereRadius, 15, 15);
+        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15);
         
-        // draw the audio reflector overlay
-        {
-            PerformanceTimer perfTimer("audio");
-            _audioReflector.render();
-        }
-        
-        //  Draw voxels
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-            PerformanceTimer perfTimer("voxels");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... voxels...");
-            _voxels.render();
-        }
-
         // also, metavoxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {
             PerformanceTimer perfTimer("metavoxels");
@@ -3021,13 +2784,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            _entities.render();
+            _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
         }
 
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D();
+            _overlays.renderWorld(false);
         }
 
         // render the ambient occlusion effect if enabled
@@ -3035,13 +2798,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceTimer perfTimer("ambientOcclusion");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... AmbientOcclusion...");
-            _ambientOcclusionEffect.render();
+            DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
 
 
 
-    bool mirrorMode = (whichCamera.getMode() == CAMERA_MODE_MIRROR);
+    bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
@@ -3052,7 +2815,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     {
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
-        _deferredLightingEffect.render();
+        DependencyManager::get<DeferredLightingEffect>()->render();
     }
 
     {
@@ -3070,35 +2833,27 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         _nodeBoundsDisplay.draw();
     
         //  Render the world box
-        if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
+        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
                 Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
             PerformanceTimer perfTimer("worldBox");
             renderWorldBox();
         }
 
-        // view frustum for debugging
-        if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum) && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
-            PerformanceTimer perfTimer("viewFrustum");
+        // render octree fades if they exist
+        if (_octreeFades.size() > 0) {
+            PerformanceTimer perfTimer("octreeFades");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... renderViewFrustum...");
-            renderViewFrustum(_viewFrustum);
-        }
-
-        // render voxel fades if they exist
-        if (_voxelFades.size() > 0) {
-            PerformanceTimer perfTimer("voxelFades");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... voxel fades...");
-            _voxelFadesLock.lockForWrite();
-            for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
+                "Application::displaySide() ... octree fades...");
+            _octreeFadesLock.lockForWrite();
+            for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
                 fade->render();
                 if(fade->isDone()) {
-                    fade = _voxelFades.erase(fade);
+                    fade = _octreeFades.erase(fade);
                 } else {
                     ++fade;
                 }
             }
-            _voxelFadesLock.unlock();
+            _octreeFadesLock.unlock();
         }
 
         // give external parties a change to hook in
@@ -3110,6 +2865,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    // Render 3D overlays that should be drawn in front
+    {
+        PerformanceTimer perfTimer("3dOverlaysFront");
+        glClear(GL_DEPTH_BUFFER_BIT);
+        _overlays.renderWorld(true);
     }
 }
 
@@ -3150,9 +2912,18 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     }
 }
 
+bool Application::getShadowsEnabled() { 
+    return Menu::getInstance()->getShadowsEnabled(); 
+}
+
+bool Application::getCascadeShadowsEnabled() { 
+    return Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows); 
+}
+
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
-    float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;
+    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    float horizontalScale = glCanvas->getDeviceWidth() / 2.0f;
+    float verticalScale   = glCanvas->getDeviceHeight() / 2.0f;
 
     // -1,-1 is 0,windowHeight
     // 1,1 is windowWidth,0
@@ -3171,7 +2942,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     // -1,-1                   1,-1
 
     glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
+        ((projectedPoint.y + 1.0) * -verticalScale) + glCanvas->getDeviceHeight());
 
     return screenPoint;
 }
@@ -3185,12 +2956,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
     } else if (_rearMirrorTools->getZoomLevel() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
     } else { // HEAD zoom level
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
@@ -3198,11 +2969,11 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
             // face/body so that the average eye position lies at the origin
             eyeRelativeCamera = true;
-            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
 
         } else {
             _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                      _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+                                      _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
         }
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
@@ -3212,12 +2983,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // set the bounds of rear mirror view
     if (billboard) {
-        QSize size = getTextureCache()->getFrameBufferSize();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
         glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());    
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        QSize size = getTextureCache()->getFrameBufferSize();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
@@ -3294,199 +3065,24 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
 
-// renderViewFrustum()
-//
-// Description: this will render the view frustum bounds for EITHER the head
-//                 or the "myCamera".
-//
-// Frustum rendering mode. For debug purposes, we allow drawing the frustum in a couple of different ways.
-// We can draw it with each of these parts:
-//    * Origin Direction/Up/Right vectors - these will be drawn at the point of the camera
-//    * Near plane - this plane is drawn very close to the origin point.
-//    * Right/Left planes - these two planes are drawn between the near and far planes.
-//    * Far plane - the plane is drawn in the distance.
-// Modes - the following modes, will draw the following parts.
-//    * All - draws all the parts listed above
-//    * Planes - draws the planes but not the origin vectors
-//    * Origin Vectors - draws the origin vectors ONLY
-//    * Near Plane - draws only the near plane
-//    * Far Plane - draws only the far plane
-void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
-    // Load it with the latest details!
-    loadViewFrustum(_myCamera, viewFrustum);
-
-    glm::vec3 position  = viewFrustum.getOffsetPosition();
-    glm::vec3 direction = viewFrustum.getOffsetDirection();
-    glm::vec3 up        = viewFrustum.getOffsetUp();
-    glm::vec3 right     = viewFrustum.getOffsetRight();
-
-    //  Get ready to draw some lines
-    glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glLineWidth(1.0);
-    glBegin(GL_LINES);
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_VECTORS) {
-        // Calculate the origin direction vectors
-        glm::vec3 lookingAt      = position + (direction * 0.2f);
-        glm::vec3 lookingAtUp    = position + (up * 0.2f);
-        glm::vec3 lookingAtRight = position + (right * 0.2f);
-
-        // Looking At = white
-        glColor3f(1,1,1);
-        glVertex3f(position.x, position.y, position.z);
-        glVertex3f(lookingAt.x, lookingAt.y, lookingAt.z);
-
-        // Looking At Up = purple
-        glColor3f(1,0,1);
-        glVertex3f(position.x, position.y, position.z);
-        glVertex3f(lookingAtUp.x, lookingAtUp.y, lookingAtUp.z);
-
-        // Looking At Right = cyan
-        glColor3f(0,1,1);
-        glVertex3f(position.x, position.y, position.z);
-        glVertex3f(lookingAtRight.x, lookingAtRight.y, lookingAtRight.z);
-    }
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_PLANES
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_NEAR_PLANE) {
-        // Drawing the bounds of the frustum
-        // viewFrustum.getNear plane - bottom edge
-        glColor3f(1,0,0);
-        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
-
-        // viewFrustum.getNear plane - top edge
-        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
-
-        // viewFrustum.getNear plane - right edge
-        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
-        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
-
-        // viewFrustum.getNear plane - left edge
-        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-    }
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_PLANES
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_FAR_PLANE) {
-        // viewFrustum.getFar plane - bottom edge
-        glColor3f(0,1,0);
-        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
-        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
-
-        // viewFrustum.getFar plane - top edge
-        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
-
-        // viewFrustum.getFar plane - right edge
-        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
-        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
-
-        // viewFrustum.getFar plane - left edge
-        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
-        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-    }
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_PLANES) {
-        // RIGHT PLANE IS CYAN
-        // right plane - bottom edge - viewFrustum.getNear to distant
-        glColor3f(0,1,1);
-        glVertex3f(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
-        glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
-
-        // right plane - top edge - viewFrustum.getNear to distant
-        glVertex3f(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
-        glVertex3f(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
-
-        // LEFT PLANE IS BLUE
-        // left plane - bottom edge - viewFrustum.getNear to distant
-        glColor3f(0,0,1);
-        glVertex3f(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
-        glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
-
-        // left plane - top edge - viewFrustum.getNear to distant
-        glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
-        glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
-
-        // focal plane - bottom edge
-        glColor3f(1.0f, 0.0f, 1.0f);
-        float focalProportion = (viewFrustum.getFocalLength() - viewFrustum.getNearClip()) /
-            (viewFrustum.getFarClip() - viewFrustum.getNearClip());
-        glm::vec3 focalBottomLeft = glm::mix(viewFrustum.getNearBottomLeft(), viewFrustum.getFarBottomLeft(), focalProportion);
-        glm::vec3 focalBottomRight = glm::mix(viewFrustum.getNearBottomRight(),
-            viewFrustum.getFarBottomRight(), focalProportion);
-        glVertex3f(focalBottomLeft.x, focalBottomLeft.y, focalBottomLeft.z);
-        glVertex3f(focalBottomRight.x, focalBottomRight.y, focalBottomRight.z);
-
-        // focal plane - top edge
-        glm::vec3 focalTopLeft = glm::mix(viewFrustum.getNearTopLeft(), viewFrustum.getFarTopLeft(), focalProportion);
-        glm::vec3 focalTopRight = glm::mix(viewFrustum.getNearTopRight(), viewFrustum.getFarTopRight(), focalProportion);
-        glVertex3f(focalTopLeft.x, focalTopLeft.y, focalTopLeft.z);
-        glVertex3f(focalTopRight.x, focalTopRight.y, focalTopRight.z);
-
-        // focal plane - left edge
-        glVertex3f(focalBottomLeft.x, focalBottomLeft.y, focalBottomLeft.z);
-        glVertex3f(focalTopLeft.x, focalTopLeft.y, focalTopLeft.z);
-
-        // focal plane - right edge
-        glVertex3f(focalBottomRight.x, focalBottomRight.y, focalBottomRight.z);
-        glVertex3f(focalTopRight.x, focalTopRight.y, focalTopRight.z);
-    }
-    glEnd();
-    glEnable(GL_LIGHTING);
-
-    if (Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_ALL
-        || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_KEYHOLE) {
-        // Draw the keyhole
-        float keyholeRadius = viewFrustum.getKeyholeRadius();
-        if (keyholeRadius > 0.0f) {
-            glPushMatrix();
-            glColor4f(1, 1, 0, 1);
-            glTranslatef(position.x, position.y, position.z); // where we actually want it!
-            glutWireSphere(keyholeRadius, 20, 20);
-            glPopMatrix();
-        }
-    }
-}
-
-void Application::deleteVoxels(const VoxelDetail& voxel) {
-    deleteVoxelAt(voxel);
-}
-
-void Application::deleteVoxelAt(const VoxelDetail& voxel) {
-    if (voxel.s != 0) {
-        // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
-
-        // delete it locally to see the effect immediately (and in case no voxel server is present)
-        _voxels.getTree()->deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
-    }
-}
-
-
 void Application::resetSensors() {
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
-
-    _faceshift.reset();
-    _visage.reset();
-    _dde.reset();
+    DependencyManager::get<Faceshift>()->reset();
+    DependencyManager::get<Visage>()->reset();
+    DependencyManager::get<DdeFaceTracker>()->reset();
 
     OculusManager::reset();
 
     _prioVR.reset();
     //_leapmotion.reset();
 
-    QCursor::setPos(_mouseX, _mouseY);
+    QScreen* currentScreen = _window->windowHandle()->screen();
+    QWindow* mainWindow = _window->windowHandle();
+    QPoint windowCenter = mainWindow->geometry().center();
+    DependencyManager::get<GLCanvas>()->cursor().setPos(currentScreen, windowCenter);
+    
     _myAvatar->reset();
 
-    QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -3508,16 +3104,6 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
 }
 
-void Application::uploadModel(ModelType modelType) {
-    ModelUploader* uploader = new ModelUploader(modelType);
-    QThread* thread = new QThread();
-    thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
-    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
-    uploader->connect(thread, SIGNAL(started()), SLOT(send()));
-
-    thread->start();
-}
-
 void Application::updateWindowTitle(){
 
     QString buildVersion = " (build " + applicationVersion() + ")";
@@ -3526,17 +3112,7 @@ void Application::updateWindowTitle(){
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + AddressManager::getInstance().getCurrentDomain() + connectionStatus + buildVersion;
-
-    AccountManager& accountManager = AccountManager::getInstance();
-    if (accountManager.getAccountInfo().hasBalance()) {
-        float creditBalance = accountManager.getAccountInfo().getBalance() / SATOSHIS_PER_CREDIT;
-
-        QString creditBalanceString;
-        creditBalanceString.sprintf("%.8f", creditBalance);
-
-        title += " - ₵" + creditBalanceString;
-    }
+        + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -3557,7 +3133,7 @@ void Application::updateLocationInServer() {
 
         QJsonObject locationObject;
         
-        QString pathString = AddressManager::getInstance().currentPath();
+        QString pathString = DependencyManager::get<AddressManager>()->currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
         const QString PATH_KEY_IN_LOCATION = "path";
@@ -3573,29 +3149,12 @@ void Application::updateLocationInServer() {
      }
 }
 
-void Application::changeDomainHostname(const QString &newDomainHostname) {
-    NodeList* nodeList = NodeList::getInstance();
-    
-    if (!nodeList->getDomainHandler().isCurrentHostname(newDomainHostname)) {
-        // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
-        _myAvatar->sendKillAvatar();
-        
-        // call the domain hostname change as a queued connection on the nodelist
-        QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
-                                  Q_ARG(const QString&, newDomainHostname));
-    }
-}
-
 void Application::clearDomainOctreeDetails() {
     qDebug() << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
-    _voxelServerJurisdictions.lockForWrite();
-    _voxelServerJurisdictions.clear();
-    _voxelServerJurisdictions.unlock();
-
     _entityServerJurisdictions.lockForWrite();
     _entityServerJurisdictions.clear();
     _entityServerJurisdictions.unlock();
@@ -3607,8 +3166,6 @@ void Application::clearDomainOctreeDetails() {
     // reset the model renderer
     _entities.clear();
 
-    // reset the voxels renderer
-    _voxels.killLocalVoxels();
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -3645,51 +3202,13 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     _octreeProcessor.nodeKilled(node);
 
-    _voxelEditSender.nodeKilled(node);
     _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
-        QMetaObject::invokeMethod(&_audio, "audioMixerKilled");
+        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "audioMixerKilled");
     }
 
-    if (node->getType() == NodeType::VoxelServer) {
-        QUuid nodeUUID = node->getUUID();
-        // see if this is the first we've heard of this node...
-        _voxelServerJurisdictions.lockForRead();
-        if (_voxelServerJurisdictions.find(nodeUUID) != _voxelServerJurisdictions.end()) {
-            unsigned char* rootCode = _voxelServerJurisdictions[nodeUUID].getRootOctalCode();
-            VoxelPositionSize rootDetails;
-            voxelDetailsForCode(rootCode, rootDetails);
-            _voxelServerJurisdictions.unlock();
-
-            qDebug("voxel server going away...... v[%f, %f, %f, %f]",
-                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
-
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
-            }
-
-            // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _voxelServerJurisdictions.lockForWrite();
-            _voxelServerJurisdictions.erase(_voxelServerJurisdictions.find(nodeUUID));
-        }
-        _voxelServerJurisdictions.unlock();
-
-        // also clean up scene stats for that server
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats.erase(nodeUUID);
-        }
-        _octreeSceneStatsLock.unlock();
-
-    } else if (node->getType() == NodeType::EntityServer) {
+    if (node->getType() == NodeType::EntityServer) {
 
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
@@ -3704,14 +3223,14 @@ void Application::nodeKilled(SharedNodePointer node) {
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
+                OctreeFade fade(OctreeFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
+                _octreeFadesLock.lockForWrite();
+                _octreeFades.push_back(fade);
+                _octreeFadesLock.unlock();
             }
 
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
@@ -3733,7 +3252,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     }
 }
 
-void Application::trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
+void Application::trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
 
     // Attempt to identify the sender from it's address.
     if (sendingNode) {
@@ -3777,10 +3296,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;
         QString serverType;
-        if (sendingNode->getType() == NodeType::VoxelServer) {
-            jurisdiction = &_voxelServerJurisdictions;
-            serverType = "Voxel";
-        } else {
+        if (sendingNode->getType() == NodeType::EntityServer) {
             jurisdiction = &_entityServerJurisdictions;
             serverType = "Entity";
         }
@@ -3793,14 +3309,14 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
                 qPrintable(serverType), rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
+                OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
                 fade.voxelDetails = rootDetails;
                 const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
+                _octreeFadesLock.lockForWrite();
+                _octreeFades.push_back(fade);
+                _octreeFadesLock.unlock();
             }
         } else {
             jurisdiction->unlock();
@@ -3819,7 +3335,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 }
 
 void Application::packetSent(quint64 length) {
-    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
+    _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(length);
 }
 
 void Application::loadScripts() {
@@ -3874,9 +3390,6 @@ void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
-    scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
-    scriptEngine->getVoxelsScriptingInterface()->setVoxelTree(_voxels.getTree());
-    scriptEngine->getVoxelsScriptingInterface()->setUndoStack(&_undoStack);
     scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
     scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
 
@@ -3902,7 +3415,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
-    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, RayToOverlayIntersectionResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
+                            RayToOverlayIntersectionResultFromScriptValue);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
@@ -3916,8 +3431,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
-    scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
-    scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
+    scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
 
@@ -3965,26 +3480,23 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         return _scriptEnginesHash[scriptURLString];
     }
 
-    ScriptEngine* scriptEngine;
-    if (scriptFilename.isNull()) {
-        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
-    } else {
-        // start the script on a new thread...
-        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-
-        if (!scriptEngine->hasScript()) {
-            qDebug() << "Application::loadScript(), script failed to load...";
-            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
-            return NULL;
-        }
-
-        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        UserActivityLogger::getInstance().loadedScript(scriptURLString);
-    }
+    ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     scriptEngine->setUserLoaded(isUserLoaded);
     
-    registerScriptEngineWithApplicationServices(scriptEngine);
+    if (scriptFilename.isNull()) {
+        // this had better be the script editor (we should de-couple so somebody who thinks they are loading a script
+        // doesn't just get an empty script engine)
+        
+        // we can complete setup now since there isn't a script we have to load
+        registerScriptEngineWithApplicationServices(scriptEngine);
+    } else {
+        // connect to the appropriate signals of this script engine
+        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
+        connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
+        
+        // get the script engine object to load the script at the designated script URL
+        scriptEngine->loadURL(scriptUrl);
+    }
 
     // restore the main window's active state
     if (activateMainWindow && !loadScriptFromEditor) {
@@ -3993,6 +3505,22 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     bumpSettings();
 
     return scriptEngine;
+}
+
+void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
+    ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    
+    _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    UserActivityLogger::getInstance().loadedScript(scriptFilename);
+    
+    // register our application services and set it off on its own thread
+    registerScriptEngineWithApplicationServices(scriptEngine);
+}
+
+void Application::handleScriptLoadError(const QString& scriptFilename) {
+    qDebug() << "Application::loadScript(), script failed to load...";
+    QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
 void Application::scriptFinished(const QString& scriptName) {
@@ -4071,26 +3599,49 @@ void Application::toggleRunningScriptsWidget() {
 }
 
 void Application::uploadHead() {
-    uploadModel(HEAD_MODEL);
+    ModelUploader::uploadHead();
 }
 
 void Application::uploadSkeleton() {
-    uploadModel(SKELETON_MODEL);
+    ModelUploader::uploadSkeleton();
 }
 
 void Application::uploadAttachment() {
-    uploadModel(ATTACHMENT_MODEL);
+    ModelUploader::uploadAttachment();
+}
+
+void Application::uploadEntity() {
+    ModelUploader::uploadEntity();
 }
 
 void Application::openUrl(const QUrl& url) {
     if (!url.isEmpty()) {
         if (url.scheme() == HIFI_URL_SCHEME) {
-            AddressManager::getInstance().handleLookupString(url.toString());
+            DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);
         }
     }
+}
+
+void Application::updateMyAvatarTransform() {
+    bumpSettings();
+#ifdef USE_BULLET_PHYSICS
+    const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
+    glm::vec3 avatarPosition = _myAvatar->getPosition();
+    glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();
+    if (glm::distance(avatarPosition, physicsWorldOffset) > SIMULATION_OFFSET_QUANTIZATION) {
+        glm::vec3 newOriginOffset = avatarPosition;
+        int halfExtent = (int)HALF_SIMULATION_EXTENT;
+        for (int i = 0; i < 3; ++i) {
+            newOriginOffset[i] = (float)(glm::max(halfExtent, 
+                    ((int)(avatarPosition[i] / SIMULATION_OFFSET_QUANTIZATION)) * (int)SIMULATION_OFFSET_QUANTIZATION));
+        }
+        // TODO: Andrew to replace this with method that actually moves existing object positions in PhysicsEngine
+        _physicsEngine.setOriginOffset(newOriginOffset);
+    }
+#endif // USE_BULLET_PHYSICS
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
@@ -4119,10 +3670,6 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
     
     qDebug() << "Voxel costs are" << satoshisPerVoxel << "per voxel and" << satoshisPerMeterCubed << "per meter cubed";
     qDebug() << "Destination wallet UUID for voxel payments is" << voxelWalletUUID;
-    
-    _voxelEditSender.setSatoshisPerVoxel(satoshisPerVoxel);
-    _voxelEditSender.setSatoshisPerMeterCubed(satoshisPerMeterCubed);
-    _voxelEditSender.setDestinationWalletUUID(voxelWalletUUID);
 }
 
 QString Application::getPreviousScriptLocation() {
@@ -4148,7 +3695,8 @@ void Application::setPreviousScriptLocation(const QString& previousScriptLocatio
 
 void Application::loadDialog() {
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"),
+    QString fileNameString = QFileDialog::getOpenFileName(DependencyManager::get<GLCanvas>().data(),
+                                                          tr("Open Script"),
                                                           getPreviousScriptLocation(),
                                                           tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
@@ -4184,7 +3732,7 @@ void Application::loadScriptURLDialog() {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(_glWidget, getLogger());
+        _logDialog = new LogDialog(DependencyManager::get<GLCanvas>().data(), getLogger());
     }
 
     if (_logDialog->isVisible()) {
@@ -4195,7 +3743,7 @@ void Application::toggleLogDialog() {
 }
 
 void Application::initAvatarAndViewFrustum() {
-    updateMyAvatar(0.f);
+    updateMyAvatar(0.0f);
 }
 
 void Application::checkVersion() {
@@ -4222,9 +3770,9 @@ void Application::parseVersionXml() {
     QString latestVersion;
     QUrl downloadUrl;
     QString releaseNotes("Unavailable");
-    QObject* sender = QObject::sender();
+    QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
 
-    QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
+    QXmlStreamReader xml(sender);
 
     while (!xml.atEnd() && !xml.hasError()) {
         if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == operatingSystem) {
@@ -4244,7 +3792,7 @@ void Application::parseVersionXml() {
     }
 
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
+        new UpdateDialog(DependencyManager::get<GLCanvas>().data(), releaseNotes, latestVersion, downloadUrl);
     }
     sender->deleteLater();
 }
@@ -4263,17 +3811,9 @@ void Application::skipVersion(QString latestVersion) {
     skipFile.write(latestVersion.toStdString().c_str());
 }
 
-void Application::setCursorVisible(bool visible) {
-    if (visible) {
-        restoreOverrideCursor();
-    } else {
-        setOverrideCursor(Qt::BlankCursor);
-    }
-}
-
 void Application::takeSnapshot() {
     QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
+    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
@@ -4285,7 +3825,7 @@ void Application::takeSnapshot() {
     }
 
     if (!_snapshotShareDialog) {
-        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
+        _snapshotShareDialog = new SnapshotShareDialog(fileName, DependencyManager::get<GLCanvas>().data());
     }
     _snapshotShareDialog->show();
 }
@@ -4369,7 +3909,7 @@ unsigned int Application::getRenderTargetFramerate() const {
 
 float Application::getRenderResolutionScale() const {
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionOne)) {
-        return 1.f;
+        return 1.0f;
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
         return 0.666f;
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionHalf)) {
@@ -4379,6 +3919,6 @@ float Application::getRenderResolutionScale() const {
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
         return 0.25f;
     } else {
-        return 1.f;
+        return 1.0f;
     }
 }

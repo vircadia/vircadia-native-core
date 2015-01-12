@@ -62,7 +62,6 @@ public:
 
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
-    virtual Octree* createTree() = 0;
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;
@@ -122,7 +121,7 @@ public:
     void forceNodeShutdown(SharedNodePointer node);
     
 public slots:
-    /// runs the voxel server assignment
+    /// runs the octree server assignment
     void run();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
@@ -132,6 +131,7 @@ public slots:
     void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
 protected:
+    virtual Octree* createTree() = 0;
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
     bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
     bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
@@ -162,11 +162,18 @@ protected:
     bool _wantPersist;
     bool _debugSending;
     bool _debugReceiving;
+    bool _debugTimestampNow;
     bool _verboseDebug;
     JurisdictionMap* _jurisdiction;
     JurisdictionSender* _jurisdictionSender;
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
+    
+    int _persistInterval;
+    bool _wantBackup;
+    QString _backupExtensionFormat;
+    int _backupInterval;
+    int _maxBackupVersions;
 
     static OctreeServer* _instance;
 

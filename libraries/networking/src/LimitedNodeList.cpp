@@ -134,18 +134,19 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 }
 
 void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
-    // change socket buffer sizes
-    
     for (int i = 0; i < 2; i++) {
-        QAbstractSocket::SocketOption bufferOpt = (i == 0)
-            ? QAbstractSocket::SendBufferSizeSocketOption : QAbstractSocket::ReceiveBufferSizeSocketOption;
-        
+        QAbstractSocket::SocketOption bufferOpt;
+        QString bufferTypeString;
+        if (i == 0) {
+            bufferOpt = QAbstractSocket::SendBufferSizeSocketOption;
+            bufferTypeString = "send";
+            
+        } else {
+            bufferOpt = QAbstractSocket::ReceiveBufferSizeSocketOption;
+            bufferTypeString = "receive";
+        }
         int oldBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
-        
-        QString bufferTypeString = (i == 0) ? "send" : "receive";
-        
         if (oldBufferSize < numBytes) {
-            _nodeSocket.setSocketOption(bufferOpt, QVariant(numBytes));
             int newBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
             
             qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
@@ -330,6 +331,8 @@ int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packe
 }
 
 SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
+    QReadLocker readLocker(&_nodeMutex);
+    
     NodeHash::const_iterator it = _nodeHash.find(nodeUUID);
     return it == _nodeHash.cend() ? SharedNodePointer() : it->second;
  }
@@ -364,14 +367,20 @@ void LimitedNodeList::reset() {
 }
 
 void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
+    _nodeMutex.lockForRead();
+    
     NodeHash::iterator it = _nodeHash.find(nodeUUID);
     if (it != _nodeHash.end()) {
         SharedNodePointer matchingNode = it->second;
+        
+        _nodeMutex.unlock();
         
         QWriteLocker writeLocker(&_nodeMutex);
         _nodeHash.unsafe_erase(it);
         
         handleNodeKill(matchingNode);
+    } else {
+        _nodeMutex.unlock();
     }
 }
 
@@ -482,7 +491,7 @@ void LimitedNodeList::removeSilentNodes() {
         SharedNodePointer node = it->second;
         node->getMutex().lock();
         
-        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * 1000)) {
+        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
             // call the NodeHash erase to get rid of this node
             it = _nodeHash.unsafe_erase(it);
             

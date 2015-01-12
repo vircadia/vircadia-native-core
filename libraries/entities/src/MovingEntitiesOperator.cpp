@@ -49,16 +49,13 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 }
 
 
-void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACube& oldCube, const AACube& newCube) {
+void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACube& newCube) {
     EntityTreeElement* oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
     AABox newCubeClamped = newCube.clamp(0.0f, 1.0f);
-    AABox oldCubeClamped = oldCube.clamp(0.0f, 1.0f);
 
     if (_wantDebug) {
         qDebug() << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
-        qDebug() << "    oldCube:" << oldCube;
         qDebug() << "    newCube:" << newCube;
-        qDebug() << "    oldCubeClamped:" << oldCubeClamped;
         qDebug() << "    newCubeClamped:" << newCubeClamped;
         if (oldContainingElement) {
             qDebug() << "    oldContainingElement:" << oldContainingElement->getAACube();
@@ -85,9 +82,7 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACub
         details.entity = entity;
         details.oldFound = false;
         details.newFound = false;
-        details.oldCube = oldCube;
         details.newCube = newCube;
-        details.oldCubeClamped = oldCubeClamped;
         details.newCubeClamped = newCubeClamped;
         _entitiesToMove << details;
         _lookingCount++;
@@ -96,7 +91,6 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACub
             qDebug() << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
             qDebug() << "    details.entity:" << details.entity->getEntityItemID();
             qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
-            qDebug() << "    details.oldCube:" << details.oldCube;
             qDebug() << "    details.newCube:" << details.newCube;
             qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
             qDebug() << "    _lookingCount:" << _lookingCount;
@@ -129,17 +123,14 @@ bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElement* element) {
                 qDebug() << "    element:" << element->getAACube();
                 qDebug() << "    details.entity:" << details.entity->getEntityItemID();
                 qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
-                qDebug() << "    details.oldCube:" << details.oldCube;
                 qDebug() << "    details.newCube:" << details.newCube;
                 qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
-                qDebug() << "    elementCube.contains(details.oldCube)" << elementCube.contains(details.oldCube);
                 qDebug() << "    elementCube.contains(details.newCube)" << elementCube.contains(details.newCube);
-                qDebug() << "    elementCube.contains(details.oldCubeClamped)" << elementCube.contains(details.oldCubeClamped);
                 qDebug() << "    elementCube.contains(details.newCubeClamped)" << elementCube.contains(details.newCubeClamped);
                 qDebug() << "--------------------------------------------------------------------------";
             }
 
-            if (elementCube.contains(details.oldCubeClamped) || elementCube.contains(details.newCubeClamped)) {
+            if (elementCube.contains(details.oldContainingElementCube) || elementCube.contains(details.newCubeClamped)) {
                 containsEntity = true;
                 break; // if it contains at least one, we're good to go
             }
@@ -178,7 +169,6 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
                 qDebug() << "    details.entity:" << details.entity->getEntityItemID();
                 qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
                 qDebug() << "    entityTreeElement:" << entityTreeElement;
-                qDebug() << "    details.oldCube:" << details.oldCube;
                 qDebug() << "    details.newCube:" << details.newCube;
                 qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
                 qDebug() << "    _lookingCount:" << _lookingCount;
@@ -189,7 +179,7 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
 
             // If this is one of the old elements we're looking for, then ask it to remove the old entity
             if (!details.oldFound && entityTreeElement == details.oldContainingElement) {
-                entityTreeElement->removeEntityItem(details.entity);
+                // DO NOT remove the entity here.  It will be removed when added to the destination element.
                 _foundOldCount++;
                 //details.oldFound = true; // TODO: would be nice to add this optimization
                 if (_wantDebug) {
@@ -203,8 +193,15 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
             // If this element is the best fit for the new bounds of this entity then add the entity to the element
             if (!details.newFound && entityTreeElement->bestFitBounds(details.newCube)) {
                 EntityItemID entityItemID = details.entity->getEntityItemID();
-                entityTreeElement->addEntityItem(details.entity);
-                _tree->setContainingElement(entityItemID, entityTreeElement);
+                // remove from the old before adding
+                EntityTreeElement* oldElement = details.entity->getElement();
+                if (oldElement != entityTreeElement) {
+                    if (oldElement) {
+                        oldElement->removeEntityItem(details.entity);
+                    }
+                    entityTreeElement->addEntityItem(details.entity);
+                    _tree->setContainingElement(entityItemID, entityTreeElement);
+                }
                 _foundNewCount++;
                 //details.newFound = true; // TODO: would be nice to add this optimization
                 if (_wantDebug) {
@@ -237,7 +234,7 @@ bool MovingEntitiesOperator::postRecursion(OctreeElement* element) {
     
 
 
-    // It's not OK to prune if we have the potential of deleting the original containig element.
+    // It's not OK to prune if we have the potential of deleting the original containing element
     // because if we prune the containing element then new might end up reallocating the same memory later 
     // and that will confuse our logic.
     // 

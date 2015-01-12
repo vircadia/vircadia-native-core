@@ -23,9 +23,9 @@
 
 /*
 
-static glm::vec3 xAxis(1.f, 0.f, 0.f);
-static glm::vec3 xZxis(0.f, 1.f, 0.f);
-static glm::vec3 xYxis(0.f, 0.f, 1.f);
+static glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+static glm::vec3 xZxis(0.0f, 1.0f, 0.0f);
+static glm::vec3 xYxis(0.0f, 0.0f, 1.0f);
 
 void CollisionInfoTests::rotateThenTranslate() {
     CollisionInfo collision;
@@ -34,7 +34,7 @@ void CollisionInfoTests::rotateThenTranslate() {
     collision._addedVelocity = xAxis + yAxis + zAxis;
 
     glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
-    float distance = 3.f;
+    float distance = 3.0f;
     glm::vec3 translation = distance * yAxis;
 
     collision.rotateThenTranslate(rotation, translation);
@@ -73,7 +73,7 @@ void CollisionInfoTests::translateThenRotate() {
     collision._addedVelocity = xAxis + yAxis + zAxis;
 
     glm::quat rotation = glm::angleAxis( -PI_OVER_TWO, zAxis);
-    float distance = 3.f;
+    float distance = 3.0f;
     glm::vec3 translation = distance * yAxis;
 
     collision.translateThenRotate(translation, rotation);
@@ -86,7 +86,7 @@ void CollisionInfoTests::translateThenRotate() {
             << std::endl;
     } 
 
-    glm::vec3 expectedContactPoint = (1.f + distance) * xAxis;
+    glm::vec3 expectedContactPoint = (1.0f + distance) * xAxis;
     error = glm::distance(collision._contactPoint, expectedContactPoint);
     if (error > EPSILON) {
         std::cout << __FILE__ << ":" << __LINE__

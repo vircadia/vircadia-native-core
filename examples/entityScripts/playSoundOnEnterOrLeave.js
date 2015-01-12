@@ -23,14 +23,16 @@
 
     this.preload = function(entityID) { 
         print("preload("+entityID.id+")");
-        bird = new Sound("http://s3.amazonaws.com/hifi-public/sounds/Animals/bushtit_1.raw");
+        bird = SoundCache.getSound("http://s3.amazonaws.com/hifi-public/sounds/Animals/bushtit_1.raw");
     }; 
 
     this.enterEntity = function(entityID) { 
+        print("enterEntity("+entityID.id+")");
         playSound();
     }; 
 
     this.leaveEntity = function(entityID) {
+        print("leaveEntity("+entityID.id+")");
         playSound();
     }; 
 })

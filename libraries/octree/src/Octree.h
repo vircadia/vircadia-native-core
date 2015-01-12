@@ -298,7 +298,9 @@ public:
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              OctreeElement*& node, float& distance, BoxFace& face, 
                              void** intersectedObject = NULL,
-                             Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
+                             Octree::lockType lockType = Octree::TryLock, 
+                             bool* accurateResult = NULL, 
+                             bool precisionPicking = false);
 
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, void** penetratedObject = NULL, 
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
@@ -373,7 +375,7 @@ protected:
     static bool countOctreeElementsOperation(OctreeElement* element, void* extraData);
 
     OctreeElement* nodeForOctalCode(OctreeElement* ancestorElement, const unsigned char* needleCode, OctreeElement** parentOfFoundElement) const;
-    OctreeElement* createMissingElement(OctreeElement* lastParentElement, const unsigned char* codeToReach);
+    OctreeElement* createMissingElement(OctreeElement* lastParentElement, const unsigned char* codeToReach, int recursionCount = 0);
     int readElementData(OctreeElement *destinationElement, const unsigned char* nodeData,
                 int bufferSizeBytes, ReadBitstreamToTreeParams& args);
 

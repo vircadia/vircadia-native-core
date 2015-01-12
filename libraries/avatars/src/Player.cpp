@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <AudioRingBuffer.h>
+#include <AudioConstants.h>
 #include <GLMHelpers.h>
 #include <NodeList.h>
 #include <StreamUtils.h>
@@ -168,7 +168,7 @@ void Player::setupAudioThread() {
     _audioThread = new QThread();
     _options.position = _avatar->getPosition();
     _options.orientation = _avatar->getOrientation();
-    _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
+    _injector.reset(new AudioInjector(_recording->getAudioData(), _options), &QObject::deleteLater);
     _injector->moveToThread(_audioThread);
     _audioThread->start();
     QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
@@ -376,7 +376,7 @@ void Player::setAudionInjectorPosition() {
     int SAMPLE_SIZE = 2; // 16 bits
     int CHANNEL_COUNT = 1;
     int FRAME_SIZE = SAMPLE_SIZE * CHANNEL_COUNT;
-    int currentAudioFrame = elapsed() * FRAME_SIZE * (SAMPLE_RATE / MSEC_PER_SEC);
+    int currentAudioFrame = elapsed() * FRAME_SIZE * (AudioConstants::SAMPLE_RATE / MSEC_PER_SEC);
     _injector->setCurrentSendPosition(currentAudioFrame);
 }
 

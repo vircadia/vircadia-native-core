@@ -45,7 +45,8 @@ public:
     void refresh(const QUrl& url);
 
 protected:
-
+    
+    qint64 _unusedResourcesTotalBytes = 0;
     QMap<int, QSharedPointer<Resource> > _unusedResources;
 
     /// Loads a resource from the specified URL.
@@ -58,8 +59,9 @@ protected:
     /// Creates a new resource.
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) = 0;
-
+    
     void addUnusedResource(const QSharedPointer<Resource>& resource);
+    void removeUnusedResource(const QSharedPointer<Resource>& resource);
     
     static void attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
@@ -109,11 +111,11 @@ public:
     /// For loading resources, returns the number of bytes received.
     qint64 getBytesReceived() const { return _bytesReceived; }
     
-    /// For loading resources, returns the number of total bytes (or zero if unknown).
+    /// For loading resources, returns the number of total bytes (<= zero if unknown).
     qint64 getBytesTotal() const { return _bytesTotal; }
 
     /// For loading resources, returns the load progress.
-    float getProgress() const { return (_bytesTotal == 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
+    float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
 
     /// Refreshes the resource.
     void refresh();

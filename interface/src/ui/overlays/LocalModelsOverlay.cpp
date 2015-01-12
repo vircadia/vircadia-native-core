@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <GlowEffect.h>
+
 #include "Application.h"
 
 #include "LocalModelsOverlay.h"
@@ -16,6 +18,13 @@
 LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer) :
     Volume3DOverlay(),
     _entityTreeRenderer(entityTreeRenderer) {
+}
+
+LocalModelsOverlay::LocalModelsOverlay(const LocalModelsOverlay* localModelsOverlay) :
+    Volume3DOverlay(localModelsOverlay),
+    _entityTreeRenderer(localModelsOverlay->_entityTreeRenderer)
+{
+
 }
 
 LocalModelsOverlay::~LocalModelsOverlay() {
@@ -47,4 +56,8 @@ void LocalModelsOverlay::render(RenderArgs* args) {
         }
 
     }
+}
+
+LocalModelsOverlay* LocalModelsOverlay::createClone() const {
+    return new LocalModelsOverlay(this);
 }

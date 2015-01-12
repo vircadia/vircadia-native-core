@@ -16,14 +16,17 @@
 #include <QScrollBar>
 #include <QSizePolicy>
 #include <QTimer>
+#include "qtimespan.h"
+
 
 #include <AddressManager.h>
 #include <AccountManager.h>
+#include <PathUtils.h>
 
 #include "Application.h"
 #include "ChatMessageArea.h"
 #include "FlowLayout.h"
-#include "qtimespan.h"
+#include "MainWindow.h"
 #include "UIUtil.h"
 #include "XmppClient.h"
 
@@ -92,9 +95,9 @@ ChatWindow::ChatWindow(QWidget* parent) :
     connect(&_trayIcon, SIGNAL(messageClicked()), this, SLOT(notificationClicked()));
 #endif // HAVE_QXMPP
 
-    QDir mentionSoundsDir(Application::resourcesPath() + mentionSoundsPath);
+    QDir mentionSoundsDir(PathUtils::resourcesPath() + mentionSoundsPath);
     _mentionSounds = mentionSoundsDir.entryList(QDir::Files);
-    _trayIcon.setIcon(QIcon( Application::resourcesPath() + "/images/hifi-logo.svg"));
+    _trayIcon.setIcon(QIcon( PathUtils::resourcesPath() + "/images/hifi-logo.svg"));
 }
 
 ChatWindow::~ChatWindow() {
@@ -124,7 +127,7 @@ void ChatWindow::showEvent(QShowEvent* event) {
     if (!event->spontaneous()) {
         _ui->messagePlainTextEdit->setFocus();
     }
-    const QRect parentGeometry = parentWidget()->geometry();
+    QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
     int menuBarHeight = Menu::getInstance()->geometry().height();
     int topMargin = titleBarHeight + menuBarHeight;
@@ -171,7 +174,7 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
     } else if (event->type() == QEvent::MouseButtonRelease) {
         QVariant userVar = sender->property("user");
         if (userVar.isValid()) {
-            AddressManager::getInstance().goToUser(userVar.toString());
+            DependencyManager::get<AddressManager>()->goToUser(userVar.toString());
             return true;
         }
     }
@@ -385,7 +388,7 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
 
             if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
                 // get random sound
-                QFileInfo inf = QFileInfo(Application::resourcesPath()  +
+                QFileInfo inf = QFileInfo(PathUtils::resourcesPath()  +
                                           mentionSoundsPath +
                                           _mentionSounds.at(rand() % _mentionSounds.size()));
                 _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));

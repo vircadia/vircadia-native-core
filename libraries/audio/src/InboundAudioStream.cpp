@@ -169,9 +169,16 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 }
 
 int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
-    // mixed audio packets do not have any info between the seq num and the audio data.
-    numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
-    return 0;
+    if (type == PacketTypeSilentAudioFrame) {
+        quint16 numSilentSamples = 0;
+        memcpy(&numSilentSamples, packetAfterSeqNum.constData(), sizeof(quint16));
+        numAudioSamples = numSilentSamples;
+        return sizeof(quint16);
+    } else {
+        // mixed audio packets do not have any info between the seq num and the audio data.
+        numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
+        return 0;
+    }
 }
 
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
@@ -317,7 +324,8 @@ void InboundAudioStream::setToStarved() {
                 // we don't know when the next packet will arrive, so it's possible the gap between the last packet and the
                 // next packet will exceed the max time gap in the window.  If the time since the last packet has already exceeded
                 // the window max gap, then we should use that value to calculate desired frames.
-                int framesSinceLastPacket = ceilf((float)(now - _lastPacketReceivedTime) / (float)BUFFER_SEND_INTERVAL_USECS);
+                int framesSinceLastPacket = ceilf((float)(now - _lastPacketReceivedTime)
+                                                  / (float)AudioConstants::NETWORK_FRAME_USECS);
                 calculatedJitterBufferFrames = std::max(_calculatedJitterBufferFramesUsingMaxGap, framesSinceLastPacket);
             }
             // make sure _desiredJitterBufferFrames does not become lower here
@@ -391,15 +399,16 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
 
         if (_timeGapStatsForDesiredCalcOnTooManyStarves.getNewStatsAvailableFlag()) {
             _calculatedJitterBufferFramesUsingMaxGap = ceilf((float)_timeGapStatsForDesiredCalcOnTooManyStarves.getWindowMax() 
-                / (float)BUFFER_SEND_INTERVAL_USECS);
+                                                             / (float) AudioConstants::NETWORK_FRAME_USECS);
             _timeGapStatsForDesiredCalcOnTooManyStarves.clearNewStatsAvailableFlag();
         }
 
         const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
         if (_stdevStatsForDesiredCalcOnTooManyStarves.getSamples() > STANDARD_DEVIATION_SAMPLE_COUNT) {
             const float NUM_STANDARD_DEVIATIONS = 3.0f;
-            _calculatedJitterBufferFramesUsingStDev = ceilf(NUM_STANDARD_DEVIATIONS * _stdevStatsForDesiredCalcOnTooManyStarves.getStDev()
-                / (float)BUFFER_SEND_INTERVAL_USECS);
+            _calculatedJitterBufferFramesUsingStDev = ceilf(NUM_STANDARD_DEVIATIONS
+                                                            * _stdevStatsForDesiredCalcOnTooManyStarves.getStDev()
+                                                            / (float) AudioConstants::NETWORK_FRAME_USECS);
             _stdevStatsForDesiredCalcOnTooManyStarves.reset();
         }
 
@@ -407,7 +416,8 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
             // if the max gap in window B (_timeGapStatsForDesiredReduction) corresponds to a smaller number of frames than _desiredJitterBufferFrames,
             // then reduce _desiredJitterBufferFrames to that number of frames.
             if (_timeGapStatsForDesiredReduction.getNewStatsAvailableFlag() && _timeGapStatsForDesiredReduction.isWindowFilled()) {
-                int calculatedJitterBufferFrames = ceilf((float)_timeGapStatsForDesiredReduction.getWindowMax() / (float)BUFFER_SEND_INTERVAL_USECS);
+                int calculatedJitterBufferFrames = ceilf((float)_timeGapStatsForDesiredReduction.getWindowMax()
+                                                         / (float)AudioConstants::NETWORK_FRAME_USECS);
                 if (calculatedJitterBufferFrames < _desiredJitterBufferFrames) {
                     _desiredJitterBufferFrames = calculatedJitterBufferFrames;
                 }
@@ -476,8 +486,8 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     const float INITIAL_MSECS_NO_FADE = 20.0f;
     const float MSECS_FADE_TO_ZERO = 320.0f;
 
-    const float INITIAL_FRAMES_NO_FADE = INITIAL_MSECS_NO_FADE * (float)USECS_PER_MSEC / (float)BUFFER_SEND_INTERVAL_USECS;
-    const float FRAMES_FADE_TO_ZERO = MSECS_FADE_TO_ZERO * (float)USECS_PER_MSEC / (float)BUFFER_SEND_INTERVAL_USECS;
+    const float INITIAL_FRAMES_NO_FADE = INITIAL_MSECS_NO_FADE * AudioConstants::NETWORK_FRAME_MSECS;
+    const float FRAMES_FADE_TO_ZERO = MSECS_FADE_TO_ZERO * AudioConstants::NETWORK_FRAME_MSECS;
 
     const float SAMPLE_RANGE = std::numeric_limits<int16_t>::max();
 

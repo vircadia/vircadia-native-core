@@ -37,7 +37,7 @@ void VerletShapeTests::setSpherePosition() {
     VerletPoint point;
     VerletSphereShape sphere(radius, &point);
 
-    point._position = glm::vec3(0.f);
+    point._position = glm::vec3(0.0f);
     float d = glm::distance(glm::vec3(0.0f), sphere.getTranslation());
     if (d != 0.0f) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should be at origin" << std::endl;

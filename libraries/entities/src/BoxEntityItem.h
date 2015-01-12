@@ -24,7 +24,7 @@ public:
     
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
-    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    virtual bool setProperties(const EntityItemProperties& properties);
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
@@ -46,11 +46,13 @@ public:
 
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
-            _color[RED_INDEX] = value.red;
-            _color[GREEN_INDEX] = value.green;
-            _color[BLUE_INDEX] = value.blue;
+        _color[RED_INDEX] = value.red;
+        _color[GREEN_INDEX] = value.green;
+        _color[BLUE_INDEX] = value.blue;
     }
     
+    void computeShapeInfo(ShapeInfo& info) const;
+
 protected:
     rgbColor _color;
 };

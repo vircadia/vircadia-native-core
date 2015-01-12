@@ -41,7 +41,7 @@ void FileLogger::addMessage(QString message) {
     QFile file(_fileName);
     if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         QTextStream out(&file);
-        out <<  message << "\n";
+        out <<  message;
     }
 }
 

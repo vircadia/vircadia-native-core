@@ -12,9 +12,10 @@
 #ifndef hifi_SkeletonModel_h
 #define hifi_SkeletonModel_h
 
-#include "renderer/Model.h"
 
 #include <CapsuleShape.h>
+#include <Model.h>
+
 #include "SkeletonRagdoll.h"
 
 class Avatar;
@@ -101,6 +102,10 @@ public:
     /// \return whether or not the head was found.
     glm::vec3 getDefaultEyeModelPosition() const;
 
+    /// skeleton offset caused by moving feet
+    void updateStandingFoot();
+    const glm::vec3& getStandingOffset() const { return _standingOffset; }
+
     virtual void updateVisibleJointStates();
 
     SkeletonRagdoll* buildRagdoll();
@@ -139,6 +144,15 @@ protected:
 private:
 
     void renderJointConstraints(int jointIndex);
+    void renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size);
+    
+    struct OrientationLineIDs {
+        int _up;
+        int _front;
+        int _right;
+    };
+    QHash<int, OrientationLineIDs> _jointOrientationLines;
+    int _triangleFanID;
 
     /// \param jointIndex index of joint in model
     /// \param position position of joint in model-frame
@@ -154,6 +168,9 @@ private:
     SkeletonRagdoll* _ragdoll;
 
     glm::vec3 _defaultEyeModelPosition;
+    int _standingFoot;
+    glm::vec3 _standingOffset;
+    glm::vec3 _clampedFootPosition;
 };
 
 #endif // hifi_SkeletonModel_h

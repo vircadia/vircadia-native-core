@@ -10,9 +10,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <time.h>
-
 #include <qcoreapplication.h>
+
+#include <qdatetime.h>
 #include <qdebug.h>
 #include <qtimer.h>
 
@@ -30,6 +30,10 @@ LogHandler::LogHandler() :
     QTimer* logFlushTimer = new QTimer(this);
     connect(logFlushTimer, &QTimer::timeout, this, &LogHandler::flushRepeatedMessages);
     logFlushTimer->start(VERBOSE_LOG_INTERVAL_SECONDS * 1000);
+    
+    // when the log handler is first setup we should print our timezone
+    QString timezoneString = "Time zone: " + QDateTime::currentDateTime().toString("t");
+    printf("%s\n", qPrintable(timezoneString));
 }
 
 const char* stringForLogType(LogMsgType msgType) {
@@ -49,8 +53,8 @@ const char* stringForLogType(LogMsgType msgType) {
     }
 }
 
-// the following will produce 2000-10-02 13:55:36 -0700
-const char DATE_STRING_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
+// the following will produce 11/18 13:55:36
+const QString DATE_STRING_FORMAT = "MM/dd hh:mm:ss";
 
 void LogHandler::flushRepeatedMessages() {
     QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
@@ -100,18 +104,11 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
     }
     
     // log prefix is in the following format
-    // [DEBUG] [TIMESTAMP] [PID:PARENT_PID] [TARGET] logged string
+    // [DEBUG] [TIMESTAMP] [PID] [TARGET] logged string
     
     QString prefixString = QString("[%1]").arg(stringForLogType(type));
     
-    time_t rawTime;
-    time(&rawTime);
-    struct tm* localTime = localtime(&rawTime);
-    
-    char dateString[100];
-    strftime(dateString, sizeof(dateString), DATE_STRING_FORMAT, localTime);
-    
-    prefixString.append(QString(" [%1]").arg(dateString));
+    prefixString.append(QString(" [%1]").arg(QDateTime::currentDateTime().toString(DATE_STRING_FORMAT)));
     
     if (_shouldOutputPID) {
         prefixString.append(QString(" [%1]").arg(QCoreApplication::instance()->applicationPid()));

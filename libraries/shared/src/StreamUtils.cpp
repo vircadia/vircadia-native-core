@@ -86,7 +86,7 @@ std::ostream& operator<<(std::ostream& s, const SphereShape& sphere) {
 std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule) {
     s << "{type='capsule', center=" << capsule.getPosition()
         << ", radius=" << capsule.getRadius()
-        << ", length=" << (2.f * capsule.getHalfHeight())
+        << ", length=" << (2.0f * capsule.getHalfHeight())
         << ", begin=" << capsule.getStartPoint()
         << ", end=" << capsule.getEndPoint()
         << "}";
@@ -97,6 +97,14 @@ std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule) {
 
 #ifndef QT_NO_DEBUG_STREAM
 #include <QDebug>
+
+QDebug& operator<<(QDebug& dbg, const glm::vec2& v) {
+    dbg.nospace() << "{type='glm::vec2'"
+        ", x=" << v.x <<
+        ", y=" << v.y <<
+        "}";
+    return dbg;
+}
 
 QDebug& operator<<(QDebug& dbg, const glm::vec3& v) {
     dbg.nospace() << "{type='glm::vec3'"

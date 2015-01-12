@@ -48,12 +48,14 @@ var RIGHT = 1;
 
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
+var DEFAULT_TEXT_DIMENSION_X = 1.0;
+var DEFAULT_TEXT_DIMENSION_Y = 1.0;
+var DEFAULT_TEXT_DIMENSION_Z = 0.01;
 
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush6.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed2.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed4.fbx",
@@ -203,6 +205,7 @@ var progressDialog = (function () {
         height: backgroundHeight,
         imageURL: backgroundUrl,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -213,6 +216,7 @@ var progressDialog = (function () {
         textColor: textColor,
         backgroundColor: textBackground,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -223,6 +227,7 @@ var progressDialog = (function () {
         textColor: textColor,
         backgroundColor: textBackground,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -1122,6 +1127,7 @@ var toolBar = (function () {
         newModelButton,
         newCubeButton,
         newSphereButton,
+        newTextButton,
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
@@ -1165,29 +1171,27 @@ var toolBar = (function () {
         menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
 
         loadURLMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
         loadFileMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset + menuItemHeight,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
-        menuItemWidth = Math.max(Overlays.textWidth(loadURLMenuItem, "Model URL"),
-            Overlays.textWidth(loadFileMenuItem, "Model File")) + 20;
+        menuItemWidth = Math.max(Overlays.textSize(loadURLMenuItem, "Model URL").width,
+            Overlays.textSize(loadFileMenuItem, "Model File").width) + 20;
         Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
         Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
@@ -1208,7 +1212,15 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: true
         });
-
+        
+        newTextButton = toolBar.addTool({
+            imageURL: toolIconUrl + "add-text.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: true
+        });
     }
 
     function toggleNewModelButton(active) {
@@ -1372,6 +1384,25 @@ var toolBar = (function () {
         }
 
 
+        if (newTextButton === toolBar.clicked(clickedOverlay)) {
+            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                Entities.addEntity({ 
+                                type: "Text",
+                                position: position,
+                                dimensions: { x: DEFAULT_TEXT_DIMENSION_X, y: DEFAULT_TEXT_DIMENSION_Y, z: DEFAULT_TEXT_DIMENSION_Z },
+                                backgroundColor: { red: 0, green: 0, blue: 0 },
+                                textColor: { red: 255, green: 255, blue: 255 },
+                                text: "some text",
+                                lineHight: "0.1"
+                                });
+            } else {
+                print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
+
         return false;
     };
 
@@ -1461,6 +1492,7 @@ var ExportMenu = function (opts) {
         width: scaleViewWidth,
         height: height,
         alpha: 0.0,
+        backgroundAlpha: 0.0,
         color: { red: 255, green: 255, blue: 255 },
         text: "1"
     });
@@ -1686,7 +1718,7 @@ var ModelImporter = function (opts) {
     this.mouseMoveEvent = function (event) {
         if (self._importing) {
             var pickRay = Camera.computePickRay(event.x, event.y);
-            var intersection = Voxels.findRayIntersection(pickRay);
+            var intersection = false; //Voxels.findRayIntersection(pickRay);
 
             var distance = 2;// * self._scale;
 
@@ -1850,7 +1882,7 @@ function controller(wichSide) {
     this.jointsIntersectingFromStart = [];
 
     this.laser = Overlays.addOverlay("line3d", {
-        position: { x: 0, y: 0, z: 0 },
+        start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
         color: LASER_COLOR,
         alpha: 1,
@@ -1870,7 +1902,7 @@ function controller(wichSide) {
         anchor: "MyAvatar"
     });
     this.leftRight = Overlays.addOverlay("line3d", {
-        position: { x: 0, y: 0, z: 0 },
+        start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
         color: { red: 0, green: 0, blue: 255 },
         alpha: 1,
@@ -1879,7 +1911,7 @@ function controller(wichSide) {
         anchor: "MyAvatar"
     });
     this.topDown = Overlays.addOverlay("line3d", {
-                                       position: { x: 0, y: 0, z: 0 },
+                                       start: { x: 0, y: 0, z: 0 },
                                        end: { x: 0, y: 0, z: 0 },
                                        color: { red: 0, green: 0, blue: 255 },
                                        alpha: 1,
@@ -2032,7 +2064,7 @@ function controller(wichSide) {
         var endPosition = Vec3.sum(startPosition, direction);
 
         Overlays.editOverlay(this.laser, {
-            position: startPosition,
+            start: startPosition,
             end: endPosition
         });
 
@@ -2041,10 +2073,11 @@ function controller(wichSide) {
             position: endPosition
         });
         Overlays.editOverlay(this.leftRight, {
-            position: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
+            start: Vec3.sum(endPosition, Vec3.multiply(this.right, 2 * this.guideScale)),
             end: Vec3.sum(endPosition, Vec3.multiply(this.right, -2 * this.guideScale))
         });
-        Overlays.editOverlay(this.topDown, { position: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
+        Overlays.editOverlay(this.topDown, {
+            start: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
         });
         this.showLaser(!this.grabbing || mode == 0);
@@ -2447,7 +2480,8 @@ function Tooltip() {
         margin: this.margin,
         text: "",
         color: { red: 228, green: 228, blue: 228 },
-        alpha: 0.5,
+        alpha: 0.8,
+        backgroundAlpha: 0.8,
         visible: false
     });
     this.show = function (doShow) {
@@ -2522,7 +2556,7 @@ function mousePressEvent(event) {
 
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
-        var foundIntersection = Entities.findRayIntersection(pickRay);
+        var foundIntersection = Entities.findRayIntersection(pickRay, true); // we want precision picking here
 
         if(!foundIntersection.accurate) {
             return;
@@ -2775,6 +2809,7 @@ function mouseReleaseEvent(event) {
 // exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
 // added it.
 var modelMenuAddedDelete = false;
+var originalLightsArePickable = Entities.getLightsArePickable();
 function setupModelMenus() {
     print("setupModelMenus()");
     // adj our menuitems
@@ -2792,15 +2827,18 @@ function setupModelMenus() {
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
                         afterItem: "Paste Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S", 
-                        afterItem: "Allow Select Large Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
+                        afterItem: "Allow Selecting of Large Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
+                        afterItem: "Allow Selecting of Small Models", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
 
+    Entities.setLightsArePickable(false);
     
 }
 
@@ -2814,8 +2852,9 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", "Model List...");
     Menu.removeMenuItem("Edit", "Paste Models");
-    Menu.removeMenuItem("Edit", "Allow Select Large Models");
-    Menu.removeMenuItem("Edit", "Allow Select Small Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
 
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
@@ -2833,6 +2872,7 @@ function scriptEnding() {
     if (exportMenu) {
         exportMenu.close();
     }
+    Entities.setLightsArePickable(originalLightsArePickable);
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -2858,10 +2898,12 @@ function showPropertiesForm(editModelID) {
 
 function handeMenuEvent(menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
-    if (menuItem == "Allow Select Small Models") {
-        allowSmallModels = Menu.isOptionChecked("Allow Select Small Models");
-    } else if (menuItem == "Allow Select Large Models") {
-        allowLargeModels = Menu.isOptionChecked("Allow Select Large Models");
+    if (menuItem == "Allow Selecting of Small Models") {
+        allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
+    } else if (menuItem == "Allow Selecting of Large Models") {
+        allowLargeModels = Menu.isOptionChecked("Allow Selecting of Large Models");
+    } else if (menuItem == "Allow Selecting of Lights") {
+        Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem == "Delete") {
         if (leftController.grabbing) {
             print("  Delete Entity.... leftController.entityID="+ leftController.entityID);

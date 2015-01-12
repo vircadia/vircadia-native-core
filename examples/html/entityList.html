@@ -1,0 +1,125 @@
+
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script>
+        var entities = {};
+        var selectedEntities = [];
+
+        function loaded() {
+            elEntityTable = document.getElementById("entity-table");
+            elRefresh = document.getElementById("refresh");
+
+            function onRowClicked(e) {
+                var id = this.dataset.entityId;
+
+                var selection = [this.dataset.entityId];
+                if (e.shiftKey) {
+                    selection = selection.concat(selectedEntities);
+                }
+
+                selectedEntities = selection;
+
+                entities[id].el.className = 'selected';
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "selectionUpdate",
+                    focus: false,
+                    entityIds: selection,
+                }));
+            }
+
+            function onRowDoubleClicked() {
+                var id = this.dataset.entityId;
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "selectionUpdate",
+                    focus: true,
+                    entityIds: [this.dataset.entityId],
+                }));
+            }
+
+            function addEntity(id, type, url) {
+                if (entities[id] === undefined) {
+                    var el = document.createElement('tr');
+                    el.setAttribute('id', 'entity_' + id);
+                    el.innerHTML += "<td>" + type + "</td>";
+                    el.innerHTML += "<td>" + url + "</td>";
+                    el.dataset.entityId = id;
+                    el.onclick = onRowClicked;
+                    el.ondblclick = onRowDoubleClicked;
+                    elEntityTable.appendChild(el);
+
+                    // Add element to local dict
+                    entities[id] = {
+                        id: id,
+                        name: id,
+                        el: el,
+                    };
+                }
+            }
+
+            function removeEntity(id) {
+                if (entities[id] !== undefined) {
+                    elEntityTable.removeChild(entities[id].el);
+                    delete entities[id];
+                }
+            }
+
+            function clearEntities() {
+                for (id in entities) {
+                    elEntityTable.removeChild(entities[id].el);
+                }
+                entities = {};
+            }
+
+            elRefresh.onclick = function() {
+                clearEntities();
+                EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
+            }
+
+            if (window.EventBridge !== undefined) {
+                EventBridge.scriptEventReceived.connect(function(data) {
+                    data = JSON.parse(data);
+
+                    if (data.type == "selectionUpdate") {
+                        selectedEntities = data.selectedIDs;
+                        for (var id in entities) {
+                            entities[id].el.className = '';
+                        }
+                        for (var i = 0; i < data.selectedIDs.length; i++) {
+                            var id = data.selectedIDs[i];
+                            if (id in entities) {
+                                var entity = entities[id];
+                                entity.el.className = 'selected';
+                            }
+                        }
+                    } else if (data.type == "update") {
+                        var newEntities = data.entities;
+                        for (var i = 0; i < newEntities.length; i++) {
+                            var id = newEntities[i].id;
+                            addEntity(id, newEntities[i].type, newEntities[i].url);
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</head>
+<body onload='loaded();'>
+    <div>
+        <button id="refresh">Refresh</button>
+    </div>
+
+    <table id="entity-table">
+        <thead>
+            <tr>
+                <th id="entity-type">Type</th>
+                <th id="entity-url">URL</th>
+            </tr>
+        </thead>
+        <tbody id="entity-table-body">
+        </tbody>
+    </table>
+
+</body>
+</html>

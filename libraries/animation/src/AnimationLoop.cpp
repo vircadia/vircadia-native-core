@@ -12,15 +12,18 @@
 #include "AnimationCache.h"
 #include "AnimationLoop.h"
 
+const float AnimationLoop::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
+
 AnimationLoop::AnimationLoop() :
     _fps(30.0f),
     _loop(false),
     _hold(false),
     _startAutomatically(false),
     _firstFrame(0.0f),
-    _lastFrame(FLT_MAX),
+    _lastFrame(MAXIMUM_POSSIBLE_FRAME),
     _running(false),
-    _frameIndex(0.0f)
+    _frameIndex(0.0f),
+    _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME)
 {
 }
 
@@ -52,10 +55,9 @@ AnimationLoop::AnimationLoop(float fps, bool loop, bool hold, bool startAutomati
 void AnimationLoop::simulate(float deltaTime) {
     _frameIndex += deltaTime * _fps;
 
-    
     // If we knew the number of frames from the animation, we'd consider using it here 
     // animationGeometry.animationFrames.size()
-    float maxFrame = _lastFrame; 
+    float maxFrame = _maxFrameIndexHint;
     float endFrameIndex = qMin(_lastFrame, maxFrame - (_loop ? 0.0f : 1.0f));
     float startFrameIndex = qMin(_firstFrame, endFrameIndex);
     if ((!_loop && (_frameIndex < startFrameIndex || _frameIndex > endFrameIndex)) || startFrameIndex == endFrameIndex) {

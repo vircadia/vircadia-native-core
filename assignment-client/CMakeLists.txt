@@ -6,13 +6,13 @@ include_glm()
 
 # link in the shared libraries
 link_hifi_libraries( 
-  audio avatars octree voxels fbx entities metavoxels 
+  audio avatars octree environment gpu model fbx entities metavoxels 
   networking animation shared script-engine embedded-webserver
   physics
 )
 
 if (UNIX)
-  list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK ${CMAKE_DL_LIBS})
+  target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
-link_shared_dependencies()
+include_dependency_includes()

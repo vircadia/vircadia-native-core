@@ -52,30 +52,12 @@ const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
 const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
 
 const QString SETTINGS_ADDRESS_KEY = "address";
-
-enum FrustumDrawMode {
-    FRUSTUM_DRAW_MODE_ALL,
-    FRUSTUM_DRAW_MODE_VECTORS,
-    FRUSTUM_DRAW_MODE_PLANES,
-    FRUSTUM_DRAW_MODE_NEAR_PLANE,
-    FRUSTUM_DRAW_MODE_FAR_PLANE,
-    FRUSTUM_DRAW_MODE_KEYHOLE,
-    FRUSTUM_DRAW_MODE_COUNT
-};
-
-struct ViewFrustumOffset {
-    float yaw;
-    float pitch;
-    float roll;
-    float distance;
-    float up;
-};
-
 class QSettings;
 
 class AnimationsDialog;
 class AttachmentsDialog;
 class BandwidthDialog;
+class HMDToolsDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
 class MetavoxelNetworkSimulator;
@@ -116,23 +98,18 @@ public:
     void setScriptsLocation(const QString& scriptsLocation);
 
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
-    FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
-    ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
-    int getMaxVoxels() const { return _maxVoxels; }
-    QAction* getUseVoxelShader() const { return _useVoxelShader; }
+    HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
 
     bool getShadowsEnabled() const;
-
-    void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
     QString getLODFeedbackText();
     void autoAdjustLOD(float currentFPS);
     void resetLODAdjust();
-    void setVoxelSizeScale(float sizeScale);
-    float getVoxelSizeScale() const { return _voxelSizeScale; }
+    void setOctreeSizeScale(float sizeScale);
+    float getOctreeSizeScale() const { return _octreeSizeScale; }
     void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; bumpSettings(); }
     bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
     void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; bumpSettings(); }
@@ -151,8 +128,8 @@ public:
 #endif
 
     // User Tweakable PPS from Voxel Server
-    int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
-    void setMaxVoxelPacketsPerSecond(int maxVoxelPacketsPerSecond) { _maxVoxelPacketsPerSecond = maxVoxelPacketsPerSecond; bumpSettings(); }
+    int getMaxOctreePacketsPerSecond() const { return _maxOctreePacketsPerSecond; }
+    void setMaxOctreePacketsPerSecond(int value) { _maxOctreePacketsPerSecond = value; bumpSettings(); }
 
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString& actionName,
@@ -183,12 +160,12 @@ public slots:
     void bandwidthDetails();
     void octreeStatsDetails();
     void lodTools();
+    void hmdTools(bool showTools);
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
     void toggleAddressBar();
-    void pasteToVoxel();
 
     void toggleLoginMenuItem();
     void toggleSixense(bool shouldEnable);
@@ -217,19 +194,17 @@ private slots:
     void bandwidthDetailsClosed();
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
-    void cycleFrustumRenderMode();
+    void hmdToolsClosed();
     void runTests();
     void showMetavoxelEditor();
     void showMetavoxelNetworkSimulator();
     void showScriptEditor();
     void showChat();
     void toggleConsole();
+    void toggleToolWindow();
     void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
-    void displayAddressOfflineMessage();
-    void displayAddressNotFoundMessage();
-    void muteEnvironment();
     void changeVSync();
 
 private:
@@ -255,8 +230,6 @@ private:
                                                     const char* member = NULL,
                                                     int menuItemLocation = UNSPECIFIED_POSITION);
 
-    void updateFrustumRenderModeAction();
-
     QAction* getActionFromName(const QString& menuName, QMenu* menu);
     QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
     QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
@@ -274,8 +247,6 @@ private:
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
     float _faceshiftEyeDeflection;
     QString _faceshiftHostname;
-    FrustumDrawMode _frustumDrawMode;
-    ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<ScriptEditorWindow> _ScriptEditor;
@@ -283,13 +254,13 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
+    HMDToolsDialog* _hmdToolsDialog;
     QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-    int _maxVoxels;
-    float _voxelSizeScale;
+    float _octreeSizeScale;
     float _oculusUIAngularSize;
     float _sixenseReticleMoveSpeed;
     bool _invertSixenseButtons;
@@ -298,8 +269,7 @@ private:
     float _avatarLODIncreaseFPS;
     float _avatarLODDistanceMultiplier;
     int _boundaryLevelAdjust;
-    QAction* _useVoxelShader;
-    int _maxVoxelPacketsPerSecond;
+    int _maxOctreePacketsPerSecond;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
     quint64 _lastAvatarDetailDrop;
@@ -331,32 +301,15 @@ namespace MenuOption {
     const QString Animations = "Animations...";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
-    const QString AudioFilter = "Audio Filter Bank";
-    const QString AudioFilterFlat = "Flat Response";
-    const QString AudioFilterTrebleCut= "Treble Cut";
-    const QString AudioFilterBassCut = "Bass Cut";
-    const QString AudioFilterSmiley = "Smiley Curve";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
-    const QString AudioScope = "Audio Scope";
+    const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
     const QString AudioScopeFrames = "Display Frames";
-    const QString AudioScopePause = "Pause Audio Scope";
+    const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
-    const QString AudioSpatialProcessing = "Audio Spatial Processing";
-    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
-    const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
-    const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
-    const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
-    const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
-    const QString AudioSpatialProcessingRenderPaths = "Render Paths";
-    const QString AudioSpatialProcessingSeparateEars = "Separate Ears";
-    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
-    const QString AudioSpatialProcessingStereoSource = "Stereo Source";
-    const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
     const QString AudioSourceInject = "Generated Audio";
     const QString AudioSourcePinkNoise = "Pink Noise";
     const QString AudioSourceSine440 = "Sine 440hz";
@@ -370,28 +323,25 @@ namespace MenuOption {
     const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
     const QString CollideWithAvatars = "Collide With Other Avatars";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
-    const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
-    const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
-    const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
-    const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
+    const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
+    const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
-    const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable NACK Packets";
-    const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayHermiteData = "Display Hermite Data";
     const QString DisplayModelBounds = "Display Model Bounds";
+    const QString DisplayModelTriangles = "Display Model Triangles";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayTimingDetails = "Display Timing Details";
-    const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
+    const QString DontFadeOnOctreeServerChanges = "Don't Fade In/Out on Octree Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
@@ -408,15 +358,13 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
-    const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
-    const QString HeadMouse = "Head Mouse";
+    const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
-    const QString IncreaseVoxelSize = "Increase Voxel Size";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
@@ -440,19 +388,17 @@ namespace MenuOption {
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString Pair = "Pair";
-    const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
-    const QString RenderEntitiesAsScene = "Render Entities as Scene";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
-    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
+    const QString RenderSpanners = "Render Spanners";
     const QString RenderTargetFramerate = "Framerate";
     const QString RenderTargetFramerateUnlimited = "Unlimited";
     const QString RenderTargetFramerate60 = "60";
@@ -483,23 +429,22 @@ namespace MenuOption {
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString SixenseLasers = "Enable Sixense UI Lasers";
     const QString StandOnNearbyFloors = "Stand on nearby floors";
+    const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StereoAudio = "Stereo Audio";
     const QString StopAllScripts = "Stop All Scripts";
-    const QString StringHair = "String Hair";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
+    const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString UploadAttachment = "Upload Attachment Model";
+    const QString UploadEntity = "Upload Entity Model";
     const QString UploadHead = "Upload Head Model";
     const QString UploadSkeleton = "Upload Skeleton Model";
     const QString UserInterface = "User Interface";
     const QString Visage = "Visage";
-    const QString VoxelMode = "Cycle Voxel Mode";
-    const QString Voxels = "Voxels";
-    const QString VoxelTextures = "Voxel Textures";
     const QString WalletPrivateKey = "Wallet Private Key...";
     const QString Wireframe = "Wireframe";
 }

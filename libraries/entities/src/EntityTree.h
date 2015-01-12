@@ -12,11 +12,15 @@
 #ifndef hifi_EntityTree_h
 #define hifi_EntityTree_h
 
+#include <QSet>
+
 #include <Octree.h>
 #include "EntityTreeElement.h"
+#include "DeleteEntityOperator.h"
 
 
 class Model;
+class EntitySimulation;
 
 class NewlyCreatedEntityHook {
 public:
@@ -76,13 +80,19 @@ public:
 
     // The newer API...
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
-    void addEntityItem(EntityItem* entityItem);
+    void postAddEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    // use this method if you only know the entityID
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    // use this method if you have a pointer to the entity (avoid an extra entity lookup)
+    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties);
+
     void deleteEntity(const EntityItemID& entityID);
     void deleteEntities(QSet<EntityItemID> entityIDs);
-    void removeEntityFromSimulationLists(const EntityItemID& entityID);
+    void removeEntityFromSimulation(EntityItem* entity);
 
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(const QUuid& id);
@@ -135,16 +145,12 @@ public:
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
-    void changeEntityState(EntityItem* const entity, 
-                EntityItem::SimulationState oldState, EntityItem::SimulationState newState);
+    void entityChanged(EntityItem* entity);
 
-    void trackDeletedEntity(const EntityItemID& entityID);
-
-    void emitAddingEntity(const EntityItemID& entityItemID);
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
-    QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
-    
+    void setSimulation(EntitySimulation* simulation);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
@@ -153,10 +159,9 @@ signals:
 
 private:
 
-    void updateChangingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
-    void updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
-    void updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
-
+    void processRemovedEntities(const DeleteEntityOperator& theOperator);
+    bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+            EntityTreeElement* containingElement);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
@@ -173,9 +178,7 @@ private:
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
-    QList<EntityItem*> _movingEntities; // entities that are moving as part of update
-    QList<EntityItem*> _changingEntities; // entities that are changing (like animating), but not moving
-    QList<EntityItem*> _mortalEntities; // entities that are mortal (have lifetime), but not moving or changing
+    EntitySimulation* _simulation;
 };
 
 #endif // hifi_EntityTree_h

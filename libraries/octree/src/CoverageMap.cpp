@@ -24,7 +24,7 @@ bool CoverageMap::wantDebugging = false;
 
 const int MAX_POLYGONS_PER_REGION = 50;
 
-const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f));
+const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.0f,-1.0f), glm::vec2(2.0f,2.0f));
 
 // Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
 //

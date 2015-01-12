@@ -15,8 +15,9 @@
 #include <QList>
 #include <QWidget>
 
+#include <ProgramObject.h>
+
 #include "MetavoxelSystem.h"
-#include "renderer/ProgramObject.h"
 
 class QColorEditor;
 class QComboBox;
@@ -46,7 +47,6 @@ public:
     glm::quat getGridRotation() const;
     
     QVariant getValue() const;
-    void detachValue();
     
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
@@ -62,6 +62,7 @@ private slots:
     
     void simulate(float deltaTime);
     void render();
+    void renderPreview();
     
 private:
     
@@ -103,6 +104,9 @@ public:
     
     /// Renders the tool's interface, if any.
     virtual void render();
+
+    /// Renders the tool's metavoxel preview, if any.
+    virtual void renderPreview();
 
 protected:
     
@@ -184,7 +188,7 @@ public:
 
     virtual void simulate(float deltaTime);
 
-    virtual void render();
+    virtual void renderPreview();
 
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
@@ -193,12 +197,16 @@ public:
 protected:
 
     virtual QColor getColor();
-    virtual SharedObjectPointer getSpanner(bool detach = false);
+    virtual SharedObjectPointer getSpanner();
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
 
 protected slots:
     
     void place();
+
+private:
+    
+    QCheckBox* _followMouse;
 };
 
 /// Allows inserting a spanner into the scene.
@@ -242,21 +250,6 @@ private slots:
     void clear();
 };
 
-/// Allows setting the value by placing a spanner.
-class SetSpannerTool : public PlaceSpannerTool {
-    Q_OBJECT
-
-public:
-    
-    SetSpannerTool(MetavoxelEditor* editor);
-    
-    virtual bool appliesTo(const AttributePointer& attribute) const;
-
-protected:
-
-    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
-};
-
 /// Base class for heightfield tools.
 class HeightfieldTool : public MetavoxelTool {
     Q_OBJECT
@@ -267,8 +260,6 @@ public:
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
-    virtual void render();
-    
 protected slots:
 
     virtual void apply() = 0;
@@ -277,7 +268,7 @@ protected:
     
     QFormLayout* _form;
     Vec3Editor* _translation;
-    QDoubleSpinBox* _scale;
+    QDoubleSpinBox* _spacing;
 };
 
 /// Allows importing a heightfield.
@@ -288,55 +279,27 @@ public:
     
     ImportHeightfieldTool(MetavoxelEditor* editor);
     
+    virtual void simulate(float deltaTime);
+    
+    virtual void renderPreview();
+    
 protected:
 
     virtual void apply();
 
 private slots:
 
-    void selectHeightFile();
-    void selectColorFile();
-    void updateHeightImage();
-    void updatePreview();
-    void renderPreview();
-    
+    void updateSpanner();
+
 private:
 
-    QSpinBox* _blockSize;
-    
-    QPushButton* _height;
-    QWidget* _rawOptions;
     QDoubleSpinBox* _heightScale;
     QDoubleSpinBox* _heightOffset;
-    bool _loadingImage;
     
-    QPushButton* _color;
+    HeightfieldHeightEditor* _height;
+    HeightfieldColorEditor* _color;
     
-    QVector<quint16> _rawHeight;
-    QImage _heightImage;
-    QImage _colorImage;
-    
-    HeightfieldPreview _preview;
-};
-
-/// Allows clearing heighfield blocks.
-class EraseHeightfieldTool : public HeightfieldTool {
-    Q_OBJECT
-
-public:
-    
-    EraseHeightfieldTool(MetavoxelEditor* editor);
-    
-    virtual void render();
-    
-protected:
-    
-    virtual void apply();
-
-private:
-    
-    QSpinBox* _width;
-    QSpinBox* _length;
+    SharedObjectPointer _spanner;
 };
 
 /// Base class for tools that allow painting on heightfields.
@@ -361,6 +324,7 @@ protected:
     QDoubleSpinBox* _radius;
     
     glm::vec3 _position;
+    bool _positionValid;
 };
 
 /// Allows raising or lowering parts of the heightfield.
@@ -459,7 +423,7 @@ public:
 
 protected:
 
-    virtual SharedObjectPointer getSpanner(bool detach = false);
+    virtual SharedObjectPointer getSpanner();
     virtual QColor getColor();
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
     
@@ -491,6 +455,7 @@ protected:
     QDoubleSpinBox* _radius;
     
     glm::vec3 _position;
+    bool _positionValid;
 };
 
 /// Allows texturing parts of the voxel field.

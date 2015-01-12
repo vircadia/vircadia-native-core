@@ -12,12 +12,20 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+
+#include <GeometryCache.h>
+#include <GlowEffect.h>
 #include <SharedUtil.h>
 
 #include "Rectangle3DOverlay.h"
-#include "renderer/GlowEffect.h"
 
 Rectangle3DOverlay::Rectangle3DOverlay() {
+}
+
+Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay) :
+    Planar3DOverlay(rectangle3DOverlay),
+    _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
+{
 }
 
 Rectangle3DOverlay::~Rectangle3DOverlay() {
@@ -57,17 +65,14 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
             //glScalef(dimensions.x, dimensions.y, 1.0f);
 
             glLineWidth(_lineWidth);
+
+            GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
             
             // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
             if (getIsSolid()) {
-                glBegin(GL_QUADS);
-
-                glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                glVertex3f(halfDimensions.x, 0.0f, -halfDimensions.y);
-                glVertex3f(halfDimensions.x, 0.0f, halfDimensions.y);
-                glVertex3f(-halfDimensions.x, 0.0f, halfDimensions.y);
-
-                glEnd();
+                glm::vec3 topLeft(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                glm::vec3 bottomRight(halfDimensions.x, 0.0f, halfDimensions.y);
+                DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
             } else {
                 if (getIsDashedLine()) {
 
@@ -76,21 +81,26 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                     glm::vec3 point3(halfDimensions.x, 0.0f, halfDimensions.y);
                     glm::vec3 point4(-halfDimensions.x, 0.0f, halfDimensions.y);
                 
-                    drawDashedLine(point1, point2);
-                    drawDashedLine(point2, point3);
-                    drawDashedLine(point3, point4);
-                    drawDashedLine(point4, point1);
+                    geometryCache->renderDashedLine(point1, point2);
+                    geometryCache->renderDashedLine(point2, point3);
+                    geometryCache->renderDashedLine(point3, point4);
+                    geometryCache->renderDashedLine(point4, point1);
 
                 } else {
-                    glBegin(GL_LINE_STRIP);
-
-                    glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glVertex3f(halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glVertex3f(halfDimensions.x, 0.0f, halfDimensions.y);
-                    glVertex3f(-halfDimensions.x, 0.0f, halfDimensions.y);
-                    glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
                 
-                    glEnd();
+                    if (halfDimensions != _previousHalfDimensions) {
+                        QVector<glm::vec3> border;
+                        border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                        border << glm::vec3(halfDimensions.x, 0.0f, -halfDimensions.y);
+                        border << glm::vec3(halfDimensions.x, 0.0f, halfDimensions.y);
+                        border << glm::vec3(-halfDimensions.x, 0.0f, halfDimensions.y);
+                        border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                        geometryCache->updateVertices(_geometryCacheID, border);
+
+                        _previousHalfDimensions = halfDimensions;
+                        
+                    }
+                    geometryCache->renderVertices(GL_LINE_STRIP, _geometryCacheID);
                 }
             }
  
@@ -106,9 +116,6 @@ void Rectangle3DOverlay::setProperties(const QScriptValue &properties) {
     Planar3DOverlay::setProperties(properties);
 }
 
-
-
-
-
-
-
+Rectangle3DOverlay* Rectangle3DOverlay::createClone() const {
+    return new Rectangle3DOverlay(this);
+}

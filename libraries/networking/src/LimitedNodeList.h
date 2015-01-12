@@ -33,7 +33,7 @@
 #include "Node.h"
 #include "UUIDHasher.h"
 
-const int MAX_PACKET_SIZE = 1500;
+const int MAX_PACKET_SIZE = 1450;
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
 
@@ -45,6 +45,8 @@ const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
 const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
 const unsigned short STUN_SERVER_PORT = 3478;
+
+const QString DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY = "domain-server.local-port";
 
 class HifiSockAddr;
 
@@ -104,6 +106,7 @@ public:
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
+    const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
 
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     void processKillNode(const QByteArray& datagram);

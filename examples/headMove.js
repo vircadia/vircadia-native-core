@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var gamepads = {};
+
 var debug = false;
 var willMove = false;
 
@@ -34,7 +36,7 @@ var warpSphere = Overlays.addOverlay("sphere", {
 
 var WARP_LINE_HEIGHT = 5;
 var warpLine = Overlays.addOverlay("line3d", {
-    position: { x: 0, y: 0, z:0 },
+    start: { x: 0, y: 0, z:0 },
     end: { x: 0, y: 0, z: 0 },
     color: { red: 0, green: 255, blue: 255},
     alpha: 1,
@@ -61,16 +63,9 @@ function restoreCameraState() {
     Camera.mode = oldMode;
 }
 
-function activateWarp() {
-    if (warpActive) return;
-    warpActive = true;
-
-    updateWarp();
-}
-
 var WATCH_AVATAR_DISTANCE = 2.5;
 
-var sound = new Sound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
+var sound = SoundCache.getSound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
 function playSound() {
     Audio.playSound(sound, {
       position: MyAvatar.position
@@ -89,6 +84,7 @@ var WARP_SMOOTHING = 0.90;
 var WARP_START_TIME = 0.25;
 var WARP_START_DISTANCE = 2.5;
 var WARP_SENSITIVITY = 0.15;
+var MAX_WARP_DISTANCE = 25.0;
 
 var fixedHeight = true;
 
@@ -105,7 +101,7 @@ function updateWarp() {
     willMove = (keyDownTime > WARP_START_TIME);
 
     if (willMove) {
-        var distance = Math.exp(deltaPitch * WARP_SENSITIVITY) * WARP_START_DISTANCE;
+        var distance = Math.min(Math.exp(deltaPitch * WARP_SENSITIVITY) * WARP_START_DISTANCE, MAX_WARP_DISTANCE);
         var warpDirection = Vec3.normalize({ x: look.x, y: (fixedHeight ? 0 : look.y), z: look.z });
         var startPosition = (watchAvatar ? Camera.getPosition(): MyAvatar.getEyePosition());
         warpPosition = Vec3.mix(Vec3.sum(startPosition, Vec3.multiply(warpDirection, distance)), warpPosition, WARP_SMOOTHING);
@@ -113,7 +109,7 @@ function updateWarp() {
 
     var cameraPosition;
 
-    if (!watchAvatar && willMove) {
+    if (!watchAvatar && willMove && (distance < WARP_START_DISTANCE * 0.5)) {
         pullBack();
         watchAvatar = true;
     }
@@ -124,10 +120,26 @@ function updateWarp() {
         visible: willMove,
     });
     Overlays.editOverlay(warpLine, {
-        position: Vec3.sum(warpPosition, { x: 0, y: -WARP_LINE_HEIGHT / 2.0, z: 0 }),
+        start: Vec3.sum(warpPosition, { x: 0, y: -WARP_LINE_HEIGHT / 2.0, z: 0 }),
         end: Vec3.sum(warpPosition, { x: 0, y: WARP_LINE_HEIGHT / 2.0, z: 0 }),
         visible: willMove,
     });
+}
+
+function activateWarp() {
+    if (warpActive) return;
+    warpActive = true;
+    movingWithHead = true;
+    hipsToEyes = MyAvatar.getEyePosition().y - MyAvatar.position.y;
+    headStartPosition = MyAvatar.getTrackedHeadPosition();
+    headStartDeltaPitch = MyAvatar.getHeadDeltaPitch();
+    headStartFinalPitch = MyAvatar.getHeadFinalPitch();
+    headStartRoll = MyAvatar.getHeadFinalRoll();
+    headStartYaw = MyAvatar.getHeadFinalYaw();
+    deltaYaw = 0.0;
+    warpPosition = MyAvatar.position;
+    warpPosition.y += hipsToEyes; 
+    updateWarp();
 }
 
 function finishWarp() {
@@ -150,6 +162,9 @@ function finishWarp() {
         cameraPosition = Vec3.subtract(MyAvatar.position, Vec3.multiplyQbyV(Camera.getOrientation(), { x: 0, y: -hipsToEyes, z: -hipsToEyes * WATCH_AVATAR_DISTANCE }));
         Camera.setPosition(cameraPosition);
         playSound();
+        if (watchAvatar) {
+            restoreCountdownTimer = RESTORE_TIME;
+        }
     } 
 }
 
@@ -172,16 +187,6 @@ function update(deltaTime) {
 Controller.keyPressEvent.connect(function(event) {
     if (event.text == "SPACE" && !event.isAutoRepeat && !movingWithHead) {
         keyDownTime = 0.0;
-        movingWithHead = true;
-        hipsToEyes = MyAvatar.getEyePosition().y - MyAvatar.position.y;
-        headStartPosition = MyAvatar.getTrackedHeadPosition();
-        headStartDeltaPitch = MyAvatar.getHeadDeltaPitch();
-        headStartFinalPitch = MyAvatar.getHeadFinalPitch();
-        headStartRoll = MyAvatar.getHeadFinalRoll();
-        headStartYaw = MyAvatar.getHeadFinalYaw();
-        deltaYaw = 0.0;
-        warpPosition = MyAvatar.position;
-        warpPosition.y += hipsToEyes; 
         activateWarp();
     }
 });
@@ -207,11 +212,40 @@ Controller.keyReleaseEvent.connect(function(event) {
         }
         timeSinceLastUp = 0.0;
         finishWarp();
-        if (watchAvatar) {
-            restoreCountdownTimer = RESTORE_TIME;
-        }
     }
 });
 
+function reportButtonValue(button, newValue, oldValue) {
+    if (button == Joysticks.BUTTON_FACE_RIGHT) {
+        if (newValue) {
+            activateWarp();
+        } else {
+            finishWarp();
+        }
+    }
+}
+
 Script.update.connect(update);
+
+function addJoystick(gamepad) {
+    gamepad.buttonStateChanged.connect(reportButtonValue);
+
+    gamepads[gamepad.instanceId] = gamepad;
+
+    print("Added gamepad: " + gamepad.name + " (" + gamepad.instanceId + ")");
+}
+
+function removeJoystick(gamepad) {
+    delete gamepads[gamepad.instanceId]
+
+    print("Removed gamepad: " + gamepad.name + " (" + gamepad.instanceId + ")");
+}
+
+var allJoysticks = Joysticks.getAllJoysticks();
+for (var i = 0; i < allJoysticks.length; i++) {
+    addJoystick(allJoysticks[i]);
+}
+
+Joysticks.joystickAdded.connect(addJoystick);
+Joysticks.joystickRemoved.connect(removeJoystick);
 

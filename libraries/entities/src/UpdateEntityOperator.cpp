@@ -47,6 +47,13 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     // the getMaximumAACube is the relaxed form.
     _oldEntityCube = _existingEntity->getMaximumAACube();
     _oldEntityBox = _oldEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
+
+    // If the old properties doesn't contain the properties required to calculate a bounding box,
+    // get them from the existing entity. Registration point is required to correctly calculate
+    // the bounding box.
+    if (!_properties.registrationPointChanged()) {
+        _properties.setRegistrationPoint(_existingEntity->getRegistrationPoint());
+    }
     
     // If the new properties has position OR dimension changes, but not both, we need to
     // get the old property value and set it in our properties in order for our bounds
@@ -224,18 +231,19 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
                     qDebug() << "    *** REMOVING from ELEMENT ***";
                 }
 
-                entityTreeElement->removeEntityItem(_existingEntity); // NOTE: only removes the entity, doesn't delete it
+                // the entity knows what element it's in, so we remove it from that one
+                // NOTE: we know we haven't yet added it to its new element because _removeOld is true
+                EntityTreeElement* oldElement = _existingEntity->getElement();
+                oldElement->removeEntityItem(_existingEntity);
+                _tree->setContainingElement(_entityItemID, NULL);
 
-                // If we haven't yet found the new location, then we need to 
-                // make sure to remove our entity to element map, because for
-                // now we're not in that map
-                if (!_foundNew) {
-                    _tree->setContainingElement(_entityItemID, NULL);
+                if (oldElement != _containingElement) {
+                    qDebug() << "WARNING entity moved during UpdateEntityOperator recursion";
+                    _containingElement->removeEntityItem(_existingEntity);
+                }
 
-                    if (_wantDebug) {
-                        qDebug() << "    *** REMOVING from MAP ***";
-                    }
-
+                if (_wantDebug) {
+                    qDebug() << "    *** REMOVING from MAP ***";
                 }
             }
             _foundOld = true;
@@ -256,7 +264,6 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
             qDebug() << "    entityTreeElement->bestFitBounds(_newEntityBox)=" << entityTreeElement->bestFitBounds(_newEntityBox);
         }
 
-
         // If this element is the best fit for the new entity properties, then add/or update it
         if (entityTreeElement->bestFitBounds(_newEntityBox)) {
 
@@ -264,33 +271,14 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
                 qDebug() << "    *** THIS ELEMENT IS BEST FIT ***";
             }
 
+            EntityTreeElement* oldElement = _existingEntity->getElement();
             // if we are the existing containing element, then we can just do the update of the entity properties
-            if (entityTreeElement == _containingElement) {
+            if (entityTreeElement == oldElement) {
 
                 if (_wantDebug) {
                     qDebug() << "    *** This is the same OLD ELEMENT ***";
                 }
             
-                // TODO: We shouldn't be in a remove old case and also be the new best fit. This indicates that
-                // we have some kind of a logic error in this operator. But, it can handle it properly by setting
-                // the new properties for the entity and moving on. Still going to output a warning that if we
-                // see consistently we will want to address this.
-                if (_removeOld) {
-                    qDebug() << "UNEXPECTED - UpdateEntityOperator - "
-                                "we thought we needed to removeOld, but the old entity is our best fit.";
-                    _removeOld = false;
-                    
-                    // if we thought we were supposed to remove the old item, and we already did, then we need
-                    // to repair this case.
-                    if (_foundOld) {
-                        if (_wantDebug) {
-                            qDebug() << "    *** REPAIRING PREVIOUS REMOVAL from ELEMENT and MAP ***";
-                        }
-                        entityTreeElement->addEntityItem(_existingEntity);
-                        _tree->setContainingElement(_entityItemID, entityTreeElement);
-                    }
-                }
-
                 // set the entity properties and mark our element as changed.
                 _existingEntity->setProperties(_properties);
                 if (_wantDebug) {
@@ -298,14 +286,22 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
                 }
             } else {
                 // otherwise, this is an add case.
+                if (oldElement) {
+                    oldElement->removeEntityItem(_existingEntity);
+                    if (oldElement != _containingElement) {
+                        qDebug() << "WARNING entity moved during UpdateEntityOperator recursion";
+                    }
+                }
                 entityTreeElement->addEntityItem(_existingEntity);
-                _existingEntity->setProperties(_properties); // still need to update the properties!
                 _tree->setContainingElement(_entityItemID, entityTreeElement);
+
+                _existingEntity->setProperties(_properties); // still need to update the properties!
                 if (_wantDebug) {
                     qDebug() << "    *** ADDING ENTITY to ELEMENT and MAP and SETTING PROPERTIES ***";
                 }
             }
-            _foundNew = true; // we found the new item!
+            _foundNew = true; // we found the new element
+            _removeOld = false; // and it has already been removed from the old
         } else {
             keepSearching = true;
         }

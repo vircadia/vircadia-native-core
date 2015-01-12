@@ -32,17 +32,17 @@ typedef unsigned long long quint64;
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <QtCore/QElapsedTimer>
-#include <QtCore/QByteArray>
-#include <QtCore/QHash>
-#include <QtCore/QObject>
-#include <QtCore/QStringList>
-#include <QtCore/QUrl>
-#include <QtCore/QVector>
-#include <QtCore/QVariantMap>
+#include <QByteArray>
+#include <QElapsedTimer>
+#include <QHash>
+#include <QObject>
 #include <QRect>
 #include <QScriptable>
+#include <QStringList>
+#include <QUrl>
 #include <QUuid>
+#include <QVariantMap>
+#include <QVector>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -76,14 +76,30 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
         AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
 
 
-// First bitset
+// Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
+// referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
+// backward compatibility. The bits are ordered as such (0-7 left to right).
+//     +-----+-----+-+-+-+--+
+//     |K0,K1|H0,H1|F|C|R|H2|
+//     +-----+-----+-+-+-+--+
+// Key state - K0,K1 is found in the 1st and 2nd bits
+// Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
+// Faceshift - F is found in the 5th bit
+// Chat Circling - C is found in the 6th bit
+// Referential Data - R is found in the 7th bit
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
 const int HAS_REFERENTIAL = 6; // 7th bit
+const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 
-static const float MAX_AVATAR_SCALE = 1000.f;
+const char HAND_STATE_NULL = 0;
+const char LEFT_HAND_POINTING_FLAG = 1;
+const char RIGHT_HAND_POINTING_FLAG = 2;
+const char IS_FINGER_POINTING_FLAG = 4;
+
+static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
@@ -91,8 +107,8 @@ const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
 const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
+const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
+const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -114,7 +130,6 @@ class AvatarData : public QObject {
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
-    Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
@@ -137,6 +152,8 @@ class AvatarData : public QObject {
 public:
     AvatarData();
     virtual ~AvatarData();
+    
+    virtual bool isMyAvatar() { return false; }
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
 
@@ -226,12 +243,6 @@ public:
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
 
-    // chat message
-    void setChatMessage(const std::string& msg) { _chatMessage = msg; }
-    void setChatMessage(const QString& string) { _chatMessage = string.toLocal8Bit().constData(); }
-    const std::string& setChatMessage() const { return _chatMessage; }
-    QString getQStringChatMessage() { return QString(_chatMessage.data()); }
-
     bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
@@ -281,7 +292,7 @@ public:
     
     QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
      
-    virtual float getBoundingRadius() const { return 1.f; }
+    virtual float getBoundingRadius() const { return 1.0f; }
     
     const Referential* getReferential() const { return _referential; }
 
@@ -339,9 +350,6 @@ protected:
     // key state
     KeyState _keyState;
 
-    // chat message
-    std::string _chatMessage;
-
     bool _isChatCirclingEnabled;
     bool _forceFaceshiftConnected;
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
@@ -380,7 +388,6 @@ private:
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
 };
-
 Q_DECLARE_METATYPE(AvatarData*)
 
 class JointData {

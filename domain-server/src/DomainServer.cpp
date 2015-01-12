@@ -18,6 +18,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 #include <QtCore/QProcess>
+#include <QtCore/qsharedmemory.h>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
 #include <QtCore/QUrlQuery>
@@ -28,6 +29,7 @@
 #include <LogUtils.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <ShutdownEventListener.h>
 #include <UUID.h>
 
 #include "DomainServerNodeData.h"
@@ -36,9 +38,10 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
-    _shutdownEventListener(this),
     _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _httpsManager(NULL),
     _allAssignments(),
@@ -51,7 +54,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
-    _settingsManager()
+    _settingsManager(),
+    _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
 {
     LogUtils::init();
 
@@ -66,8 +70,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     _settingsManager.setupConfigMap(arguments());
     
-    installNativeEventFilter(&_shutdownEventListener);
-    connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
+    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
+#ifdef _WIN32
+    installNativeEventFilter(&ShutdownEventListener::getInstance());
+#else
+    ShutdownEventListener::getInstance();
+#endif
     
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
@@ -225,8 +233,26 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     parseAssignmentConfigs(parsedTypes);
 
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
+    
+    // check for scripts the user wants to persist from their domain-server config
+    populateStaticScriptedAssignmentsFromSettings();
 
     LimitedNodeList* nodeList = LimitedNodeList::createInstance(domainServerPort, domainServerDTLSPort);
+    
+    // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
+    QSharedMemory* sharedPortMem = new QSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
+    quint16 localPort = nodeList->getNodeSocket().localPort();
+    
+    // attempt to create the shared memory segment
+    if (sharedPortMem->create(sizeof(localPort)) || sharedPortMem->attach()) {
+        sharedPortMem->lock();
+        memcpy(sharedPortMem->data(), &localPort, sizeof(localPort));
+        sharedPortMem->unlock();
+        
+        qDebug() << "Wrote local listening port" << localPort << "to shared memory at key" << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY;
+    } else {
+        qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
+    }
     
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
@@ -321,57 +347,67 @@ bool DomainServer::optionallySetupAssignmentPayment() {
 
 void DomainServer::setupAutomaticNetworking() {
     
-    if (!didSetupAccountManagerWithAccessToken()) {
-        qDebug() << "Cannot setup domain-server automatic networking without an access token.";
-        qDebug() << "Please add an access token to your config file or via the web interface.";
-        
-        return;
-    }
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    
+    const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
+    const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+
+    // setup our timer to check our IP via stun every X seconds
+    QTimer* dynamicIPTimer = new QTimer(this);
+    connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
     
     _automaticNetworkingSetting =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
     
+    if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+        dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
+        
+        // setup a timer to heartbeat with the ice-server every so often
+        QTimer* iceHeartbeatTimer = new QTimer(this);
+        connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
+        iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+        
+        // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
+        connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+        connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+        
+        // attempt to update our public socket now, this will send a heartbeat once we get public socket
+        requestCurrentPublicSocketViaSTUN();
+        
+        // in case the STUN lookup is still happening we should re-request a public socket once we get that address
+        connect(&nodeList->getSTUNSockAddr(), &HifiSockAddr::lookupCompleted,
+                this, &DomainServer::requestCurrentPublicSocketViaSTUN);
+        
+    }
+    
+    if (!didSetupAccountManagerWithAccessToken()) {
+        qDebug() << "Cannot send heartbeat to data server without an access token.";
+        qDebug() << "Add an access token to your config file or via the web interface.";
+        
+        return;
+    }
+    
     if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
         _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
         
-        LimitedNodeList* nodeList = LimitedNodeList::getInstance();
         const QUuid& domainID = nodeList->getSessionUUID();
         
         if (!domainID.isNull()) {
             qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
                 << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
             
-            const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
-            const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
-            
-            // setup our timer to check our IP via stun every X seconds
-            QTimer* dynamicIPTimer = new QTimer(this);
-            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
-            
             if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
                 dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
                 
                 // send public socket changes to the data server so nodes can find us at our new IP
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
+                
+                // attempt to update our sockets now
+                requestCurrentPublicSocketViaSTUN();
             } else {
-                dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
-                
-                // setup a timer to heartbeat with the ice-server every so often
-                QTimer* iceHeartbeatTimer = new QTimer(this);
-                connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
-                iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
-                
-                // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
-                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
-                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
-                
                 // send our heartbeat to data server so it knows what our network settings are
                 sendHeartbeatToDataServer();
             }
-            
-            // attempt to update our sockets now
-            requestCurrentPublicSocketViaSTUN();
-            
         } else {
             qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
             << "Please add an ID to your config file or via the web interface.";
@@ -418,8 +454,6 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
 
             if (assignmentType != Assignment::AgentType) {
                 createStaticAssignmentsForType(assignmentType, assignmentList);
-            } else {
-                createScriptedAssignmentsFromList(assignmentList);
             }
 
             excludedTypes.insert(assignmentType);
@@ -435,35 +469,37 @@ void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment
     _allAssignments.insert(newAssignment->getUUID(), SharedAssignmentPointer(newAssignment));
 }
 
-void DomainServer::createScriptedAssignmentsFromList(const QVariantList &configList) {
-    foreach(const QVariant& configVariant, configList) {
-        if (configVariant.canConvert(QMetaType::QVariantMap)) {
-            QVariantMap configMap = configVariant.toMap();
-
-            // make sure we were passed a URL, otherwise this is an invalid scripted assignment
-            const QString  ASSIGNMENT_URL_KEY = "url";
-            QString assignmentURL = configMap[ASSIGNMENT_URL_KEY].toString();
-
-            if (!assignmentURL.isEmpty()) {
-                // check the json for a pool
-                const QString ASSIGNMENT_POOL_KEY = "pool";
-                QString assignmentPool = configMap[ASSIGNMENT_POOL_KEY].toString();
-
-                // check for a number of instances, if not passed then default is 1
-                const QString ASSIGNMENT_INSTANCES_KEY = "instances";
-                int numInstances = configMap[ASSIGNMENT_INSTANCES_KEY].toInt();
-                numInstances = (numInstances == 0 ? 1 : numInstances);
-
-                qDebug() << "Adding a static scripted assignment from" << assignmentURL;
-
-                for (int i = 0; i < numInstances; i++) {
+void DomainServer::populateStaticScriptedAssignmentsFromSettings() {
+    const QString PERSISTENT_SCRIPTS_KEY_PATH = "scripts.persistent_scripts";
+    const QVariant* persistentScriptsVariant = valueForKeyPath(_settingsManager.getSettingsMap(), PERSISTENT_SCRIPTS_KEY_PATH);
+    
+    if (persistentScriptsVariant) {
+        QVariantList persistentScriptsList = persistentScriptsVariant->toList();
+        foreach(const QVariant& persistentScriptVariant, persistentScriptsList) {
+            QVariantMap persistentScript = persistentScriptVariant.toMap();
+            
+            const QString PERSISTENT_SCRIPT_URL_KEY = "url";
+            const QString PERSISTENT_SCRIPT_NUM_INSTANCES_KEY = "num_instances";
+            const QString PERSISTENT_SCRIPT_POOL_KEY = "pool";
+            
+            if (persistentScript.contains(PERSISTENT_SCRIPT_URL_KEY)) {
+                // check how many instances of this script to add
+                
+                int numInstances = persistentScript[PERSISTENT_SCRIPT_NUM_INSTANCES_KEY].toInt();
+                QString scriptURL = persistentScript[PERSISTENT_SCRIPT_URL_KEY].toString();
+                
+                QString scriptPool = persistentScript.value(PERSISTENT_SCRIPT_POOL_KEY).toString();
+                
+                qDebug() << "Adding" << numInstances << "of persistent script at URL" << scriptURL << "- pool" << scriptPool;
+                
+                for (int i = 0; i < numInstances; ++i) {
                     // add a scripted assignment to the queue for this instance
                     Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
                                                                   Assignment::AgentType,
-                                                                  assignmentPool);
-                    scriptAssignment->setPayload(assignmentURL.toUtf8());
-
-                    // scripts passed on CL or via JSON are static - so they are added back to the queue if the node dies
+                                                                  scriptPool);
+                    scriptAssignment->setPayload(scriptURL.toUtf8());
+                    
+                    // add it to static hash so we know we have to keep giving it back out
                     addStaticAssignmentToAssignmentHash(scriptAssignment);
                 }
             }
@@ -513,7 +549,10 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     for (Assignment::Type defaultedType = Assignment::AudioMixerType;
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
-        if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
+        if (!excludedTypes.contains(defaultedType) 
+            && defaultedType != Assignment::UNUSED_0
+            && defaultedType != Assignment::UNUSED_1
+            && defaultedType != Assignment::AgentType) {
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);
@@ -523,7 +562,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 }
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::EntityServer
+    << NodeType::AvatarMixer << NodeType::EntityServer
     << NodeType::MetavoxelServer;
 
 void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
@@ -1148,8 +1187,7 @@ void DomainServer::performICEUpdates() {
 }
 
 void DomainServer::sendHeartbeatToIceServer() {
-    static HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
-    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
+    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(_iceServerSocket);
 }
 
 void DomainServer::sendICEPingPackets() {
@@ -1408,6 +1446,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         
         // request not handled
         return false;
+    }
+    
+    // check if this is a request for our domain ID
+    const QString URI_ID = "/id";
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation
+        && url.path() == URI_ID) {
+        QUuid domainID = LimitedNodeList::getInstance()->getSessionUUID();
+        
+        connection->respond(HTTPConnection::StatusCode200, uuidStringWithoutCurlyBraces(domainID).toLocal8Bit());
+        return true;
     }
     
     // all requests below require a cookie to prove authentication so check that first
@@ -1687,6 +1735,9 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
                 
                 connection->respond(HTTPConnection::StatusCode302, QByteArray(),
                                     HTTPConnection::DefaultContentType, cookieHeaders);
+                
+                delete tokenReply;
+                delete profileReply;
                 
                 // we've redirected the user back to our homepage
                 return true;

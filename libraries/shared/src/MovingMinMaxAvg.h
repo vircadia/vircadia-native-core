@@ -24,7 +24,8 @@ public:
         : _min(std::numeric_limits<T>::max()),
         _max(std::numeric_limits<T>::min()),
         _average(0.0),
-        _samples(0)
+        _samples(0),
+        _last(0)
     {}
 
     void reset() {
@@ -32,6 +33,7 @@ public:
         _max = std::numeric_limits<T>::min();
         _average = 0.0;
         _samples = 0;
+        _last = 0;
     }
 
     void update(T sample) {
@@ -45,6 +47,8 @@ public:
         _average = _average * ((double)_samples / totalSamples)
             + (double)sample / totalSamples;
         _samples++;
+        
+        _last = sample;
     }
 
     void update(const MinMaxAvg<T>& other) {
@@ -65,12 +69,14 @@ public:
     double getAverage() const { return _average; }
     int getSamples() const { return _samples; }
     double getSum() const { return _samples * _average; }
+    T getLast() const { return _last; }
 
 private:
     T _min;
     T _max;
     double _average;
     int _samples;
+    T _last;
 };
 
 template <typename T>
@@ -167,6 +173,7 @@ public:
     double getCurrentIntervalAverage() const { return _currentIntervalStats.getAverage(); }
     int getCurrentIntervalSamples() const { return _currentIntervalStats.getSamples(); }
     double getCurrentIntervalSum() const { return _currentIntervalStats.getSum(); }
+    T getCurrentIntervalLastSample() const { return _currentIntervalStats.getLast(); }
     
     const MinMaxAvg<T>& getOverallStats() const{ return _overallStats; }
     const MinMaxAvg<T>& getWindowStats() const{ return _windowStats; }

@@ -22,30 +22,67 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
-#include <VoxelDetail.h>
+#include <ShapeInfo.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
 #include "EntityTypes.h"
 
+class EntityTree;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
+const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f) / (float)TREE_SCALE;
+const glm::quat DEFAULT_ROTATION;
+const float DEFAULT_GLOW_LEVEL = 0.0f;
+const float DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
+const float DEFAULT_MASS = 1.0f;
+const glm::vec3 NO_VELOCITY= glm::vec3(0.0f);
+const glm::vec3 DEFAULT_VELOCITY = NO_VELOCITY;
+const float EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
+const glm::vec3 NO_GRAVITY = glm::vec3(0.0f);
+const glm::vec3 DEFAULT_GRAVITY = NO_GRAVITY;
+const glm::vec3 REGULAR_GRAVITY = glm::vec3(0, -9.8f / (float)TREE_SCALE, 0);
+const float DEFAULT_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
+const float IMMORTAL = -1.0f; /// special lifetime which means the entity lives for ever. default lifetime
+const float DEFAULT_LIFETIME = IMMORTAL;
+const QString DEFAULT_SCRIPT = QString("");
+const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
+const glm::vec3 NO_ANGULAR_VELOCITY = glm::vec3(0.0f);
+const glm::vec3 DEFAULT_ANGULAR_VELOCITY = NO_ANGULAR_VELOCITY;
+const float DEFAULT_ANGULAR_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
+const bool DEFAULT_VISIBLE = true;
+const bool DEFAULT_IGNORE_FOR_COLLISIONS = false;
+const bool DEFAULT_COLLISIONS_WILL_MOVE = false;
+const bool DEFAULT_LOCKED = false;
+const QString DEFAULT_USER_DATA = QString("");
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem  {
+    friend class EntityTreeElement;
 
 public:
+    enum EntityDirtyFlags {
+        DIRTY_POSITION = 0x0001,
+        DIRTY_VELOCITY = 0x0002,
+        DIRTY_MASS = 0x0004,
+        DIRTY_COLLISION_GROUP = 0x0008,
+        DIRTY_MOTION_TYPE = 0x0010,
+        DIRTY_SHAPE = 0x0020,
+        DIRTY_LIFETIME = 0x0040,
+        DIRTY_UPDATEABLE = 0x0080,
+    };
+
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
     EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual ~EntityItem() { }
+    virtual ~EntityItem();
 
     // ID and EntityItemID related methods
     QUuid getID() const { return _id; }
@@ -59,14 +96,15 @@ public:
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
     
-    /// returns true is something changed
-    virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
+    /// returns true if something changed
+    virtual bool setProperties(const EntityItemProperties& properties);
 
-    /// override this in your derived class if you'd like to be informed when something about the state of the entity
+    /// Override this in your derived class if you'd like to be informed when something about the state of the entity
     /// has changed. This will be called with properties change or when new data is loaded from a stream
     virtual void somethingChangedNotification() { }
 
-    quint64 getLastUpdated() const { return _lastUpdated; } /// Last simulated time of this entity universal usecs
+    void recordCreationTime();    // set _created to 'now'
+    quint64 getLastSimulated() const { return _lastSimulated; } /// Last simulated time of this entity universal usecs
 
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
@@ -106,24 +144,22 @@ public:
 
     static int expectedBytes();
 
-    static bool encodeEntityEditMessageDetails(PacketType command, EntityItemID id, const EntityItemProperties& details,
-                        unsigned char* bufferOut, int sizeIn, int& sizeOut);
-
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
-    virtual void update(const quint64& now);
-    
-    typedef enum SimulationState_t {
-        Static,
-        Mortal,
-        Changing,
-        Moving
-    } SimulationState;
-    
-    virtual SimulationState getSimulationState() const;
-    virtual void debugDump() const;
 
-    // similar to assignment/copy, but it handles keeping lifetime accurate
-    void copyChangedProperties(const EntityItem& other);
+    // perform update
+    virtual void update(const quint64& now) { _lastUpdated = now; }
+    
+    // perform linear extrapolation for SimpleEntitySimulation
+    void simulate(const quint64& now);
+    
+    virtual bool needsToCallUpdate() const { return false; }
+
+    virtual void debugDump() const;
+    
+    virtual bool supportsDetailedRayIntersection() const { return false; }
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
@@ -138,46 +174,35 @@ public:
     glm::vec3 getCenter() const; /// calculates center of the entity in domain scale units (0.0 - 1.0)
     glm::vec3 getCenterInMeters() const { return getCenter() * (float) TREE_SCALE; }
 
-    static const glm::vec3 DEFAULT_DIMENSIONS;
     const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
     glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
     float getDistanceToBottomOfEntity() const; /// get the distance from the position of the entity to its "bottom" in y axis
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
+    virtual void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
 
-    static const glm::quat DEFAULT_ROTATION;
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; recalculateCollisionShape(); }
 
-    static const float DEFAULT_GLOW_LEVEL;
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
 
-    static const float DEFAULT_LOCAL_RENDER_ALPHA;
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     void setLocalRenderAlpha(float localRenderAlpha) { _localRenderAlpha = localRenderAlpha; }
 
-    static const float DEFAULT_MASS;
     float getMass() const { return _mass; }
     void setMass(float value) { _mass = value; }
 
-    static const glm::vec3 DEFAULT_VELOCITY;
-    static const glm::vec3 NO_VELOCITY;
-    static const float EPSILON_VELOCITY_LENGTH;
     const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
     bool hasVelocity() const { return _velocity != NO_VELOCITY; }
 
-    static const glm::vec3 DEFAULT_GRAVITY;
-    static const glm::vec3 REGULAR_GRAVITY;
-    static const glm::vec3 NO_GRAVITY;
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
     glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
@@ -187,13 +212,10 @@ public:
     // TODO: this should eventually be updated to support resting on collisions with other surfaces
     bool isRestingOnSurface() const;
 
-    static const float DEFAULT_DAMPING;
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
 
     // lifetime related properties.
-    static const float IMMORTAL; /// special lifetime which means the entity lives for ever. default lifetime
-    static const float DEFAULT_LIFETIME;
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
     void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
 
@@ -206,6 +228,7 @@ public:
     /// age of this entity in seconds
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     bool lifetimeHasExpired() const;
+    quint64 getExpiry() const;
 
     // position, size, and bounds related helpers
     float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
@@ -213,44 +236,38 @@ public:
     AACube getMinimumAACube() const;
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
-    static const QString DEFAULT_SCRIPT;
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 
-    static const glm::vec3 DEFAULT_REGISTRATION_POINT;
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
     /// registration point as ratio of entity
     void setRegistrationPoint(const glm::vec3& value) 
             { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); recalculateCollisionShape(); }
 
-    static const glm::vec3 NO_ANGULAR_VELOCITY;
-    static const glm::vec3 DEFAULT_ANGULAR_VELOCITY;
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
     bool hasAngularVelocity() const { return _angularVelocity != NO_ANGULAR_VELOCITY; }
 
-    static const float DEFAULT_ANGULAR_DAMPING;
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
 
-    static const bool DEFAULT_VISIBLE;
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
     bool isVisible() const { return _visible; }
     bool isInvisible() const { return !_visible; }
 
-    static const bool DEFAULT_IGNORE_FOR_COLLISIONS;
     bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
     void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
 
-    static const bool DEFAULT_COLLISIONS_WILL_MOVE;
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
 
-    static const bool DEFAULT_LOCKED;
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
+    
+    const QString& getUserData() const { return _userData; }
+    void setUserData(const QString& value) { _userData = value; }
     
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
@@ -258,8 +275,37 @@ public:
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+    virtual void computeShapeInfo(ShapeInfo& info) const;
+
+    // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
+    void updatePosition(const glm::vec3& value);
+    void updatePositionInMeters(const glm::vec3& value);
+    void updateDimensions(const glm::vec3& value);
+    void updateDimensionsInMeters(const glm::vec3& value);
+    void updateRotation(const glm::quat& rotation);
+    void updateMass(float value);
+    void updateVelocity(const glm::vec3& value);
+    void updateVelocityInMeters(const glm::vec3& value);
+    void updateDamping(float value);
+    void updateGravity(const glm::vec3& value);
+    void updateGravityInMeters(const glm::vec3& value);
+    void updateAngularVelocity(const glm::vec3& value);
+    void updateAngularDamping(float value);
+    void updateIgnoreForCollisions(bool value);
+    void updateCollisionsWillMove(bool value);
+    void updateLifetime(float value);
+
+    uint32_t getDirtyFlags() const { return _dirtyFlags; }
+    void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }
     
+    bool isMoving() const;
+
+    void* getPhysicsInfo() const { return _physicsInfo; }
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
+    
+    EntityTreeElement* getElement() const { return _element; }
 protected:
+
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
     virtual void recalculateCollisionShape();
 
@@ -267,10 +313,11 @@ protected:
     QUuid _id;
     uint32_t _creatorTokenID;
     bool _newlyCreated;
-    quint64 _lastUpdated;
-    quint64 _lastEdited; // this is the last official local or remote edit time
-    quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
-    quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
+    quint64 _lastSimulated; // last time this entity called simulate() 
+    quint64 _lastUpdated; // last time this entity called update()
+    quint64 _lastEdited; // last official local or remote edit time
+    quint64 _lastEditedFromRemote; // last time we received and edit from the server
+    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
     quint64 _created;
     quint64 _changedOnServer;
 
@@ -292,6 +339,17 @@ protected:
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
     bool _locked;
+    QString _userData;
+
+    // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
+    //
+    // Hence the damping coefficient must range from 0 (no damping) to 1 (immediate stop).
+    // Each damping value relates to a corresponding exponential decay timescale as follows:
+    //
+    // timescale = -1 / ln(1 - damping)
+    //
+    // damping = 1 - exp(-1 / timescale)
+    //
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams
@@ -300,6 +358,15 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
+
+    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
+    // to a non-NULL value when the EntityItem has a representation in the physics engine.
+    void* _physicsInfo; // only set by EntitySimulation
+
+    // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
+    uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
+
+    EntityTreeElement* _element;    // back pointer to containing Element
 };
 
 

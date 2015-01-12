@@ -28,6 +28,12 @@ Volume3DOverlay::Volume3DOverlay() :
 {
 }
 
+Volume3DOverlay::Volume3DOverlay(const Volume3DOverlay* volume3DOverlay) :
+    Base3DOverlay(volume3DOverlay),
+    _dimensions(volume3DOverlay->_dimensions)
+{
+}
+
 Volume3DOverlay::~Volume3DOverlay() {
 }
 
@@ -85,8 +91,16 @@ void Volume3DOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue Volume3DOverlay::getProperty(const QString& property) {
+    if (property == "dimensions" || property == "scale" || property == "size") {
+        return vec3toScriptValue(_scriptEngine, _dimensions);
+    }
+
+    return Base3DOverlay::getProperty(property);
+}
+
 bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face) {
 
     // extents is the entity relative, scaled, centered extents of the entity
     glm::vec3 position = getPosition();

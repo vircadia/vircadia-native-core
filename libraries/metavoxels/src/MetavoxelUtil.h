@@ -14,6 +14,7 @@
 
 #include <QColor>
 #include <QComboBox>
+#include <QItemEditorCreatorBase>
 #include <QSharedPointer>
 #include <QUrl>
 #include <QWidget>
@@ -24,6 +25,7 @@
 
 class QByteArray;
 class QDoubleSpinBox;
+class QItemEditorFactory;
 class QPushButton;
 
 class NetworkProgram;
@@ -107,6 +109,30 @@ private:
     AxisExtents _sideExtents[SIDE_EXTENT_COUNT];
     AxisExtents _crossProductExtents[CROSS_PRODUCT_EXTENT_COUNT];
 };
+
+/// Returns a pointer to the singleton item editor factory.
+QItemEditorFactory* getItemEditorFactory();
+
+/// Because Windows doesn't necessarily have the staticMetaObject available when we want to create,
+/// this class simply delays the value property name lookup until actually requested.
+template<class T> class LazyItemEditorCreator : public QItemEditorCreatorBase {
+public:
+    
+    virtual QWidget* createWidget(QWidget* parent) const { return new T(parent); }
+    
+    virtual QByteArray valuePropertyName() const;
+
+protected:
+    
+    QByteArray _valuePropertyName;
+};
+
+template<class T> QByteArray LazyItemEditorCreator<T>::valuePropertyName() const {
+    if (_valuePropertyName.isNull()) {
+        const_cast<LazyItemEditorCreator<T>*>(this)->_valuePropertyName = T::staticMetaObject.userProperty().name();
+    }
+    return _valuePropertyName;    
+}
 
 /// Editor for meta-object values.
 class QMetaObjectEditor : public QWidget {

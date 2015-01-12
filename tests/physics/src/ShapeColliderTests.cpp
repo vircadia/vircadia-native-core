@@ -2342,7 +2342,7 @@ void ShapeColliderTests::rayMissesAACube() {
     //glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
     //float cubeSide = 2.127f;
     glm::vec3 cubeCenter(0.0f);
-    float cubeSide = 2.f;
+    float cubeSide = 2.0f;
     AACubeShape cube(cubeSide, cubeCenter);
 
     float rayOffset = 3.796f;

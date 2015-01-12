@@ -18,12 +18,14 @@ class OctreeRenderer;
 class RenderArgs {
 public:
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
+    enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
 
     OctreeRenderer* _renderer;
     ViewFrustum* _viewFrustum;
     float _sizeScale;
     int _boundaryLevelAdjust;
     RenderMode _renderMode;
+    RenderSide _renderSide;
 
     int _elementsTouched;
     int _itemsRendered;

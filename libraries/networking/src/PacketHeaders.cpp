@@ -57,7 +57,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeInjectAudio:
             return 1;
         case PacketTypeAvatarData:
-            return 3;
+            return 5;
         case PacketTypeAvatarIdentity:
             return 1;
         case PacketTypeEnvironmentData:
@@ -68,22 +68,17 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeCreateAssignment:
         case PacketTypeRequestAssignment:
             return 2;
-        case PacketTypeVoxelSet:
-        case PacketTypeVoxelSetDestructive:
-            return 1;
         case PacketTypeOctreeStats:
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_MODELS_HAVE_ANIMATION_SETTINGS;
+            return VERSION_ENTITIES_HAVE_USER_DATA;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
             return 1;
         case PacketTypeMetavoxelData:
-            return 8;
-        case PacketTypeVoxelData:
-            return VERSION_VOXELS_HAS_FILE_BREAKS;
+            return 10;
         default:
             return 0;
     }
@@ -114,11 +109,6 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeMuteEnvironment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioStreamStats);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeDataServerConfirm);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelQuery);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelData);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelSet);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelSetDestructive);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelErase);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeStats);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdiction);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdictionRequest);
@@ -134,7 +124,6 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityErase);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelEditNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioEnvironment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);

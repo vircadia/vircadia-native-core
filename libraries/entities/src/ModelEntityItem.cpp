@@ -18,7 +18,6 @@
 #include "EntityTreeElement.h"
 #include "ModelEntityItem.h"
 
-
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_ANIMATION_URL = QString("");
 const float ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
@@ -33,8 +32,8 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
-    _type = EntityTypes::Model;     
-    setProperties(properties, true);
+    _type = EntityTypes::Model;
+    setProperties(properties);
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
     _color[0] = _color[1] = _color[2] = 0;
@@ -55,9 +54,9 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     return properties;
 }
 
-bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
+bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
@@ -115,7 +114,9 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
     
     if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        setAnimationIsPlaying(animationIsPlaying);
+        if (animationIsPlaying != getAnimationIsPlaying()) {
+            setAnimationIsPlaying(animationIsPlaying);
+        }
     }
     if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
         setAnimationFPS(animationFPS);
@@ -283,7 +284,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 
 QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
-AnimationCache ModelEntityItem::_animationCache;
 
 // This class/instance will cleanup the animations once unloaded.
 class EntityAnimationsBookkeeper {
@@ -307,7 +307,7 @@ Animation* ModelEntityItem::getAnimation(const QString& url) {
     
     // if we don't already have this model then create it and initialize it
     if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
-        animation = _animationCache.getAnimation(url);
+        animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
         _loadedAnimations[url] = animation;
     } else {
         animation = _loadedAnimations[url];
@@ -342,10 +342,8 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
         Animation* myAnimation = getAnimation(_animationURL);
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
         int frameCount = frames.size();
-
         if (frameCount > 0) {
             int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
-
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
                 animationFrameIndex = 0;
             }
@@ -370,25 +368,11 @@ bool ModelEntityItem::isAnimatingSomething() const {
             !getAnimationURL().isEmpty();
 }
 
-EntityItem::SimulationState ModelEntityItem::getSimulationState() const {
-    EntityItem::SimulationState baseClassState = EntityItem::getSimulationState();
-    
-    // if the base class is static, then consider our animation state, and upgrade to changing if
-    // we are animating. If the base class has a higher simulation state than static, then
-    // use the base class state.
-    if (baseClassState == EntityItem::Static) {
-        if (isAnimatingSomething()) {
-            return EntityItem::Changing;
-        }
-    }
-    return baseClassState;
+bool ModelEntityItem::needsToCallUpdate() const {
+    return isAnimatingSomething() ?  true : EntityItem::needsToCallUpdate();
 }
 
-void ModelEntityItem::update(const quint64& updateTime) {
-    EntityItem::update(updateTime); // let our base class handle it's updates...
-
-    quint64 now = updateTime;
-    
+void ModelEntityItem::update(const quint64& now) {
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
@@ -397,6 +381,7 @@ void ModelEntityItem::update(const quint64& updateTime) {
     } else {
         _lastAnimated = now;
     }
+    EntityItem::update(now); // let our base class handle it's updates...
 }
 
 void ModelEntityItem::debugDump() const {
@@ -405,6 +390,24 @@ void ModelEntityItem::debugDump() const {
     qDebug() << "    position:" << getPosition() * (float)TREE_SCALE;
     qDebug() << "    dimensions:" << getDimensions() * (float)TREE_SCALE;
     qDebug() << "    model URL:" << getModelURL();
+}
+
+void ModelEntityItem::setAnimationURL(const QString& url) { 
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationURL = url; 
+}
+
+void ModelEntityItem::setAnimationFrameIndex(float value) {
+#ifdef WANT_DEBUG
+    if (isAnimatingSomething()) {
+        qDebug() << "ModelEntityItem::setAnimationFrameIndex()";
+        qDebug() << "    value:" << value;
+        qDebug() << "    was:" << _animationLoop.getFrameIndex();
+        qDebug() << "    model URL:" << getModelURL();
+        qDebug() << "    animation URL:" << getAnimationURL();
+    }
+#endif
+    _animationLoop.setFrameIndex(value);
 }
 
 void ModelEntityItem::setAnimationSettings(const QString& value) { 
@@ -422,12 +425,25 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
 
     if (settingsMap.contains("frameIndex")) {
         float frameIndex = settingsMap["frameIndex"].toFloat();
+#ifdef WANT_DEBUG
+        if (isAnimatingSomething()) {
+            qDebug() << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
+            qDebug() << "    model URL:" << getModelURL();
+            qDebug() << "    animation URL:" << getAnimationURL();
+            qDebug() << "    settings:" << value;
+            qDebug() << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
+            qDebug("    frameIndex: %20.5f", frameIndex);
+        }
+#endif
+
         setAnimationFrameIndex(frameIndex);
     }
 
     if (settingsMap.contains("running")) {
         bool running = settingsMap["running"].toBool();
-        setAnimationIsPlaying(running);
+        if (running != getAnimationIsPlaying()) {
+            setAnimationIsPlaying(running);
+        }
     }
 
     if (settingsMap.contains("firstFrame")) {
@@ -456,6 +472,17 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
     }
 
     _animationSettings = value; 
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+}
+
+void ModelEntityItem::setAnimationIsPlaying(bool value) {
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationLoop.setRunning(value); 
+}
+
+void ModelEntityItem::setAnimationFPS(float value) {
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationLoop.setFPS(value); 
 }
 
 QString ModelEntityItem::getAnimationSettings() const { 

@@ -39,10 +39,31 @@ Overlay::Overlay() :
 {
 }
 
-void Overlay::init(QGLWidget* parent) {
-    _parent = parent;
+Overlay::Overlay(const Overlay* overlay) :
+    _parent(NULL),
+    _isLoaded(overlay->_isLoaded),
+    _alpha(overlay->_alpha),
+    _glowLevel(overlay->_glowLevel),
+    _pulse(overlay->_pulse),
+    _pulseMax(overlay->_pulseMax),
+    _pulseMin(overlay->_pulseMin),
+    _pulsePeriod(overlay->_pulsePeriod),
+    _pulseDirection(overlay->_pulseDirection),
+    _lastPulseUpdate(usecTimestampNow()),
+    _glowLevelPulse(overlay->_glowLevelPulse),
+    _alphaPulse(overlay->_alphaPulse),
+    _colorPulse(overlay->_colorPulse),
+    _color(overlay->_color),
+    _visible(overlay->_visible),
+    _anchor(overlay->_anchor),
+    _scriptEngine(NULL)
+{
 }
 
+void Overlay::init(QGLWidget* parent, QScriptEngine* scriptEngine) {
+    _parent = parent;
+    _scriptEngine = scriptEngine;
+}
 
 Overlay::~Overlay() {
 }
@@ -102,6 +123,44 @@ void Overlay::setProperties(const QScriptValue& properties) {
             setAnchor(MY_AVATAR);
         }
     }
+}
+
+QScriptValue Overlay::getProperty(const QString& property) {
+    if (property == "color") {
+        return xColorToScriptValue(_scriptEngine, _color);
+    }
+    if (property == "alpha") {
+        return _alpha;
+    }
+    if (property == "glowLevel") {
+        return _glowLevel;
+    }
+    if (property == "pulseMax") {
+        return _pulseMax;
+    }
+    if (property == "pulseMin") {
+        return _pulseMin;
+    }
+    if (property == "pulsePeriod") {
+        return _pulsePeriod;
+    }
+    if (property == "glowLevelPulse") {
+        return _glowLevelPulse;
+    }
+    if (property == "alphaPulse") {
+        return _alphaPulse;
+    }
+    if (property == "colorPulse") {
+        return _colorPulse;
+    }
+    if (property == "visible") {
+        return _visible;
+    }
+    if (property == "anchor") {
+        return _anchor == MY_AVATAR ? "MyAvatar" : "";
+    }
+
+    return QScriptValue();
 }
 
 xColor Overlay::getColor() { 

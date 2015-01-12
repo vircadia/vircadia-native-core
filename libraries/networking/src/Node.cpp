@@ -28,13 +28,11 @@ namespace NodeType {
 
 void NodeType::init() {
     TypeNameHash.insert(NodeType::DomainServer, "Domain Server");
-    TypeNameHash.insert(NodeType::VoxelServer, "Voxel Server");
     TypeNameHash.insert(NodeType::EntityServer, "Entity Server");
     TypeNameHash.insert(NodeType::MetavoxelServer, "Metavoxel Server");
     TypeNameHash.insert(NodeType::Agent, "Agent");
     TypeNameHash.insert(NodeType::AudioMixer, "Audio Mixer");
     TypeNameHash.insert(NodeType::AvatarMixer, "Avatar Mixer");
-    TypeNameHash.insert(NodeType::AnimationServer, "Animation Server");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
 }
 
@@ -52,6 +50,7 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true),
+    _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
     _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples

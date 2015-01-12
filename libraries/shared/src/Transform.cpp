@@ -54,9 +54,9 @@ void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotat
     // Beware!!! needs to detect for the case there is a negative scale
     // Based on the determinant sign we just can flip the scale sign of one component: we choose X axis
     float determinant = glm::determinant(matRot);
-    if (determinant < 0.f) {
+    if (determinant < 0.0f) {
         scale.x = -scale.x;
-        matRot[0] *= -1.f;
+        matRot[0] *= -1.0f;
     }
 
     // Beware: even though the matRot is supposed to be normalized at that point,

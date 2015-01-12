@@ -12,26 +12,12 @@
 #ifndef hifi_AudioRingBuffer_h
 #define hifi_AudioRingBuffer_h
 
-#include <limits>
-#include <stdint.h>
+#include "AudioConstants.h"
 
 #include <QtCore/QIODevice>
 
 #include <SharedUtil.h>
 #include <NodeData.h>
-
-const int SAMPLE_RATE = 24000;
-
-const int NETWORK_BUFFER_LENGTH_BYTES_STEREO = 1024;
-const int NETWORK_BUFFER_LENGTH_SAMPLES_STEREO = NETWORK_BUFFER_LENGTH_BYTES_STEREO / sizeof(int16_t);
-const int NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL = 512;
-const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL / sizeof(int16_t);
-
-const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-    / (float)SAMPLE_RATE) * USECS_PER_SECOND);
-
-const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
-const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 const int DEFAULT_RING_BUFFER_FRAME_CAPACITY = 10;
 
@@ -62,7 +48,7 @@ public:
     float getNextOutputFrameLoudness() const;
 
     int samplesAvailable() const;
-    int framesAvailable() const { return samplesAvailable() / _numFrameSamples; }
+    int framesAvailable() const { return (_numFrameSamples == 0) ? 0 : samplesAvailable() / _numFrameSamples; }
 
     int getNumFrameSamples() const { return _numFrameSamples; }
 

@@ -18,13 +18,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-/// Base class for face trackers (Faceshift, Visage, Faceplus).
+/// Base class for face trackers (Faceshift, Visage).
 class FaceTracker : public QObject {
     Q_OBJECT
     
 public:
-    
     FaceTracker();
+    virtual ~FaceTracker() {}
     
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
     const glm::quat& getHeadRotation() const { return _headRotation; }

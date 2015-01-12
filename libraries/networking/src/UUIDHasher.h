@@ -12,7 +12,10 @@
 #ifndef hifi_UUIDHasher_h
 #define hifi_UUIDHasher_h
 
-#include "UUID.h"
+#include <QUuid>
+
+// uses the same hashing performed by Qt
+// https://qt.gitorious.org/qt/qtbase/source/73ef64fb5fabb60101a3cac6e43f0c5bb2298000:src/corelib/plugin/quuid.cpp
 
 class UUIDHasher {
 public:

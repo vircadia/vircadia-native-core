@@ -445,6 +445,9 @@ bool MetavoxelTests::run() {
     // seed the random number generator so that our tests are reproducible
     srand(0xBAAAAABE);
 
+    // register our test attribute
+    AttributePointer testAttribute = AttributeRegistry::getInstance()->registerAttribute(new FloatAttribute("testAttribute"));
+
     // check for an optional command line argument specifying a single test
     QStringList arguments = this->arguments();
     int test = (arguments.size() > 1) ? arguments.at(1).toInt() : 0;
@@ -582,8 +585,8 @@ public:
 };
 
 RandomVisitor::RandomVisitor() :
-    MetavoxelVisitor(QVector<AttributePointer>(),
-        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute()),
+    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getAttribute("testAttribute")),
     leafCount(0) {
 }
 
@@ -594,8 +597,7 @@ int RandomVisitor::visit(MetavoxelInfo& info) {
     if (info.size > MAXIMUM_LEAF_SIZE || (info.size > MINIMUM_LEAF_SIZE && randomBoolean())) {
         return DEFAULT_ORDER;
     }
-    info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<QRgb>(qRgb(randomColorValue(),
-        randomColorValue(), randomColorValue())));
+    info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<float>(randFloat()));
     leafCount++;
     return STOP_RECURSION;
 }
@@ -812,8 +814,8 @@ private:
 };
 
 MutateVisitor::MutateVisitor() :
-    MetavoxelVisitor(QVector<AttributePointer>(),
-        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute()),
+    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getAttribute("testAttribute")),
     _mutationsRemaining(randIntInRange(2, 4)) {
 }
 
@@ -824,8 +826,7 @@ int MutateVisitor::visit(MetavoxelInfo& info) {
     if (info.size > MAXIMUM_LEAF_SIZE || (info.size > MINIMUM_LEAF_SIZE && randomBoolean())) {
         return encodeRandomOrder();
     }
-    info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<QRgb>(qRgb(randomColorValue(),
-        randomColorValue(), randomColorValue())));
+    info.outputValues[0] = OwnedAttributeValue(_outputs.at(0), encodeInline<float>(randFloat()));
     _mutationsRemaining--;
     metavoxelMutationsPerformed++;
     return STOP_RECURSION;

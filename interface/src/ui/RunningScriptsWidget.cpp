@@ -17,7 +17,11 @@
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QScreen>
 #include <QTableWidgetItem>
+#include <QWindow>
+
+#include <PathUtils.h>
 
 #include "Application.h"
 #include "Menu.h"
@@ -82,10 +86,6 @@ void RunningScriptsWidget::loadSelectedScript() {
     }
 }
 
-void RunningScriptsWidget::setBoundary(const QRect& rect) {
-    _boundary = rect;
-}
-
 void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
     setUpdatesEnabled(false);
     QLayoutItem* widget;
@@ -111,7 +111,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         QPushButton* closeButton = new QPushButton(row);
         closeButton->setFlat(true);
         closeButton->setIcon(
-            QIcon(QPixmap(Application::resourcesPath() + "images/kill-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
+            QIcon(QPixmap(PathUtils::resourcesPath() + "images/kill-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
         closeButton->setSizePolicy(QSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred));
         closeButton->setStyleSheet("border: 0;");
         closeButton->setCursor(Qt::PointingHandCursor);
@@ -153,7 +153,7 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
         ui->filterLineEdit->setFocus();
     }
 
-    const QRect parentGeometry = parentWidget()->geometry();
+    QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
     int menuBarHeight = Menu::getInstance()->geometry().height();
     int topMargin = titleBarHeight + menuBarHeight;

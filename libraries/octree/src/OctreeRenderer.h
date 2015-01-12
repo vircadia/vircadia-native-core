@@ -35,7 +35,6 @@ public:
     OctreeRenderer();
     virtual ~OctreeRenderer();
 
-    virtual Octree* createTree() = 0;
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
@@ -52,7 +51,8 @@ public:
     virtual void init();
 
     /// render the content of the octree
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE);
+    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
+                                RenderArgs::RenderSide renderSide = RenderArgs::MONO);
 
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
@@ -80,6 +80,8 @@ public:
     int getOpaqueMeshPartsRendered() const { return _opaqueMeshPartsRendered; }
 
 protected:
+    virtual Octree* createTree() = 0;
+
     Octree* _tree;
     bool _managedTree;
     ViewFrustum* _viewFrustum;

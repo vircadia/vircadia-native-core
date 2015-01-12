@@ -14,6 +14,7 @@
 #include <QGLWidget>
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Base3DOverlay.h"
 
 const glm::vec3 DEFAULT_POSITION = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -27,7 +28,20 @@ Base3DOverlay::Base3DOverlay() :
     _rotation(),
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
-    _ignoreRayIntersection(false)
+    _ignoreRayIntersection(false),
+    _drawInFront(false),
+    _drawOnHUD(false)
+{
+}
+
+Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
+    Overlay(base3DOverlay),
+    _position(base3DOverlay->_position),
+    _lineWidth(base3DOverlay->_lineWidth),
+    _rotation(base3DOverlay->_rotation),
+    _isSolid(base3DOverlay->_isSolid),
+    _isDashedLine(base3DOverlay->_isDashedLine),
+    _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection)
 {
 }
 
@@ -37,16 +51,27 @@ Base3DOverlay::~Base3DOverlay() {
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
 
+    QScriptValue drawInFront = properties.property("drawInFront");
+
+    if (drawInFront.isValid()) {
+        bool value = drawInFront.toVariant().toBool();
+        setDrawInFront(value);
+    }
+
+    QScriptValue drawOnHUD = properties.property("drawOnHUD");
+
+    if (drawOnHUD.isValid()) {
+        bool value = drawOnHUD.toVariant().toBool();
+        setDrawOnHUD(value);
+    }
+
     QScriptValue position = properties.property("position");
 
-    // if "position" property was not there, check to see if they included aliases: start, point, p1
+    // if "position" property was not there, check to see if they included aliases: point, p1
     if (!position.isValid()) {
-        position = properties.property("start");
+        position = properties.property("p1");
         if (!position.isValid()) {
-            position = properties.property("p1");
-            if (!position.isValid()) {
-                position = properties.property("point");
-            }
+            position = properties.property("point");
         }
     }
 
@@ -118,42 +143,39 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue Base3DOverlay::getProperty(const QString& property) {
+    if (property == "position" || property == "start" || property == "p1" || property == "point") {
+        return vec3toScriptValue(_scriptEngine, _position);
+    }
+    if (property == "lineWidth") {
+        return _lineWidth;
+    }
+    if (property == "rotation") {
+        return quatToScriptValue(_scriptEngine, _rotation);
+    }
+    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filed") {
+        return _isSolid;
+    }
+    if (property == "isWire" || property == "wire") {
+        return !_isSolid;
+    }
+    if (property == "isDashedLine" || property == "dashed") {
+        return _isDashedLine;
+    }
+    if (property == "ignoreRayIntersection") {
+        return _ignoreRayIntersection;
+    }
+    if (property == "drawInFront") {
+        return _drawInFront;
+    }
+    if (property == "drawOnHUD") {
+        return _drawOnHUD;
+    }
+
+    return Overlay::getProperty(property);
+}
+
 bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face) {
     return false;
 }
-
-
-void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end) {
-
-    glBegin(GL_LINES);
-
-    // draw each line segment with appropriate gaps
-    const float DASH_LENGTH = 0.05f;
-    const float GAP_LENGTH = 0.025f;
-    const float SEGMENT_LENGTH = DASH_LENGTH + GAP_LENGTH;
-    float length = glm::distance(start, end);
-    float segmentCount = length / SEGMENT_LENGTH;
-    int segmentCountFloor = (int)glm::floor(segmentCount);
-
-    glm::vec3 segmentVector = (end - start) / segmentCount;
-    glm::vec3 dashVector = segmentVector / SEGMENT_LENGTH * DASH_LENGTH;
-    glm::vec3 gapVector = segmentVector / SEGMENT_LENGTH * GAP_LENGTH;
-
-    glm::vec3 point = start;
-    glVertex3f(point.x, point.y, point.z);
-    for (int i = 0; i < segmentCountFloor; i++) {
-        point += dashVector;
-        glVertex3f(point.x, point.y, point.z);
-
-        point += gapVector;
-        glVertex3f(point.x, point.y, point.z);
-    }
-    glVertex3f(end.x, end.y, end.z);
-
-    glEnd();
-
-}
-
-
-

@@ -28,6 +28,7 @@
 #include "Overlay2D.h"
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
+const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const int DEFAULT_MARGIN = 10;
 const int DEFAULT_FONTSIZE = 11;
 const int DEFAULT_FONT_WEIGHT = 50;
@@ -37,6 +38,7 @@ class TextOverlay : public Overlay2D {
     
 public:
     TextOverlay();
+    TextOverlay(const TextOverlay* textOverlay);
     ~TextOverlay();
     virtual void render(RenderArgs* args);
 
@@ -45,6 +47,7 @@ public:
     int getLeftMargin() const { return _leftMargin; }
     int getTopMargin() const { return _topMargin; }
     xColor getBackgroundColor();
+    float getBackgroundAlpha() const { return _backgroundAlpha; }
 
     // setters
     void setText(const QString& text) { _text = text; }
@@ -53,13 +56,15 @@ public:
     void setFontSize(int fontSize) { _fontSize = fontSize; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual TextOverlay* createClone() const;
+    virtual QScriptValue getProperty(const QString& property);
 
-    float textWidth(const QString& text) const;  // Pixels
+    QSizeF textSize(const QString& test) const;  // Pixels
 
 private:
-
     QString _text;
     xColor _backgroundColor;
+    float _backgroundAlpha;
     int _leftMargin;
     int _topMargin;
     int _fontSize;

@@ -147,10 +147,10 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         int statsMessageLength = nodeData->stats.getStatsMessageLength();
         int piggyBackSize = nodeData->getPacketLength() + statsMessageLength;
 
-        // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
+        // If the size of the stats message and the octree message will fit in a packet, then piggyback them
         if (piggyBackSize < MAX_PACKET_SIZE) {
 
-            // copy voxel message to back of stats message
+            // copy octree message to back of stats message
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
             statsMessageLength += nodeData->getPacketLength();
 
@@ -240,7 +240,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     } else {
         // If there's actually a packet waiting, then send it.
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
-            // just send the voxel packet
+            // just send the octree packet
             OctreeServer::didCallWriteDatagram(this);
             NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
@@ -279,7 +279,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     return packetsSent;
 }
 
-/// Version of voxel distributor that sends the deepest LOD level at once
+/// Version of octree element distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged) {
         
     OctreeServer::didPacketDistributor(this);
@@ -404,6 +404,13 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->elementBag.isEmpty()) {
+                
+                quint64 lockWaitStart = usecTimestampNow();
+                _myServer->getOctree()->lockForRead();
+                quint64 lockWaitEnd = usecTimestampNow();
+                lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
+                quint64 encodeStart = usecTimestampNow();
+
                 OctreeElement* subTree = nodeData->elementBag.extract();
 
                 /* TODO: Looking for a way to prevent locking and encoding a tree that is not
@@ -430,7 +437,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
                 
-                float voxelSizeScale = nodeData->getOctreeSizeScale();
+                float octreeSizeScale = nodeData->getOctreeSizeScale();
                 int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
                 
                 int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
@@ -438,7 +445,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust, voxelSizeScale,
+                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust, octreeSizeScale,
                                              nodeData->getLastTimeBagEmpty(),
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
                                              &nodeData->extraEncodeData);
@@ -447,12 +454,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 // it seems like it may be a good idea to include the lock time as part of the encode time
                 // are reported to client. Since you can encode without the lock
                 nodeData->stats.encodeStarted();
-                
-                quint64 lockWaitStart = usecTimestampNow();
-                _myServer->getOctree()->lockForRead();
-                quint64 lockWaitEnd = usecTimestampNow();
-                lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-                quint64 encodeStart = usecTimestampNow();
 
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
 
@@ -595,7 +596,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         //int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all
-        // the voxels from the current view frustum
+        // the octree elements from the current view frustum
         if (nodeData->elementBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);

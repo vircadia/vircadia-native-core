@@ -18,6 +18,7 @@
 #include "EntityTreeElement.h"
 #include "LightEntityItem.h"
 
+bool LightEntityItem::_lightsArePickable = false;
 
 EntityItem* LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new LightEntityItem(entityID, properties);
@@ -40,12 +41,19 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityI
     _exponent = 0.0f;
     _cutoff = PI;
 
-    setProperties(properties, true);
+    setProperties(properties);
 
     // a light is not collide-able so we make it's shape be a tiny sphere at origin
     _emptyShape.setTranslation(glm::vec3(0.0f, 0.0f, 0.0f));
     _emptyShape.setRadius(0.0f);
 }
+
+void LightEntityItem::setDimensions(const glm::vec3& value) {
+    float maxDimension = glm::max(value.x, value.y, value.z);
+    _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension); 
+    recalculateCollisionShape(); 
+}
+
 
 EntityItemProperties LightEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
@@ -63,8 +71,8 @@ EntityItemProperties LightEntityItem::getProperties() const {
     return properties;
 }
 
-bool LightEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
-    bool somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
+bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(diffuseColor, setDiffuseColor);
