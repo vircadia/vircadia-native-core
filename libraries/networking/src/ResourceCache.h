@@ -65,6 +65,7 @@ protected:
     
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
+    void reserveUnusedResource(qint64 resourceSize);
     
     static void attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
