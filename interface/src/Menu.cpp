@@ -54,13 +54,14 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/AnimationsDialog.h"
 #include "ui/AttachmentsDialog.h"
-#include "ui/BandwidthDialog"
-#include "ui/DataWebDialog"
-#include "ui/HMDToolsDialog"
-#include "ui/LodToolsDialog"
+#include "ui/BandwidthDialog.h"
+#include "ui/CachesSizeDialog.h"
+#include "ui/DataWebDialog.h"
+#include "ui/HMDToolsDialog.h"
+#include "ui/LodToolsDialog.h"
 #include "ui/LoginDialog.h"
-#include "ui/OctreeStatsDialog"
-#include "ui/PreferencesDialog"
+#include "ui/OctreeStatsDialog.h"
+#include "ui/PreferencesDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/MetavoxelNetworkSimulator.h"
@@ -122,13 +123,7 @@ Menu::Menu() :
     _lastAvatarDetailDrop(usecTimestampNow()),
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
-    _loginAction(NULL),
-    _newLocationDialog(NULL),
-    _userLocationsDialog(NULL),
     _hasLoginDialogDisplayed(false),
-    _snapshotsLocation(),
-    _scriptsLocation(),
-    _walletPrivateKey(),
     _shouldRenderTableNeedsRebuilding(true)
 {
     Application *appInstance = Application::getInstance();
@@ -1145,7 +1140,7 @@ void Menu::bandwidthDetails() {
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(DependencyManager::get<GLCanvas>().data(),
                                                Application::getInstance()->getBandwidthMeter());
-        connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
+        connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
 
         _bandwidthDialog->show();
         
@@ -1249,7 +1244,7 @@ void Menu::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
         _octreeStatsDialog = new OctreeStatsDialog(DependencyManager::get<GLCanvas>().data(),
                                                  Application::getInstance()->getOcteeSceneStats());
-        connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
+        connect(_octreeStatsDialog, SIGNAL(closed()), _octreeStatsDialog, SLOT(deleteLater()));
         _octreeStatsDialog->show();
         if (_hmdToolsDialog) {
             _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
@@ -1425,20 +1420,13 @@ bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) {
 void Menu::lodTools() {
     if (!_lodToolsDialog) {
         _lodToolsDialog = new LodToolsDialog(DependencyManager::get<GLCanvas>().data());
-        connect(_lodToolsDialog, SIGNAL(closed()), SLOT(lodToolsClosed()));
+        connect(_lodToolsDialog, SIGNAL(closed()), _lodToolsDialog, SLOT(deleteLater()));
         _lodToolsDialog->show();
         if (_hmdToolsDialog) {
             _hmdToolsDialog->watchWindow(_lodToolsDialog->windowHandle());
         }
     }
     _lodToolsDialog->raise();
-}
-
-void Menu::lodToolsClosed() {
-    if (_lodToolsDialog) {
-        delete _lodToolsDialog;
-        _lodToolsDialog = NULL;
-    }
 }
 
 void Menu::hmdTools(bool showTools) {
