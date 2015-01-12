@@ -84,6 +84,8 @@
             var elDimensionsY = document.getElementById("property-dim-y");
             var elDimensionsZ = document.getElementById("property-dim-z");
             var elResetToNaturalDimensions = document.getElementById("reset-to-natural-dimensions");
+            var elRescaleDimensionsPct = document.getElementById("dimension-rescale-pct");
+            var elRescaleDimensionsButton  = document.getElementById("dimension-rescale-button");
 
             var elRegistrationX = document.getElementById("property-reg-x");
             var elRegistrationY = document.getElementById("property-reg-y");
@@ -419,6 +421,13 @@
                     action: "resetToNaturalDimensions",
                 }));
             });
+            elRescaleDimensionsButton.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "rescaleDimensions",
+                    percentage: parseInt(elRescaleDimensionsPct.value),
+                }));
+            });
 
 
             var resizing = false;
@@ -537,6 +546,12 @@
                 <div>
                     <input type="button" id="reset-to-natural-dimensions" value="Reset to Natural Dimensions">
                 </div>
+                <div class="input-area">
+                    <input class="coord" type='number' id="dimension-rescale-pct" value=100></input>%
+                </div>
+                <span>
+                    <input type="button" id="dimension-rescale-button" value="Rescale"></input>
+                </span>
             </td>
         </tr>
 

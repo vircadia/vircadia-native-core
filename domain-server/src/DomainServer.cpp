@@ -1736,6 +1736,9 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
                 connection->respond(HTTPConnection::StatusCode302, QByteArray(),
                                     HTTPConnection::DefaultContentType, cookieHeaders);
                 
+                delete tokenReply;
+                delete profileReply;
+                
                 // we've redirected the user back to our homepage
                 return true;
                 

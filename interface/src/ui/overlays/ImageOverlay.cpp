@@ -66,6 +66,7 @@ void ImageOverlay::replyFinished() {
     _textureImage.loadFromData(rawData);
     _renderImage = true;
     _isLoaded = true;
+    reply->deleteLater();
 }
 
 void ImageOverlay::render(RenderArgs* args) {

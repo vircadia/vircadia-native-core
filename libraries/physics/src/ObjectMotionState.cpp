@@ -154,8 +154,6 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
     // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
 
-    // TODO: Andrew to reconcile Bullet and legacy damping coefficients.
-
     // compute position error
     if (glm::length2(_sentVelocity) > 0.0f) {
         _sentVelocity += _sentAcceleration * dt;

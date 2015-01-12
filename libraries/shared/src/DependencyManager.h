@@ -13,6 +13,7 @@
 #define hifi_DependencyManager_h
 
 #include <QSharedPointer>
+#include <QDebug>
 
 #include <typeinfo>
 
@@ -22,10 +23,12 @@ public:\
 private:\
     void customDeleter() {\
         QObject* thisObject = dynamic_cast<QObject*>(this);\
-        if (thisObject) {\
+        if (thisObject && thisObject->parent()) {\
             thisObject->deleteLater();\
+            qDebug() << "Delete later:" << #T;\
         } else {\
             delete this;\
+            qDebug() << "Deleted:" << #T;\
         }\
     }\
     friend class DependencyManager;

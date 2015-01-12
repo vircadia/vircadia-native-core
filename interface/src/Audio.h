@@ -49,6 +49,7 @@
 
 #ifdef _WIN32
 #pragma warning( push )
+#pragma warning( disable : 4273 )
 #pragma warning( disable : 4305 )
 #endif
 extern "C" {

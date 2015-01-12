@@ -1077,6 +1077,19 @@ PropertiesTool = function(opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
+            } else if (data.action == "rescaleDimensions") {
+                var multiplier = data.percentage / 100;
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        Entities.editEntity(selectionManager.selections[i], {
+                            dimensions: Vec3.multiply(multiplier, properties.dimensions),
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
             }
         }
     });
