@@ -48,6 +48,13 @@ const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
 const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
 
 const QString SETTINGS_ADDRESS_KEY = "address";
+
+const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
+const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
+const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
+const int ONE_SECOND_OF_FRAMES = 60;
+const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
+
 class QSettings;
 
 class AddressBarDialog;
@@ -240,32 +247,37 @@ private:
 
     QHash<QString, QAction*> _actionHash;
     InboundAudioStream::Settings _receivedAudioStreamSettings;
-    float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
-    float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
-    float _faceshiftEyeDeflection;
-    QString _faceshiftHostname;
-    QPointer<MetavoxelEditor> _MetavoxelEditor;
-    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
-    QPointer<ScriptEditorWindow> _ScriptEditor;
-    QPointer<ChatWindow> _chatWindow;
-    QDialog* _jsConsole;
+    // in Degrees, doesn't apply to HMD like Oculus
+    float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
+    //  The actual FOV set by the user's monitor size and view distance
+    float _realWorldFieldOfView = DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES;
+    float _faceshiftEyeDeflection = DEFAULT_FACESHIFT_EYE_DEFLECTION;
+    QString _faceshiftHostname = DEFAULT_FACESHIFT_HOSTNAME;
+    
+    QDialog* _jsConsole = nullptr;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-    float _octreeSizeScale;
-    float _oculusUIAngularSize;
-    float _sixenseReticleMoveSpeed;
-    bool _invertSixenseButtons;
-    bool _automaticAvatarLOD;
-    float _avatarLODDecreaseFPS;
-    float _avatarLODIncreaseFPS;
-    float _avatarLODDistanceMultiplier;
-    int _boundaryLevelAdjust;
-    int _maxOctreePacketsPerSecond;
+    float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
+    float _oculusUIAngularSize;// = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
+    float _sixenseReticleMoveSpeed;// = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
+    bool _invertSixenseButtons;// = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
+    bool _hasLoginDialogDisplayed = false;
+    
+    bool _automaticAvatarLOD = true;
+    float _avatarLODDecreaseFPS = DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS;
+    float _avatarLODIncreaseFPS = ADJUST_LOD_UP_FPS;
+    float _avatarLODDistanceMultiplier = DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER;
+    
+    int _boundaryLevelAdjust = 0;
+    int _maxOctreePacketsPerSecond = DEFAULT_MAX_OCTREE_PPS;
+    
     quint64 _lastAdjust;
     quint64 _lastAvatarDetailDrop;
-    SimpleMovingAverage _fpsAverage;
-    SimpleMovingAverage _fastFPSAverage;
+    
+    SimpleMovingAverage _fpsAverage = FIVE_SECONDS_OF_FRAMES;
+    SimpleMovingAverage _fastFPSAverage = ONE_SECOND_OF_FRAMES;
+    
     QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
@@ -278,16 +290,20 @@ private:
     QPointer<LoginDialog> _loginDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
-    bool _hasLoginDialogDisplayed;
+
+    QPointer<MetavoxelEditor> _MetavoxelEditor;
+    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
+    QPointer<ScriptEditorWindow> _ScriptEditor;
+    QPointer<ChatWindow> _chatWindow;
+    
     QAction* _loginAction = nullptr;
     QAction* _chatAction = nullptr;
     QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;
     
-    bool _shouldRenderTableNeedsRebuilding;
+    bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
-
 };
 
 namespace MenuOption {
@@ -405,7 +421,6 @@ namespace MenuOption {
     const QString RenderTargetFramerate40 = "40";
     const QString RenderTargetFramerate30 = "30";
     const QString RenderTargetFramerateVSyncOn = "V-Sync On";
-
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";

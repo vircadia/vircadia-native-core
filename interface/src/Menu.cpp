@@ -87,44 +87,9 @@ Menu* Menu::getInstance() {
     return _instance;
 }
 
-const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
-const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
-const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
-const int ONE_SECOND_OF_FRAMES = 60;
-const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
-
-const QString CONSOLE_TITLE = "Scripting Console";
-const float CONSOLE_WINDOW_OPACITY = 0.95f;
-const int CONSOLE_WIDTH = 800;
-const int CONSOLE_HEIGHT = 200;
-
 Menu::Menu() :
-    _actionHash(),
-    _receivedAudioStreamSettings(),
-    _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
-    _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
-    _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
-    _faceshiftHostname(DEFAULT_FACESHIFT_HOSTNAME),
-    _jsConsole(NULL),
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    _speechRecognizer(),
-#endif
-    _octreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
-    _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
-    _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
-    _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
-    _automaticAvatarLOD(true),
-    _avatarLODDecreaseFPS(DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS),
-    _avatarLODIncreaseFPS(ADJUST_LOD_UP_FPS),
-    _avatarLODDistanceMultiplier(DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER),
-    _boundaryLevelAdjust(0),
-    _maxOctreePacketsPerSecond(DEFAULT_MAX_OCTREE_PPS),
     _lastAdjust(usecTimestampNow()),
-    _lastAvatarDetailDrop(usecTimestampNow()),
-    _fpsAverage(FIVE_SECONDS_OF_FRAMES),
-    _fastFPSAverage(ONE_SECOND_OF_FRAMES),
-    _hasLoginDialogDisplayed(false),
-    _shouldRenderTableNeedsRebuilding(true)
+    _lastAvatarDetailDrop(usecTimestampNow())
 {
     Application *appInstance = Application::getInstance();
 
