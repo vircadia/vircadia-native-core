@@ -27,12 +27,8 @@
 #include "SpeechRecognizer.h"
 #endif
 
-#include "ui/AddressBarDialog.h"
 #include "ui/ChatWindow.h"
-#include "ui/DataWebDialog.h"
 #include "ui/JSConsole.h"
-#include "ui/LoginDialog.h"
-#include "ui/PreferencesDialog.h"
 #include "ui/ScriptEditorWindow.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
@@ -54,22 +50,25 @@ const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
 const QString SETTINGS_ADDRESS_KEY = "address";
 class QSettings;
 
+class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
 class BandwidthDialog;
+class DataWebDialog;
 class HMDToolsDialog;
 class LodToolsDialog;
+class LoginDialog;
+class OctreeStatsDialog;
+class PreferencesDialog;
 class MetavoxelEditor;
 class MetavoxelNetworkSimulator;
 class ChatWindow;
-class OctreeStatsDialog;
 class MenuItemProperties;
 
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
-    ~Menu();
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);

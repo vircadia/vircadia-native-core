@@ -51,13 +51,20 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
+#include "ui/AddressBarDialog.h"
 #include "ui/AnimationsDialog.h"
 #include "ui/AttachmentsDialog.h"
+#include "ui/BandwidthDialog"
+#include "ui/DataWebDialog"
+#include "ui/HMDToolsDialog"
+#include "ui/LodToolsDialog"
+#include "ui/LoginDialog.h"
+#include "ui/OctreeStatsDialog"
+#include "ui/PreferencesDialog"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/MetavoxelNetworkSimulator.h"
 #include "ui/ModelsBrowser.h"
-#include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
 
 Menu* Menu::_instance = NULL;
@@ -611,15 +618,6 @@ Menu::Menu() :
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
     connect(helpAction, SIGNAL(triggered()), this, SLOT(aboutApp()));
 #endif
-}
-
-Menu::~Menu() {
-    bandwidthDetailsClosed();
-    octreeStatsDetailsClosed();
-    if (_hmdToolsDialog) {
-        delete _hmdToolsDialog;
-        _hmdToolsDialog = NULL;
-    }
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -1247,13 +1245,6 @@ void Menu::audioMuteToggled() {
     }
 }
 
-void Menu::bandwidthDetailsClosed() {
-    if (_bandwidthDialog) {
-        delete _bandwidthDialog;
-        _bandwidthDialog = NULL;
-    }
-}
-
 void Menu::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
         _octreeStatsDialog = new OctreeStatsDialog(DependencyManager::get<GLCanvas>().data(),
@@ -1265,13 +1256,6 @@ void Menu::octreeStatsDetails() {
         }
     }
     _octreeStatsDialog->raise();
-}
-
-void Menu::octreeStatsDetailsClosed() {
-    if (_octreeStatsDialog) {
-        delete _octreeStatsDialog;
-        _octreeStatsDialog = NULL;
-    }
 }
 
 QString Menu::getLODFeedbackText() {
