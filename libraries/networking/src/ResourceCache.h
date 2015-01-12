@@ -77,7 +77,7 @@ private:
     friend class Resource;
 
     QHash<QUrl, QWeakPointer<Resource> > _resources;
-    int _lastLRUKey;
+    int _lastLRUKey = 0;
     
     static int _requestLimit;
     static QList<QPointer<Resource> > _pendingRequests;
@@ -158,9 +158,9 @@ protected:
 
     QUrl _url;
     QNetworkRequest _request;
-    bool _startedLoading;
-    bool _failedToLoad;
-    bool _loaded;
+    bool _startedLoading = false;
+    bool _failedToLoad = false;
+    bool _loaded = false;
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
@@ -182,13 +182,12 @@ private:
     
     friend class ResourceCache;
     
-    int _lruKey;
-    QNetworkReply* _reply;
-    QTimer* _replyTimer;
-    int _index;
-    qint64 _bytesReceived;
-    qint64 _bytesTotal;
-    int _attempts;
+    int _lruKey = 0;
+    QNetworkReply* _reply = nullptr;
+    QTimer* _replyTimer = nullptr;
+    qint64 _bytesReceived = 0;
+    qint64 _bytesTotal = 0;
+    int _attempts = 0;
 };
 
 uint qHash(const QPointer<QObject>& value, uint seed = 0);

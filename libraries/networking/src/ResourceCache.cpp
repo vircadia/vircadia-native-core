@@ -21,10 +21,7 @@
 #include "ResourceCache.h"
 
 ResourceCache::ResourceCache(QObject* parent) :
-    QObject(parent),
-    _lastLRUKey(0)
-{
-    
+    QObject(parent) {    
 }
 
 ResourceCache::~ResourceCache() {
@@ -32,7 +29,7 @@ ResourceCache::~ResourceCache() {
     // list on destruction, so keep clearing until there are no references left
     while (!_unusedResources.isEmpty()) {
         foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
-            resource->setCache(NULL);
+            resource->setCache(nullptr);
         }
         _unusedResources.clear();
     }
@@ -104,7 +101,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
         
         _unusedResourcesSize -= it.value()->getBytesTotal();
-        it.value()->setCache(NULL);
+        it.value()->setCache(nullptr);
         _unusedResources.erase(it);
     }
 }
@@ -153,9 +150,7 @@ QList<Resource*> ResourceCache::_loadingRequests;
 
 Resource::Resource(const QUrl& url, bool delayLoad) :
     _url(url),
-    _request(url),
-    _lruKey(0),
-    _reply(NULL) {
+    _request(url) {
     
     init();
     
@@ -216,13 +211,13 @@ float Resource::getLoadPriority() {
 }
 
 void Resource::refresh() {
-    if (_reply == NULL && !(_loaded || _failedToLoad)) {
+    if (_reply == nullptr && !(_loaded || _failedToLoad)) {
         return;
     }
     if (_reply) {
         ResourceCache::requestCompleted(this);
         delete _reply;
-        _reply = NULL;
+        _reply = nullptr;
     }
     init();
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
@@ -298,10 +293,10 @@ void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     }
     _reply->disconnect(this);
     QNetworkReply* reply = _reply;
-    _reply = NULL;
+    _reply = nullptr;
     _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
-    _replyTimer = NULL;
+    _replyTimer = nullptr;
     ResourceCache::requestCompleted(this);
     
     downloadFinished(reply);
@@ -333,10 +328,10 @@ void Resource::makeRequest() {
 void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug) {
     _reply->disconnect(this);
     _reply->deleteLater();
-    _reply = NULL;
+    _reply = nullptr;
     _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
-    _replyTimer = NULL;
+    _replyTimer = nullptr;
     ResourceCache::requestCompleted(this);
     
     // retry for certain types of failures
