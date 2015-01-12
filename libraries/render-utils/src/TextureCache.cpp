@@ -203,7 +203,7 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type
         texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);
     } else {
-        _unusedResources.remove(texture->getLRUKey());
+        removeUnusedResource(texture);
     }
     return texture;
 }
