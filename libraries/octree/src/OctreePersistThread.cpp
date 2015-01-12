@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <cstdio>
+#include <fstream>
 #include <time.h>
 
 #include <QDebug>
@@ -55,6 +57,21 @@ bool OctreePersistThread::process() {
         _tree->lockForWrite();
         {
             PerformanceWarning warn(true, "Loading Octree File", true);
+            
+            // First check to make sure "lock" file doesn't exist. If it does exist, then
+            // our last save crashed during the save, and we want to load our most recent backup.
+            QString lockFileName = _filename + ".lock";
+            std::ifstream lockFile(qPrintable(lockFileName), std::ios::in|std::ios::binary|std::ios::ate);
+            if(lockFile.is_open()) {
+                qDebug() << "WARNING: Octree lock file detected at startup:" << lockFileName
+                         << "-- Attempting to restore from previous backup file.";
+
+                lockFile.close();
+                qDebug() << "Loading Octree... lock file closed:" << lockFileName;
+                remove(qPrintable(lockFileName));
+                qDebug() << "Loading Octree... lock file removed:" << lockFileName;
+            }
+
             persistantFileRead = _tree->readFromSVOFile(_filename.toLocal8Bit().constData());
             _tree->pruneTree();
         }
@@ -142,11 +159,28 @@ void OctreePersistThread::persist() {
 
         backup(); // handle backup if requested        
 
-        qDebug() << "saving Octree to file " << _filename << "...";
-        _tree->writeToSVOFile(qPrintable(_filename));
-        time(&_lastPersistTime);
-        _tree->clearDirtyBit(); // tree is clean after saving
-        qDebug() << "DONE saving Octree to file...";
+
+        // create our "lock" file to indicate we're saving.
+        QString lockFileName = _filename + ".lock";
+        std::ofstream lockFile(qPrintable(lockFileName), std::ios::out|std::ios::binary);
+        if(lockFile.is_open()) {
+            qDebug() << "saving Octree lock file created at:" << lockFileName;
+
+            qDebug() << "saving Octree to file " << _filename << "...";
+            
+            _tree->writeToSVOFile(qPrintable(_filename));
+            time(&_lastPersistTime);
+            _tree->clearDirtyBit(); // tree is clean after saving
+            qDebug() << "DONE saving Octree to file...";
+
+            // force crash
+            //assert(false);
+            
+            lockFile.close();
+            qDebug() << "saving Octree lock file closed:" << lockFileName;
+            remove(qPrintable(lockFileName));
+            qDebug() << "saving Octree lock file removed:" << lockFileName;
+        }
     }
 }
 
