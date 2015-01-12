@@ -45,8 +45,9 @@ public:
     void refresh(const QUrl& url);
 
 protected:
-    
-    qint64 _unusedResourcesTotalBytes = 0;
+    int _unusedResourcesMaxCount = 50;
+    qint64 _unusedResourcesMaxSize = 100 * 1024 * 1024;
+    qint64 _unusedResourcesSize = 0;
     QMap<int, QSharedPointer<Resource> > _unusedResources;
 
     /// Loads a resource from the specified URL.
@@ -67,7 +68,6 @@ protected:
     static void requestCompleted(Resource* resource);
 
 private:
-    
     friend class Resource;
 
     QHash<QUrl, QWeakPointer<Resource> > _resources;

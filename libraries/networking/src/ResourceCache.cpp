@@ -73,22 +73,18 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
 }
 
 void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
-    static const int BYTES_PER_MEGABYTES = 1024 * 1024;
-    const int RETAINED_RESOURCE_COUNT = 50;
-    const int RETAINED_RESOURCE_SIZE = 100 * BYTES_PER_MEGABYTES;
-    
-    while (_unusedResourcesTotalBytes + resource->getBytesTotal() > RETAINED_RESOURCE_SIZE &&
+    while (_unusedResourcesSize + resource->getBytesTotal() > _unusedResourcesMaxSize &&
            !_unusedResources.empty()) {
         // unload the oldest resource
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
         
-        _unusedResourcesTotalBytes -= it.value()->getBytesTotal();
+        _unusedResourcesSize -= it.value()->getBytesTotal();
         it.value()->setCache(NULL);
         _unusedResources.erase(it);
     }
     
     
-    if (_unusedResources.size() > RETAINED_RESOURCE_COUNT) {
+    if (_unusedResources.size() > _unusedResourcesMaxCount) {
         // unload the oldest resource
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
         it.value()->setCache(NULL);
@@ -96,13 +92,13 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
     }
     resource->setLRUKey(++_lastLRUKey);
     _unusedResources.insert(resource->getLRUKey(), resource);
-    _unusedResourcesTotalBytes += resource->getBytesTotal();
+    _unusedResourcesSize += resource->getBytesTotal();
 }
 
 void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resource) {
     if (_unusedResources.contains(resource->getLRUKey())) {
         _unusedResources.remove(resource->getLRUKey());
-        _unusedResourcesTotalBytes -= resource->getBytesTotal();
+        _unusedResourcesSize -= resource->getBytesTotal();
     }
 }
 
