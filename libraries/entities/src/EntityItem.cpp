@@ -699,7 +699,7 @@ void EntityItem::simulate(const quint64& now) {
 #ifndef USE_BULLET_PHYSICS
             // if we've slowed considerably, then just stop moving, but only if no BULLET
             if (glm::length(velocity) <= ENTITY_ITEM_EPSILON_VELOCITY_LENGTH) {
-                velocity = NO_VELOCITY;
+                velocity = ENTITY_ITEM_ZERO_VEC3;
             }
 #endif // !USE_BULLET_PHYSICS
             
@@ -723,7 +723,7 @@ void EntityItem::simulate(const quint64& now) {
 #else // !USE_BULLET_PHYSICS
         // ... otherwise we help things come to rest by clamping small velocities.
         if (glm::length(velocity) <= ENTITY_ITEM_EPSILON_VELOCITY_LENGTH) {
-            velocity = NO_VELOCITY;
+            velocity = ENTITY_ITEM_ZERO_VEC3;
         }
 #endif // USE_BULLET_PHYSICS
 
