@@ -488,6 +488,7 @@ Menu::Menu() :
                                            false,
                                            &UserActivityLogger::getInstance(),
                                            SLOT(disable(bool)));
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0, this, SLOT(cachesSizeDialog()));
     
     addActionToQMenuAndActionHash(developerMenu, MenuOption::WalletPrivateKey, 0, this, SLOT(changePrivateKey()));
 
@@ -1416,6 +1417,18 @@ bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) {
     return (distanceToCamera <= visibleDistanceAtClosestScale);
 }
 
+void Menu::cachesSizeDialog() {
+    qDebug() << "Caches size:" << _cachesSizeDialog.isNull();
+    if (!_cachesSizeDialog) {
+        _cachesSizeDialog = new CachesSizeDialog(DependencyManager::get<GLCanvas>().data());
+        connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
+        _cachesSizeDialog->show();
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_cachesSizeDialog->windowHandle());
+        }
+    }
+    _cachesSizeDialog->raise();
+}
 
 void Menu::lodTools() {
     if (!_lodToolsDialog) {

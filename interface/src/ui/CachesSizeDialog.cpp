@@ -62,6 +62,8 @@ void CachesSizeDialog::confirmClicked(bool checked) {
     ScriptCache::getInstance()->setUnusedResourceCacheSize(_scripts->value() * BYTES_PER_MEGABYTES);
     SoundCache::getInstance().setUnusedResourceCacheSize(_sounds->value() * BYTES_PER_MEGABYTES);
     DependencyManager::get<TextureCache>()->setUnusedResourceCacheSize(_textures->value() * BYTES_PER_MEGABYTES);
+    
+    QDialog::close();
 }
 
 void CachesSizeDialog::resetClicked(bool checked) {
@@ -74,10 +76,10 @@ void CachesSizeDialog::resetClicked(bool checked) {
 
 void CachesSizeDialog::reject() {
     // Just regularly close upon ESC
-    this->QDialog::close();
+    QDialog::close();
 }
 
 void CachesSizeDialog::closeEvent(QCloseEvent* event) {
-    this->QDialog::closeEvent(event);
+    QDialog::closeEvent(event);
     emit closed();
 }

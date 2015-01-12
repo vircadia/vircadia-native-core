@@ -159,6 +159,7 @@ public slots:
     void showLoginForCurrentDomain();
     void bandwidthDetails();
     void octreeStatsDetails();
+    void cachesSizeDialog();
     void lodTools();
     void hmdTools(bool showTools);
     void loadSettings(QSettings* settings = NULL);
@@ -315,6 +316,7 @@ namespace MenuOption {
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString CascadedShadows = "Cascaded";
+    const QString CachesSize = "Caches Size";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
     const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
