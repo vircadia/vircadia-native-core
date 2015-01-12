@@ -27,10 +27,14 @@
 #include "SpeechRecognizer.h"
 #endif
 
+#include "devices/Faceshift.h"
+#include "devices/OculusManager.h"
+#include "devices/SixenseManager.h"
 #include "ui/ChatWindow.h"
 #include "ui/JSConsole.h"
 #include "ui/ScriptEditorWindow.h"
 
+// Make an LOD handler class and move everything overthere
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
 const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f;
@@ -46,15 +50,13 @@ const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 
 const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
 const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
-
-const QString SETTINGS_ADDRESS_KEY = "address";
-
-const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
-const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
 const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
+
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
+//////////////////////////////////////////////////////////
 
+const QString SETTINGS_ADDRESS_KEY = "address";
 class QSettings;
 
 class AddressBarDialog;
@@ -259,9 +261,9 @@ private:
     SpeechRecognizer _speechRecognizer;
 #endif
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
-    float _oculusUIAngularSize;// = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
-    float _sixenseReticleMoveSpeed;// = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
-    bool _invertSixenseButtons;// = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
+    float _oculusUIAngularSize = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
+    float _sixenseReticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
+    bool _invertSixenseButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
     bool _hasLoginDialogDisplayed = false;
     
     bool _automaticAvatarLOD = true;

@@ -11,7 +11,6 @@
 
 #include <cstdlib>
 
-
 #include <QBoxLayout>
 #include <QColorDialog>
 #include <QDialogButtonBox>
@@ -44,8 +43,6 @@
 #include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
-#include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 #include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
