@@ -131,6 +131,7 @@ ApplicationOverlay::ApplicationOverlay() :
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
     _crosshairTexture(0),
+    _magnifier(true),
     _previousBorderWidth(-1),
     _previousBorderHeight(-1),
     _previousMagnifierBottomLeft(),
@@ -555,7 +556,7 @@ void ApplicationOverlay::renderPointers() {
         
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
-        _magActive[MOUSE] = true;
+        _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
     } else if (application->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
