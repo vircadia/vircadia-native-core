@@ -242,7 +242,6 @@ private:
 
     QHash<QString, QAction*> _actionHash;
     InboundAudioStream::Settings _receivedAudioStreamSettings;
-    BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
     float _faceshiftEyeDeflection;
@@ -252,11 +251,6 @@ private:
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
     QDialog* _jsConsole;
-    OctreeStatsDialog* _octreeStatsDialog;
-    LodToolsDialog* _lodToolsDialog;
-    HMDToolsDialog* _hmdToolsDialog;
-    QPointer<DataWebDialog> _newLocationDialog;
-    QPointer<DataWebDialog> _userLocationsDialog;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
@@ -276,6 +270,12 @@ private:
     SimpleMovingAverage _fpsAverage;
     SimpleMovingAverage _fastFPSAverage;
     QAction* _loginAction;
+    QPointer<BandwidthDialog> _bandwidthDialog;
+    QPointer<OctreeStatsDialog> _octreeStatsDialog;
+    QPointer<LodToolsDialog> _lodToolsDialog;
+    QPointer<HMDToolsDialog> _hmdToolsDialog;
+    QPointer<DataWebDialog> _newLocationDialog;
+    QPointer<DataWebDialog> _userLocationsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;

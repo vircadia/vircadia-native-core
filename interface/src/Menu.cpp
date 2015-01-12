@@ -93,17 +93,11 @@ const int CONSOLE_HEIGHT = 200;
 Menu::Menu() :
     _actionHash(),
     _receivedAudioStreamSettings(),
-    _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _faceshiftHostname(DEFAULT_FACESHIFT_HOSTNAME),
     _jsConsole(NULL),
-    _octreeStatsDialog(NULL),
-    _lodToolsDialog(NULL),
-    _hmdToolsDialog(NULL),
-    _newLocationDialog(NULL),
-    _userLocationsDialog(NULL),
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     _speechRecognizer(),
 #endif
@@ -122,8 +116,8 @@ Menu::Menu() :
     _fpsAverage(FIVE_SECONDS_OF_FRAMES),
     _fastFPSAverage(ONE_SECOND_OF_FRAMES),
     _loginAction(NULL),
-    _preferencesDialog(NULL),
-    _loginDialog(NULL),
+    _newLocationDialog(NULL),
+    _userLocationsDialog(NULL),
     _hasLoginDialogDisplayed(false),
     _snapshotsLocation(),
     _scriptsLocation(),
