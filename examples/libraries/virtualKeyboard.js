@@ -9,182 +9,50 @@
 //  Usage: Enable VR-mode and go to First person mode,
 //  look at the key that you would like to press, and press the spacebar on your "REAL" keyboard.
 //
-//  leased some code from newEditEntities.js for Text Entity example
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("../../libraries/globals.js");
-
 // experimental 3dmode
-const THREE_D_MODE = true;
+THREE_D_MODE = false;
 
-const KBD_UPPERCASE_DEFAULT = 0;
-const KBD_LOWERCASE_DEFAULT = 1;
-const KBD_UPPERCASE_HOVER   = 2;
-const KBD_LOWERCASE_HOVER   = 3;
-const KBD_BACKGROUND        = 4;
+KBD_UPPERCASE_DEFAULT = 0;
+KBD_LOWERCASE_DEFAULT = 1;
+KBD_UPPERCASE_HOVER   = 2;
+KBD_LOWERCASE_HOVER   = 3;
+KBD_BACKGROUND        = 4;
 
-const KEYBOARD_URL = HIFI_PUBLIC_BUCKET + "images/keyboard.svg";
-const CURSOR_URL = HIFI_PUBLIC_BUCKET + "images/cursor.svg";
+KEYBOARD_URL = HIFI_PUBLIC_BUCKET + "images/keyboard.svg";
+CURSOR_URL = HIFI_PUBLIC_BUCKET + "images/cursor.svg";
 
-const SPACEBAR_CHARCODE = 32;
+RETURN_CHARCODE = 0x01000004;
+ENTER_CHARCODE = 0x01000005;
+SPACEBAR_CHARCODE = 32;
 
-const KEYBOARD_WIDTH  = 1174.7;
-const KEYBOARD_HEIGHT = 434.1;
+KEYBOARD_WIDTH  = 1174.7;
+KEYBOARD_HEIGHT = 434.1;
 
-const CURSOR_WIDTH = 33.9;
-const CURSOR_HEIGHT = 33.9;
+CURSOR_WIDTH = 33.9;
+CURSOR_HEIGHT = 33.9;
+
+KEYBOARD_SCALE_MULTIPLIER = 0.50;
 
 // VIEW_ANGLE can be adjusted to your likings, the smaller the faster movement.
 // Try setting it to 60 if it goes too fast for you.
 const VIEW_ANGLE = 40.0;
 const VIEW_ANGLE_BY_TWO = VIEW_ANGLE / 2;
 
-const SPAWN_DISTANCE = 1;
-const DEFAULT_TEXT_DIMENSION_Z = 0.02;
-
 const BOUND_X = 0;
 const BOUND_Y = 1;
 const BOUND_W = 2;
 const BOUND_H = 3;
 
-const KEY_STATE_LOWER = 0;
-const KEY_STATE_UPPER = 1;
-
-const TEXT_MARGIN_TOP = 0.15;
-const TEXT_MARGIN_LEFT = 0.15;
-const TEXT_MARGIN_RIGHT = 0.17;
-const TEXT_MARGIN_BOTTOM = 0.17;
+KEY_STATE_LOWER = 0;
+KEY_STATE_UPPER = 1;
 
 var windowDimensions = Controller.getViewportDimensions();
-var cursor = null;
-var keyboard = new Keyboard();
-var textFontSize = 9;
-var text = null;
-var textText = "";
-var textSizeMeasureOverlay = Overlays.addOverlay("text3d", {visible: false});
 
-function appendChar(char) {
-    textText += char;
-    updateTextOverlay();
-    Overlays.editOverlay(text, {text: textText});
-}
-
-function deleteChar() {
-    if (textText.length > 0) {
-        textText = textText.substring(0, textText.length - 1);
-        updateTextOverlay();
-    }
-}
-
-function updateTextOverlay() {
-    var textLines = textText.split("\n");
-    var maxLineWidth = 0;
-    for (textLine in textLines) {
-        var lineWidth = Overlays.textSize(text, textLines[textLine]).width;
-        if (lineWidth > maxLineWidth) {
-            maxLineWidth = lineWidth;
-        }
-    }
-    var suggestedFontSize = (windowDimensions.x / maxLineWidth) * textFontSize * 0.90;
-    var maxFontSize = 190 / textLines.length;
-    textFontSize = (suggestedFontSize > maxFontSize) ? maxFontSize : suggestedFontSize;
-    var topMargin = (250 - (textFontSize * textLines.length)) / 4;
-    Overlays.editOverlay(text, {text: textText, font: {size: textFontSize}, topMargin: topMargin});
-    var maxLineWidth = 0;
-    for (textLine in textLines) {
-        var lineWidth = Overlays.textSize(text, textLines[textLine]).width;
-        if (lineWidth > maxLineWidth) {
-            maxLineWidth = lineWidth;
-        }
-    }
-    Overlays.editOverlay(text, {leftMargin: (windowDimensions.x - maxLineWidth) / 2});
-}
-
-keyboard.onKeyPress = function(event) {
-    if (event.event == 'keypress') {
-        appendChar(event.char);
-    } else if (event.event == 'enter') {
-        appendChar("\n");
-    }
-};
-
-keyboard.onKeyRelease = function(event) {
-    print("Key release event test");
-    // you can cancel a key by releasing its focusing before releasing it
-    if (event.focus) {
-        if (event.event == 'delete') {
-           deleteChar();
-        } else if (event.event == 'submit') {
-           print(textText);
-
-           var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
-
-           var textLines = textText.split("\n");
-           var maxLineWidth = 0;
-           for (textLine in textLines) {
-               var lineWidth = Overlays.textSize(textSizeMeasureOverlay, textLines[textLine]).width;
-               if (lineWidth > maxLineWidth) {
-                   maxLineWidth = lineWidth;
-               }
-           }
-           var usernameLine = "--" + GlobalServices.myUsername;
-           var usernameWidth = Overlays.textSize(textSizeMeasureOverlay, usernameLine).width;
-           if (maxLineWidth < usernameWidth) {
-               maxLineWidth = usernameWidth;
-           } else {
-               var spaceableWidth = maxLineWidth - usernameWidth;
-               var spaceWidth = Overlays.textSize(textSizeMeasureOverlay, " ").width;
-               var numberOfSpaces = Math.floor(spaceableWidth / spaceWidth);
-               for (var i = 0; i < numberOfSpaces; i++) {
-                   usernameLine = " " + usernameLine;
-               }
-           }
-           var dimension_x = maxLineWidth + TEXT_MARGIN_RIGHT + TEXT_MARGIN_LEFT;
-           if (position.x > 0 && position.y > 0 && position.z > 0) {
-               Entities.addEntity({ 
-                   type: "Text",
-                   rotation: MyAvatar.orientation,
-                   position: position,
-                   dimensions: { x: dimension_x, y: (textLines.length + 1) * 0.14 + TEXT_MARGIN_TOP + TEXT_MARGIN_BOTTOM, z: DEFAULT_TEXT_DIMENSION_Z },
-                   backgroundColor: { red: 0, green: 0, blue: 0 },
-                   textColor: { red: 255, green: 255, blue: 255 },
-                   text: textText + "\n" + usernameLine
-               });
-           }
-           textText = "";
-           updateTextOverlay();
-        }
-    }
-};
-
-keyboard.onFullyLoaded = function() {
-    print("Virtual-keyboard fully loaded.");
-    var dimensions = Controller.getViewportDimensions();
-    text = Overlays.addOverlay("text", {
-         x: 0,
-         y: dimensions.y - keyboard.height() - 260,
-         width: dimensions.x,
-         height: 250,
-         backgroundColor: { red: 255, green: 255, blue: 255},
-         color: { red: 0, green: 0, blue: 0},
-         topMargin: 5,
-         leftMargin: 0,
-         font: {size: textFontSize},
-         text: "",
-         alpha: 0.8
-    });
-    updateTextOverlay();
-    // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
-    cursor = new Cursor();
-    cursor.onUpdate = function(position) {
-        keyboard.setFocusPosition(position.x, position.y);
-    };
-};
-
-function KeyboardKey(keyboard, keyProperties) {
+KeyboardKey = (function(keyboard, keyProperties) {
     var tthis = this;
     this._focus = false;
     this._beingPressed = false;
@@ -250,6 +118,11 @@ function KeyboardKey(keyboard, keyProperties) {
              });
         }
     };
+    this.updateVisibility = function() {
+        for (var i = 0; i < tthis.bounds.length; i++) {
+             Overlays.editOverlay(tthis.overlays[i], {visible: tthis.keyboard.visible});
+        }
+    };
     this.rescale = function() {
         for (var i = 0; i < tthis.bounds.length; i++) {
              Overlays.editOverlay(tthis.overlays[i], {
@@ -276,36 +149,42 @@ function KeyboardKey(keyboard, keyProperties) {
     for (var i = 0; i < this.bounds.length; i++) {
         var newOverlay = Overlays.cloneOverlay(this.keyboard.background);
         if (THREE_D_MODE) {
-	        Overlays.editOverlay(newOverlay, {
-	            position: {
-	                x: MyAvatar.position.x,// + this.bounds[i][BOUND_X] * 0.01,// /*+ this.keyboard.getX()*/ + this.bounds[i][BOUND_X] * keyboard.scale,
-	                y: MyAvatar.position.y,// - this.bounds[i][BOUND_Y] * 0.01,// /*+ this.keyboard.getY()*/ + this.bounds[i][BOUND_Y] * keyboard.scale,
-	                z: MyAvatar.position.z
-	            },
-	            width: this.bounds[i][BOUND_W] * keyboard.scale,
-	            height: this.bounds[i][BOUND_H] * keyboard.scale,
-	            subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
-	            alpha: 1
-	        });
+            Overlays.editOverlay(newOverlay, {
+                position: {
+                    x: MyAvatar.position.x,// + this.bounds[i][BOUND_X] * 0.01,// /*+ this.keyboard.getX()*/ + this.bounds[i][BOUND_X] * keyboard.scale,
+                    y: MyAvatar.position.y,// - this.bounds[i][BOUND_Y] * 0.01,// /*+ this.keyboard.getY()*/ + this.bounds[i][BOUND_Y] * keyboard.scale,
+                    z: MyAvatar.position.z
+                },
+                width: this.bounds[i][BOUND_W] * keyboard.scale,
+                height: this.bounds[i][BOUND_H] * keyboard.scale,
+                subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
+                alpha: 1,
+                visible: tthis.keyboard.visible
+            });
         } else {
-	        Overlays.editOverlay(newOverlay, {
-	            x: this.keyboard.getX() + this.bounds[i][BOUND_X] * keyboard.scale,
-	            y: this.keyboard.getY() + this.bounds[i][BOUND_Y] * keyboard.scale,
-	            width: this.bounds[i][BOUND_W] * keyboard.scale,
-	            height: this.bounds[i][BOUND_H] * keyboard.scale,
-	            subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
-	            alpha: 1
-	        });
+            Overlays.editOverlay(newOverlay, {
+                x: this.keyboard.getX() + this.bounds[i][BOUND_X] * keyboard.scale,
+                y: this.keyboard.getY() + this.bounds[i][BOUND_Y] * keyboard.scale,
+                width: this.bounds[i][BOUND_W] * keyboard.scale,
+                height: this.bounds[i][BOUND_H] * keyboard.scale,
+                subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
+                alpha: 1,
+                visible: tthis.keyboard.visible
+            });
         }
         this.overlays.push(newOverlay);
     }
-}
+});
 
-function Keyboard() {
+Keyboard = (function(params) {
+    if (params === undefined) {
+        params = {};
+    }
     var tthis = this;
     this.focussed_key = -1;
-    this.scale = windowDimensions.x / KEYBOARD_WIDTH;
+    this.scale = (windowDimensions.x / KEYBOARD_WIDTH) * KEYBOARD_SCALE_MULTIPLIER;
     this.shift = false;
+    this.visible = params.visible != undefined ? params.visible :true;
     this.width = function() {
         return KEYBOARD_WIDTH * tthis.scale;
     };
@@ -319,30 +198,32 @@ function Keyboard() {
         return windowDimensions.y - this.height();
     };
     if (THREE_D_MODE) {
-	    this.background = Overlays.addOverlay("billboard", {
-	        scale: 1,
-	        position: MyAvatar.position,
-	        rotation: MyAvatar.rotation,
-	        width: this.width(),
-	        height: this.height(),
-	        subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
-	        isFacingAvatar: false,
-	        url: KEYBOARD_URL,
-	        alpha: 1
-	    });
+        this.background = Overlays.addOverlay("billboard", {
+            scale: 1,
+            position: MyAvatar.position,
+            rotation: MyAvatar.rotation,
+            width: this.width(),
+            height: this.height(),
+            subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
+            isFacingAvatar: false,
+            url: KEYBOARD_URL,
+            alpha: 1,
+            visible: this.visible
+        });
     } else {
-	    this.background = Overlays.addOverlay("image", {
-	        x: this.getX(),
-	        y: this.getY(),
-	        width: this.width(),
-	        height: this.height(),
-	        subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
-	        imageURL: KEYBOARD_URL,
-	        alpha: 1
-	    });
+        this.background = Overlays.addOverlay("image", {
+            x: this.getX(),
+            y: this.getY(),
+            width: this.width(),
+            height: this.height(),
+            subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
+            imageURL: KEYBOARD_URL,
+            alpha: 1,
+            visible: this.visible
+        });
     }
     this.rescale = function() {
-        this.scale = windowDimensions.x / KEYBOARD_WIDTH;
+        this.scale = (windowDimensions.x / KEYBOARD_WIDTH) * KEYBOARD_SCALE_MULTIPLIER;
         Overlays.editOverlay(tthis.background, {
             x: this.getX(),
             y: this.getY(),
@@ -380,6 +261,9 @@ function Keyboard() {
     };
 
     this.pressFocussedKey = function() {
+        if (!tthis.visible) {
+            return tthis;
+        }
         if (tthis.focussed_key != -1) {
             if (tthis.keys[tthis.focussed_key].event == 'shift') {
                 tthis.toggleShift();
@@ -432,6 +316,28 @@ function Keyboard() {
         Overlays.deleteOverlay(this.background);
         for (var i = 0; i < this.keys.length; i++) {
             this.keys[i].remove();
+        }
+    };
+
+    this.show = function() {
+        tthis.visible = true;
+        tthis.updateVisibility();
+    };
+
+    this.hide = function() {
+        tthis.visible = false;
+        tthis.updateVisibility();
+    };
+
+    this.toggle = function() {
+        tthis.visible = !tthis.visible;
+        tthis.updateVisibility();
+    };
+
+    this.updateVisibility = function() {
+        Overlays.editOverlay(tthis.background, { visible: tthis.visible });
+        for (var i = 0; i < this.keys.length; i++) {
+            this.keys[i].updateVisibility();
         }
     };
 
@@ -546,9 +452,9 @@ function Keyboard() {
         }
     };
     this.keyboardTextureLoaded_timer = Script.setInterval(this.keyboardTextureLoaded, 250);
-}
+});
 
-function Cursor() {
+Cursor = (function() {
     var tthis = this;
     this.x = windowDimensions.x / 2;
     this.y = windowDimensions.y / 2;
@@ -602,28 +508,4 @@ function Cursor() {
         }
     };
     Script.update.connect(this.update);
-}
-
-function keyPressEvent(event) {
-    if (event.key === SPACEBAR_CHARCODE) {
-        keyboard.pressFocussedKey();
-    }
-}
-
-function keyReleaseEvent(event) {
-    if (event.key === SPACEBAR_CHARCODE) {
-        keyboard.releaseKeys();
-    }
-}
-
-function scriptEnding() {
-    keyboard.remove();
-    cursor.remove();
-    Overlays.deleteOverlay(text);
-    Overlays.deleteOverlay(textSizeMeasureOverlay);
-    Controller.releaseKeyEvents({key: SPACEBAR_CHARCODE});
-}
-Controller.captureKeyEvents({key: SPACEBAR_CHARCODE});
-Controller.keyPressEvent.connect(keyPressEvent);
-Controller.keyReleaseEvent.connect(keyReleaseEvent);
-Script.scriptEnding.connect(scriptEnding);
+});
