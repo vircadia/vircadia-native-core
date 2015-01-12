@@ -16,6 +16,8 @@
 #include <QTimer>
 #include <QtDebug>
 
+#include <glm/glm.hpp>
+
 #include "NetworkAccessManager.h"
 
 #include "ResourceCache.h"
@@ -70,7 +72,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
 }
 
 void ResourceCache::setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize) {
-    _unusedResourcesMaxSize = unusedResourcesMaxSize;
+    _unusedResourcesMaxSize = glm::clamp(unusedResourcesMaxSize, MIN_UNUSED_MAX_SIZE, MAX_UNUSED_MAX_SIZE);
     reserveUnusedResource(0);
 }
 

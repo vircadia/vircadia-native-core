@@ -29,7 +29,14 @@ class Resource;
 
 static constexpr qint64 BYTES_PER_MEGABYTES = 1024 * 1024;
 static constexpr qint64 BYTES_PER_GIGABYTES = 1024 * BYTES_PER_MEGABYTES;
+
+// Windows can have troubles allocating that much memory in ram sometimes
+// so default cache size at 100 MB on windows (1GB otherwise)
+#ifdef Q_OS_WIN32
 static constexpr qint64 DEFAULT_UNUSED_MAX_SIZE = 100 * BYTES_PER_MEGABYTES;
+#else
+static constexpr qint64 DEFAULT_UNUSED_MAX_SIZE = 1024 * BYTES_PER_MEGABYTES;
+#endif
 static constexpr qint64 MIN_UNUSED_MAX_SIZE = 0;
 static constexpr qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 
