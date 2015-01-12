@@ -28,7 +28,10 @@ class QTimer;
 class Resource;
 
 static constexpr qint64 BYTES_PER_MEGABYTES = 1024 * 1024;
-static constexpr qint64 DEFAULT_MAX_SIZE = 100 * BYTES_PER_MEGABYTES;
+static constexpr qint64 BYTES_PER_GIGABYTES = 1024 * BYTES_PER_MEGABYTES;
+static constexpr qint64 DEFAULT_UNUSED_MAX_SIZE = 100 * BYTES_PER_MEGABYTES;
+static constexpr qint64 MIN_UNUSED_MAX_SIZE = 0;
+static constexpr qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 
 /// Base class for resource caches.
 class ResourceCache : public QObject {
@@ -51,7 +54,7 @@ public:
     void refresh(const QUrl& url);
 
 protected:
-    qint64 _unusedResourcesMaxSize = DEFAULT_MAX_SIZE;
+    qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
     qint64 _unusedResourcesSize = 0;
     QMap<int, QSharedPointer<Resource> > _unusedResources;
 

@@ -166,6 +166,7 @@ Resource::~Resource() {
     if (_reply) {
         ResourceCache::requestCompleted(this);
         delete _reply;
+        _reply = nullptr;
     }
 }
 
