@@ -2589,8 +2589,7 @@ void Application::updateShadowMap() {
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
-//const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
-const GLfloat WORLD_AMBIENT_COLOR[] = { 0.2f, 0.2f, 0.3f };
+const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
 const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
 
