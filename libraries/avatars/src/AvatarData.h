@@ -152,6 +152,8 @@ class AvatarData : public QObject {
 public:
     AvatarData();
     virtual ~AvatarData();
+    
+    virtual bool isMyAvatar() { return false; }
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
 
