@@ -13,10 +13,12 @@
 #define hifi_HMDScriptingInterface_h
 
 #include "Application.h"
+#include "devices/OculusManager.h"
 
 class HMDScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool magnifier READ getMagnifier)
+    Q_PROPERTY(bool VRMode READ getVRMode)
 public:
     static HMDScriptingInterface& getInstance();
 
@@ -26,6 +28,7 @@ public slots:
 private:
     HMDScriptingInterface() {};
     bool getMagnifier() const { return Application::getInstance()->getApplicationOverlay().hasMagnifier(); };
+    bool getVRMode() const { return OculusManager::isConnected(); }
 
 };
 
