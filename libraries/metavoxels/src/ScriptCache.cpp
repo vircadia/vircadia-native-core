@@ -109,9 +109,12 @@ ScriptCache* ScriptCache::getInstance() {
 }
 
 ScriptCache::ScriptCache() :
-    _engine(NULL) {
-    
+    _engine(NULL)
+{
     setEngine(new QScriptEngine(this));
+    
+    const qint64 SCRIPT_DEFAULT_UNUSED_MAX_SIZE = 50 * BYTES_PER_MEGABYTES;
+    setUnusedResourceCacheSize(SCRIPT_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 void ScriptCache::setEngine(QScriptEngine* engine) {
