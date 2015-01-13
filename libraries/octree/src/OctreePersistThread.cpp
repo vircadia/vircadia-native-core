@@ -44,11 +44,9 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
 }
 
 void OctreePersistThread::parseSettings(const QJsonObject& settings) {
-    qDebug() << "settings[backups]:" << settings["backups"];
-
     if (settings["backups"].isArray()) {
         const QJsonArray& backupRules = settings["backups"].toArray();
-        qDebug() << "BACKUP RULES:" << backupRules;
+        qDebug() << "BACKUP RULES:";
 
         foreach (const QJsonValue& value, backupRules) {
             QJsonObject obj = value.toObject();
@@ -65,10 +63,6 @@ void OctreePersistThread::parseSettings(const QJsonObject& settings) {
             if (newRule.lastBackup > 0) {
                 quint64 now = usecTimestampNow();
                 quint64 sinceLastBackup = now - newRule.lastBackup;
-                qDebug() << "               now:" << now;
-                qDebug() << "newRule.lastBackup:" << newRule.lastBackup;
-                qDebug() << "   sinceLastBackup:" << sinceLastBackup;
-                
                 qDebug() << "        lastBackup:" << qPrintable(formatUsecTime(sinceLastBackup)) << "ago";
             } else {
                 qDebug() << "        lastBackup: NEVER";
@@ -235,9 +229,6 @@ void OctreePersistThread::persist() {
             _tree->clearDirtyBit(); // tree is clean after saving
             qDebug() << "DONE saving Octree to file...";
 
-            // force crash
-            //assert(false);
-            
             lockFile.close();
             qDebug() << "saving Octree lock file closed:" << lockFileName;
             remove(qPrintable(lockFileName));
@@ -358,21 +349,12 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
 void OctreePersistThread::backup() {
     if (_wantBackup) {
         quint64 now = usecTimestampNow();
-        qDebug() << "OctreePersistThread::backup() - now:" << now;
         
-        // TODO: add a loop over all backup rules, we need to keep track of the last backup for each rule
-        // because we need to know when each backup rule has "elapsed"
         for(int i = 0; i < _backupRules.count(); i++) {
             BackupRule& rule = _backupRules[i];
 
             quint64 sinceLastBackup = now - rule.lastBackup;
 
-            qDebug() << "               now:" << now;
-            qDebug() << "newRule.lastBackup:" << rule.lastBackup;
-            qDebug() << "   sinceLastBackup:" << sinceLastBackup;
-        
-            qDebug() << "        lastBackup:" << qPrintable(formatUsecTime(sinceLastBackup)) << "ago";
-        
             quint64 SECS_TO_USECS = 1000 * 1000;
             quint64 intervalToBackup = rule.interval * SECS_TO_USECS;
         
