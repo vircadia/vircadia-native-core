@@ -18,6 +18,8 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonObject>
 
 #include <PerfStat.h>
 #include <SharedUtil.h>
@@ -25,38 +27,68 @@
 #include "OctreePersistThread.h"
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
-const int OctreePersistThread::DEFAULT_BACKUP_INTERVAL = 1000 * 60 * 30; // every 30 minutes
-const QString OctreePersistThread::DEFAULT_BACKUP_EXTENSION_FORMAT(".backup.%N");
-const int OctreePersistThread::DEFAULT_MAX_BACKUP_VERSIONS = 5;
-
 
 OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, int persistInterval, 
-                                                bool wantBackup, int backupInterval, const QString& backupExtensionFormat,
-                                                int maxBackupVersions, bool debugTimestampNow) :
+                                                bool wantBackup, const QJsonObject& settings, bool debugTimestampNow) :
     _tree(tree),
     _filename(filename),
-    _backupExtensionFormat(backupExtensionFormat),
-    _maxBackupVersions(maxBackupVersions),
     _persistInterval(persistInterval),
-    _backupInterval(backupInterval),
     _initialLoadComplete(false),
     _loadTimeUSecs(0),
     _lastCheck(0),
-    _lastBackup(0),
     _wantBackup(wantBackup),
     _debugTimestampNow(debugTimestampNow),
     _lastTimeDebug(0)
 {
+    parseSettings(settings);
 }
 
-quint64 OctreePersistThread::getMostRecentBackupTimeInUsecs() {
+void OctreePersistThread::parseSettings(const QJsonObject& settings) {
+    qDebug() << "settings[backups]:" << settings["backups"];
+
+    if (settings["backups"].isArray()) {
+        const QJsonArray& backupRules = settings["backups"].toArray();
+        qDebug() << "BACKUP RULES:" << backupRules;
+
+        foreach (const QJsonValue& value, backupRules) {
+            QJsonObject obj = value.toObject();
+            qDebug() << "    Name:" << obj["Name"].toString();
+            qDebug() << "        format:" << obj["format"].toString();
+            qDebug() << "        interval:" << obj["backupInterval"].toInt();
+            qDebug() << "        count:" << obj["maxBackupVersions"].toInt();
+
+            BackupRule newRule = { obj["Name"].toString(), obj["backupInterval"].toInt(), 
+                                    obj["format"].toString(), obj["maxBackupVersions"].toInt(), 0};
+                                    
+            newRule.lastBackup = getMostRecentBackupTimeInUsecs(obj["format"].toString());
+            
+            if (newRule.lastBackup > 0) {
+                quint64 now = usecTimestampNow();
+                quint64 sinceLastBackup = now - newRule.lastBackup;
+                qDebug() << "               now:" << now;
+                qDebug() << "newRule.lastBackup:" << newRule.lastBackup;
+                qDebug() << "   sinceLastBackup:" << sinceLastBackup;
+                
+                qDebug() << "        lastBackup:" << qPrintable(formatUsecTime(sinceLastBackup)) << "ago";
+            } else {
+                qDebug() << "        lastBackup: NEVER";
+            }
+            
+            _backupRules << newRule;
+        }        
+    } else {
+        qDebug() << "BACKUP RULES: NONE";
+    }
+}
+
+quint64 OctreePersistThread::getMostRecentBackupTimeInUsecs(const QString& format) {
 
     quint64 mostRecentBackupInUsecs = 0;
 
     QString mostRecentBackupFileName;
     QDateTime mostRecentBackupTime;
     
-    bool recentBackup = getMostRecentBackup(mostRecentBackupFileName, mostRecentBackupTime);
+    bool recentBackup = getMostRecentBackup(format, mostRecentBackupFileName, mostRecentBackupTime);
     
     if (recentBackup) {
         mostRecentBackupInUsecs = mostRecentBackupTime.toMSecsSinceEpoch() * USECS_PER_MSEC;
@@ -129,12 +161,6 @@ bool OctreePersistThread::process() {
 
         // Since we just loaded the persistent file, we can consider ourselves as having "just checked" for persistance.
         _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
-        
-        // The last backup time, should be the timestamp for most recent backup file.
-        _lastBackup = getMostRecentBackupTimeInUsecs();
-        
-        qDebug() << "Last Check:" << qPrintable(formatUsecTime(usecTimestampNow() - _lastCheck)) << "ago...";
-        qDebug() << "Last Backup:" << qPrintable(formatUsecTime(usecTimestampNow() - _lastBackup)) << "ago...";
         
         // This last persist time is not really used until the file is actually persisted. It is only
         // used in formatting the backup filename in cases of non-rolling backup names. However, we don't
@@ -226,7 +252,7 @@ void OctreePersistThread::restoreFromMostRecentBackup() {
     QString mostRecentBackupFileName;
     QDateTime mostRecentBackupTime;
     
-    bool recentBackup = getMostRecentBackup(mostRecentBackupFileName, mostRecentBackupTime);
+    bool recentBackup = getMostRecentBackup(QString(""), mostRecentBackupFileName, mostRecentBackupTime);
 
     // If we found a backup file, restore from that file.
     if (recentBackup) {
@@ -247,27 +273,31 @@ void OctreePersistThread::restoreFromMostRecentBackup() {
     }
 }
 
-bool OctreePersistThread::getMostRecentBackup(QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime) {
+bool OctreePersistThread::getMostRecentBackup(const QString& format, 
+                            QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime) {
 
     // Based on our backup file name, determine the path and file name pattern for backup files
     QFileInfo persistFileInfo(_filename);
     QString path = persistFileInfo.path();
     QString fileNamePart = persistFileInfo.fileName();
 
-    // Create a file filter that will find all backup files of this extension format
-    QString backupExtension = _backupExtensionFormat;
-    
-    if (_backupExtensionFormat.contains("%N")) {
-        backupExtension.replace(QString("%N"), "*");
+    QStringList filters;
+
+    if (format.isEmpty()) {
+        // Create a file filter that will find all backup files of this extension format
+        foreach(const BackupRule& rule, _backupRules) {
+            QString backupExtension = rule.extensionFormat;
+            backupExtension.replace(QRegExp("%."), "*");
+            QString backupFileNamePart = fileNamePart + backupExtension;
+            filters << backupFileNamePart;
+        }
     } else {
-        qDebug() << "This backup extension format does not yet support restoring from most recent backup...";
-        return false; // exit early, unable to restore from backup
+        QString backupExtension = format;
+        backupExtension.replace(QRegExp("%."), "*");
+        QString backupFileNamePart = fileNamePart + backupExtension;
+        filters << backupFileNamePart;
     }
     
-    QString backupFileNamePart = fileNamePart + backupExtension;
-    QStringList filters;
-    filters << backupFileNamePart;
-
     bool bestBackupFound = false;        
     QString bestBackupFile;
     QDateTime bestBackupFileTime;
@@ -295,74 +325,88 @@ bool OctreePersistThread::getMostRecentBackup(QString& mostRecentBackupFileName,
     return bestBackupFound;
 }
 
-void OctreePersistThread::rollOldBackupVersions() {
-    if (!_backupExtensionFormat.contains("%N")) {
-        return; // this backup extension format doesn't support rolling
-    }
+void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
 
-    qDebug() << "Rolling old backup versions...";
-    for(int n = _maxBackupVersions - 1; n > 0; n--) {
-        QString backupExtensionN = _backupExtensionFormat;
-        QString backupExtensionNplusOne = _backupExtensionFormat;
-        backupExtensionN.replace(QString("%N"), QString::number(n));
-        backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
-        
-        QString backupFilenameN = _filename + backupExtensionN;
-        QString backupFilenameNplusOne = _filename + backupExtensionNplusOne;
+    if (rule.extensionFormat.contains("%N")) {
+        qDebug() << "Rolling old backup versions for rule" << rule.name << "...";
+        for(int n = rule.maxBackupVersions - 1; n > 0; n--) {
+            QString backupExtensionN = rule.extensionFormat;
+            QString backupExtensionNplusOne = rule.extensionFormat;
+            backupExtensionN.replace(QString("%N"), QString::number(n));
+            backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
+    
+            QString backupFilenameN = _filename + backupExtensionN;
+            QString backupFilenameNplusOne = _filename + backupExtensionNplusOne;
 
-        QFile backupFileN(backupFilenameN);
+            QFile backupFileN(backupFilenameN);
 
-        if (backupFileN.exists()) {
-            qDebug() << "rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
-            int result = rename(qPrintable(backupFilenameN), qPrintable(backupFilenameNplusOne));
-            if (result == 0) {
-                qDebug() << "DONE rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
-            } else {
-                qDebug() << "ERROR in rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+            if (backupFileN.exists()) {
+                qDebug() << "rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+                int result = rename(qPrintable(backupFilenameN), qPrintable(backupFilenameNplusOne));
+                if (result == 0) {
+                    qDebug() << "DONE rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+                } else {
+                    qDebug() << "ERROR in rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+                }
             }
         }
+        qDebug() << "Done rolling old backup versions...";
     }
-    qDebug() << "Done rolling old backup versions...";
 }
 
 
 void OctreePersistThread::backup() {
     if (_wantBackup) {
         quint64 now = usecTimestampNow();
-        quint64 sinceLastBackup = now - _lastBackup;
-        quint64 MSECS_TO_USECS = 1000;
-        quint64 intervalToBackup = _backupInterval * MSECS_TO_USECS;
+        qDebug() << "OctreePersistThread::backup() - now:" << now;
         
-        if (sinceLastBackup > intervalToBackup) {
-            qDebug() << "Time since last backup [" << sinceLastBackup << "] exceeds backup interval [" 
-                                    << intervalToBackup << "] doing backup now...";
+        // TODO: add a loop over all backup rules, we need to keep track of the last backup for each rule
+        // because we need to know when each backup rule has "elapsed"
+        for(int i = 0; i < _backupRules.count(); i++) {
+            BackupRule& rule = _backupRules[i];
 
-            struct tm* localTime = localtime(&_lastPersistTime);
+            quint64 sinceLastBackup = now - rule.lastBackup;
 
-            QString backupFileName;
+            qDebug() << "               now:" << now;
+            qDebug() << "newRule.lastBackup:" << rule.lastBackup;
+            qDebug() << "   sinceLastBackup:" << sinceLastBackup;
+        
+            qDebug() << "        lastBackup:" << qPrintable(formatUsecTime(sinceLastBackup)) << "ago";
+        
+            quint64 SECS_TO_USECS = 1000 * 1000;
+            quint64 intervalToBackup = rule.interval * SECS_TO_USECS;
+        
+            if (sinceLastBackup > intervalToBackup) {
+                qDebug() << "Time since last backup [" << sinceLastBackup << "] for rule [" << rule.name 
+                                        << "] exceeds backup interval [" << intervalToBackup << "] doing backup now...";
+
+                struct tm* localTime = localtime(&_lastPersistTime);
+
+                QString backupFileName;
             
-            // check to see if they asked for version rolling format
-            if (_backupExtensionFormat.contains("%N")) {
-                rollOldBackupVersions(); // rename all the old backup files accordingly
-                QString backupExtension = _backupExtensionFormat;
-                backupExtension.replace(QString("%N"), QString("1"));
-                backupFileName = _filename + backupExtension;
-            } else {
-                char backupExtension[256];
-                strftime(backupExtension, sizeof(backupExtension), qPrintable(_backupExtensionFormat), localTime);
-                backupFileName = _filename + backupExtension;
-            }
+                // check to see if they asked for version rolling format
+                if (rule.extensionFormat.contains("%N")) {
+                    rollOldBackupVersions(rule); // rename all the old backup files accordingly
+                    QString backupExtension = rule.extensionFormat;
+                    backupExtension.replace(QString("%N"), QString("1"));
+                    backupFileName = _filename + backupExtension;
+                } else {
+                    char backupExtension[256];
+                    strftime(backupExtension, sizeof(backupExtension), qPrintable(rule.extensionFormat), localTime);
+                    backupFileName = _filename + backupExtension;
+                }
 
 
-            qDebug() << "backing up persist file " << _filename << "to" << backupFileName << "...";
-            int result = rename(qPrintable(_filename), qPrintable(backupFileName));
-            if (result == 0) {
-                qDebug() << "DONE backing up persist file...";
-            } else {
-                qDebug() << "ERROR in backing up persist file...";
-            }
+                qDebug() << "backing up persist file " << _filename << "to" << backupFileName << "...";
+                bool result = QFile::copy(_filename, backupFileName);
+                if (result) {
+                    qDebug() << "DONE backing up persist file...";
+                } else {
+                    qDebug() << "ERROR in backing up persist file...";
+                }
             
-            _lastBackup = now;
+                rule.lastBackup = now;
+            }
         }
     }
 }

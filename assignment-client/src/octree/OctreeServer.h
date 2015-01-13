@@ -150,6 +150,7 @@ protected:
     int _argc;
     const char** _argv;
     char** _parsedArgV;
+    QJsonObject _settings;
 
     HTTPManager* _httpManager;
     int _statusPort;

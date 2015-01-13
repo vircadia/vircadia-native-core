@@ -308,70 +308,86 @@
         "label": "Persistant Filename",
         "help": "the filename for your entities",
         "placeholder": "resources/models.svo",
-        "default": "resources/models.svo",
-        "advanced": true
+        "default": "resources/models.svo"
       },
       {
         "name": "persistInterval",
         "label": "Persist Interval",
         "help": "Interval between persist checks in msecs.",
         "placeholder": "30000",
-        "default": "30000",
-        "advanced": true
+        "default": "30000"
+      },
+      {
+        "name": "backups",
+        "type": "table",
+        "label": "Backup Rules",
+        "help": "In this table you can define a set of rules for how frequently to backup copies of your content file.",
+        "numbered": false,
+        "default":  [
+                        {"Name":"Half Hourly Rolling","backupInterval":1800,"format":".backup.halfhourly.%N","maxBackupVersions":5},
+                        {"Name":"Daily Rolling","backupInterval":86400,"format":".backup.daily.%N","maxBackupVersions":7},
+                        {"Name":"Weekly Rolling","backupInterval":604800,"format":".backup.weekly.%N","maxBackupVersions":4},
+                        {"Name":"Thirty Day Rolling","backupInterval":2592000,"format":".backup.thirtyday.%N","maxBackupVersions":12}
+                    ],
+        "columns": [
+          {
+            "name": "Name",
+            "label": "Name",
+            "can_set": true,
+            "placeholder": "Example",
+            "default": "Example"
+          },
+          {
+            "name": "format",
+            "label": "Rule Format",
+            "can_set": true,
+            "help": "Format used to create the extension for the backup of your persisted entities. Use a format with %N to get rolling. Or use date formatting like %Y-%m-%d.%H:%M:%S.%z",
+            "placeholder": ".backup.example.%N",
+            "default": ".backup.example.%N"
+          },
+          {
+            "name": "backupInterval",
+            "label": "Backup Interval",
+            "help": "Interval between backup checks in seconds.",
+            "placeholder": 1800,
+            "default": 1800,
+            "can_set": true
+          },
+          {
+            "name": "maxBackupVersions",
+            "label": "Max Rolled Backup Versions",
+            "help": "If your backup extension format uses 'rolling', how many versions do you want us to keep?",
+            "placeholder": 5,
+            "default": 5,
+            "can_set": true
+          }
+        ]
       },
       {
         "name": "NoPersist",
         "type": "checkbox",
         "help": "Don't persist your entities to a file.",
-        "default": false,
-        "advanced": true
-      },
-      {
-        "name": "backupExtensionFormat",
-        "label": "Backup File Extension Format:",
-        "help": "Format used to create the extension for the backup of your persisted entities. Use a format with %N to get rolling. Or use date formatting like %Y-%m-%d.%H:%M:%S.%z",
-        "placeholder": ".backup.%N",
-        "default": ".backup.%N",
-        "advanced": true
-      },
-      {
-        "name": "backupInterval",
-        "label": "Backup Interval",
-        "help": "Interval between backup checks in msecs.",
-        "placeholder": "1800000",
-        "default": "1800000",
-        "advanced": true
-      },
-      {
-        "name": "maxBackupVersions",
-        "label": "Max Rolled Backup Versions",
-        "help": "If your backup extension format uses 'rolling', how many versions do you want us to keep?",
-        "placeholder": "5",
-        "default": "5",
-        "advanced": true
+        "default": false
       },
       {
         "name": "NoBackup",
         "type": "checkbox",
         "help": "Don't regularly backup your persisted entities to a backup file.",
-        "default": false,
-        "advanced": true
+        "default": false
       },
       {
         "name": "statusHost",
         "label": "Status Hostname",
         "help": "host name or IP address of the server for accessing the status page",
         "placeholder": "",
-        "default": "",
-        "advanced": true
+        "default": ""
       },
       {
         "name": "statusPort",
         "label": "Status Port",
         "help": "port of the server for accessing the status page",
         "placeholder": "",
-        "default": "",
-        "advanced": true
+        "default": ""
       },
       {
         "name": "verboseDebug",
