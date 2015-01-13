@@ -181,8 +181,6 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject) {
         locationMap = dataObject[DATA_OBJECT_USER_LOCATION_KEY].toMap();
     }
     
-    qDebug() << locationMap;
-    
     if (!locationMap.isEmpty()) {
         const QString LOCATION_API_ROOT_KEY = "root";
         const QString LOCATION_API_DOMAIN_KEY = "domain";
@@ -222,7 +220,8 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject) {
                 
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
-                _rootPlaceName = rootMap[PLACE_NAME_KEY].toString();
+                QString newRootPlaceName = rootMap[PLACE_NAME_KEY].toString();
+                setRootPlaceName(newRootPlaceName);
                 
                 // take the path that came back
                 const QString PLACE_PATH_KEY = "path";
@@ -382,6 +381,13 @@ bool AddressManager::handleUsername(const QString& lookupString) {
     }
     
     return false;
+}
+
+void AddressManager::setRootPlaceName(const QString& rootPlaceName) {
+    if (rootPlaceName != _rootPlaceName) {
+        _rootPlaceName = rootPlaceName;
+        emit rootPlaceNameChanged(_rootPlaceName);
+    }
 }
 
 

@@ -43,7 +43,9 @@ public:
     const QString currentPath(bool withOrientation = true) const;
     
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
+    
     const QString& getRootPlaceName() const { return _rootPlaceName; }
+    void setRootPlaceName(const QString& rootPlaceName);
     
     void attemptPlaceNameLookup(const QString& lookupString);
     
@@ -68,6 +70,7 @@ signals:
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
+    void rootPlaceNameChanged(const QString& newRootPlaceName);
 protected:
     AddressManager();
 private slots:
