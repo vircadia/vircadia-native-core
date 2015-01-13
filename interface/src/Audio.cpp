@@ -880,7 +880,7 @@ bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* inje
         localFormat.setChannelCount(isStereo ? 2 : 1);
         
         QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
-                                                     localFormat, this);
+                                                     localFormat);
         localOutput->setVolume(volume);
         
         // move the localOutput to the same thread as the local injector buffer
