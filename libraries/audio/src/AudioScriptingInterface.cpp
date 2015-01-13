@@ -13,7 +13,8 @@
 
 void registerAudioMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, injectorOptionsToScriptValue, injectorOptionsFromScriptValue);
-    qScriptRegisterMetaType(engine, soundToScriptValue, soundFromScriptValue);
+    qScriptRegisterMetaType(engine, soundSharedPointerToScriptValue, soundSharedPointerFromScriptValue);
+    qScriptRegisterMetaType(engine, soundPointerToScriptValue, soundPointerFromScriptValue);
 }
 
 AudioScriptingInterface& AudioScriptingInterface::getInstance() {

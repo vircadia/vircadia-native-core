@@ -198,19 +198,23 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         const float FAR_CLIP = 10000;
         glLoadIdentity();
         glOrtho(0, glCanvas->width(), glCanvas->height(), 0, NEAR_CLIP, FAR_CLIP);
-        
+
+        glMatrixMode(GL_MODELVIEW);
+
         renderAudioMeter();
-        
+
         renderStatsAndLogs();
-        
+
         // give external parties a change to hook in
         emit application->renderingOverlay();
-        
+
         overlays.renderHUD();
-        
+
         renderPointers();
-        
+
         renderDomainConnectionStatusBorder();
+
+        glMatrixMode(GL_PROJECTION);
     } glPopMatrix();
 
     glMatrixMode(GL_MODELVIEW);

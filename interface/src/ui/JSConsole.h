@@ -20,6 +20,11 @@
 #include "ui_console.h"
 #include "ScriptEngine.h"
 
+const QString CONSOLE_TITLE = "Scripting Console";
+const float CONSOLE_WINDOW_OPACITY = 0.95f;
+const int CONSOLE_WIDTH = 800;
+const int CONSOLE_HEIGHT = 200;
+
 class JSConsole : public QWidget {
     Q_OBJECT
 public:

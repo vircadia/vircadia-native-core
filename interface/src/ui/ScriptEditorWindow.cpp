@@ -31,8 +31,6 @@
 #include "FlowLayout.h"
 #include "JSConsole.h"
 
-const int CONSOLE_HEIGHT = 150;
-
 ScriptEditorWindow::ScriptEditorWindow() :
     _ScriptEditorWindowUI(new Ui::ScriptEditorWindow),
     _loadMenu(new QMenu),

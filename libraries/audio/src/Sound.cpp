@@ -29,13 +29,22 @@
 #include "AudioEditBuffer.h"
 #include "Sound.h"
 
-QScriptValue soundToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in) {
+static int soundMetaTypeId = qRegisterMetaType<Sound*>();
+
+QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in) {
     return engine->newQObject(in.data());
 }
 
-void soundFromScriptValue(const QScriptValue &object, SharedSoundPointer &out) {
+void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer &out) {
     out = SharedSoundPointer(qobject_cast<Sound*>(object.toQObject()));
-    qDebug() << "Sound from script value" << out.data();
+}
+
+QScriptValue soundPointerToScriptValue(QScriptEngine* engine, Sound* const& in) {
+    return engine->newQObject(in);
+}
+
+void soundPointerFromScriptValue(const QScriptValue &object, Sound* &out) {
+    out = qobject_cast<Sound*>(object.toQObject());
 }
 
 Sound::Sound(const QUrl& url, bool isStereo) :

@@ -110,7 +110,7 @@ public:
     
     Transform transform;
     int texcoordSet;
-    std::string texcoordSetName;
+    QString texcoordSetName;
 };
 
 /// A single part of a mesh (with the same material).
