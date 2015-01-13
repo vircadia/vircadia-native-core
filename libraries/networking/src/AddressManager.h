@@ -42,6 +42,7 @@ public:
     const QUrl currentAddress() const;
     const QString currentPath(bool withOrientation = true) const;
     
+    const QUuid& getRootPlaceID() const { return _rootPlaceID; }
     const QString& getRootPlaceName() const { return _rootPlaceName; }
     
     void attemptPlaceNameLookup(const QString& lookupString);

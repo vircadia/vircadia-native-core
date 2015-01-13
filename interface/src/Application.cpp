@@ -3124,23 +3124,32 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
+    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
     DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
     
-    if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
+    if (accountManager.isLoggedIn() && domainHandler.isConnected()
+        && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
 
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
         QJsonObject locationObject;
         
-        QString pathString = DependencyManager::get<AddressManager>()->currentPath();
+        QString pathString = addressManager->currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
-        const QString PATH_KEY_IN_LOCATION = "path";
-        const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
         
+        const QString PATH_KEY_IN_LOCATION = "path";
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
+        
+        if (!addressManager->getRootPlaceID().isNull()) {
+            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
+            locationObject.insert(PLACE_ID_KEY_IN_LOCATION, addressManager->getRootPlaceID().toString());
+            
+        } else {
+            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
+        }
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
