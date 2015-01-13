@@ -138,8 +138,10 @@ function drawLobby() {
     // add an attachment on this avatar so other people see them in the lobby
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
-    // start the drone sound
-    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+    if (droneSound.downloaded) {
+      // start the drone sound
+      currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+    }
     
     // start one of our muzak sounds
     playRandomMuzak();
@@ -353,7 +355,7 @@ function update(deltaTime) {
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
-    if (!Audio.isInjectorPlaying(currentMuzakInjector)) {
+    if (currentMuzakInjector && !Audio.isInjectorPlaying(currentMuzakInjector)) {
       playNextMuzak();
     }
   }
