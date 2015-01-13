@@ -105,6 +105,8 @@ CameraManager = function() {
         Camera.mode = "independent";
 
         that.updateCamera();
+
+        cameraTool.setVisible(true);
     }
 
     that.disable = function(ignoreCamera) {
@@ -115,6 +117,7 @@ CameraManager = function() {
         if (!ignoreCamera) {
             Camera.mode = that.previousCameraMode;
         }
+        cameraTool.setVisible(false);
     }
 
     that.focus = function(position, dimensions, easeOrientation) {
