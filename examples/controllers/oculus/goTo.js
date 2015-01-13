@@ -18,6 +18,7 @@
 
 Script.include("../../libraries/globals.js");
 Script.include("../../libraries/virtualKeyboard.js");
+Script.include("../../libraries/soundArray.js");
 
 var windowDimensions = Controller.getViewportDimensions();
 var cursor = null;
@@ -25,6 +26,12 @@ var keyboard = new Keyboard({visible: false});
 var textFontSize = 9;
 var text = null;
 var locationURL = "";
+
+var randomSounds = new SoundArray({}, true);
+var numberOfSounds = 7;
+for (var i = 1; i <= numberOfSounds; i++) {
+    randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/virtualKeyboard-press" + i + ".raw");
+}
 
 function appendChar(char) {
     locationURL += char;
@@ -51,6 +58,7 @@ function updateTextOverlay() {
 }
 
 keyboard.onKeyPress = function(event) {
+    randomSounds.playRandom();
     if (event.event == 'keypress') {
         appendChar(event.char);
     }
@@ -66,7 +74,7 @@ keyboard.onKeyRelease = function(event) {
            print("going to hifi://" + locationURL);
            location = "hifi://" + locationURL;
            locationURL = "";
-		   keyboard.hide();
+           keyboard.hide();
            updateTextOverlay();
         }
     }
