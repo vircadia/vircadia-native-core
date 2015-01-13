@@ -49,6 +49,23 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
 {
 }
 
+quint64 OctreePersistThread::getMostRecentBackupTimeInUsecs() {
+
+    quint64 mostRecentBackupInUsecs = 0;
+
+    QString mostRecentBackupFileName;
+    QDateTime mostRecentBackupTime;
+    
+    bool recentBackup = getMostRecentBackup(mostRecentBackupFileName, mostRecentBackupTime);
+    
+    if (recentBackup) {
+        mostRecentBackupInUsecs = mostRecentBackupTime.toMSecsSinceEpoch() * USECS_PER_MSEC;
+    }
+
+    return mostRecentBackupInUsecs;
+}
+
+
 bool OctreePersistThread::process() {
 
     if (!_initialLoadComplete) {
@@ -109,7 +126,19 @@ bool OctreePersistThread::process() {
         }
 
         _initialLoadComplete = true;
-        _lastBackup = _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
+
+        // Since we just loaded the persistent file, we can consider ourselves as having "just checked" for persistance.
+        _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
+        
+        // The last backup time, should be the timestamp for most recent backup file.
+        _lastBackup = getMostRecentBackupTimeInUsecs();
+        
+        qDebug() << "Last Check:" << qPrintable(formatUsecTime(usecTimestampNow() - _lastCheck)) << "ago...";
+        qDebug() << "Last Backup:" << qPrintable(formatUsecTime(usecTimestampNow() - _lastBackup)) << "ago...";
+        
+        // This last persist time is not really used until the file is actually persisted. It is only
+        // used in formatting the backup filename in cases of non-rolling backup names. However, we don't
+        // want an uninitialized value for this, so we set it to the current time (startup of the server)
         time(&_lastPersistTime);
 
         emit loadCompleted();
@@ -193,6 +222,32 @@ void OctreePersistThread::persist() {
 
 void OctreePersistThread::restoreFromMostRecentBackup() {
     qDebug() << "Restoring from most recent backup...";
+    
+    QString mostRecentBackupFileName;
+    QDateTime mostRecentBackupTime;
+    
+    bool recentBackup = getMostRecentBackup(mostRecentBackupFileName, mostRecentBackupTime);
+
+    // If we found a backup file, restore from that file.
+    if (recentBackup) {
+        qDebug() << "BEST backup file:" << mostRecentBackupFileName << " last modified:" << mostRecentBackupTime.toString();
+
+        qDebug() << "Removing old file:" << _filename;
+        remove(qPrintable(_filename));
+
+        qDebug() << "Restoring backup file " << mostRecentBackupFileName << "...";
+        bool result = QFile::copy(mostRecentBackupFileName, _filename);
+        if (result) {
+            qDebug() << "DONE restoring backup file " << mostRecentBackupFileName << "to" << _filename << "...";
+        } else {
+            qDebug() << "ERROR while restoring backup file " << mostRecentBackupFileName << "to" << _filename << "...";
+        }
+    } else {
+        qDebug() << "NO BEST backup file found.";
+    }
+}
+
+bool OctreePersistThread::getMostRecentBackup(QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime) {
 
     // Based on our backup file name, determine the path and file name pattern for backup files
     QFileInfo persistFileInfo(_filename);
@@ -206,7 +261,7 @@ void OctreePersistThread::restoreFromMostRecentBackup() {
         backupExtension.replace(QString("%N"), "*");
     } else {
         qDebug() << "This backup extension format does not yet support restoring from most recent backup...";
-        return; // exit early, unable to restore from backup
+        return false; // exit early, unable to restore from backup
     }
     
     QString backupFileNamePart = fileNamePart + backupExtension;
@@ -231,24 +286,13 @@ void OctreePersistThread::restoreFromMostRecentBackup() {
             bestBackupFileTime = lastModified;
         }
     }
-    
-    // If we found a backup file, restore from that file.
+
+    // If we found a backup then return the results    
     if (bestBackupFound) {
-        qDebug() << "BEST backup file:" << bestBackupFile << " last modified:" << bestBackupFileTime.toString();
-
-        qDebug() << "Removing old file:" << _filename;
-        remove(qPrintable(_filename));
-
-        qDebug() << "Restoring backup file " << bestBackupFile << "...";
-        bool result = QFile::copy(bestBackupFile, _filename);
-        if (result) {
-            qDebug() << "DONE restoring backup file " << bestBackupFile << "to" << _filename << "...";
-        } else {
-            qDebug() << "ERROR while restoring backup file " << bestBackupFile << "to" << _filename << "...";
-        }
-    } else {
-        qDebug() << "NO BEST backup file found.";
+        mostRecentBackupFileName = bestBackupFile;
+        mostRecentBackupTime = bestBackupFileTime;
     }
+    return bestBackupFound;
 }
 
 void OctreePersistThread::rollOldBackupVersions() {

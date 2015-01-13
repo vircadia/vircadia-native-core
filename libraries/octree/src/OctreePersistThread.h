@@ -49,6 +49,8 @@ protected:
     void backup();
     void rollOldBackupVersions();
     void restoreFromMostRecentBackup();
+    bool getMostRecentBackup(QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
+    quint64 getMostRecentBackupTimeInUsecs();
     
 private:
     Octree* _tree;
