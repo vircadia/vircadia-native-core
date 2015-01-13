@@ -3112,7 +3112,7 @@ void Application::updateWindowTitle(){
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
+        + DependencyManager::get<AddressManager>()->getRootPlaceName() + connectionStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32

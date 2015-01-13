@@ -89,11 +89,6 @@ const QString AddressManager::currentPath(bool withOrientation) const {
     }
 }
 
-QString AddressManager::getDomainID() const {
-    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
-    return domainID.isNull() ? "" : uuidStringWithoutCurlyBraces(domainID);
-}
-
 const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     static bool hasSetupParameters = false;
     static JSONCallbackParameters callbackParams;
@@ -174,73 +169,90 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     emit lookupResultsFinished();
 }
 
-void AddressManager::goToAddressFromObject(const QVariantMap& addressMap) {
-    const QString ADDRESS_API_ROOT_KEY = "root";
-    const QString ADDRESS_API_DOMAIN_KEY = "domain";
-    const QString ADDRESS_API_ONLINE_KEY = "online";
+void AddressManager::goToAddressFromObject(const QVariantMap& dataObject) {
     
-    if (!addressMap.contains(ADDRESS_API_ONLINE_KEY)
-        || addressMap[ADDRESS_API_ONLINE_KEY].toBool()) {
-        
-        QVariantMap rootMap = addressMap[ADDRESS_API_ROOT_KEY].toMap();
-        if (rootMap.isEmpty()) {
-            rootMap = addressMap;
-        }
-        
-        QVariantMap domainObject = rootMap[ADDRESS_API_DOMAIN_KEY].toMap();
+    const QString DATA_OBJECT_PLACE_KEY = "place";
+    const QString DATA_OBJECT_USER_LOCATION_KEY = "location";
     
-        if (!domainObject.isEmpty()) {
-            const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
-            const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
+    QVariantMap locationMap;
+    if (dataObject.contains(DATA_OBJECT_PLACE_KEY)) {
+        locationMap = dataObject[DATA_OBJECT_PLACE_KEY].toMap();
+    } else {
+        locationMap = dataObject[DATA_OBJECT_USER_LOCATION_KEY].toMap();
+    }
+    
+    qDebug() << locationMap;
+    
+    if (!locationMap.isEmpty()) {
+        const QString LOCATION_API_ROOT_KEY = "root";
+        const QString LOCATION_API_DOMAIN_KEY = "domain";
+        const QString LOCATION_API_ONLINE_KEY = "online";
+        
+        if (!locationMap.contains(LOCATION_API_ONLINE_KEY)
+            || locationMap[LOCATION_API_ONLINE_KEY].toBool()) {
             
-            if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
-                QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
-                
-                emit possibleDomainChangeRequired(domainHostname, DEFAULT_DOMAIN_SERVER_PORT);
-            } else {
-                QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
-                
-                const QString DOMAIN_ID_KEY = "id";
-                QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
-                QUuid domainID(domainIDString);
-                
-                emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
+            QVariantMap rootMap = locationMap[LOCATION_API_ROOT_KEY].toMap();
+            if (rootMap.isEmpty()) {
+                rootMap = locationMap;
             }
             
-            // set our current root place id to the ID that came back
-            const QString PLACE_ID_KEY = "id";
-            _rootPlaceID = rootMap[PLACE_ID_KEY].toUuid();
+            QVariantMap domainObject = rootMap[LOCATION_API_DOMAIN_KEY].toMap();
             
-            // set our current root place name to the name that came back
-            const QString PLACE_NAME_KEY = "name";
-            _rootPlaceName = rootMap[PLACE_NAME_KEY].toString();
-            
-            // take the path that came back
-            const QString PLACE_PATH_KEY = "path";
-            QString returnedPath;
-            
-            if (addressMap.contains(PLACE_PATH_KEY) && !addressMap[PLACE_PATH_KEY].toString().isEmpty()) {
-                returnedPath = addressMap[PLACE_PATH_KEY].toString();
-            } else if (rootMap.contains(PLACE_PATH_KEY) && !rootMap[PLACE_PATH_KEY].toString().isEmpty()) {
-                returnedPath = rootMap[PLACE_PATH_KEY].toString();
-            }
-            
-            bool shouldFaceViewpoint = addressMap.contains(ADDRESS_API_ONLINE_KEY);
-            
-            if (!returnedPath.isEmpty()) {
-                // try to parse this returned path as a viewpoint, that's the only thing it could be for now
-                if (!handleRelativeViewpoint(returnedPath, shouldFaceViewpoint)) {
-                    qDebug() << "Received a location path that was could not be handled as a viewpoint -" << returnedPath;
+            if (!domainObject.isEmpty()) {
+                const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
+                const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
+                
+                if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
+                    QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
+                    
+                    emit possibleDomainChangeRequired(domainHostname, DEFAULT_DOMAIN_SERVER_PORT);
+                } else {
+                    QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
+                    
+                    const QString DOMAIN_ID_KEY = "id";
+                    QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
+                    QUuid domainID(domainIDString);
+                    
+                    emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
                 }
+                
+                // set our current root place id to the ID that came back
+                const QString PLACE_ID_KEY = "id";
+                _rootPlaceID = rootMap[PLACE_ID_KEY].toUuid();
+                
+                // set our current root place name to the name that came back
+                const QString PLACE_NAME_KEY = "name";
+                _rootPlaceName = rootMap[PLACE_NAME_KEY].toString();
+                
+                // take the path that came back
+                const QString PLACE_PATH_KEY = "path";
+                QString returnedPath;
+                
+                if (locationMap.contains(PLACE_PATH_KEY) && !locationMap[PLACE_PATH_KEY].toString().isEmpty()) {
+                    returnedPath = locationMap[PLACE_PATH_KEY].toString();
+                } else if (rootMap.contains(PLACE_PATH_KEY) && !rootMap[PLACE_PATH_KEY].toString().isEmpty()) {
+                    returnedPath = rootMap[PLACE_PATH_KEY].toString();
+                }
+                
+                bool shouldFaceViewpoint = locationMap.contains(LOCATION_API_ONLINE_KEY);
+                
+                if (!returnedPath.isEmpty()) {
+                    // try to parse this returned path as a viewpoint, that's the only thing it could be for now
+                    if (!handleRelativeViewpoint(returnedPath, shouldFaceViewpoint)) {
+                        qDebug() << "Received a location path that was could not be handled as a viewpoint -" << returnedPath;
+                    }
+                }
+            } else {
+                qDebug() << "Received an address manager API response with no domain key. Cannot parse.";
+                qDebug() << locationMap;
             }
-            
         } else {
-            qDebug() << "Received an address manager API response with no domain key. Cannot parse.";
-            qDebug() << addressMap;
+            // we've been told that this result exists but is offline, emit our signal so the application can handle
+            emit lookupResultIsOffline();
         }
     } else {
-        // we've been told that this result exists but is offline, emit our signal so the application can handle
-        emit lookupResultIsOffline();
+        qDebug() << "Received an address manager API response with no location key or place key. Cannot parse.";
+        qDebug() << locationMap;
     }
 }
 
@@ -373,8 +385,10 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 
-void AddressManager::setDomainInfo(const QString& hostname, quint16 port, const QString& domainName) {
-    _currentDomain = domainName.isEmpty() ? hostname : domainName;
+void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
+    _rootPlaceName = hostname;
+    _rootPlaceID = QUuid();
+    
     emit possibleDomainChangeRequired(hostname, port);
 }
 

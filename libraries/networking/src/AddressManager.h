@@ -33,9 +33,8 @@ class AddressManager : public QObject {
     Q_PROPERTY(bool isConnected READ isConnected)
     Q_PROPERTY(QUrl href READ currentAddress)
     Q_PROPERTY(QString protocol READ getProtocol)
-    Q_PROPERTY(QString hostname READ getCurrentDomain)
+    Q_PROPERTY(QString hostname READ getRootPlaceName)
     Q_PROPERTY(QString pathname READ currentPath)
-    Q_PROPERTY(QString domainID READ getDomainID)
 public:
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
@@ -43,8 +42,7 @@ public:
     const QUrl currentAddress() const;
     const QString currentPath(bool withOrientation = true) const;
     
-    const QString& getCurrentDomain() const { return _currentDomain; }
-    QString getDomainID() const;
+    const QString& getRootPlaceName() const { return _rootPlaceName; }
     
     void attemptPlaceNameLookup(const QString& lookupString);
     
@@ -75,7 +73,7 @@ private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
 private:
-    void setDomainInfo(const QString& hostname, quint16 port, const QString& domainName = QString());
+    void setDomainInfo(const QString& hostname, quint16 port);
     
     const JSONCallbackParameters& apiCallbackParameters();
     
