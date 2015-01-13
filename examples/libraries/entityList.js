@@ -24,10 +24,38 @@ EntityListTool = function(opts) {
             type: 'selectionUpdate',
             selectedIDs: selectedIDs,
         };
+        print("Sending: " + JSON.stringify(data));
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
+    function sendUpdate() {
+        var entities = [];
+        var ids = Entities.findEntities(MyAvatar.position, 100);
+        for (var i = 0; i < ids.length; i++) {
+            var id = ids[i];
+            var properties = Entities.getEntityProperties(id);
+            entities.push({
+                id: id.id,
+                type: properties.type,
+                url: properties.type == "Model" ? properties.modelURL : "",
+            });
+        }
+
+        var selectedIDs = [];
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            selectedIDs.push(selectionManager.selections[i].id);
+        }
+
+        var data = {
+            type: "update",
+            entities: entities,
+            selectedIDs: selectedIDs,
+        };
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+    }
+
     webView.eventBridge.webEventReceived.connect(function(data) {
+        print("Got: " + data);
         data = JSON.parse(data);
         if (data.type == "selectionUpdate") {
             var ids = data.entityIds;
@@ -46,22 +74,13 @@ EntityListTool = function(opts) {
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
             }
         } else if (data.type == "refresh") {
-            var entities = [];
-            var ids = Entities.findEntities(MyAvatar.position, 100);
-            for (var i = 0; i < ids.length; i++) {
-                var id = ids[i];
-                var properties = Entities.getEntityProperties(id);
-                entities.push({
-                    id: id.id,
-                    type: properties.type,
-                    url: properties.type == "Model" ? properties.modelURL : "",
-                });
+            sendUpdate();
+        } else if (data.type == "teleport") {
+            if (selectionManager.hasSelection()) {
+                MyAvatar.position = selectionManager.worldPosition;
             }
-            var data = {
-                type: "update",
-                entities: entities,
-            };
-            webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+        } else if (data.type == "delete") {
+            deleteSelectedEntities();
         }
     });
 

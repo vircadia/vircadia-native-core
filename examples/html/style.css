@@ -114,6 +114,7 @@ table#entity-table {
 
 #entity-table tr {
     cursor: pointer;
+    border-bottom: 1px solid #e5e5e5;
 }
 
 #entity-table tr.selected {
@@ -133,14 +134,18 @@ table#entity-table {
     border: 0px black solid;
     word-wrap: nowrap;
     white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#entity-table td.url {
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 th#entity-type {
     width: 60px;
 }
 
-th#entity-url {
-}
 
 
 div.input-area {
@@ -185,4 +190,21 @@ table#properties-table {
 
 col#col-label {
     width: 130px;
+}
+
+div.outer {
+    position: relative;
+}
+div.inner {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    position: absolute;
+    width: 100%;
+}
+
+td {
+
+
+        vertical-align: top;
 }
