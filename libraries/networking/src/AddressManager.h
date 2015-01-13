@@ -85,7 +85,8 @@ private:
     bool handleRelativeViewpoint(const QString& pathSubsection, bool shouldFace = false);
     bool handleUsername(const QString& lookupString);
     
-    QString _currentDomain;
+    QString _rootPlaceName;
+    QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
 };

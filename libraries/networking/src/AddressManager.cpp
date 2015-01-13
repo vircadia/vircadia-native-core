@@ -22,7 +22,8 @@
 #include "AddressManager.h"
 
 AddressManager::AddressManager() :
-    _currentDomain(),
+    _rootPlaceName(),
+    _rootPlaceID(),
     _positionGetter(NULL),
     _orientationGetter(NULL)
 {
@@ -37,7 +38,7 @@ const QUrl AddressManager::currentAddress() const {
     QUrl hifiURL;
     
     hifiURL.setScheme(HIFI_URL_SCHEME);
-    hifiURL.setHost(_currentDomain);
+    hifiURL.setHost(_rootPlaceName);
     hifiURL.setPath(currentPath());
     
     return hifiURL;
@@ -174,15 +175,21 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
 }
 
 void AddressManager::goToAddressFromObject(const QVariantMap& addressMap) {
+    const QString ADDRESS_API_ROOT_KEY = "root";
     const QString ADDRESS_API_DOMAIN_KEY = "domain";
     const QString ADDRESS_API_ONLINE_KEY = "online";
     
     if (!addressMap.contains(ADDRESS_API_ONLINE_KEY)
         || addressMap[ADDRESS_API_ONLINE_KEY].toBool()) {
         
-        if (addressMap.contains(ADDRESS_API_DOMAIN_KEY)) {
-            QVariantMap domainObject = addressMap[ADDRESS_API_DOMAIN_KEY].toMap();
-            
+        QVariantMap rootMap = addressMap[ADDRESS_API_ROOT_KEY].toMap();
+        if (rootMap.isEmpty()) {
+            rootMap = addressMap;
+        }
+        
+        QVariantMap domainObject = rootMap[ADDRESS_API_DOMAIN_KEY].toMap();
+    
+        if (!domainObject.isEmpty()) {
             const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
             const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
             
@@ -200,22 +207,22 @@ void AddressManager::goToAddressFromObject(const QVariantMap& addressMap) {
                 emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
             }
             
-            // set our current domain to the name that came back
-            const QString DOMAIN_NAME_KEY = "name";
+            // set our current root place id to the ID that came back
+            const QString PLACE_ID_KEY = "id";
+            _rootPlaceID = rootMap[PLACE_ID_KEY].toUuid();
             
-            _currentDomain = domainObject[DOMAIN_NAME_KEY].toString();
+            // set our current root place name to the name that came back
+            const QString PLACE_NAME_KEY = "name";
+            _rootPlaceName = rootMap[PLACE_NAME_KEY].toString();
             
             // take the path that came back
-            const QString LOCATION_KEY = "location";
-            const QString LOCATION_PATH_KEY = "path";
+            const QString PLACE_PATH_KEY = "path";
             QString returnedPath;
             
-            if (domainObject.contains(LOCATION_PATH_KEY)) {
-                returnedPath = domainObject[LOCATION_PATH_KEY].toString();
-            } else if (domainObject.contains(LOCATION_KEY)) {
-                returnedPath = domainObject[LOCATION_KEY].toMap()[LOCATION_PATH_KEY].toString();
-            } else if (addressMap.contains(LOCATION_PATH_KEY)) {
-                returnedPath = addressMap[LOCATION_PATH_KEY].toString();
+            if (addressMap.contains(PLACE_PATH_KEY) && !addressMap[PLACE_PATH_KEY].toString().isEmpty()) {
+                returnedPath = addressMap[PLACE_PATH_KEY].toString();
+            } else if (rootMap.contains(PLACE_PATH_KEY) && !rootMap[PLACE_PATH_KEY].toString().isEmpty()) {
+                returnedPath = rootMap[PLACE_PATH_KEY].toString();
             }
             
             bool shouldFaceViewpoint = addressMap.contains(ADDRESS_API_ONLINE_KEY);
