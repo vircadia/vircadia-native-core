@@ -373,7 +373,7 @@ font: bold 16px;
 font: bold 16px;</string>
            </property>
            <property name="text">
-            <string>Scripts</string>
+            <string>Load Scripts</string>
            </property>
           </widget>
          </item>
@@ -389,16 +389,6 @@ font: bold 16px;</string>
             </size>
            </property>
           </spacer>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_2">
-           <property name="styleSheet">
-            <string notr="true">color: #0e7077; font: bold 14px;</string>
-           </property>
-           <property name="text">
-            <string>Load script </string>
-           </property>
-          </widget>
          </item>
          <item>
           <widget class="QPushButton" name="loadScriptFromURLButton">
