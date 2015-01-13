@@ -232,6 +232,7 @@ var toolBar = (function () {
                 cameraManager.disable();
             } else {
                 hasShownPropertiesTool = false;
+                entityListTool.setVisible(true);
                 cameraManager.enable();
                 gridTool.setVisible(true);
                 grid.setEnabled(true);
