@@ -398,42 +398,20 @@ CameraTool = function(cameraManager) {
     var GREEN = { red: 26, green: 193, blue: 105 };
     var BLUE = { red: 0, green: 131, blue: 204 };
 
-    var ORIENTATION_OVERLAY_SIZE = 20;
+    var BORDER_WIDTH = 1;
+
+    var ORIENTATION_OVERLAY_SIZE = 26;
     var ORIENTATION_OVERLAY_HALF_SIZE = ORIENTATION_OVERLAY_SIZE / 2;
-    var ORIENTATION_OVERLAY_CUBE_SIZE = 8,
+    var ORIENTATION_OVERLAY_CUBE_SIZE = 11,
 
     var ORIENTATION_OVERLAY_OFFSET = {
-        x: 96,
+        x: 30,
         y: 30,
     }
 
-    var UI_URL = HIFI_PUBLIC_BUCKET + "images/tools/camera-controls.svg";
-
-    var UI_WIDTH = 128;
-    var UI_HEIGHT = 61;
+    var UI_WIDTH = 70;
+    var UI_HEIGHT = 70;
     var UI_PADDING = 10;
-
-    var UI_BUTTON_WIDTH = 64;
-    var UI_BUTTON_HEIGHT = 30;
-
-    var UI_SUBIMAGE_FIRST_PERSON = {
-        x: 0,
-        y: 0,
-        width: UI_WIDTH,
-        height: UI_HEIGHT
-    },
-    var UI_SUBIMAGE_THIRD_PERSON = {
-        x: 0,
-        y: UI_HEIGHT,
-        width: UI_WIDTH,
-        height: UI_HEIGHT
-    },
-    var UI_SUBIMAGE_OTHER = {
-        x: 0,
-        y: UI_HEIGHT * 2,
-        width: UI_WIDTH,
-        height: UI_HEIGHT
-    },
 
     var lastKnownWidth = Window.innerWidth;
 
@@ -442,20 +420,28 @@ CameraTool = function(cameraManager) {
         y: UI_PADDING,
     };
 
-    var ui = Overlays.addOverlay("image", {
-        imageURL: UI_URL,
+    var backgroundBorder = Overlays.addOverlay("text", {
+        x: uiPosition.x - BORDER_WIDTH,
+        y: uiPosition.y - BORDER_WIDTH,
+        width: UI_WIDTH + BORDER_WIDTH * 2,
+        height: UI_HEIGHT + BORDER_WIDTH * 2,
+        alpha: 0,
+        text: "",
+        backgroundColor: { red: 101, green: 101, blue: 101 },
+        backgroundAlpha: 1.0,
+        visible: false,
+    });
+
+    var background = Overlays.addOverlay("text", {
         x: uiPosition.x,
         y: uiPosition.y,
-        subImage: {
-            x: 0,
-            y: 0,
-            width: UI_WIDTH,
-            height: UI_HEIGHT
-        },
         width: UI_WIDTH,
         height: UI_HEIGHT,
-        alpha: 1.0,
-        visible: true
+        alpha: 0,
+        text: "",
+        backgroundColor: { red: 51, green: 51, blue: 51 },
+        backgroundAlpha: 1.0,
+        visible: false,
     });
 
     var defaultCubeProps = {
@@ -473,15 +459,16 @@ CameraTool = function(cameraManager) {
         start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
         color: { red: 255, green: 0, blue: 0 },
-        visible: true,
+        visible: false,
         drawOnHUD: true,
     };
 
     var orientationOverlay = OverlayGroup({
         position: {
-            x: uiPosition.x + ORIENTATION_OVERLAY_OFFSET.x,
-            y: uiPosition.y + ORIENTATION_OVERLAY_OFFSET.y,
-        }
+            x: uiPosition.x + UI_WIDTH / 2,
+            y: uiPosition.y + UI_HEIGHT / 2,
+        },
+        visible: false,
     });
 
     var OOHS = ORIENTATION_OVERLAY_HALF_SIZE;
@@ -515,7 +502,8 @@ CameraTool = function(cameraManager) {
 
     Script.scriptEnding.connect(function() {
         orientationOverlay.destroy();
-        Overlays.deleteOverlay(ui);
+        Overlays.deleteOverlay(background);
+        Overlays.deleteOverlay(backgroundBorder);
     });
 
     var flip = Quat.fromPitchYawRollDegrees(0, 180, 0);
@@ -530,15 +518,19 @@ CameraTool = function(cameraManager) {
                 x: lastKnownWidth - UI_WIDTH - UI_PADDING,
                 y: UI_PADDING,
             };
-            Overlays.editOverlay(ui, {
-                x: uiPosition.x,
-                y: uiPosition.y
-            });
             orientationOverlay.setProperties({
                 position: {
                     x: uiPosition.x + ORIENTATION_OVERLAY_OFFSET.x,
                     y: uiPosition.y + ORIENTATION_OVERLAY_OFFSET.y,
                 }
+            });
+            Overlays.editOverlay(backgroundBorder, {
+                x: uiPosition.x - BORDER_WIDTH,
+                y: uiPosition.y - BORDER_WIDTH,
+            });
+            Overlays.editOverlay(background, {
+                x: uiPosition.x,
+                y: uiPosition.y,
             });
         }
     }
@@ -561,40 +553,16 @@ CameraTool = function(cameraManager) {
             targetYaw = event.isLeftButton ? 0 : 180;
             cameraManager.setTargetPitchYaw(targetPitch, targetYaw);
             return true;
-        } else if (clickedOverlay == ui) {
-            var x = event.x - uiPosition.x;
-            var y = event.y - uiPosition.y;
-
-            // Did we hit a button?
-            if (x < UI_BUTTON_WIDTH) {
-                if (y < UI_BUTTON_HEIGHT) {
-                    Camera.mode = "first person";
-                } else {
-                    Camera.mode = "third person";
-                }
-            }
-            return true;
         }
     };
-
-    function updateMode() {
-        var mode = Camera.mode;
-
-        var subImage = UI_SUBIMAGE_OTHER;
-        if (mode == "first person") {
-            subImage = UI_SUBIMAGE_FIRST_PERSON;
-        } else if (mode == "third person") {
-            subImage = UI_SUBIMAGE_THIRD_PERSON;
-        }
-
-        Overlays.editOverlay(ui, { subImage: subImage });
-    }
-
-    Camera.modeUpdated.connect(updateMode);
-    updateMode();
 
     that.setVisible = function(visible) {
+        orientationOverlay.setProperties({ visible: visible });
+        Overlays.editOverlay(background, { visible: visible });
+        Overlays.editOverlay(backgroundBorder, { visible: visible });
     };
+
+    that.setVisible(false);
 
     return that;
 };
