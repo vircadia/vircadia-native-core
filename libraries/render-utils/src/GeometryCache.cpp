@@ -1871,9 +1871,9 @@ void GeometryReader::run() {
         if (!_reply) {
             throw QString("Reply is NULL ?!");
         }
-        std::string urlname = _url.path().toLower().toStdString();
+        QString urlname = _url.path().toLower();
         bool urlValid = true;
-        urlValid &= !urlname.empty();
+        urlValid &= !urlname.isEmpty();
         urlValid &= !_url.path().isEmpty();
         urlValid &= _url.path().toLower().endsWith(".fbx")
                     || _url.path().toLower().endsWith(".svo");

@@ -38,7 +38,7 @@ struct TextureParam {
     glm::vec2 UVTranslation;
     glm::vec2 UVScaling;
     glm::vec4 cropping;
-    std::string UVSet;
+    QString UVSet;
 
     glm::vec3 translation;
     glm::vec3 rotation;
@@ -803,14 +803,14 @@ public:
     QVector<QHash<int, int> > blendshapeIndexMaps;
     QVector<QPair<int, int> > partMaterialTextures;
     QHash<QString, int> texcoordSetMap;
-    std::map<std::string, int> texcoordSetMap2;
+    std::map<QString, int> texcoordSetMap2;
 };
 
 class AttributeData {
 public:
     QVector<glm::vec2> texCoords;
     QVector<int> texCoordIndices;
-    std::string name;
+    QString name;
     int index;
 };
 
@@ -946,12 +946,12 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                         data.texCoordIndices = getIntVector(subdata);
                         attrib.texCoordIndices = getIntVector(subdata);
                     } else if (subdata.name == "Name") {
-                        attrib.name = subdata.properties.at(0).toString().toStdString();
+                        attrib.name = subdata.properties.at(0).toString();
                     } 
 #if defined(DEBUG_FBXREADER)
                     else {
                         int unknown = 0;
-                        std::string subname = subdata.name.data();
+                        QString subname = subdata.name.data();
                         if ( (subdata.name == "Version")
                              || (subdata.name == "MappingInformationType")
                              || (subdata.name == "ReferenceInformationType") ) {
@@ -961,7 +961,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                     }
 #endif
                 }
-                data.extracted.texcoordSetMap.insert(QString(attrib.name.c_str()), data.attributes.size());
+                data.extracted.texcoordSetMap.insert(attrib.name, data.attributes.size());
                 data.attributes.push_back(attrib);
             } else {
                 AttributeData attrib;
@@ -972,12 +972,12 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                     } else if (subdata.name == "UVIndex") {
                         attrib.texCoordIndices = getIntVector(subdata);
                     } else if  (subdata.name == "Name") {
-                        attrib.name = subdata.properties.at(0).toString().toStdString();
+                        attrib.name = subdata.properties.at(0).toString();
                     }
 #if defined(DEBUG_FBXREADER)
                     else {
                         int unknown = 0;
-                        std::string subname = subdata.name.data();
+                        QString subname = subdata.name.data();
                         if ( (subdata.name == "Version")
                              || (subdata.name == "MappingInformationType")
                              || (subdata.name == "ReferenceInformationType") ) {
@@ -988,9 +988,9 @@ ExtractedMesh extractMesh(const FBXNode& object) {
 #endif
                 }
 
-                QHash<QString, int>::iterator it = data.extracted.texcoordSetMap.find(QString(attrib.name.c_str()));
+                QHash<QString, int>::iterator it = data.extracted.texcoordSetMap.find(attrib.name);
                 if (it == data.extracted.texcoordSetMap.end()) {
-                    data.extracted.texcoordSetMap.insert(QString(attrib.name.c_str()), data.attributes.size());
+                    data.extracted.texcoordSetMap.insert(attrib.name, data.attributes.size());
                     data.attributes.push_back(attrib);
                 } else {
                     // WTF same names for different UVs?
@@ -1199,11 +1199,11 @@ bool checkMaterialsHaveTextures(const QHash<QString, Material>& materials,
     return false;
 }
 
-int matchTextureUVSetToAttributeChannel(const std::string& texUVSetName, const QHash<QString, int>& texcoordChannels) {
-    if (texUVSetName.empty()) {
+int matchTextureUVSetToAttributeChannel(const QString& texUVSetName, const QHash<QString, int>& texcoordChannels) {
+    if (texUVSetName.isEmpty()) {
         return 0;
     } else {
-        QHash<QString, int>::const_iterator tcUnit = texcoordChannels.find(QString(texUVSetName.c_str()));
+        QHash<QString, int>::const_iterator tcUnit = texcoordChannels.find(texUVSetName);
         if (tcUnit != texcoordChannels.end()) {
             int channel = (*tcUnit);
             if (channel >= 2) {
@@ -1221,13 +1221,13 @@ FBXLight extractLight(const FBXNode& object) {
     FBXLight light;
 
     foreach (const FBXNode& subobject, object.children) {
-        std::string childname = QString(subobject.name).toStdString();
+        QString childname = QString(subobject.name);
         if (subobject.name == "Properties70") {
             foreach (const FBXNode& property, subobject.children) {
                 int valIndex = 4;
-                std::string propName = QString(property.name).toStdString();
+                QString propName = QString(property.name);
                 if (property.name == "P") {
-                    std::string propname = property.properties.at(0).toString().toStdString();
+                    QString propname = property.properties.at(0).toString();
                     if (propname == "Intensity") {
                         light.intensity = 0.01f * property.properties.at(valIndex).value<double>();
                     }
@@ -1239,13 +1239,13 @@ FBXLight extractLight(const FBXNode& object) {
     }
 #if defined(DEBUG_FBXREADER)
 
-    std::string type = object.properties.at(0).toString().toStdString();
-    type = object.properties.at(1).toString().toStdString();
-    type = object.properties.at(2).toString().toStdString();
+    QString type = object.properties.at(0).toString();
+    type = object.properties.at(1).toString();
+    type = object.properties.at(2).toString();
 
     foreach (const QVariant& prop, object.properties) {
-        std::string proptype = prop.typeName();
-        std::string propval = prop.toString().toStdString();
+        QString proptype = prop.typeName();
+        QString propval = prop.toString();
         if (proptype == "Properties70") {
         }
     }
@@ -1282,7 +1282,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     QHash<QString, QString> yComponents;
     QHash<QString, QString> zComponents;
 
-    std::map<std::string, FBXLight> lights;
+    std::map<QString, FBXLight> lights;
 
     QVariantHash joints = mapping.value("joint").toHash();
     QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
@@ -1370,7 +1370,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     int index = 4;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == propertyName) {
-                            std::string subpropName = subobject.properties.at(0).toString().toStdString();
+                            QString subpropName = subobject.properties.at(0).toString();
                             if (subpropName == "UnitScaleFactor") {
                                 unitScaleFactor = subobject.properties.at(index).toFloat();
                             } else if (subpropName == "AmbientColor") {
@@ -1394,8 +1394,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     QString id = getID(object.properties);
                     modelIDsToNames.insert(id, name);
 
-                    std::string modelname = name.toLower().toStdString();
-                    if (modelname.find("hifi") == 0) {
+                    QString modelname = name.toLower();
+                    if (modelname.startsWith("hifi")) {
                         hifiGlobalNodeID = id;
                     }
 
@@ -1528,19 +1528,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         }
 #if defined(DEBUG_FBXREADER)
                         else if (subobject.name == "TypeFlags") {
-                            std::string attributetype = subobject.properties.at(0).toString().toStdString();
+                            QString attributetype = subobject.properties.at(0).toString();
                             if (!attributetype.empty()) {
                                 if (attributetype == "Light") {
-                                    std::string lightprop; 
+                                    QString lightprop; 
                                     foreach (const QVariant& vprop, subobject.properties) {
-                                        lightprop = vprop.toString().toStdString();
+                                        lightprop = vprop.toString();
                                     }
 
                                     FBXLight light = extractLight(object);
                                 }
                             }
                         } else {
-                            std::string whatisthat = subobject.name;
+                            QString whatisthat = subobject.name;
                             if (whatisthat == "Shape") {
                             } 
                         }
@@ -1605,7 +1605,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                     if (property.name == propertyName) {
                                         QString v = property.properties.at(0).toString();
                                         if (property.properties.at(0) == "UVSet") {
-                                            tex.assign(tex.UVSet, property.properties.at(index).toString().toStdString());
+                                            tex.assign(tex.UVSet, property.properties.at(index).toString());
                                         } else if (property.properties.at(0) == "CurrentTextureBlendMode") {
                                             tex.assign<uint8_t>(tex.currentTextureBlendMode, property.properties.at(index).value<int>());
                                         } else if (property.properties.at(0) == "UseMaterial") {
@@ -1619,7 +1619,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                         }
 #if defined(DEBUG_FBXREADER)
                                         else {
-                                            std::string propName = v.toStdString();
+                                            QString propName = v;
                                             unknown++;
                                         }
 #endif
@@ -1633,7 +1633,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                             } else if (subobject.name == "FileName") {
                             } else if (subobject.name == "Media") {
                             } else {
-                                std::string subname = subobject.name.data();
+                                QString subname = subobject.name.data();
                                 unknown++;
                             }
                         }
@@ -1694,7 +1694,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                     }
 #if defined(DEBUG_FBXREADER)
                                     else {
-                                        const std::string propname = property.properties.at(0).toString().toStdString();
+                                        const QString propname = property.properties.at(0).toString();
                                         if (propname == "EmissiveFactor") {
                                         }
                                     }
@@ -1704,7 +1704,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         }
 #if defined(DEBUG_FBXREADER)
                         else {
-                            std::string propname = subobject.name.data();
+                            QString propname = subobject.name.data();
                             int unknown = 0;
                             if ( (propname == "Version")
                                 ||(propname == "ShadingModel")
@@ -1728,21 +1728,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 
                 } else if (object.name == "NodeAttribute") {
 #if defined(DEBUG_FBXREADER)
-                    std::vector<std::string> properties;
+                    std::vector<QString> properties;
                     foreach(const QVariant& v, object.properties) {
-                        properties.push_back(v.toString().toStdString());
+                        properties.push_back(v.toString());
                     }
 #endif
-                    std::string attribID = getID(object.properties).toStdString();
-                    std::string attributetype;
+                    QString attribID = getID(object.properties);
+                    QString attributetype;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "TypeFlags") {
                             typeFlags.insert(getID(object.properties), subobject.properties.at(0).toString());
-                            attributetype = subobject.properties.at(0).toString().toStdString();
+                            attributetype = subobject.properties.at(0).toString();
                         }
                     }
 
-                    if (!attributetype.empty()) {
+                    if (!attributetype.isEmpty()) {
                         if (attributetype == "Light") {
                             FBXLight light = extractLight(object);
                             lights[attribID] = light;
@@ -1790,7 +1790,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 }
 #if defined(DEBUG_FBXREADER)
                  else {
-                    std::string objectname = object.name.data();
+                    QString objectname = object.name.data();
                     if ( objectname == "Pose"
                         || objectname == "AnimationStack"
                         || objectname == "AnimationLayer"
@@ -1809,7 +1809,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         QString parentID = getID(connection.properties, 2);
                         ooChildToParent.insert(childID, parentID);
                         if (!hifiGlobalNodeID.isEmpty() && (parentID == hifiGlobalNodeID)) {
-                            std::map< std::string, FBXLight >::iterator lit = lights.find(childID.toStdString());
+                            std::map< QString, FBXLight >::iterator lit = lights.find(childID);
                             if (lit != lights.end()) {
                                 lightmapLevel = (*lit).second.intensity;
                                 if (lightmapLevel <= 0.0f) {
@@ -1851,7 +1851,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         } else if (loadLightmaps && type.contains("ambient")) {
                             ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else {
-                            std::string typenam = type.data();
+                            QString typenam = type.data();
                             counter++;
                         }
                     }
@@ -1862,7 +1862,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         }
 #if defined(DEBUG_FBXREADER)
         else {
-            std::string objectname = child.name.data();
+            QString objectname = child.name.data();
             if ( objectname == "Pose"
                 || objectname == "CreationTime"
                 || objectname == "FileId"
@@ -1884,7 +1884,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     // TODO: check if is code is needed
     if (!lights.empty()) {
         if (hifiGlobalNodeID.isEmpty()) {
-            std::map< std::string, FBXLight >::iterator l = lights.begin();
+            std::map< QString, FBXLight >::iterator l = lights.begin();
             lightmapLevel = (*l).second.intensity;
         }
     }
