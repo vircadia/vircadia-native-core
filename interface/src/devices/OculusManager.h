@@ -19,8 +19,6 @@
 
 #include <ProgramObject.h>
 
-const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
-
 class Camera;
 class PalmData;
 class Text3DOverlay;

@@ -28,7 +28,6 @@
 #endif
 
 #include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 #include "devices/SixenseManager.h"
 #include "ui/ChatWindow.h"
 #include "ui/JSConsole.h"
@@ -55,6 +54,8 @@ const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
 //////////////////////////////////////////////////////////
+
+const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
 const QString SETTINGS_ADDRESS_KEY = "address";
 class QSettings;
