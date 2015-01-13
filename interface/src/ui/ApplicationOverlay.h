@@ -116,6 +116,9 @@ private:
     int _domainStatusBorder;
     int _magnifierBorder;
 
+    int _previousBorderWidth;
+    int _previousBorderHeight;
+
     glm::vec3 _previousMagnifierBottomLeft;
     glm::vec3 _previousMagnifierBottomRight;
     glm::vec3 _previousMagnifierTopLeft;

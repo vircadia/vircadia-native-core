@@ -950,6 +950,20 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
         auto glCanvas = DependencyManager::get<GLCanvas>();
         auto geometryCache = DependencyManager::get<GeometryCache>();
+        int width = glCanvas->width();
+        int height = glCanvas->height();
+
+        if (width != _previousBorderWidth || height != _previousBorderHeight) {
+            QVector<glm::vec2> border;
+            border << glm::vec2(0, 0);
+            border << glm::vec2(0, height);
+            border << glm::vec2(width, height);
+            border << glm::vec2(width, 0);
+            border << glm::vec2(0, 0);
+            geometryCache->updateVertices(_domainStatusBorder, border);
+            _previousBorderWidth = width;
+            _previousBorderHeight = height;
+        }
 
         glColor3f(CONNECTION_STATUS_BORDER_COLOR[0],
                   CONNECTION_STATUS_BORDER_COLOR[1],
