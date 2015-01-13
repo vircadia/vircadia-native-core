@@ -16,11 +16,13 @@
 #include <QTimer>
 #include <QtDebug>
 
-#include <glm/glm.hpp>
-
 #include "NetworkAccessManager.h"
 
 #include "ResourceCache.h"
+
+#define clamp(x, min, max) (((x) < (min)) ? (min) :\
+                           (((x) > (max)) ? (max) :\
+                                            (x)))
 
 ResourceCache::ResourceCache(QObject* parent) :
     QObject(parent) {    
@@ -72,7 +74,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
 }
 
 void ResourceCache::setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize) {
-    _unusedResourcesMaxSize = glm::clamp(unusedResourcesMaxSize, MIN_UNUSED_MAX_SIZE, MAX_UNUSED_MAX_SIZE);
+    _unusedResourcesMaxSize = clamp(unusedResourcesMaxSize, MIN_UNUSED_MAX_SIZE, MAX_UNUSED_MAX_SIZE);
     reserveUnusedResource(0);
 }
 
