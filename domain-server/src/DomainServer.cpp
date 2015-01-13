@@ -552,7 +552,8 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
         if (!excludedTypes.contains(defaultedType) 
-            && defaultedType != Assignment::UNUSED 
+            && defaultedType != Assignment::UNUSED_0
+            && defaultedType != Assignment::UNUSED_1
             && defaultedType != Assignment::AgentType) {
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
@@ -563,7 +564,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 }
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::EntityServer
+    << NodeType::AvatarMixer << NodeType::EntityServer
     << NodeType::MetavoxelServer;
 
 void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
@@ -1739,6 +1740,9 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
                 connection->respond(HTTPConnection::StatusCode302, QByteArray(),
                                     HTTPConnection::DefaultContentType, cookieHeaders);
                 
+                delete tokenReply;
+                delete profileReply;
+                
                 // we've redirected the user back to our homepage
                 return true;
                 
@@ -1989,7 +1993,7 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
 
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
-            SharedNodePointer otherNode = LimitedNodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
+            SharedNodePointer otherNode = DependencyManager::get<LimitedNodeList>()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
                 reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
             }

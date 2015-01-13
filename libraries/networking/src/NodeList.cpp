@@ -43,14 +43,13 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
         qRegisterMetaType<SharedNodePointer>();
         firstCall = false;
     }
-    
-    AddressManager& addressManager = AddressManager::getInstance();
+    auto addressManager = DependencyManager::get<AddressManager>();
     
     // handle domain change signals from AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
+    connect(addressManager.data(), &AddressManager::possibleDomainChangeRequired,
             &_domainHandler, &DomainHandler::setHostnameAndPort);
     
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
+    connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &_domainHandler, &DomainHandler::setIceServerHostnameAndID);
     
     // clear our NodeList when the domain changes

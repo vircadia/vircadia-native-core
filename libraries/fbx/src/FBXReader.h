@@ -24,8 +24,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-class QIODevice;
+#include <model/Geometry.h>
+#include <model/Material.h>
 
+class QIODevice;
 class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
@@ -108,7 +110,7 @@ public:
     
     Transform transform;
     int texcoordSet;
-    std::string texcoordSetName;
+    QString texcoordSetName;
 };
 
 /// A single part of a mesh (with the same material).
@@ -131,6 +133,7 @@ public:
     FBXTexture emissiveTexture;
 
     QString materialID;
+    model::MaterialPointer _material;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -159,6 +162,8 @@ public:
     
     bool hasSpecularTexture() const;
     bool hasEmissiveTexture() const;
+
+    model::Mesh _mesh;
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -277,8 +282,5 @@ FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool l
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
-
-/// Reads SVO geometry from the supplied model data.
-FBXGeometry readSVO(const QByteArray& model);
 
 #endif // hifi_FBXReader_h

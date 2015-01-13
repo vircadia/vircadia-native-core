@@ -25,15 +25,14 @@ EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement()
 };
 
 EntityTreeElement::~EntityTreeElement() {
-    _voxelMemoryUsage -= sizeof(EntityTreeElement);
+    _octreeMemoryUsage -= sizeof(EntityTreeElement);
     delete _entityItems;
     _entityItems = NULL;
 }
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
 // own type to our own tree. This means we should initialize that child with any tree and type
-// specific settings that our children must have. One example is out VoxelSystem, which
-// we know must match ours.
+// specific settings that our children must have. 
 OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
     EntityTreeElement* newChild = new EntityTreeElement(octalCode);
     newChild->setTree(_myTree);
@@ -43,7 +42,7 @@ OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
 void EntityTreeElement::init(unsigned char* octalCode) {
     OctreeElement::init(octalCode);
     _entityItems = new QList<EntityItem*>;
-    _voxelMemoryUsage += sizeof(EntityTreeElement);
+    _octreeMemoryUsage += sizeof(EntityTreeElement);
 }
 
 EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
@@ -585,8 +584,12 @@ bool EntityTreeElement::findShapeCollisions(const Shape* shape, CollisionList& c
         if (shape != otherCollisionShape && !ignoreForCollisions) {
             if (ShapeCollider::collideShapes(shape, otherCollisionShape, collisions)) {
                 CollisionInfo* lastCollision = collisions.getLastCollision();
-                lastCollision->_extraData = entity;
-                atLeastOneCollision = true;
+                if (lastCollision) {
+                    lastCollision->_extraData = entity;
+                    atLeastOneCollision = true;
+                } else {
+                    qDebug() << "UNEXPECTED - ShapeCollider::collideShapes() returned true, but no lastCollision.";
+                }
             }
         }
         ++entityItr;
@@ -662,7 +665,7 @@ const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
     }
     return foundEntity;
 }
-
+   
 EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) {
     EntityItem* foundEntity = NULL;
     uint16_t numberOfEntities = _entityItems->size();
@@ -679,6 +682,7 @@ void EntityTreeElement::cleanupEntities() {
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem* entity = (*_entityItems)[i];
+        entity->_element = NULL;
         delete entity;
     }
     _entityItems->clear();
@@ -690,6 +694,7 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = true;
+            (*_entityItems)[i]->_element = NULL;
             _entityItems->removeAt(i);
             break;
         }
@@ -698,7 +703,13 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
 }
 
 bool EntityTreeElement::removeEntityItem(EntityItem* entity) {
-    return _entityItems->removeAll(entity) > 0;
+    int numEntries = _entityItems->removeAll(entity);
+    if (numEntries > 0) {
+        assert(entity->_element == this);
+        entity->_element = NULL;
+        return true;
+    }
+    return false;
 }
 
 
@@ -805,7 +816,10 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
 }
 
 void EntityTreeElement::addEntityItem(EntityItem* entity) {
+    assert(entity);
+    assert(entity->_element == NULL);
     _entityItems->push_back(entity);
+    entity->_element = this;
 }
 
 // will average a "common reduced LOD view" from the the child elements...

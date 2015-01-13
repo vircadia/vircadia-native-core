@@ -65,22 +65,19 @@ public:
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
     
-    // degrees
-    void addYaw(float yaw);
-    void addPitch(float pitch);
-    void addRoll(float roll);
-    
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
     
     
     float getLeanSideways() const { return _leanSideways; }
     float getLeanForward() const { return _leanForward; }
+    float getTorsoTwist() const { return _torsoTwist; }
     virtual float getFinalLeanSideways() const { return _leanSideways; }
     virtual float getFinalLeanForward() const { return _leanForward; }
     
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
     void setLeanForward(float leanForward) { _leanForward = leanForward; }
+    void setTorsoTwist(float torsoTwist) { _torsoTwist = torsoTwist; }
     
     friend class AvatarData;
     
@@ -91,6 +88,7 @@ protected:
     float _baseRoll;
     float _leanSideways;
     float _leanForward;
+    float _torsoTwist;
 
     glm::vec3 _lookAtPosition;
     float _audioLoudness;

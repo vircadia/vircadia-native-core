@@ -1,6 +1,6 @@
 //
 //  Ragdoll.h
-//  libraries/shared/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.05.30
 //  Copyright 2014 High Fidelity, Inc.

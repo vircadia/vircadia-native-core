@@ -23,7 +23,6 @@ class NodeBounds : public QObject {
 public:
     NodeBounds(QObject* parent = NULL);
 
-    bool getShowVoxelNodes() { return _showVoxelNodes; }
     bool getShowEntityNodes() { return _showEntityNodes; }
     bool getShowParticleNodes() { return _showParticleNodes; }
 
@@ -31,7 +30,6 @@ public:
     void drawOverlay();
 
 public slots:
-    void setShowVoxelNodes(bool value) { _showVoxelNodes = value; }
     void setShowEntityNodes(bool value) { _showEntityNodes = value; }
     void setShowParticleNodes(bool value) { _showParticleNodes = value; }
 
@@ -40,7 +38,6 @@ protected:
     void getColorForNodeType(NodeType_t nodeType, float& red, float& green, float& blue);
 
 private:
-    bool _showVoxelNodes;
     bool _showEntityNodes;
     bool _showParticleNodes;
     char _overlayText[MAX_OVERLAY_TEXT_LENGTH + 1];

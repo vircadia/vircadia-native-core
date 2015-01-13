@@ -82,10 +82,8 @@ protected:
         inline const Byte* readData() const { return _data; } 
         inline Byte* editData() { _stamp++; return _data; }
 
-        template< typename T >
-        const T* read() const { return reinterpret_cast< T* > ( _data ); } 
-        template< typename T >
-        T* edit() { _stamp++; return reinterpret_cast< T* > ( _data ); } 
+        template< typename T > const T* read() const { return reinterpret_cast< T* > ( _data ); } 
+        template< typename T > T* edit() { _stamp++; return reinterpret_cast< T* > ( _data ); } 
 
         // Access the current version of the sysmem, used to compare if copies are in sync
         inline Stamp getStamp() const { return _stamp; }
@@ -210,11 +208,7 @@ public:
 
     //Template iterator with random access on the buffer sysmem
     template<typename T>
-    class Iterator : public std::iterator<std::random_access_iterator_tag,
-                                               T,
-                                               Index,
-                                               T*,
-                                               T&>
+    class Iterator : public std::iterator<std::random_access_iterator_tag, T, Index, T*, T&>
     {
     public:
 

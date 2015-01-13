@@ -79,8 +79,9 @@ private:
         VerticesIndices _vbo;
     };
     
+    void renderReticle(glm::quat orientation, float alpha);
     void renderPointers();;
-    void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) const;
+    void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder);
     
     void renderControllerPointers();
     void renderPointersOculus(const glm::vec3& eyePos);
@@ -106,6 +107,20 @@ private:
     float _trailingAudioLoudness;
 
     GLuint _crosshairTexture;
+    
+    int _reticleQuad;
+    int _magnifierQuad;
+    int _audioRedQuad;
+    int _audioGreenQuad;
+    int _audioBlueQuad;
+    int _domainStatusBorder;
+    int _magnifierBorder;
+
+    glm::vec3 _previousMagnifierBottomLeft;
+    glm::vec3 _previousMagnifierBottomRight;
+    glm::vec3 _previousMagnifierTopLeft;
+    glm::vec3 _previousMagnifierTopRight;
+
 };
 
 #endif // hifi_ApplicationOverlay_h

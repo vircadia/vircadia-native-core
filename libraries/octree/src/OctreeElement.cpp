@@ -29,7 +29,7 @@
 #include "Octree.h"
 #include "SharedUtil.h"
 
-quint64 OctreeElement::_voxelMemoryUsage = 0;
+quint64 OctreeElement::_octreeMemoryUsage = 0;
 quint64 OctreeElement::_octcodeMemoryUsage = 0;
 quint64 OctreeElement::_externalChildrenMemoryUsage = 0;
 quint64 OctreeElement::_voxelNodeCount = 0;

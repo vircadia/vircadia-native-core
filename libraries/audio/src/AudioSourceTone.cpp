@@ -1,6 +1,6 @@
 //
 //  AudioSourceTone.cpp
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Craig Hansen-Sturm on 8/10/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -41,7 +41,7 @@ void AudioSourceTone::updateCoefficients() {
 void AudioSourceTone::initialize() {
     const float32_t FREQUENCY_220_HZ = 220.0f;
     const float32_t GAIN_MINUS_6DB = 0.501f;
-    setParameters(SAMPLE_RATE, FREQUENCY_220_HZ, GAIN_MINUS_6DB);
+    setParameters(AudioConstants::SAMPLE_RATE, FREQUENCY_220_HZ, GAIN_MINUS_6DB);
 }
 
 void AudioSourceTone::setParameters(const float32_t sampleRate, const float32_t frequency,  const float32_t amplitude) {

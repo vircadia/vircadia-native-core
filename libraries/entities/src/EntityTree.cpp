@@ -15,7 +15,6 @@
 #include "EntitySimulation.h"
 
 #include "AddEntityOperator.h"
-#include "DeleteEntityOperator.h"
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
@@ -40,7 +39,9 @@ EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     // this would be a good place to clean up our entities...
     if (_simulation) {
+        _simulation->lock();
         _simulation->clearEntities();
+        _simulation->unlock();
     }
     foreach (EntityTreeElement* element, _entityToElementMap) {
         element->cleanupEntities();
@@ -84,7 +85,9 @@ void EntityTree::postAddEntity(EntityItem* entity) {
     assert(entity);
     // check to see if we need to simulate this entity..
     if (_simulation) {
+        _simulation->lock();
         _simulation->addEntity(entity);
+        _simulation->unlock();
     }
     _isDirty = true;
     emit addingEntity(entity->getEntityItemID());
@@ -132,19 +135,23 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             }
         }
     } else {
-        QString entityScriptBefore = entity->getScript();
-    
+        uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
         _isDirty = true;
 
-        if (_simulation && entity->getDirtyFlags() != 0) {
-            _simulation->entityChanged(entity);
-        }
-
-        QString entityScriptAfter = entity->getScript();
-        if (entityScriptBefore != entityScriptAfter) {
-            emit entityScriptChanging(entity->getEntityItemID()); // the entity script has changed
+        uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
+        if (newFlags) {
+            if (_simulation) { 
+                if (newFlags & DIRTY_SIMULATION_FLAGS) {
+                    _simulation->lock();
+                    _simulation->entityChanged(entity);
+                    _simulation->unlock();
+                }
+            } else {
+                // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
+                entity->clearDirtyFlags();
+            }
         }
     }
     
@@ -202,21 +209,6 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     return result;
 }
 
-
-void EntityTree::trackDeletedEntity(EntityItem* entity) {
-    if (_simulation) {
-        _simulation->removeEntity(entity);
-    }
-    // this is only needed on the server to send delete messages for recently deleted entities to the viewers
-    if (getIsServer()) {
-        // set up the deleted entities ID
-        quint64 deletedAt = usecTimestampNow();
-        _recentlyDeletedEntitiesLock.lockForWrite();
-        _recentlyDeletedEntityItemIDs.insert(deletedAt, entity->getEntityItemID().id);
-        _recentlyDeletedEntitiesLock.unlock();
-    }
-}
-
 void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
     emit entityScriptChanging(entityItemID);
 }
@@ -229,7 +221,9 @@ void EntityTree::setSimulation(EntitySimulation* simulation) {
     if (_simulation && _simulation != simulation) {
         // It's important to clearEntities() on the simulation since taht will update each
         // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
+        _simulation->lock();
         _simulation->clearEntities();
+        _simulation->unlock();
     }
     _simulation = simulation;
 }
@@ -240,6 +234,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(this, entityID);
     recurseTreeWithOperator(&theOperator);
+    processRemovedEntities(theOperator);
     _isDirty = true;
 }
 
@@ -253,7 +248,34 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     }
 
     recurseTreeWithOperator(&theOperator);
+    processRemovedEntities(theOperator);
     _isDirty = true;
+}
+
+void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator) {
+    const RemovedEntities& entities = theOperator.getEntities();
+    if (_simulation) {
+        _simulation->lock();
+    }
+    foreach(const EntityToDeleteDetails& details, entities) {
+        EntityItem* theEntity = details.entity;
+
+        if (getIsServer()) {
+            // set up the deleted entities ID
+            quint64 deletedAt = usecTimestampNow();
+            _recentlyDeletedEntitiesLock.lockForWrite();
+            _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID().id);
+            _recentlyDeletedEntitiesLock.unlock();
+        }
+
+        if (_simulation) {
+            _simulation->removeEntity(theEntity);
+        }
+        delete theEntity; // now actually delete the entity!
+    }
+    if (_simulation) {
+        _simulation->unlock();
+    }
 }
 
 /// This method is used to find and fix entity IDs that are shifting from creator token based to known ID based entity IDs. 
@@ -590,7 +612,9 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 
 void EntityTree::entityChanged(EntityItem* entity) {
     if (_simulation) {
+        _simulation->lock();
         _simulation->entityChanged(entity);
+        _simulation->unlock();
     }
 }
 
@@ -598,7 +622,9 @@ void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
         QSet<EntityItem*> entitiesToDelete;
+        _simulation->lock();
         _simulation->updateEntities(entitiesToDelete);
+        _simulation->unlock();
         if (entitiesToDelete.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;

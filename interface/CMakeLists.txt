@@ -38,6 +38,7 @@ endif ()
 
 # set up the external glm library
 include_glm()
+include_bullet()
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
@@ -107,7 +108,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree voxels gpu fbx metavoxels networking entities avatars audio animation script-engine physics 
+link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars audio animation script-engine physics 
                     render-utils entities-renderer)
 
 # find any optional and required libraries
@@ -228,7 +229,7 @@ else (APPLE)
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
 
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib Winmm.lib)
+    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib Winmm.lib)
 
     # try to find the Nsight package and add it to the build if we find it
     find_package(NSIGHT)

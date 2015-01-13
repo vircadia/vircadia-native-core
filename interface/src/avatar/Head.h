@@ -18,7 +18,7 @@
 
 #include <HeadData.h>
 
-#include <VoxelConstants.h>
+#include <OctreeConstants.h> // for IDENTITY_*
 
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
@@ -154,6 +154,9 @@ private:
     FaceModel _faceModel;
     
     glm::vec3 _correctedLookAtPosition;
+    
+    int _leftEyeLookAtID;
+    int _rightEyeLookAtID;
     
     // private methods
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
