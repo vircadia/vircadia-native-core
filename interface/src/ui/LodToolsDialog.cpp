@@ -30,9 +30,9 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     this->setWindowTitle("LOD Tools");
 
     // Create layouter
-    QFormLayout* form = new QFormLayout();
+    QFormLayout* form = new QFormLayout(this);
 
-    _lodSize = new QSlider(Qt::Horizontal);
+    _lodSize = new QSlider(Qt::Horizontal, this);
     const int MAX_LOD_SIZE = MAX_LOD_SIZE_MULTIPLIER;
     const int MIN_LOD_SIZE = 0;
     const int STEP_LOD_SIZE = 1;
@@ -50,7 +50,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     form->addRow("LOD Size Scale:", _lodSize);
     connect(_lodSize,SIGNAL(valueChanged(int)),this,SLOT(sizeScaleValueChanged(int)));
 
-    _boundaryLevelAdjust = new QSlider(Qt::Horizontal);
+    _boundaryLevelAdjust = new QSlider(Qt::Horizontal, this);
     const int MAX_ADJUST = 10;
     const int MIN_ADJUST = 0;
     const int STEP_ADJUST = 1;
@@ -66,7 +66,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     connect(_boundaryLevelAdjust,SIGNAL(valueChanged(int)),this,SLOT(boundaryLevelValueChanged(int)));
 
     // Create a label with feedback...
-    _feedback = new QLabel();
+    _feedback = new QLabel(this);
     QPalette palette = _feedback->palette();
     const unsigned redish  = 0xfff00000;
     palette.setColor(QPalette::WindowText, QColor::fromRgb(redish));
@@ -76,21 +76,21 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _feedback->setFixedWidth(FEEDBACK_WIDTH);
     form->addRow("You can see... ", _feedback);
 
-    form->addRow("Automatic Avatar LOD Adjustment:", _automaticAvatarLOD = new QCheckBox());
+    form->addRow("Automatic Avatar LOD Adjustment:", _automaticAvatarLOD = new QCheckBox(this));
     _automaticAvatarLOD->setChecked(Menu::getInstance()->getAutomaticAvatarLOD());
     connect(_automaticAvatarLOD, SIGNAL(toggled(bool)), SLOT(updateAvatarLODControls()));
     
-    form->addRow("Decrease Avatar LOD Below FPS:", _avatarLODDecreaseFPS = new QDoubleSpinBox());
+    form->addRow("Decrease Avatar LOD Below FPS:", _avatarLODDecreaseFPS = new QDoubleSpinBox(this));
     _avatarLODDecreaseFPS->setValue(Menu::getInstance()->getAvatarLODDecreaseFPS());
     _avatarLODDecreaseFPS->setDecimals(0);
     connect(_avatarLODDecreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
-    form->addRow("Increase Avatar LOD Above FPS:", _avatarLODIncreaseFPS = new QDoubleSpinBox());
+    form->addRow("Increase Avatar LOD Above FPS:", _avatarLODIncreaseFPS = new QDoubleSpinBox(this));
     _avatarLODIncreaseFPS->setValue(Menu::getInstance()->getAvatarLODIncreaseFPS());
     _avatarLODIncreaseFPS->setDecimals(0);
     connect(_avatarLODIncreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
-    form->addRow("Avatar LOD:", _avatarLOD = new QDoubleSpinBox());
+    form->addRow("Avatar LOD:", _avatarLOD = new QDoubleSpinBox(this));
     _avatarLOD->setDecimals(3);
     _avatarLOD->setRange(1.0 / MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, 1.0 / MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER);
     _avatarLOD->setSingleStep(0.001);
@@ -98,19 +98,13 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     connect(_avatarLOD, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
     // Add a button to reset
-    QPushButton* resetButton = new QPushButton("Reset");
+    QPushButton* resetButton = new QPushButton("Reset", this);
     form->addRow("", resetButton);
-    connect(resetButton,SIGNAL(clicked(bool)),this,SLOT(resetClicked(bool)));
+    connect(resetButton, SIGNAL(clicked(bool)), this, SLOT(resetClicked(bool)));
 
     this->QDialog::setLayout(form);
     
     updateAvatarLODControls();
-}
-
-LodToolsDialog::~LodToolsDialog() {
-    delete _feedback;
-    delete _lodSize;
-    delete _boundaryLevelAdjust;
 }
 
 void LodToolsDialog::reloadSliders() {

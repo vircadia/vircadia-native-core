@@ -12,7 +12,7 @@
 #ifndef hifi_EventTypes_h
 #define hifi_EventTypes_h
 
-#include <qscriptengine.h>
+#include <QScriptEngine>
 
 void registerEventTypes(QScriptEngine* engine);
 
