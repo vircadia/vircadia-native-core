@@ -13,6 +13,8 @@
 
 <@include DeferredBufferWrite.slh@>
 
+<@include Material.slh@>
+
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
@@ -20,13 +22,15 @@ uniform sampler2D diffuseMap;
 varying vec4 normal;
 
 void main(void) {
-    // set the diffuse, normal, specular data
+    // Fetch diffuse map
     vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
+
+    Material mat = getMaterial();
 
     packDeferredFragment(
         normalize(normal.xyz), 
-        evalOpaqueFinalAlpha(gl_Color.a, diffuse.a),
-        gl_Color.rgb * diffuse.rgb,
-        gl_FrontMaterial.specular.rgb,
-        gl_FrontMaterial.shininess);
+        evalOpaqueFinalAlpha(mat.getOpacity(), diffuse.a),
+        mat.getDiffuse()/* * diffuse.rgb*/,
+        mat.getSpecular(),
+        mat.getShininess());
 }

@@ -339,6 +339,7 @@ private:
         int emissiveTextureUnit;
         int emissiveParams;
         int glowIntensity;
+        int materialBufferUnit;
     };
     
     static Locations _locations;

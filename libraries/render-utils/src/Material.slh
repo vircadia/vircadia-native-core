@@ -1,0 +1,59 @@
+<!
+//  Material.slh
+//  fragment shader
+//
+//  Created by Sam Gateau on 12/16/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not MATERIAL_SLH@>
+<@def MATERIAL_SLH@>
+
+struct Material { 
+    vec4 _diffuse;
+    vec4 _specular;
+
+    float getOpacity() { return _diffuse.a; }
+    vec3 getDiffuse() { return _diffuse.rgb; }
+    vec3 getSpecular() { return _specular.rgb; }
+    float getShininess() { return _specular.a; }
+};
+
+<@if GLPROFILE == PC_GL@>
+uniform materialBuffer {
+    Material mat;
+};
+Material getMaterial() {
+    return mat;
+}
+<@elif GLPROFILE == MAC_GL@>
+uniform vec4 materialBuffer[2];
+Material getMaterial() {
+    Material mat;
+    mat._diffuse = materialBuffer[0];
+    mat._specular = materialBuffer[1];
+    return mat;    
+}
+<@else@>
+uniform vec4 materialBuffer[2];
+Material getMaterial() {
+    Material mat;
+    mat._diffuse = materialBuffer[0];
+    mat._specular = materialBuffer[1];
+    return mat;    
+}
+<@endif@>
+
+<!/*
+bindable uniform struct {
+    Material mat;
+} materialBuffer;
+
+Material getMaterial() {
+    return materialBuffer.mat;    
+}
+*/!>
+
+<@endif@>
