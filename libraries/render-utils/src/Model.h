@@ -338,6 +338,7 @@ private:
         int specularTextureUnit;
         int emissiveTextureUnit;
         int emissiveParams;
+        int glowIntensity;
     };
     
     static Locations _locations;

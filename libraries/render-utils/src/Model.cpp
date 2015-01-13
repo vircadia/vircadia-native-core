@@ -178,7 +178,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
     locations.texcoordMatrices = program.uniformLocation("texcoordMatrices");
     locations.emissiveParams = program.uniformLocation("emissiveParams");
-
+    locations.glowIntensity = program.uniformLocation("glowIntensity");
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
 
@@ -2367,6 +2367,10 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
 
                     glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
+                    
+                    if (locations->glowIntensity >= 0) {
+                        GLBATCH(glUniform1f)(locations->glowIntensity, glowEffect->getIntensity());
+                    }
                     if (!(translucent && alphaThreshold == 0.0f)) {
                         GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = glowEffect->getIntensity());
                     }
