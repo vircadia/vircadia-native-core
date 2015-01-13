@@ -1000,7 +1000,7 @@ void EntityItem::recalculateCollisionShape() {
 const float MIN_POSITION_DELTA = 0.0001f;
 const float MIN_ALIGNMENT_DOT = 0.9999f;
 const float MIN_MASS_DELTA = 0.001f;
-const float MIN_VELOCITY_DELTA = 0.025f;
+const float MIN_VELOCITY_DELTA = 0.01f;
 const float MIN_DAMPING_DELTA = 0.001f;
 const float MIN_GRAVITY_DELTA = 0.001f;
 const float MIN_SPIN_DELTA = 0.0003f;

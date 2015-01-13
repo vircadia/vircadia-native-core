@@ -56,8 +56,9 @@ public:
     ObjectMotionState();
     ~ObjectMotionState();
 
-    virtual void applyVelocities() const = 0;
-    virtual void applyGravity() const = 0;
+    // An EASY update does not require the object to be removed and then reinserted into the PhysicsEngine
+    virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
+    virtual void updateObjectVelocities() = 0;
 
     virtual void computeShapeInfo(ShapeInfo& info) = 0;
 
@@ -84,7 +85,7 @@ public:
     void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
 
     bool doesNotNeedToSendUpdate() const;
-    virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder);
+    virtual bool shouldSendUpdate(uint32_t simulationFrame);
     virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
     virtual MotionType computeMotionType() const = 0;
