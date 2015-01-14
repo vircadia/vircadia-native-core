@@ -1110,8 +1110,8 @@ void OctreeServer::run() {
         
     beforeRun(); // after payload has been processed
 
-    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)),SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
+    connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)),SLOT(nodeKilled(SharedNodePointer)));
 
 
     // we need to ask the DS about agents so we can ping/reply with them
