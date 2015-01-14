@@ -103,7 +103,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_POSITION;
     requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
     requestedProperties += PROP_ROTATION;
-    requestedProperties += PROP_MASS;
+    requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_VELOCITY;
     requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
@@ -219,7 +219,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         }
 
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
-        APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, computeMass());
+        APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
@@ -495,7 +495,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
                 
         READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
-        READ_ENTITY_PROPERTY_SETTER(PROP_MASS, float, updateMass);
+        READ_ENTITY_PROPERTY_SETTER(PROP_DENSITY, float, updateDensity);
         READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
         READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
@@ -560,9 +560,18 @@ float EntityItem::computeMass() const {
     return ((_density * (_volumeMultiplier * _dimensions.x)) * _dimensions.y) * _dimensions.z;
 }
 
-const float ENTITY_ITEM_EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
-const float MAX_DENSITY = 10000.0f; // kg/m^3 density of silver
-const float MIN_DENSITY = 100.0f; // kg/m^3 density of styrofoam
+void EntityItem::setDensity(float density) {
+    _density = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+}
+
+void EntityItem::updateDensity(float density) {
+    const float MIN_DENSITY_CHANGE_FACTOR = 0.001f; // 0.1 percent
+    float newDensity = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+    if (fabsf(_density - newDensity) / _density > MIN_DENSITY_CHANGE_FACTOR) {
+        _density = newDensity;
+        _dirtyFlags |= EntityItem::DIRTY_MASS;
+    }
+}
 
 void EntityItem::setMass(float mass) {
     // Setting the mass actually changes the _density (at fixed volume), however
@@ -578,11 +587,13 @@ void EntityItem::setMass(float mass) {
     const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
     if (volume < 1.0e-6f) {
         // avoid divide by zero
-        _density = glm::min(mass / MIN_VOLUME, MAX_DENSITY);
+        _density = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
     } else {
-        _density = glm::max(glm::min(mass / volume, MAX_DENSITY), MIN_DENSITY);
+        _density = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     }
 }
+
+const float ENTITY_ITEM_EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
 
 // TODO: we probably want to change this to make "down" be the direction of the entity's gravity vector
 //       for now, this is always true DOWN even if entity has non-down gravity.
@@ -798,7 +809,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPositionInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensionsInMeters); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(mass, computeMass);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocityInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravityInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
@@ -826,7 +837,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePositionInMeters); // this will call recalculate collision shape if needed
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensionsInMeters); // NOTE: radius is obsolete
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, updateMass);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, updateDensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
@@ -1026,7 +1037,6 @@ void EntityItem::recalculateCollisionShape() {
 
 const float MIN_POSITION_DELTA = 0.0001f;
 const float MIN_ALIGNMENT_DOT = 0.9999f;
-const float MIN_MASS_DELTA = 0.001f;
 const float MIN_VELOCITY_DELTA = 0.01f;
 const float MIN_DAMPING_DELTA = 0.001f;
 const float MIN_GRAVITY_DELTA = 0.001f;
@@ -1089,9 +1099,9 @@ void EntityItem::updateMass(float mass) {
     const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
     if (volume < 1.0e-6f) {
         // avoid divide by zero
-        newDensity = glm::min(mass / MIN_VOLUME, MAX_DENSITY);
+        newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
     } else {
-        newDensity = glm::max(glm::min(mass / volume, MAX_DENSITY), MIN_DENSITY);
+        newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     }
 
     const float MIN_DENSITY_CHANGE_FACTOR = 0.001f; // 0.1 percent
