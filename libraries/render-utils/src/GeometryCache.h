@@ -76,7 +76,7 @@ inline uint qHash(const Vec3PairVec2Pair& v, uint seed) {
 
 
 /// Stores cached geometry.
-class GeometryCache : public ResourceCache  {
+class GeometryCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 

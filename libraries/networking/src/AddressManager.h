@@ -27,7 +27,7 @@ const QString DEFAULT_HIFI_ADDRESS = "hifi://sandbox";
 typedef const glm::vec3& (*PositionGetter)();
 typedef glm::quat (*OrientationGetter)();
 
-class AddressManager : public QObject {
+class AddressManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     Q_PROPERTY(bool isConnected READ isConnected)

@@ -17,7 +17,7 @@
 #include <QByteArray>
 #include <QObject>
 
-class AudioScope : public QObject {
+class AudioScope : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:

@@ -19,7 +19,7 @@
 #include <DependencyManager.h>
 
 /// customized canvas that simply forwards requests/events to the singleton application
-class GLCanvas : public QGLWidget {
+class GLCanvas : public QGLWidget, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     

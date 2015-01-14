@@ -19,7 +19,7 @@
 class AudioIOStats;
 class AudioStreamStats;
 
-class AudioIOStatsRenderer : public QObject {
+class AudioIOStatsRenderer : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:

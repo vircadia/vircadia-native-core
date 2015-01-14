@@ -69,7 +69,7 @@ namespace PingType {
     const PingType_t Symmetric = 3;
 }
 
-class LimitedNodeList : public QObject {
+class LimitedNodeList : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     

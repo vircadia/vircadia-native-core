@@ -25,7 +25,7 @@ class QOpenGLFramebufferObject;
 class ProgramObject;
 
 /// A generic full screen glow effect.
-class GlowEffect : public QObject  {
+class GlowEffect : public QObject, public Dependency  {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     
