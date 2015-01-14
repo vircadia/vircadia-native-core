@@ -10,3 +10,9 @@
 //
 
 #include "DependencyManager.h"
+
+DependencyManager DependencyManager::_manager;
+
+QSharedPointer<Dependency>& DependencyManager::safeGet(size_t hashCode) {
+    return _instanceHash[hashCode];
+}
