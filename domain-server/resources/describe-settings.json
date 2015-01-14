@@ -305,23 +305,25 @@
     "settings": [
       {
         "name": "persistFilename",
-        "label": "Persistant Filename",
-        "help": "the filename for your entities",
+        "label": "Entities Filename",
+        "help": "the path to the file entities are stored in. Make sure the path exists.",
         "placeholder": "resources/models.svo",
-        "default": "resources/models.svo"
+        "default": "resources/models.svo",
+        "advanced": true
       },
       {
         "name": "persistInterval",
-        "label": "Persist Interval",
-        "help": "Interval between persist checks in msecs.",
+        "label": "Save Check Interval",
+        "help": "Milliseconds between checks for saving the current state of entities.",
         "placeholder": "30000",
-        "default": "30000"
+        "default": "30000",
+        "advanced": true
       },
       {
         "name": "backups",
         "type": "table",
         "label": "Backup Rules",
-        "help": "In this table you can define a set of rules for how frequently to backup copies of your content file.",
+        "help": "In this table you can define a set of rules for how frequently to backup copies of your entites content file.",
         "numbered": false,
         "default":  [
                         {"Name":"Half Hourly Rolling","backupInterval":1800,"format":".backup.halfhourly.%N","maxBackupVersions":5},
@@ -347,7 +349,7 @@
           },
           {
             "name": "backupInterval",
-            "label": "Backup Interval",
+            "label": "Backup Interval in Seconds",
             "help": "Interval between backup checks in seconds.",
             "placeholder": 1800,
             "default": 1800,
@@ -367,27 +369,31 @@
         "name": "NoPersist",
         "type": "checkbox",
         "help": "Don't persist your entities to a file.",
-        "default": false
+        "default": false,
+        "advanced": true
       },
       {
         "name": "NoBackup",
         "type": "checkbox",
         "help": "Don't regularly backup your persisted entities to a backup file.",
-        "default": false
+        "default": false,
+        "advanced": true
       },
       {
         "name": "statusHost",
         "label": "Status Hostname",
         "help": "host name or IP address of the server for accessing the status page",
         "placeholder": "",
-        "default": ""
+        "default": "",
+        "advanced": true
       },
       {
         "name": "statusPort",
         "label": "Status Port",
         "help": "port of the server for accessing the status page",
         "placeholder": "",
-        "default": ""
+        "default": "",
+        "advanced": true
       },
       {
         "name": "verboseDebug",
