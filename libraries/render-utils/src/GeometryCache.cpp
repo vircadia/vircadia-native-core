@@ -30,6 +30,8 @@ const int GeometryCache::UNKNOWN_ID = -1;
 GeometryCache::GeometryCache() :
     _nextID(0)
 {
+    const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
+    setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 GeometryCache::~GeometryCache() {

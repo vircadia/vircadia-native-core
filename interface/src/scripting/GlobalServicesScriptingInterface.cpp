@@ -10,6 +10,8 @@
 //
 
 #include "AccountManager.h"
+#include "Application.h"
+#include "ResourceCache.h"
 #include "XmppClient.h"
 
 #include "GlobalServicesScriptingInterface.h"
@@ -25,6 +27,10 @@ GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
     const QXmppClient& qxmppClient = XmppClient::getInstance().getXMPPClient();
     connect(&qxmppClient, &QXmppClient::messageReceived, this, &GlobalServicesScriptingInterface::messageReceived);
 #endif // HAVE_QXMPP
+
+    _downloading = false;
+    connect(Application::getInstance(), &Application::renderingInWorldInterface, 
+            this, &GlobalServicesScriptingInterface::checkDownloadInfo);
 }
 
 GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
@@ -38,14 +44,16 @@ GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
     const QXmppClient& qxmppClient = XmppClient::getInstance().getXMPPClient();
     disconnect(&qxmppClient, &QXmppClient::messageReceived, this, &GlobalServicesScriptingInterface::messageReceived);
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-    disconnect(publicChatRoom, &QXmppMucRoom::participantsChanged, this, &GlobalServicesScriptingInterface::participantsChanged);
+    disconnect(publicChatRoom, &QXmppMucRoom::participantsChanged, 
+               this, &GlobalServicesScriptingInterface::participantsChanged);
 #endif // HAVE_QXMPP
 }
 
 void GlobalServicesScriptingInterface::onConnected() {
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-    connect(publicChatRoom, &QXmppMucRoom::participantsChanged, this, &GlobalServicesScriptingInterface::participantsChanged, Qt::UniqueConnection);
+    connect(publicChatRoom, &QXmppMucRoom::participantsChanged, 
+            this, &GlobalServicesScriptingInterface::participantsChanged, Qt::UniqueConnection);
 #endif // HAVE_QXMPP
 }
 
@@ -110,6 +118,61 @@ void GlobalServicesScriptingInterface::messageReceived(const QXmppMessage& messa
         return;
     }
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
-    emit GlobalServicesScriptingInterface::incomingMessage(message.from().right(message.from().count() - 1 - publicChatRoom->jid().count()), message.body());
+    QString username = message.from().right(message.from().count() - 1 - publicChatRoom->jid().count());
+    emit GlobalServicesScriptingInterface::incomingMessage(username, message.body());
 }
 #endif // HAVE_QXMPP
+
+
+DownloadInfoResult::DownloadInfoResult() :
+    downloading(QList<float>()),
+    pending(0.0f)
+{
+}
+
+QScriptValue DownloadInfoResultToScriptValue(QScriptEngine* engine, const DownloadInfoResult& result) {
+    QScriptValue object = engine->newObject();
+
+    QScriptValue array = engine->newArray(result.downloading.count());
+    for (int i = 0; i < result.downloading.count(); i += 1) {
+        array.setProperty(i, result.downloading[i]);
+    }
+
+    object.setProperty("downloading", array);
+    object.setProperty("pending", result.pending);
+    return object;
+}
+
+void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoResult& result) {
+    QList<QVariant> downloading = object.property("downloading").toVariant().toList();
+    result.downloading.clear();
+    for (int i = 0; i < downloading.count(); i += 1) {
+        result.downloading.append(downloading[i].toFloat());
+    }
+
+    result.pending = object.property("pending").toVariant().toFloat();
+}
+
+DownloadInfoResult GlobalServicesScriptingInterface::getDownloadInfo() {
+    DownloadInfoResult result;
+    foreach(Resource* resource, ResourceCache::getLoadingRequests()) {
+        result.downloading.append(resource->getProgress() * 100.0f);
+    }
+    result.pending = ResourceCache::getPendingRequestCount();
+    return result;
+}
+
+void GlobalServicesScriptingInterface::checkDownloadInfo() {
+    DownloadInfoResult downloadInfo = getDownloadInfo();
+    bool downloading = downloadInfo.downloading.count() > 0 || downloadInfo.pending > 0;
+
+    // Emit signal if downloading or have just finished.
+    if (downloading || _downloading) {
+        _downloading = downloading;
+        emit downloadInfoChanged(downloadInfo);
+    }
+}
+
+void GlobalServicesScriptingInterface::updateDownloadInfo() {
+    emit downloadInfoChanged(getDownloadInfo());
+}

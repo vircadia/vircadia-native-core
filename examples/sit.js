@@ -10,7 +10,7 @@
 //
 
 
-var buttonImageUrl = "https://public.highfidelity.io/images/tools/sit.svg";
+var buttonImageUrl = "https://s3.amazonaws.com/hifi-public/images/tools/sit.svg";
 
 var windowDimensions = Controller.getViewportDimensions();
 

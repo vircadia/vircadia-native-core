@@ -13,6 +13,7 @@
 #include "InterfaceConfig.h"
 
 #include "OculusManager.h"
+#include "ui/overlays/Text3DOverlay.h"
 
 #include <QDesktopWidget>
 #include <QGuiApplication>
