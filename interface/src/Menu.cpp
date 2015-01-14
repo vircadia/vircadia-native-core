@@ -1050,15 +1050,26 @@ void Menu::bookmarkLocation() {
     
     bookmarks->insert(bookmarkName, bookmarkAddress);
 
+    QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
+    teleportAction->setData(bookmarkAddress);
+    connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
+
     QList<QAction*> menuItems = _bookmarksMenu->actions();
     int position = 0;
     while (position < menuItems.count() && bookmarkName > menuItems[position]->text()) {
         position += 1;
     }
-    addActionToQMenuAndActionHash(_bookmarksMenu, bookmarkName, 0,
-                                  this, NULL, QAction::NoRole, position);
+
+    addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0,
+                                  QAction::NoRole, position);
 
     _bookmarksMenu->setEnabled(true);
+}
+
+void Menu::teleportToBookmark() {
+    QAction *action = qobject_cast<QAction *>(sender());
+    QString url = action->data().toString();
+    DependencyManager::get<AddressManager>()->handleLookupString(url);
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {

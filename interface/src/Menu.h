@@ -201,6 +201,7 @@ private slots:
     void editAnimations();
     void changePrivateKey();
     void bookmarkLocation();
+    void teleportToBookmark();
     void nameLocation();
     void toggleLocationList();
     void hmdToolsClosed();
