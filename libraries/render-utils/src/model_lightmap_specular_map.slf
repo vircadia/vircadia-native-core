@@ -14,6 +14,8 @@
 
 <@include DeferredBufferWrite.slh@>
 
+<@include Material.slh@>
+
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
@@ -35,17 +37,13 @@ void main(void) {
     vec3 specular = texture2D(specularMap, gl_TexCoord[0].st).rgb;
     vec4 emissive = texture2D(emissiveMap, interpolatedTexcoord1.st);
 
+    Material mat = getMaterial();
+
     packDeferredFragmentLightmap(
         normalize(normal.xyz), 
-        evalOpaqueFinalAlpha(gl_Color.a, diffuse.a),
-        gl_Color.rgb * diffuse.rgb,
-        specular,
-        gl_FrontMaterial.shininess,
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
+        getMaterialDiffuse(mat) * diffuse.rgb,
+        specular, // no use of getMaterialSpecular(mat)
+        getMaterialShininess(mat),
         (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));
-/*
-    gl_FragData[0] = vec4(gl_Color.rgb * diffuse.rgb * (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb), mix(gl_Color.a, 1.0 - gl_Color.a, step(diffuse.a, alphaThreshold)));
-    gl_FragData[1] = normalize(normal) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
-    gl_FragData[2] = vec4(gl_FrontMaterial.specular.rgb * texture2D(specularMap, gl_TexCoord[0].st).rgb,
-        gl_FrontMaterial.shininess / 128.0);    
-*/
 }

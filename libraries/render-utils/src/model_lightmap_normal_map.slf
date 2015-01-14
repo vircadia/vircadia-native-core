@@ -14,6 +14,8 @@
 
 <@include DeferredBufferWrite.slh@>
 
+<@include Material.slh@>
+
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
@@ -45,12 +47,13 @@ void main(void) {
     vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
     vec4 emissive = texture2D(emissiveMap, interpolatedTexcoord1.st);
 
+    Material mat = getMaterial();
+
     packDeferredFragmentLightmap(
         normalize(viewNormal.xyz), 
-        evalOpaqueFinalAlpha(gl_Color.a, diffuse.a),
-        //gl_Color.rgb * diffuse.rgb,
-        vec3(1.0, 0.0, 0.0),
-        gl_FrontMaterial.specular.rgb,
-        gl_FrontMaterial.shininess,
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
+        getMaterialDiffuse(mat) * diffuse.rgb,
+        getMaterialSpecular(mat),
+        getMaterialShininess(mat),
         (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));
 }
