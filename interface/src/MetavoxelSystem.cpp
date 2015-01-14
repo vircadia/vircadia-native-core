@@ -798,7 +798,7 @@ void MetavoxelSystem::applyMaterialEdit(const MetavoxelEditMessage& message, boo
                 Q_ARG(bool, reliable));
             return;
         }
-        QSharedPointer<NetworkTexture> texture = DependencyManager::get<TextureCache>()->getTexture(
+        auto texture = DependencyManager::get<TextureCache>()->getTexture(
             material->getDiffuse(), SPLAT_TEXTURE);
         if (texture->isLoaded()) {
             MetavoxelEditMessage newMessage = message;

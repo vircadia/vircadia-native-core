@@ -591,7 +591,7 @@ void Menu::loadSettings(QSettings* settings) {
     _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
     _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
 
-    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<Audio>();
     audio->setOutputStarveDetectionEnabled(settings->value("audioOutputStarveDetectionEnabled", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED).toBool());
     audio->setOutputStarveDetectionThreshold(settings->value("audioOutputStarveDetectionThreshold", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD).toInt());
     audio->setOutputStarveDetectionPeriod(settings->value("audioOutputStarveDetectionPeriod", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD).toInt());
@@ -656,7 +656,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
     settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
 
-    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<Audio>();
     settings->setValue("audioOutputStarveDetectionEnabled", audio->getOutputStarveDetectionEnabled());
     settings->setValue("audioOutputStarveDetectionThreshold", audio->getOutputStarveDetectionThreshold());
     settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());

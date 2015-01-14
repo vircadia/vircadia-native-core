@@ -256,7 +256,7 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
 
-    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<Audio>();
 
     QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
 
