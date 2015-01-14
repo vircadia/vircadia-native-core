@@ -333,6 +333,9 @@ Keyboard = (function(params) {
     
     this.updateVisibility = function(visible) {
         tthis.visible = visible;
+        if (HMD.magnifier == visible) {
+            HMD.toggleMagnifier();
+        }
         Overlays.editOverlay(tthis.background, { visible: tthis.visible });
         for (var i = 0; i < this.keys.length; i++) {
             this.keys[i].updateVisibility();
