@@ -152,7 +152,7 @@ input {
 
 
 
-table#properties-table {
+table#properties-list {
     border: none;
     border-collapse: collapse;
     width: 100%;
@@ -162,14 +162,11 @@ table#properties-table {
     table-layout: fixed;
 }
 
-#properties-table tr {
+#properties-list {
     border-bottom: 1px solid #e5e5e5;
 }
 
-#properties-table td.label {
-    padding-right: 10px;
-    border-right: 1px solid #999;
-    text-align: right;
+#properties-list .label {
     font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
@@ -177,10 +174,21 @@ table#properties-table {
 
     vertical-align: middle;
     height: 1.2em;
+    background-color: #ccc;
+    border-bottom: 1px solid #e5e5e5;
 }
 
-#properties-table td {
-    padding: 5px;
+#properties-list .value {
+    min-height: 1em;
+}
+
+#properties-list .value > div{
+    padding: 4px;
+}
+
+#properties-list > div > div{
+    padding: 3px;
+    border-bottom: 1px solid black;
 }
 
 col#col-label {
