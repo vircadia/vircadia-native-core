@@ -155,7 +155,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     
     // Set dependencies
-    DependencyManager::get<GLCanvas>();
     auto glCanvas = DependencyManager::set<GLCanvas>();
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);

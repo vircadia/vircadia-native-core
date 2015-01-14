@@ -266,7 +266,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
 
     QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
 
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(readAvailableDatagrams()));
