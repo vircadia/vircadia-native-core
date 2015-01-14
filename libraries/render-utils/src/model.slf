@@ -29,8 +29,8 @@ void main(void) {
 
     packDeferredFragment(
         normalize(normal.xyz), 
-        evalOpaqueFinalAlpha(mat.getOpacity(), diffuse.a),
-        mat.getDiffuse()/* * diffuse.rgb*/,
-        mat.getSpecular(),
-        mat.getShininess());
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
+        getMaterialDiffuse(mat) * diffuse.rgb,
+        getMaterialSpecular(mat),
+        getMaterialShininess(mat));
 }
