@@ -404,6 +404,13 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->elementBag.isEmpty()) {
+                
+                quint64 lockWaitStart = usecTimestampNow();
+                _myServer->getOctree()->lockForRead();
+                quint64 lockWaitEnd = usecTimestampNow();
+                lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
+                quint64 encodeStart = usecTimestampNow();
+
                 OctreeElement* subTree = nodeData->elementBag.extract();
 
                 /* TODO: Looking for a way to prevent locking and encoding a tree that is not
@@ -447,12 +454,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 // it seems like it may be a good idea to include the lock time as part of the encode time
                 // are reported to client. Since you can encode without the lock
                 nodeData->stats.encodeStarted();
-                
-                quint64 lockWaitStart = usecTimestampNow();
-                _myServer->getOctree()->lockForRead();
-                quint64 lockWaitEnd = usecTimestampNow();
-                lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-                quint64 encodeStart = usecTimestampNow();
 
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
 

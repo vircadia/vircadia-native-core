@@ -54,7 +54,6 @@ Head::Head(Avatar* owningAvatar) :
     _deltaRoll(0.0f),
     _deltaLeanSideways(0.0f),
     _deltaLeanForward(0.0f),
-    _torsoTwist(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
     _faceModel(this),

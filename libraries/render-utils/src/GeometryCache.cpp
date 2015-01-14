@@ -33,6 +33,8 @@ const int GeometryCache::UNKNOWN_ID = -1;
 GeometryCache::GeometryCache() :
     _nextID(0)
 {
+    const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
+    setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 GeometryCache::~GeometryCache() {
@@ -1924,9 +1926,9 @@ void GeometryReader::run() {
         if (!_reply) {
             throw QString("Reply is NULL ?!");
         }
-        std::string urlname = _url.path().toLower().toStdString();
+        QString urlname = _url.path().toLower();
         bool urlValid = true;
-        urlValid &= !urlname.empty();
+        urlValid &= !urlname.isEmpty();
         urlValid &= !_url.path().isEmpty();
         urlValid &= _url.path().toLower().endsWith(".fbx")
                     || _url.path().toLower().endsWith(".svo");

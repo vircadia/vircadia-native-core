@@ -92,7 +92,8 @@ bool DeleteEntityOperator::preRecursion(OctreeElement* element) {
             // and we can stop searching.
             if (entityTreeElement == details.containingElement) {
                 EntityItem* theEntity = details.entity;
-                assert(entityTreeElement->removeEntityItem(theEntity)); // remove it from the element
+                bool entityDeleted = entityTreeElement->removeEntityItem(theEntity); // remove it from the element
+                assert(entityDeleted);
                 _tree->setContainingElement(details.entity->getEntityItemID(), NULL); // update or id to element lookup
                 _foundCount++;
             }
