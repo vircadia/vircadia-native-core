@@ -85,6 +85,8 @@
 #include "Util.h"
 
 #include "audio/AudioToolBox.h"
+#include "audio/AudioIOStatsRenderer.h"
+#include "audio/AudioScope.h"
 
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
@@ -142,8 +144,43 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+bool setupEssentials(int& argc, char** argv) {
+    unsigned int listenPort = 0; // bind to an ephemeral port by default
+    const char** constArgv = const_cast<const char**>(argv);
+    const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
+    if (portStr) {
+        listenPort = atoi(portStr);
+    }
+    
+    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+    
+    // Set dependencies
+    DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::set<GLCanvas>();
+    auto addressManager = DependencyManager::set<AddressManager>();
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
+    auto geometryCache = DependencyManager::set<GeometryCache>();
+    auto glowEffect = DependencyManager::set<GlowEffect>();
+    auto faceshift = DependencyManager::set<Faceshift>();
+    auto audio = DependencyManager::set<Audio>();
+    auto audioScope = DependencyManager::set<AudioScope>();
+    auto audioIOStatsRenderer = DependencyManager::set<AudioIOStatsRenderer>();
+    auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
+    auto ambientOcclusionEffect = DependencyManager::set<AmbientOcclusionEffect>();
+    auto textureCache = DependencyManager::set<TextureCache>();
+    auto animationCache = DependencyManager::set<AnimationCache>();
+    auto visage = DependencyManager::set<Visage>();
+    auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
+    auto modelBlender = DependencyManager::set<ModelBlender>();
+    auto audioToolBox = DependencyManager::set<AudioToolBox>();
+    
+    return true;
+}
+
+
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
+        _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _nodeThread(new QThread(this)),
@@ -189,7 +226,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-    auto glCanvas = DependencyManager::set<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto nodeList = DependencyManager::get<NodeList>();
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
     
     
@@ -223,23 +261,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setMenuBar(Menu::getInstance());
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-
-    unsigned int listenPort = 0; // bind to an ephemeral port by default
-    const char** constArgv = const_cast<const char**>(argv);
-    const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
-    if (portStr) {
-        listenPort = atoi(portStr);
-    }
     
     // start the nodeThread so its event loop is running
     _nodeThread->start();
 
     // make sure the node thread is given highest priority
     _nodeThread->setPriority(QThread::TimeCriticalPriority);
-
-    // put the NodeList and datagram processing on the node thread
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     
+    // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(_nodeThread);
     _datagramProcessor.moveToThread(_nodeThread);
 
@@ -460,6 +489,8 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
+    
+    DependencyManager::destroy<GLCanvas>();
 }
 
 void Application::saveSettings() {
