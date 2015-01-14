@@ -662,8 +662,6 @@ function setupModelMenus() {
     print("setupModelMenus()");
     // adj our menuitems
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Edit Properties...",
-        shortcutKeyEvent: { text: "`" }, afterItem: "Models" });
     if (!Menu.menuItemExists("Edit", "Delete")) {
         print("no delete... adding ours");
         Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete",
@@ -674,7 +672,7 @@ function setupModelMenus() {
     }
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Model List..." });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
                         afterItem: "Paste Models", isCheckable: true, isChecked: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
@@ -696,7 +694,6 @@ setupModelMenus(); // do this when first running our script.
 
 function cleanupModelMenus() {
     Menu.removeSeparator("Edit", "Models");
-    Menu.removeMenuItem("Edit", "Edit Properties...");
     if (modelMenuAddedDelete) {
         // delete our menuitems
         Menu.removeMenuItem("Edit", "Delete");
@@ -798,22 +795,6 @@ function handeMenuEvent(menuItem) {
                 MyAvatar.position = selectedModel.properties.position;
             }
         }
-    } else if (menuItem == "Edit Properties...") {
-        // good place to put the properties dialog
-
-        editModelID = -1;
-        if (selectionManager.selections.length == 1) {
-            print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
-            editModelID = selectionManager.selections[0];
-        } else {
-            print("  Edit Properties.... not holding...");
-        }
-        if (editModelID != -1) {
-            print("  Edit Properties.... about to edit properties...");
-            entityPropertyDialogBox.openDialog(editModelID);
-            selectionManager._update();
-        }
-
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
     } else if (menuItem == "Export Models") {
@@ -841,9 +822,6 @@ Controller.keyPressEvent.connect(function(event) {
 
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.text == "`") {
-        handeMenuEvent("Edit Properties...");
-    }
     if (event.text == "BACKSPACE" || event.text == "DELETE") {
         handeMenuEvent("Delete");
     } else if (event.text == "TAB") {

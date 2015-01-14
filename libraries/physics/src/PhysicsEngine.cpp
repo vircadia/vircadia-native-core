@@ -41,14 +41,12 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
 
     // this is step (4)
     QSet<ObjectMotionState*>::iterator stateItr = _outgoingPackets.begin();
-    uint32_t frame = getFrameCount();
-    float subStepRemainder = getSubStepRemainder();
     while (stateItr != _outgoingPackets.end()) {
         ObjectMotionState* state = *stateItr;
         if (state->doesNotNeedToSendUpdate()) {
             stateItr = _outgoingPackets.erase(stateItr);
-        } else if (state->shouldSendUpdate(frame, subStepRemainder)) {
-            state->sendUpdate(_entityPacketSender, frame);
+        } else if (state->shouldSendUpdate(_frameCount)) {
+            state->sendUpdate(_entityPacketSender, _frameCount);
             ++stateItr;
         } else {
             ++stateItr;
@@ -140,7 +138,8 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
                 updateObjectHard(body, motionState, flags);
             } else if (flags) {
                 // an EASY update does NOT require that the body be pulled out of physics engine
-                updateObjectEasy(body, motionState, flags);
+                // hence the MotionState has all the knowledge and authority to perform the update.
+                motionState->updateObjectEasy(flags, _frameCount);
             }
         }
 
@@ -269,8 +268,12 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->updateInertiaTensor();
                 motionState->_body = body;
-                motionState->applyVelocities();
-                motionState->applyGravity();
+                motionState->updateObjectVelocities();
+                // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
+                // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
+                const float LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
+                const float ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
+                body->setSleepingThresholds(LINEAR_VELOCITY_THRESHOLD, ANGULAR_VELOCITY_THRESHOLD);
                 break;
             }
             case MOTION_TYPE_STATIC:
@@ -334,7 +337,7 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     }
     bool easyUpdate = flags & EASY_DIRTY_PHYSICS_FLAGS;
     if (easyUpdate) {
-        updateObjectEasy(body, motionState, flags);
+        motionState->updateObjectEasy(flags, _frameCount);
     }
 
     // update the motion parameters
@@ -384,32 +387,5 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
     body->activate();
 }
-
-// private
-void PhysicsEngine::updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
-    if (flags & EntityItem::DIRTY_POSITION) {
-        btTransform transform;
-        motionState->getWorldTransform(transform);
-        body->setWorldTransform(transform);
-    }
-    if (flags & EntityItem::DIRTY_VELOCITY) {
-        motionState->applyVelocities();
-        motionState->applyGravity();
-    }
-    body->setRestitution(motionState->_restitution);
-    body->setFriction(motionState->_friction);
-    body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
-
-    if (flags & EntityItem::DIRTY_MASS) {
-        float mass = motionState->getMass();
-        btVector3 inertia(0.0f, 0.0f, 0.0f);
-        body->getCollisionShape()->calculateLocalInertia(mass, inertia);
-        body->setMassProps(mass, inertia);
-        body->updateInertiaTensor();
-    }
-    body->activate();
-
-    // TODO: support collision groups
-};
 
 #endif // USE_BULLET_PHYSICS

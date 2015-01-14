@@ -11,7 +11,6 @@
 
 #include <cstdlib>
 
-
 #include <QBoxLayout>
 #include <QColorDialog>
 #include <QDialogButtonBox>
@@ -44,20 +43,26 @@
 #include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
-#include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 #include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
+#include "ui/AddressBarDialog.h"
 #include "ui/AnimationsDialog.h"
 #include "ui/AttachmentsDialog.h"
+#include "ui/BandwidthDialog.h"
+#include "ui/CachesSizeDialog.h"
+#include "ui/DataWebDialog.h"
+#include "ui/HMDToolsDialog.h"
+#include "ui/LodToolsDialog.h"
+#include "ui/LoginDialog.h"
+#include "ui/OctreeStatsDialog.h"
+#include "ui/PreferencesDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
 #include "ui/MetavoxelNetworkSimulator.h"
 #include "ui/ModelsBrowser.h"
-#include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
 
 Menu* Menu::_instance = NULL;
@@ -79,56 +84,9 @@ Menu* Menu::getInstance() {
     return _instance;
 }
 
-const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
-const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
-const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
-const int ONE_SECOND_OF_FRAMES = 60;
-const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
-
-const QString CONSOLE_TITLE = "Scripting Console";
-const float CONSOLE_WINDOW_OPACITY = 0.95f;
-const int CONSOLE_WIDTH = 800;
-const int CONSOLE_HEIGHT = 200;
-
 Menu::Menu() :
-    _actionHash(),
-    _receivedAudioStreamSettings(),
-    _bandwidthDialog(NULL),
-    _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
-    _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
-    _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
-    _faceshiftHostname(DEFAULT_FACESHIFT_HOSTNAME),
-    _jsConsole(NULL),
-    _octreeStatsDialog(NULL),
-    _lodToolsDialog(NULL),
-    _hmdToolsDialog(NULL),
-    _newLocationDialog(NULL),
-    _userLocationsDialog(NULL),
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    _speechRecognizer(),
-#endif
-    _octreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
-    _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
-    _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
-    _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
-    _automaticAvatarLOD(true),
-    _avatarLODDecreaseFPS(DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS),
-    _avatarLODIncreaseFPS(ADJUST_LOD_UP_FPS),
-    _avatarLODDistanceMultiplier(DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER),
-    _boundaryLevelAdjust(0),
-    _maxOctreePacketsPerSecond(DEFAULT_MAX_OCTREE_PPS),
     _lastAdjust(usecTimestampNow()),
-    _lastAvatarDetailDrop(usecTimestampNow()),
-    _fpsAverage(FIVE_SECONDS_OF_FRAMES),
-    _fastFPSAverage(ONE_SECOND_OF_FRAMES),
-    _loginAction(NULL),
-    _preferencesDialog(NULL),
-    _loginDialog(NULL),
-    _hasLoginDialogDisplayed(false),
-    _snapshotsLocation(),
-    _scriptsLocation(),
-    _walletPrivateKey(),
-    _shouldRenderTableNeedsRebuilding(true)
+    _lastAvatarDetailDrop(usecTimestampNow())
 {
     Application *appInstance = Application::getInstance();
 
@@ -354,11 +312,8 @@ Menu::Menu() :
 
     QMenu* nodeBordersMenu = viewMenu->addMenu("Server Borders");
     NodeBounds& nodeBounds = appInstance->getNodeBoundsDisplay();
-    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersVoxelNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
-                                           &nodeBounds, SLOT(setShowVoxelNodes(bool)));
     addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_2, false,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
@@ -492,6 +447,7 @@ Menu::Menu() :
                                            false,
                                            &UserActivityLogger::getInstance(),
                                            SLOT(disable(bool)));
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0, this, SLOT(cachesSizeDialog()));
     
     addActionToQMenuAndActionHash(developerMenu, MenuOption::WalletPrivateKey, 0, this, SLOT(changePrivateKey()));
 
@@ -617,15 +573,6 @@ Menu::Menu() :
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
     connect(helpAction, SIGNAL(triggered()), this, SLOT(aboutApp()));
 #endif
-}
-
-Menu::~Menu() {
-    bandwidthDetailsClosed();
-    octreeStatsDetailsClosed();
-    if (_hmdToolsDialog) {
-        delete _hmdToolsDialog;
-        _hmdToolsDialog = NULL;
-    }
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -1153,7 +1100,7 @@ void Menu::bandwidthDetails() {
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(DependencyManager::get<GLCanvas>().data(),
                                                Application::getInstance()->getBandwidthMeter());
-        connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
+        connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
 
         _bandwidthDialog->show();
         
@@ -1253,31 +1200,17 @@ void Menu::audioMuteToggled() {
     }
 }
 
-void Menu::bandwidthDetailsClosed() {
-    if (_bandwidthDialog) {
-        delete _bandwidthDialog;
-        _bandwidthDialog = NULL;
-    }
-}
-
 void Menu::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
         _octreeStatsDialog = new OctreeStatsDialog(DependencyManager::get<GLCanvas>().data(),
                                                  Application::getInstance()->getOcteeSceneStats());
-        connect(_octreeStatsDialog, SIGNAL(closed()), SLOT(octreeStatsDetailsClosed()));
+        connect(_octreeStatsDialog, SIGNAL(closed()), _octreeStatsDialog, SLOT(deleteLater()));
         _octreeStatsDialog->show();
         if (_hmdToolsDialog) {
             _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
         }
     }
     _octreeStatsDialog->raise();
-}
-
-void Menu::octreeStatsDetailsClosed() {
-    if (_octreeStatsDialog) {
-        delete _octreeStatsDialog;
-        _octreeStatsDialog = NULL;
-    }
 }
 
 QString Menu::getLODFeedbackText() {
@@ -1443,24 +1376,29 @@ bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) {
     return (distanceToCamera <= visibleDistanceAtClosestScale);
 }
 
+void Menu::cachesSizeDialog() {
+    qDebug() << "Caches size:" << _cachesSizeDialog.isNull();
+    if (!_cachesSizeDialog) {
+        _cachesSizeDialog = new CachesSizeDialog(DependencyManager::get<GLCanvas>().data());
+        connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
+        _cachesSizeDialog->show();
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_cachesSizeDialog->windowHandle());
+        }
+    }
+    _cachesSizeDialog->raise();
+}
 
 void Menu::lodTools() {
     if (!_lodToolsDialog) {
         _lodToolsDialog = new LodToolsDialog(DependencyManager::get<GLCanvas>().data());
-        connect(_lodToolsDialog, SIGNAL(closed()), SLOT(lodToolsClosed()));
+        connect(_lodToolsDialog, SIGNAL(closed()), _lodToolsDialog, SLOT(deleteLater()));
         _lodToolsDialog->show();
         if (_hmdToolsDialog) {
             _hmdToolsDialog->watchWindow(_lodToolsDialog->windowHandle());
         }
     }
     _lodToolsDialog->raise();
-}
-
-void Menu::lodToolsClosed() {
-    if (_lodToolsDialog) {
-        delete _lodToolsDialog;
-        _lodToolsDialog = NULL;
-    }
 }
 
 void Menu::hmdTools(bool showTools) {

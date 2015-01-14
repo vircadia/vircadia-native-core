@@ -17,7 +17,10 @@
 static int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 
 AnimationCache::AnimationCache(QObject* parent) :
-    ResourceCache(parent) {
+    ResourceCache(parent)
+{
+    const qint64 ANIMATION_DEFAULT_UNUSED_MAX_SIZE = 50 * BYTES_PER_MEGABYTES;
+    setUnusedResourceCacheSize(ANIMATION_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
