@@ -1000,7 +1000,7 @@ void DomainServer::readAvailableDatagrams() {
 
 void DomainServer::setupPendingAssignmentCredits() {
     // enumerate the NodeList to find the assigned nodes
-    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
+    DependencyManager::get<LimitedNodeList>()->eachNode([&](const SharedNodePointer& node){
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         
         if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
@@ -1136,7 +1136,8 @@ void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr)
 
 void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-    const QUuid& domainID = DependencyManager::get<LimitedNodeList>()->getSessionUUID();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    const QUuid& domainID = nodeList->getSessionUUID();
     
     // setup the domain object to send to the data server
     const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
@@ -1160,7 +1161,7 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     // add the number of currently connected agent users
     int numConnectedAuthedUsers = 0;
     
-    DependencyManager::get<NodeList>()->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
+    nodeList->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
         if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
             ++numConnectedAuthedUsers;
         }
@@ -1478,7 +1479,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonObject assignedNodesJSON;
 
             // enumerate the NodeList to find the assigned nodes
-            DependencyManager::get<NodeList>()->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
+            nodeList->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
                 DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
                 
                 if (!nodeData->getAssignmentUUID().isNull()) {
@@ -2076,7 +2077,7 @@ void DomainServer::addStaticAssignmentsToQueue() {
         // add any of the un-matched static assignments to the queue
         
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        if (!DependencyManager::get<NodeList>()->nodeWithUUID(staticAssignment->data()->getUUID())) {
+        if (!DependencyManager::get<LimitedNodeList>()->nodeWithUUID(staticAssignment->data()->getUUID())) {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             refreshStaticAssignmentAndAddToQueue(*staticAssignment);
         }
