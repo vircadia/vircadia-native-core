@@ -31,8 +31,13 @@
         }
         function createEmitTextPropertyUpdateFunction(propertyName) {
             return function() {
+                var properties = {};
+                properties[propertyName] = this.value;
                 EventBridge.emitWebEvent(
-                    '{ "type":"update", "properties":{"' + propertyName + '":"' + this.value + '"}}'
+                    JSON.stringify({
+                        type: "update",
+                        properties: properties,
+                    })
                 );
             };
         }
@@ -146,6 +151,9 @@
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
             var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
+            var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
+            var elModelTextures = document.getElementById("property-model-textures");
+            var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
             var elTextSections = document.querySelectorAll(".text-section");
             var elTextText = document.getElementById("property-text-text");
@@ -244,6 +252,10 @@
                                 elModelAnimationURL.value = properties.animationURL;
                                 elModelAnimationPlaying.checked = properties.animationIsPlaying;
                                 elModelAnimationFPS.value = properties.animationFPS;
+                                elModelAnimationFrame.value = properties.animationFrameIndex;
+                                elModelAnimationSettings.value = properties.animationSettings;
+                                elModelTextures.value = properties.textures;
+                                elModelOriginalTextures.value = properties.originalTextures;
                             }
 
                             if (properties.type != "Text") {
@@ -387,6 +399,8 @@
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
             elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
+            elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
+            elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -428,7 +442,6 @@
                     percentage: parseInt(elRescaleDimensionsPct.value),
                 }));
             });
-
 
             var resizing = false;
             var startX = 0;
@@ -677,6 +690,24 @@
             <td class="label">Animation Frame</td>
             <td>
                 <input class="coord" type='number' id="property-model-animation-frame"></input>
+            </td>
+        </tr>
+        <tr class="model-section">
+            <td class="label">Animation Settings</td>
+            <td>
+                <textarea id="property-model-animation-settings" value='asdfasdf'></textarea>
+            </td>
+        </tr>
+        <tr class="model-section">
+            <td class="label">Textures</td>
+            <td>
+                <textarea id="property-model-textures" value='asdfasdf'></textarea>
+            </td>
+        </tr>
+        <tr class="model-section">
+            <td class="label">Original Textures</td>
+            <td>
+                <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
             </td>
         </tr>
 

@@ -54,8 +54,8 @@ public:
 #endif // USE_BULLET_PHYSICS
 
     // these relay incoming values to the RigidBody
-    void applyVelocities() const;
-    void applyGravity() const;
+    void updateObjectEasy(uint32_t flags, uint32_t frame);
+    void updateObjectVelocities();
 
     void computeShapeInfo(ShapeInfo& info);
 

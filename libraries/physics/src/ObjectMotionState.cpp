@@ -123,9 +123,9 @@ bool ObjectMotionState::doesNotNeedToSendUpdate() const {
 
 const float FIXED_SUBSTEP = 1.0f / 60.0f;
 
-bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) {
+bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     assert(_body);
-    float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP + subStepRemainder;
+    float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP;
     _sentFrame = simulationFrame;
     bool isActive = _body->isActive();
 
@@ -183,7 +183,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStep
     }
     const float MIN_ROTATION_DOT = 0.98f;
     glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
-    return (glm::dot(actualRotation, _sentRotation) < MIN_ROTATION_DOT);
+    return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
 }
 
 #endif // USE_BULLET_PHYSICS
