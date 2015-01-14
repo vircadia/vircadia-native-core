@@ -38,6 +38,7 @@
 #include <ViewFrustum.h>
 
 #include "Audio.h"
+#include "Bookmarks.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -295,6 +296,8 @@ public:
     
     QRect getDesirableApplicationGeometry();
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
+
+    Bookmarks* getBookmarks() const { return _bookmarks; }
 
 signals:
 
@@ -569,6 +572,8 @@ private:
     bool _isVSyncOn;
     
     bool _aboutToQuit;
+
+    Bookmarks* _bookmarks;
 };
 
 #endif // hifi_Application_h

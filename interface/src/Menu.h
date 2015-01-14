@@ -200,6 +200,7 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
+    void bookmarkLocation();
     void nameLocation();
     void toggleLocationList();
     void hmdToolsClosed();
@@ -307,6 +308,8 @@ private:
     
     bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
+
+    QMenu* _bookmarksMenu;
 };
 
 namespace MenuOption {
@@ -334,6 +337,8 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
+    const QString BookmarkLocation = "Bookmark Location";
+    const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "Caches Size";
     const QString Chat = "Chat...";

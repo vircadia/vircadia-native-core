@@ -14,26 +14,22 @@
 Bookmarks::Bookmarks() {
 }
 
-void Bookmarks::insert(QString name, QString address) {
+void Bookmarks::insert(const QString& name, const QString& address) {
     QString key = name.toLower();
 
-    if (isValidName(name)) {
-        QJsonObject bookmark;
-        bookmark.insert("name", name);
-        bookmark.insert("address", address);
-        _bookmarks.insert(key, bookmark);
+    QJsonObject bookmark;
+    bookmark.insert("name", name);
+    bookmark.insert("address", address);
+    _bookmarks.insert(key, bookmark);
 
-        if (contains(key)) {
-            qDebug() << "Added bookmark: " << name << ", " << address;
-        } else {
-            qDebug() << "Couldn't add bookmark: " << name << ", " << address;
-        }
+    if (contains(key)) {
+        qDebug() << "Added bookmark: " << name << ", " << address;
     } else {
-        qDebug() << "Invalid bookmark: " << name << ", " << address;
+        qDebug() << "Couldn't add bookmark: " << name << ", " << address;
     }
 }
 
-void Bookmarks::remove(QString name) {
+void Bookmarks::remove(const QString& name) {
     QString key = name.toLower();
 
     _bookmarks.remove(key);
@@ -45,10 +41,6 @@ void Bookmarks::remove(QString name) {
     }
 }
 
-bool Bookmarks::contains(QString name) {
+bool Bookmarks::contains(const QString& name) const {
     return _bookmarks.contains(name.toLower());
-}
-
-bool Bookmarks::isValidName(QString name) {
-    return _nameRegExp.exactMatch(name);
 }

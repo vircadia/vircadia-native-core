@@ -310,6 +310,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _settings = new QSettings(this);
     _numChangedSettings = 0;
 
+    _bookmarks = new Bookmarks();
+
     #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);

@@ -123,6 +123,10 @@ Menu::Menu() :
                                   appInstance, SLOT(toggleRunningScriptsWidget()));
 
     addDisabledActionAndSeparator(fileMenu, "Go");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::BookmarkLocation, 0,
+                                  this, SLOT(bookmarkLocation()));
+    _bookmarksMenu = fileMenu->addMenu(MenuOption::Bookmarks);
+    _bookmarksMenu->setEnabled(false);
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::NameLocation,
                                   Qt::CTRL | Qt::Key_N,
@@ -1008,6 +1012,53 @@ void Menu::toggleAddressBar() {
 
 void Menu::changeVSync() {
     Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
+}
+
+void Menu::bookmarkLocation() {
+
+    QInputDialog bookmarkLocationDialog(Application::getInstance()->getWindow());
+    bookmarkLocationDialog.setWindowTitle("Bookmark Location");
+    bookmarkLocationDialog.setLabelText("Name:");
+    bookmarkLocationDialog.setInputMode(QInputDialog::TextInput);
+    bookmarkLocationDialog.resize(400, 200);
+
+    if (bookmarkLocationDialog.exec() == QDialog::Rejected) {
+        return;
+    }
+
+    QString bookmarkName = bookmarkLocationDialog.textValue().trimmed();
+    if (bookmarkName.length() == 0) {
+        return;
+    }
+
+    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+    QString bookmarkAddress = addressManager->currentAddress().toString();
+
+    Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
+    if (bookmarks->contains(bookmarkName)) {
+        QMessageBox duplicateBookmarkMessage;
+        duplicateBookmarkMessage.setIcon(QMessageBox::Warning);
+        duplicateBookmarkMessage.setText("The bookmark name you entered already exists in your list.");
+        duplicateBookmarkMessage.setInformativeText("Would you like to overwrite it?");
+        duplicateBookmarkMessage.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        duplicateBookmarkMessage.setDefaultButton(QMessageBox::Yes);
+        if (duplicateBookmarkMessage.exec() == QMessageBox::No) {
+            return;
+        }
+        removeAction(_bookmarksMenu, bookmarkName);
+    }
+    
+    bookmarks->insert(bookmarkName, bookmarkAddress);
+
+    QList<QAction*> menuItems = _bookmarksMenu->actions();
+    int position = 0;
+    while (position < menuItems.count() && bookmarkName > menuItems[position]->text()) {
+        position += 1;
+    }
+    addActionToQMenuAndActionHash(_bookmarksMenu, bookmarkName, 0,
+                                  this, NULL, QAction::NoRole, position);
+
+    _bookmarksMenu->setEnabled(true);
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {

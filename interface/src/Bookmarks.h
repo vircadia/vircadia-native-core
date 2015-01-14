@@ -16,7 +16,6 @@
 #include <QDebug>
 #include <QMap>
 #include <QObject>
-#include <QStringList>
 
 class Bookmarks: public QObject {
     Q_OBJECT
@@ -24,16 +23,13 @@ class Bookmarks: public QObject {
 public:
     Bookmarks();
 
-    void insert(QString name, QString address);  // Overwrites any existing entry with same name.
-    void remove(QString name);
-
-    bool contains(QString name);
-    bool isValidName(QString name);
+    void insert(const QString& name, const QString& address);  // Overwrites any existing entry with same name.
+    void remove(const QString& name);
+    bool contains(const QString& name) const;
 
 private:
     QMap<QString, QJsonObject> _bookmarks;  // key: { name: string, address: string }
                                             // key is a lowercase copy of name, used to make the bookmarks case insensitive.
-    const QRegExp _nameRegExp = QRegExp("^[\\w\\-]+$");
 };
 
 #endif // hifi_Bookmarks_h
