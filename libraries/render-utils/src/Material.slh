@@ -36,8 +36,17 @@ Material getMaterial() {
     Material mat;
     mat._diffuse = materialBuffer[0];
     mat._specular = materialBuffer[1];
-    return mat;    
+    return mat;
 }
+<!/* tryed and failed...
+   bindable uniform struct {
+   Material mat;
+   } materialBuffer;
+   
+   Material getMaterial() {
+   return materialBuffer.mat;
+   }
+   */!>
 <@else@>
 uniform vec4 materialBuffer[2];
 Material getMaterial() {
@@ -48,14 +57,6 @@ Material getMaterial() {
 }
 <@endif@>
 
-<!/*
-bindable uniform struct {
-    Material mat;
-} materialBuffer;
 
-Material getMaterial() {
-    return materialBuffer.mat;    
-}
-*/!>
 
 <@endif@>
