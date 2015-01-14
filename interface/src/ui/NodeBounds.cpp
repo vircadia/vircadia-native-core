@@ -127,8 +127,7 @@ void NodeBounds::draw() {
         float red, green, blue;
         getColorForNodeType(selectedNode->getType(), red, green, blue);
 
-        glColor4f(red, green, blue, 0.2f);
-        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
+        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, glm::vec4(red, green, blue, 0.2f));
 
         glPopMatrix();
 
@@ -152,8 +151,7 @@ void NodeBounds::drawNodeBorder(const glm::vec3& center, float scale, float red,
     glTranslatef(center.x, center.y, center.z);
     glScalef(scale, scale, scale);
     glLineWidth(2.5);
-    glColor3f(red, green, blue);
-    DependencyManager::get<GeometryCache>()->renderWireCube(1.0f);
+    DependencyManager::get<GeometryCache>()->renderWireCube(1.0f, glm::vec4(red, green, blue, 1.0f));
     glPopMatrix();
 }
 
@@ -179,9 +177,10 @@ void NodeBounds::drawOverlay() {
         int mouseX = application->getTrueMouseX(),
             mouseY = application->getTrueMouseY(),
             textWidth = widthText(TEXT_SCALE, 0, _overlayText);
-        glColor4f(0.4f, 0.4f, 0.4f, 0.6f);
-        renderBevelCornersRect(mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,
-                               textWidth + (2 * PADDING), TEXT_HEIGHT + (2 * PADDING), BACKGROUND_BEVEL);
+        DependencyManager::get<GeometryCache>()->renderBevelCornersRect(
+                                mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,
+                                textWidth + (2 * PADDING), TEXT_HEIGHT + (2 * PADDING), BACKGROUND_BEVEL,
+                                glm::vec4(0.4f, 0.4f, 0.4f, 0.6f));
         drawText(mouseX + MOUSE_OFFSET + PADDING, mouseY, TEXT_SCALE, ROTATION, FONT, _overlayText, TEXT_COLOR);
     }
 }

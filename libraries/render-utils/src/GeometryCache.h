@@ -85,30 +85,36 @@ public:
     static const int UNKNOWN_ID;
 
     void renderHemisphere(int slices, int stacks);
-    void renderSphere(float radius, int slices, int stacks, bool solid = true);
     void renderSquare(int xDivisions, int yDivisions);
     void renderHalfCylinder(int slices, int stacks);
     void renderCone(float base, float height, int slices, int stacks);
-    void renderGrid(int xDivisions, int yDivisions);
-    void renderGrid(int x, int y, int width, int height, int rows, int cols, int id = UNKNOWN_ID);
-    void renderSolidCube(float size);
-    void renderWireCube(float size);
-    void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, int id = UNKNOWN_ID);
 
-    void renderQuad(int x, int y, int width, int height, int id = UNKNOWN_ID)
-            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), id); }
+    void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true) 
+                { renderSphere(radius, slices, stacks, glm::vec4(color, 1.0f), solid); }
+                
+    void renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid = true);
+    void renderGrid(int xDivisions, int yDivisions, const glm::vec4& color);
+    void renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderSolidCube(float size, const glm::vec4& color);
+    void renderWireCube(float size, const glm::vec4& color);
+    void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
+
+    void renderQuad(int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
+            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
             
-    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int id = UNKNOWN_ID);
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
-                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, int id = UNKNOWN_ID);
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
+                    const glm::vec4& color, int id = UNKNOWN_ID);
 
-    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, int id = UNKNOWN_ID);
+    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
-                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int id = UNKNOWN_ID);
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
+                    int id = UNKNOWN_ID);
 
 
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 
@@ -126,10 +132,23 @@ public:
                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
                     
     void renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id = UNKNOWN_ID);
-    void renderLine(const glm::vec2& p1, const glm::vec2& p2, int id = UNKNOWN_ID);
 
-    void updateVertices(int id, const QVector<glm::vec2>& points);
-    void updateVertices(int id, const QVector<glm::vec3>& points);
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, glm::vec4(color, 1.0f), id); }
+
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, color, color, id); }
+
+
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
+                                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
+                
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
+                                    const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
+
+    void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
     void renderVertices(GLenum mode, int id);
 
     /// Loads geometry from the specified URL.
@@ -200,8 +219,8 @@ private:
     QHash<int, BatchItemDetails> _registeredLine3DVBOs;
 
     QHash<int, Vec2Pair> _lastRegisteredLine2D;
-    QHash<Vec2Pair, VerticesIndices> _line2DVBOs;
-    QHash<int, VerticesIndices> _registeredLine2DVBOs;
+    QHash<Vec2Pair, BatchItemDetails> _line2DVBOs;
+    QHash<int, BatchItemDetails> _registeredLine2DVBOs;
     
     QHash<int, BufferDetails> _registeredVertices;
 

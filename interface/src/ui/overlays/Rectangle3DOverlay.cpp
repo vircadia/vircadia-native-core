@@ -39,7 +39,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     glDisable(GL_LIGHTING);
     
@@ -72,7 +72,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
             if (getIsSolid()) {
                 glm::vec3 topLeft(-halfDimensions.x, 0.0f, -halfDimensions.y);
                 glm::vec3 bottomRight(halfDimensions.x, 0.0f, halfDimensions.y);
-                DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+                DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, rectangleColor);
             } else {
                 if (getIsDashedLine()) {
 
@@ -95,7 +95,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                         border << glm::vec3(halfDimensions.x, 0.0f, halfDimensions.y);
                         border << glm::vec3(-halfDimensions.x, 0.0f, halfDimensions.y);
                         border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                        geometryCache->updateVertices(_geometryCacheID, border);
+                        geometryCache->updateVertices(_geometryCacheID, border, rectangleColor);
 
                         _previousHalfDimensions = halfDimensions;
                         

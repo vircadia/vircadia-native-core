@@ -245,13 +245,12 @@ void ApplicationOverlay::displayOverlayTexture() {
         glDisable(GL_LIGHTING);
         glEnable(GL_BLEND);
         
-        glColor4f(1.0f, 1.0f, 1.0f, _alpha);
         glm::vec2 topLeft(0.0f, 0.0f);
         glm::vec2 bottomRight(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
         glm::vec2 texCoordTopLeft(0.0f, 1.0f);
         glm::vec2 texCoordBottomRight(1.0f, 0.0f);
 
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
         
     } glPopMatrix();
     
@@ -673,14 +672,13 @@ void ApplicationOverlay::renderControllerPointers() {
         mouseY += reticleSize / 2.0f;
 
 
-        glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
-
         glm::vec2 topLeft(mouseX, mouseY);
         glm::vec2 bottomRight(mouseX + reticleSize, mouseY - reticleSize);
         glm::vec2 texCoordTopLeft(0.0f, 0.0f);
         glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+                                                            glm::vec4(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f));
         
     }
 }
@@ -756,7 +754,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
         border << bottomRight;
         border << topRight;
         border << topLeft;
-        geometryCache->updateVertices(_magnifierBorder, border);
+        geometryCache->updateVertices(_magnifierBorder, border, glm::vec4(1.0f, 0.0f, 0.0f, _alpha));
 
         _previousMagnifierBottomLeft = bottomLeft;
         _previousMagnifierBottomRight = bottomRight;
@@ -769,7 +767,6 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
             glDisable(GL_TEXTURE_2D);
             glLineWidth(1.0f);
             //Outer Line
-            glColor4f(1.0f, 0.0f, 0.0f, _alpha);
             geometryCache->renderVertices(GL_LINE_STRIP, _magnifierBorder);
             glEnable(GL_TEXTURE_2D);
         }
@@ -810,9 +807,9 @@ void ApplicationOverlay::renderAudioMeter() {
         audioMeterY = AUDIO_METER_GAP + MUTE_ICON_PADDING;
     }
 
-    const float AUDIO_METER_BLUE[] = { 0.0, 0.0, 1.0 };
-    const float AUDIO_METER_GREEN[] = { 0.0, 1.0, 0.0 };
-    const float AUDIO_METER_RED[] = { 1.0, 0.0, 0.0 };
+    const glm::vec4 AUDIO_METER_BLUE = { 0.0, 0.0, 1.0, 1.0 };
+    const glm::vec4 AUDIO_METER_GREEN = { 0.0, 1.0, 0.0, 1.0 };
+    const glm::vec4 AUDIO_METER_RED = { 1.0, 0.0, 0.0, 1.0 };
     const float AUDIO_GREEN_START = 0.25 * AUDIO_METER_SCALE_WIDTH;
     const float AUDIO_RED_START = 0.80 * AUDIO_METER_SCALE_WIDTH;
     const float CLIPPING_INDICATOR_TIME = 1.0f;
@@ -855,51 +852,53 @@ void ApplicationOverlay::renderAudioMeter() {
 
     audioMeterY += AUDIO_METER_HEIGHT;
 
-    glColor3f(0, 0, 0);
     //  Draw audio meter background Quad
-    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X, audioMeterY, AUDIO_METER_WIDTH, AUDIO_METER_HEIGHT);
+    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X, audioMeterY, AUDIO_METER_WIDTH, AUDIO_METER_HEIGHT, glm::vec4(0, 0, 0, 1));
 
     if (audioLevel > AUDIO_RED_START) {
+        glm::vec4 quadColor;
         if (!isClipping) {
-            glColor3fv(AUDIO_METER_RED);
+            quadColor = AUDIO_METER_RED;
         } else {
-            glColor3f(1, 1, 1);
+            quadColor = glm::vec4(1, 1, 1, 1);
         }
         // Draw Red Quad
         DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, 
                                                             audioMeterY + AUDIO_METER_INSET, 
                                                             audioLevel - AUDIO_RED_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
                                                             _audioRedQuad);
         
         audioLevel = AUDIO_RED_START;
     }
 
     if (audioLevel > AUDIO_GREEN_START) {
+        glm::vec4 quadColor;
         if (!isClipping) {
-            glColor3fv(AUDIO_METER_GREEN);
+            quadColor = AUDIO_METER_GREEN;
         } else {
-            glColor3f(1, 1, 1);
+            quadColor = glm::vec4(1, 1, 1, 1);
         }
         // Draw Green Quad
         DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, 
                                                             audioMeterY + AUDIO_METER_INSET, 
                                                             audioLevel - AUDIO_GREEN_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
                                                             _audioGreenQuad);
 
         audioLevel = AUDIO_GREEN_START;
     }
     //   Draw Blue Quad
+    glm::vec4 quadColor;
     if (!isClipping) {
-        glColor3fv(AUDIO_METER_BLUE);
+        quadColor = AUDIO_METER_BLUE;
     } else {
-        glColor3f(1, 1, 1);
+        quadColor = glm::vec4(1, 1, 1, 1);
     }
     // Draw Blue (low level) quad
     DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET, 
                                                         audioMeterY + AUDIO_METER_INSET, 
-                                                        audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET,
+                                                        audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
                                                         _audioBlueQuad);
 }
 
@@ -955,20 +954,21 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
         int height = glCanvas->height();
 
         if (width != _previousBorderWidth || height != _previousBorderHeight) {
+            glm::vec4 color(CONNECTION_STATUS_BORDER_COLOR[0],
+                            CONNECTION_STATUS_BORDER_COLOR[1],
+                            CONNECTION_STATUS_BORDER_COLOR[2], 1.0f);
+
             QVector<glm::vec2> border;
             border << glm::vec2(0, 0);
             border << glm::vec2(0, height);
             border << glm::vec2(width, height);
             border << glm::vec2(width, 0);
             border << glm::vec2(0, 0);
-            geometryCache->updateVertices(_domainStatusBorder, border);
+            geometryCache->updateVertices(_domainStatusBorder, border, color);
             _previousBorderWidth = width;
             _previousBorderHeight = height;
         }
 
-        glColor3f(CONNECTION_STATUS_BORDER_COLOR[0],
-                  CONNECTION_STATUS_BORDER_COLOR[1],
-                  CONNECTION_STATUS_BORDER_COLOR[2]);
         glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
 
         geometryCache->renderVertices(GL_LINE_STRIP, _domainStatusBorder);

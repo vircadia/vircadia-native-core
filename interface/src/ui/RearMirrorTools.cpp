@@ -133,10 +133,11 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint texture
     glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_2D);
 
+    glm::vec4 quadColor;
     if (selected) {
-        glColor3f(.5f, .5f, .5f);
+        quadColor = glm::vec4(.5f, .5f, .5f, 1.0f);
     } else {
-        glColor3f(1, 1, 1);
+        quadColor = glm::vec4(1, 1, 1, 1);
     }
     
     glBindTexture(GL_TEXTURE_2D, textureId);
@@ -146,7 +147,7 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint texture
     glm::vec2 texCoordTopLeft(0.0f, 1.0f);
     glm::vec2 texCoordBottomRight(1.0f, 0.0f);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
     
     glPopMatrix();
     

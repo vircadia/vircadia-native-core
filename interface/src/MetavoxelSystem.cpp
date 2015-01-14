@@ -1973,7 +1973,6 @@ SphereRenderer::SphereRenderer() {
 void SphereRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     Sphere* sphere = static_cast<Sphere*>(_spanner);
     const QColor& color = sphere->getColor();
-    glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF());
     
     glPushMatrix();
     const glm::vec3& translation = sphere->getTranslation();
@@ -1982,7 +1981,8 @@ void SphereRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
-    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(sphere->getScale(), 32, 32);
+    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(sphere->getScale(), 32, 32,
+                                                            glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF()));
     
     glPopMatrix();
 }
@@ -1993,7 +1993,6 @@ CuboidRenderer::CuboidRenderer() {
 void CuboidRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     Cuboid* cuboid = static_cast<Cuboid*>(_spanner);
     const QColor& color = cuboid->getColor();
-    glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF());
     
     glPushMatrix();
     const glm::vec3& translation = cuboid->getTranslation();
@@ -2003,7 +2002,8 @@ void CuboidRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     glScalef(1.0f, cuboid->getAspectY(), cuboid->getAspectZ());
     
-    DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(cuboid->getScale() * 2.0f);
+    DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(cuboid->getScale() * 2.0f,
+                                                            glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF()));
     
     glPopMatrix();
 }

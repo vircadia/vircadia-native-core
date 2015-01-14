@@ -47,7 +47,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::vec4 cubeColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     //glDisable(GL_LIGHTING);
 
@@ -74,13 +74,12 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     // enough for the use-case.
                     glDepthMask(GL_FALSE);
                     glPushMatrix();
-                        glColor4f(1.0f, 1.0f, 1.0f, alpha);
                         glScalef(dimensions.x * _borderSize, dimensions.y * _borderSize, dimensions.z * _borderSize);
 
                         if (_drawOnHUD) {
-                            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
+                            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
                         } else {
-                            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+                            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
                         }
 
                     glPopMatrix();
@@ -88,12 +87,11 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 }
 
                 glPushMatrix();
-                    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
                     if (_drawOnHUD) {
-                        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
+                        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, cubeColor);
                     } else {
-                        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+                        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
                     }
                 glPopMatrix();
             } else {
@@ -130,7 +128,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
                 } else {
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
-                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f);
+                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
                 }
             }
         glPopMatrix();

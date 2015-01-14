@@ -94,12 +94,21 @@ void BandwidthMeter::setColorRGBA(unsigned c) {
                GLubyte( c        & 0xff));
 }
 
-void BandwidthMeter::renderBox(int x, int y, int w, int h) {
-    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h);
+glm::vec4 BandwidthMeter::getColorRGBA(unsigned c) {
+
+    float r = (c >> 24) / 255.0f;
+    float g = ((c >> 16) & 0xff) / 255.0f;
+    float b = ((c >>  8) & 0xff) / 255.0f;
+    float a = (c & 0xff) / 255.0f;
+    return glm::vec4(r,g,b,a);
 }
 
-void BandwidthMeter::renderVerticalLine(int x, int y, int h) {
-    DependencyManager::get<GeometryCache>()->renderLine(glm::vec2(x, y), glm::vec2(x, y + h));
+void BandwidthMeter::renderBox(int x, int y, int w, int h, unsigned c) {
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h, getColorRGBA(c));
+}
+
+void BandwidthMeter::renderVerticalLine(int x, int y, int h, unsigned c) {
+    DependencyManager::get<GeometryCache>()->renderLine(glm::vec2(x, y), glm::vec2(x, y + h), getColorRGBA(c));
 }
 
 inline int BandwidthMeter::centered(int subject, int object) {
@@ -161,9 +170,9 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     _textRenderer->draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT);
 
     // Render vertical lines for the frame
-    setColorRGBA(COLOR_FRAME);
-    renderVerticalLine(0, 0, h);
-    renderVerticalLine(barWidth, 0, h);
+    //setColorRGBA(COLOR_FRAME);
+    renderVerticalLine(0, 0, h, COLOR_FRAME);
+    renderVerticalLine(barWidth, 0, h, COLOR_FRAME);
 
     // Adjust scale
     int steps;
@@ -192,9 +201,8 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     }
     
     // Render scale indicators
-    setColorRGBA(COLOR_INDICATOR);
     for (int j = NUMBER_OF_MARKERS; --j > 0;) {
-        renderVerticalLine((barWidth * j) / NUMBER_OF_MARKERS, 0, h);
+        renderVerticalLine((barWidth * j) / NUMBER_OF_MARKERS, 0, h, COLOR_INDICATOR);
     }
 
     // Render bars
@@ -205,15 +213,13 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
         int wIn = (int)(barWidth * inputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
         int wOut = (int)(barWidth * outputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
 
-        setColorRGBA(channelInfo(chIdx).colorRGBA);
-
         if (wIn > 0) {
-            renderBox(xIn, 0, wIn, barHeight);
+            renderBox(xIn, 0, wIn, barHeight, channelInfo(chIdx).colorRGBA);
         }
         xIn += wIn;
 
         if (wOut > 0) {
-            renderBox(xOut, h - barHeight, wOut, barHeight);
+            renderBox(xOut, h - barHeight, wOut, barHeight, channelInfo(chIdx).colorRGBA);
         }
         xOut += wOut;
     }

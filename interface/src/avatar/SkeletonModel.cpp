@@ -354,7 +354,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
             } else {
                 otherAxis.x = 1.0f;
             }
-            glColor4f(otherAxis.r, otherAxis.g, otherAxis.b, 0.75f);
+            glm::vec4 color(otherAxis.r, otherAxis.g, otherAxis.b, 0.75f);
 
             QVector<glm::vec3> points;
             points << glm::vec3(0.0f, 0.0f, 0.0f);
@@ -366,7 +366,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
             }
             // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
             // better if the skeleton model cached these buffers for each of the joints they are rendering
-            geometryCache->updateVertices(_triangleFanID, points);
+            geometryCache->updateVertices(_triangleFanID, points, color);
             geometryCache->renderVertices(GL_TRIANGLE_FAN, _triangleFanID);
             
         }
@@ -601,10 +601,8 @@ void SkeletonModel::renderRagdoll() {
         glm::vec3 position = points[i]._position - simulationTranslation;
         glTranslatef(position.x, position.y, position.z);
         // draw each point as a yellow hexagon with black border
-        glColor4f(0.0f, 0.0f, 0.0f, alpha);
-        geometryCache->renderSphere(radius2, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-        glColor4f(1.0f, 1.0f, 0.0f, alpha);
-        geometryCache->renderSphere(radius1, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        geometryCache->renderSphere(radius2, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.0f, 0.0f, 0.0f, alpha));
+        geometryCache->renderSphere(radius1, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(1.0f, 1.0f, 0.0f, alpha));
         glPopMatrix();
     }
     glPopMatrix();
@@ -953,9 +951,8 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     _boundingShape.getEndPoint(endPoint);
     endPoint = endPoint - _translation;
     glTranslatef(endPoint.x, endPoint.y, endPoint.z);
-    glColor4f(0.6f, 0.6f, 0.8f, alpha);
     GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule startpoint
     glm::vec3 startPoint;
@@ -963,13 +960,11 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     startPoint = startPoint - _translation;
     glm::vec3 axis = endPoint - startPoint;
     glTranslatef(-axis.x, -axis.y, -axis.z);
-    glColor4f(0.8f, 0.8f, 0.6f, alpha);
-    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
-    glColor4f(0.6f, 0.8f, 0.6f, alpha);
-    Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius());
+    Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 
     glPopMatrix();
 }
@@ -998,8 +993,7 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
             glm::vec3 position = shape->getTranslation() - simulationTranslation;
             glTranslatef(position.x, position.y, position.z);
             // draw a grey sphere at shape position
-            glColor4f(0.75f, 0.75f, 0.75f, alpha);
-                geometryCache->renderSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+            geometryCache->renderSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.75f, 0.75f, 0.75f, alpha));
         } else if (shape->getType() == CAPSULE_SHAPE) {
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
 
@@ -1008,8 +1002,7 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
             capsule->getEndPoint(endPoint);
             endPoint = endPoint - simulationTranslation;
             glTranslatef(endPoint.x, endPoint.y, endPoint.z);                                     
-            glColor4f(0.6f, 0.6f, 0.8f, alpha); 
-            geometryCache->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS); 
+            geometryCache->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
             // draw a yellow sphere at the capsule startpoint
             glm::vec3 startPoint;
@@ -1017,13 +1010,11 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
             startPoint = startPoint - simulationTranslation;
             glm::vec3 axis = endPoint - startPoint;
             glTranslatef(-axis.x, -axis.y, -axis.z);
-            glColor4f(0.8f, 0.8f, 0.6f, alpha); 
-            geometryCache->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS); 
+            geometryCache->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
             // draw a green cylinder between the two points
             glm::vec3 origin(0.0f);
-            glColor4f(0.6f, 0.8f, 0.6f, alpha);
-            Avatar::renderJointConnectingCone( origin, axis, capsule->getRadius(), capsule->getRadius());
+            Avatar::renderJointConnectingCone( origin, axis, capsule->getRadius(), capsule->getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
         }
         glPopMatrix();
     }

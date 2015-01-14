@@ -71,27 +71,27 @@ void DeferredLightingEffect::releaseSimpleProgram() {
     DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false, false);
 }
 
-void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks) {
+void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color) {
     bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks); 
+    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks, color);
     releaseSimpleProgram();
 }
 
-void DeferredLightingEffect::renderWireSphere(float radius, int slices, int stacks) {
+void DeferredLightingEffect::renderWireSphere(float radius, int slices, int stacks, const glm::vec4& color) {
     bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks, false); 
+    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks, color, false);
     releaseSimpleProgram();
 }
 
-void DeferredLightingEffect::renderSolidCube(float size) {
+void DeferredLightingEffect::renderSolidCube(float size, const glm::vec4& color) {
     bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderSolidCube(size); 
+    DependencyManager::get<GeometryCache>()->renderSolidCube(size, color);
     releaseSimpleProgram();
 }
 
-void DeferredLightingEffect::renderWireCube(float size) {
+void DeferredLightingEffect::renderWireCube(float size, const glm::vec4& color) {
     bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderWireCube(size);
+    DependencyManager::get<GeometryCache>()->renderWireCube(size, color);
     releaseSimpleProgram();
 }
 
@@ -153,8 +153,6 @@ void DeferredLightingEffect::prepare() {
 
 void DeferredLightingEffect::render() {
     // perform deferred lighting, rendering to free fbo
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);    
-    
     glDisable(GL_BLEND);
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
@@ -295,7 +293,7 @@ void DeferredLightingEffect::render() {
                 
             } else {
                 glTranslatef(light.position.x, light.position.y, light.position.z);   
-                geometryCache->renderSphere(expandedRadius, 32, 32);
+                geometryCache->renderSphere(expandedRadius, 32, 32, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
             }
             
             glPopMatrix();

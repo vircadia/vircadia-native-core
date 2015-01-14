@@ -49,13 +49,13 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         const float MAX_COLOR = 255.0f;
         xColor backgroundColor = getBackgroundColorX();
         float alpha = 1.0f; //getBackgroundAlpha();
-        glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
+        glm::vec4 color(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
        
         const float SLIGHTLY_BEHIND = -0.005f;
 
         glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
         glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, color);
         
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         

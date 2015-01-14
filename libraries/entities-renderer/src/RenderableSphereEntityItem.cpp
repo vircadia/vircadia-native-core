@@ -32,7 +32,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
 
     const float MAX_COLOR = 255.0f;
-    glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
+    glm::vec4 sphereColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
                     
     glPushMatrix();
@@ -46,7 +46,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, 15, 15);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, 15, 15, sphereColor);
         glPopMatrix();
     glPopMatrix();
 };

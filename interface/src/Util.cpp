@@ -56,23 +56,19 @@ void renderWorldBox() {
     glEnable(GL_LIGHTING);
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
-    glColor3f(red.x, red.y, red.z);
-    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10, red);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, MARKER_DISTANCE, 0);
-    glColor3f(green.x, green.y, green.z);
-    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10, green);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, 0, MARKER_DISTANCE);
-    glColor3f(blue.x, blue.y, blue.z);
-    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10, blue);
     glPopMatrix();
     glPushMatrix();
-    glColor3f(grey.x, grey.y, grey.z);
     glTranslatef(MARKER_DISTANCE, 0, MARKER_DISTANCE);
-    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10, grey);
     glPopMatrix();
 
 }
@@ -120,13 +116,8 @@ void drawText(int x, int y, float scale, float radians, int mono,
 void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {
-        glColor4f(red, blue, green, magnitude);
-        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height);
+        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height, glm::vec4(red, blue, green, magnitude));
     }
-}
-
-void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
-    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(x, y, width, height, bevelDistance);
 }
 
 //  Do some basic timing tests and report the results

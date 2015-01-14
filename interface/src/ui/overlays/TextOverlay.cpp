@@ -70,7 +70,7 @@ void TextOverlay::render(RenderArgs* args) {
 
     const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
-    glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
+    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR,
         getBackgroundAlpha());
 
     int left = _bounds.left();
@@ -80,7 +80,7 @@ void TextOverlay::render(RenderArgs* args) {
 
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
 
     // Same font properties as textSize()
     TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);

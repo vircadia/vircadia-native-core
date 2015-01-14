@@ -2769,7 +2769,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         // draw a red sphere
         float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
-        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15);
+        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         
         // also, metavoxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {

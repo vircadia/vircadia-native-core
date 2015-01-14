@@ -85,7 +85,7 @@ void ImageOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     xColor color = getColor();
     float alpha = getAlpha();
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::vec4 quadColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     float imageWidth = _textureImage.width();
     float imageHeight = _textureImage.height();
@@ -115,9 +115,9 @@ void ImageOverlay::render(RenderArgs* args) {
     glm::vec2 texCoordBottomRight(x + w, 1.0f - (y + h));
 
     if (_renderImage) {
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
     } else {
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
     }
 
     if (_renderImage) {
