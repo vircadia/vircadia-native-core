@@ -312,11 +312,8 @@ Menu::Menu() :
 
     QMenu* nodeBordersMenu = viewMenu->addMenu("Server Borders");
     NodeBounds& nodeBounds = appInstance->getNodeBoundsDisplay();
-    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersVoxelNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
-                                           &nodeBounds, SLOT(setShowVoxelNodes(bool)));
     addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_2, false,
+                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
