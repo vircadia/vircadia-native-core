@@ -26,6 +26,19 @@
 
 #endif // HAVE_QXMPP
 
+class DownloadInfoResult {
+public:
+    DownloadInfoResult();
+    QList<float> downloading;  // List of percentages
+    float pending;
+};
+
+Q_DECLARE_METATYPE(DownloadInfoResult)
+
+QScriptValue DownloadInfoResultToScriptValue(QScriptEngine* engine, const DownloadInfoResult& result);
+void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoResult& result);
+
+
 class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool isConnected READ isConnected)
@@ -42,6 +55,8 @@ public:
 
 public slots:
     QScriptValue chat(const QString& message);
+    DownloadInfoResult getDownloadInfo();
+    void updateDownloadInfo();
 
 private slots:
     void loggedOut();
@@ -50,6 +65,7 @@ private slots:
 #ifdef HAVE_QXMPP
     void messageReceived(const QXmppMessage& message);
 #endif // HAVE_QXMPP
+    void checkDownloadInfo();
 
 signals:
     void connected();
@@ -57,6 +73,10 @@ signals:
     void incomingMessage(const QString& username, const QString& message);
     void onlineUsersChanged(const QStringList& usernames);
     void myUsernameChanged(const QString& username);
+    void downloadInfoChanged(DownloadInfoResult info);
+
+private:
+    bool _downloading;
 };
 
 #endif // hifi_GlobalServicesScriptingInterface_h
