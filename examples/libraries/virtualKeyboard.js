@@ -184,7 +184,7 @@ Keyboard = (function(params) {
     this.focussed_key = -1;
     this.scale = (windowDimensions.x / KEYBOARD_WIDTH) * KEYBOARD_SCALE_MULTIPLIER;
     this.shift = false;
-    this.visible = params.visible != undefined ? params.visible :true;
+    this.visible = params.visible != undefined ? params.visible : true;
     this.width = function() {
         return KEYBOARD_WIDTH * tthis.scale;
     };
@@ -320,21 +320,19 @@ Keyboard = (function(params) {
     };
 
     this.show = function() {
-        tthis.visible = true;
-        tthis.updateVisibility();
+        tthis.updateVisibility(true);
     };
 
     this.hide = function() {
-        tthis.visible = false;
-        tthis.updateVisibility();
+        tthis.updateVisibility(false);
     };
 
     this.toggle = function() {
-        tthis.visible = !tthis.visible;
-        tthis.updateVisibility();
+        tthis.updateVisibility(!tthis.visible);
     };
-
-    this.updateVisibility = function() {
+    
+    this.updateVisibility = function(visible) {
+        tthis.visible = visible;
         Overlays.editOverlay(tthis.background, { visible: tthis.visible });
         for (var i = 0; i < this.keys.length; i++) {
             this.keys[i].updateVisibility();
@@ -454,8 +452,12 @@ Keyboard = (function(params) {
     this.keyboardTextureLoaded_timer = Script.setInterval(this.keyboardTextureLoaded, 250);
 });
 
-Cursor = (function() {
+Cursor = (function(params) {
+    if (params === undefined) {
+        params = {};
+    }
     var tthis = this;
+    this.visible = params.visible != undefined ? params.visible : true;
     this.x = windowDimensions.x / 2;
     this.y = windowDimensions.y / 2;
     this.overlay = Overlays.addOverlay("image", {
@@ -464,7 +466,8 @@ Cursor = (function() {
         width: CURSOR_WIDTH,
         height: CURSOR_HEIGHT,
         imageURL: CURSOR_URL,
-        alpha: 1
+        alpha: 1,
+        visible: this.visible
     });
     this.remove = function() {
         Overlays.deleteOverlay(this.overlay);
@@ -477,6 +480,19 @@ Cursor = (function() {
     };
     this.getY = function() {
         return tthis.y;
+    };
+    this.show = function() {
+        tthis.updateVisibility(true);
+    };
+    this.hide = function() {
+        tthis.updateVisibility(false);
+    };
+    this.toggle = function() {
+        tthis.updateVisibility(!tthis.visible);
+    };
+    this.updateVisibility = function(visible) {
+        tthis.visible = visible;
+        Overlays.editOverlay(this.overlay, { visible: tthis.visible });
     };
     this.onUpdate = null;
     this.update = function() {

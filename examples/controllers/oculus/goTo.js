@@ -20,7 +20,7 @@ Script.include("../../libraries/globals.js");
 Script.include("../../libraries/virtualKeyboard.js");
 
 var windowDimensions = Controller.getViewportDimensions();
-var cursor = null;
+var cursor = new Cursor({visible: false});
 var keyboard = new Keyboard({visible: false});
 var textFontSize = 9;
 var text = null;
@@ -91,7 +91,7 @@ keyboard.onFullyLoaded = function() {
     });
     updateTextOverlay();
     // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
-    cursor = new Cursor();
+    cursor.updateVisibility(keyboard.visible);
     cursor.onUpdate = function(position) {
         keyboard.setFocusPosition(position.x, position.y);
     };
@@ -102,6 +102,9 @@ function keyPressEvent(event) {
         keyboard.pressFocussedKey();
     } else if (event.key === ENTER_CHARCODE || event.key === RETURN_CHARCODE) {
         keyboard.toggle();
+        if (cursor !== undefined) {
+            cursor.updateVisibility(keyboard.visible);
+        }
         Overlays.editOverlay(text, {visible: keyboard.visible});
     }
 }
