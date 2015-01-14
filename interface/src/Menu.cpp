@@ -265,7 +265,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
             avatar, SLOT(updateMotionBehavior()));
 
-    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With...");
+    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With");
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 
             avatar, SLOT(onToggleRagdoll()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
