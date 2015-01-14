@@ -109,7 +109,7 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
     _body->setDamping(_linearDamping, _angularDamping);
 
     if (flags & EntityItem::DIRTY_MASS) {
-        float mass = getMass();
+        float mass = _entity->computeMass();
         btVector3 inertia(0.0f, 0.0f, 0.0f);
         _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
         _body->setMassProps(mass, inertia);
@@ -137,8 +137,12 @@ void EntityMotionState::updateObjectVelocities() {
 #endif // USE_BULLET_PHYSICS
 }
 
-void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
-    _entity->computeShapeInfo(info);
+void EntityMotionState::computeShapeInfo(ShapeInfo& shapeInfo) {
+    _entity->computeShapeInfo(shapeInfo);
+}
+
+float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
+    return _entity->computeMass();
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {

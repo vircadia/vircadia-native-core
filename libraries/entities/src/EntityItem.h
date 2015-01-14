@@ -171,8 +171,8 @@ public:
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     void setLocalRenderAlpha(float localRenderAlpha) { _localRenderAlpha = localRenderAlpha; }
 
-    float getMass() const { return _mass; }
-    void setMass(float value) { _mass = value; }
+    float computeMass() const;
+    void setMass(float mass);
 
     const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
@@ -303,7 +303,12 @@ protected:
     glm::quat _rotation;
     float _glowLevel;
     float _localRenderAlpha;
-    float _mass;
+    float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg
+    // NOTE: _volumeMultiplier is used to compute volume:
+    // volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z  =  m^3
+    // DANGER: due to the size of TREE_SCALE the _volumeMultiplier is always a large number, and therefore 
+    // will tend to introduce floating point error.  We must keep this in mind when using it.
+    float _volumeMultiplier = (float)TREE_SCALE * (float)TREE_SCALE * (float)TREE_SCALE;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
     float _damping;
