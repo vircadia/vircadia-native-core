@@ -91,6 +91,7 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
+#include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -255,6 +256,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     qInstallMessageHandler(messageHandler);
 
     qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+
+    _bookmarks = new Bookmarks();  // Before setting up the menu
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
@@ -1685,6 +1688,7 @@ void Application::init() {
     DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
+    RealSense::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
@@ -2135,12 +2139,17 @@ void Application::updateMyAvatar(float deltaTime) {
 
     _myAvatar->update(deltaTime);
 
-    {
+    quint64 now = usecTimestampNow();
+    quint64 dt = now - _lastSendAvatarDataTime;
+
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
         QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
         packet.append(_myAvatar->toByteArray());
         controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
+
+        _lastSendAvatarDataTime = now;
     }
 }
 
