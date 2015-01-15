@@ -13,6 +13,7 @@
 
 #include <QBoxLayout>
 #include <QColorDialog>
+#include <QClipboard>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -122,7 +123,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
                                   appInstance, SLOT(toggleRunningScriptsWidget()));
 
-    addDisabledActionAndSeparator(fileMenu, "Go");
+    addDisabledActionAndSeparator(fileMenu, "Location");
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::NameLocation,
                                   Qt::CTRL | Qt::Key_N,
@@ -138,6 +139,10 @@ Menu::Menu() :
                                   Qt::Key_Enter,
                                   this,
                                   SLOT(toggleAddressBar()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
+                                  this, SLOT(copyAddress()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
+                                  this, SLOT(copyPath()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
@@ -1004,6 +1009,20 @@ void Menu::toggleAddressBar() {
     if (!_addressBarDialog->isVisible()) {
         _addressBarDialog->show();
     }
+}
+
+void Menu::copyAddress() {
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString address = addressManager->currentAddress().toString();
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(address);
+}
+
+void Menu::copyPath() {
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString path = addressManager->currentPath();
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(path);
 }
 
 void Menu::changeVSync() {

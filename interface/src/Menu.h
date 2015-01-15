@@ -177,6 +177,8 @@ public slots:
     void importSettings();
     void exportSettings();
     void toggleAddressBar();
+    void copyAddress();
+    void copyPath();
 
     void toggleLoginMenuItem();
     void toggleSixense(bool shouldEnable);
@@ -343,6 +345,8 @@ namespace MenuOption {
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
+    const QString CopyAddress = "Copy Address";
+    const QString CopyPath = "Copy Path";
     const QString ControlWithSpeech = "Control With Speech";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
