@@ -940,276 +940,257 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
 }
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
-
-    bool registeredQuad = (id != UNKNOWN_ID);
+    bool registered = (id != UNKNOWN_ID);
     Vec2Pair key(minCorner, maxCorner);
-    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[id] : _quad2DVBOs[key];
-    
+    BatchItemDetails& details = registered ? _registeredQuad2D[id] : _quad2D[key];
+
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registeredQuad && vbo.first != 0) {
+    if (registered && details.isCreated) {
         Vec2Pair& lastKey = _lastRegisteredQuad2D[id];
         if (lastKey != key) {
-            glDeleteBuffers(1, &vbo.first);
-            glDeleteBuffers(1, &vbo.second);
-            vbo.first = vbo.second = 0;
+            details.clear();
+            _lastRegisteredQuad2D[id] = key;  
             #ifdef WANT_DEBUG
-                qDebug() << "renderQuad() vec2... RELEASING REGISTERED QUAD";
+                qDebug() << "renderQuad() 2D ... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderQuad() vec2... REUSING PREVIOUSLY REGISTERED QUAD";
+            qDebug() << "renderQuad() 2D ... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 2;
-    const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
+    const int FLOATS_PER_VERTEX = 2; // vertices
     const int vertices = 4;
-    const int indices = 4;
-    if (vbo.first == 0) {
-        _lastRegisteredQuad2D[id] = key;  
-        int vertexPoints = vertices * FLOATS_PER_VERTEX;
-        GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices, no normals because we're a 2D quad
-        GLfloat* vertex = vertexData;
-        static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
 
-        vertex[0] = minCorner.x;
-        vertex[1] = minCorner.y;
-        vertex[2] = maxCorner.x;
-        vertex[3] = minCorner.y;
-        vertex[4] = maxCorner.x;
-        vertex[5] = maxCorner.y;
-        vertex[6] = minCorner.x;
-        vertex[7] = maxCorner.y;
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-        
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < indices; i++) {
-            index[i] = cannonicalIndices[i];
-        }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
-        
-        #ifdef WANT_DEBUG
-            if (id == UNKNOWN_ID) {
-                qDebug() << "new quad VBO made -- _quad2DVBOs.size():" << _quad2DVBOs.size();
-            } else {
-                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
-            }
-        #endif
+    if (!details.isCreated) {
+
+        details.isCreated = true;
+        details.vertices = vertices;
+        details.vertexSize = FLOATS_PER_VERTEX;
+
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
+        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+
+        details.verticesBuffer = verticesBuffer;
+        details.colorBuffer = colorBuffer;
+        details.streamFormat = streamFormat;
+        details.stream = stream;
     
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+        details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
+        details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
+
+
+        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+                            minCorner.x, minCorner.y,
+                            maxCorner.x, minCorner.y,
+                            maxCorner.x, maxCorner.y,
+                            minCorner.x, maxCorner.y };
+
+        const int NUM_COLOR_SCALARS_PER_QUAD = 4;
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+        int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
+
+
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
     }
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(FLOATS_PER_VERTEX, GL_FLOAT, FLOATS_PER_VERTEX * sizeof(float), 0);
-    glDrawRangeElementsEXT(GL_QUADS, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
 
+    gpu::Batch batch;
+
+    batch.setInputFormat(details.streamFormat);
+    batch.setInputStream(0, *details.stream);
+    batch.draw(gpu::QUADS, 4, 0);
+
+    gpu::GLBackend::renderBatch(batch);
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
                     const glm::vec4& color, int id) {
 
-    bool registeredQuad = (id != UNKNOWN_ID);
+    bool registered = (id != UNKNOWN_ID);
     Vec2PairPair key(Vec2Pair(minCorner, maxCorner), Vec2Pair(texCoordMinCorner, texCoordMaxCorner));
-    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[id] : _quad2DTextureVBOs[key];
-    
+    BatchItemDetails& details = registered ? _registeredQuad2DTextures[id] : _quad2DTextures[key];
+
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registeredQuad && vbo.first != 0) {
+    if (registered && details.isCreated) {
         Vec2PairPair& lastKey = _lastRegisteredQuad2DTexture[id];
         if (lastKey != key) {
-            glDeleteBuffers(1, &vbo.first);
-            glDeleteBuffers(1, &vbo.second);
-            vbo.first = vbo.second = 0;
+            details.clear();
+            _lastRegisteredQuad2DTexture[id] = key;  
             #ifdef WANT_DEBUG
-                qDebug() << "renderQuad() vec2 + texture... RELEASING REGISTERED QUAD";
+                qDebug() << "renderQuad() 2D+texture ... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderQuad()  vec2 + texture... REUSING PREVIOUSLY REGISTERED QUAD";
+            qDebug() << "renderQuad() 2D+texture ... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
 
     const int FLOATS_PER_VERTEX = 2 * 2; // text coords & vertices
-    const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
     const int vertices = 4;
-    const int indices = 4;
-    if (vbo.first == 0) {
-        _lastRegisteredQuad2DTexture[id] = key;
-        int vertexPoints = vertices * FLOATS_PER_VERTEX;
-        GLfloat* vertexData = new GLfloat[vertexPoints]; // text coords & vertices
-        GLfloat* vertex = vertexData;
-        static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
-        int v = 0;
+    const int NUM_POS_COORDS = 2;
+    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
 
-        vertex[v++] = minCorner.x;
-        vertex[v++] = minCorner.y;
-        vertex[v++] = texCoordMinCorner.x;
-        vertex[v++] = texCoordMinCorner.y;
-        
-        vertex[v++] = maxCorner.x;
-        vertex[v++] = minCorner.y;
-        vertex[v++] = texCoordMaxCorner.x;
-        vertex[v++] = texCoordMinCorner.y;
-        
-        vertex[v++] = maxCorner.x;
-        vertex[v++] = maxCorner.y;
-        vertex[v++] = texCoordMaxCorner.x;
-        vertex[v++] = texCoordMaxCorner.y;
-        
-        vertex[v++] = minCorner.x;
-        vertex[v++] = maxCorner.y;
-        vertex[v++] = texCoordMinCorner.x;
-        vertex[v++] = texCoordMaxCorner.y;
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-        
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < indices; i++) {
-            index[i] = cannonicalIndices[i];
-        }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
-       
-        #ifdef WANT_DEBUG
-            if (id == UNKNOWN_ID) {
-                qDebug() << "new quad + texture VBO made -- _quad2DTextureVBOs.size():" << _quad2DTextureVBOs.size();
-            } else {
-                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
-            }
-        #endif
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+    if (!details.isCreated) {
+
+        details.isCreated = true;
+        details.vertices = vertices;
+        details.vertexSize = FLOATS_PER_VERTEX;
+
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
+        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+
+        details.verticesBuffer = verticesBuffer;
+        details.colorBuffer = colorBuffer;
+        details.streamFormat = streamFormat;
+        details.stream = stream;
+    
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+        details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
+        details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
+
+
+        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+                                                        minCorner.x, minCorner.y, texCoordMinCorner.x, texCoordMinCorner.y,
+                                                        maxCorner.x, minCorner.y, texCoordMaxCorner.x, texCoordMinCorner.y,
+                                                        maxCorner.x, maxCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y,
+                                                        minCorner.x, maxCorner.y, texCoordMinCorner.x, texCoordMaxCorner.y };
+
+
+        const int NUM_COLOR_SCALARS_PER_QUAD = 4;
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+        int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
+
+
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
     }
 
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glVertexPointer(2, GL_FLOAT, NUM_BYTES_PER_VERTEX, 0);
-    glTexCoordPointer(2, GL_FLOAT, NUM_BYTES_PER_VERTEX, (const void *)(2 * sizeof(float)));
+    gpu::Batch batch;
 
-    glDrawRangeElementsEXT(GL_QUADS, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    glEnable(GL_TEXTURE_2D);
+    //glBindTexture(GL_TEXTURE_2D, _currentTextureID); // this is quad specific...
+
+    batch.setInputFormat(details.streamFormat);
+    batch.setInputStream(0, *details.stream);
+    batch.draw(gpu::QUADS, 4, 0);
+
+    gpu::GLBackend::renderBatch(batch);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    
+    glDisableClientState(GL_COLOR_ARRAY);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
 }
 
 void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
-
-    bool registeredQuad = (id != UNKNOWN_ID);
+    bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(minCorner, maxCorner);
-    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[id] : _quad3DVBOs[key];
-    
+    BatchItemDetails& details = registered ? _registeredQuad3D[id] : _quad3D[key];
+
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registeredQuad && vbo.first != 0) {
+    if (registered && details.isCreated) {
         Vec3Pair& lastKey = _lastRegisteredQuad3D[id];
         if (lastKey != key) {
-            glDeleteBuffers(1, &vbo.first);
-            glDeleteBuffers(1, &vbo.second);
-            vbo.first = vbo.second = 0;
+            details.clear();
+            _lastRegisteredQuad3D[id] = key;  
             #ifdef WANT_DEBUG
-                qDebug() << "renderQuad() vec3... RELEASING REGISTERED QUAD";
+                qDebug() << "renderQuad() 3D ... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderQuad()  vec3... REUSING PREVIOUSLY REGISTERED QUAD";
+            qDebug() << "renderQuad() 3D ... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 3;
-    const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
+    const int FLOATS_PER_VERTEX = 3; // vertices
     const int vertices = 4;
-    const int indices = 4;
-    if (vbo.first == 0) {    
-        _lastRegisteredQuad3D[id] = key;
-        int vertexPoints = vertices * FLOATS_PER_VERTEX;
-        GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices
-        GLfloat* vertex = vertexData;
-        static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
-        int v = 0;
 
-        vertex[v++] = minCorner.x;
-        vertex[v++] = minCorner.y;
-        vertex[v++] = minCorner.z;
+    if (!details.isCreated) {
 
-        vertex[v++] = maxCorner.x;
-        vertex[v++] = minCorner.y;
-        vertex[v++] = minCorner.z;
+        details.isCreated = true;
+        details.vertices = vertices;
+        details.vertexSize = FLOATS_PER_VERTEX;
 
-        vertex[v++] = maxCorner.x;
-        vertex[v++] = maxCorner.y;
-        vertex[v++] = maxCorner.z;
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
+        gpu::BufferStreamPointer stream(new gpu::BufferStream());
 
-        vertex[v++] = minCorner.x;
-        vertex[v++] = maxCorner.y;
-        vertex[v++] = maxCorner.z;
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-        
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < indices; i++) {
-            index[i] = cannonicalIndices[i];
-        }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
-        
-        #ifdef WANT_DEBUG
-            if (id == UNKNOWN_ID) {
-                qDebug() << "new quad VBO made -- _quad3DVBOs.size():" << _quad3DVBOs.size();
-            } else {
-                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
-            }
-        #endif
+        details.verticesBuffer = verticesBuffer;
+        details.colorBuffer = colorBuffer;
+        details.streamFormat = streamFormat;
+        details.stream = stream;
     
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+        details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
+        details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
+
+
+        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
+                            minCorner.x, minCorner.y, minCorner.z,
+                            maxCorner.x, minCorner.y, minCorner.z,
+                            maxCorner.x, maxCorner.y, maxCorner.z,
+                            minCorner.x, maxCorner.y, maxCorner.z };
+
+        const int NUM_COLOR_SCALARS_PER_QUAD = 4;
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+        int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
+
+
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
     }
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(FLOATS_PER_VERTEX, GL_FLOAT, FLOATS_PER_VERTEX * sizeof(float), 0);
-    glDrawRangeElementsEXT(GL_QUADS, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
 
+    gpu::Batch batch;
+
+    batch.setInputFormat(details.streamFormat);
+    batch.setInputStream(0, *details.stream);
+    batch.draw(gpu::QUADS, 4, 0);
+
+    gpu::GLBackend::renderBatch(batch);
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
 void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
@@ -1407,6 +1388,7 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
     details.buffer.release();
 }
 
+
 int GeometryCache::BatchItemDetails::population = 0;
 GeometryCache::BatchItemDetails::BatchItemDetails() :
     verticesBuffer(NULL),
@@ -1435,7 +1417,7 @@ GeometryCache::BatchItemDetails::BatchItemDetails(const GeometryCache::BatchItem
 GeometryCache::BatchItemDetails::~BatchItemDetails() {
     population--;
     clear(); 
-    qDebug() << "~BatchItemDetails()... population:" << population << "**********************************";
+    //qDebug() << "~BatchItemDetails()... population:" << population << "**********************************";
 }
 
 void GeometryCache::BatchItemDetails::clear() {

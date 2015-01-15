@@ -199,16 +199,27 @@ private:
     QHash<float, VerticesIndices> _wireCubeVBOs;
     QHash<float, VerticesIndices> _solidCubeVBOs;
     QHash<Vec2Pair, VerticesIndices> _quad2DVBOs;
-    QHash<Vec2PairPair, VerticesIndices> _quad2DTextureVBOs;
-    QHash<Vec3Pair, VerticesIndices> _quad3DVBOs;
+    QHash<Vec2PairPair, BatchItemDetails> _quad2DTextureVBOs;
+    //QHash<Vec3Pair, VerticesIndices> _quad3DVBOs;
     QHash<Vec3PairVec2Pair, VerticesIndices> _quad3DTextureVBOs;
     QHash<int, VerticesIndices> _registeredQuadVBOs;
     int _nextID;
 
-    QHash<int, Vec2Pair> _lastRegisteredQuad2D;
-    QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
-    QHash<int, Vec3Pair> _lastRegisteredQuad3D;
     QHash<int, Vec3PairVec2Pair> _lastRegisteredQuad3DTexture;
+
+
+    QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
+    QHash<Vec2PairPair, BatchItemDetails> _quad2DTextures;
+    QHash<int, BatchItemDetails> _registeredQuad2DTextures;
+
+    QHash<int, Vec3Pair> _lastRegisteredQuad3D;
+    QHash<Vec3Pair, BatchItemDetails> _quad3D;
+    QHash<int, BatchItemDetails> _registeredQuad3D;
+
+    QHash<int, Vec2Pair> _lastRegisteredQuad2D;
+    QHash<Vec2Pair, BatchItemDetails> _quad2D;
+    QHash<int, BatchItemDetails> _registeredQuad2D;
+
 
     QHash<int, Vec3Pair> _lastRegisteredRect;
     QHash<Vec3Pair, VerticesIndices> _rectVBOs;
