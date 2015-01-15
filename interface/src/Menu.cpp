@@ -1060,7 +1060,7 @@ void Menu::bookmarkLocation() {
         return;
     }
 
-    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+    auto addressManager = DependencyManager::get<AddressManager>();
     QString bookmarkAddress = addressManager->currentAddress().toString();
 
     Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
