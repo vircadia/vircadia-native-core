@@ -127,6 +127,10 @@ Menu::Menu() :
                                   this, SLOT(bookmarkLocation()));
     _bookmarksMenu = fileMenu->addMenu(MenuOption::Bookmarks);
     _bookmarksMenu->setEnabled(false);
+    _deleteBookmarksMenu = addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::DeleteBookmark, 0,
+                                  this, SLOT(deleteBookmark()));
+    _deleteBookmarksMenu->setEnabled(false);
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::NameLocation,
                                   Qt::CTRL | Qt::Key_N,
@@ -1048,8 +1052,6 @@ void Menu::bookmarkLocation() {
         removeAction(_bookmarksMenu, bookmarkName);
     }
     
-    bookmarks->insert(bookmarkName, bookmarkAddress);
-
     QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
     teleportAction->setData(bookmarkAddress);
     connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
@@ -1063,13 +1065,52 @@ void Menu::bookmarkLocation() {
     addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0,
                                   QAction::NoRole, position);
 
+    bookmarks->insert(bookmarkName, bookmarkAddress);
+
     _bookmarksMenu->setEnabled(true);
+    _deleteBookmarksMenu->setEnabled(true);
 }
 
 void Menu::teleportToBookmark() {
     QAction *action = qobject_cast<QAction *>(sender());
     QString url = action->data().toString();
     DependencyManager::get<AddressManager>()->handleLookupString(url);
+}
+
+void Menu::deleteBookmark() {
+
+    QStringList bookmarkList;
+    QList<QAction*> menuItems = _bookmarksMenu->actions();
+    for (int i = 0; i < menuItems.count(); i += 1) {
+        bookmarkList.append(menuItems[i]->text());
+    }
+
+    QInputDialog deleteBookmarkDialog(Application::getInstance()->getWindow());
+    deleteBookmarkDialog.setWindowTitle("Delete Bookmark");
+    deleteBookmarkDialog.setLabelText("Select the bookmark to delete");
+    deleteBookmarkDialog.resize(400, 400);
+    deleteBookmarkDialog.setOption(QInputDialog::UseListViewForComboBoxItems);
+    deleteBookmarkDialog.setComboBoxItems(bookmarkList);
+    deleteBookmarkDialog.setOkButtonText("Delete");
+
+    if (deleteBookmarkDialog.exec() == QDialog::Rejected) {
+        return;
+    }
+
+    QString bookmarkName = deleteBookmarkDialog.textValue().trimmed();
+    if (bookmarkName.length() == 0) {
+        return;
+    }
+
+    removeAction(_bookmarksMenu, bookmarkName);
+
+    Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
+    bookmarks->remove(bookmarkName);
+
+    if (_bookmarksMenu->actions().count() == 0) {
+        _bookmarksMenu->setEnabled(false);
+        _deleteBookmarksMenu->setEnabled(false);
+    }
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {

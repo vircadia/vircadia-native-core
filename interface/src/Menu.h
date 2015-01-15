@@ -202,6 +202,7 @@ private slots:
     void changePrivateKey();
     void bookmarkLocation();
     void teleportToBookmark();
+    void deleteBookmark();
     void nameLocation();
     void toggleLocationList();
     void hmdToolsClosed();
@@ -311,6 +312,7 @@ private:
     QMap<float, float> _shouldRenderTable;
 
     QMenu* _bookmarksMenu;
+    QAction* _deleteBookmarksMenu;
 };
 
 namespace MenuOption {
@@ -350,6 +352,7 @@ namespace MenuOption {
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
+    const QString DeleteBookmark = "Delete Bookmark...";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
