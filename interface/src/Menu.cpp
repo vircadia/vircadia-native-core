@@ -124,16 +124,6 @@ Menu::Menu() :
 
     addDisabledActionAndSeparator(fileMenu, "Go");
     addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::NameLocation,
-                                  Qt::CTRL | Qt::Key_N,
-                                  this,
-                                  SLOT(nameLocation()));
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::MyLocations,
-                                  Qt::CTRL | Qt::Key_K,
-                                  this,
-                                  SLOT(toggleLocationList()));
-    addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
                                   Qt::Key_Enter,
                                   this,
@@ -1017,66 +1007,6 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
         msgBox.setText(errorString);
         msgBox.exec();
     }    
-}
-
-void Menu::toggleLocationList() {
-    if (!_userLocationsDialog) {
-        JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
-        _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
-    }
-    
-    if (!_userLocationsDialog->isVisible()) {
-        _userLocationsDialog->show();
-    }
-    
-    _userLocationsDialog->raise();
-    _userLocationsDialog->activateWindow();
-    _userLocationsDialog->showNormal();
-    
-}
-
-void Menu::nameLocation() {
-    // check if user is logged in or show login dialog if not
-
-    AccountManager& accountManager = AccountManager::getInstance();
-    
-    if (!accountManager.isLoggedIn()) {
-        QMessageBox msgBox;
-        msgBox.setText("We need to tie this location to your username.");
-        msgBox.setInformativeText("Please login first, then try naming the location again.");
-        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-        msgBox.button(QMessageBox::Ok)->setText("Login");
-        
-        if (msgBox.exec() == QMessageBox::Ok) {
-            loginForCurrentDomain();
-        }
-
-        return;
-    }
-    
-    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
-    if (domainHandler.getUUID().isNull()) {
-        const QString UNREGISTERED_DOMAIN_MESSAGE = "This domain is not registered with High Fidelity."
-            "\n\nYou cannot create a global location in an unregistered domain.";
-        QMessageBox::critical(this, "Unregistered Domain", UNREGISTERED_DOMAIN_MESSAGE);
-        
-        return;
-    }
-    
-    if (!_newLocationDialog) {
-        JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
-        _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
-    }
-    
-    if (!_newLocationDialog->isVisible()) {
-        _newLocationDialog->show();
-    }
-    
-    _newLocationDialog->raise();
-    _newLocationDialog->activateWindow();
-    _newLocationDialog->showNormal();
 }
 
 void Menu::toggleLoginMenuItem() {
