@@ -19,9 +19,9 @@
 class AudioIOStats;
 class AudioStreamStats;
 
-class AudioIOStatsRenderer : public QObject {
+class AudioIOStatsRenderer : public QObject, public Dependency {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(AudioIOStatsRenderer)
+    SINGLETON_DEPENDENCY
 public:
     void render(const float* color, int width, int height);
     

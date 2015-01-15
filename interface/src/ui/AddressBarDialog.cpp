@@ -27,7 +27,7 @@ AddressBarDialog::AddressBarDialog() :
     setAttribute(Qt::WA_DeleteOnClose, false);
     setupUI();
     
-    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+    auto addressManager = DependencyManager::get<AddressManager>();
     
     connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
     connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
@@ -131,7 +131,7 @@ void AddressBarDialog::showEvent(QShowEvent* event) {
 void AddressBarDialog::accept() {
     if (!_addressLineEdit->text().isEmpty()) {
         _goButton->setIcon(QIcon(PathUtils::resourcesPath() + ADDRESSBAR_GO_BUTTON_ACTIVE_ICON));
-        AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+        auto addressManager = DependencyManager::get<AddressManager>();
         connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &QDialog::hide);
         addressManager->handleLookupString(_addressLineEdit->text());
     }

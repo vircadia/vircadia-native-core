@@ -428,6 +428,7 @@ private:
 
     int sendNackPackets();
 
+    bool _dependencyManagerIsSetup;
     MainWindow* _window;
 
     ToolWindow* _toolWindow;

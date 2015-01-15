@@ -77,7 +77,7 @@ void OctreeHeadlessViewer::queryOctree() {
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
     
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
             totalServers++;
@@ -140,7 +140,7 @@ void OctreeHeadlessViewer::queryOctree() {
         qDebug("perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {

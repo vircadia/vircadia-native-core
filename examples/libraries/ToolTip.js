@@ -68,7 +68,7 @@ function Tooltip() {
             text += "Lifetime: " + properties.lifetime + "\n"
         }
         text += "Age: " + properties.ageAsText + "\n"
-        text += "Mass: " + properties.mass + "\n"
+        text += "Density: " + properties.density + "\n"
         text += "Script: " + properties.script + "\n"
 
 

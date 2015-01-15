@@ -475,7 +475,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
 
-    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<Audio>();
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
@@ -524,7 +524,7 @@ Menu::Menu() :
         audioSourceGroup->addAction(sine440);
     }
     
-    AudioScope::SharedPointer scope = DependencyManager::get<AudioScope>();
+    auto scope = DependencyManager::get<AudioScope>();
 
     QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
@@ -562,7 +562,7 @@ Menu::Menu() :
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
     
-    AudioIOStatsRenderer::SharedPointer statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
+    auto statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
                                            false,
@@ -600,7 +600,7 @@ void Menu::loadSettings(QSettings* settings) {
     _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
     _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
 
-    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<Audio>();
     audio->setOutputStarveDetectionEnabled(settings->value("audioOutputStarveDetectionEnabled", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED).toBool());
     audio->setOutputStarveDetectionThreshold(settings->value("audioOutputStarveDetectionThreshold", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD).toInt());
     audio->setOutputStarveDetectionPeriod(settings->value("audioOutputStarveDetectionPeriod", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD).toInt());
@@ -634,7 +634,7 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->updateWindowTitle();
 
     // notify that a settings has changed
-    connect(&NodeList::getInstance()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
+    connect(&DependencyManager::get<NodeList>()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
 
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
@@ -665,7 +665,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
     settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
 
-    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<Audio>();
     settings->setValue("audioOutputStarveDetectionEnabled", audio->getOutputStarveDetectionEnabled());
     settings->setValue("audioOutputStarveDetectionThreshold", audio->getOutputStarveDetectionThreshold());
     settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
@@ -916,7 +916,7 @@ void Menu::bumpSettings() {
 
 void sendFakeEnterEvent() {
     QPoint lastCursorPosition = QCursor::pos();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     QPoint windowPosition = glCanvas->mapFromGlobal(lastCursorPosition);
     QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);
@@ -1183,7 +1183,7 @@ void Menu::nameLocation() {
         return;
     }
     
-    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     if (domainHandler.getUUID().isNull()) {
         const QString UNREGISTERED_DOMAIN_MESSAGE = "This domain is not registered with High Fidelity."
             "\n\nYou cannot create a global location in an unregistered domain.";
