@@ -71,7 +71,7 @@ void AudioIOStatsRenderer::render(const float* color, int width, int height) {
     float audioInputBufferLatency = 0.0f, inputRingBufferLatency = 0.0f, networkRoundtripLatency = 0.0f, mixerRingBufferLatency = 0.0f, outputRingBufferLatency = 0.0f, audioOutputBufferLatency = 0.0f;
     
     AudioStreamStats downstreamAudioStreamStats = _stats->getMixerDownstreamStats();
-    SharedNodePointer audioMixerNodePointer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    SharedNodePointer audioMixerNodePointer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AudioMixer);
     if (!audioMixerNodePointer.isNull()) {
         audioInputBufferLatency = _stats->getAudioInputMsecsReadStats().getWindowAverage();
         inputRingBufferLatency = (float) _stats->getInputRungBufferMsecsAvailableStats().getWindowAverage();

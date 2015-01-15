@@ -177,6 +177,8 @@ public slots:
     void importSettings();
     void exportSettings();
     void toggleAddressBar();
+    void copyAddress();
+    void copyPath();
 
     void toggleLoginMenuItem();
     void toggleSixense(bool shouldEnable);
@@ -200,6 +202,9 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
+    void bookmarkLocation();
+    void teleportToBookmark();
+    void deleteBookmark();
     void hmdToolsClosed();
     void runTests();
     void showMetavoxelEditor();
@@ -212,6 +217,7 @@ private slots:
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
     void changeVSync();
+    void loadRSSDKFile();
 
 private:
     static Menu* _instance;
@@ -303,6 +309,10 @@ private:
     
     bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
+
+    void loadBookmarks();
+    QMenu* _bookmarksMenu;
+    QAction* _deleteBookmarksMenu;
 };
 
 namespace MenuOption {
@@ -330,6 +340,8 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
+    const QString BookmarkLocation = "Bookmark Location";
+    const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "Caches Size";
     const QString Chat = "Chat...";
@@ -339,7 +351,10 @@ namespace MenuOption {
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
+    const QString CopyAddress = "Copy Address to Clipboard";
+    const QString CopyPath = "Copy Path to Clipboard";
     const QString ControlWithSpeech = "Control With Speech";
+    const QString DeleteBookmark = "Delete Bookmark...";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
@@ -383,6 +398,7 @@ namespace MenuOption {
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
+    const QString LoadRSSDKFile = "Load .rssdk file";
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";

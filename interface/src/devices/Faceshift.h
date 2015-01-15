@@ -27,9 +27,9 @@ const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
 
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
-class Faceshift : public FaceTracker {
+class Faceshift : public FaceTracker, public Dependency {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(Faceshift)
+    SINGLETON_DEPENDENCY
 
 public:
     void init();

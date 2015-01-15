@@ -31,7 +31,7 @@ AddressManager::AddressManager() :
 }
 
 bool AddressManager::isConnected() {
-    return NodeList::getInstance()->getDomainHandler().isConnected();
+    return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
 }
 
 const QUrl AddressManager::currentAddress() const {
