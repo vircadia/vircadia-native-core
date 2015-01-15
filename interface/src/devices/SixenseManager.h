@@ -25,6 +25,8 @@
 
 #endif
 
+class PalmData;
+
 const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 const unsigned int BUTTON_1 = 1U << 5;
 const unsigned int BUTTON_2 = 1U << 6;
@@ -91,8 +93,6 @@ private:
     bool _isInitialized;
     bool _isEnabled;
     bool _hydrasConnected;
-    quint64 _lastMovement;
-    glm::vec3 _amountMoved;
 
     // for mouse emulation with the two controllers
     bool _triggerPressed[2];
@@ -101,6 +101,7 @@ private:
     int _oldY[2];
     
     bool _lowVelocityFilter;
+    bool _controllersAtBase;
 };
 
 #endif // hifi_SixenseManager_h

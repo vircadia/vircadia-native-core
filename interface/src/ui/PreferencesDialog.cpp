@@ -9,8 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QFileDialog>
 
 #include "Application.h"
+#include "Audio.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
@@ -26,6 +28,9 @@ PreferencesDialog::PreferencesDialog() :
 
     ui.setupUi(this);
     loadPreferences();
+
+    ui.outputBufferSizeSpinner->setMinimum(MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
+    ui.outputBufferSizeSpinner->setMaximum(MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
 
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
@@ -135,6 +140,13 @@ void PreferencesDialog::loadPreferences() {
     ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
     ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
 
+    auto audio = DependencyManager::get<Audio>();
+    ui.outputBufferSizeSpinner->setValue(audio->getOutputBufferSize());
+
+    ui.outputStarveDetectionCheckBox->setChecked(audio->getOutputStarveDetectionEnabled());
+    ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
+    ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
+
     ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
 
     ui.fieldOfViewSpin->setValue(menuInstance->getFieldOfView());
@@ -143,9 +155,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
-    ui.maxVoxelsSpin->setValue(menuInstance->getMaxVoxels());
-    
-    ui.maxVoxelsPPSSpin->setValue(menuInstance->getMaxVoxelPacketsPerSecond());
+    ui.maxOctreePPSSpin->setValue(menuInstance->getMaxOctreePacketsPerSecond());
 
     ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
 
@@ -214,8 +224,7 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    Application::getInstance()->getVoxels()->setMaxVoxels(ui.maxVoxelsSpin->value());
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
     Menu::getInstance()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
@@ -227,7 +236,7 @@ void PreferencesDialog::savePreferences() {
     
     Menu::getInstance()->setFaceshiftHostname(ui.faceshiftHostnameEdit->text());    
     
-    Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
+    Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
     Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
 
@@ -246,7 +255,14 @@ void PreferencesDialog::savePreferences() {
     streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
 
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
-    Application::getInstance()->getAudio()->setReceivedAudioStreamSettings(streamSettings);
+
+    auto audio = DependencyManager::get<Audio>();
+
+    QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
+
+    audio->setOutputStarveDetectionEnabled(ui.outputStarveDetectionCheckBox->isChecked());
+    audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
+    audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 

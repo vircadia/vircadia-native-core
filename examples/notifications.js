@@ -1,25 +1,32 @@
 // 
-//  notifications.js
+//  notifications.js 
+//  Version 0.801 
 //  Created by Adrian 
 //
 //  Adrian McCarlie 8-10-14
 //  This script demonstrates on-screen overlay type notifications.
 //  Copyright 2014 High Fidelity, Inc.
 //
+//  
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-//  This script demonstrates notifications created via a number of ways, such as:
-//  Simple key press alerts, which only depend on a key being pressed, 
-//    dummy examples of this are "q", "w", "e", "r", and "SPACEBAR". 
-//    actual working examples are "a" for left turn, "d" for right turn and Ctrl/s for snapshot.
+//  This script generates notifications created via a number of ways, such as:
+//  keystroke:
+//
+//  "q" returns number of users currently online (for debug purposes)
 
-//  System generated alerts such as users joining and leaving and chat messages which mention this user.
-//  System generated alerts which originate with a user interface event such as Window Resize, and Mic Mute/Unmute.
-//    Mic Mute/Unmute may appear to be a key press alert, but it actually gets the call from the system as mic is muted and unmuted,
-//    so the mic mute/unmute will also trigger the notification by clicking the Mic Mute button at the top of the screen.
+//  CTRL/s for snapshot.
+//  CTRL/m for mic mute and unmute.
 
-
+//  System generated notifications:
+//  Displays users online at startup. 
+//  If Screen is resized.
+//  Triggers notification if @MyUserName is mentioned in chat.
+//  Announces existing user logging out.
+//  Announces new user logging in.
+//  If mic is muted for any reason.
+//  
 //  To add a new System notification type:
 //
 //  1. Set the Event Connector at the bottom of the script. 
@@ -45,22 +52,23 @@
 //  2. Declare a text string.
 //  3. Call createNotifications(text) parsing the text.
 //  example:
-//  if (key.text == "a") {
-//      var noteString = "Turning to the Left";
-//      createNotification(noteString);
-//  }
+//    if (key.text == "q") { //queries number of users online
+//	var numUsers = GlobalServices.onlineUsers.length; 
+//	var welcome = "There are " + numUsers + " users online now.";
+//	createNotification(welcome);
+//    }
 
 
 var width = 340.0; //width of notification overlay
 var height = 40.0; // height of a single line notification overlay
 var windowDimensions = Controller.getViewportDimensions(); // get the size of the interface window
-var overlayLocationX = (windowDimensions.x - (width + 60.0));// positions window 60px from the right of the interface window
+var overlayLocationX = (windowDimensions.x - (width + 20.0));// positions window 20px from the right of the interface window
 var buttonLocationX = overlayLocationX + (width - 28.0); 
 var locationY = 20.0; // position down from top of interface window
 var topMargin = 13.0;
 var leftMargin = 10.0;
 var textColor =  { red: 228, green: 228, blue: 228}; // text color
-var backColor =  { red: 38, green: 38, blue: 38}; // background color
+var backColor =  { red: 2, green: 2, blue: 2}; // background color was 38,38,38 
 var backgroundAlpha = 0;
 var fontSize = 12.0;
 var persistTime = 10.0; // time in seconds before notification fades
@@ -115,7 +123,6 @@ function createNotification(text) {
         color: textColor,
         backgroundColor: backColor,
         alpha: backgroundAlpha,
-        backgroundAlpha: backgroundAlpha,
         topMargin: topMargin,
         leftMargin: leftMargin,
         font: {size: fontSize},
@@ -125,8 +132,8 @@ function createNotification(text) {
     var buttonProperties = { 
         x: buttonLocationX,
         y: bLevel,
-        width: 15.0,
-        height: 15.0,
+        width: 10.0,
+        height: 10.0,
         subImage: { x: 0, y: 0, width: 10, height: 10 },
         imageURL: "http://hifi-public.s3.amazonaws.com/images/close-small-light.svg",
         color: { red: 255, green: 255, blue: 255},
@@ -161,7 +168,7 @@ function fadeIn(noticeIn, buttonIn) {
     pauseTimer = Script.setInterval(function() { 
         q++;
         qFade = q / 10.0;
-        Overlays.editOverlay(noticeIn, {alpha: qFade, backgroundAlpha: qFade}); 
+        Overlays.editOverlay(noticeIn, {alpha: qFade}); 
         Overlays.editOverlay(buttonIn, {alpha: qFade});	
         if (q >= 9.0) {
             Script.clearInterval(pauseTimer);
@@ -203,41 +210,18 @@ function keyPressEvent(key) {
     if (key.key == 16777249) {
         ctrlIsPressed = true;
     }
-    if (key.text == "a") {
-        var noteString = "Turning to the Left";
-        createNotification(noteString);
-        }
-    if (key.text == "d") {	
-        var noteString = "Turning to the Right";
-        createNotification(noteString);
-    }
+    if (key.text == "q") { //queries number of users online
+	var numUsers = GlobalServices.onlineUsers.length; 
+	var welcome = "There are " + numUsers + " users online now.";
+	createNotification(welcome);
+    }	
+
     if (key.text == "s") { 		
         if (ctrlIsPressed == true){
-            var noteString = "You have taken a snapshot";
+            var noteString = "Snapshot taken.";
             createNotification(noteString);
         }
     }
-    if (key.text == "q") { 		
-        var noteString = "Enable Scripted Motor control is now on.";
-        wordWrap(noteString);
-    }
-    if (key.text == "w") { 			
-        var noteString = "This notification spans 2 lines. The overlay will resize to fit new lines.";
-        var noteString = "editVoxels.js stopped, editModels.js stopped, selectAudioDevice.js stopped.";		
-        wordWrap(noteString);
-    }	
-    if (key.text == "e") { 			
-        var noteString = "This is an example of a multiple line notification. This notification will span 3 lines."
-        wordWrap(noteString);
-    }				
-    if (key.text == "r") { 			
-        var noteString = "This is a very long line of text that we are going to use in this example to divide it into rows of maximum 43 chars and see how many lines we use.";
-        wordWrap(noteString);
-    }											
-    if (key.text == "SPACE") {
-        var noteString = "You have pressed the Spacebar, This is an example of a multiple line notification. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam.";
-        wordWrap(noteString);
-    }	
 }
 
 //  formats string to add newline every 43 chars
@@ -275,18 +259,14 @@ function checkSize(){
 
 //  Triggers notification if a user logs on or off
 function onOnlineUsersChanged(users) {
-    var joiners = [];
-    var leavers = [];
     for (user in users) {
-    if (last_users.indexOf(users[user]) == -1.0) {
-        joiners.push(users[user]);
-        createNotification(users[user] + " Has joined");		
+        if (last_users.indexOf(users[user]) == -1.0) {
+            createNotification(users[user] + " has joined");		
         }
     }
     for (user in last_users) {
         if (users.indexOf(last_users[user]) == -1.0) {
-            leavers.push(last_users[user]);
-            createNotification(last_users[user] + " Has left");					
+            createNotification(last_users[user] + " has left");					
         }
     }
     last_users = users;
@@ -303,8 +283,8 @@ function onIncomingMessage(user, message) {
 }
 //  Triggers mic mute notification
 function onMuteStateChanged() {
-    var muteState =  AudioDevice.getMuted() ?  "Muted" :  "Unmuted";
-    var muteString = "Microphone is set to " + muteState;
+    var muteState =  AudioDevice.getMuted() ?  "muted" :  "unmuted";
+    var muteString = "Microphone is now " + muteState;
     createNotification(muteString);
 }
 
@@ -345,7 +325,7 @@ function fadeOut(noticeOut, buttonOut, arraysOut) {
     pauseTimer = Script.setInterval(function() { 
         r--;
         rFade = r / 10.0;	
-        Overlays.editOverlay(noticeOut, {alpha: rFade, backgroundAlpha: rFade}); 
+        Overlays.editOverlay(noticeOut, {alpha: rFade}); 
         Overlays.editOverlay(buttonOut, {alpha: rFade});	
         if (r < 0) {
             dismiss(noticeOut, buttonOut, arraysOut);
@@ -368,10 +348,17 @@ function dismiss(firstNoteOut, firstButOut, firstOut) {
     myAlpha.splice(firstOut,1);
 }
 
-onMuteStateChanged();
+//  This is meant to show users online at startup but currently shows 0 users.
+function onConnected() {
+    var numUsers = GlobalServices.onlineUsers.length;
+    var welcome = "Welcome! There are " + numUsers + " users online now.";
+    createNotification(welcome);
+}
+
 AudioDevice.muteToggled.connect(onMuteStateChanged);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
+GlobalServices.connected.connect(onConnected);
 GlobalServices.onlineUsersChanged.connect(onOnlineUsersChanged);
 GlobalServices.incomingMessage.connect(onIncomingMessage);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);

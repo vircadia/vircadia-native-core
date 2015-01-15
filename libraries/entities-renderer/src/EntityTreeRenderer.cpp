@@ -39,6 +39,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     OctreeRenderer(),
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
+    _sandboxScriptEngine(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -58,10 +59,14 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    // do we need to delete the _entitiesScriptEngine?? or is it deleted by default
+    // NOTE: we don't need to delete _entitiesScriptEngine because it's owned by the application and gets cleaned up 
+    // automatically but we do need to delete our sandbox script engine.
+    delete _sandboxScriptEngine;
+    _sandboxScriptEngine = NULL;
 }
 
 void EntityTreeRenderer::clear() {
+    leaveAllEntities();
     foreach (const EntityItemID& entityID, _entityScripts.keys()) {
         checkAndCallUnload(entityID);
     }
@@ -78,12 +83,13 @@ void EntityTreeRenderer::init() {
         _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities",
                                         _scriptingServices->getControllerScriptingInterface());
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
+
+        _sandboxScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities Sandbox", NULL);
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.    
-    glm::vec3 avatarPosition = _viewState->getAvatarPosition();
-    _lastAvatarPosition = avatarPosition + glm::vec3(1.0f, 1.0f, 1.0f);
+    _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3(1.0f, 1.0f, 1.0f);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
     connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
@@ -97,13 +103,15 @@ QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItem
 }
 
 
-QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText) {
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL) {
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
     if (!url.isValid()) {
+        isURL = false;
         return scriptMaybeURLorText;
     }
+    isURL = true;
 
     QString scriptContents; // assume empty
     
@@ -137,6 +145,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
             } else {
                 qDebug() << "ERROR Loading file:" << url.toString();
             }
+            delete reply;
         }
     }
     
@@ -173,7 +182,8 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         return QScriptValue(); // no script
     }
     
-    QString scriptContents = loadScriptContents(entityScript);
+    bool isURL = false; // loadScriptContents() will tell us if this is a URL or just text.
+    QString scriptContents = loadScriptContents(entityScript, isURL);
     
     QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(scriptContents);
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
@@ -184,18 +194,27 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         return QScriptValue(); // invalid script
     }
     
-    QScriptValue entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);
+    if (isURL) {
+        _entitiesScriptEngine->setParentURL(entity->getScript());
+    }
+    QScriptValue entityScriptConstructor = _sandboxScriptEngine->evaluate(scriptContents);
     
     if (!entityScriptConstructor.isFunction()) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    NOT CONSTRUCTOR";
         qDebug() << "    SCRIPT:" << entityScript;
         return QScriptValue(); // invalid script
+    } else {
+        entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);
     }
 
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
     EntityScriptDetails newDetails = { entityScript, entityScriptObject };
     _entityScripts[entityID] = newDetails;
+
+    if (isURL) {
+        _entitiesScriptEngine->setParentURL("");
+    }
 
     return entityScriptObject; // newly constructed
 }
@@ -287,6 +306,27 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
     }
 }
 
+void EntityTreeRenderer::leaveAllEntities() {
+    if (_tree) {
+        _tree->lockForWrite(); // so that our scripts can do edits if they want
+        
+        // for all of our previous containing entities, if they are no longer containing then send them a leave event
+        foreach(const EntityItemID& entityID, _currentEntitiesInside) {
+            emit leaveEntity(entityID);
+            QScriptValueList entityArgs = createEntityArgs(entityID);
+            QScriptValue entityScript = loadEntityScript(entityID);
+            if (entityScript.property("leaveEntity").isValid()) {
+                entityScript.property("leaveEntity").call(entityScript, entityArgs);
+            }
+        }
+        _currentEntitiesInside.clear();
+        
+        // make sure our "last avatar position" is something other than our current position, so that on our
+        // first chance, we'll check for enter/leave entity events.    
+        _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3(1.0f, 1.0f, 1.0f);
+        _tree->unlock();
+    }
+}
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
     if (_tree) {
         Model::startScene(renderSide);
@@ -853,17 +893,6 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
         EntityScriptDetails details = _entityScripts[oldEntityID];
         _entityScripts.remove(oldEntityID);
         _entityScripts[newEntityID] = details;
-    }
-}
-
-void EntityTreeRenderer::entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, 
-                                                    const Collision& collision) {
-    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
-    if (entityScript.property("collisionWithVoxel").isValid()) {
-        QScriptValueList args;
-        args << entityID.toScriptValue(_entitiesScriptEngine);
-        args << collisionToScriptValue(_entitiesScriptEngine, collision);
-        entityScript.property("collisionWithVoxel").call(entityScript, args);
     }
 }
 

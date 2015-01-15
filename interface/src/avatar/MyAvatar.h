@@ -17,18 +17,8 @@
 #include <PhysicsSimulation.h>
 
 #include "Avatar.h"
-#include "VoxelShapeManager.h"
 
 class ModelItemID;
-
-enum AvatarHandState
-{
-    HAND_STATE_NULL = 0,
-    HAND_STATE_LEFT_POINTING,
-    HAND_STATE_RIGHT_POINTING,
-    HAND_STATE_BOTH_POINTING,
-    NUM_HAND_STATES
-};
 
 class MyAvatar : public Avatar {
     Q_OBJECT
@@ -52,7 +42,6 @@ public:
     void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
     bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
-    void renderHeadMouse(int screenWidth, int screenHeight) const;
 
     // setters
     void setLeanScale(float scale) { _leanScale = scale; }
@@ -228,7 +217,6 @@ private:
 
     QList<AnimationHandlePointer> _animationHandles;
     PhysicsSimulation _physicsSimulation;
-    VoxelShapeManager _voxelShapeManager;
     
     bool _feetTouchFloor;
     bool _isLookingAtLeftEye;

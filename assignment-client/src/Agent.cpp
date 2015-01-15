@@ -17,7 +17,6 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
-#include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -25,7 +24,6 @@
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UUID.h>
-#include <VoxelConstants.h>
 
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
@@ -37,9 +35,8 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
-    _voxelEditSender(),
     _entityEditSender(),
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
+    _receivedAudioStream(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
         InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
         DEFAULT_WINDOW_STARVE_THRESHOLD, DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES,
         DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false)),
@@ -48,14 +45,13 @@ Agent::Agent(const QByteArray& packet) :
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
     
-    _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     _scriptEngine.getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
 }
 
 void Agent::readPendingDatagrams() {
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
@@ -69,11 +65,6 @@ void Agent::readPendingDatagrams() {
                 if (matchedNode) {
                     // PacketType_JURISDICTION, first byte is the node type...
                     switch (receivedPacket[headerBytes]) {
-                        case NodeType::VoxelServer:
-                            _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->
-                                                                queueReceivedPacket(matchedNode,receivedPacket);
-                            break;
-                            break;
                         case NodeType::EntityServer:
                             _scriptEngine.getEntityScriptingInterface()->getJurisdictionListener()->
                                                                 queueReceivedPacket(matchedNode, receivedPacket);
@@ -93,7 +84,6 @@ void Agent::readPendingDatagrams() {
                 sourceNode->setLastHeardMicrostamp(usecTimestampNow());
 
             } else if (datagramPacketType == PacketTypeOctreeStats
-                        || datagramPacketType == PacketTypeVoxelData
                         || datagramPacketType == PacketTypeEntityData
                         || datagramPacketType == PacketTypeEntityErase
             ) {
@@ -113,7 +103,7 @@ void Agent::readPendingDatagrams() {
                         // TODO: this needs to be fixed, the goal is to test the packet version for the piggyback, but
                         //       this is testing the version and hash of the original packet
                         //       need to use numBytesArithmeticCodingFromBuffer()...
-                        if (!NodeList::getInstance()->packetVersionAndHashMatch(receivedPacket)) {
+                        if (!DependencyManager::get<NodeList>()->packetVersionAndHashMatch(receivedPacket)) {
                             return; // bail since piggyback data doesn't match our versioning
                         }
                     } else {
@@ -127,10 +117,6 @@ void Agent::readPendingDatagrams() {
                     _entityViewer.processDatagram(mutablePacket, sourceNode);
                 }
                 
-                if (datagramPacketType == PacketTypeVoxelData) {
-                    _voxelViewer.processDatagram(mutablePacket, sourceNode);
-                }
-
             } else if (datagramPacketType == PacketTypeMixedAudio || datagramPacketType == PacketTypeSilentAudioFrame) {
 
                 _receivedAudioStream.parseData(receivedPacket);
@@ -141,7 +127,7 @@ void Agent::readPendingDatagrams() {
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             } else if (datagramPacketType == PacketTypeBulkAvatarData
                        || datagramPacketType == PacketTypeAvatarIdentity
                        || datagramPacketType == PacketTypeAvatarBillboard
@@ -151,9 +137,9 @@ void Agent::readPendingDatagrams() {
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending avatar-mixer
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             } else {
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             }
         }
     }
@@ -164,11 +150,10 @@ const QString AGENT_LOGGING_NAME = "agent";
 void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer
                                                  << NodeType::EntityServer
                                                 );
     
@@ -176,7 +161,7 @@ void Agent::run() {
     QUrl scriptURL;
     if (_payload.isEmpty())  {
         scriptURL = QUrl(QString("http://%1:%2/assignment/%3")
-            .arg(NodeList::getInstance()->getDomainHandler().getIP().toString())
+            .arg(DependencyManager::get<NodeList>()->getDomainHandler().getIP().toString())
             .arg(DOMAIN_SERVER_HTTP_PORT)
             .arg(uuidStringWithoutCurlyBraces(_uuid)));
     } else {
@@ -199,6 +184,7 @@ void Agent::run() {
     loop.exec();
     
     QString scriptContents(reply->readAll());
+    delete reply;
     
     qDebug() << "Downloaded script:" << scriptContents;
     
@@ -221,12 +207,6 @@ void Agent::run() {
     
     _scriptEngine.registerGlobalObject("SoundCache", &SoundCache::getInstance());
 
-    _scriptEngine.registerGlobalObject("VoxelViewer", &_voxelViewer);
-    // connect the VoxelViewer and the VoxelScriptingInterface to each other
-    _voxelViewer.setJurisdictionListener(_scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener());
-    _voxelViewer.init();
-    _scriptEngine.getVoxelsScriptingInterface()->setVoxelTree(_voxelViewer.getTree());
-    
     _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
     _entityViewer.setJurisdictionListener(_scriptEngine.getEntityScriptingInterface()->getJurisdictionListener());
     _entityViewer.init();

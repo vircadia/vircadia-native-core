@@ -42,7 +42,7 @@ enum EntityPropertyList {
     PROP_RADIUS, // NOTE: PROP_RADIUS is obsolete and only included in old format streams
     PROP_DIMENSIONS = PROP_RADIUS,
     PROP_ROTATION,
-    PROP_MASS,
+    PROP_DENSITY,
     PROP_VELOCITY,
     PROP_GRAVITY,
     PROP_DAMPING,
@@ -134,11 +134,18 @@ public:
     void debugDump() const;
     void setLastEdited(quint64 usecTime);
 
+    // Note:  DEFINE_PROPERTY(PROP_FOO, Foo, foo, type) creates the following methods and variables:
+    // type getFoo() const;
+    // void setFoo(type);
+    // bool fooChanged() const;
+    // type _foo;
+    // bool _fooChanged;
+
     DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool);
     DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_ROTATION, Rotation, rotation, glm::quat);
-    DEFINE_PROPERTY(PROP_MASS, Mass, mass, float);
+    DEFINE_PROPERTY(PROP_DENSITY, Density, density, float);
     DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
     DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float);

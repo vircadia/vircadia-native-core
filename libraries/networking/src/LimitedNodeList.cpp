@@ -38,35 +38,6 @@ const char SOLO_NODE_TYPES[2] = {
 
 const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
 
-std::auto_ptr<LimitedNodeList> LimitedNodeList::_sharedInstance;
-
-LimitedNodeList* LimitedNodeList::createInstance(unsigned short socketListenPort, unsigned short dtlsPort) {
-    NodeType::init();
-    
-    if (_sharedInstance.get()) {
-        qDebug() << "LimitedNodeList called with existing instance." <<
-            "Releasing auto_ptr, deleting existing instance and creating a new one.";
-        
-        delete _sharedInstance.release();
-    }
-    
-    _sharedInstance = std::auto_ptr<LimitedNodeList>(new LimitedNodeList(socketListenPort, dtlsPort));
-    
-    // register the SharedNodePointer meta-type for signals/slots
-    qRegisterMetaType<SharedNodePointer>();
-
-    return _sharedInstance.get();
-}
-
-LimitedNodeList* LimitedNodeList::getInstance() {
-    if (!_sharedInstance.get()) {
-        qDebug("LimitedNodeList getInstance called before call to createInstance. Returning NULL pointer.");
-    }
-
-    return _sharedInstance.get();
-}
-
-
 LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
     _sessionUUID(),
     _nodeHash(),
@@ -79,6 +50,15 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _numCollectedBytes(0),
     _packetStatTimer()
 {
+    static bool firstCall = true;
+    if (firstCall) {
+        NodeType::init();
+        
+        // register the SharedNodePointer meta-type for signals/slots
+        qRegisterMetaType<SharedNodePointer>();
+        firstCall = false;
+    }
+    
     _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);
     qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
     
@@ -147,28 +127,21 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 }
 
 void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
-    // change the socket send buffer size to be 1MB
-    int oldBufferSize = 0;
-    
-#ifdef Q_OS_WIN
-    int sizeOfInt = sizeof(oldBufferSize);
-#else
-    unsigned int sizeOfInt = sizeof(oldBufferSize);
-#endif
-    
     for (int i = 0; i < 2; i++) {
-        int bufferOpt = (i == 0) ? SO_SNDBUF : SO_RCVBUF;
-        
-        getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
-        
-        setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<const char*>(&numBytes),
-                   sizeof(numBytes));
-        
-        QString bufferTypeString = (i == 0) ? "send" : "receive";
-        
+        QAbstractSocket::SocketOption bufferOpt;
+        QString bufferTypeString;
+        if (i == 0) {
+            bufferOpt = QAbstractSocket::SendBufferSizeSocketOption;
+            bufferTypeString = "send";
+            
+        } else {
+            bufferOpt = QAbstractSocket::ReceiveBufferSizeSocketOption;
+            bufferTypeString = "receive";
+        }
+        int oldBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
         if (oldBufferSize < numBytes) {
-            int newBufferSize = 0;
-            getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
+            _nodeSocket.setSocketOption(bufferOpt, numBytes);
+            int newBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
             
             qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
                 << newBufferSize << "bytes";

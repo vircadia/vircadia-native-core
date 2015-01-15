@@ -21,6 +21,7 @@
 #include "Menu.h"
 #include "SkeletonModel.h"
 #include "SkeletonRagdoll.h"
+#include "Util.h"
 
 enum StandingFootState {
     LEFT_FOOT,
@@ -30,6 +31,7 @@ enum StandingFootState {
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) : 
     Model(parent),
+    _triangleFanID(DependencyManager::get<GeometryCache>()->allocateID()),
     _owningAvatar(owningAvatar),
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
@@ -37,7 +39,8 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
     _standingFoot(NO_FOOT),
     _standingOffset(0.0f),
-    _clampedFootPosition(0.0f) {
+    _clampedFootPosition(0.0f)
+{
 }
 
 SkeletonModel::~SkeletonModel() {
@@ -296,11 +299,13 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, Joint
     }
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+    glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
     glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
     glm::quat inverse = glm::inverse(parentState.getRotation() * state.getDefaultRotationInParentFrame());
     state.setRotationInConstrainedFrame(
               glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), inverse * zAxis) 
-            * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), inverse * xAxis) 
+            * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), inverse * xAxis)
+            * glm::angleAxis(RADIANS_PER_DEGREE * _owningAvatar->getHead()->getTorsoTwist(), inverse * yAxis)
             * state.getFBXJoint().rotation, LEAN_PRIORITY);
 }
 
@@ -317,7 +322,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const float BASE_DIRECTION_SIZE = 300.0f;
+    const float BASE_DIRECTION_SIZE = 0.3f;
     float directionSize = BASE_DIRECTION_SIZE * extractUniformScale(_scale);
     glLineWidth(3.0f);
     do {
@@ -333,6 +338,9 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
         float fanScale = directionSize * 0.75f;
         glScalef(fanScale, fanScale, fanScale);
         const int AXIS_COUNT = 3;
+
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+
         for (int i = 0; i < AXIS_COUNT; i++) {
             if (joint.rotationMin[i] <= -PI + EPSILON && joint.rotationMax[i] >= PI - EPSILON) {
                 continue; // unconstrained
@@ -347,26 +355,58 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
                 otherAxis.x = 1.0f;
             }
             glColor4f(otherAxis.r, otherAxis.g, otherAxis.b, 0.75f);
-        
-            glBegin(GL_TRIANGLE_FAN);
-            glVertex3f(0.0f, 0.0f, 0.0f);
+
+            QVector<glm::vec3> points;
+            points << glm::vec3(0.0f, 0.0f, 0.0f);
             const int FAN_SEGMENTS = 16;
             for (int j = 0; j < FAN_SEGMENTS; j++) {
                 glm::vec3 rotated = glm::angleAxis(glm::mix(joint.rotationMin[i], joint.rotationMax[i],
                     (float)j / (FAN_SEGMENTS - 1)), axis) * otherAxis;
-                glVertex3f(rotated.x, rotated.y, rotated.z);
+                points << rotated;
             }
-            glEnd();
+            // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
+            // better if the skeleton model cached these buffers for each of the joints they are rendering
+            geometryCache->updateVertices(_triangleFanID, points);
+            geometryCache->renderVertices(GL_TRIANGLE_FAN, _triangleFanID);
+            
         }
         glPopMatrix();
         
-        renderOrientationDirections(position, _rotation * jointState.getRotation(), directionSize);
+        renderOrientationDirections(jointIndex, position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
         
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
     
     glLineWidth(1.0f);
 }
+
+void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size) {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+
+    if (!_jointOrientationLines.contains(jointIndex)) {
+        OrientationLineIDs jointLineIDs;
+        jointLineIDs._up = geometryCache->allocateID();
+        jointLineIDs._front = geometryCache->allocateID();
+        jointLineIDs._right = geometryCache->allocateID();
+        _jointOrientationLines[jointIndex] = jointLineIDs;
+    }
+    OrientationLineIDs& jointLineIDs = _jointOrientationLines[jointIndex];
+
+    glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
+    glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
+    glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
+
+    glColor3f(1.0f, 0.0f, 0.0f);
+    geometryCache->renderLine(position, pRight, jointLineIDs._right);
+
+    glColor3f(0.0f, 1.0f, 0.0f);
+    geometryCache->renderLine(position, pUp, jointLineIDs._up);
+
+    glColor3f(0.0f, 0.0f, 1.0f);
+    geometryCache->renderLine(position, pFront, jointLineIDs._front);
+}
+
+
 
 void SkeletonModel::setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation) {
     // this algorithm is from sample code from sixense
@@ -554,7 +594,7 @@ void SkeletonModel::renderRagdoll() {
     float radius1 = 0.008f;
     float radius2 = 0.01f;
     glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     for (int i = 0; i < numPoints; ++i) {
         glPushMatrix();
         // NOTE: ragdollPoints are in simulation-frame but we want them to be model-relative
@@ -914,7 +954,7 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     endPoint = endPoint - _translation;
     glTranslatef(endPoint.x, endPoint.y, endPoint.z);
     glColor4f(0.6f, 0.6f, 0.8f, alpha);
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
 
     // draw a yellow sphere at the capsule startpoint
@@ -950,7 +990,7 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
             continue;
         } 
 
-        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+        auto geometryCache = DependencyManager::get<GeometryCache>();
 
         glPushMatrix();
         // shapes are stored in simulation-frame but we want position to be model-relative

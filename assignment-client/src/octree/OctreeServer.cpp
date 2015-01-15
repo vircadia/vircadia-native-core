@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
@@ -358,7 +359,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += "Uptime: " + getUptime();
         statsString += "\r\n\r\n";
 
-        // display voxel file load time
+        // display octree file load time
         if (isInitialLoadComplete()) {
             if (isPersistEnabled()) {
                 statsString += QString("%1 File Persist Enabled...\r\n").arg(getMyServerName());
@@ -373,7 +374,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             statsString += "\r\n";
 
         } else {
-            statsString += "Voxels not yet loaded...\r\n";
+            statsString += "Octree file not yet loaded...\r\n";
         }
 
         statsString += "\r\n\r\n";
@@ -712,7 +713,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
 
         statsString += QString().sprintf("Element Node Memory Usage:       %8.2f %s\r\n",
-                                         OctreeElement::getVoxelMemoryUsage() / memoryScale, memoryScaleLabel);
+                                         OctreeElement::getOctreeMemoryUsage() / memoryScale, memoryScaleLabel);
         statsString += QString().sprintf("Octcode Memory Usage:            %8.2f %s\r\n",
                                          OctreeElement::getOctcodeMemoryUsage() / memoryScale, memoryScaleLabel);
         statsString += QString().sprintf("External Children Memory Usage:  %8.2f %s\r\n",
@@ -829,7 +830,7 @@ void OctreeServer::parsePayload() {
 }
 
 void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         PacketType packetType = packetTypeForPacket(receivedPacket);
@@ -865,13 +866,13 @@ void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const H
             _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
         } else {
             // let processNodeData handle it.
-            NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+            DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
         }
     }
 }
 
 void OctreeServer::setupDatagramProcessingThread() {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     // we do not want this event loop to be the handler for UDP datagrams, so disconnect
     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
@@ -960,7 +961,7 @@ void OctreeServer::readConfiguration() {
     }
 
     // wait until we have the domain-server settings, otherwise we bail
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     DomainHandler& domainHandler = nodeList->getDomainHandler();
     
     qDebug() << "Waiting for domain settings from domain-server.";
@@ -978,6 +979,7 @@ void OctreeServer::readConfiguration() {
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
+    _settings = settingsSectionObject; // keep this for later
     
     if (!readOptionString(QString("statusHost"), settingsSectionObject, _statusHost) || _statusHost.isEmpty()) {
         _statusHost = getLocalAddress().toString();
@@ -1042,20 +1044,8 @@ void OctreeServer::readConfiguration() {
         _wantBackup = !noBackup;
         qDebug() << "wantBackup=" << _wantBackup;
 
-        if (_wantBackup) {
-            _backupExtensionFormat = OctreePersistThread::DEFAULT_BACKUP_EXTENSION_FORMAT;
-            readOptionString(QString("backupExtensionFormat"), settingsSectionObject, _backupExtensionFormat);
-            qDebug() << "backupExtensionFormat=" << _backupExtensionFormat;
-
-            _backupInterval = OctreePersistThread::DEFAULT_BACKUP_INTERVAL;
-            readOptionInt(QString("backupInterval"), settingsSectionObject, _backupInterval);
-            qDebug() << "backupInterval=" << _backupInterval;
-
-            _maxBackupVersions = OctreePersistThread::DEFAULT_MAX_BACKUP_VERSIONS;
-            readOptionInt(QString("maxBackupVersions"), settingsSectionObject, _maxBackupVersions);
-            qDebug() << "maxBackupVersions=" << _maxBackupVersions;
-        }
-
+        //qDebug() << "settingsSectionObject:" << settingsSectionObject;
+        
     } else {
         qDebug("persistFilename= DISABLED");
     }
@@ -1106,7 +1096,7 @@ void OctreeServer::run() {
     _tree->setIsServer(true);
 
     // make sure our NodeList knows what type we are
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(getMyNodeType());
     
     
@@ -1120,8 +1110,8 @@ void OctreeServer::run() {
         
     beforeRun(); // after payload has been processed
 
-    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)),SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
+    connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)),SLOT(nodeKilled(SharedNodePointer)));
 
 
     // we need to ask the DS about agents so we can ping/reply with them
@@ -1140,8 +1130,7 @@ void OctreeServer::run() {
 
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
-                                    _wantBackup, _backupInterval, _backupExtensionFormat, 
-                                    _maxBackupVersions, _debugTimestampNow);
+                                    _wantBackup, _settings, _debugTimestampNow);
         if (_persistThread) {
             _persistThread->initialize(true);
         }
@@ -1223,7 +1212,7 @@ void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
     _octreeInboundPacketProcessor->shuttingDown();
     
-    NodeList::getInstance()->eachNode([this](const SharedNodePointer& node) {
+    DependencyManager::get<NodeList>()->eachNode([this](const SharedNodePointer& node) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
     });
@@ -1388,7 +1377,7 @@ void OctreeServer::sendStatsPacket() {
     statsObject2[baseName + QString(".2.outbound.timing.5.avgSendTime")] = getAveragePacketSendingTime();
     statsObject2[baseName + QString(".2.outbound.timing.5.nodeWaitTime")] = getAverageNodeWaitTime();
 
-    NodeList::getInstance()->sendStatsToDomainServer(statsObject2);
+    DependencyManager::get<NodeList>()->sendStatsToDomainServer(statsObject2);
 
     static QJsonObject statsObject3;
 
@@ -1407,7 +1396,7 @@ void OctreeServer::sendStatsPacket() {
     statsObject3[baseName + QString(".3.inbound.timing.5.avgLockWaitTimePerElement")] = 
         (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
 
-    NodeList::getInstance()->sendStatsToDomainServer(statsObject3);
+    DependencyManager::get<NodeList>()->sendStatsToDomainServer(statsObject3);
 }
 
 QMap<OctreeSendThread*, quint64> OctreeServer::_threadsDidProcess;

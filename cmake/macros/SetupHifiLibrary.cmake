@@ -16,7 +16,7 @@ macro(SETUP_HIFI_LIBRARY)
   set(LIB_SRCS ${LIB_SRCS})
 
   # create a library and set the property so it can be referenced later
-  add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC})
+  add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
   
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
   list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)

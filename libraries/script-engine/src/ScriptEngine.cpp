@@ -17,9 +17,9 @@
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
 
+#include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AudioInjector.h>
-#include <AudioRingBuffer.h>
 #include <AvatarData.h>
 #include <Bitstream.h>
 #include <CollisionInfo.h>
@@ -28,22 +28,18 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <UUID.h>
-#include <VoxelConstants.h>
-#include <VoxelDetail.h>
 
 #include "AnimationObject.h"
 #include "ArrayBufferViewClass.h"
 #include "DataViewClass.h"
 #include "EventTypes.h"
 #include "MenuItemProperties.h"
-#include "LocalVoxels.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 
 #include "MIDIEvent.h"
 
-VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
@@ -198,9 +194,9 @@ void ScriptEngine::handleScriptDownload() {
         qDebug() << "ERROR Loading file:" << reply->url().toString();
         emit errorLoadingScript(_fileNameString);
     }
+    
+    reply->deleteLater();
 }
-
-Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
 
 void ScriptEngine::init() {
     if (_isInitialized) {
@@ -209,12 +205,9 @@ void ScriptEngine::init() {
     
     _isInitialized = true;
 
-    _voxelsScriptingInterface.init();
-
     // register various meta-types
     registerMetaTypes(this);
     registerMIDIMetaTypes(this);
-    registerVoxelMetaTypes(this);
     registerEventTypes(this);
     registerMenuItemProperties(this);
     registerAnimationTypes(this);
@@ -237,9 +230,6 @@ void ScriptEngine::init() {
     QScriptValue printConstructorValue = newFunction(debugPrint);
     globalObject().setProperty("print", printConstructorValue);
 
-    QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
-    globalObject().setProperty("LocalVoxels", localVoxelsValue);
-
     QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);
     globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
     
@@ -257,19 +247,14 @@ void ScriptEngine::init() {
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
 
-    registerGlobalObject("Voxels", &_voxelsScriptingInterface);
-
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
     globalObject().setProperty("COLLISION_GROUP_ENVIRONMENT", newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
     globalObject().setProperty("COLLISION_GROUP_AVATARS", newVariant(QVariant(COLLISION_GROUP_AVATARS)));
-    globalObject().setProperty("COLLISION_GROUP_VOXELS", newVariant(QVariant(COLLISION_GROUP_VOXELS)));
 
     globalObject().setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
     globalObject().setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
 
-    // let the VoxelPacketSender know how frequently we plan to call it
-    _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
 }
 
 QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -359,7 +344,7 @@ void ScriptEngine::run() {
 
     int thisFrame = 0;
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     qint64 lastUpdate = usecTimestampNow();
 
@@ -379,18 +364,8 @@ void ScriptEngine::run() {
             break;
         }
 
-        if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
-            // release the queue of edit voxel messages.
-            _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
-
-            // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
-                _voxelsScriptingInterface.getVoxelPacketSender()->process();
-            }
-        }
-
         if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
-            // release the queue of edit voxel messages.
+            // release the queue of edit entity messages.
             _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
 
             // since we're in non-threaded mode, call process so that the packets are sent
@@ -401,7 +376,8 @@ void ScriptEngine::run() {
 
         if (_isAvatar && _avatarData) {
 
-            const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * SAMPLE_RATE) / (1000 * 1000)) + 0.5);
+            const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
+                                                           / (1000 * 1000)) + 0.5);
             const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
             QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
@@ -483,7 +459,7 @@ void ScriptEngine::run() {
                 }
                 
                 // write audio packet to AudioMixer nodes
-                NodeList* nodeList = NodeList::getInstance();
+                auto nodeList = DependencyManager::get<NodeList>();
                 nodeList->eachNode([this, &nodeList, &audioPacket, &numPreSequenceNumberBytes](const SharedNodePointer& node){
                     // only send to nodes of type AudioMixer
                     if (node->getType() == NodeType::AudioMixer) {
@@ -515,16 +491,6 @@ void ScriptEngine::run() {
 
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
-
-    if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
-        // release the queue of edit voxel messages.
-        _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
-
-        // since we're in non-threaded mode, call process so that the packets are sent
-        if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
-            _voxelsScriptingInterface.getVoxelPacketSender()->process();
-        }
-    }
 
     if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
@@ -601,16 +567,20 @@ void ScriptEngine::stopTimer(QTimer *timer) {
 }
 
 QUrl ScriptEngine::resolvePath(const QString& include) const {
-    // first lets check to see if it's already a full URL
     QUrl url(include);
+    // first lets check to see if it's already a full URL
     if (!url.scheme().isEmpty()) {
         return url;
     }
 
     // we apparently weren't a fully qualified url, so, let's assume we're relative
     // to the original URL of our script
-    QUrl parentURL(_fileNameString);
-
+    QUrl parentURL;
+    if (_parentURL.isEmpty()) {
+        parentURL = QUrl(_fileNameString);
+    } else {
+        parentURL = QUrl(_parentURL);
+    }
     // if the parent URL's scheme is empty, then this is probably a local file...
     if (parentURL.scheme().isEmpty()) {
         parentURL = QUrl::fromLocalFile(_fileNameString);
@@ -637,12 +607,14 @@ void ScriptEngine::include(const QString& includeFile) {
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
         loop.exec();
         includeContents = reply->readAll();
+        reply->deleteLater();
     } else {
 #ifdef _WIN32
         QString fileName = url.toString();
 #else
         QString fileName = url.toLocalFile();
 #endif
+
         QFile scriptFile(fileName);
         if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
             qDebug() << "Including file:" << fileName;

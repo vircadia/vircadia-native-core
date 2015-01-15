@@ -83,7 +83,7 @@ void AudioInjector::injectAudio() {
     if (_options.secondOffset > 0.0f) {
         
         // convert the offset into a number of bytes
-        int byteOffset = (int) floorf(SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+        int byteOffset = (int) floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
         byteOffset *= sizeof(int16_t);
         
         _currentSendPosition = byteOffset;
@@ -197,14 +197,14 @@ void AudioInjector::injectToMixer() {
         quint16 outgoingInjectedAudioSequenceNumber = 0;
         while (_currentSendPosition < _audioData.size() && !_shouldStop) {
             
-            int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
+            int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
                                        _audioData.size() - _currentSendPosition);
             
             //  Measure the loudness of this frame
             _loudness = 0.0f;
             for (int i = 0; i < bytesToCopy; i += sizeof(int16_t)) {
                 _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + _currentSendPosition + i)) /
-                (MAX_SAMPLE_VALUE / 2.0f);
+                (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
             }
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
 
@@ -229,7 +229,7 @@ void AudioInjector::injectToMixer() {
                    _audioData.data() + _currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
-            NodeList* nodeList = NodeList::getInstance();
+            auto nodeList = DependencyManager::get<NodeList>();
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
             
             // send off this audio packet
@@ -243,7 +243,7 @@ void AudioInjector::injectToMixer() {
             if (_currentSendPosition != bytesToCopy && _currentSendPosition < _audioData.size()) {
                 // not the first packet and not done
                 // sleep for the appropriate time
-                int usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000;
+                int usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000;
                 
                 if (usecToSleep > 0) {
                     usleep(usecToSleep);

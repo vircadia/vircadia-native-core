@@ -12,15 +12,16 @@
 #ifndef hifi_GLCanvas_h
 #define hifi_GLCanvas_h
 
+#include <QDebug>
 #include <QGLWidget>
 #include <QTimer>
 
 #include <DependencyManager.h>
 
 /// customized canvas that simply forwards requests/events to the singleton application
-class GLCanvas : public QGLWidget {
+class GLCanvas : public QGLWidget, public Dependency {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(GLCanvas)
+    SINGLETON_DEPENDENCY
     
 public:
     bool isThrottleRendering() const;

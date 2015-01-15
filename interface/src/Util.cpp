@@ -25,7 +25,6 @@
 #include <TextRenderer.h>
 
 #include "InterfaceConfig.h"
-#include "VoxelConstants.h"
 #include "world.h"
 #include "Application.h"
 
@@ -33,13 +32,9 @@
 
 using namespace std;
 
-// no clue which versions are affected...
-#define WORKAROUND_BROKEN_GLUT_STROKES
-// see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
-
-
-
 void renderWorldBox() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+
     //  Show edge of world
     float red[] = {1, 0, 0};
     float green[] = {0, 1, 0};
@@ -48,22 +43,17 @@ void renderWorldBox() {
 
     glDisable(GL_LIGHTING);
     glLineWidth(1.0);
-    glBegin(GL_LINES);
     glColor3fv(red);
-    glVertex3f(0, 0, 0);
-    glVertex3f(TREE_SCALE, 0, 0);
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(TREE_SCALE, 0, 0));
     glColor3fv(green);
-    glVertex3f(0, 0, 0);
-    glVertex3f(0, TREE_SCALE, 0);
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, TREE_SCALE, 0));
     glColor3fv(blue);
-    glVertex3f(0, 0, 0);
-    glVertex3f(0, 0, TREE_SCALE);
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, TREE_SCALE));
     glColor3fv(gray);
-    glVertex3f(0, 0, TREE_SCALE);
-    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
-    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
-    glVertex3f(TREE_SCALE, 0, 0);
-    glEnd();
+    geometryCache->renderLine(glm::vec3(0, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, TREE_SCALE));
+    geometryCache->renderLine(glm::vec3(TREE_SCALE, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, 0));
+    
+    
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
@@ -71,7 +61,6 @@ void renderWorldBox() {
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
     glColor3fv(red);
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
@@ -136,84 +125,12 @@ void renderCollisionOverlay(int width, int height, float magnitude, float red, f
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {
         glColor4f(red, blue, green, magnitude);
-        glBegin(GL_QUADS);
-        glVertex2f(0, 0);
-        glVertex2d(width, 0);
-        glVertex2d(width, height);
-        glVertex2d(0, height);
-        glEnd();
+        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height);
     }
 }
-
-
-
-void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides) {
-    glm::vec3 perp1 = glm::vec3(surfaceNormal.y, surfaceNormal.z, surfaceNormal.x);
-    glm::vec3 perp2 = glm::vec3(surfaceNormal.z, surfaceNormal.x, surfaceNormal.y);
-
-    glBegin(GL_LINE_STRIP);
-
-    for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * TWO_PI;
-        float s = radius * sinf(r);
-        float c = radius * cosf(r);
-        glVertex3f
-        (
-            position.x + perp1.x * s + perp2.x * c,
-            position.y + perp1.y * s + perp2.y * c,
-            position.z + perp1.z * s + perp2.z * c
-        );
-    }
-    glEnd();
-}
-
 
 void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
-    glBegin(GL_POLYGON);
-    
-    // left side
-    glVertex2f(x, y + bevelDistance);
-    glVertex2f(x, y + height - bevelDistance);
-    
-    // top side
-    glVertex2f(x + bevelDistance,  y + height);
-    glVertex2f(x + width - bevelDistance, y + height);
-    
-    // right
-    glVertex2f(x + width, y + height - bevelDistance);
-    glVertex2f(x + width, y + bevelDistance);
-    
-    // bottom
-    glVertex2f(x + width - bevelDistance,  y);
-    glVertex2f(x +bevelDistance, y);
-
-    glEnd();
-}
-
-
-
-void renderOrientationDirections(glm::vec3 position, const glm::quat& orientation, float size) {
-	glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
-	glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
-	glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
-
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glBegin(GL_LINE_STRIP);
-	glVertex3f(position.x, position.y, position.z);
-	glVertex3f(pRight.x, pRight.y, pRight.z);
-	glEnd();
-
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glBegin(GL_LINE_STRIP);
-	glVertex3f(position.x, position.y, position.z);
-	glVertex3f(pUp.x, pUp.y, pUp.z);
-	glEnd();
-
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glBegin(GL_LINE_STRIP);
-	glVertex3f(position.x, position.y, position.z);
-	glVertex3f(pFront.x, pFront.y, pFront.z);
-	glEnd();
+    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(x, y, width, height, bevelDistance);
 }
 
 //  Do some basic timing tests and report the results

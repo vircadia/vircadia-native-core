@@ -148,7 +148,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                 qDebug() << " --- inside while loop ---";
                 qDebug() << "    maxSize=" << maxSize;
                 qDebug("OctreeInboundPacketProcessor::processPacket() %c "
-                       "packetData=%p packetLength=%d voxelData=%p atByte=%d maxSize=%d",
+                       "packetData=%p packetLength=%d editData=%p atByte=%d maxSize=%d",
                         packetType, packetData, packet.size(), editData, atByte, maxSize);
             }
 
@@ -174,7 +174,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             processTime += thisProcessTime;
             lockWaitTime += thisLockWaitTime;
 
-            // skip to next voxel edit record in the packet
+            // skip to next edit record in the packet
             editData += editDataBytesRead;
             atByte += editDataBytesRead;
 
@@ -188,7 +188,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
 
         if (debugProcessPacket) {
             qDebug("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %c "
-                   "packetData=%p packetLength=%d voxelData=%p atByte=%d",
+                   "packetData=%p packetLength=%d editData=%p atByte=%d",
                     packetType, packetData, packet.size(), editData, atByte);
         }
 
@@ -261,7 +261,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             continue;
         }
 
-        const SharedNodePointer& destinationNode = NodeList::getInstance()->nodeWithUUID(nodeUUID);
+        const SharedNodePointer& destinationNode = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
 
         // retrieve sequence number stats of node, prune its missing set
         SequenceNumberStats& sequenceNumberStats = nodeStats.getIncomingEditSequenceNumberStats();
@@ -299,7 +299,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             numSequenceNumbersAvailable -= numSequenceNumbers;
 
             // send it
-            NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
+            DependencyManager::get<NodeList>()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
             packetsSent++;
             
             qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;

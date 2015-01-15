@@ -32,6 +32,10 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
 { 
     _type = EntityTypes::Sphere;
     setProperties(properties);
+    // NOTE: _volumeMultiplier is used to compute volume:
+    // volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z
+    // The formula below looks funny because _dimension.xyz = diameter rather than radius.
+    _volumeMultiplier *= PI / 6.0f;
 }
 
 EntityItemProperties SphereEntityItem::getProperties() const {
@@ -97,6 +101,12 @@ void SphereEntityItem::recalculateCollisionShape() {
     _sphereShape.setRadius(largestDiameter / 2.0f);
 }
 
+void SphereEntityItem::computeShapeInfo(ShapeInfo& info) const {
+    glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
+    // TODO: support ellipsoid shapes
+    info.setSphere(halfExtents.x);
+}
+
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {
@@ -108,7 +118,7 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
     glm::mat4 entityToWorldMatrix = translation * rotation * scale * registration;
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
     glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
-    glm::vec3 entityFrameDirection = glm::normalize(glm::vec3(worldToEntityMatrix * glm::vec4(direction, 1.0f)));
+    glm::vec3 entityFrameDirection = glm::normalize(glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f)));
 
     float localDistance;
     // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
@@ -122,6 +132,3 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
     }
     return false;                
 }
-
-
-

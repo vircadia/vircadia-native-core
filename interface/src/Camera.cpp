@@ -11,7 +11,6 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <SharedUtil.h>
-#include <VoxelConstants.h>
 #include <EventTypes.h>
 
 #include "Application.h"
@@ -56,14 +55,42 @@ Camera::Camera() :
     _farClip(DEFAULT_FAR_CLIP), // default
     _hmdPosition(),
     _hmdRotation(),
-    _targetPosition(),
-    _targetRotation(),
-    _scale(1.0f)
+    _scale(1.0f),
+    _isKeepLookingAt(false),
+    _lookingAt(0.0f, 0.0f, 0.0f)
 {
 }
 
 void Camera::update(float deltaTime) {
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
     return;
+}
+
+void Camera::setPosition(const glm::vec3& position) {
+    _position = position; 
+}
+
+void Camera::setRotation(const glm::quat& rotation) {
+    _rotation = rotation; 
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
+}
+
+void Camera::setHmdPosition(const glm::vec3& hmdPosition) {
+    _hmdPosition = hmdPosition; 
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
+}
+
+void Camera::setHmdRotation(const glm::quat& hmdRotation) {
+    _hmdRotation = hmdRotation; 
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
 }
 
 float Camera::getFarClip() const {
@@ -82,20 +109,20 @@ void Camera::setFieldOfView(float f) {
     _fieldOfView = f; 
 }
 
-void Camera::setAspectRatio(float a) { 
+void Camera::setAspectRatio(float a) {
     _aspectRatio = a;
 }
 
-void Camera::setNearClip(float n) { 
+void Camera::setNearClip(float n) {
     _nearClip = n;
 }
 
-void Camera::setFarClip(float f) { 
+void Camera::setFarClip(float f) {
     _farClip = f;
 }
 
 PickRay Camera::computePickRay(float x, float y) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     return computeViewPickRay(x / glCanvas->width(), y / glCanvas->height());
 }
 
@@ -136,4 +163,18 @@ void Camera::setModeString(const QString& mode) {
 
 QString Camera::getModeString() const {
     return modeToString(_mode);
+}
+
+void Camera::lookAt(const glm::vec3& lookAt) {
+    glm::vec3 up = IDENTITY_UP;
+    glm::mat4 lookAtMatrix = glm::lookAt(_position, lookAt, up);
+    glm::quat rotation = glm::quat_cast(lookAtMatrix);
+    rotation.w = -rotation.w; // Rosedale approved
+    _rotation = rotation;
+}
+
+void Camera::keepLookingAt(const glm::vec3& point) {
+    lookAt(point);
+    _isKeepLookingAt = true;
+    _lookingAt = point;
 }

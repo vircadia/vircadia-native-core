@@ -97,46 +97,32 @@ void DomainHandler::setUUID(const QUuid& uuid) {
     }
 }
 
-QString DomainHandler::hostnameWithoutPort(const QString& hostname) {
-    int colonIndex = hostname.indexOf(':');
-    return colonIndex > 0 ? hostname.left(colonIndex) : hostname;
-}
-
-bool DomainHandler::isCurrentHostname(const QString& hostname) {
-    return hostnameWithoutPort(hostname) == _hostname;
-}
-
-void DomainHandler::setHostname(const QString& hostname) {
+void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
     
-    if (hostname != _hostname) {
+    if (hostname != _hostname || _sockAddr.getPort() != port) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
         
-        int colonIndex = hostname.indexOf(':');
-        
-        if (colonIndex > 0) {
-            // the user has included a custom DS port with the hostname
-            
-            // the new hostname is everything up to the colon
-            _hostname = hostname.left(colonIndex);
-            
-            // grab the port by reading the string after the colon
-            _sockAddr.setPort(atoi(hostname.mid(colonIndex + 1, hostname.size()).toLocal8Bit().constData()));
-            
-            qDebug() << "Updated hostname to" << _hostname << "and port to" << _sockAddr.getPort();
-            
-        } else {
-            // no port included with the hostname, simply set the member variable and reset the domain server port to default
+        if (hostname != _hostname) {
+            // set the new hostname
             _hostname = hostname;
-            _sockAddr.setPort(DEFAULT_DOMAIN_SERVER_PORT);
+            
+            qDebug() << "Updated domain hostname to" << _hostname;
+            
+            // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
+            qDebug("Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
+            QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
+            
+            UserActivityLogger::getInstance().changedDomain(_hostname);
+            emit hostnameChanged(_hostname);
         }
         
-        // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
-        qDebug("Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
-        QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
+        if (_sockAddr.getPort() != port) {
+            qDebug() << "Updated domain port to" << port;
+        }
         
-        UserActivityLogger::getInstance().changedDomain(_hostname);
-        emit hostnameChanged(_hostname);
+        // grab the port by reading the string after the colon
+        _sockAddr.setPort(port);
     }
 }
 
@@ -198,7 +184,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
 }
 
 void DomainHandler::requestDomainSettings() {
-    NodeType_t owningNodeType = NodeList::getInstance()->getOwnerType();
+    NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
     if (owningNodeType == NodeType::Agent) {
         // for now the agent nodes don't need any settings - this allows local assignment-clients
         // to connect to a domain that is using automatic networking (since we don't have TCP hole punch yet)
@@ -212,7 +198,7 @@ void DomainHandler::requestDomainSettings() {
             settingsJSONURL.setHost(_hostname);
             settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
             settingsJSONURL.setPath("/settings.json");
-            Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
+            Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
             settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
             
             qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();
@@ -254,6 +240,7 @@ void DomainHandler::settingsRequestFinished() {
             requestDomainSettings();
         }        
     }
+    settingsReply->deleteLater();
 }
 
 void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket) {

@@ -237,7 +237,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // check for scripts the user wants to persist from their domain-server config
     populateStaticScriptedAssignmentsFromSettings();
 
-    LimitedNodeList* nodeList = LimitedNodeList::createInstance(domainServerPort, domainServerDTLSPort);
+    auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
     
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
     QSharedMemory* sharedPortMem = new QSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
@@ -262,11 +262,11 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
         nodeList->setSessionUUID(idValueVariant->toString());
     }
 
-    connect(nodeList, &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
-    connect(nodeList, &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
+    connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
+    connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
 
     QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
 
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(readAvailableDatagrams()));
@@ -346,8 +346,7 @@ bool DomainServer::optionallySetupAssignmentPayment() {
 }
 
 void DomainServer::setupAutomaticNetworking() {
-    
-    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     
     const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
     const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
@@ -368,8 +367,10 @@ void DomainServer::setupAutomaticNetworking() {
         iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
         
         // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
-        connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
-        connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+        connect(nodeList.data(), &LimitedNodeList::localSockAddrChanged,
+                this, &DomainServer::sendHeartbeatToIceServer);
+        connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+                this, &DomainServer::sendHeartbeatToIceServer);
         
         // attempt to update our public socket now, this will send a heartbeat once we get public socket
         requestCurrentPublicSocketViaSTUN();
@@ -400,7 +401,8 @@ void DomainServer::setupAutomaticNetworking() {
                 dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
                 
                 // send public socket changes to the data server so nodes can find us at our new IP
-                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
+                connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+                        this, &DomainServer::performIPAddressUpdate);
                 
                 // attempt to update our sockets now
                 requestCurrentPublicSocketViaSTUN();
@@ -549,7 +551,10 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     for (Assignment::Type defaultedType = Assignment::AudioMixerType;
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
-        if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
+        if (!excludedTypes.contains(defaultedType) 
+            && defaultedType != Assignment::UNUSED_0
+            && defaultedType != Assignment::UNUSED_1
+            && defaultedType != Assignment::AgentType) {
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
             Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);
@@ -559,7 +564,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 }
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::EntityServer
+    << NodeType::AvatarMixer << NodeType::EntityServer
     << NodeType::MetavoxelServer;
 
 void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
@@ -614,7 +619,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
         
         // send this oauth request datagram back to the client
-        LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
+        DependencyManager::get<LimitedNodeList>()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
         
         return;
     }
@@ -634,7 +639,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         }
         
 
-        SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
+        SharedNodePointer newNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(nodeUUID, nodeType,
                                                                                     publicSockAddr, localSockAddr);
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr
@@ -667,7 +672,7 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
     QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
     
     // we always let in a user who is sending a packet from our local socket or from the localhost address
-    if (senderSockAddr.getAddress() == LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
+    if (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress()
         || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
         return true;
     }
@@ -840,8 +845,8 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
-
-    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     
     // if we've established a connection via ICE with this peer, use that socket
     // otherwise just try to reply back to them on their sending socket (although that may not work)
@@ -907,7 +912,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 }
 
 void DomainServer::readAvailableDatagrams() {
-    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
 
     HifiSockAddr senderSockAddr;
     QByteArray receivedPacket;
@@ -995,7 +1000,7 @@ void DomainServer::readAvailableDatagrams() {
 
 void DomainServer::setupPendingAssignmentCredits() {
     // enumerate the NodeList to find the assigned nodes
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
+    DependencyManager::get<LimitedNodeList>()->eachNode([&](const SharedNodePointer& node){
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         
         if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
@@ -1109,7 +1114,7 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
 }
 
 void DomainServer::requestCurrentPublicSocketViaSTUN() {
-    LimitedNodeList::getInstance()->sendSTUNRequest();
+    DependencyManager::get<LimitedNodeList>()->sendSTUNRequest();
 }
 
 QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
@@ -1131,7 +1136,8 @@ void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr)
 
 void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-    const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    const QUuid& domainID = nodeList->getSessionUUID();
     
     // setup the domain object to send to the data server
     const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
@@ -1155,7 +1161,7 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     // add the number of currently connected agent users
     int numConnectedAuthedUsers = 0;
     
-    NodeList::getInstance()->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
+    nodeList->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
         if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
             ++numConnectedAuthedUsers;
         }
@@ -1184,11 +1190,11 @@ void DomainServer::performICEUpdates() {
 }
 
 void DomainServer::sendHeartbeatToIceServer() {
-    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(_iceServerSocket);
+    DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
 }
 
 void DomainServer::sendICEPingPackets() {
-    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     
     QHash<QUuid, NetworkPeer>::iterator peer = _connectingICEPeers.begin();
     
@@ -1256,7 +1262,7 @@ void DomainServer::processICEPingReply(const QByteArray& packet, const HifiSockA
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
 
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         PacketType requestType = packetTypeForPacket(receivedPacket);
@@ -1407,6 +1413,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
     
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    
     // allow sub-handlers to handle requests that do not require authentication
     if (_settingsManager.handlePublicHTTPRequest(connection, url)) {
         return true;
@@ -1449,7 +1457,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_ID = "/id";
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && url.path() == URI_ID) {
-        QUuid domainID = LimitedNodeList::getInstance()->getSessionUUID();
+        QUuid domainID = nodeList->getSessionUUID();
         
         connection->respond(HTTPConnection::StatusCode200, uuidStringWithoutCurlyBraces(domainID).toLocal8Bit());
         return true;
@@ -1471,7 +1479,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonObject assignedNodesJSON;
 
             // enumerate the NodeList to find the assigned nodes
-            NodeList::getInstance()->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
+            nodeList->eachNode([this, &assignedNodesJSON](const SharedNodePointer& node){
                 DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
                 
                 if (!nodeData->getAssignmentUUID().isNull()) {
@@ -1533,7 +1541,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonArray nodesJSONArray;
 
             // enumerate the NodeList to find the assigned nodes
-            LimitedNodeList::getInstance()->eachNode([this, &nodesJSONArray](const SharedNodePointer& node){
+            nodeList->eachNode([this, &nodesJSONArray](const SharedNodePointer& node){
                 // add the node using the UUID as the key
                 nodesJSONArray.append(jsonObjectForNode(node));
             });
@@ -1556,7 +1564,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 QUuid matchingUUID = QUuid(nodeShowRegex.cap(1));
 
                 // see if we have a node that matches this ID
-                SharedNodePointer matchingNode = LimitedNodeList::getInstance()->nodeWithUUID(matchingUUID);
+                SharedNodePointer matchingNode = nodeList->nodeWithUUID(matchingUUID);
                 if (matchingNode) {
                     // create a QJsonDocument with the stats QJsonObject
                     QJsonObject statsObject =
@@ -1650,14 +1658,14 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             // pull the captured string, if it exists
             QUuid deleteUUID = QUuid(nodeDeleteRegex.cap(1));
 
-            SharedNodePointer nodeToKill = LimitedNodeList::getInstance()->nodeWithUUID(deleteUUID);
+            SharedNodePointer nodeToKill = nodeList->nodeWithUUID(deleteUUID);
 
             if (nodeToKill) {
                 // start with a 200 response
                 connection->respond(HTTPConnection::StatusCode200);
 
                 // we have a valid UUID and node - kill the node that has this assignment
-                QMetaObject::invokeMethod(LimitedNodeList::getInstance(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
+                QMetaObject::invokeMethod(nodeList.data(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
 
                 // successfully processed request
                 return true;
@@ -1666,7 +1674,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return true;
         } else if (allNodesDeleteRegex.indexIn(url.path()) != -1) {
             qDebug() << "Received request to kill all nodes.";
-            LimitedNodeList::getInstance()->eraseAllNodes();
+            nodeList->eraseAllNodes();
 
             return true;
         }
@@ -1732,6 +1740,9 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
                 
                 connection->respond(HTTPConnection::StatusCode302, QByteArray(),
                                     HTTPConnection::DefaultContentType, cookieHeaders);
+                
+                delete tokenReply;
+                delete profileReply;
                 
                 // we've redirected the user back to our homepage
                 return true;
@@ -1983,7 +1994,7 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
 
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
-            SharedNodePointer otherNode = LimitedNodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
+            SharedNodePointer otherNode = DependencyManager::get<LimitedNodeList>()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
                 reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
             }
@@ -2066,7 +2077,7 @@ void DomainServer::addStaticAssignmentsToQueue() {
         // add any of the un-matched static assignments to the queue
         
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        if (!NodeList::getInstance()->nodeWithUUID(staticAssignment->data()->getUUID())) {
+        if (!DependencyManager::get<LimitedNodeList>()->nodeWithUUID(staticAssignment->data()->getUUID())) {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             refreshStaticAssignmentAndAddToQueue(*staticAssignment);
         }

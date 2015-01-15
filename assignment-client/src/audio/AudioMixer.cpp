@@ -60,7 +60,7 @@
 #include "AudioMixer.h"
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
-const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18;
+const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
@@ -273,8 +273,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
 
         // Mono input to stereo output (item 1 above)
         int OUTPUT_SAMPLES_PER_INPUT_SAMPLE = 2;
-        int inputSampleCount = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
-        int maxOutputIndex = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+        int inputSampleCount = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
+        int maxOutputIndex = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
 
         // attenuation and fade applied to all samples (item 2 above)
         float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
@@ -352,9 +352,10 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
 
        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
 
-        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
+        for (int s = 0; s < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; s++) {
             _preMixSamples[s] = glm::clamp(_preMixSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
-                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                                            AudioConstants::MIN_SAMPLE_VALUE,
+                                           AudioConstants::MAX_SAMPLE_VALUE);
         }
     }
 
@@ -416,14 +417,15 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         AudioFilterHSF1s& penumbraFilter = listenerNodeData->getListenerSourcePairData(streamUUID)->getPenumbraFilter();
  
         // set the gain on both filter channels
-        penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
-        penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
-        penumbraFilter.render(_preMixSamples, _preMixSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+        penumbraFilter.setParameters(0, 0, AudioConstants::SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
+        penumbraFilter.setParameters(0, 1, AudioConstants::SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
+        penumbraFilter.render(_preMixSamples, _preMixSamples, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / 2);
     }
     
     // Actually mix the _preMixSamples into the _mixSamples here.
-    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
-        _mixSamples[s] = glm::clamp(_mixSamples[s] + _preMixSamples[s], MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+    for (int s = 0; s < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; s++) {
+        _mixSamples[s] = glm::clamp(_mixSamples[s] + _preMixSamples[s], AudioConstants::MIN_SAMPLE_VALUE,
+                                    AudioConstants::MAX_SAMPLE_VALUE);
     }
 
     return 1;
@@ -440,7 +442,7 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
     // loop through all other nodes that have sufficient audio to mix
     int streamsMixed = 0;
     
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& otherNode){
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& otherNode){
         if (otherNode->getLinkedData()) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
             
@@ -520,12 +522,12 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             memcpy(envDataAt, &wetLevel, sizeof(float));
             envDataAt += sizeof(float);
         }
-        NodeList::getInstance()->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
+        DependencyManager::get<NodeList>()->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
     }
 }
 
 void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         // pull any new audio data from nodes off of the network stack
@@ -606,7 +608,7 @@ void AudioMixer::sendStatsPacket() {
     somethingToSend = true;
     sizeOfStats += property.size() + value.size();
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     int clientNumber = 0;
     
     
@@ -639,7 +641,7 @@ void AudioMixer::run() {
 
     ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     // we do not want this event loop to be the handler for UDP datagrams, so disconnect
     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
@@ -702,7 +704,7 @@ void AudioMixer::run() {
 
     char clientMixBuffer[MAX_PACKET_SIZE];
     
-    int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
+    int usecToSleep = AudioConstants::NETWORK_FRAME_USECS;
     
     const int TRAILING_AVERAGE_FRAMES = 100;
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
@@ -721,7 +723,7 @@ void AudioMixer::run() {
         }
         
         _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-            + (usecToSleep * CURRENT_FRAME_RATIO / (float) BUFFER_SEND_INTERVAL_USECS);
+            + (usecToSleep * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
         
         float lastCutoffRatio = _performanceThrottlingRatio;
         bool hasRatioChanged = false;
@@ -800,8 +802,8 @@ void AudioMixer::run() {
                         mixDataAt  += sizeof(quint16);
                         
                         // pack mixed audio samples
-                        memcpy(mixDataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                        mixDataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+                        memcpy(mixDataAt, _mixSamples, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        mixDataAt += AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                     } else {
                         // pack header
                         int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
@@ -813,7 +815,7 @@ void AudioMixer::run() {
                         mixDataAt += sizeof(quint16);
 
                         // pack number of silent audio samples
-                        quint16 numSilentSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+                        quint16 numSilentSamples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
                         memcpy(mixDataAt, &numSilentSamples, sizeof(quint16));
                         mixDataAt += sizeof(quint16);
                     }
@@ -844,7 +846,7 @@ void AudioMixer::run() {
             break;
         }
 
-        usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000; // ns to us
+        usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000; // ns to us
 
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -892,7 +894,7 @@ void AudioMixer::perSecondActions() {
             _timeSpentPerHashMatchCallStats.getWindowSum() / WINDOW_LENGTH_USECS * 100.0,
             _timeSpentPerHashMatchCallStats.getCurrentIntervalSum() / USECS_PER_SECOND * 100.0);
 
-        NodeList::getInstance()->eachNode([](const SharedNodePointer& node) {
+        DependencyManager::get<NodeList>()->eachNode([](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 

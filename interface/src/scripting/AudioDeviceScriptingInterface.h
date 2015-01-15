@@ -20,7 +20,6 @@
 
 class AudioDeviceScriptingInterface : public QObject {
     Q_OBJECT
-    AudioDeviceScriptingInterface() { };
 public:
     static AudioDeviceScriptingInterface* getInstance();
 
@@ -44,6 +43,9 @@ public slots:
 
     bool getMuted();
     void toggleMute();
+    
+private:
+    AudioDeviceScriptingInterface();
 
 signals:
     void muteToggled();

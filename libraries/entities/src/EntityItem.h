@@ -22,10 +22,11 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
-#include <VoxelDetail.h>
+#include <ShapeInfo.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
+#include "EntityItemPropertiesDefaults.h" 
 #include "EntityTypes.h"
 
 class EntityTree;
@@ -35,10 +36,12 @@ class EntityTreeElementExtraEncodeData;
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
+
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem  {
+    friend class EntityTreeElement;
 
 public:
     enum EntityDirtyFlags {
@@ -50,16 +53,13 @@ public:
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
         DIRTY_UPDATEABLE = 0x0080,
-        // add new simulation-relevant flags above
-        // all other flags below
-        DIRTY_SCRIPT = 0x8000
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
     EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual ~EntityItem() { }
+    virtual ~EntityItem();
 
     // ID and EntityItemID related methods
     QUuid getID() const { return _id; }
@@ -151,7 +151,6 @@ public:
     glm::vec3 getCenter() const; /// calculates center of the entity in domain scale units (0.0 - 1.0)
     glm::vec3 getCenterInMeters() const { return getCenter() * (float) TREE_SCALE; }
 
-    static const glm::vec3 DEFAULT_DIMENSIONS;
     const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
     glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
     float getDistanceToBottomOfEntity() const; /// get the distance from the position of the entity to its "bottom" in y axis
@@ -163,58 +162,48 @@ public:
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
 
-    static const glm::quat DEFAULT_ROTATION;
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; recalculateCollisionShape(); }
 
-    static const float DEFAULT_GLOW_LEVEL;
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
 
-    static const float DEFAULT_LOCAL_RENDER_ALPHA;
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     void setLocalRenderAlpha(float localRenderAlpha) { _localRenderAlpha = localRenderAlpha; }
 
-    static const float DEFAULT_MASS;
-    float getMass() const { return _mass; }
-    void setMass(float value) { _mass = value; }
+    void setDensity(float density);
+    float computeMass() const;
+    void setMass(float mass);
 
-    static const glm::vec3 DEFAULT_VELOCITY;
-    static const glm::vec3 NO_VELOCITY;
-    static const float EPSILON_VELOCITY_LENGTH;
+    float getDensity() const { return _density; }
+
     const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
-    bool hasVelocity() const { return _velocity != NO_VELOCITY; }
+    bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
 
-    static const glm::vec3 DEFAULT_GRAVITY;
-    static const glm::vec3 REGULAR_GRAVITY;
-    static const glm::vec3 NO_GRAVITY;
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
     glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
     void setGravityInMeters(const glm::vec3& value) { _gravity = value / (float) TREE_SCALE; } /// gravity in meters
-    bool hasGravity() const { return _gravity != NO_GRAVITY; }
+    bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
     
     // TODO: this should eventually be updated to support resting on collisions with other surfaces
     bool isRestingOnSurface() const;
 
-    static const float DEFAULT_DAMPING;
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
 
     // lifetime related properties.
-    static const float IMMORTAL; /// special lifetime which means the entity lives for ever. default lifetime
-    static const float DEFAULT_LIFETIME;
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
     void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
 
     /// is this entity immortal, in that it has no lifetime set, and will exist until manually deleted
-    bool isImmortal() const { return _lifetime == IMMORTAL; }
+    bool isImmortal() const { return _lifetime == ENTITY_ITEM_IMMORTAL_LIFETIME; }
 
     /// is this entity mortal, in that it has a lifetime set, and will automatically be deleted when that lifetime expires
-    bool isMortal() const { return _lifetime != IMMORTAL; }
+    bool isMortal() const { return _lifetime != ENTITY_ITEM_IMMORTAL_LIFETIME; }
     
     /// age of this entity in seconds
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
@@ -227,46 +216,36 @@ public:
     AACube getMinimumAACube() const;
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
-    static const QString DEFAULT_SCRIPT;
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 
-    static const glm::vec3 DEFAULT_REGISTRATION_POINT;
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
     /// registration point as ratio of entity
     void setRegistrationPoint(const glm::vec3& value) 
             { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); recalculateCollisionShape(); }
 
-    static const glm::vec3 NO_ANGULAR_VELOCITY;
-    static const glm::vec3 DEFAULT_ANGULAR_VELOCITY;
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
-    bool hasAngularVelocity() const { return _angularVelocity != NO_ANGULAR_VELOCITY; }
+    bool hasAngularVelocity() const { return _angularVelocity != ENTITY_ITEM_ZERO_VEC3; }
 
-    static const float DEFAULT_ANGULAR_DAMPING;
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
 
-    static const bool DEFAULT_VISIBLE;
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
     bool isVisible() const { return _visible; }
     bool isInvisible() const { return !_visible; }
 
-    static const bool DEFAULT_IGNORE_FOR_COLLISIONS;
     bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
     void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
 
-    static const bool DEFAULT_COLLISIONS_WILL_MOVE;
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
 
-    static const bool DEFAULT_LOCKED;
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
     
-    static const QString DEFAULT_USER_DATA;
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
     
@@ -276,6 +255,7 @@ public:
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+    virtual void computeShapeInfo(ShapeInfo& info) const;
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
@@ -283,22 +263,28 @@ public:
     void updateDimensions(const glm::vec3& value);
     void updateDimensionsInMeters(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
+    void updateDensity(float value);
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
     void updateVelocityInMeters(const glm::vec3& value);
+    void updateDamping(float value);
     void updateGravity(const glm::vec3& value);
     void updateGravityInMeters(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
+    void updateAngularDamping(float value);
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
-    void updateScript(const QString& value);
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }
     
     bool isMoving() const;
 
+    void* getPhysicsInfo() const { return _physicsInfo; }
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
+    
+    EntityTreeElement* getElement() const { return _element; }
 protected:
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -310,9 +296,9 @@ protected:
     bool _newlyCreated;
     quint64 _lastSimulated; // last time this entity called simulate() 
     quint64 _lastUpdated; // last time this entity called update()
-    quint64 _lastEdited; // this is the last official local or remote edit time
-    quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
-    quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
+    quint64 _lastEdited; // last official local or remote edit time
+    quint64 _lastEditedFromRemote; // last time we received and edit from the server
+    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
     quint64 _created;
     quint64 _changedOnServer;
 
@@ -321,20 +307,35 @@ protected:
     glm::quat _rotation;
     float _glowLevel;
     float _localRenderAlpha;
-    float _mass;
+    float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
+    // NOTE: _volumeMultiplier is used to compute volume:
+    // volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z  =  m^3
+    // DANGER: due to the size of TREE_SCALE the _volumeMultiplier is always a large number, and therefore 
+    // will tend to introduce floating point error.  We must keep this in mind when using it.
+    float _volumeMultiplier = (float)TREE_SCALE * (float)TREE_SCALE * (float)TREE_SCALE;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
-    float _damping; // timescale
+    float _damping;
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
-    float _angularDamping; // timescale
+    float _angularDamping;
     bool _visible;
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
+
+    // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
+    //
+    // Hence the damping coefficient must range from 0 (no damping) to 1 (immediate stop).
+    // Each damping value relates to a corresponding exponential decay timescale as follows:
+    //
+    // timescale = -1 / ln(1 - damping)
+    //
+    // damping = 1 - exp(-1 / timescale)
+    //
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams
@@ -344,8 +345,14 @@ protected:
 
     AACubeShape _collisionShape;
 
+    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
+    // to a non-NULL value when the EntityItem has a representation in the physics engine.
+    void* _physicsInfo; // only set by EntitySimulation
+
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
+
+    EntityTreeElement* _element;    // back pointer to containing Element
 };
 
 

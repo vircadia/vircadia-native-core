@@ -40,7 +40,8 @@ private:
     
 private slots:
     void accept();
-    
+    void displayAddressOfflineMessage();
+    void displayAddressNotFoundMessage();
 };
 
 #endif // hifi_AddressBarDialog_h

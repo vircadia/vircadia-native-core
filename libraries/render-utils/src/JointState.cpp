@@ -176,7 +176,7 @@ void JointState::clearTransformTranslation() {
 void JointState::applyRotationDelta(const glm::quat& delta, bool constrain, float priority) {
     // NOTE: delta is in model-frame
     assert(_fbxJoint != NULL);
-    if (priority < _animationPriority || delta.null) {
+    if (priority < _animationPriority || delta == glm::quat()) {
         return;
     }
     _animationPriority = priority;

@@ -12,43 +12,108 @@
 #ifndef hifi_DependencyManager_h
 #define hifi_DependencyManager_h
 
+#include <QDebug>
+#include <QHash>
 #include <QSharedPointer>
+#include <QWeakPointer>
 
 #include <typeinfo>
 
-#define SINGLETON_DEPENDENCY(T)\
-public:\
-    typedef QSharedPointer<T> SharedPointer;\
-private:\
-    void customDeleter() {\
-        QObject* thisObject = dynamic_cast<QObject*>(this);\
-        if (thisObject) {\
-            thisObject->deleteLater();\
-        } else {\
-            delete this;\
-        }\
-    }\
+#define SINGLETON_DEPENDENCY \
     friend class DependencyManager;
 
-class QObject;
+class Dependency {
+protected:
+    virtual ~Dependency() {}
+    virtual void customDeleter() {
+        delete this;
+    }
 
+    friend class DependencyManager;
+};
+
+// usage:
+//     auto instance = DependencyManager::get<T>();
+//     auto instance = DependencyManager::set<T>(Args... args);
+//     DependencyManager::destroy<T>();
+//     DependencyManager::registerInheritance<Base, Derived>();
 class DependencyManager {
 public:
-    // Only accessible method.
-    // usage: T* instance = DependencyManager::get<T>();
     template<typename T>
     static QSharedPointer<T> get();
     
+    template<typename T, typename ...Args>
+    static QSharedPointer<T> set(Args&&... args);
+    
+    template<typename T>
+    static void destroy();
+    
+    template<typename Base, typename Derived>
+    static void registerInheritance();
+    
 private:
-    static DependencyManager& getInstance();
-    DependencyManager() {}
-    ~DependencyManager(); 
+    static DependencyManager _manager;
+    
+    template<typename T>
+    size_t getHashCode();
+    
+    QSharedPointer<Dependency>& safeGet(size_t hashCode);
+    
+    QHash<size_t, QSharedPointer<Dependency>> _instanceHash;
+    QHash<size_t, size_t> _inheritanceHash;
 };
 
 template <typename T>
 QSharedPointer<T> DependencyManager::get() {
-    static QSharedPointer<T> sharedPointer = QSharedPointer<T>(new T(), &T::customDeleter);
-    return sharedPointer;
+    static size_t hashCode = _manager.getHashCode<T>();
+    static QWeakPointer<T> instance;
+    
+    if (instance.isNull()) {
+        instance = qSharedPointerCast<T>(_manager.safeGet(hashCode));
+        
+        if (instance.isNull()) {
+            qWarning() << "DependencyManager::get(): No instance available for" << typeid(T).name();
+        }
+    }
+    
+    return instance.toStrongRef();
+}
+
+template <typename T, typename ...Args>
+QSharedPointer<T> DependencyManager::set(Args&&... args) {
+    static size_t hashCode = _manager.getHashCode<T>();
+    
+    QSharedPointer<T> instance(new T(args...), &T::customDeleter);
+    QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(instance);
+    _manager.safeGet(hashCode).swap(storedInstance);
+    
+    return instance;
+}
+
+template <typename T>
+void DependencyManager::destroy() {
+    static size_t hashCode = _manager.getHashCode<T>();
+    _manager.safeGet(hashCode).clear();
+}
+
+template<typename Base, typename Derived>
+void DependencyManager::registerInheritance() {
+    size_t baseHashCode = typeid(Base).hash_code();
+    size_t derivedHashCode = typeid(Derived).hash_code();
+    _manager._inheritanceHash.insert(baseHashCode, derivedHashCode);
+}
+
+template<typename T>
+size_t DependencyManager::getHashCode() {
+    size_t hashCode = typeid(T).hash_code();
+    auto derivedHashCode = _inheritanceHash.find(hashCode);
+    
+    while (derivedHashCode != _inheritanceHash.end()) {
+        hashCode = derivedHashCode.value();
+        derivedHashCode = _inheritanceHash.find(hashCode);
+    }
+    
+    return hashCode;
 }
 
 #endif // hifi_DependencyManager_h

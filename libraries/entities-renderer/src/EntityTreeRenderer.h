@@ -102,7 +102,6 @@ public slots:
     void deletingEntity(const EntityItemID& entityID);
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void entitySciptChanging(const EntityItemID& entityID);
-    void entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, const Collision& collision);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     // optional slots that can be wired to menu items
@@ -129,16 +128,18 @@ private:
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
     void checkEnterLeaveEntities();
+    void leaveAllEntities();
     glm::vec3 _lastAvatarPosition;
     QVector<EntityItemID> _currentEntitiesInside;
     
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
+    ScriptEngine* _sandboxScriptEngine;
 
     QScriptValue loadEntityScript(EntityItem* entity);
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);
     QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
-    QString loadScriptContents(const QString& scriptMaybeURLorText);
+    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     

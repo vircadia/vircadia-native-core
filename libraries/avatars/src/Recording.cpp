@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <AudioRingBuffer.h>
+#include <AudioConstants.h>
 #include <GLMHelpers.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -670,7 +670,7 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     // Fake context
     RecordingContext& context = recording->getContext();
     context.globalTimestamp = usecTimestampNow();
-    context.domain = NodeList::getInstance()->getDomainHandler().getHostname();
+    context.domain = DependencyManager::get<NodeList>()->getDomainHandler().getHostname();
     context.position = glm::vec3(144.5f, 3.3f, 181.3f);
     context.orientation = glm::angleAxis(glm::radians(-92.5f), glm::vec3(0, 1, 0));;
     context.scale = baseFrame._scale;
@@ -771,7 +771,7 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     // Cut down audio if necessary
     int SAMPLE_SIZE = 2; // 16 bits
     int MSEC_PER_SEC = 1000;
-    int audioLength = recording->getLength() * SAMPLE_SIZE * (SAMPLE_RATE / MSEC_PER_SEC);
+    int audioLength = recording->getLength() * SAMPLE_SIZE * (AudioConstants::SAMPLE_RATE / MSEC_PER_SEC);
     audioArray.chop(audioArray.size() - audioLength);
     
     recording->addAudioPacket(audioArray);

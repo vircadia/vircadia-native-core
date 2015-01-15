@@ -24,8 +24,6 @@
 #include <EntityTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
-#include <VoxelEditPacketSender.h>
-#include <VoxelTreeHeadlessViewer.h>
 
 #include "MixedAudioStream.h"
 
@@ -60,10 +58,7 @@ public slots:
 
 private:
     ScriptEngine _scriptEngine;
-    VoxelEditPacketSender _voxelEditSender;
     EntityEditPacketSender _entityEditSender;
-
-    VoxelTreeHeadlessViewer _voxelViewer;
     EntityTreeHeadlessViewer _entityViewer;
     
     MixedAudioStream _receivedAudioStream;
