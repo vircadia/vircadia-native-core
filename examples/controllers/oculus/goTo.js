@@ -20,7 +20,7 @@ Script.include("../../libraries/globals.js");
 Script.include("../../libraries/virtualKeyboard.js");
 
 var windowDimensions = Controller.getViewportDimensions();
-var cursor = new Cursor({visible: false});
+var cursor = new Cursor({visible: false});;
 var keyboard = new Keyboard({visible: false});
 var textFontSize = 9;
 var text = null;
@@ -66,7 +66,7 @@ keyboard.onKeyRelease = function(event) {
            print("going to hifi://" + locationURL);
            location = "hifi://" + locationURL;
            locationURL = "";
-		   keyboard.hide();
+           keyboard.hide();
            updateTextOverlay();
         }
     }
@@ -91,6 +91,7 @@ keyboard.onFullyLoaded = function() {
     });
     updateTextOverlay();
     // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
+    cursor.initialize();
     cursor.updateVisibility(keyboard.visible);
     cursor.onUpdate = function(position) {
         keyboard.setFocusPosition(position.x, position.y);
