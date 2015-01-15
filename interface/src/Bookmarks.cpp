@@ -24,10 +24,10 @@ void Bookmarks::insert(const QString& name, const QString& address) {
     _bookmarks.insert(name, address);
 
     if (contains(name)) {
-        qDebug() << "Added bookmark: " << name << ", " << address;
+        qDebug() << "Added bookmark:" << name << "," << address;
         persistToFile();
     } else {
-        qDebug() << "Couldn't add bookmark: " << name << ", " << address;
+        qWarning() << "Couldn't add bookmark: " << name << "," << address;
     }
 }
 
@@ -35,10 +35,10 @@ void Bookmarks::remove(const QString& name) {
     _bookmarks.remove(name);
 
     if (!contains(name)) {
-        qDebug() << "Removed bookmark: " << name;
+        qDebug() << "Deleted bookmark:" << name;
         persistToFile();
     } else {
-        qDebug() << "Couldn't remove bookmark: " << name;
+        qWarning() << "Couldn't delete bookmark:" << name;
     }
 }
 

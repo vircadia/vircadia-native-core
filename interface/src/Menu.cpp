@@ -1055,10 +1055,7 @@ void Menu::bookmarkLocation() {
     }
 
     QString bookmarkName = bookmarkLocationDialog.textValue().trimmed();
-    bookmarkName = bookmarkName.replace("\r\n", " ");
-    bookmarkName = bookmarkName.replace("\n", " ");
-    bookmarkName = bookmarkName.replace("\r", " ");
-    bookmarkName = bookmarkName.replace("\t", " ");
+    bookmarkName = bookmarkName.replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
     if (bookmarkName.length() == 0) {
         return;
     }
@@ -1101,8 +1098,8 @@ void Menu::bookmarkLocation() {
 
 void Menu::teleportToBookmark() {
     QAction *action = qobject_cast<QAction *>(sender());
-    QString url = action->data().toString();
-    DependencyManager::get<AddressManager>()->handleLookupString(url);
+    QString address = action->data().toString();
+    DependencyManager::get<AddressManager>()->handleLookupString(address);
 }
 
 void Menu::deleteBookmark() {
