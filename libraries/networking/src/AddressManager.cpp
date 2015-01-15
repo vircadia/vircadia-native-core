@@ -225,13 +225,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject) {
                 
                 // take the path that came back
                 const QString PLACE_PATH_KEY = "path";
-                QString returnedPath;
-                
-                if (locationMap.contains(PLACE_PATH_KEY) && !locationMap[PLACE_PATH_KEY].toString().isEmpty()) {
-                    returnedPath = locationMap[PLACE_PATH_KEY].toString();
-                } else if (rootMap.contains(PLACE_PATH_KEY) && !rootMap[PLACE_PATH_KEY].toString().isEmpty()) {
-                    returnedPath = rootMap[PLACE_PATH_KEY].toString();
-                }
+                QString returnedPath = locationMap[PLACE_PATH_KEY].toString();
                 
                 bool shouldFaceViewpoint = locationMap.contains(LOCATION_API_ONLINE_KEY);
                 
