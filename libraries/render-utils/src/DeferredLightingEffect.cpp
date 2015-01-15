@@ -169,7 +169,8 @@ void DeferredLightingEffect::render() {
     QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT);
-    
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
     
     glActiveTexture(GL_TEXTURE1);
@@ -371,6 +372,7 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     freeFBO->release();
+    glDisable(GL_FRAMEBUFFER_SRGB);
     
     glDisable(GL_CULL_FACE);
     

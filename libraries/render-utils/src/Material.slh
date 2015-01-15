@@ -23,6 +23,7 @@ vec3 getMaterialSpecular(Material m) { return m._specular.rgb; }
 float getMaterialShininess(Material m) { return m._specular.a; }
 
 
+
 <@if GLPROFILE == PC_GL@>
 uniform materialBuffer {
     Material mat;
