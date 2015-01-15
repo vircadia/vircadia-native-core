@@ -6,8 +6,8 @@ body {
     padding: 0;
 
     background-color: #efefef;
-    font-family: Sans-Serif;
-    font-size: 12px;
+    font-family: Arial;
+    font-size: 11.5px;
 
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -15,6 +15,12 @@ body {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+}
+
+body.properties {
+    background-color: rgb(76, 76, 76);
+    color: rgb(204, 204, 204);
+    font-size: 11px;
 }
 
 .selectable {
@@ -85,12 +91,10 @@ input[type=button] {
     border: 0;
     color: #fff;
     font-weight: bold;
-    margin: 0 2px;
-    margin-top: 5px;
-    font-size: .9em;
 }
 
 textarea, input {
+    margin: 0;
     padding: 2px;
     border: 1px solid #999;
     background-color: #eee;
@@ -105,10 +109,15 @@ input.url {
     width: 100%;
 }
 
+input.coord {
+    width: 7em;
+    display: block;
+}
+
 table#entity-table {
     border-collapse: collapse;
     font-family: Sans-Serif;
-    font-size: 12px;
+    /* font-size: 12px; */
     width: 100%;
 }
 
@@ -145,11 +154,42 @@ th#entity-url {
 
 div.input-area {
     display: inline-block;
+    font-size: 10px;
 }
 
 input {
 }
 
+#type {
+    font-size: 14px;
+}
+
+#type label {
+    color: rgb(150, 150, 150);
+}
+
+#properties-list input, #properties-list textarea {
+    background-color: rgb(102, 102, 102);
+    color: rgb(204, 204, 204);
+    border: none;
+    font-size: 10px;
+}
+
+#properties-list input[type=button] {
+    cursor: pointer;
+    background-color: rgb(51, 102, 102);
+    border-color: #608e96;
+    border-radius: 5px;
+    padding: 5px 10px;
+    border: 0;
+    color: rgb(204, 204, 204);
+}
+
+#properties-list .property {
+    padding: 8px 8px;
+    border-top: 1px solid rgb(63, 63, 63);
+    min-height: 1em;
+}
 
 
 table#properties-list {
@@ -158,8 +198,11 @@ table#properties-list {
     width: 100%;
     background-color: #efefef;
     font-family: Arial;
-    font-size: 12px;
     table-layout: fixed;
+}
+
+#properties-list > div {
+    margin: 4px 0;
 }
 
 #properties-list {
@@ -174,21 +217,10 @@ table#properties-list {
 
     vertical-align: middle;
     height: 1.2em;
-    background-color: #ccc;
-    border-bottom: 1px solid #e5e5e5;
-}
-
-#properties-list .value {
-    min-height: 1em;
 }
 
 #properties-list .value > div{
-    padding: 4px;
-}
-
-#properties-list > div > div{
-    padding: 3px;
-    border-bottom: 1px solid black;
+    padding: 4px 0;
 }
 
 col#col-label {
