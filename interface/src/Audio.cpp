@@ -25,6 +25,7 @@
 #include <mmdeviceapi.h>
 #include <devicetopology.h>
 #include <Functiondiscoverykeys_devpkey.h>
+#include <VersionHelpers.h>
 #endif
 
 #include <AudioConstants.h>
@@ -179,12 +180,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 #ifdef WIN32
     QString deviceName;
     //Check for Windows Vista or higher, IMMDeviceEnumerator doesn't work below that.
-    OSVERSIONINFO osvi;
-    ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    GetVersionEx(&osvi);
-    const DWORD VISTA_MAJOR_VERSION = 6;
-    if (osvi.dwMajorVersion < VISTA_MAJOR_VERSION) {// lower then vista
+    if (!IsWindowsVistaOrGreater()) { // lower then vista
         if (mode == QAudio::AudioInput) {
             WAVEINCAPS wic;
             // first use WAVE_MAPPER to get the default devices manufacturer ID
@@ -223,9 +219,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             pPropertyStore->Release();
             pPropertyStore = NULL;
             deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
-            const DWORD WINDOWS7_MAJOR_VERSION = 6;
-            const DWORD WINDOWS7_MINOR_VERSION = 1;
-            if (osvi.dwMajorVersion <= WINDOWS7_MAJOR_VERSION && osvi.dwMinorVersion <= WINDOWS7_MINOR_VERSION) {
+            if (!IsWindows8OrGreater()) {
                 // Windows 7 provides only the 31 first characters of the device name.
                 const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
                 deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);

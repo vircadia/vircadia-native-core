@@ -79,21 +79,59 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 }
 #endif // USE_BULLET_PHYSICS
 
-void EntityMotionState::applyVelocities() const {
+void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
 #ifdef USE_BULLET_PHYSICS
-    if (_body) {
-        setVelocity(_entity->getVelocityInMeters());
-        // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
-        setAngularVelocity(glm::radians(_entity->getAngularVelocity()));
-        _body->setActivationState(ACTIVE_TAG);
-    }
-#endif // USE_BULLET_PHYSICS
-}
+    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+        if (flags & EntityItem::DIRTY_POSITION) {
+            _sentPosition = _entity->getPositionInMeters() - ObjectMotionState::getWorldOffset();
+            btTransform worldTrans;
+            worldTrans.setOrigin(glmToBullet(_sentPosition));
 
-void EntityMotionState::applyGravity() const {
+            _sentRotation = _entity->getRotation();
+            worldTrans.setRotation(glmToBullet(_sentRotation));
+
+            _body->setWorldTransform(worldTrans);
+        }
+        if (flags & EntityItem::DIRTY_VELOCITY) {
+            updateObjectVelocities();
+        }
+        _sentFrame = frame;
+    }
+
+    // TODO: entity support for friction and restitution
+    //_restitution = _entity->getRestitution();
+    _body->setRestitution(_restitution);
+    //_friction = _entity->getFriction();
+    _body->setFriction(_friction);
+
+    _linearDamping = _entity->getDamping();
+    _angularDamping = _entity->getAngularDamping();
+    _body->setDamping(_linearDamping, _angularDamping);
+
+    if (flags & EntityItem::DIRTY_MASS) {
+        float mass = getMass();
+        btVector3 inertia(0.0f, 0.0f, 0.0f);
+        _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+        _body->setMassProps(mass, inertia);
+        _body->updateInertiaTensor();
+    }
+    _body->activate();
+#endif // USE_BULLET_PHYSICS
+};
+
+void EntityMotionState::updateObjectVelocities() {
 #ifdef USE_BULLET_PHYSICS
     if (_body) {
-        setGravity(_entity->getGravityInMeters());
+        _sentVelocity = _entity->getVelocityInMeters();
+        setVelocity(_sentVelocity);
+
+        // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
+        _sentAngularVelocity = glm::radians(_entity->getAngularVelocity());
+        setAngularVelocity(_sentAngularVelocity);
+
+        _sentAcceleration = _entity->getGravityInMeters();
+        setGravity(_sentAcceleration);
+
         _body->setActivationState(ACTIVE_TAG);
     }
 #endif // USE_BULLET_PHYSICS
@@ -123,7 +161,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
 
                 // if the speeds are very small we zero them out
-                const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 4.0e-6f; // 2mm/sec
+                const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
                 bool zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
                 if (zeroSpeed) {
                     _sentVelocity = glm::vec3(0.0f);
