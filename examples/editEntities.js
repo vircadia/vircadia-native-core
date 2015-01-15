@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 Script.include("libraries/stringHelpers.js");
 Script.include("libraries/dataviewHelpers.js");
 Script.include("libraries/httpMultiPart.js");

@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 var clapAnimation = HIFI_PUBLIC_BUCKET + "animations/ClapAnimations/ClapHands_Standing.fbx";
 var ANIMATION_FRAMES_PER_CLAP = 10.0;
