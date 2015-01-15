@@ -884,13 +884,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
-            case Qt::Key_N:
-                if (isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::NameLocation);
-                }
-                
-                break;
-
             case Qt::Key_Up:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     if (!isShifted) {
