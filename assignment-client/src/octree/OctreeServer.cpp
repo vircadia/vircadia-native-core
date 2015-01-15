@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
@@ -358,7 +359,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += "Uptime: " + getUptime();
         statsString += "\r\n\r\n";
 
-        // display voxel file load time
+        // display octree file load time
         if (isInitialLoadComplete()) {
             if (isPersistEnabled()) {
                 statsString += QString("%1 File Persist Enabled...\r\n").arg(getMyServerName());
@@ -373,7 +374,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             statsString += "\r\n";
 
         } else {
-            statsString += "Voxels not yet loaded...\r\n";
+            statsString += "Octree file not yet loaded...\r\n";
         }
 
         statsString += "\r\n\r\n";
@@ -712,7 +713,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
 
         statsString += QString().sprintf("Element Node Memory Usage:       %8.2f %s\r\n",
-                                         OctreeElement::getVoxelMemoryUsage() / memoryScale, memoryScaleLabel);
+                                         OctreeElement::getOctreeMemoryUsage() / memoryScale, memoryScaleLabel);
         statsString += QString().sprintf("Octcode Memory Usage:            %8.2f %s\r\n",
                                          OctreeElement::getOctcodeMemoryUsage() / memoryScale, memoryScaleLabel);
         statsString += QString().sprintf("External Children Memory Usage:  %8.2f %s\r\n",
@@ -978,6 +979,7 @@ void OctreeServer::readConfiguration() {
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
+    _settings = settingsSectionObject; // keep this for later
     
     if (!readOptionString(QString("statusHost"), settingsSectionObject, _statusHost) || _statusHost.isEmpty()) {
         _statusHost = getLocalAddress().toString();
@@ -1042,20 +1044,8 @@ void OctreeServer::readConfiguration() {
         _wantBackup = !noBackup;
         qDebug() << "wantBackup=" << _wantBackup;
 
-        if (_wantBackup) {
-            _backupExtensionFormat = OctreePersistThread::DEFAULT_BACKUP_EXTENSION_FORMAT;
-            readOptionString(QString("backupExtensionFormat"), settingsSectionObject, _backupExtensionFormat);
-            qDebug() << "backupExtensionFormat=" << _backupExtensionFormat;
-
-            _backupInterval = OctreePersistThread::DEFAULT_BACKUP_INTERVAL;
-            readOptionInt(QString("backupInterval"), settingsSectionObject, _backupInterval);
-            qDebug() << "backupInterval=" << _backupInterval;
-
-            _maxBackupVersions = OctreePersistThread::DEFAULT_MAX_BACKUP_VERSIONS;
-            readOptionInt(QString("maxBackupVersions"), settingsSectionObject, _maxBackupVersions);
-            qDebug() << "maxBackupVersions=" << _maxBackupVersions;
-        }
-
+        //qDebug() << "settingsSectionObject:" << settingsSectionObject;
+        
     } else {
         qDebug("persistFilename= DISABLED");
     }
@@ -1140,8 +1130,7 @@ void OctreeServer::run() {
 
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
-                                    _wantBackup, _backupInterval, _backupExtensionFormat, 
-                                    _maxBackupVersions, _debugTimestampNow);
+                                    _wantBackup, _settings, _debugTimestampNow);
         if (_persistThread) {
             _persistThread->initialize(true);
         }

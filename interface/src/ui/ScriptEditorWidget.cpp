@@ -13,6 +13,7 @@
 #include "ScriptEditorWidget.h"
 
 #include <QGridLayout>
+#include <QFileDialog>
 #include <QFrame>
 #include <QLayoutItem>
 #include <QMainWindow>
@@ -157,6 +158,8 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
         loop.exec();
         _scriptEditorWidgetUI->scriptEdit->setPlainText(reply->readAll());
+        delete reply;
+        
         if (!saveAs()) {
             static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->terminateCurrentTab();
         }

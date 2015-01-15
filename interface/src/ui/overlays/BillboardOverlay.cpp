@@ -96,21 +96,16 @@ void BillboardOverlay::render(RenderArgs* args) {
             xColor color = getColor();
             float alpha = getAlpha();
             glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-            glBegin(GL_QUADS); {
-                glTexCoord2f((float)_fromImage.x() / (float)_size.width(),
-                             (float)_fromImage.y() / (float)_size.height());
+            
+            glm::vec2 topLeft(-x, -y);
+            glm::vec2 bottomRight(x, y);
+            glm::vec2 texCoordTopLeft((float)_fromImage.x() / (float)_size.width(), 
+                                      (float)_fromImage.y() / (float)_size.height());
+            glm::vec2 texCoordBottomRight(((float)_fromImage.x() + (float)_fromImage.width()) / (float)_size.width(),
+                                          ((float)_fromImage.y() + (float)_fromImage.height()) / _size.height());
 
-                glVertex2f(-x, -y);
-                glTexCoord2f(((float)_fromImage.x() + (float)_fromImage.width()) / (float)_size.width(),
-                             (float)_fromImage.y() / (float)_size.height());
-                glVertex2f(x, -y);
-                glTexCoord2f(((float)_fromImage.x() + (float)_fromImage.width()) / (float)_size.width(),
-                             ((float)_fromImage.y() + (float)_fromImage.height()) / _size.height());
-                glVertex2f(x, y);
-                glTexCoord2f((float)_fromImage.x() / (float)_size.width(),
-                             ((float)_fromImage.y() + (float)_fromImage.height()) / (float)_size.height());
-                glVertex2f(-x, y);
-            } glEnd();
+            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+            
         }
     } glPopMatrix();
     
@@ -210,6 +205,7 @@ void BillboardOverlay::replyFinished() {
     QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     _billboard = reply->readAll();
     _isLoaded = true;
+    reply->deleteLater();
 }
 
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

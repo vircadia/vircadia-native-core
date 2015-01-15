@@ -39,6 +39,8 @@ TextureCache::TextureCache() :
     _frameBufferSize(100, 100),
     _associatedWidget(NULL)
 {
+    const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
+    setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 TextureCache::~TextureCache() {
@@ -203,7 +205,7 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type
         texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);
     } else {
-        _unusedResources.remove(texture->getLRUKey());
+        removeUnusedResource(texture);
     }
     return texture;
 }
@@ -299,15 +301,16 @@ QOpenGLFramebufferObject* TextureCache::getShadowFramebufferObject() {
         
         glGenTextures(1, &_shadowDepthTextureID);
         glBindTexture(GL_TEXTURE_2D, _shadowDepthTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
-            0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
+            0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         const float DISTANT_BORDER[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, DISTANT_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
         glBindTexture(GL_TEXTURE_2D, 0);
         
         _shadowFramebufferObject->bind();

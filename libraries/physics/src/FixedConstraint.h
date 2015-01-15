@@ -1,6 +1,6 @@
 //
 //  FixedConstraint.h
-//  libraries/shared/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.07.24
 //  Copyright 2014 High Fidelity, Inc.

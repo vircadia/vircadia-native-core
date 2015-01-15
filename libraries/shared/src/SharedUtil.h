@@ -19,7 +19,7 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <QtCore/QDebug>
+#include <QDebug>
 
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;

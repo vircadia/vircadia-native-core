@@ -221,13 +221,11 @@ function mousePressEvent(event) {
         
         // Compute trajectories related values
         var pickRay = Camera.computePickRay(mouseLastX, mouseLastY);
-        var voxelIntersection = Voxels.findRayIntersection(pickRay);
         var modelIntersection = Entities.findRayIntersection(pickRay);
         
         position = Camera.getPosition();
         
         var avatarTarget = MyAvatar.getTargetAvatarPosition();
-        var voxelTarget = voxelIntersection.intersection;
         
         
         var distance = -1;
@@ -244,13 +242,6 @@ function mousePressEvent(event) {
             distance = Vec3.length(Vec3.subtract(avatarTarget, position));
             center  = avatarTarget;
             string = "Inspecting avatar";
-        }
-        
-        if ((distance == -1 || Vec3.length(Vec3.subtract(voxelTarget, position)) < distance) &&
-            (voxelTarget.x != 0 || voxelTarget.y != 0 || voxelTarget.z != 0)) {
-            distance = Vec3.length(Vec3.subtract(voxelTarget, position));
-            center  = voxelTarget;
-            string = "Inspecting voxel";
         }
         
         if (distance == -1) {

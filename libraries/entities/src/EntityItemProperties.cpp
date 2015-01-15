@@ -19,32 +19,34 @@
 
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
+#include "EntityItemPropertiesDefaults.h"
 #include "ModelEntityItem.h"
 #include "TextEntityItem.h"
 
+
 EntityItemProperties::EntityItemProperties() :
 
-    CONSTRUCT_PROPERTY(visible, EntityItem::DEFAULT_VISIBLE),
+    CONSTRUCT_PROPERTY(visible, ENTITY_ITEM_DEFAULT_VISIBLE),
     CONSTRUCT_PROPERTY(position, 0),
-    CONSTRUCT_PROPERTY(dimensions, EntityItem::DEFAULT_DIMENSIONS),
-    CONSTRUCT_PROPERTY(rotation, EntityItem::DEFAULT_ROTATION),
-    CONSTRUCT_PROPERTY(mass, EntityItem::DEFAULT_MASS),
-    CONSTRUCT_PROPERTY(velocity, EntityItem::DEFAULT_VELOCITY),
-    CONSTRUCT_PROPERTY(gravity, EntityItem::DEFAULT_GRAVITY),
-    CONSTRUCT_PROPERTY(damping, EntityItem::DEFAULT_DAMPING),
-    CONSTRUCT_PROPERTY(lifetime, EntityItem::DEFAULT_LIFETIME),
-    CONSTRUCT_PROPERTY(script, EntityItem::DEFAULT_SCRIPT),
+    CONSTRUCT_PROPERTY(dimensions, ENTITY_ITEM_DEFAULT_DIMENSIONS),
+    CONSTRUCT_PROPERTY(rotation, ENTITY_ITEM_DEFAULT_ROTATION),
+    CONSTRUCT_PROPERTY(mass, ENTITY_ITEM_DEFAULT_MASS),
+    CONSTRUCT_PROPERTY(velocity, ENTITY_ITEM_DEFAULT_VELOCITY),
+    CONSTRUCT_PROPERTY(gravity, ENTITY_ITEM_DEFAULT_GRAVITY),
+    CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
+    CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
+    CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
     CONSTRUCT_PROPERTY(color, ),
     CONSTRUCT_PROPERTY(modelURL, ""),
     CONSTRUCT_PROPERTY(animationURL, ""),
     CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
     CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
     CONSTRUCT_PROPERTY(animationIsPlaying, ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
-    CONSTRUCT_PROPERTY(registrationPoint, EntityItem::DEFAULT_REGISTRATION_POINT),
-    CONSTRUCT_PROPERTY(angularVelocity, EntityItem::DEFAULT_ANGULAR_VELOCITY),
-    CONSTRUCT_PROPERTY(angularDamping, EntityItem::DEFAULT_ANGULAR_DAMPING),
-    CONSTRUCT_PROPERTY(ignoreForCollisions, EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS),
-    CONSTRUCT_PROPERTY(collisionsWillMove, EntityItem::DEFAULT_COLLISIONS_WILL_MOVE),
+    CONSTRUCT_PROPERTY(registrationPoint, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
+    CONSTRUCT_PROPERTY(angularVelocity, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
+    CONSTRUCT_PROPERTY(angularDamping, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
+    CONSTRUCT_PROPERTY(ignoreForCollisions, ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
+    CONSTRUCT_PROPERTY(collisionsWillMove, ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
     CONSTRUCT_PROPERTY(isSpotlight, false),
     CONSTRUCT_PROPERTY(diffuseColor, ),
     CONSTRUCT_PROPERTY(ambientColor, ),
@@ -54,10 +56,10 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(quadraticAttenuation, 0.0f),
     CONSTRUCT_PROPERTY(exponent, 0.0f),
     CONSTRUCT_PROPERTY(cutoff, PI),
-    CONSTRUCT_PROPERTY(locked, false),
+    CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
     CONSTRUCT_PROPERTY(textures, ""),
     CONSTRUCT_PROPERTY(animationSettings, ""),
-    CONSTRUCT_PROPERTY(userData, EntityItem::DEFAULT_USER_DATA),
+    CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
     CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
     CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
     CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
@@ -858,7 +860,7 @@ AABox EntityItemProperties::getAABoxInMeters() const {
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
     
-    glm::vec3 unrotatedMinRelativeToEntity = glm::vec3(0.0f, 0.0f, 0.0f) - (_dimensions * _registrationPoint);
+    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
     glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());

@@ -66,7 +66,7 @@ QScriptValue XMLHttpRequestClass::getStatus() const {
                 return QScriptValue(200);
             case QNetworkReply::ContentNotFoundError:
                 return QScriptValue(404);
-            case QNetworkReply::ContentAccessDenied:
+            case QNetworkReply::ContentConflictError:
                 return QScriptValue(409);
             case QNetworkReply::TimeoutError:
                 return QScriptValue(408);
@@ -89,7 +89,7 @@ QString XMLHttpRequestClass::getStatusText() const {
                 return "OK";
             case QNetworkReply::ContentNotFoundError:
                 return "Not Found";
-            case QNetworkReply::ContentAccessDenied:
+            case QNetworkReply::ContentConflictError:
                 return "Conflict";
             case QNetworkReply::TimeoutError:
                 return "Timeout";
@@ -196,8 +196,7 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
                 } else if (!_file->open(QIODevice::ReadOnly)) {
                     qDebug() << "Can't open file " << _url.fileName();
                     abortRequest();
-                    //_errorCode = QNetworkReply::ContentConflictError;  // TODO: Use this status when update to Qt 5.3
-                    _errorCode = QNetworkReply::ContentAccessDenied;
+                    _errorCode = QNetworkReply::ContentConflictError;
                     setReadyState(DONE);
                     emit requestComplete();
                 } else {
@@ -332,7 +331,7 @@ void XMLHttpRequestClass::abortRequest() {
     if (_reply) {
         disconnectFromReply(_reply);
         _reply->abort();
-        delete _reply;
+        _reply->deleteLater();
         _reply = NULL;
     }
 

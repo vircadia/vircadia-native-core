@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/overlayUtils.js");
+
 var MOUSE_SENSITIVITY = 0.9;
 var SCROLL_SENSITIVITY = 0.05;
 var PAN_ZOOM_SCALE_RATIO = 0.4;
@@ -40,6 +42,17 @@ var easeOutCubic = function(t) {
 };
 
 EASE_TIME = 0.5;
+
+function mergeObjects(obj1, obj2) {
+    var newObj = {};
+    for (key in obj1) {
+        newObj[key] = obj1[key];
+    }
+    for (key in obj2) {
+        newObj[key] = obj2[key];
+    }
+    return newObj;
+}
 
 CameraManager = function() {
     var that = {};
@@ -93,7 +106,7 @@ CameraManager = function() {
 
         that.updateCamera();
 
-        cameraTool.setVisible(false);
+        cameraTool.setVisible(true);
     }
 
     that.disable = function(ignoreCamera) {
@@ -138,6 +151,11 @@ CameraManager = function() {
         }
 
         that.updateCamera();
+    }
+
+    that.setTargetPitchYaw = function(pitch, yaw) {
+        that.targetPitch = pitch;
+        that.targetYaw = yaw;
     }
 
     that.moveFocalPoint = function(dPos) {
@@ -228,6 +246,10 @@ CameraManager = function() {
     }
 
     that.mousePressEvent = function(event) {
+        if (cameraTool.mousePressEvent(event)) {
+            return true;
+        }
+
         if (!that.enabled) return;
 
         if (event.isRightButton || (event.isLeftButton && event.isControl && !event.isShifted)) {
@@ -247,7 +269,7 @@ CameraManager = function() {
             return true;
         }
 
-        return cameraTool.mousePressEvent(event);
+        return false;
     }
 
     that.mouseReleaseEvent = function(event) {
@@ -271,7 +293,10 @@ CameraManager = function() {
     }
 
     that.updateCamera = function() {
-        if (!that.enabled || Camera.mode != "independent") return;
+        if (!that.enabled || Camera.mode != "independent") {
+            cameraTool.update();
+            return;
+        }
 
         var yRot = Quat.angleAxis(that.yaw, { x: 0, y: 1, z: 0 });
         var xRot = Quat.angleAxis(that.pitch, { x: 1, y: 0, z: 0 });
@@ -290,6 +315,8 @@ CameraManager = function() {
         }
 
         Camera.setOrientation(q);
+
+        cameraTool.update();
     }
 
     function normalizeDegrees(degrees) {
@@ -301,6 +328,7 @@ CameraManager = function() {
     // Ease the position and orbit of the camera
     that.update = function(dt) {
         if (Camera.mode != "independent") {
+            that.updateCamera();
             return;
         }
 
@@ -363,314 +391,176 @@ CameraManager = function() {
     return that;
 }
 
-var ZoomTool = function(opts) {
-    var that = {};
-
-    var position = opts.position || { x: 0, y: 0 };
-    var height = opts.height || 200;
-    var color = opts.color || { red: 255, green: 0, blue: 0 };
-    var arrowButtonSize = opts.buttonSize || 20;
-    var arrowButtonBackground = opts.arrowBackground || { red: 255, green: 255, blue: 255 };
-    var zoomBackground = { red: 128, green: 0, blue: 0 };
-    var zoomHeight = height - (arrowButtonSize * 2);
-    var zoomBarY = position.y + arrowButtonSize,
-
-    var onIncreasePressed = opts.onIncreasePressed;
-    var onDecreasePressed = opts.onDecreasePressed;
-    var onPercentageSet = opts.onPercentageSet;
-
-    var increaseButton = Overlays.addOverlay("text", {
-        x: position.x,
-        y: position.y,
-        width: arrowButtonSize,
-        height: arrowButtonSize,
-        color: color,
-        backgroundColor: arrowButtonBackground,
-        topMargin: 4,
-        leftMargin: 4,
-        text: "+",
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
-        visible: true,
-    });
-    var decreaseButton = Overlays.addOverlay("text", {
-        x: position.x,
-        y: position.y + arrowButtonSize + zoomHeight,
-        width: arrowButtonSize,
-        height: arrowButtonSize,
-        color: color,
-        backgroundColor: arrowButtonBackground,
-        topMargin: 4,
-        leftMargin: 4,
-        text: "-",
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
-        visible: true,
-    });
-    var zoomBar = Overlays.addOverlay("text", {
-        x: position.x + 5,
-        y: zoomBarY,
-        width: 10,
-        height: zoomHeight,
-        color: { red: 0, green: 255, blue: 0 },
-        backgroundColor: zoomBackground,
-        topMargin: 4,
-        leftMargin: 4,
-        text: "",
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
-        visible: true,
-    });
-    var zoomHandle = Overlays.addOverlay("text", {
-        x: position.x,
-        y: position.y + arrowButtonSize,
-        width: arrowButtonSize,
-        height: 10,
-        backgroundColor: { red: 0, green: 255, blue: 0 },
-        topMargin: 4,
-        leftMargin: 4,
-        text: "",
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
-        visible: true,
-    });
-
-    var allOverlays = [
-        increaseButton,
-        decreaseButton,
-        zoomBar,
-        zoomHandle,
-    ];
-
-    that.destroy = function() {
-        for (var i = 0; i < allOverlays.length; i++) {
-            Overlays.deleteOverlay(allOverlays[i]);
-        }
-    };
-
-    that.setVisible = function(visible) {
-        for (var i = 0; i < allOverlays.length; i++) {
-            Overlays.editOverlay(allOverlays[i], { visible: visible });
-        }
-    }
-
-    that.setZoomPercentage = function(pct) {
-        var yOffset = (zoomHeight - 10) * pct;
-        Overlays.editOverlay(zoomHandle, {
-            y: position.y + arrowButtonSize + yOffset,
-        });
-    }
-
-    that.mouseReleaseEvent = function(event) {
-        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-        var clicked = false;
-        if (clickedOverlay == increaseButton) {
-            if (onIncreasePressed) onIncreasePressed();
-            clicked = true;
-        } else if (clickedOverlay == decreaseButton) {
-            if (onDecreasePressed) onDecreasePressed();
-            clicked = true;
-        } else if (clickedOverlay == zoomBar) {
-            if (onPercentageSet) onPercentageSet((event.y - zoomBarY) / zoomHeight);
-            clicked = true;
-        }
-        return clicked;
-    }
-
-    return that;
-};
-
-var ArrowTool = function(opts) {
-    var that = {};
-
-    var position = opts.position || { x: 0, y: 0 };
-    var arrowButtonSize = opts.buttonSize || 20;
-    var color = opts.color || { red: 255, green: 0, blue: 0 };
-    var arrowButtonBackground = opts.arrowBackground || { red: 255, green: 255, blue: 255 };
-    var centerButtonBackground = opts.centerBackground || { red: 255, green: 255, blue: 255 };
-    var onUpPressed = opts.onUpPressed;
-    var onDownPressed = opts.onDownPressed;
-    var onLeftPressed = opts.onLeftPressed;
-    var onRightPressed = opts.onRightPressed;
-    var onCenterPressed = opts.onCenterPressed;
-
-    var upButton = Overlays.addOverlay("text", {
-        x: position.x + arrowButtonSize,
-        y: position.y,
-        width: arrowButtonSize,
-        height: arrowButtonSize,
-        color: color,
-        backgroundColor: arrowButtonBackground,
-        topMargin: 4,
-        leftMargin: 4,
-        text: "^",
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
-        visible: true,
-    });
-    var leftButton = Overlays.addOverlay("text", {
-        x: position.x,
-        y: position.y + arrowButtonSize,
-        width: arrowButtonSize,
-        height: arrowButtonSize,
-        color: color,
-        backgroundColor: arrowButtonBackground,
-        topMargin: 4,
-        leftMargin: 4,
-        text: "<",
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
-        visible: true,
-    });
-    var rightButton = Overlays.addOverlay("text", {
-        x: position.x + (arrowButtonSize * 2),
-        y: position.y + arrowButtonSize,
-        width: arrowButtonSize,
-        height: arrowButtonSize,
-        color: color,
-        backgroundColor: arrowButtonBackground,
-        topMargin: 4,
-        leftMargin: 4,
-        text: ">",
-        alpha: 1.0,
-        visible: true,
-    });
-    var downButton = Overlays.addOverlay("text", {
-        x: position.x + arrowButtonSize,
-        y: position.y + (arrowButtonSize * 2),
-        width: arrowButtonSize,
-        height: arrowButtonSize,
-        color: color,
-        backgroundColor: arrowButtonBackground,
-        topMargin: 4,
-        leftMargin: 4,
-        text: "v",
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
-        visible: true,
-    });
-    var centerButton = Overlays.addOverlay("text", {
-        x: position.x + arrowButtonSize,
-        y: position.y + arrowButtonSize,
-        width: arrowButtonSize,
-        height: arrowButtonSize,
-        color: color,
-        backgroundColor: centerButtonBackground,
-        topMargin: 4,
-        leftMargin: 4,
-        text: "",
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
-        visible: true,
-    });
-
-    var allOverlays = [
-        upButton,
-        downButton,
-        leftButton,
-        rightButton,
-        centerButton,
-    ];
-
-    that.destroy = function() {
-        for (var i = 0; i < allOverlays.length; i++) {
-            Overlays.deleteOverlay(allOverlays[i]);
-        }
-    };
-
-    that.setVisible = function(visible) {
-        for (var i = 0; i < allOverlays.length; i++) {
-            Overlays.editOverlay(allOverlays[i], { visible: visible });
-        }
-    }
-
-    that.mouseReleaseEvent = function(event) {
-        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-        var clicked = false;
-        if (clickedOverlay == leftButton) {
-            if (onLeftPressed) onLeftPressed();
-            clicked = true;
-        } else if (clickedOverlay == rightButton) {
-            if (onRightPressed) onRightPressed();
-            clicked = true;
-        } else if (clickedOverlay == upButton) {
-            if (onUpPressed) onUpPressed();
-            clicked = true;
-        } else if (clickedOverlay == downButton) {
-            if (onDownPressed) onDownPressed();
-            clicked = true;
-        } else if (clickedOverlay == centerButton) {
-            if (onCenterPressed) onCenterPressed();
-            clicked = true;
-        }
-        return clicked;
-    }
-
-    return that;
-}
-
-
 CameraTool = function(cameraManager) {
     var that = {};
 
-    var toolsPosition = { x: 20, y: 280 };
-    var orbitToolPosition = toolsPosition;
-    var panToolPosition = { x: toolsPosition.x + 80, y: toolsPosition.y };
-    var zoomToolPosition = { x: toolsPosition.x + 20, y: toolsPosition.y + 80 };
+    var RED = { red: 191, green: 78, blue: 38 };
+    var GREEN = { red: 26, green: 193, blue: 105 };
+    var BLUE = { red: 0, green: 131, blue: 204 };
 
-    var orbitIncrement = 15;
-    orbitTool = ArrowTool({
-        position: orbitToolPosition,
-        arrowBackground: { red: 192, green: 192, blue: 192 },
-        centerBackground: { red: 128, green: 128, blue: 255 },
-        color: { red: 0, green: 0, blue: 0 },
-        onUpPressed: function() { cameraManager.addPitch(orbitIncrement); },
-        onDownPressed: function() { cameraManager.addPitch(-orbitIncrement); },
-        onLeftPressed: function() { cameraManager.addYaw(-orbitIncrement); },
-        onRightPressed: function() { cameraManager.addYaw(orbitIncrement); },
-        onCenterPressed: function() { cameraManager.focus(); },
+    var BORDER_WIDTH = 1;
+
+    var ORIENTATION_OVERLAY_SIZE = 26;
+    var ORIENTATION_OVERLAY_HALF_SIZE = ORIENTATION_OVERLAY_SIZE / 2;
+    var ORIENTATION_OVERLAY_CUBE_SIZE = 10.5,
+
+    var ORIENTATION_OVERLAY_OFFSET = {
+        x: 30,
+        y: 30,
+    }
+
+    var UI_WIDTH = 70;
+    var UI_HEIGHT = 70;
+    var UI_PADDING = 10;
+
+    var lastKnownWidth = Window.innerWidth;
+
+    var uiPosition = {
+        x: lastKnownWidth - UI_WIDTH - UI_PADDING,
+        y: UI_PADDING,
+    };
+
+    var backgroundBorder = Overlays.addOverlay("text", {
+        x: uiPosition.x - BORDER_WIDTH,
+        y: uiPosition.y - BORDER_WIDTH,
+        width: UI_WIDTH + BORDER_WIDTH * 2,
+        height: UI_HEIGHT + BORDER_WIDTH * 2,
+        alpha: 0,
+        text: "",
+        backgroundColor: { red: 101, green: 101, blue: 101 },
+        backgroundAlpha: 1.0,
+        visible: false,
     });
-    panTool = ArrowTool({
-        position: panToolPosition,
-        arrowBackground: { red: 192, green: 192, blue: 192 },
-        centerBackground: { red: 128, green: 128, blue: 255 },
-        color: { red: 0, green: 0, blue: 0 },
-        onUpPressed: function() { cameraManager.pan({ x: 0, y: 15 }); },
-        onDownPressed: function() { cameraManager.pan({ x: 0, y: -15 }); },
-        onLeftPressed: function() { cameraManager.pan({ x: -15, y: 0 }); },
-        onRightPressed: function() { cameraManager.pan({ x: 15, y: 0 }); },
+
+    var background = Overlays.addOverlay("text", {
+        x: uiPosition.x,
+        y: uiPosition.y,
+        width: UI_WIDTH,
+        height: UI_HEIGHT,
+        alpha: 0,
+        text: "",
+        backgroundColor: { red: 51, green: 51, blue: 51 },
+        backgroundAlpha: 1.0,
+        visible: false,
     });
-    zoomTool = ZoomTool({
-        position: zoomToolPosition,
-        arrowBackground: { red: 192, green: 192, blue: 192 },
-        color: { red: 0, green: 0, blue: 0 },
-        onIncreasePressed: function() { cameraManager.addZoom(-10); },
-        onDecreasePressed: function() { cameraManager.addZoom(10); },
-        onPercentageSet: function(pct) { cameraManager.setZoomPercentage(pct); }
+
+    var defaultCubeProps = {
+        size: ORIENTATION_OVERLAY_CUBE_SIZE,
+        alpha: 1,
+        color: { red: 255, green: 0, blue: 0 },
+        solid: true,
+        visible: true,
+        drawOnHUD: true,
+    };
+    var defaultLineProps = {
+        lineWidth: 1.5,
+        alpha: 1,
+        position: { x: 0, y: 0, z: 0 },
+        start: { x: 0, y: 0, z: 0 },
+        end: { x: 0, y: 0, z: 0 },
+        color: { red: 255, green: 0, blue: 0 },
+        visible: false,
+        drawOnHUD: true,
+    };
+
+    var orientationOverlay = OverlayGroup({
+        position: {
+            x: uiPosition.x + UI_WIDTH / 2,
+            y: uiPosition.y + UI_HEIGHT / 2,
+        },
+        visible: false,
     });
+
+    var OOHS = ORIENTATION_OVERLAY_HALF_SIZE;
+    var cubeX = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
+        position: { x: -OOHS, y: OOHS, z: OOHS },
+        color: RED,
+    }));
+    var cubeY = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
+        position: { x: OOHS, y: -OOHS, z: OOHS },
+        color: GREEN,
+    }));
+    var cubeZ = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
+        position: { x: OOHS, y: OOHS, z: -OOHS },
+        color: BLUE,
+    }));
+    orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
+        start: { x: -OOHS, y: OOHS, z: OOHS },
+        end: { x: OOHS, y: OOHS, z: OOHS },
+        color: RED,
+    }));
+    orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
+        start: { x: OOHS, y: -OOHS, z: OOHS },
+        end: { x: OOHS, y: OOHS, z: OOHS },
+        color: GREEN,
+    }));
+    orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
+        start: { x: OOHS, y: OOHS, z: -OOHS },
+        end: { x: OOHS, y: OOHS, z: OOHS },
+        color: BLUE,
+    }));
 
     Script.scriptEnding.connect(function() {
-        orbitTool.destroy();
-        panTool.destroy();
-        zoomTool.destroy();
+        orientationOverlay.destroy();
+        Overlays.deleteOverlay(background);
+        Overlays.deleteOverlay(backgroundBorder);
     });
 
+    var flip = Quat.fromPitchYawRollDegrees(0, 180, 0);
+    that.update = function() {
+        orientationOverlay.setProperties({
+            rotation: Quat.multiply(flip, Quat.inverse(Camera.orientation)),
+        });
+
+        if (Window.innerWidth != lastKnownWidth) {
+            lastKnownWidth = Window.innerWidth;
+            uiPosition = {
+                x: lastKnownWidth - UI_WIDTH - UI_PADDING,
+                y: UI_PADDING,
+            };
+            orientationOverlay.setProperties({
+                position: {
+                    x: uiPosition.x + ORIENTATION_OVERLAY_OFFSET.x,
+                    y: uiPosition.y + ORIENTATION_OVERLAY_OFFSET.y,
+                }
+            });
+            Overlays.editOverlay(backgroundBorder, {
+                x: uiPosition.x - BORDER_WIDTH,
+                y: uiPosition.y - BORDER_WIDTH,
+            });
+            Overlays.editOverlay(background, {
+                x: uiPosition.x,
+                y: uiPosition.y,
+            });
+        }
+    }
+
     that.mousePressEvent = function(event) {
-        return orbitTool.mouseReleaseEvent(event)
-            || panTool.mouseReleaseEvent(event)
-            || zoomTool.mouseReleaseEvent(event);
+        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+
+        if (clickedOverlay == cubeX) {
+            targetPitch = 0;
+            targetYaw = event.isLeftButton ? 90 : -90;
+            cameraManager.setTargetPitchYaw(targetPitch, targetYaw);
+            return true;
+        } else if (clickedOverlay == cubeY) {
+            targetPitch = event.isLeftButton ? 90 : -90;
+            targetYaw = 0;
+            cameraManager.setTargetPitchYaw(targetPitch, targetYaw);
+            return true;
+        } else if (clickedOverlay == cubeZ) {
+            targetPitch = 0;
+            targetYaw = event.isLeftButton ? 0 : 180;
+            cameraManager.setTargetPitchYaw(targetPitch, targetYaw);
+            return true;
+        }
     };
 
     that.setVisible = function(visible) {
-        orbitTool.setVisible(visible);
-        panTool.setVisible(visible);
-        zoomTool.setVisible(visible);
+        orientationOverlay.setProperties({ visible: visible });
+        Overlays.editOverlay(background, { visible: visible });
+        Overlays.editOverlay(backgroundBorder, { visible: visible });
     };
-
-    Script.update.connect(function() {
-        cameraManager.getZoomPercentage();
-        zoomTool.setZoomPercentage(cameraManager.getZoomPercentage());
-    });
 
     that.setVisible(false);
 

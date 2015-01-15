@@ -110,7 +110,7 @@ public:
     
     Transform transform;
     int texcoordSet;
-    std::string texcoordSetName;
+    QString texcoordSetName;
 };
 
 /// A single part of a mesh (with the same material).
@@ -282,8 +282,5 @@ FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool l
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
-
-/// Reads SVO geometry from the supplied model data.
-FBXGeometry readSVO(const QByteArray& model);
 
 #endif // hifi_FBXReader_h
