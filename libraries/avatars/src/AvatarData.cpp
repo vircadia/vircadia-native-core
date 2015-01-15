@@ -338,9 +338,12 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
             return maxAvailableSize;
         }
-        _bodyYaw = yaw;
-        _bodyPitch = pitch;
-        _bodyRoll = roll;
+        if (_bodyYaw != yaw || _bodyPitch != pitch || _bodyRoll != roll) {
+            _hasNewJointRotations = true;
+            _bodyYaw = yaw;
+            _bodyPitch = pitch;
+            _bodyRoll = roll;
+        }
         
         // scale
         float scale;
