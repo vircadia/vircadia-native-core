@@ -735,6 +735,28 @@ Script.update.connect(function (deltaTime) {
     selectionDisplay.checkMove();
 });
 
+function deleteSelectedEntities() {
+    if (SelectionManager.hasSelection()) {
+        print("  Delete Entities");
+        SelectionManager.saveProperties();
+        var savedProperties = [];
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            var initialProperties = SelectionManager.savedProperties[entityID.id];
+            SelectionManager.savedProperties[entityID.id];
+            savedProperties.push({
+                entityID: entityID,
+                properties: initialProperties
+            });
+            Entities.deleteEntity(entityID);
+        }
+        SelectionManager.clearSelections();
+        pushCommandForSelections([], savedProperties);
+    } else {
+        print("  Delete Entity.... not holding...");
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem == "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -743,25 +765,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Allow Selecting of Lights") {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem == "Delete") {
-        if (SelectionManager.hasSelection()) {
-            print("  Delete Entities");
-            SelectionManager.saveProperties();
-            var savedProperties = [];
-            for (var i = 0; i < selectionManager.selections.length; i++) {
-                var entityID = SelectionManager.selections[i];
-                var initialProperties = SelectionManager.savedProperties[entityID.id];
-                SelectionManager.savedProperties[entityID.id];
-                savedProperties.push({
-                    entityID: entityID,
-                    properties: initialProperties
-                });
-                Entities.deleteEntity(entityID);
-            }
-            SelectionManager.clearSelections();
-            pushCommandForSelections([], savedProperties);
-        } else {
-            print("  Delete Entity.... not holding...");
-        }
+        deleteSelectedEntities();
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
     } else if (menuItem == "Export Models") {
@@ -790,7 +794,7 @@ Controller.keyPressEvent.connect(function(event) {
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
     if (event.text == "BACKSPACE" || event.text == "DELETE") {
-        handeMenuEvent("Delete");
+        deleteSelectedEntities();
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
