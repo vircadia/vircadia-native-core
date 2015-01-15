@@ -435,3 +435,9 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     locations.radius = program.uniformLocation("radius");
     program.release();
 }
+
+void DeferredLightingEffect::setAmbientLightMode(int preset) {
+    if ((preset >= -1) && (preset < NUM_PRESET)) {
+        _ambientLightMode = preset;
+    }
+}

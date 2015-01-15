@@ -1,0 +1,89 @@
+<!
+//  DeferredLighting.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 1/15/15.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not DEFERRED_LIGHTING_SLH@>
+<@def DEFERRED_LIGHTING_SLH@>
+
+struct SphericalHarmonics {
+    vec4 L00;
+    vec4 L1m1;
+    vec4 L10;
+    vec4 L11;
+    vec4 L2m2;
+    vec4 L2m1;
+    vec4 L20;
+    vec4 L21;
+    vec4 L22;
+};
+
+vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
+
+    const float C1 = 0.429043;
+    const float C2 = 0.511664;
+    const float C3 = 0.743125;
+    const float C4 = 0.886227;
+    const float C5 = 0.247708;
+
+    vec4 value = C1 * sh.L22 * (direction.x * direction.x - direction.y * direction.y) + 
+                        C3 * sh.L20 * direction.z * direction.z + 
+                        C4 * sh.L00 - C5 * sh.L20 + 
+                        2.0 * C1 * (   sh.L2m2 * direction.x * direction.y + 
+                                    sh.L21  * direction.x * direction.z + 
+                                    sh.L2m1 * direction.y * direction.z ) + 
+                        2.0 * C2 * (   sh.L11  * direction.x + 
+                                    sh.L1m1 * direction.y + 
+                                    sh.L10  * direction.z ) ; 
+    return value;
+}
+
+uniform SphericalHarmonics ambientSphere;
+
+vec3 evalAmbientSphereAndDirectionalColor(vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+    // Ambient lighting
+    vec3 ambientLight = evalSphericalLight(ambientSphere, normal).xyz;
+    if (gl_FragCoord.x > 1024) {
+        ambientLight = gl_FrontLightProduct[0].ambient.rgb;
+    }
+    vec3 ambientColor = diffuseVal.rgb * ambientLight;
+
+    // Diffuse Lighting
+    float diffuseDot = dot(frag.normal, gl_LightSource[0].position.xyz);
+    float facingLight = step(0.0, diffuseDot);
+    vec3 diffuseColor = diffuse * (gl_FrontLightModelProduct.sceneColor.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuseDot * facingLight));
+        
+    // compute the specular multiplier (sans exponent)
+    float specularPower = facingLight * max(0.0,
+                         dot(normalize(gl_LightSource[0].position.xyz - normalize(position)), normal));    
+    vec3 specularColor = pow(specularPower, gloss * 128.0) * specular;
+
+    // add specular contribution
+    return vec3(ambientColor + diffuseColor + specularColor);
+}
+
+
+vec3 evalAmbientAndDirectionalColor(vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+    // Ambient lighting
+    vec3 ambientLight = gl_FrontLightProduct[0].ambient.rgb;
+    vec3 ambientColor = diffuseVal.rgb * ambientLight;
+
+    // Diffuse 
+    float diffuseDot = dot(frag.normal, gl_LightSource[0].position.xyz);
+    float facingLight = step(0.0, diffuseDot);
+    vec3 diffuseColor = diffuse * (gl_FrontLightModelProduct.sceneColor.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuseDot * facingLight));
+        
+    // compute the specular multiplier (sans exponent)
+    float specularPower = facingLight * max(0.0,
+                         dot(normalize(gl_LightSource[0].position.xyz - normalize(position)), normal));    
+    vec3 specularColor = pow(specularPower, gloss * 128.0) * specular;
+
+    // add specular contribution
+    return vec3(ambientColor + diffuseColor + specularColor);
+}
+<@endif@>

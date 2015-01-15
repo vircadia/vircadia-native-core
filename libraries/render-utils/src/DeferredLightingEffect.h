@@ -71,6 +71,23 @@ public:
     void prepare();
     void render();
 
+    enum AmbientLightPreset {
+        OLD_TOWN_SQUARE = 0,
+        GRACE_CATHEDRAL,
+        EUCALYPTUS_GROVE,
+        ST_PETERS_BASILICA,
+        UFFIZI_GALLERY,
+        GALILEOS_TOMB,
+        VINE_STREET_KITCHEN,
+        BREEZEWAY,
+        CAMPUS_SUNSET,
+        FUNSTON_BEACH_SUNSET,
+
+        NUM_PRESET,
+    };
+
+    void setAmbientLightMode(int preset);
+
 private:
     DeferredLightingEffect() { }
     virtual ~DeferredLightingEffect() { }
@@ -126,6 +143,8 @@ private:
     QVector<PostLightingRenderable*> _postLightingRenderables;
     
     AbstractViewStateInterface* _viewState;
+
+    int _ambientLightMode = -1;
 };
 
 /// Simple interface for objects that require something to be rendered after deferred lighting.
