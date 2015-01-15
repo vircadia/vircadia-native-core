@@ -42,7 +42,7 @@ void Recorder::startRecording() {
     
     RecordingContext& context = _recording->getContext();
     context.globalTimestamp = usecTimestampNow();
-    context.domain = NodeList::getInstance()->getDomainHandler().getHostname();
+    context.domain = DependencyManager::get<NodeList>()->getDomainHandler().getHostname();
     context.position = _avatar->getPosition();
     context.orientation = _avatar->getOrientation();
     context.scale = _avatar->getTargetScale();

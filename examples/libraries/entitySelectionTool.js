@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 SPACE_LOCAL = "local";
 SPACE_WORLD = "world";
@@ -241,6 +241,9 @@ SelectionDisplay = (function () {
     var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.5;
     var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.18;
     var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.17;
+
+    var ROTATE_ARROW_WEST_NORTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-north.png";
+    var ROTATE_ARROW_WEST_SOUTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-south.png";
 
     var showExtendedStretchHandles = false;
     
@@ -590,7 +593,7 @@ SelectionDisplay = (function () {
                 });
 
     var yawHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png",
+                                        url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: rotateHandleColor,
                                         alpha: rotateHandleAlpha,
@@ -603,7 +606,7 @@ SelectionDisplay = (function () {
 
 
     var pitchHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png",
+                                        url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: rotateHandleColor,
                                         alpha: rotateHandleAlpha,
@@ -616,7 +619,7 @@ SelectionDisplay = (function () {
 
 
     var rollHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png",
+                                        url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
                                         color: rotateHandleColor,
                                         alpha: rotateHandleAlpha,
@@ -835,8 +838,8 @@ SelectionDisplay = (function () {
                 rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: far };
                 
 
-                Overlays.editOverlay(pitchHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-south.png" });
-                Overlays.editOverlay(rollHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-south.png" });
+                Overlays.editOverlay(pitchHandle, { url: ROTATE_ARROW_WEST_SOUTH_URL });
+                Overlays.editOverlay(rollHandle, { url: ROTATE_ARROW_WEST_SOUTH_URL });
                 
 
             } else {
@@ -867,8 +870,8 @@ SelectionDisplay = (function () {
                 pitchCenter = { x: right, y: boundsCenter.y, z: boundsCenter.z };
                 rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: near};
 
-                Overlays.editOverlay(pitchHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
-                Overlays.editOverlay(rollHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(pitchHandle, { url: ROTATE_ARROW_WEST_NORTH_URL });
+                Overlays.editOverlay(rollHandle, { url: ROTATE_ARROW_WEST_NORTH_URL });
             }
         } else {
         
@@ -899,8 +902,8 @@ SelectionDisplay = (function () {
                 pitchCenter = { x: left, y: boundsCenter.y, z: boundsCenter.z };
                 rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: far};
 
-                Overlays.editOverlay(pitchHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
-                Overlays.editOverlay(rollHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(pitchHandle, { url: ROTATE_ARROW_WEST_NORTH_URL });
+                Overlays.editOverlay(rollHandle, { url: ROTATE_ARROW_WEST_NORTH_URL });
 
             } else {
             
@@ -928,8 +931,8 @@ SelectionDisplay = (function () {
                 rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: near };
                 pitchCenter = { x: left, y: boundsCenter.y, z: boundsCenter.z};
 
-                Overlays.editOverlay(pitchHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
-                Overlays.editOverlay(rollHandle, { url: "https://public.highfidelity.io/images/rotate-arrow-west-north.png" });
+                Overlays.editOverlay(pitchHandle, { url: ROTATE_ARROW_WEST_NORTH_URL });
+                Overlays.editOverlay(rollHandle, { url: ROTATE_ARROW_WEST_NORTH_URL });
 
             }
         }
