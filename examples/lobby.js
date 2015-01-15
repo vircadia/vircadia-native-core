@@ -253,7 +253,7 @@ function actionStartEvent(event) {
       if (panelStringIndex != -1) {
         var panelIndex = parseInt(panelName.slice(5));
         var placeIndex = panelIndexToPlaceIndex(panelIndex);
-        if (placeIndex < place.length) {
+        if (placeIndex < places.length) {
           var actionPlace = places[placeIndex];
           
           print("Jumping to " + actionPlace.name + " at " + actionPlace.address 
