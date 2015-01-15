@@ -131,6 +131,7 @@ Menu::Menu() :
                                   MenuOption::DeleteBookmark, 0,
                                   this, SLOT(deleteBookmark()));
     _deleteBookmarksMenu->setEnabled(false);
+    loadBookmarks();
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::NameLocation,
                                   Qt::CTRL | Qt::Key_N,
@@ -1016,6 +1017,29 @@ void Menu::toggleAddressBar() {
 
 void Menu::changeVSync() {
     Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
+}
+
+void Menu::loadBookmarks() {
+    QVariantMap* bookmarks = Application::getInstance()->getBookmarks()->getBookmarks();
+    if (bookmarks->count() > 0) {
+
+        QMapIterator<QString, QVariant> i(*bookmarks);
+        while (i.hasNext()) {
+            i.next();
+
+            QString bookmarkName = i.key();
+            QString bookmarkAddress = i.value().toString();
+
+            QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
+            teleportAction->setData(bookmarkAddress);
+            connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
+
+            addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0, QAction::NoRole);
+        }
+
+        _bookmarksMenu->setEnabled(true);
+        _deleteBookmarksMenu->setEnabled(true);
+    }
 }
 
 void Menu::bookmarkLocation() {

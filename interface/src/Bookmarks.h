@@ -27,8 +27,15 @@ public:
     void remove(const QString& name);
     bool contains(const QString& name) const;
 
+    QVariantMap* getBookmarks() { return &_bookmarks; };
+
 private:
     QVariantMap _bookmarks;  // { name: address, ... }
+
+    const QString BOOKMARKS_FILENAME = "bookmarks.json";
+    QString _bookmarksFilename;
+    void readFromFile();
+    void persistToFile();
 };
 
 #endif // hifi_Bookmarks_h

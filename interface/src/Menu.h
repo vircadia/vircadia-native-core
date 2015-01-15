@@ -311,6 +311,7 @@ private:
     bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
 
+    void loadBookmarks();
     QMenu* _bookmarksMenu;
     QAction* _deleteBookmarksMenu;
 };
