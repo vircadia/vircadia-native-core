@@ -246,9 +246,9 @@ void PhysicsEngine::stepSimulation() {
 
 bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
     assert(motionState);
-    ShapeInfo info;
-    motionState->computeShapeInfo(info);
-    btCollisionShape* shape = _shapeManager.getShape(info);
+    ShapeInfo shapeInfo;
+    motionState->computeShapeInfo(shapeInfo);
+    btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
     if (shape) {
         btVector3 inertia(0.0f, 0.0f, 0.0f);
         float mass = 0.0f;
@@ -263,7 +263,7 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
                 break;
             }
             case MOTION_TYPE_DYNAMIC: {
-                mass = motionState->getMass();
+                mass = motionState->computeMass(shapeInfo);
                 shape->calculateLocalInertia(mass, inertia);
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->updateInertiaTensor();
@@ -301,10 +301,10 @@ bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
     btRigidBody* body = motionState->_body;
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
-        ShapeInfo info;
-        ShapeInfoUtil::collectInfoFromShape(shape, info);
+        ShapeInfo shapeInfo;
+        ShapeInfoUtil::collectInfoFromShape(shape, shapeInfo);
         _dynamicsWorld->removeRigidBody(body);
-        _shapeManager.releaseShape(info);
+        _shapeManager.releaseShape(shapeInfo);
         delete body;
         motionState->_body = NULL;
         return true;
@@ -320,20 +320,31 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     _dynamicsWorld->removeRigidBody(body);
 
     if (flags & EntityItem::DIRTY_SHAPE) {
+        // MASS bit should be set whenever SHAPE is set
+        assert(flags & EntityItem::DIRTY_MASS);
+
+        // get new shape
         btCollisionShape* oldShape = body->getCollisionShape();
-        ShapeInfo info;
-        motionState->computeShapeInfo(info);
-        btCollisionShape* newShape = _shapeManager.getShape(info);
+        ShapeInfo shapeInfo;
+        motionState->computeShapeInfo(shapeInfo);
+        btCollisionShape* newShape = _shapeManager.getShape(shapeInfo);
         if (newShape != oldShape) {
+            // BUG: if shape doesn't change but density does then we won't compute new mass properties
+            // TODO: fix this BUG by replacing DIRTY_MASS with DIRTY_DENSITY and then fix logic accordingly.
             body->setCollisionShape(newShape);
             _shapeManager.releaseShape(oldShape);
+
+            // compute mass properties
+            float mass = motionState->computeMass(shapeInfo);
+            btVector3 inertia(0.0f, 0.0f, 0.0f);
+            body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+            body->setMassProps(mass, inertia);
+            body->updateInertiaTensor();
         } else {
             // whoops, shape hasn't changed after all so we must release the reference
             // that was created when looking it up
             _shapeManager.releaseShape(newShape);
         }
-        // MASS bit should be set whenever SHAPE is set
-        assert(flags & EntityItem::DIRTY_MASS);
     }
     bool easyUpdate = flags & EASY_DIRTY_PHYSICS_FLAGS;
     if (easyUpdate) {
@@ -356,9 +367,11 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
             int collisionFlags = body->getCollisionFlags() & ~(btCollisionObject::CF_KINEMATIC_OBJECT | btCollisionObject::CF_STATIC_OBJECT);
             body->setCollisionFlags(collisionFlags);
             if (! (flags & EntityItem::DIRTY_MASS)) {
-                // always update mass properties when going dynamic (unless it's already been done)
+                // always update mass properties when going dynamic (unless it's already been done above)
+                ShapeInfo shapeInfo;
+                motionState->computeShapeInfo(shapeInfo);
+                float mass = motionState->computeMass(shapeInfo);
                 btVector3 inertia(0.0f, 0.0f, 0.0f);
-                float mass = motionState->getMass();
                 body->getCollisionShape()->calculateLocalInertia(mass, inertia);
                 body->setMassProps(mass, inertia);
                 body->updateInertiaTensor();
