@@ -41,7 +41,7 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
     _sumIdentityPackets(0)
 {
     // make sure we hear about node kills so we can tell the other nodes
-    connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
+    connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
 }
 
 AvatarMixer::~AvatarMixer() {
@@ -117,7 +117,7 @@ void AvatarMixer::broadcastAvatarData() {
     
     int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     AvatarMixerClientData* nodeData = NULL;
     AvatarMixerClientData* otherNodeData = NULL;
@@ -222,7 +222,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
         killPacket += killedNode->getUUID().toRfc4122();
         
-        NodeList::getInstance()->broadcastToNodes(killPacket,
+        DependencyManager::get<NodeList>()->broadcastToNodes(killPacket,
                                                   NodeSet() << NodeType::Agent);
     }
 }
@@ -231,7 +231,7 @@ void AvatarMixer::readPendingDatagrams() {
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
@@ -309,7 +309,7 @@ void AvatarMixer::sendStatsPacket() {
 void AvatarMixer::run() {
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;

@@ -440,7 +440,7 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
 }
 
 bool MetavoxelTests::run() {
-    LimitedNodeList::createInstance();
+    DependencyManager::set<LimitedNodeList>();
 
     // seed the random number generator so that our tests are reproducible
     srand(0xBAAAAABE);

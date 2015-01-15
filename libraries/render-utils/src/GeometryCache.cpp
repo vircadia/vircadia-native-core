@@ -30,6 +30,8 @@ const int GeometryCache::UNKNOWN_ID = -1;
 GeometryCache::GeometryCache() :
     _nextID(0)
 {
+    const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
+    setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 GeometryCache::~GeometryCache() {
@@ -1762,7 +1764,7 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
 
 void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
     if (_meshes.size() > 0) {
-        TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
+        auto textureCache = DependencyManager::get<TextureCache>();
         for (int i = 0; i < _meshes.size(); i++) {
             NetworkMesh& mesh = _meshes[i];
             for (int j = 0; j < mesh.parts.size(); j++) {
@@ -1871,9 +1873,9 @@ void GeometryReader::run() {
         if (!_reply) {
             throw QString("Reply is NULL ?!");
         }
-        std::string urlname = _url.path().toLower().toStdString();
+        QString urlname = _url.path().toLower();
         bool urlValid = true;
-        urlValid &= !urlname.empty();
+        urlValid &= !urlname.isEmpty();
         urlValid &= !_url.path().isEmpty();
         urlValid &= _url.path().toLower().endsWith(".fbx")
                     || _url.path().toLower().endsWith(".svo");
@@ -1970,7 +1972,7 @@ void NetworkGeometry::reinsert() {
 void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
 
-    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
     
     foreach (const FBXMesh& mesh, _geometry.meshes) {
         NetworkMesh networkMesh;

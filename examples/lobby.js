@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 var panelWall = false;
 var orbShell = false;
@@ -138,11 +138,13 @@ function drawLobby() {
     // add an attachment on this avatar so other people see them in the lobby
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
-    // start the drone sound
-    // currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+    if (droneSound.downloaded) {
+      // start the drone sound
+      currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+    }
     
     // start one of our muzak sounds
-    // playRandomMuzak();
+    playRandomMuzak();
   }
 }
 
@@ -353,9 +355,9 @@ function update(deltaTime) {
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
-    // if (!Audio.isInjectorPlaying(currentMuzakInjector)) {
-//       playNextMuzak();
-//     }
+    if (currentMuzakInjector && !Audio.isInjectorPlaying(currentMuzakInjector)) {
+      playNextMuzak();
+    }
   }
 }
 

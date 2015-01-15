@@ -54,10 +54,11 @@ public:
 #endif // USE_BULLET_PHYSICS
 
     // these relay incoming values to the RigidBody
-    void applyVelocities() const;
-    void applyGravity() const;
+    void updateObjectEasy(uint32_t flags, uint32_t frame);
+    void updateObjectVelocities();
 
-    void computeShapeInfo(ShapeInfo& info);
+    void computeShapeInfo(ShapeInfo& shapeInfo);
+    float computeMass(const ShapeInfo& shapeInfo) const;
 
     void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
 

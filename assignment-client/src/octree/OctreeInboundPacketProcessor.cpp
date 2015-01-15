@@ -261,7 +261,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             continue;
         }
 
-        const SharedNodePointer& destinationNode = NodeList::getInstance()->nodeWithUUID(nodeUUID);
+        const SharedNodePointer& destinationNode = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
 
         // retrieve sequence number stats of node, prune its missing set
         SequenceNumberStats& sequenceNumberStats = nodeStats.getIncomingEditSequenceNumberStats();
@@ -299,7 +299,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             numSequenceNumbersAvailable -= numSequenceNumbers;
 
             // send it
-            NodeList::getInstance()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
+            DependencyManager::get<NodeList>()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
             packetsSent++;
             
             qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
