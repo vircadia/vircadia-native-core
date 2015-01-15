@@ -200,8 +200,6 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
-    void nameLocation();
-    void toggleLocationList();
     void hmdToolsClosed();
     void runTests();
     void showMetavoxelEditor();
