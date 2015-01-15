@@ -83,7 +83,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot() {
 }
 
 QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     QImage shot = glCanvas->grabFrameBuffer();
     
     Avatar* avatar = Application::getInstance()->getAvatar();
@@ -101,7 +101,7 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
     shot.setText(ORIENTATION_Z, QString::number(orientation.z));
     shot.setText(ORIENTATION_W, QString::number(orientation.w));
     
-    shot.setText(DOMAIN_KEY, NodeList::getInstance()->getDomainHandler().getHostname());
+    shot.setText(DOMAIN_KEY, DependencyManager::get<NodeList>()->getDomainHandler().getHostname());
 
     QString formattedLocation = QString("%1_%2_%3").arg(location.x).arg(location.y).arg(location.z);
     // replace decimal . with '-'

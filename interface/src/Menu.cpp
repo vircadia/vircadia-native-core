@@ -13,6 +13,7 @@
 
 #include <QBoxLayout>
 #include <QColorDialog>
+#include <QClipboard>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -43,6 +44,7 @@
 #include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
+#include "devices/RealSense.h"
 #include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
@@ -122,7 +124,16 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
                                   appInstance, SLOT(toggleRunningScriptsWidget()));
 
-    addDisabledActionAndSeparator(fileMenu, "Go");
+    addDisabledActionAndSeparator(fileMenu, "Location");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::BookmarkLocation, 0,
+                                  this, SLOT(bookmarkLocation()));
+    _bookmarksMenu = fileMenu->addMenu(MenuOption::Bookmarks);
+    _bookmarksMenu->setEnabled(false);
+    _deleteBookmarksMenu = addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::DeleteBookmark, 0,
+                                  this, SLOT(deleteBookmark()));
+    _deleteBookmarksMenu->setEnabled(false);
+    loadBookmarks();
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::NameLocation,
                                   Qt::CTRL | Qt::Key_N,
@@ -138,6 +149,10 @@ Menu::Menu() :
                                   Qt::Key_Enter,
                                   this,
                                   SLOT(toggleAddressBar()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
+                                  this, SLOT(copyAddress()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
+                                  this, SLOT(copyPath()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
@@ -261,7 +276,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
             avatar, SLOT(updateMotionBehavior()));
 
-    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With...");
+    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With");
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 
             avatar, SLOT(onToggleRagdoll()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
@@ -439,6 +454,11 @@ Menu::Menu() :
     QMenu* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
+#ifdef HAVE_RSSDK
+    QMenu* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
+    addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0, this, SLOT(loadRSSDKFile()));
+#endif
+
     QMenu* networkMenu = developerMenu->addMenu("Network");
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
     addCheckableActionToQMenuAndActionHash(networkMenu,
@@ -466,7 +486,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
 
-    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<Audio>();
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
@@ -515,7 +535,7 @@ Menu::Menu() :
         audioSourceGroup->addAction(sine440);
     }
     
-    AudioScope::SharedPointer scope = DependencyManager::get<AudioScope>();
+    auto scope = DependencyManager::get<AudioScope>();
 
     QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
@@ -553,7 +573,7 @@ Menu::Menu() :
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
     
-    AudioIOStatsRenderer::SharedPointer statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
+    auto statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
                                            false,
@@ -591,7 +611,7 @@ void Menu::loadSettings(QSettings* settings) {
     _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
     _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
 
-    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<Audio>();
     audio->setOutputStarveDetectionEnabled(settings->value("audioOutputStarveDetectionEnabled", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED).toBool());
     audio->setOutputStarveDetectionThreshold(settings->value("audioOutputStarveDetectionThreshold", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD).toInt());
     audio->setOutputStarveDetectionPeriod(settings->value("audioOutputStarveDetectionPeriod", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD).toInt());
@@ -625,7 +645,7 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->updateWindowTitle();
 
     // notify that a settings has changed
-    connect(&NodeList::getInstance()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
+    connect(&DependencyManager::get<NodeList>()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
 
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
@@ -656,7 +676,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
     settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
 
-    QSharedPointer<Audio> audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<Audio>();
     settings->setValue("audioOutputStarveDetectionEnabled", audio->getOutputStarveDetectionEnabled());
     settings->setValue("audioOutputStarveDetectionThreshold", audio->getOutputStarveDetectionThreshold());
     settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
@@ -907,7 +927,7 @@ void Menu::bumpSettings() {
 
 void sendFakeEnterEvent() {
     QPoint lastCursorPosition = QCursor::pos();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     QPoint windowPosition = glCanvas->mapFromGlobal(lastCursorPosition);
     QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);
@@ -1006,8 +1026,141 @@ void Menu::toggleAddressBar() {
     }
 }
 
+void Menu::copyAddress() {
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString address = addressManager->currentAddress().toString();
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(address);
+}
+
+void Menu::copyPath() {
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString path = addressManager->currentPath();
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(path);
+}
+
 void Menu::changeVSync() {
     Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
+}
+
+void Menu::loadBookmarks() {
+    QVariantMap* bookmarks = Application::getInstance()->getBookmarks()->getBookmarks();
+    if (bookmarks->count() > 0) {
+
+        QMapIterator<QString, QVariant> i(*bookmarks);
+        while (i.hasNext()) {
+            i.next();
+
+            QString bookmarkName = i.key();
+            QString bookmarkAddress = i.value().toString();
+
+            QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
+            teleportAction->setData(bookmarkAddress);
+            connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
+
+            addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0, QAction::NoRole);
+        }
+
+        _bookmarksMenu->setEnabled(true);
+        _deleteBookmarksMenu->setEnabled(true);
+    }
+}
+
+void Menu::bookmarkLocation() {
+
+    QInputDialog bookmarkLocationDialog(Application::getInstance()->getWindow());
+    bookmarkLocationDialog.setWindowTitle("Bookmark Location");
+    bookmarkLocationDialog.setLabelText("Name:");
+    bookmarkLocationDialog.setInputMode(QInputDialog::TextInput);
+    bookmarkLocationDialog.resize(400, 200);
+
+    if (bookmarkLocationDialog.exec() == QDialog::Rejected) {
+        return;
+    }
+
+    QString bookmarkName = bookmarkLocationDialog.textValue().trimmed();
+    bookmarkName = bookmarkName.replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
+    if (bookmarkName.length() == 0) {
+        return;
+    }
+
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString bookmarkAddress = addressManager->currentAddress().toString();
+
+    Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
+    if (bookmarks->contains(bookmarkName)) {
+        QMessageBox duplicateBookmarkMessage;
+        duplicateBookmarkMessage.setIcon(QMessageBox::Warning);
+        duplicateBookmarkMessage.setText("The bookmark name you entered already exists in your list.");
+        duplicateBookmarkMessage.setInformativeText("Would you like to overwrite it?");
+        duplicateBookmarkMessage.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        duplicateBookmarkMessage.setDefaultButton(QMessageBox::Yes);
+        if (duplicateBookmarkMessage.exec() == QMessageBox::No) {
+            return;
+        }
+        removeAction(_bookmarksMenu, bookmarkName);
+    }
+    
+    QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
+    teleportAction->setData(bookmarkAddress);
+    connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
+
+    QList<QAction*> menuItems = _bookmarksMenu->actions();
+    int position = 0;
+    while (position < menuItems.count() && bookmarkName > menuItems[position]->text()) {
+        position += 1;
+    }
+
+    addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0,
+                                  QAction::NoRole, position);
+
+    bookmarks->insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
+
+    _bookmarksMenu->setEnabled(true);
+    _deleteBookmarksMenu->setEnabled(true);
+}
+
+void Menu::teleportToBookmark() {
+    QAction *action = qobject_cast<QAction *>(sender());
+    QString address = action->data().toString();
+    DependencyManager::get<AddressManager>()->handleLookupString(address);
+}
+
+void Menu::deleteBookmark() {
+
+    QStringList bookmarkList;
+    QList<QAction*> menuItems = _bookmarksMenu->actions();
+    for (int i = 0; i < menuItems.count(); i += 1) {
+        bookmarkList.append(menuItems[i]->text());
+    }
+
+    QInputDialog deleteBookmarkDialog(Application::getInstance()->getWindow());
+    deleteBookmarkDialog.setWindowTitle("Delete Bookmark");
+    deleteBookmarkDialog.setLabelText("Select the bookmark to delete");
+    deleteBookmarkDialog.resize(400, 400);
+    deleteBookmarkDialog.setOption(QInputDialog::UseListViewForComboBoxItems);
+    deleteBookmarkDialog.setComboBoxItems(bookmarkList);
+    deleteBookmarkDialog.setOkButtonText("Delete");
+
+    if (deleteBookmarkDialog.exec() == QDialog::Rejected) {
+        return;
+    }
+
+    QString bookmarkName = deleteBookmarkDialog.textValue().trimmed();
+    if (bookmarkName.length() == 0) {
+        return;
+    }
+
+    removeAction(_bookmarksMenu, bookmarkName);
+
+    Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
+    bookmarks->remove(bookmarkName);
+
+    if (_bookmarksMenu->actions().count() == 0) {
+        _bookmarksMenu->setEnabled(false);
+        _deleteBookmarksMenu->setEnabled(false);
+    }
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {
@@ -1055,7 +1208,7 @@ void Menu::nameLocation() {
         return;
     }
     
-    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     if (domainHandler.getUUID().isNull()) {
         const QString UNREGISTERED_DOMAIN_MESSAGE = "This domain is not registered with High Fidelity."
             "\n\nYou cannot create a global location in an unregistered domain.";
@@ -1148,6 +1301,10 @@ void Menu::showChat() {
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
+}
+
+void Menu::loadRSSDKFile() {
+    RealSense::getInstance()->loadRSSDKFile();
 }
 
 void Menu::toggleChat() {

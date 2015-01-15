@@ -73,9 +73,9 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
-class Audio : public AbstractAudioInterface {
+class Audio : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(Audio)
+    SINGLETON_DEPENDENCY
 public:
 
     class AudioOutputIODevice : public QIODevice {

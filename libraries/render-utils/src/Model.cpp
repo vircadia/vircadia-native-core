@@ -2285,8 +2285,8 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                                         Locations* locations, SkinLocations* skinLocations) {
     PROFILE_RANGE(__FUNCTION__);
 
-    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
-    GlowEffect::SharedPointer glowEffect = DependencyManager::get<GlowEffect>();
+    auto textureCache = DependencyManager::get<TextureCache>();
+    auto glowEffect = DependencyManager::get<GlowEffect>();
     QString lastMaterialID;
     int meshPartsRendered = 0;
     updateVisibleJointStates();
