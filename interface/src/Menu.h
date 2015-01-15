@@ -345,8 +345,8 @@ namespace MenuOption {
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
-    const QString CopyAddress = "Copy Address";
-    const QString CopyPath = "Copy Path";
+    const QString CopyAddress = "Copy Address to Clipboard";
+    const QString CopyPath = "Copy Path to Clipboard";
     const QString ControlWithSpeech = "Control With Speech";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
