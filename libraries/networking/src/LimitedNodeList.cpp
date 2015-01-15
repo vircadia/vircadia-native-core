@@ -41,6 +41,7 @@ const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
 LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
     _sessionUUID(),
     _nodeHash(),
+    _nodeMutex(QReadWriteLock::Recursive),
     _nodeSocket(this),
     _dtlsSocket(NULL),
     _localSockAddr(),
