@@ -83,11 +83,13 @@ template <typename T, typename ...Args>
 QSharedPointer<T> DependencyManager::set(Args&&... args) {
     static size_t hashCode = _manager.getHashCode<T>();
     
-    QSharedPointer<T> instance(new T(args...), &T::customDeleter);
-    QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(instance);
-    _manager.safeGet(hashCode).swap(storedInstance);
+    QSharedPointer<Dependency>& instance = _manager.safeGet(hashCode);
+    instance.clear(); // Clear instance before creation of new one to avoid edge cases
+    QSharedPointer<T> newInstance(new T(args...), &T::customDeleter);
+    QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(newInstance);
+    instance.swap(storedInstance);
     
-    return instance;
+    return newInstance;
 }
 
 template <typename T>

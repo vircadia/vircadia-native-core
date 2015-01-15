@@ -338,6 +338,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter(getPositionForPath);
     addressManager->setOrientationGetter(getOrientationForPath);
+    
+    connect(addressManager.data(), &AddressManager::rootPlaceNameChanged, this, &Application::updateWindowTitle);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -916,13 +918,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
-            case Qt::Key_N:
-                if (isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::NameLocation);
-                }
-                
-                break;
-
             case Qt::Key_Up:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     if (!isShifted) {
@@ -3151,8 +3146,14 @@ void Application::updateWindowTitle(){
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
+    QString currentPlaceName = DependencyManager::get<AddressManager>()->getRootPlaceName();
+    
+    if (currentPlaceName.isEmpty()) {
+        currentPlaceName = nodeList->getDomainHandler().getHostname();
+    }
+    
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
+        + currentPlaceName + connectionStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -3164,23 +3165,32 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
+    auto addressManager = DependencyManager::get<AddressManager>();
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     
-    if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
+    if (accountManager.isLoggedIn() && domainHandler.isConnected()
+        && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
 
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
         QJsonObject locationObject;
         
-        QString pathString = DependencyManager::get<AddressManager>()->currentPath();
+        QString pathString = addressManager->currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
-        const QString PATH_KEY_IN_LOCATION = "path";
-        const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
         
+        const QString PATH_KEY_IN_LOCATION = "path";
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
+        
+        if (!addressManager->getRootPlaceID().isNull()) {
+            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
+            locationObject.insert(PLACE_ID_KEY_IN_LOCATION, addressManager->getRootPlaceID().toString());
+            
+        } else {
+            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
+        }
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
