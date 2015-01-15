@@ -3165,8 +3165,8 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
-    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    auto addressManager = DependencyManager::get<AddressManager>();
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     
     if (accountManager.isLoggedIn() && domainHandler.isConnected()
         && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
