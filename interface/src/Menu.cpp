@@ -1031,6 +1031,10 @@ void Menu::bookmarkLocation() {
     }
 
     QString bookmarkName = bookmarkLocationDialog.textValue().trimmed();
+    bookmarkName = bookmarkName.replace("\r\n", " ");
+    bookmarkName = bookmarkName.replace("\n", " ");
+    bookmarkName = bookmarkName.replace("\r", " ");
+    bookmarkName = bookmarkName.replace("\t", " ");
     if (bookmarkName.length() == 0) {
         return;
     }
