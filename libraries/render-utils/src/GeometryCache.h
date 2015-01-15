@@ -220,10 +220,9 @@ private:
     QHash<Vec2Pair, BatchItemDetails> _quad2D;
     QHash<int, BatchItemDetails> _registeredQuad2D;
 
-
-    QHash<int, Vec3Pair> _lastRegisteredRect;
-    QHash<Vec3Pair, VerticesIndices> _rectVBOs;
-    QHash<int, VerticesIndices> _registeredRectVBOs;
+    QHash<int, Vec3Pair> _lastRegisteredBevelRects;
+    QHash<Vec3Pair, BatchItemDetails> _bevelRects;
+    QHash<int, BatchItemDetails> _registeredBevelRects;
 
     QHash<int, Vec3Pair> _lastRegisteredLine3D;
     QHash<Vec3Pair, BatchItemDetails> _line3DVBOs;
