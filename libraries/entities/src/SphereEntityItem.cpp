@@ -114,7 +114,7 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
     glm::mat4 entityToWorldMatrix = translation * rotation * scale * registration;
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
     glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
-    glm::vec3 entityFrameDirection = glm::normalize(glm::vec3(worldToEntityMatrix * glm::vec4(direction, 1.0f)));
+    glm::vec3 entityFrameDirection = glm::normalize(glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f)));
 
     float localDistance;
     // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
