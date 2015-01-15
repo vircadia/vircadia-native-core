@@ -2137,12 +2137,17 @@ void Application::updateMyAvatar(float deltaTime) {
 
     _myAvatar->update(deltaTime);
 
-    {
+    quint64 now = usecTimestampNow();
+    quint64 dt = now - _lastSendAvatarDataTime;
+
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
         QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
         packet.append(_myAvatar->toByteArray());
         controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
+
+        _lastSendAvatarDataTime = now;
     }
 }
 
