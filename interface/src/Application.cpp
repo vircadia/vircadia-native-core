@@ -91,6 +91,7 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
+#include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -1685,6 +1686,7 @@ void Application::init() {
     DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
+    RealSense::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
