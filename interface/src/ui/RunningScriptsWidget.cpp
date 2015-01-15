@@ -68,6 +68,7 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
 RunningScriptsWidget::~RunningScriptsWidget() {
     delete ui;
+    _scriptsModel.deleteLater();
 }
 
 void RunningScriptsWidget::updateFileFilter(const QString& filter) {

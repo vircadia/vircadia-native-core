@@ -67,6 +67,13 @@ ScriptsModel::ScriptsModel(QObject* parent) :
     reloadRemoteFiles();
 }
 
+ScriptsModel::~ScriptsModel() {
+    for (int i = _treeNodes.size() - 1; i >= 0; i--) {
+        delete _treeNodes.at(i);
+    }
+    _treeNodes.clear();
+}
+
 TreeNodeBase* ScriptsModel::getTreeNodeFromIndex(const QModelIndex& index) const {
     if (index.isValid()) {
         return static_cast<TreeNodeBase*>(index.internalPointer());

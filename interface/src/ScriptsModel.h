@@ -67,6 +67,7 @@ class ScriptsModel : public QAbstractItemModel {
     Q_OBJECT
 public:
     ScriptsModel(QObject* parent = NULL);
+    ~ScriptsModel();
     QModelIndex index(int row, int column, const QModelIndex& parent) const;
     QModelIndex parent(const QModelIndex& child) const;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
