@@ -51,7 +51,7 @@ Agent::Agent(const QByteArray& packet) :
 void Agent::readPendingDatagrams() {
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
@@ -103,7 +103,7 @@ void Agent::readPendingDatagrams() {
                         // TODO: this needs to be fixed, the goal is to test the packet version for the piggyback, but
                         //       this is testing the version and hash of the original packet
                         //       need to use numBytesArithmeticCodingFromBuffer()...
-                        if (!NodeList::getInstance()->packetVersionAndHashMatch(receivedPacket)) {
+                        if (!DependencyManager::get<NodeList>()->packetVersionAndHashMatch(receivedPacket)) {
                             return; // bail since piggyback data doesn't match our versioning
                         }
                     } else {
@@ -127,7 +127,7 @@ void Agent::readPendingDatagrams() {
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             } else if (datagramPacketType == PacketTypeBulkAvatarData
                        || datagramPacketType == PacketTypeAvatarIdentity
                        || datagramPacketType == PacketTypeAvatarBillboard
@@ -137,9 +137,9 @@ void Agent::readPendingDatagrams() {
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending avatar-mixer
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             } else {
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             }
         }
     }
@@ -150,7 +150,7 @@ const QString AGENT_LOGGING_NAME = "agent";
 void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
@@ -161,7 +161,7 @@ void Agent::run() {
     QUrl scriptURL;
     if (_payload.isEmpty())  {
         scriptURL = QUrl(QString("http://%1:%2/assignment/%3")
-            .arg(NodeList::getInstance()->getDomainHandler().getIP().toString())
+            .arg(DependencyManager::get<NodeList>()->getDomainHandler().getIP().toString())
             .arg(DOMAIN_SERVER_HTTP_PORT)
             .arg(uuidStringWithoutCurlyBraces(_uuid)));
     } else {

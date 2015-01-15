@@ -60,11 +60,11 @@ const QString METAVOXEL_SERVER_LOGGING_NAME = "metavoxel-server";
 void MetavoxelServer::run() {
     commonInit(METAVOXEL_SERVER_LOGGING_NAME, NodeType::MetavoxelServer);
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
-    connect(nodeList, &NodeList::nodeAdded, this, &MetavoxelServer::maybeAttachSession);
-    connect(nodeList, &NodeList::nodeKilled, this, &MetavoxelServer::maybeDeleteSession);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, &MetavoxelServer::maybeAttachSession);
+    connect(nodeList.data(), &NodeList::nodeKilled, this, &MetavoxelServer::maybeDeleteSession);
     
     // initialize Bitstream before using it in multiple threads
     Bitstream::preThreadingInit();
@@ -101,7 +101,7 @@ void MetavoxelServer::readPendingDatagrams() {
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
