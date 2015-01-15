@@ -10,4 +10,5 @@
 macro(INCLUDE_BULLET)
     find_package(Bullet REQUIRED)
     include_directories("${BULLET_INCLUDE_DIRS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
 endmacro(INCLUDE_BULLET)
