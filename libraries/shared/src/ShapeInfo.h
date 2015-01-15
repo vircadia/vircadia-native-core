@@ -32,6 +32,7 @@ public:
     const QVector<glm::vec3>& getData() const { return _data; }
 
     glm::vec3 getBoundingBoxDiagonal() const;
+    float computeVolume() const;
 
 protected:
     int _type;

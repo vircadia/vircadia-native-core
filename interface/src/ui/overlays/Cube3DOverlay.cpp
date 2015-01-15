@@ -111,7 +111,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     glm::vec3 topLeftFar(-halfDimensions.x, halfDimensions.y, halfDimensions.z);
                     glm::vec3 topRightFar(halfDimensions.x, halfDimensions.y, halfDimensions.z);
 
-                    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+                    auto geometryCache = DependencyManager::get<GeometryCache>();
                 
                     geometryCache->renderDashedLine(bottomLeftNear, bottomRightNear);
                     geometryCache->renderDashedLine(bottomRightNear, bottomRightFar);

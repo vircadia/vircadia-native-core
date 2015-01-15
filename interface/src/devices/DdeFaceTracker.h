@@ -18,9 +18,9 @@
 
 #include "FaceTracker.h"
 
-class DdeFaceTracker : public FaceTracker {
+class DdeFaceTracker : public FaceTracker, public Dependency {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(DdeFaceTracker)
+    SINGLETON_DEPENDENCY
     
 public:
     //initialization

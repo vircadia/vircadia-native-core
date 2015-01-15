@@ -11,10 +11,8 @@
 
 #include "DependencyManager.h"
 
-DependencyManager& DependencyManager::getInstance() {
-    static DependencyManager instance;
-    return instance;
-}
+DependencyManager DependencyManager::_manager;
 
-DependencyManager::~DependencyManager() {
+QSharedPointer<Dependency>& DependencyManager::safeGet(size_t hashCode) {
+    return _instanceHash[hashCode];
 }

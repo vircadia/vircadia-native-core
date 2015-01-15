@@ -179,12 +179,12 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
+            DependencyManager::get<NodeList>()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
+            DependencyManager::get<NodeList>()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -213,7 +213,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
+            DependencyManager::get<NodeList>()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
             thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -242,7 +242,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the octree packet
             OctreeServer::didCallWriteDatagram(this);
-            NodeList::getInstance()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
+            DependencyManager::get<NodeList>()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -575,7 +575,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         while (nodeData->hasNextNackedPacket() && packetsSentThisInterval < maxPacketsPerInterval) {
             const QByteArray* packet = nodeData->getNextNackedPacket();
             if (packet) {
-                NodeList::getInstance()->writeDatagram(*packet, _node);
+                DependencyManager::get<NodeList>()->writeDatagram(*packet, _node);
                 truePacketsSent++;
                 packetsSentThisInterval++;
 
