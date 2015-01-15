@@ -123,7 +123,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
             glLineWidth(_lineWidth);
 
-            GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+            auto geometryCache = DependencyManager::get<GeometryCache>();
             
             // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
             // we just draw a line...

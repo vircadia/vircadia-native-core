@@ -56,7 +56,7 @@ Stats::Stats():
         _metavoxelReceiveProgress(0),
         _metavoxelReceiveTotal(0)
 {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     resetWidth(glCanvas->width(), 0);
 }
 
@@ -67,7 +67,7 @@ void Stats::toggleExpanded() {
 // called on mouse click release
 // check for clicks over stats  in order to expand or contract them
 void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     if (0 != glm::compMax(glm::abs(glm::ivec2(mouseX - mouseDragStartedX, mouseY - mouseDragStartedY)))) {
         // not worried about dragging on stats
@@ -122,7 +122,7 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
 }
 
 void Stats::resetWidth(int width, int horizontalOffset) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     int extraSpace = glCanvas->width() - horizontalOffset -2
                    - STATS_GENERAL_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
@@ -193,7 +193,7 @@ void Stats::display(
         int bytesPerSecond, 
         int voxelPacketsToProcess) 
 {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     unsigned int backgroundColor = 0x33333399;
     int verticalOffset = 0, lines = 0;
@@ -213,7 +213,7 @@ void Stats::display(
 
     // we need to take one avatar out so we don't include ourselves
     int totalAvatars = Application::getInstance()->getAvatarManager().size() - 1;
-    int totalServers = NodeList::getInstance()->size();
+    int totalServers = DependencyManager::get<NodeList>()->size();
 
     lines = _expanded ? 5 : 3;
     int columnOneWidth = _generalStatsWidth;
@@ -313,7 +313,7 @@ void Stats::display(
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingOctreeMax = -1;
 
-        NodeList* nodeList = NodeList::getInstance();
+        auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
 
@@ -418,7 +418,7 @@ void Stats::display(
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarBodyYaw, color);
 
     if (_expanded) {
-        SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AvatarMixer);
+        SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
                     roundf(avatarMixer->getAverageKilobitsPerSecond()),

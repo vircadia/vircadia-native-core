@@ -142,7 +142,7 @@ ApplicationOverlay::ApplicationOverlay() :
     memset(_magActive, 0, sizeof(_reticleActive));
     memset(_magSizeMult, 0, sizeof(_magSizeMult));
 
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     
     _reticleQuad = geometryCache->allocateID();
     _magnifierQuad = geometryCache->allocateID();
@@ -162,7 +162,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
     Application* application = Application::getInstance();
     Overlays& overlays = application->getOverlays();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     
     _textureFov = glm::radians(Menu::getInstance()->getOculusUIAngularSize());
     _textureAspectRatio = (float)glCanvas->getDeviceWidth() / (float)glCanvas->getDeviceHeight();
@@ -231,7 +231,7 @@ void ApplicationOverlay::displayOverlayTexture() {
     if (_alpha == 0.0f) {
         return;
     }
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
@@ -394,7 +394,7 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
                                                 glm::vec2(0.0f, 1.0f), glm::vec2(1.0f, 1.0f), 
                                                 glm::vec2(1.0f, 0.0f), glm::vec2(0.0f, 0.0f));
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     if (_crosshairTexture == 0) {
         _crosshairTexture = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/sixense-reticle.png"));
     }
@@ -447,7 +447,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origi
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     Application* application = Application::getInstance();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     MyAvatar* myAvatar = application->getAvatar();
 
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
@@ -526,7 +526,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
     Application* application = Application::getInstance();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
 
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
@@ -574,7 +574,7 @@ void ApplicationOverlay::renderPointers() {
 
 void ApplicationOverlay::renderControllerPointers() {
     Application* application = Application::getInstance();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     MyAvatar* myAvatar = application->getAvatar();
 
     //Static variables used for storing controller state
@@ -718,7 +718,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
 //Renders a small magnification of the currently bound texture at the coordinates
 void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     
     const int widgetWidth = glCanvas->width();
     const int widgetHeight = glCanvas->height();
@@ -744,7 +744,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
     const glm::vec3 topLeft = getPoint(topLeftYawPitch.x, topLeftYawPitch.y);
     const glm::vec3 topRight = getPoint(bottomRightYawPitch.x, topLeftYawPitch.y);
 
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
 
     if (bottomLeft != _previousMagnifierBottomLeft || bottomRight != _previousMagnifierBottomRight
         || topLeft != _previousMagnifierTopLeft || topRight != _previousMagnifierTopRight) {
@@ -783,9 +783,8 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
 }
 
 void ApplicationOverlay::renderAudioMeter() {
-    
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    Audio::SharedPointer audio = DependencyManager::get<Audio>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto audio = DependencyManager::get<Audio>();
 
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
@@ -906,7 +905,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
 
     Application* application = Application::getInstance();
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
     BandwidthMeter* bandwidthMeter = application->getBandwidthMeter();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
@@ -945,11 +944,11 @@ void ApplicationOverlay::renderStatsAndLogs() {
 }
 
 void ApplicationOverlay::renderDomainConnectionStatusBorder() {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
-        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
-        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+        auto glCanvas = DependencyManager::get<GLCanvas>();
+        auto geometryCache = DependencyManager::get<GeometryCache>();
         int width = glCanvas->width();
         int height = glCanvas->height();
 

@@ -33,7 +33,7 @@
 using namespace std;
 
 void renderWorldBox() {
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
 
     //  Show edge of world
     glm::vec3 red(1.0f, 0.0f, 0.0f);

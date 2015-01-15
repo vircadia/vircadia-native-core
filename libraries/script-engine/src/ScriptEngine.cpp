@@ -344,7 +344,7 @@ void ScriptEngine::run() {
 
     int thisFrame = 0;
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     qint64 lastUpdate = usecTimestampNow();
 
@@ -459,7 +459,7 @@ void ScriptEngine::run() {
                 }
                 
                 // write audio packet to AudioMixer nodes
-                NodeList* nodeList = NodeList::getInstance();
+                auto nodeList = DependencyManager::get<NodeList>();
                 nodeList->eachNode([this, &nodeList, &audioPacket, &numPreSequenceNumberBytes](const SharedNodePointer& node){
                     // only send to nodes of type AudioMixer
                     if (node->getType() == NodeType::AudioMixer) {

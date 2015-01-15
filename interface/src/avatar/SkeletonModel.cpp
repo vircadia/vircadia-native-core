@@ -339,7 +339,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
         glScalef(fanScale, fanScale, fanScale);
         const int AXIS_COUNT = 3;
 
-        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+        auto geometryCache = DependencyManager::get<GeometryCache>();
 
         for (int i = 0; i < AXIS_COUNT; i++) {
             if (joint.rotationMin[i] <= -PI + EPSILON && joint.rotationMax[i] >= PI - EPSILON) {
@@ -381,7 +381,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
 }
 
 void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size) {
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
 
     if (!_jointOrientationLines.contains(jointIndex)) {
         OrientationLineIDs jointLineIDs;
@@ -594,7 +594,7 @@ void SkeletonModel::renderRagdoll() {
     float radius1 = 0.008f;
     float radius2 = 0.01f;
     glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     for (int i = 0; i < numPoints; ++i) {
         glPushMatrix();
         // NOTE: ragdollPoints are in simulation-frame but we want them to be model-relative
@@ -951,7 +951,7 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     _boundingShape.getEndPoint(endPoint);
     endPoint = endPoint - _translation;
     glTranslatef(endPoint.x, endPoint.y, endPoint.z);
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule startpoint
@@ -985,7 +985,7 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
             continue;
         } 
 
-        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+        auto geometryCache = DependencyManager::get<GeometryCache>();
 
         glPushMatrix();
         // shapes are stored in simulation-frame but we want position to be model-relative

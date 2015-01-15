@@ -76,7 +76,7 @@ void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePo
     copyAt += sizeof(entityID);
     packetLength += sizeof(entityID);
 
-    NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
+    DependencyManager::get<NodeList>()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
 
 
@@ -114,7 +114,8 @@ int EntityServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNo
             hasMoreToSend = tree->encodeEntitiesDeletedSince(queryNode->getSequenceNumber(), deletedEntitiesSentAt,
                                                 outputBuffer, MAX_PACKET_SIZE, packetLength);
 
-            NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
+            DependencyManager::get<NodeList>()->writeDatagram((char*) outputBuffer, packetLength,
+                                                              SharedNodePointer(node));
             queryNode->packetSent(outputBuffer, packetLength);
             packetsSent++;
         }
@@ -132,7 +133,7 @@ void EntityServer::pruneDeletedEntities() {
 
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
         
-        NodeList::getInstance()->eachNode([&earliestLastDeletedEntitiesSent](const SharedNodePointer& node) {
+        DependencyManager::get<NodeList>()->eachNode([&earliestLastDeletedEntitiesSent](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
                 quint64 nodeLastDeletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();

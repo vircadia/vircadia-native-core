@@ -66,7 +66,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
 
             glLineWidth(_lineWidth);
 
-            GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+            auto geometryCache = DependencyManager::get<GeometryCache>();
             
             // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
             if (getIsSolid()) {

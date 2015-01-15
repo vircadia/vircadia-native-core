@@ -25,10 +25,6 @@ const int MUTE_ICON_SIZE = 24;
 AudioToolBox::AudioToolBox() :
     _iconPulseTimeReference(usecTimestampNow())
 {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
-    _micTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
-    _muteTextureId = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
-    _boxTextureId = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
 }
 
 bool AudioToolBox::mousePressEvent(int x, int y) {
@@ -40,10 +36,20 @@ bool AudioToolBox::mousePressEvent(int x, int y) {
 }
 
 void AudioToolBox::render(int x, int y, bool boxed) {
-    
     glEnable(GL_TEXTURE_2D);
     
-    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
+    if (_micTextureId == 0) {
+        _micTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
+    }
+    if (_muteTextureId == 0) {
+        _muteTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
+    }
+    if (_boxTextureId == 0) {
+        _boxTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
+    }
+    
+    auto audioIO = DependencyManager::get<Audio>();
     
     if (boxed) {
         bool isClipping = ((audioIO->getTimeSinceLastClip() > 0.0f) && (audioIO->getTimeSinceLastClip() < 1.0f));

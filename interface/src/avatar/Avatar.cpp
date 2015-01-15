@@ -272,7 +272,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     }
     
     if (postLighting && glm::distance(Application::getInstance()->getAvatar()->getPosition(), _position) < 10.0f) {
-        GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+        auto geometryCache = DependencyManager::get<GeometryCache>();
 
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
@@ -946,7 +946,7 @@ int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
 void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, 
                                             float radius1, float radius2, const glm::vec4& color) {
    
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     
     if (_jointConesID == GeometryCache::UNKNOWN_ID) {
         _jointConesID = geometryCache->allocateID();
