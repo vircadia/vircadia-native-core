@@ -37,10 +37,10 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
 
     _position = ENTITY_ITEM_ZERO_VEC3;
     _dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
+    _density = ENTITY_ITEM_DEFAULT_DENSITY;
     _rotation = ENTITY_ITEM_DEFAULT_ROTATION;
     _glowLevel = ENTITY_ITEM_DEFAULT_GLOW_LEVEL;
     _localRenderAlpha = ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA;
-    _mass = ENTITY_ITEM_DEFAULT_MASS;
     _velocity = ENTITY_ITEM_DEFAULT_VELOCITY;
     _gravity = ENTITY_ITEM_DEFAULT_GRAVITY;
     _damping = ENTITY_ITEM_DEFAULT_DAMPING;
@@ -103,7 +103,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_POSITION;
     requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
     requestedProperties += PROP_ROTATION;
-    requestedProperties += PROP_MASS;
+    requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_VELOCITY;
     requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
@@ -219,7 +219,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         }
 
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
-        APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, getMass());
+        APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
@@ -495,7 +495,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
                 
         READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
-        READ_ENTITY_PROPERTY_SETTER(PROP_MASS, float, updateMass);
+        READ_ENTITY_PROPERTY_SETTER(PROP_DENSITY, float, updateDensity);
         READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
         READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
@@ -552,6 +552,44 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
         qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime;
         qDebug() << "                 clockSkew: " << clockSkew;
         qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime;
+    }
+}
+
+float EntityItem::computeMass() const { 
+    // NOTE: we group the operations here in and attempt to reduce floating point error.
+    return ((_density * (_volumeMultiplier * _dimensions.x)) * _dimensions.y) * _dimensions.z;
+}
+
+void EntityItem::setDensity(float density) {
+    _density = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+}
+
+void EntityItem::updateDensity(float density) {
+    const float MIN_DENSITY_CHANGE_FACTOR = 0.001f; // 0.1 percent
+    float newDensity = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+    if (fabsf(_density - newDensity) / _density > MIN_DENSITY_CHANGE_FACTOR) {
+        _density = newDensity;
+        _dirtyFlags |= EntityItem::DIRTY_MASS;
+    }
+}
+
+void EntityItem::setMass(float mass) {
+    // Setting the mass actually changes the _density (at fixed volume), however
+    // we must protect the density range to help maintain stability of physics simulation
+    // therefore this method might not accept the mass that is supplied.
+
+    // NOTE: when computing the volume we group the _volumeMultiplier (typically a very large number, due
+    // to the TREE_SCALE transformation) with the first dimension component (typically a very small number) 
+    // in an attempt to reduce floating point error of the final result.
+    float volume = (_volumeMultiplier * _dimensions.x) * _dimensions.y * _dimensions.z;
+
+    // compute new density
+    const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
+    if (volume < 1.0e-6f) {
+        // avoid divide by zero
+        _density = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
+    } else {
+        _density = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     }
 }
 
@@ -771,7 +809,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPositionInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensionsInMeters); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(mass, getMass);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocityInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravityInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
@@ -799,7 +837,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePositionInMeters); // this will call recalculate collision shape if needed
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensionsInMeters); // NOTE: radius is obsolete
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, updateMass);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, updateDensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
@@ -999,7 +1037,6 @@ void EntityItem::recalculateCollisionShape() {
 
 const float MIN_POSITION_DELTA = 0.0001f;
 const float MIN_ALIGNMENT_DOT = 0.9999f;
-const float MIN_MASS_DELTA = 0.001f;
 const float MIN_VELOCITY_DELTA = 0.01f;
 const float MIN_DAMPING_DELTA = 0.001f;
 const float MIN_GRAVITY_DELTA = 0.001f;
@@ -1047,9 +1084,29 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
     }
 }
 
-void EntityItem::updateMass(float value) {
-    if (fabsf(_mass - value) > MIN_MASS_DELTA) {
-        _mass = value;
+void EntityItem::updateMass(float mass) {
+    // Setting the mass actually changes the _density (at fixed volume), however
+    // we must protect the density range to help maintain stability of physics simulation
+    // therefore this method might not accept the mass that is supplied.
+
+    // NOTE: when computing the volume we group the _volumeMultiplier (typically a very large number, due
+    // to the TREE_SCALE transformation) with the first dimension component (typically a very small number) 
+    // in an attempt to reduce floating point error of the final result.
+    float volume = (_volumeMultiplier * _dimensions.x) * _dimensions.y * _dimensions.z;
+
+    // compute new density
+    float newDensity = _density;
+    const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
+    if (volume < 1.0e-6f) {
+        // avoid divide by zero
+        newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
+    } else {
+        newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+    }
+
+    const float MIN_DENSITY_CHANGE_FACTOR = 0.001f; // 0.1 percent
+    if (fabsf(_density - newDensity) / _density > MIN_DENSITY_CHANGE_FACTOR) {
+        _density = newDensity;
         _dirtyFlags |= EntityItem::DIRTY_MASS;
     }
 }

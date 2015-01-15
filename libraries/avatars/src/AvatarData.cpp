@@ -338,9 +338,12 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
             return maxAvailableSize;
         }
-        _bodyYaw = yaw;
-        _bodyPitch = pitch;
-        _bodyRoll = roll;
+        if (_bodyYaw != yaw || _bodyPitch != pitch || _bodyRoll != roll) {
+            _hasNewJointRotations = true;
+            _bodyYaw = yaw;
+            _bodyPitch = pitch;
+            _bodyRoll = roll;
+        }
         
         // scale
         float scale;
@@ -1068,7 +1071,7 @@ void AvatarData::sendIdentityPacket() {
     QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
     identityPacket.append(identityByteArray());
     
-    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
+    DependencyManager::get<NodeList>()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void AvatarData::sendBillboardPacket() {
@@ -1076,7 +1079,7 @@ void AvatarData::sendBillboardPacket() {
         QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
         billboardPacket.append(_billboard);
         
-        NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+        DependencyManager::get<NodeList>()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
     }
 }
 

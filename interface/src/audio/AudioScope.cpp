@@ -41,7 +41,7 @@ AudioScope::AudioScope() :
     _outputLeftID(DependencyManager::get<GeometryCache>()->allocateID()),
     _outputRightD(DependencyManager::get<GeometryCache>()->allocateID())
 {
-    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<Audio>();
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedSilence,
             this, &AudioScope::addStereoSilenceToScope);
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade,
@@ -155,7 +155,7 @@ void AudioScope::renderLineStrip(int id, const float* color, int x, int y, int n
     int remainder = (n - offset) % numSamplesToAverage;
     y += SCOPE_HEIGHT / 2;
     
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
 
     QVector<glm::vec2> points;
     

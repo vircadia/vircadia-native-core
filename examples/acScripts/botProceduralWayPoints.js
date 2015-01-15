@@ -20,7 +20,7 @@
 //
 
 //For procedural walk animation
-Script.include("../libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 Script.include(HIFI_PUBLIC_BUCKET + "scripts/proceduralAnimationAPI.js");
 
 var procAnimAPI = new ProcAnimAPI();

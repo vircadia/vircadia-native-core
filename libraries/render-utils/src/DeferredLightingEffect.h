@@ -23,8 +23,8 @@ class AbstractViewStateInterface;
 class PostLightingRenderable;
 
 /// Handles deferred lighting for the bits that require it (voxels, metavoxels...)
-class DeferredLightingEffect {
-    SINGLETON_DEPENDENCY(DeferredLightingEffect)
+class DeferredLightingEffect : public Dependency {
+    SINGLETON_DEPENDENCY
     
 public:
     
