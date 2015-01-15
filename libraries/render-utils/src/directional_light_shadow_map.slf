@@ -18,6 +18,40 @@
 // Everything about shadow
 <@include Shadow.slh@>
 
+
+struct SphericalHarmonics {
+    vec4 L00;
+    vec4 L1m1;
+    vec4 L10;
+    vec4 L11;
+    vec4 L2m2;
+    vec4 L2m1;
+    vec4 L20;
+    vec4 L21;
+    vec4 L22;
+};
+
+vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
+
+    const float C1 = 0.429043;
+    const float C2 = 0.511664;
+    const float C3 = 0.743125;
+    const float C4 = 0.886227;
+    const float C5 = 0.247708;
+
+    vec4 value = C1 * sh.L22 * (direction.x * direction.x - direction.y * direction.y) + 
+                        C3 * sh.L20 * direction.z * direction.z + 
+                        C4 * sh.L00 - C5 * sh.L20 + 
+                        2.0 * C1 * (   sh.L2m2 * direction.x * direction.y + 
+                                    sh.L21  * direction.x * direction.z + 
+                                    sh.L2m1 * direction.y * direction.z ) + 
+                        2.0 * C2 * (   sh.L11  * direction.x + 
+                                    sh.L1m1 * direction.y + 
+                                    sh.L10  * direction.z ) ; 
+    return value;
+}
+
+
 void main(void) {
     DeferredFragment frag = unpackDeferredFragment(gl_TexCoord[0].st);
     vec4 normalVal = frag.normalVal;
@@ -30,6 +64,17 @@ void main(void) {
 
     // how much this fragment faces the light direction
     float diffuse = dot(frag.normal, gl_LightSource[0].position.xyz);
+
+    SphericalHarmonics sh;
+    sh.L00  = vec4( 0.79,  0.44,  0.54, 1.0);
+    sh.L1m1 = vec4( 0.39,  0.35,  0.60, 1.0);
+    sh.L10  = vec4(-0.34, -0.18, -0.27, 1.0);
+    sh.L11  = vec4(-0.29, -0.06,  0.01, 1.0);
+    sh.L2m2 = vec4(-0.11, -0.05, -0.12, 1.0);
+    sh.L2m1 = vec4(-0.26, -0.22, -0.47, 1.0);
+    sh.L20  = vec4(-0.16, -0.09, -0.15, 1.0);
+    sh.L21  = vec4( 0.56,  0.21,  0.14, 1.0);
+    sh.L22  = vec4( 0.21, -0.05, -0.30, 1.0);
 
     // Light mapped or not ?
     if ((normalVal.a >= 0.45) && (normalVal.a <= 0.55)) {
@@ -53,9 +98,15 @@ void main(void) {
         // average values from the shadow map
         float facingLight = step(0.0, diffuse) * shadowAttenuation;
             
+        vec4 ambienTerm = 0.5 * evalSphericalLight(sh, frag.normal);
+
+        if (gl_FragCoord.x > 1024) {
+            ambienTerm = gl_FrontLightProduct[0].ambient.rgba;
+        }
+
         // compute the base color based on OpenGL lighting model
         vec3 baseColor = diffuseVal.rgb * (gl_FrontLightModelProduct.sceneColor.rgb +
-            gl_FrontLightProduct[0].ambient.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuse * facingLight));
+            ambienTerm.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuse * facingLight));
         
         // compute the specular multiplier (sans exponent)
         float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position.xyz - normalize(frag.position.xyz)),

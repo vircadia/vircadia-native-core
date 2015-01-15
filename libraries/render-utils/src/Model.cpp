@@ -2389,25 +2389,15 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         qDebug() << "NEW part.materialID:" << part.materialID;
                     }
 
-                    glm::vec4 diffuse = glm::vec4(material->getDiffuse(), material->getOpacity());
-                    
                     if (locations->glowIntensity >= 0) {
                         GLBATCH(glUniform1f)(locations->glowIntensity, glowEffect->getIntensity());
                     }
                     if (!(translucent && alphaThreshold == 0.0f)) {
-                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = glowEffect->getIntensity());
+                        GLBATCH(glAlphaFunc)(GL_EQUAL, glowEffect->getIntensity());
                     }
-                    glm::vec4 specular = glm::vec4(material->getSpecular(), 1.0f);
-                    float shininess = material->getShininess();
-                    shininess = (shininess > 128.0f ? 128.0f: shininess);
-                    
+
                     if (locations->materialBufferUnit >= 0) {
                         batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
-                    } else {
-                        GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-                        GLBATCH(glMaterialfv)(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-                        GLBATCH(glMaterialfv)(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-                        GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, shininess);
                     }
 
                     Texture* diffuseMap = networkPart.diffuseTexture.data();
