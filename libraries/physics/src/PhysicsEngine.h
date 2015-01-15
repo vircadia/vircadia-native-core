@@ -92,7 +92,6 @@ private:
     EntityEditPacketSender* _entityPacketSender;
 
     uint32_t _frameCount;
-    btScalar _infinity = BT_INFINITY; // HACK: eliminates unused variable warning from Bullet headers
 };
 
 #endif // hifi_PhysicsEngine_h

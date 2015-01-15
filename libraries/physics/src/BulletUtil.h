@@ -32,4 +32,8 @@ inline btQuaternion glmToBullet(const glm::quat& g) {
     return btQuaternion(g.x, g.y, g.z, g.w);
 }
 
+inline bool avoidUnusedVariableWarningInBulletHeaders(float number) {
+    return number == BT_INFINITY;
+}
+
 #endif // hifi_BulletUtil_h
