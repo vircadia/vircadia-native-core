@@ -1069,7 +1069,7 @@ void Menu::bookmarkLocation() {
     addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0,
                                   QAction::NoRole, position);
 
-    bookmarks->insert(bookmarkName, bookmarkAddress);
+    bookmarks->insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
 
     _bookmarksMenu->setEnabled(true);
     _deleteBookmarksMenu->setEnabled(true);

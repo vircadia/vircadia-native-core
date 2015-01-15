@@ -28,8 +28,7 @@ public:
     bool contains(const QString& name) const;
 
 private:
-    QMap<QString, QJsonObject> _bookmarks;  // key: { name: string, address: string }
-                                            // key is a lowercase copy of name, used to make the bookmarks case insensitive.
+    QVariantMap _bookmarks;  // { name: address, ... }
 };
 
 #endif // hifi_Bookmarks_h
