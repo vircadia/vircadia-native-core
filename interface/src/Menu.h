@@ -200,6 +200,9 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
+    void bookmarkLocation();
+    void teleportToBookmark();
+    void deleteBookmark();
     void nameLocation();
     void toggleLocationList();
     void hmdToolsClosed();
@@ -308,6 +311,10 @@ private:
     
     bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
+
+    void loadBookmarks();
+    QMenu* _bookmarksMenu;
+    QAction* _deleteBookmarksMenu;
 };
 
 namespace MenuOption {
@@ -335,6 +342,8 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
+    const QString BookmarkLocation = "Bookmark Location";
+    const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "Caches Size";
     const QString Chat = "Chat...";
@@ -345,6 +354,7 @@ namespace MenuOption {
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
+    const QString DeleteBookmark = "Delete Bookmark...";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";

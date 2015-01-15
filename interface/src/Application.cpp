@@ -257,6 +257,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
+    _bookmarks = new Bookmarks();  // Before setting up the menu
+
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
