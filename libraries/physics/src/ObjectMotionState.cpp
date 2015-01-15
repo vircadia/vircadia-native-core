@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <math.h>
 
 #include "BulletUtil.h"
@@ -174,5 +172,3 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
     return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
 }
-
-#endif // USE_BULLET_PHYSICS

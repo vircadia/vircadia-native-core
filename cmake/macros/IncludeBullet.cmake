@@ -8,11 +8,6 @@
 # 
 
 macro(INCLUDE_BULLET)
-    find_package(Bullet)
-    if (BULLET_FOUND)
-        include_directories("${BULLET_INCLUDE_DIRS}")
-        if (APPLE OR UNIX)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_BULLET_PHYSICS -isystem ${BULLET_INCLUDE_DIRS}")
-        endif ()
-    endif (BULLET_FOUND)
+    find_package(Bullet REQUIRED)
+    include_directories("${BULLET_INCLUDE_DIRS}")
 endmacro(INCLUDE_BULLET)

@@ -33,6 +33,7 @@
 #include <NodeList.h>
 #include <OctreeQuery.h>
 #include <PacketHeaders.h>
+#include <PhysicsEngine.h>
 #include <ScriptEngine.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
@@ -454,9 +455,7 @@ private:
     bool _justStarted;
     Stars _stars;
 
-#ifdef USE_BULLET_PHYSICS
     PhysicsEngine _physicsEngine;
-#endif // USE_BULLET_PHYSICS
 
     EntityTreeRenderer _entities;
     EntityCollisionSystem _entityCollisionSystem;

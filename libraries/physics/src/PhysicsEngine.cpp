@@ -10,7 +10,6 @@
 //
 
 #include "PhysicsEngine.h"
-#ifdef USE_BULLET_PHYSICS
 
 #include "ShapeInfoUtil.h"
 #include "ThreadSafeDynamicsWorld.h"
@@ -400,5 +399,3 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
     body->activate();
 }
-
-#endif // USE_BULLET_PHYSICS

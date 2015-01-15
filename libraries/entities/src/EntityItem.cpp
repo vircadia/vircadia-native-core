@@ -691,15 +691,7 @@ void EntityItem::simulate(const quint64& now) {
         }
     }
 
-#ifdef USE_BULLET_PHYSICS
-    // When Bullet is available we assume that "zero velocity" means "at rest"
-    // because of collision conditions this simulation does not know about
-    // so we don't fall in for the non-zero gravity case here.
     if (hasVelocity()) {
-#else // !USE_BULLET_PHYSICS
-    if (hasVelocity() || hasGravity()) {
-#endif // USE_BULLET_PHYSICS
-
         // linear damping
         glm::vec3 velocity = getVelocity();
         if (_damping > 0.0f) {
@@ -734,12 +726,10 @@ void EntityItem::simulate(const quint64& now) {
         if (position.y <= getDistanceToBottomOfEntity()) {
             velocity = velocity * glm::vec3(1,-1,1);
 
-#ifndef USE_BULLET_PHYSICS
             // if we've slowed considerably, then just stop moving, but only if no BULLET
             if (glm::length(velocity) <= ENTITY_ITEM_EPSILON_VELOCITY_LENGTH) {
                 velocity = ENTITY_ITEM_ZERO_VEC3;
             }
-#endif // !USE_BULLET_PHYSICS
             
             position.y = getDistanceToBottomOfEntity();
         }
@@ -756,15 +746,6 @@ void EntityItem::simulate(const quint64& now) {
             }
         }
         
-#ifdef USE_BULLET_PHYSICS
-        // When Bullet is available we assume that it will tell us when velocities go to zero...
-#else // !USE_BULLET_PHYSICS
-        // ... otherwise we help things come to rest by clamping small velocities.
-        if (glm::length(velocity) <= ENTITY_ITEM_EPSILON_VELOCITY_LENGTH) {
-            velocity = ENTITY_ITEM_ZERO_VEC3;
-        }
-#endif // USE_BULLET_PHYSICS
-
         // NOTE: the simulation should NOT set any DirtyFlags on this entity
         setPosition(position); // this will automatically recalculate our collision shape
         setVelocity(velocity);
@@ -781,13 +762,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::isMoving() const {
-#ifdef USE_BULLET_PHYSICS
-    // When Bullet is available we assume that "zero velocity" means "at rest"
-    // because of collision conditions this simulation does not know about.
     return hasVelocity() || hasAngularVelocity();
-#else // !USE_BULLET_PHYSICS
-    return hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity();
-#endif //USE_BULLET_PHYSICS
 }
 
 bool EntityItem::lifetimeHasExpired() const { 

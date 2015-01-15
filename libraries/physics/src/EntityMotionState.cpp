@@ -12,9 +12,7 @@
 #include <EntityItem.h>
 #include <EntityEditPacketSender.h>
 
-#ifdef USE_BULLET_PHYSICS
 #include "BulletUtil.h"
-#endif // USE_BULLET_PHYSICS
 #include "EntityMotionState.h"
 
 QSet<EntityItem*>* _outgoingEntityList;
@@ -49,7 +47,6 @@ MotionType EntityMotionState::computeMotionType() const {
     return _entity->getCollisionsWillMove() ? MOTION_TYPE_DYNAMIC : MOTION_TYPE_STATIC;
 }
 
-#ifdef USE_BULLET_PHYSICS
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
@@ -77,10 +74,8 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
 }
-#endif // USE_BULLET_PHYSICS
 
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
-#ifdef USE_BULLET_PHYSICS
     if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
         if (flags & EntityItem::DIRTY_POSITION) {
             _sentPosition = _entity->getPositionInMeters() - ObjectMotionState::getWorldOffset();
@@ -116,11 +111,9 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
         _body->updateInertiaTensor();
     }
     _body->activate();
-#endif // USE_BULLET_PHYSICS
 };
 
 void EntityMotionState::updateObjectVelocities() {
-#ifdef USE_BULLET_PHYSICS
     if (_body) {
         _sentVelocity = _entity->getVelocityInMeters();
         setVelocity(_sentVelocity);
@@ -134,7 +127,6 @@ void EntityMotionState::updateObjectVelocities() {
 
         _body->setActivationState(ACTIVE_TAG);
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void EntityMotionState::computeShapeInfo(ShapeInfo& shapeInfo) {
@@ -146,7 +138,6 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
-#ifdef USE_BULLET_PHYSICS
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
@@ -213,5 +204,4 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
         _sentFrame = frame;
     }
-#endif // USE_BULLET_PHYSICS
 }

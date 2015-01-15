@@ -14,8 +14,6 @@
 
 typedef unsigned int uint32_t;
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
 
@@ -94,11 +92,7 @@ private:
     EntityEditPacketSender* _entityPacketSender;
 
     uint32_t _frameCount;
+    btScalar _infinity = BT_INFINITY; // HACK: eliminates unused variable warning from Bullet headers
 };
 
-#else // USE_BULLET_PHYSICS
-// PhysicsEngine stubbery until Bullet is required
-class PhysicsEngine {
-};
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_PhysicsEngine_h

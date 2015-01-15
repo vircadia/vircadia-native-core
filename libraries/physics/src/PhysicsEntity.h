@@ -21,10 +21,6 @@
 #include <CollisionInfo.h>
 #include <RayIntersectionInfo.h>
 
-#ifdef USE_BULLET_PHYSICS
-#include "PhysicsEngine.h"
-#endif // USE_BULLET_PHYSICS
-
 class Shape;
 class PhysicsSimulation;
 
