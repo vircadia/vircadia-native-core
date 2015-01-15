@@ -559,7 +559,7 @@ function handleIdleMouse() {
 
 function highlightEntityUnderCursor(position, accurateRay) {
     var pickRay = Camera.computePickRay(position.x, position.y);
-    var entityIntersection = Entities.findRayIntersection(pickRay, accurateRay === true);
+    var entityIntersection = Entities.findRayIntersection(pickRay, accurateRay);
     if (entityIntersection.accurate) {
         if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
             selectionDisplay.unhighlightSelectable(highlightedEntityID);
