@@ -30,7 +30,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(position, 0),
     CONSTRUCT_PROPERTY(dimensions, ENTITY_ITEM_DEFAULT_DIMENSIONS),
     CONSTRUCT_PROPERTY(rotation, ENTITY_ITEM_DEFAULT_ROTATION),
-    CONSTRUCT_PROPERTY(mass, ENTITY_ITEM_DEFAULT_MASS),
+    CONSTRUCT_PROPERTY(density, ENTITY_ITEM_DEFAULT_DENSITY),
     CONSTRUCT_PROPERTY(velocity, ENTITY_ITEM_DEFAULT_VELOCITY),
     CONSTRUCT_PROPERTY(gravity, ENTITY_ITEM_DEFAULT_GRAVITY),
     CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
@@ -175,7 +175,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
-    CHECK_PROPERTY_CHANGE(PROP_MASS, mass);
+    CHECK_PROPERTY_CHANGE(PROP_DENSITY, density);
     CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
     CHECK_PROPERTY_CHANGE(PROP_GRAVITY, gravity);
     CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
@@ -232,7 +232,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(velocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(gravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(mass);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(age, getAge()); // gettable, but not settable
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
@@ -310,7 +310,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(position, setPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(dimensions, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(rotation, setRotation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(mass, setMass);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(density, setDensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(velocity, setVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(gravity, setGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(damping, setDamping);
@@ -479,7 +479,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, properties.getRotation());
-            APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, properties.getMass());
+            APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, properties.getDensity());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, properties.getVelocity());
             APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, properties.getGravity());
             APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
@@ -700,7 +700,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
     READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(PROP_ROTATION, setRotation);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MASS, float, setMass);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, glm::vec3, setGravity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
@@ -781,7 +781,7 @@ void EntityItemProperties::markAllChanged() {
     _positionChanged = true;
     _dimensionsChanged = true;
     _rotationChanged = true;
-    _massChanged = true;
+    _densityChanged = true;
     _velocityChanged = true;
     _gravityChanged = true;
     _dampingChanged = true;

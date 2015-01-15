@@ -708,7 +708,7 @@ void Audio::handleAudioInput() {
         emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL));
 
-        NodeList* nodeList = NodeList::getInstance();
+        auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
         if (_recorder && _recorder.data()->isRecording()) {
@@ -819,11 +819,12 @@ void Audio::sendMuteEnvironmentPacket() {
     mutePacketStream.writeBytes(reinterpret_cast<const char *>(&MUTE_RADIUS), sizeof(float));
     
     // grab our audio mixer from the NodeList, if it exists
-    SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    auto nodelist = DependencyManager::get<NodeList>();
+    SharedNodePointer audioMixer = nodelist->soloNodeOfType(NodeType::AudioMixer);
     
     if (audioMixer) {
         // send off this mute packet
-        NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
+        nodelist->writeDatagram(mutePacket, audioMixer);
     }
 }
 
@@ -915,6 +916,7 @@ bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* inje
     
     return false;
 }
+
 
 void Audio::outputFormatChanged() {
     int outputFormatChannelCountTimesSampleRate = _outputFormat.channelCount() * _outputFormat.sampleRate();

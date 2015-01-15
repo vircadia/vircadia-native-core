@@ -34,9 +34,9 @@ void DatagramProcessor::processDatagrams() {
     static QByteArray incomingPacket;
     
     Application* application = Application::getInstance();
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
-    while (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams()) {
+    while (DependencyManager::get<NodeList>()->getNodeSocket().hasPendingDatagrams()) {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
         nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
@@ -88,8 +88,7 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeEnvironmentData: {
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                             "Application::networkReceive()... _octreeProcessor.queueReceivedPacket()");
-
-                    SharedNodePointer matchedNode = NodeList::getInstance()->sendingNodeForPacket(incomingPacket);
+                    SharedNodePointer matchedNode = DependencyManager::get<NodeList>()->sendingNodeForPacket(incomingPacket);
                     
                     if (matchedNode) {
                         // add this packet to our list of octree packets and process them on the octree data processing

@@ -138,7 +138,7 @@ static void maybeRelease(QOpenGLFramebufferObject* fbo) {
 QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     PerformanceTimer perfTimer("glowEffect");
 
-    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
     QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());

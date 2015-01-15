@@ -61,7 +61,7 @@ bool JurisdictionSender::process() {
 
             QUuid nodeUUID = _nodesRequestingJurisdictions.front();
             _nodesRequestingJurisdictions.pop();
-            SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
+            SharedNodePointer node = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
 
             if (node && node->getActiveSocket()) {
                 _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char *>(bufferOut), sizeOut));

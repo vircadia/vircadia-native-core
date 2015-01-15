@@ -134,8 +134,8 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                 glm::vec3 axis = glm::normalize(penetration);
                 glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;
 
-                float massA = entityA->getMass();
-                float massB = entityB->getMass();
+                float massA = entityA->computeMass();
+                float massB = entityB->computeMass();
                 float totalMass = massA + massB;
                 float massRatioA = (2.0f * massB / totalMass);
                 float massRatioB = (2.0f * massA / totalMass);
