@@ -498,9 +498,12 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     // NOT working so we ll stick to the uniform float array until we move to core profile
     // GLuint bo = getBufferID(*uniformBuffer);
     //glUniformBufferEXT(_shader._program, slot, bo);
-#else
+#elif defined(Q_OS_WIN)
     GLuint bo = getBufferID(*uniformBuffer);
     glBindBufferRange(GL_UNIFORM_BUFFER, slot, bo, rangeStart, rangeSize);
+#else
+    GLfloat* data = (GLfloat*) (uniformBuffer->getData() + rangeStart);
+    glUniform4fv(slot, rangeSize / sizeof(GLfloat[4]), data);
 #endif
     CHECK_GL_ERROR();
 }

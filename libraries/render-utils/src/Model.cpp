@@ -206,11 +206,18 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     } else {
         locations.materialBufferUnit = -1;
     }
-#else
+#elif defined(Q_OS_WIN)
     loc = glGetUniformBlockIndex(program.programId(), "materialBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, 1);
         locations.materialBufferUnit = 1;
+    } else {
+        locations.materialBufferUnit = -1;
+    }
+#else
+    loc = program.uniformLocation("materialBuffer");
+    if (loc >= 0) {
+        locations.materialBufferUnit = loc;
     } else {
         locations.materialBufferUnit = -1;
     }

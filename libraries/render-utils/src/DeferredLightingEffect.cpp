@@ -54,6 +54,8 @@ public:
     glm::vec3 L21    ; float spare7;
     glm::vec3 L22    ; float spare8;
 
+    static const int NUM_COEFFICIENTS = 9;
+
     void assignPreset(int p) {
         switch (p) {
         case DeferredLightingEffect::OLD_TOWN_SQUARE: {
@@ -387,7 +389,7 @@ void DeferredLightingEffect::render() {
             sh.assignPreset(0);
         }
 
-        for (int i =0; i <9; i++) {
+        for (int i =0; i <SphericalHarmonics::NUM_COEFFICIENTS; i++) {
             program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
         }
     }
