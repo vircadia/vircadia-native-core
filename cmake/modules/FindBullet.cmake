@@ -40,6 +40,7 @@ macro(_FIND_BULLET_LIBRARY _var)
         ${ARGN}
      HINTS
         ${BULLET_SEARCH_DIRS}
+        $ENV{BULLET_ROOT_DIR}
         ${BULLET_ROOT}
         ${BULLET_ROOT}/lib/Release
         ${BULLET_ROOT}/lib/Debug
@@ -62,6 +63,7 @@ endmacro()
 find_path(BULLET_INCLUDE_DIR NAMES btBulletCollisionCommon.h
   HINTS
     ${BULLET_SEARCH_DIRS}
+    $ENV{BULLET_ROOT_DIR}
     ${BULLET_ROOT}/include
     ${BULLET_ROOT}/src
   PATH_SUFFIXES bullet
