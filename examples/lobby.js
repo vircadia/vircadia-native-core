@@ -165,8 +165,7 @@ function changeLobbyTextures() {
   
   for (var j = 0; j < NUM_PANELS; j++) {
     var panelIndex = placeIndexToPanelIndex(j);
-    textureProp["textures"]["file" + panelIndex] = HIFI_PUBLIC_BUCKET + "images/places/" 
-      + places[j].id + "/hifi-place-" + places[j].id + "_640x360.jpg";
+    textureProp["textures"]["file" + panelIndex] = places[j].previews.lobby;
   };
   
   Overlays.editOverlay(panelWall, textureProp);
