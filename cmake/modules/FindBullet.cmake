@@ -30,13 +30,16 @@
 # (To distribute this file outside of CMake, substitute the full
 #  License text for the above reference.)
 
+
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("bullet")
+
 macro(_FIND_BULLET_LIBRARY _var)
   find_library(${_var}
      NAMES
         ${ARGN}
      HINTS
-        $ENV{HIFI_LIB_DIR}/bullet
-        $ENV{BULLET_ROOT_DIR}
+        ${BULLET_SEARCH_DIRS}
         ${BULLET_ROOT}
         ${BULLET_ROOT}/lib/Release
         ${BULLET_ROOT}/lib/Debug
@@ -58,8 +61,7 @@ endmacro()
 
 find_path(BULLET_INCLUDE_DIR NAMES btBulletCollisionCommon.h
   HINTS
-    $ENV{HIFI_LIB_DIR}/bullet
-    $ENV{BULLET_ROOT_DIR}
+    ${BULLET_SEARCH_DIRS}
     ${BULLET_ROOT}/include
     ${BULLET_ROOT}/src
   PATH_SUFFIXES bullet
