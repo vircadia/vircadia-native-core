@@ -66,7 +66,7 @@ find_path(BULLET_INCLUDE_DIR NAMES btBulletCollisionCommon.h
     $ENV{BULLET_ROOT_DIR}
     ${BULLET_ROOT}/include
     ${BULLET_ROOT}/src
-  PATH_SUFFIXES bullet
+  PATH_SUFFIXES bullet include/bullet
 )
 
 # Find the libraries
