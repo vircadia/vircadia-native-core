@@ -515,18 +515,6 @@ void MetavoxelSystem::render() {
     emit rendering();
 }
 
-void MetavoxelSystem::refreshVoxelData() {
-    DependencyManager::get<NodeList>()->eachNode([](const SharedNodePointer& node){
-        if (node->getType() == NodeType::MetavoxelServer) {
-            QMutexLocker locker(&node->getMutex());
-            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
-            if (client) {
-                QMetaObject::invokeMethod(client, "refreshVoxelData");
-            }
-        }
-    });
-}
-
 void MetavoxelSystem::paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color) {
     Sphere* sphere = new Sphere();
     sphere->setTranslation(position);
@@ -1479,6 +1467,7 @@ public:
     void swap(IndexVector& other) { QVector<NormalIndex>::swap(other); qSwap(position, other.position); }
     
     const NormalIndex& get(int y) const;
+    const NormalIndex& getClosest(int y) const;
 };
 
 const NormalIndex& IndexVector::get(int y) const {
@@ -1487,11 +1476,54 @@ const NormalIndex& IndexVector::get(int y) const {
     return (relative >= 0 && relative < size()) ? at(relative) : invalidIndex;
 }
 
-static inline void appendIndices(QVector<int>& indices, int i0, int i1, int i2, int i3) {
-    indices.append(i0);
-    indices.append(i1);
-    indices.append(i2);
-    indices.append(i3);
+const NormalIndex& IndexVector::getClosest(int y) const {
+    static NormalIndex invalidIndex = { { -1, -1, -1, -1 } };
+    int relative = y - position;
+    if (relative < 0 || relative >= size()) {
+        return invalidIndex;
+    }
+    const NormalIndex& first = at(relative);
+    if (first.isValid()) {
+        return first;
+    }
+    for (int distance = 1; relative - distance >= 0 || relative + distance < size(); distance++) {
+        int previous = relative - distance;
+        if (previous >= 0) {
+            const NormalIndex& previousIndex = at(previous);
+            if (previousIndex.isValid()) {
+                return previousIndex;
+            }
+        }
+        int next = relative + distance;
+        if (next < size()) {
+            const NormalIndex& nextIndex = at(next);
+            if (nextIndex.isValid()) {
+                return nextIndex;
+            }
+        }
+    }
+    return invalidIndex;
+}
+
+static inline void appendIndices(QVector<int>& indices, QMultiHash<VoxelCoord, int>& quadIndices,
+        const QVector<VoxelPoint>& vertices, float step, int i0, int i1, int i2, int i3) {
+    int newIndices[] = { i0, i1, i2, i3 };
+    glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    int indexIndex = indices.size();
+    for (unsigned int i = 0; i < sizeof(newIndices) / sizeof(newIndices[0]); i++) {
+        int index = newIndices[i];
+        indices.append(index);
+        const glm::vec3& vertex = vertices.at(index).vertex;
+        minima = glm::min(vertex, minima);
+        maxima = glm::max(vertex, maxima);
+    }
+    for (int z = (int)minima.z, endZ = (int)glm::ceil(maxima.z); z < endZ; z++) {
+        for (int y = (int)minima.x, endY = (int)glm::ceil(maxima.y); y < endY; y++) {
+            for (int x = (int)minima.x, endX = (int)glm::ceil(maxima.x); x < endX; x++) {
+                quadIndices.insert(qRgb(x, y, z), indexIndex);
+            }
+        }
+    }
 }
 
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
@@ -1924,16 +1956,16 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 crossing.setColorMaterial(alpha4 == 0 ? nextEntryYZ : nextEntryZ);
                             }
                         }
-                        // determine whether we need to stitch into surrounding heightfield
-                        bool stitch = false;
+                        // determine whether we should ignore this vertex because it will be stitched
+                        bool ignore = false;
                         for (int i = 0; i < crossingCount; i++) {
                             if (qAlpha(crossings[i].color) == 0) {
-                                stitch = true;
+                                ignore = true;
                                 break;
                             }
                         }
                         NormalIndex index = { { -1, -1, -1, -1 } };
-                        if (!stitch) {
+                        if (!ignore) {
                             index.indices[0] = index.indices[1] = index.indices[2] = index.indices[3] = vertices.size();
                             glm::vec3 center;
                             glm::vec3 normals[MAX_NORMALS_PER_VERTEX];
@@ -2070,8 +2102,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         
                             if (stitchable && !stitched && y >= stitchMinimumY && y <= stitchMaximumY) {
                                 int nextIndex = vertices.size();
-                                const NormalIndex& previousIndexX = lastIndicesX.get(y);
-                                const NormalIndex& previousIndexZ = lastIndicesZ[x].get(y);
+                                const NormalIndex& previousIndexX = lastIndicesX.getClosest(y);
+                                const NormalIndex& previousIndexZ = lastIndicesZ[x].getClosest(y);
                                 switch (corners) {
                                     case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER: {
                                         vertices.append(cornerPoints[0]);
@@ -2079,10 +2111,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         glm::vec3 normal = glm::cross(cornerPoints[0].vertex - cornerPoints[1].vertex,
                                             cornerPoints[3].vertex - cornerPoints[1].vertex);
                                         int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
                                         if (previousIndexX.isValid()) {
-                                            appendIndices(indices, firstIndex, firstIndex, nextIndex,
-                                                previousIndexX.getClosestIndex(normal, vertices));
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
                                         }
                                         break;
                                     }
@@ -2092,9 +2125,10 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         glm::vec3 normal = glm::cross(cornerPoints[3].vertex - cornerPoints[2].vertex,
                                             cornerPoints[0].vertex - cornerPoints[2].vertex);
                                         int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, firstIndex, nextIndex, nextIndex + 1, nextIndex + 1);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex, nextIndex + 1, nextIndex + 1);
                                         if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, firstIndex, firstIndex,
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
                                                 previousIndexZ.getClosestIndex(normal, vertices), nextIndex);
                                         }
                                         break;
@@ -2106,15 +2140,17 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         glm::vec3 normal = glm::cross(cornerPoints[3].vertex - cornerPoints[2].vertex,
                                             cornerPoints[1].vertex - cornerPoints[2].vertex);
                                         int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, firstIndex, nextIndex + 2, nextIndex, nextIndex);
-                                        appendIndices(indices,firstIndex, nextIndex + 1, nextIndex + 2, nextIndex + 2);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 2, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex + 2, nextIndex + 2);
                                         if (previousIndexX.isValid()) {
-                                            appendIndices(indices, firstIndex, firstIndex,
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
                                                 previousIndexX.getClosestIndex(normal, vertices), nextIndex + 1);
                                         }
                                         if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, firstIndex, firstIndex, nextIndex,
-                                                previousIndexZ.getClosestIndex(normal, vertices));
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
                                         }
                                         break;
                                     }
@@ -2125,8 +2161,10 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         glm::vec3 normal = glm::cross(cornerPoints[2].vertex - cornerPoints[0].vertex,
                                             cornerPoints[1].vertex - cornerPoints[0].vertex);
                                         int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
-                                        appendIndices(indices, firstIndex, nextIndex, nextIndex + 2, nextIndex + 2);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex, nextIndex + 2, nextIndex + 2);
                                         break;
                                     }
                                     case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER: {
@@ -2136,10 +2174,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         glm::vec3 normal = glm::cross(cornerPoints[1].vertex - first,
                                             cornerPoints[0].vertex - first);
                                         int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
                                         if (previousIndexX.isValid()) {
-                                            appendIndices(indices, firstIndex, firstIndex, nextIndex,
-                                                previousIndexX.getClosestIndex(normal, vertices));
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
                                         }
                                         break;
                                     }
@@ -2150,10 +2189,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         glm::vec3 normal = glm::cross(cornerPoints[3].vertex - first,
                                             cornerPoints[1].vertex - first);
                                         int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
                                         if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, firstIndex, firstIndex, nextIndex,
-                                                previousIndexZ.getClosestIndex(normal, vertices));
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                                firstIndex, nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
                                         }
                                         break;
                                     }
@@ -2164,9 +2204,10 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         glm::vec3 normal = glm::cross(cornerPoints[2].vertex - first,
                                             cornerPoints[3].vertex - first);
                                         int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
                                         if (previousIndexX.isValid()) {
-                                            appendIndices(indices, firstIndex, firstIndex,
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
                                                 previousIndexX.getClosestIndex(normal, vertices), nextIndex + 1);
                                         }
                                         break;
@@ -2178,9 +2219,10 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         glm::vec3 normal = glm::cross(cornerPoints[0].vertex - first,
                                             cornerPoints[2].vertex - first);
                                         int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
                                         if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, firstIndex, firstIndex,
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
                                                 previousIndexZ.getClosestIndex(normal, vertices), nextIndex + 1);
                                         }
                                         break;

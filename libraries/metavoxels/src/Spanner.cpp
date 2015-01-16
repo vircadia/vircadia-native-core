@@ -2193,6 +2193,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
         return new HeightfieldNode(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)),
             _color, _material, HeightfieldStackPointer(new HeightfieldStack(stackWidth, newStackContents, newStackMaterials)));
     }
+    QVector<quint16> oldHeightContents = newHeightContents;
     QVector<StackArray> oldStackContents = newStackContents;
     
     int colorWidth, colorHeight;
@@ -2285,10 +2286,14 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     (int)materialZ * materialWidth + (int)materialX) : NULL;
             
             if (paint && *heightLineDest != 0 && spanner->contains(worldPos + worldStepY * (*heightLineDest * voxelScale))) {
-                colorDest[0] = qRed(rgba);
-                colorDest[1] = qGreen(rgba);
-                colorDest[2] = qBlue(rgba);
-                *materialDest = materialMaterialIndex;
+                if (colorDest) {
+                    colorDest[0] = qRed(rgba);
+                    colorDest[1] = qGreen(rgba);
+                    colorDest[2] = qBlue(rgba);
+                }
+                if (materialDest) {
+                    *materialDest = materialMaterialIndex;
+                }
             }
             
             float stackX = (x - HeightfieldHeight::HEIGHT_BORDER) * innerStackWidth / innerHeightWidth;
@@ -2333,7 +2338,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     stackDest->setPosition(newBottom);
                     prepend = stackDest->getEntryCount();
                 }
-                const quint16* oldHeightLineDest = _height->getContents().constData() + (int)z * heightWidth + (int)x;
+                const quint16* oldHeightLineDest = oldHeightContents.constData() + (int)z * heightWidth + (int)x;
                 if (*heightLineDest != 0) {
                     float voxelHeight = *heightLineDest * voxelScale;
                     float left = oldHeightLineDest[-1] * voxelScale;
@@ -2396,7 +2401,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 float oldVoxelHeight = *oldHeightLineDest * voxelScale;
                 float oldNextVoxelHeightX = oldHeightLineDest[1] * voxelScale;
                 float oldNextVoxelHeightZ = oldHeightLineDest[heightWidth] * voxelScale;
-                for (int y = newTop; y >= newBottom && false; y--, entryDest--, pos -= worldStepY) {
+                for (int y = newTop; y >= newBottom; y--, entryDest--, pos -= worldStepY) {
                     int oldCurrentAlpha = stackDest->getEntryAlpha(y, oldVoxelHeight);
                     if (spanner->contains(pos)) {
                         if (hasOwnColors && !erase) {

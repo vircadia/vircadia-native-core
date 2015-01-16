@@ -87,10 +87,6 @@ signals:
 
     void rendering();
 
-public slots:
-
-    void refreshVoxelData();
-
 protected:
 
     Q_INVOKABLE void applyMaterialEdit(const MetavoxelEditMessage& message, bool reliable = false);

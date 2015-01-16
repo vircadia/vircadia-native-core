@@ -419,8 +419,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
 
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
-    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
-        Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false);
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderHeightfields, 0, true);
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderDualContourSurfaces, 0, true);
     addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0, this,
