@@ -686,20 +686,26 @@ void GeometryCache::renderVertices(GLenum mode, int id) {
 }
 
 void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
-    VerticesIndices& vbo = _solidCubeVBOs[size];
+    Vec2Pair colorKey(glm::vec2(color.x, color.y),glm::vec2(color.z, color.y));
     const int FLOATS_PER_VERTEX = 3;
     const int VERTICES_PER_FACE = 4;
     const int NUMBER_OF_FACES = 6;
     const int TRIANGLES_PER_FACE = 2;
     const int VERTICES_PER_TRIANGLE = 3;
-    const int vertices = NUMBER_OF_FACES * VERTICES_PER_FACE * FLOATS_PER_VERTEX;
+    const int vertices = NUMBER_OF_FACES * VERTICES_PER_FACE;
     const int indices = NUMBER_OF_FACES * TRIANGLES_PER_FACE * VERTICES_PER_TRIANGLE;
     const int vertexPoints = vertices * FLOATS_PER_VERTEX;
-    if (vbo.first == 0) {
+    const int VERTEX_STRIDE = sizeof(GLfloat) * FLOATS_PER_VERTEX * 2; // vertices and normals
+    const int NORMALS_OFFSET = sizeof(GLfloat) * FLOATS_PER_VERTEX;
+
+    if (!_solidCubeVerticies.contains(size)) {
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        _solidCubeVerticies[size] = verticesBuffer;
+
         GLfloat* vertexData = new GLfloat[vertexPoints * 2]; // vertices and normals
         GLfloat* vertex = vertexData;
         float halfSize = size / 2.0f;
-        
+
         static GLfloat cannonicalVertices[vertexPoints] = 
                                     { 1, 1, 1,  -1, 1, 1,  -1,-1, 1,   1,-1, 1,   // v0,v1,v2,v3 (front)
                                       1, 1, 1,   1,-1, 1,   1,-1,-1,   1, 1,-1,   // v0,v3,v4,v5 (right)
@@ -717,7 +723,26 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
                                     0,-1, 0,   0,-1, 0,   0,-1, 0,   0,-1, 0,   // v7,v4,v3,v2 (bottom)
                                     0, 0,-1,   0, 0,-1,   0, 0,-1,   0, 0,-1 }; // v4,v7,v6,v5 (back)
 
-        // index array of vertex array for glDrawElements() & glDrawRangeElement()
+
+        GLfloat* cannonicalVertex = &cannonicalVertices[0];
+        GLfloat* cannonicalNormal = &cannonicalNormals[0];
+
+        for (int i = 0; i < vertices; i++) {
+            // vertices
+            *(vertex++) = halfSize * *cannonicalVertex++;
+            *(vertex++) = halfSize * *cannonicalVertex++;
+            *(vertex++) = halfSize * *cannonicalVertex++;
+
+            //normals
+            *(vertex++) = *cannonicalNormal++;
+            *(vertex++) = *cannonicalNormal++;
+            *(vertex++) = *cannonicalNormal++;
+        }
+
+        verticesBuffer->append(sizeof(GLfloat) * vertexPoints * 2, (gpu::Buffer::Byte*) vertexData);
+    }
+
+    if (!_solidCubeIndexBuffer) {
         static GLubyte cannonicalIndices[indices]  = 
                                     { 0, 1, 2,   2, 3, 0,      // front
                                       4, 5, 6,   6, 7, 4,      // right
@@ -725,62 +750,66 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
                                      12,13,14,  14,15,12,      // left
                                      16,17,18,  18,19,16,      // bottom
                                      20,21,22,  22,23,20 };    // back
-        
 
-
-        GLfloat* cannonicalVertex = &cannonicalVertices[0];
-        GLfloat* cannonicalNormal = &cannonicalNormals[0];
-
-        for (int i = 0; i < vertices; i++) {
-            //normals
-            *(vertex++) = *cannonicalNormal++;
-            *(vertex++) = *cannonicalNormal++;
-            *(vertex++) = *cannonicalNormal++;
-
-            // vertices
-            *(vertex++) = halfSize * *cannonicalVertex++;
-            *(vertex++) = halfSize * *cannonicalVertex++;
-            *(vertex++) = halfSize * *cannonicalVertex++;
-
-        }
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-        
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < indices; i++) {
-            index[i] = cannonicalIndices[i];
-        }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
+        gpu::BufferPointer indexBuffer(new gpu::Buffer());
+        _solidCubeIndexBuffer = indexBuffer;
     
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        _solidCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Buffer::Byte*) cannonicalIndices);
     }
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
 
-    glNormalPointer(GL_FLOAT, 6 * sizeof(float), 0);
-    glVertexPointer(3, GL_FLOAT, (6 * sizeof(float)), (const void *)(3 * sizeof(float)));
-        
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
-        
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
+    if (!_solidCubeColors.contains(colorKey)) {
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        _solidCubeColors[colorKey] = colorBuffer;
+
+        const int NUM_COLOR_SCALARS_PER_CUBE = 24;
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+        int colors[NUM_COLOR_SCALARS_PER_CUBE] = { compactColor, compactColor, compactColor, compactColor,
+                                                   compactColor, compactColor, compactColor, compactColor,
+                                                   compactColor, compactColor, compactColor, compactColor,
+                                                   compactColor, compactColor, compactColor, compactColor,
+                                                   compactColor, compactColor, compactColor, compactColor,
+                                                   compactColor, compactColor, compactColor, compactColor };
+
+        colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+    }
+    gpu::BufferPointer verticesBuffer = _solidCubeVerticies[size];
+    gpu::BufferPointer colorBuffer = _solidCubeColors[colorKey];
+
+    const int VERTICES_SLOT = 0;
+    const int NORMALS_SLOT = 1;
+    const int COLOR_SLOT = 2;
+    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
     
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+    gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
+    gpu::BufferView normalsView(verticesBuffer, NORMALS_OFFSET, verticesBuffer->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element);
+    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
+    
+    gpu::Batch batch;
+
+    batch.setInputFormat(streamFormat);
+    batch.setInputBuffer(VERTICES_SLOT, verticesView);
+    batch.setInputBuffer(NORMALS_SLOT, normalsView);
+    batch.setInputBuffer(COLOR_SLOT, colorView);
+    batch.setIndexBuffer(gpu::UINT8, _solidCubeIndexBuffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, indices);
+
+    gpu::GLBackend::renderBatch(batch);
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
-
     Vec2Pair colorKey(glm::vec2(color.x, color.y),glm::vec2(color.z, color.y));
     const int FLOATS_PER_VERTEX = 3;
     const int VERTICES_PER_EDGE = 2;

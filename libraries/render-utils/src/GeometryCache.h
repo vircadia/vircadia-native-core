@@ -180,6 +180,10 @@ private:
     QHash<float, gpu::BufferPointer> _cubeVerticies;
     QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
     gpu::BufferPointer _wireCubeIndexBuffer;
+
+    QHash<float, gpu::BufferPointer> _solidCubeVerticies;
+    QHash<Vec2Pair, gpu::BufferPointer> _solidCubeColors;
+    gpu::BufferPointer _solidCubeIndexBuffer;
     
     class BatchItemDetails {
     public:

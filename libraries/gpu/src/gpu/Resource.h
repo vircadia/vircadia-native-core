@@ -200,6 +200,14 @@ public:
         _element(element),
         _stride(uint16(element.getSize()))
     {};
+    BufferView(const BufferPointer& buffer, Size offset, Size size, uint16 stride, const Element& element = Element(gpu::SCALAR, gpu::UINT8, gpu::RAW)) :
+        _buffer(buffer),
+        _offset(offset),
+        _size(size),
+        _element(element),
+        _stride(stride)
+    {};
+
     ~BufferView() {}
     BufferView(const BufferView& view) = default;
     BufferView& operator=(const BufferView& view) = default;
