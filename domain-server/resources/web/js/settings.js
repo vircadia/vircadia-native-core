@@ -652,7 +652,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
     clickedButton.attr('disabled', 'disabled')
     
     // get a list of user domains from data-web
-    data_web_domains_url = "https://data.highfidelity.io/api/v1/domains?access_token="
+    data_web_domains_url = "http://localhost:3000/api/v1/domains?access_token="
     $.getJSON(data_web_domains_url + Settings.initialValues.metaverse.access_token, function(data){
       
       modal_buttons = {
@@ -667,7 +667,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_body = "<p>Choose the High Fidelity domain you want this domain-server to represent.<br/>This will set your domain ID on the settings page.</p>"
         domain_select = $("<select id='domain-name-select' class='form-control'></select>")
         _.each(data.data.domains, function(domain){
-          domain_select.append("<option value='" + domain.id + "'>" + domain.name + "</option>")
+          domain_select.append("<option value='" + domain.id + "'>(" + domain.id + ")" + (domain.names.length > 0 ? " [" + domain.names + "]" : "") + "</option>");
         })
         modal_body += "<label for='domain-name-select'>Domains</label>" + domain_select[0].outerHTML
         modal_buttons["success"] = {
