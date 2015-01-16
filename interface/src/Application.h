@@ -121,6 +121,12 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
 
+class Application;
+#if defined(qApp)
+#undef qApp
+#endif
+#define qApp (static_cast<Application*>(QCoreApplication::instance()))
+
 class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
 
@@ -128,7 +134,7 @@ class Application : public QApplication, public AbstractViewStateInterface, Abst
     friend class DatagramProcessor;
 
 public:
-    static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
+    static Application* getInstance() { return qApp; } // TODO: replace fully by qApp
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
 
