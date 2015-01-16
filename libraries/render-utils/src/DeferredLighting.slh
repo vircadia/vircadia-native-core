@@ -45,17 +45,20 @@ vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
 
 uniform SphericalHarmonics ambientSphere;
 
-vec3 evalAmbientSphereAndDirectionalColor(vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
-    // Ambient lighting
-    vec3 ambientLight = evalSphericalLight(ambientSphere, normal).xyz;
-    if (gl_FragCoord.x > 1024) {
-        ambientLight = gl_FrontLightProduct[0].ambient.rgb;
-    }
-    vec3 ambientColor = diffuseVal.rgb * ambientLight;
+vec3 evalAmbientColor(vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+    return diffuse.rgb * gl_FrontLightProduct[0].ambient.rgb;
+}
 
+vec3 evalAmbientSphereColor(vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+    vec3 ambientLight = 0.5 * evalSphericalLight(ambientSphere, normal).xyz;
+
+    return diffuse.rgb * ambientLight;
+}
+
+vec3 evalDirectionalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Diffuse Lighting
-    float diffuseDot = dot(frag.normal, gl_LightSource[0].position.xyz);
-    float facingLight = step(0.0, diffuseDot);
+    float diffuseDot = dot(normal, gl_LightSource[0].position.xyz);
+    float facingLight = step(0.0, diffuseDot) * shadowAttenuation;
     vec3 diffuseColor = diffuse * (gl_FrontLightModelProduct.sceneColor.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuseDot * facingLight));
         
     // compute the specular multiplier (sans exponent)
@@ -64,26 +67,30 @@ vec3 evalAmbientSphereAndDirectionalColor(vec3 position, vec3 normal, vec3 diffu
     vec3 specularColor = pow(specularPower, gloss * 128.0) * specular;
 
     // add specular contribution
-    return vec3(ambientColor + diffuseColor + specularColor);
+    return vec3(diffuseColor + specularColor);
 }
 
 
-vec3 evalAmbientAndDirectionalColor(vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
-    // Ambient lighting
-    vec3 ambientLight = gl_FrontLightProduct[0].ambient.rgb;
-    vec3 ambientColor = diffuseVal.rgb * ambientLight;
-
-    // Diffuse 
-    float diffuseDot = dot(frag.normal, gl_LightSource[0].position.xyz);
-    float facingLight = step(0.0, diffuseDot);
-    vec3 diffuseColor = diffuse * (gl_FrontLightModelProduct.sceneColor.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuseDot * facingLight));
+vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
+    
+    float diffuseDot = dot(normal, gl_LightSource[0].position.xyz);
+    
+    // need to catch normals perpendicular to the projection plane hence the magic number for the threshold
+    // it should be just 0, but we have innacurracy so we need to overshoot
+    const float PERPENDICULAR_THRESHOLD = -0.005;
+    float facingLight = step(PERPENDICULAR_THRESHOLD, diffuseDot); 
         
-    // compute the specular multiplier (sans exponent)
-    float specularPower = facingLight * max(0.0,
-                         dot(normalize(gl_LightSource[0].position.xyz - normalize(position)), normal));    
-    vec3 specularColor = pow(specularPower, gloss * 128.0) * specular;
+    // evaluate the shadow test but only relevant for light facing fragments
+    float lightAttenuation = (1 - facingLight) + facingLight * shadowAttenuation;
+            
+    // diffuse light is the lightmap dimmed by shadow
+    vec3 diffuseLight = lightAttenuation * lightmap;
 
-    // add specular contribution
-    return vec3(ambientColor + diffuseColor + specularColor);
+    // ambient is a tiny percentage of the lightmap and only when in the shadow
+    vec3 ambientLight = (1 - lightAttenuation) * 0.5 * lightmap; 
+
+    return diffuse * (ambientLight +  diffuseLight);
 }
+
+
 <@endif@>

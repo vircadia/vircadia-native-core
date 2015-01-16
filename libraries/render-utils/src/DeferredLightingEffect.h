@@ -101,6 +101,7 @@ private:
         int depthTexCoordOffset;
         int depthTexCoordScale;
         int radius;
+        int ambientSphere;
     };
     
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
@@ -108,12 +109,20 @@ private:
     ProgramObject _simpleProgram;
     int _glowIntensityLocation;
     
+    ProgramObject _directionalAmbientSphereLight;
+    LightLocations _directionalAmbientSphereLightLocations;
+    ProgramObject _directionalAmbientSphereLightShadowMap;
+    LightLocations _directionalAmbientSphereLightShadowMapLocations;
+    ProgramObject _directionalAmbientSphereLightCascadedShadowMap;
+    LightLocations _directionalAmbientSphereLightCascadedShadowMapLocations;
+
     ProgramObject _directionalLight;
     LightLocations _directionalLightLocations;
     ProgramObject _directionalLightShadowMap;
     LightLocations _directionalLightShadowMapLocations;
     ProgramObject _directionalLightCascadedShadowMap;
     LightLocations _directionalLightCascadedShadowMapLocations;
+
     ProgramObject _pointLight;
     LightLocations _pointLightLocations;
     ProgramObject _spotLight;
@@ -144,7 +153,7 @@ private:
     
     AbstractViewStateInterface* _viewState;
 
-    int _ambientLightMode = -1;
+    int _ambientLightMode = 0;
 };
 
 /// Simple interface for objects that require something to be rendered after deferred lighting.

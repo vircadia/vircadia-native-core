@@ -20,35 +20,23 @@
 void main(void) {
     DeferredFragment frag = unpackDeferredFragment(gl_TexCoord[0].st);
 
-    vec4 normalVal = frag.normalVal;
-    vec4 diffuseVal = frag.diffuseVal;
-    vec4 specularVal = frag.specularVal;
-
     // Light mapped or not ?
-    if ((normalVal.a >= 0.45) && (normalVal.a <= 0.55)) {
-        gl_FragColor = vec4(diffuseVal.rgb * specularVal.rgb, 1.0);
+    if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
+        gl_FragColor = vec4( evalLightmappedColor(
+                        1.0,
+                        frag.normal,
+                        frag.diffuse,
+                        frag.specularVal.xyz),
+                        1.0);
     } else {
-        glFragColor = vec4( evalAmbientAndDirectionalColor(frag.position.xyz,
-                                                           frag.normal,
-                                                           frag.diffuse,
-                                                           frag.specular,
-                                                           frag.gloss),
-                            normalVal.a);
+        vec3 color =   evalAmbientColor(frag.normal, frag.diffuse, frag.specular, frag.gloss)
+                     + evalDirectionalColor(1.0,
+                                        frag.position.xyz,
+                                        frag.normal,
+                                        frag.diffuse,
+                                        frag.specular,
+                                        frag.gloss);
 
-/*
-        // compute the base color based on OpenGL lighting model
-        float diffuse = dot(frag.normal, gl_LightSource[0].position.xyz);
-        float facingLight = step(0.0, diffuse);
-        vec3 baseColor = diffuseVal.rgb * (gl_FrontLightModelProduct.sceneColor.rgb +
-            gl_FrontLightProduct[0].ambient.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuse * facingLight));
-        
-        // compute the specular multiplier (sans exponent)
-        float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position.xyz - normalize(frag.position.xyz)),
-            frag.normal));    
-        
-        // add specular contribution
-        vec4 specularColor = specularVal;
-        gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb, normalVal.a);
-*/
+        gl_FragColor = vec4(color, frag.normalVal.a);
     }
 }
