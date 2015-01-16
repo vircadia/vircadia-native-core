@@ -588,6 +588,8 @@ public:
     
     void getExtents(int& minimumY, int& maximumY) const;
     
+    bool hasSetEntries() const;
+    
     void removeEntries(int position, int count) { remove(sizeof(quint16) + position * sizeof(Entry), count * sizeof(Entry)); }
 };
 

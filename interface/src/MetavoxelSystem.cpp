@@ -1487,6 +1487,13 @@ const NormalIndex& IndexVector::get(int y) const {
     return (relative >= 0 && relative < size()) ? at(relative) : invalidIndex;
 }
 
+static inline void appendIndices(QVector<int>& indices, int i0, int i1, int i2, int i3) {
+    indices.append(i0);
+    indices.append(i1);
+    indices.append(i2);
+    indices.append(i3);
+}
+
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
         const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
     if (!node->getHeight()) {
@@ -1695,9 +1702,89 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                     float nextHeightfieldHeightX = heightLineSrc[1] * voxelScale;
                     float nextHeightfieldHeightZ = heightLineSrc[width] * voxelScale;
                     float nextHeightfieldHeightXZ = heightLineSrc[width + 1] * voxelScale;
+                    const int UPPER_LEFT_CORNER = 1;
+                    const int UPPER_RIGHT_CORNER = 2;
+                    const int LOWER_LEFT_CORNER = 4;
+                    const int LOWER_RIGHT_CORNER = 8;
+                    const int NO_CORNERS = 0;
+                    const int ALL_CORNERS = UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER | LOWER_RIGHT_CORNER;
+                    int corners = NO_CORNERS;
+                    int stitchMinimumY = INT_MAX, stitchMaximumY = -1;
+                    if (heightfieldHeight != 0.0f) {
+                        corners |= UPPER_LEFT_CORNER;
+                        stitchMinimumY = qMin(stitchMinimumY, (int)heightfieldHeight);
+                        stitchMaximumY = qMax(stitchMaximumY, (int)heightfieldHeight);
+                    }
+                    if (nextHeightfieldHeightX != 0.0f) {
+                        corners |= UPPER_RIGHT_CORNER;
+                        stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightX);
+                        stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightX);
+                    }
+                    if (nextHeightfieldHeightZ != 0.0f) {
+                        corners |= LOWER_LEFT_CORNER;
+                        stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightZ);
+                        stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightZ);
+                    }
+                    if (nextHeightfieldHeightXZ != 0.0f) {
+                        corners |= LOWER_RIGHT_CORNER;
+                        stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightXZ);
+                        stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightXZ);
+                    }
+                    bool stitchable = middleX && middleZ && !(corners == NO_CORNERS || corners == ALL_CORNERS);
+                    bool stitched = false;
+                    VoxelPoint cornerPoints[4];
+                    int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
+                    if (stitchable) {
+                        for (unsigned int i = 0; i < sizeof(cornerPoints) / sizeof(cornerPoints[0]); i++) {
+                            int offsetX = (i & X_MAXIMUM_FLAG) ? 1 : 0;
+                            int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
+                            const quint16* height = heightLineSrc + offsetZ * width + offsetX;
+                            if (*height == 0) {
+                                continue;
+                            }
+                            VoxelPoint& point = cornerPoints[i];
+                            int clampedOffsetX = clampedX + offsetX, clampedOffsetZ = clampedZ + offsetZ;
+                            point.vertex = glm::vec3(clampedOffsetX, *height * voxelScale, clampedOffsetZ) * step;
+                            int left = height[-1];
+                            int right = height[1];
+                            int down = height[-width];
+                            int up = height[width];
+                            glm::vec3 normal = glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f : left - right,
+                                2.0f / voxelScale, (up == 0 || down == 0) ? 0.0f : down - up));
+                            point.normal[0] = normal.x * numeric_limits<qint8>::max();
+                            point.normal[1] = normal.y * numeric_limits<qint8>::max();
+                            point.normal[2] = normal.z * numeric_limits<qint8>::max();
+                            if (colorSrc) {
+                                const uchar* color = colorSrc + ((int)(clampedOffsetZ * colorStepZ) * colorWidth +
+                                    (int)(clampedOffsetX * colorStepX)) * DataBlock::COLOR_BYTES;
+                                point.color[0] = color[0];
+                                point.color[1] = color[1];
+                                point.color[2] = color[2];
+                            
+                            } else {
+                                point.color[0] = point.color[1] = point.color[2] = numeric_limits<quint8>::max();
+                            }
+                            int material = 0;
+                            if (materialSrc) {
+                                material = materialSrc[(int)(clampedOffsetZ * materialStepZ) * materialWidth +
+                                    (int)(clampedOffsetX * materialStepX)];
+                                if (material != 0) {
+                                    int& mapping = materialMap[material];
+                                    if (mapping == 0) {
+                                        mapping = getMaterialIndex(node->getMaterial()->getMaterials().at(material - 1),
+                                            stackMaterials);
+                                    }
+                                    material = mapping;
+                                }
+                            }
+                            point.materials[0] = material;
+                            point.materials[1] = point.materials[2] = point.materials[3] = 0;
+                            point.materialWeights[0] = numeric_limits<quint8>::max();
+                            point.materialWeights[1] = point.materialWeights[2] = point.materialWeights[3] = 0;
+                        }
+                    }
                     for (int y = position, end = position + count; y < end; y++) {
                         const StackArray::Entry& entry = lineSrc->getEntry(y, heightfieldHeight);
-                        int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
                         if (displayHermite && x != 0 && z != 0) {
                             glm::vec3 normal;
                             if (entry.hermiteX != 0) {
@@ -1845,73 +1932,9 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 break;
                             }
                         }
-                        NormalIndex index = { { vertices.size(), vertices.size(), vertices.size(), vertices.size() } };
-                        if (stitch) {
-                            glm::vec2 position;
-                            int count = 0;
-                            for (int i = 0; i < crossingCount; i++) {
-                                const EdgeCrossing& crossing = crossings[i];
-                                if (qAlpha(crossing.color) == 0) {
-                                    position += glm::vec2(crossing.point.x, crossing.point.z);
-                                    count++;
-                                }
-                            }
-                            position /= count;
-                            
-                            const int CORNER_COUNT = 4;
-                            float closestDistance = FLT_MAX;
-                            int closestOffsetX = 0;
-                            int closestOffsetZ = 0;
-                            for (int i = 0; i < CORNER_COUNT; i++) {
-                                int offsetX = (i & X_MAXIMUM_FLAG) ? 1 : 0;
-                                int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
-                                float distance = glm::distance(position, glm::vec2(offsetX, offsetZ));
-                                if (distance < closestDistance && heightLineSrc[width * offsetZ + offsetX] != 0) {
-                                    closestDistance = distance;
-                                    closestOffsetX = offsetX;
-                                    closestOffsetZ = offsetZ;
-                                }
-                            }
-                            const quint16* height = heightLineSrc + width * closestOffsetZ + closestOffsetX;
-                            int left = height[-1];
-                            int right = height[1];
-                            int down = height[-width];
-                            int up = height[width];
-                            glm::vec3 normal = glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f : left - right,
-                                2.0f / voxelScale, (up == 0 || down == 0) ? 0.0f : down - up));
-                            quint8 red = numeric_limits<quint8>::max();
-                            quint8 green = numeric_limits<quint8>::max();
-                            quint8 blue = numeric_limits<quint8>::max();
-                            int clampedOffsetX = clampedX + closestOffsetX, clampedOffsetZ = clampedZ + closestOffsetZ;
-                            if (colorSrc) {
-                                const uchar* color = colorSrc + ((int)(clampedOffsetZ * colorStepZ) * colorWidth +
-                                    (int)(clampedOffsetX * colorStepX)) * DataBlock::COLOR_BYTES;
-                                red = color[0];
-                                green = color[1];
-                                blue = color[2];
-                            }
-                            quint8 material = 0;
-                            if (materialSrc) {
-                                material = materialSrc[(int)(clampedOffsetZ * materialStepZ) * materialWidth +
-                                    (int)(clampedOffsetX * materialStepX)];
-                                if (material != 0) {
-                                    int& mapping = materialMap[material];
-                                    if (mapping == 0) {
-                                        mapping = getMaterialIndex(node->getMaterial()->getMaterials().at(material - 1),
-                                            stackMaterials);
-                                    }
-                                    material = mapping;
-                                }
-                            }
-                            VoxelPoint point = { glm::vec3(clampedOffsetX, *height * voxelScale, clampedOffsetZ) * step,
-                                { red, green, blue },
-                                { (char)(normal.x * numeric_limits<qint8>::max()),
-                                    (char)(normal.y * numeric_limits<qint8>::max()),
-                                    (char)(normal.z * numeric_limits<qint8>::max()) }, { material, 0, 0, 0 },
-                                { numeric_limits<quint8>::max(), 0, 0, 0 } };
-                            vertices.append(point);
-                            
-                        } else {
+                        NormalIndex index = { { -1, -1, -1, -1 } };
+                        if (!stitch) {
+                            index.indices[0] = index.indices[1] = index.indices[2] = index.indices[3] = vertices.size();
                             glm::vec3 center;
                             glm::vec3 normals[MAX_NORMALS_PER_VERTEX];
                             int normalCount = 0;
@@ -2044,17 +2067,138 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 point.setNormal(normals[i]);
                                 vertices.append(point);
                             }
+                        
+                            if (stitchable && !stitched && y >= stitchMinimumY && y <= stitchMaximumY) {
+                                int nextIndex = vertices.size();
+                                const NormalIndex& previousIndexX = lastIndicesX.get(y);
+                                const NormalIndex& previousIndexZ = lastIndicesZ[x].get(y);
+                                switch (corners) {
+                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        vertices.append(cornerPoints[3]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex - cornerPoints[1].vertex,
+                                            cornerPoints[3].vertex - cornerPoints[1].vertex);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, firstIndex, firstIndex, nextIndex,
+                                                previousIndexX.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_LEFT_CORNER | LOWER_LEFT_CORNER | LOWER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        vertices.append(cornerPoints[3]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - cornerPoints[2].vertex,
+                                            cornerPoints[0].vertex - cornerPoints[2].vertex);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, firstIndex, nextIndex, nextIndex + 1, nextIndex + 1);
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, firstIndex, firstIndex,
+                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex);
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[1]);
+                                        vertices.append(cornerPoints[2]);
+                                        vertices.append(cornerPoints[3]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - cornerPoints[2].vertex,
+                                            cornerPoints[1].vertex - cornerPoints[2].vertex);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, firstIndex, nextIndex + 2, nextIndex, nextIndex);
+                                        appendIndices(indices,firstIndex, nextIndex + 1, nextIndex + 2, nextIndex + 2);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, firstIndex, firstIndex,
+                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex + 1);
+                                        }
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, firstIndex, firstIndex, nextIndex,
+                                                previousIndexZ.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        vertices.append(cornerPoints[1]);
+                                        vertices.append(cornerPoints[2]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex - cornerPoints[0].vertex,
+                                            cornerPoints[1].vertex - cornerPoints[0].vertex);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        appendIndices(indices, firstIndex, nextIndex, nextIndex + 2, nextIndex + 2);
+                                        break;
+                                    }
+                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        vertices.append(cornerPoints[1]);
+                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                        glm::vec3 normal = glm::cross(cornerPoints[1].vertex - first,
+                                            cornerPoints[0].vertex - first);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, firstIndex, firstIndex, nextIndex,
+                                                previousIndexX.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[1]);
+                                        vertices.append(cornerPoints[3]);
+                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - first,
+                                            cornerPoints[1].vertex - first);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, firstIndex, firstIndex, nextIndex,
+                                                previousIndexZ.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[3]);
+                                        vertices.append(cornerPoints[2]);
+                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex - first,
+                                            cornerPoints[3].vertex - first);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, firstIndex, firstIndex,
+                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex + 1);
+                                        }
+                                        break;
+                                    }
+                                    case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[2]);
+                                        vertices.append(cornerPoints[0]);
+                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex - first,
+                                            cornerPoints[2].vertex - first);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, firstIndex, nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, firstIndex, firstIndex,
+                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex + 1);
+                                        }
+                                        break;
+                                    }
+                                }
+                                stitched = true;
+                            }
                         }
                         
                         // the first x, y, and z are repeated for the boundary edge; past that, we consider generating
                         // quads for each edge that includes a transition, using indices of previously generated vertices
                         int reclampedX = qMin(clampedX, stackWidth - 1);
                         int reclampedZ = qMin(clampedZ, stackHeight - 1);
-                        if (alpha0 != alpha1) {
+                        if (alpha0 != alpha1 && middleX) {
                             const NormalIndex& index1 = lastIndexY;
                             const NormalIndex& index2 = lastIndicesZ[x].get(y - 1);
                             const NormalIndex& index3 = lastIndicesZ[x].get(y);
-                            if (index1.isValid() && index2.isValid() && index3.isValid()) {
+                            if (index.isValid() && index1.isValid() && index2.isValid() && index3.isValid()) {
                                 quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
                                 quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
                                 if (reclampedZ > 0) {
@@ -2082,7 +2226,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             const NormalIndex& index1 = lastIndicesZ[x].get(y);
                             const NormalIndex& index2 = lastIndicesZ[x - 1].get(y);
                             const NormalIndex& index3 = lastIndicesX.get(y);
-                            if (index1.isValid() && index2.isValid() && index3.isValid()) {
+                            if (index.isValid() && index1.isValid() && index2.isValid() && index3.isValid()) {
                                 quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
                                 if (reclampedX > 0) {
                                     quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ), indices.size());
@@ -2110,11 +2254,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             }
                         }
                         
-                        if (alpha0 != alpha4) {
+                        if (alpha0 != alpha4 && middleZ) {
                             const NormalIndex& index1 = lastIndexY;
                             const NormalIndex& index2 = lastIndicesX.get(y - 1);
                             const NormalIndex& index3 = lastIndicesX.get(y);
-                            if (index1.isValid() && index2.isValid() && index3.isValid()) {
+                            if (index.isValid() && index1.isValid() && index2.isValid() && index3.isValid()) {
                                 quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
                                 if (reclampedX > 0) {
                                     quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ), indices.size());

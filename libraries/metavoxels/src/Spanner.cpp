@@ -1389,6 +1389,18 @@ void StackArray::getExtents(int& minimumY, int& maximumY) const {
     }
 }
 
+bool StackArray::hasSetEntries() const {
+    int count = getEntryCount();
+    if (count > 0) {
+        for (const Entry* entry = getEntryData(), *end = entry + count; entry != end; entry++) {
+            if (entry->isSet()) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 HeightfieldStack::HeightfieldStack(int width, const QVector<StackArray>& contents,
         const QVector<SharedObjectPointer>& materials) :
     HeightfieldData(width),
@@ -2368,7 +2380,9 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                                 entryDest->material = index;
                             }
                             if (y + 1 > voxelHeight) {
-                                *heightLineDest = 0;
+                                if (x < startX && z < startZ && x > endX && z > endZ) {
+                                    *heightLineDest = 0;
+                                }
                                 entryDest->setHermiteY(glm::normalize(glm::vec3(deltaX, 2.0f, deltaZ)), voxelHeight - y);
                             }
                         }
@@ -2382,7 +2396,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 float oldVoxelHeight = *oldHeightLineDest * voxelScale;
                 float oldNextVoxelHeightX = oldHeightLineDest[1] * voxelScale;
                 float oldNextVoxelHeightZ = oldHeightLineDest[heightWidth] * voxelScale;
-                for (int y = newTop; y >= newBottom; y--, entryDest--, pos -= worldStepY) {
+                for (int y = newTop; y >= newBottom && false; y--, entryDest--, pos -= worldStepY) {
                     int oldCurrentAlpha = stackDest->getEntryAlpha(y, oldVoxelHeight);
                     if (spanner->contains(pos)) {
                         if (hasOwnColors && !erase) {
