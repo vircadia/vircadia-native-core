@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <glm/glm.hpp>
 
+#include <EntityItem.h>
+
 #include "KinematicController.h"
 
 class SimpleEntityKinematicController : public KinematicController {

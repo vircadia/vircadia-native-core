@@ -18,9 +18,11 @@
 
 #ifndef USE_BULLET_PHYSICS
 // ObjectMotionState stubbery
+#include "KinematicController.h"
 class ObjectMotionState {
 public:
     // so that this stub implementation is not completely empty we give the class a data member
+    KinematicController* _kinematicController;
     bool _stubData;
 };
 #endif // USE_BULLET_PHYSICS

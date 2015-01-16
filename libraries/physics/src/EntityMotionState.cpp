@@ -234,7 +234,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
 uint32_t EntityMotionState::getIncomingDirtyFlags() const { 
     uint32_t dirtyFlags = _entity->getDirtyFlags(); 
-    
+#ifdef USE_BULLET_PHYSICS 
     // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
     int bodyFlags = _body->getCollisionFlags();
     bool isMoving = _entity->isMoving();
@@ -242,5 +242,6 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() const {
             (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
         dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE; 
     }
+#endif // USE_BULLET_PHYSICS
     return dirtyFlags;
 }

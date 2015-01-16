@@ -12,9 +12,12 @@
 #ifndef hifi_PhysicsEngine_h
 #define hifi_PhysicsEngine_h
 
+#include <stdint.h>
+
+const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
+
 #ifdef USE_BULLET_PHYSICS
 
-#include <stdint.h>
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
 
@@ -27,7 +30,6 @@
 #include "ThreadSafeDynamicsWorld.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
-const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
 
 class ObjectMotionState;
 
@@ -97,6 +99,8 @@ private:
 #else // USE_BULLET_PHYSICS
 // PhysicsEngine stubbery until Bullet is required
 class PhysicsEngine {
+public:
+    static uint32_t getFrameCount();
 };
 #endif // USE_BULLET_PHYSICS
 #endif // hifi_PhysicsEngine_h
