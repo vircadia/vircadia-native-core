@@ -13,7 +13,6 @@
 #define hifi_KinematicController_h
 
 #include <stdint.h>
-#include <btBulletDynamicsCommon.h>
 
 /// KinematicController defines an API for derived classes.
 
