@@ -287,6 +287,7 @@ public:
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     float getRenderResolutionScale() const;
+    int getRenderAmbientLight() const;
 
     unsigned int getRenderTargetFramerate() const;
     bool isVSyncOn() const;

@@ -2797,7 +2797,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     }
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
-
+    
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
@@ -2848,6 +2848,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
 
     {
+        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
+
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
@@ -3971,5 +3973,33 @@ float Application::getRenderResolutionScale() const {
         return 0.25f;
     } else {
         return 1.0f;
+    }
+}
+
+int Application::getRenderAmbientLight() const {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLightGlobal)) {
+        return -1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight0)) {
+        return 0;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight1)) {
+        return 1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight2)) {
+        return 2;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight3)) {
+        return 3;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight4)) {
+        return 4;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight5)) {
+        return 5;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight6)) {
+        return 6;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight7)) {
+        return 7;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight8)) {
+        return 8;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight9)) {
+        return 9;
+    } else {
+        return -1;
     }
 }

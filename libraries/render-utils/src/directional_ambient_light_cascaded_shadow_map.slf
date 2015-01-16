@@ -20,12 +20,11 @@
 // Everything about shadow
 <@include Shadow.slh@>
 
-
 void main(void) {
     DeferredFragment frag = unpackDeferredFragment(gl_TexCoord[0].st);
 
     // Eval shadow Texcoord and then Attenuation
-    vec4 shadowTexcoord = evalShadowTexcoord(frag.position);
+    vec4 shadowTexcoord = evalCascadedShadowTexcoord(frag.position);
     float shadowAttenuation = evalShadowAttenuation(shadowTexcoord);
 
     // Light mapped or not ?
@@ -37,7 +36,7 @@ void main(void) {
                                 frag.specularVal.xyz),
                             1.0);
     } else {
-        vec3 color =   evalAmbientColor(frag.normal, frag.diffuse, frag.specular, frag.gloss)
+        vec3 color =   evalAmbientSphereColor(frag.normal, frag.diffuse, frag.specular, frag.gloss)
                      + evalDirectionalColor(shadowAttenuation,
                                         frag.position.xyz,
                                         frag.normal,
