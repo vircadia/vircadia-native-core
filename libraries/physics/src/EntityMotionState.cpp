@@ -163,6 +163,9 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
 #ifdef USE_BULLET_PHYSICS
+    if (!_entity->isKnownID()) {
+        return; // never update entities that are unknown
+    }
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
