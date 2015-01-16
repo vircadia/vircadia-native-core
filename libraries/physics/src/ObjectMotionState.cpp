@@ -133,22 +133,17 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     _sentFrame = simulationFrame;
     bool isActive = _body->isActive();
 
-    if (isActive) {
-        const float MAX_UPDATE_PERIOD_FOR_ACTIVE_THINGS = 10.0f;
-        if (dt > MAX_UPDATE_PERIOD_FOR_ACTIVE_THINGS) {
-            return true;
-        }
-    } else if (_sentMoving) { 
-        if (!isActive) {
+    if (!isActive) {
+        if (_sentMoving) { 
             // this object just went inactive so send an update immediately
             return true;
-        }
-    } else {
-        const float NON_MOVING_UPDATE_PERIOD = 1.0f;
-        if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
-            // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets we repeat these
-            // at a faster rate than the MAX period above, and only send a limited number of them.
-            return true;
+        } else {
+            const float NON_MOVING_UPDATE_PERIOD = 1.0f;
+            if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
+                // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets we repeat these
+                // at a faster rate than the MAX period above, and only send a limited number of them.
+                return true;
+            }
         }
     }
 
