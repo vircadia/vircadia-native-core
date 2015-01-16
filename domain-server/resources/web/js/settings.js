@@ -652,7 +652,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
     clickedButton.attr('disabled', 'disabled')
     
     // get a list of user domains from data-web
-    data_web_domains_url = "http://localhost:3000/api/v1/domains?access_token="
+    data_web_domains_url = "https://data.highfidelity.io/api/v1/domains?access_token="
     $.getJSON(data_web_domains_url + Settings.initialValues.metaverse.access_token, function(data){
       
       modal_buttons = {
