@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/transform.hpp>
+
 #include "MetavoxelMessages.h"
 #include "Spanner.h"
 
@@ -180,6 +182,50 @@ HeightfieldMaterialSpannerEdit::HeightfieldMaterialSpannerEdit(const SharedObjec
     paint(paint) {
 }
 
+class SpannerProjectionFetchVisitor : public SpannerVisitor {
+public:
+    
+    SpannerProjectionFetchVisitor(const Box& bounds, QVector<SharedObjectPointer>& results);
+    
+    virtual bool visit(Spanner* spanner);
+    
+private:
+    
+    const Box& _bounds;
+    QVector<SharedObjectPointer>& _results;
+    float _closestDistance;
+};
+
+SpannerProjectionFetchVisitor::SpannerProjectionFetchVisitor(const Box& bounds, QVector<SharedObjectPointer>& results) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()),
+    _bounds(bounds),
+    _results(results),
+    _closestDistance(FLT_MAX) {
+}
+
+bool SpannerProjectionFetchVisitor::visit(Spanner* spanner) {
+    Heightfield* heightfield = qobject_cast<Heightfield*>(spanner);
+    if (!heightfield) {
+        return true;
+    }
+    glm::mat4 transform = glm::scale(1.0f / glm::vec3(heightfield->getScale(),
+        heightfield->getScale() * heightfield->getAspectY(),
+        heightfield->getScale() * heightfield->getAspectZ())) *
+        glm::mat4_cast(glm::inverse(heightfield->getRotation())) * glm::translate(-heightfield->getTranslation());
+    Box transformedBounds = transform * _bounds;
+    if (transformedBounds.maximum.x < 0.0f && transformedBounds.maximum.z < 0.0f &&
+            transformedBounds.minimum.x > 1.0f && transformedBounds.minimum.z > 1.0f) {
+        return true;
+    }
+    float distance = qMin(glm::abs(transformedBounds.minimum.y), glm::abs(transformedBounds.maximum.y));
+    if (distance < _closestDistance) {
+        _results.clear();
+        _results.append(spanner);
+        _closestDistance = distance;
+    }
+    return true;
+}
+
 void HeightfieldMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     // make sure the color meets our transparency requirements
     QColor color = averageColor;
@@ -192,6 +238,12 @@ void HeightfieldMaterialSpannerEdit::apply(MetavoxelData& data, const WeakShared
     QVector<SharedObjectPointer> results;
     data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
         static_cast<Spanner*>(spanner.data())->getBounds(), results);
+    
+    // if there's nothing intersecting directly, find the closest heightfield that intersects the projection
+    if (results.isEmpty()) {
+        SpannerProjectionFetchVisitor visitor(static_cast<Spanner*>(spanner.data())->getBounds(), results);
+        data.guide(visitor);
+    }
     
     foreach (const SharedObjectPointer& result, results) {
         Spanner* newResult = static_cast<Spanner*>(result.data())->setMaterial(spanner, material, color, paint);

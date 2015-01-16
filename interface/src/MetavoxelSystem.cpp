@@ -1957,15 +1957,14 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             }
                         }
                         // determine whether we should ignore this vertex because it will be stitched
-                        bool ignore = false;
+                        int validCrossings = 0;
                         for (int i = 0; i < crossingCount; i++) {
-                            if (qAlpha(crossings[i].color) == 0) {
-                                ignore = true;
-                                break;
+                            if (qAlpha(crossings[i].color) != 0) {
+                                validCrossings++;
                             }
                         }
                         NormalIndex index = { { -1, -1, -1, -1 } };
-                        if (!ignore) {
+                        if (validCrossings != 0) {
                             index.indices[0] = index.indices[1] = index.indices[2] = index.indices[3] = vertices.size();
                             glm::vec3 center;
                             glm::vec3 normals[MAX_NORMALS_PER_VERTEX];
@@ -1978,6 +1977,9 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             int red = 0, green = 0, blue = 0;
                             for (int i = 0; i < crossingCount; i++) {
                                 const EdgeCrossing& crossing = crossings[i];
+                                if (qAlpha(crossing.color) == 0) {
+                                    continue;
+                                }
                                 center += crossing.point;
                                 
                                 int j = 0;
@@ -2013,7 +2015,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     }
                                 }
                             }
-                            center /= crossingCount;
+                            center /= validCrossings;
                             
                             // use a sequence of Givens rotations to perform a QR decomposition
                             // see http://www.cs.rice.edu/~jwarren/papers/techreport02408.pdf
@@ -2021,6 +2023,9 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             glm::vec4 bottom;
                             for (int i = 0; i < crossingCount; i++) {
                                 const EdgeCrossing& crossing = crossings[i];
+                                if (qAlpha(crossing.color) == 0) {
+                                    continue;
+                                }
                                 bottom = glm::vec4(crossing.normal, glm::dot(crossing.normal, crossing.point - center));
                                 
                                 for (int j = 0; j < 4; j++) {
@@ -2085,8 +2090,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 materialWeights *= (numeric_limits<quint8>::max() / totalWeight);
                             }
                             VoxelPoint point = { (glm::vec3(clampedX, y, clampedZ) + center) * step,
-                                { (quint8)(red / crossingCount), (quint8)(green / crossingCount),
-                                    (quint8)(blue / crossingCount) },
+                                { (quint8)(red / validCrossings), (quint8)(green / validCrossings),
+                                    (quint8)(blue / validCrossings) },
                                 { (char)(normals[0].x * 127.0f), (char)(normals[0].y * 127.0f),
                                     (char)(normals[0].z * 127.0f) },
                                 { materials[0], materials[1], materials[2], materials[3] },
