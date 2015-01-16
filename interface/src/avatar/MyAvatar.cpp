@@ -146,7 +146,7 @@ void MyAvatar::update(float deltaTime) {
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
     //  Get audio loudness data from audio input device
-    Audio::SharedPointer audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<Audio>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
@@ -864,7 +864,7 @@ int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
-    NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+    DependencyManager::get<NodeList>()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {

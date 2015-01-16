@@ -54,7 +54,7 @@ int Endpoint::parseData(const QByteArray& packet) {
 }
 
 void Endpoint::sendDatagram(const QByteArray& data) {
-    NodeList::getInstance()->writeDatagram(data, _node);
+    DependencyManager::get<NodeList>()->writeDatagram(data, _node);
 }
 
 void Endpoint::readMessage(Bitstream& in) {

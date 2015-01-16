@@ -14,8 +14,8 @@
 
 #include <DependencyManager.h>
 
-class AudioToolBox : public QObject {
-    SINGLETON_DEPENDENCY(AudioToolBox)
+class AudioToolBox : public Dependency {
+    SINGLETON_DEPENDENCY
 public:
     void render(int x, int y, bool boxed);
     
@@ -23,11 +23,11 @@ public:
 protected:
     AudioToolBox();
 private:
-    GLuint _micTextureId;
-    GLuint _muteTextureId;
-    GLuint _boxTextureId;
+    GLuint _micTextureId = 0;
+    GLuint _muteTextureId = 0;
+    GLuint _boxTextureId = 0;
     QRect _iconBounds;
-    qint64 _iconPulseTimeReference;
+    qint64 _iconPulseTimeReference = 0;
 };
 
 #endif // hifi_AudioToolBox_h

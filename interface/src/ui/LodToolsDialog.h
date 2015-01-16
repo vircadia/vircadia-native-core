@@ -13,18 +13,17 @@
 #define hifi_LodToolsDialog_h
 
 #include <QDialog>
-#include <QLabel>
-#include <QSlider>
 
 class QCheckBox;
 class QDoubleSpinBox;
+class QLabel;
+class QSlider;
 
 class LodToolsDialog : public QDialog {
     Q_OBJECT
 public:
     // Sets up the UI
     LodToolsDialog(QWidget* parent);
-    ~LodToolsDialog();
     
 signals:
     void closed();
@@ -41,7 +40,7 @@ public slots:
 protected:
 
     // Emits a 'closed' signal when this dialog is closed.
-    void closeEvent(QCloseEvent*);
+    void closeEvent(QCloseEvent* event);
 
 private:
     QSlider* _lodSize;

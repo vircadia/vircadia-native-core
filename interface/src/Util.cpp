@@ -33,7 +33,7 @@
 using namespace std;
 
 void renderWorldBox() {
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
 
     //  Show edge of world
     float red[] = {1, 0, 0};

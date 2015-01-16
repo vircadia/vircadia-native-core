@@ -31,8 +31,13 @@
         }
         function createEmitTextPropertyUpdateFunction(propertyName) {
             return function() {
+                var properties = {};
+                properties[propertyName] = this.value;
                 EventBridge.emitWebEvent(
-                    '{ "type":"update", "properties":{"' + propertyName + '":"' + this.value + '"}}'
+                    JSON.stringify({
+                        type: "update",
+                        properties: properties,
+                    })
                 );
             };
         }
@@ -84,6 +89,8 @@
             var elDimensionsY = document.getElementById("property-dim-y");
             var elDimensionsZ = document.getElementById("property-dim-z");
             var elResetToNaturalDimensions = document.getElementById("reset-to-natural-dimensions");
+            var elRescaleDimensionsPct = document.getElementById("dimension-rescale-pct");
+            var elRescaleDimensionsButton  = document.getElementById("dimension-rescale-button");
 
             var elRegistrationX = document.getElementById("property-reg-x");
             var elRegistrationY = document.getElementById("property-reg-y");
@@ -107,7 +114,7 @@
             var elGravityY = document.getElementById("property-grav-y");
             var elGravityZ = document.getElementById("property-grav-z");
 
-            var elMass = document.getElementById("property-mass");
+            var elDensity = document.getElementById("property-density");
             var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
             var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
             var elLifetime = document.getElementById("property-lifetime");
@@ -144,6 +151,9 @@
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
             var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
+            var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
+            var elModelTextures = document.getElementById("property-model-textures");
+            var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
             var elTextSections = document.querySelectorAll(".text-section");
             var elTextText = document.getElementById("property-text-text");
@@ -171,10 +181,10 @@
                             elLocked.checked = properties.locked;
 
                             if (properties.locked) {
-                                disableChildren(document.getElementById("properties-table"), 'input');
+                                disableChildren(document.getElementById("properties-list"), 'input');
                                 elLocked.removeAttribute('disabled');
                             } else {
-                                enableChildren(document.getElementById("properties-table"), 'input');
+                                enableChildren(document.getElementById("properties-list"), 'input');
                             }
 
                             elVisible.checked = properties.visible;
@@ -209,7 +219,7 @@
                             elGravityY.value = properties.gravity.y.toFixed(2);
                             elGravityZ.value = properties.gravity.z.toFixed(2);
 
-                            elMass.value = properties.mass.toFixed(2);
+                            elDensity.value = properties.density.toFixed(2);
                             elIgnoreForCollisions.checked = properties.ignoreForCollisions;
                             elCollisionsWillMove.checked = properties.collisionsWillMove;
                             elLifetime.value = properties.lifetime;
@@ -221,7 +231,7 @@
                                 }
                             } else {
                                 for (var i = 0; i < elBoxSections.length; i++) {
-                                    elBoxSections[i].style.display = 'table-row';
+                                    elBoxSections[i].style.display = 'block';
                                 }
 
                                 elBoxColorRed.value = properties.color.red;
@@ -235,13 +245,17 @@
                                 }
                             } else {
                                 for (var i = 0; i < elModelSections.length; i++) {
-                                    elModelSections[i].style.display = 'table-row';
+                                    elModelSections[i].style.display = 'block';
                                 }
 
                                 elModelURL.value = properties.modelURL;
                                 elModelAnimationURL.value = properties.animationURL;
                                 elModelAnimationPlaying.checked = properties.animationIsPlaying;
                                 elModelAnimationFPS.value = properties.animationFPS;
+                                elModelAnimationFrame.value = properties.animationFrameIndex;
+                                elModelAnimationSettings.value = properties.animationSettings;
+                                elModelTextures.value = properties.textures;
+                                elModelOriginalTextures.value = properties.originalTextures;
                             }
 
                             if (properties.type != "Text") {
@@ -250,7 +264,7 @@
                                 }
                             } else {
                                 for (var i = 0; i < elTextSections.length; i++) {
-                                    elTextSections[i].style.display = 'table-row';
+                                    elTextSections[i].style.display = 'block';
                                 }
 
                                 elTextText.value = properties.text;
@@ -269,7 +283,7 @@
                                 }
                             } else {
                                 for (var i = 0; i < elLightSections.length; i++) {
-                                    elLightSections[i].style.display = 'table-row';
+                                    elLightSections[i].style.display = 'block';
                                 }
 
                                 elLightDiffuseRed.value = properties.diffuseColor.red;
@@ -342,7 +356,7 @@
             elGravityY.addEventListener('change', gravityChangeFunction);
             elGravityZ.addEventListener('change', gravityChangeFunction);
 
-            elMass.addEventListener('change', createEmitNumberPropertyUpdateFunction('mass'));
+            elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
             elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
             elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
@@ -385,6 +399,8 @@
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
             elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
+            elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
+            elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -419,343 +435,323 @@
                     action: "resetToNaturalDimensions",
                 }));
             });
-
-
-            var resizing = false;
-            var startX = 0;
-            var originalWidth = 0;
-            var resizeHandleWidth = 10;
-
-            var col1 = document.querySelector("#col-label");
-
-            document.body.addEventListener('mousemove', function(event) {
-                if (resizing) {
-                    var dX = event.x - startX;
-                    col1.style.width = (originalWidth + dX) + "px";
-                }
+            elRescaleDimensionsButton.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "rescaleDimensions",
+                    percentage: parseInt(elRescaleDimensionsPct.value),
+                }));
             });
-            document.body.addEventListener('mouseup', function(event) {
-                resizing = false;
-            });
-            document.body.addEventListener('mouseleave', function(event) {
-                resizing = false;
-            });
-            var els = document.querySelectorAll("#properties-table td");
-            for (var i = 0; i < els.length; i++) {
-                var el = els[i];
-                el.addEventListener('mousemove', function(event) {
-                    if (!resizing) {
-                        var distance = this.offsetWidth - event.offsetX;
-                        if (distance < resizeHandleWidth) {
-                            document.body.style.cursor = "ew-resize";
-                        } else {
-                            document.body.style.cursor = "initial";
-                        }
-                    }
-                });
-                el.addEventListener('mousedown', function(event) {
-                    var distance = this.offsetWidth - event.offsetX;
-                    if (distance < resizeHandleWidth) {
-                        startX = event.x;
-                        originalWidth = this.offsetWidth;
-                        resizing = true;
-                        target = this;
-                    }
-                });
-            }
-
         }
     </script>
 </head>
-<body onload='loaded();'>
-    <div class="section-header">
-        <label>Entity Properties</label>
-    </div>
-    <table id="properties-table">
-        <colgroup>
-            <col id="col-label">
-            <col>
-        </colgroup>
-        <tr>
-            <td class="label">
-                ID
-            </td>
-            <td>
+<body class="properties" onload='loaded();'>
+    <div id="properties-list">
+        <div id="type" class="property">
+            <div class="label">
+                <label>Type: </label><span id="property-type"></span>
+            </div>
+        </div>
+        <div class="property">
+            <div class="value">
                 <label id="property-id" class="selectable"></label>
-            </td>
-        </tr>
-        <tr>
-            <td class="label">
-                Type
-            </td>
-            <td>
-                <label id="property-type"></label>
-            </td>
-        </tr>
-        <tr>
-            <td class="label">Locked</td>
-            <td>
+            </div>
+        </div>
+        <div class="property">
+            <div class="label">Locked</div>
+            <div class="value">
                 <input type='checkbox' id="property-locked">
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Visible</td>
-            <td>
+        <div class="property">
+            <div class="label">Visible</div>
+            <div class="value">
                 <input type='checkbox' id="property-visible">
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Position</td>
-            <td>
-                <div class="input-area">X <input class="coord" type='number' id="property-pos-x"></input></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-pos-y"></input></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-pos-z"></input></div>
+        <div class="property">
+            <div class="label">Position</div>
+            <div class="value">
+                <div class="input-area">X <br><input class="coord" type='number' id="property-pos-x"></input></div>
+                <div class="input-area">Y <br><input class="coord" type='number' id="property-pos-y"></input></div>
+                <div class="input-area">Z <br><input class="coord" type='number' id="property-pos-z"></input></div>
                 <div>
                     <input type="button" id="move-selection-to-grid" value="Selection to Grid">
                     <input type="button" id="move-all-to-grid" value="All to Grid">
                 </div>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Registration</td>
-            <td>
+        <div class="property">
+            <div class="label">Registration</div>
+            <div class="value">
                 <div class="input-area">X <input class="coord" type='number' id="property-reg-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-reg-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-reg-z"></input></div>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Dimensions</td>
-            <td>
+        <div class="property">
+            <div class="label">Dimensions</div>
+            <div class="value">
                 <div class="input-area">X <input class="coord" type='number' id="property-dim-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-dim-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-dim-z"></input></div>
                 <div>
                     <input type="button" id="reset-to-natural-dimensions" value="Reset to Natural Dimensions">
                 </div>
-            </td>
-        </tr>
+                <div class="input-area">
+                    <input class="" type='number' id="dimension-rescale-pct" value=100></input>%
+                </div>
+                <span>
+                    <input type="button" id="dimension-rescale-button" value="Rescale"></input>
+                </span>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Rotation</td>
-            <td>
+        <div class="property">
+            <div class="label">Rotation</div>
+            <div class="value">
                 <div class="input-area">Pitch <input class="coord" type='number' id="property-rot-x"></input></div>
                 <div class="input-area">Yaw <input class="coord" type='number' id="property-rot-y"></input></div>
                 <div class="input-area">Roll <input class="coord" type='number' id="property-rot-z"></input></div>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Linear Velocity</td>
-            <td>
+        <div class="property">
+            <div class="label">Linear Velocity</div>
+            <div class="value">
                 <div class="input-area">X <input class="coord" type='number' id="property-lvel-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-lvel-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-lvel-z"></input></div>
-            </td>
-        </tr>
-        <tr>
-            <td class="label">Linear Damping</td>
-            <td>
+            </div>
+        </div>
+        <div class="property">
+            <div class="label">Linear Damping</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-ldamping"></input>
-            </td>
-        </tr>
-        <tr>
-            <td class="label">Angular Velocity</td>
-            <td>
+            </div>
+        </div>
+        <div class="property">
+            <div class="label">Angular Velocity</div>
+            <div class="value">
                 <div class="input-area">Pitch <input class="coord" type='number' id="property-avel-x"></input></div>
                 <div class="input-area">Yaw <input class="coord" type='number' id="property-avel-y"></input></div>
                 <div class="input-area">Roll <input class="coord" type='number' id="property-avel-z"></input></div>
-            </td>
-        </tr>
-        <tr>
-            <td class="label">Angular Damping</td>
-            <td>
+            </div>
+        </div>
+        <div class="property">
+            <div class="label">Angular Damping</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-adamping"></input>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Gravity</td>
-            <td>
+        <div class="property">
+            <div class="label">Gravity</div>
+            <div class="value">
                 <div class="input-area">X <input class="coord" type='number' id="property-grav-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-grav-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-grav-z"></input></div>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Mass</td>
-            <td>
+        <div class="property">
+            <div class="label">Mass</div>
+            <div class="value">
                 <input type='number' id="property-mass"></input>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Ignore For Collisions</td>
-            <td>
+        <div>
+            <div class="label">Density</div>
+            <div>
+                <input type='number' id="property-density"></input>
+            </div>
+        </div>
+
+        <div class="property">
+            <div class="label">Ignore For Collisions</div>
+            <div class="value">
                 <input type='checkbox' id="property-ignore-for-collisions"></input>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Collisions Will Move</td>
-            <td>
+        <div class="property">
+            <div class="label">Collisions Will Move</div>
+            <div class="value">
                 <input type='checkbox' id="property-collisions-will-move"></input>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Lifetime</td>
-            <td>
+        <div class="property">
+            <div class="label">Lifetime</div>
+            <div class="value">
                 <input type='number' id="property-lifetime"></input>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr>
-            <td class="label">Script URL</td>
-            <td>
+        <div class="property">
+            <div class="label">Script URL</div>
+            <div class="value">
                 <input id="property-script-url" class="url"></input>
-            </td>
-        </tr>
+            </div>
+        </div>
 
 
-        <tr class="box-section">
-            <td class="label">Color</td>
-            <td>
+        <div class="box-section property">
+            <div class="label">Color</div>
+            <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-box-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-box-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-box-blue"></input></div>
-            </td>
-        </tr>
+            </div>
+        </div>
 
 
 
-        <tr class="model-section">
-            <td class="label">Model URL</td>
-            <td>
+        <div class="model-section property">
+            <div class="label">Model URL</div>
+            <div class="value">
                 <input type="text" id="property-model-url" class="url"></input>
-            </td>
-        </tr>
-        <tr class="model-section">
-            <td class="label">Animation URL</td>
-            <td>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Animation URL</div>
+            <div class="value">
                 <input type="text" id="property-model-animation-url" class="url"></input>
-            </td>
-        </tr>
-        <tr class="model-section">
-            <td class="label">Animation Playing</td>
-            <td>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Animation Playing</div>
+            <div class="value">
                 <input type='checkbox' id="property-model-animation-playing">
-            </td>
-        </tr>
-        <tr class="model-section">
-            <td class="label">Animation FPS</td>
-            <td>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Animation FPS</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-model-animation-fps"></input>
-            </td>
-        </tr>
-        <tr class="model-section">
-            <td class="label">Animation Frame</td>
-            <td>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Animation Frame</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-model-animation-frame"></input>
-            </td>
-        </tr>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Animation Settings</div>
+            <div class="value">
+                <textarea id="property-model-animation-settings" value='asdfasdf'></textarea>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Textures</div>
+            <div class="value">
+                <textarea id="property-model-textures" value='asdfasdf'></textarea>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Original Textures</div>
+            <div class="value">
+                <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
+            </div>
+        </div>
 
 
-        <tr class="text-section">
-            <td class="label">Text</td>
-            <td>
+        <div class="text-section property">
+            <div class="label">Text</div>
+            <div class="value">
                 <input type="text" id="property-text-text"></input>
-            </td>
-        </tr>
-        <tr class="text-section">
-            <td class="label">Line Height</td>
-            <td>
+            </div>
+        </div>
+        <div class="text-section property">
+            <div class="label">Line Height</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-text-line-height"></input>
-            </td>
-        </tr>
-        <tr class="text-section">
-            <td class="label">Text Color</td>
-            <td>
+            </div>
+        </div>
+        <div class="text-section property">
+            <div class="label">Text Color</div>
+            <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-text-text-color-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-text-text-color-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-text-text-color-blue"></input></div>
-            </td>
-        </tr>
-        <tr class="text-section">
-            <td class="label">Background Color</td>
-            <td>
+            </div>
+        </div>
+        <div class="text-section property">
+            <div class="label">Background Color</div>
+            <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-text-background-color-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-text-background-color-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-text-background-color-blue"></input></div>
-            </td>
-        </tr>
+            </div>
+        </div>
 
-        <tr class="light-section">
-            <td class="label">Spot Light</td>
-            <td>
+        <div class="light-section property">
+            <div class="label">Spot Light</div>
+            <div class="value">
                 <input type='checkbox' id="property-light-spot-light">
-            </td>
-        </tr>
-        <tr class="light-section">
-            <td class="label">Diffuse</td>
-            <td>
+            </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Diffuse</div>
+            <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-light-diffuse-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-light-diffuse-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-light-diffuse-blue"></input></div>
-            </td>
-        </tr>
-        <tr class="light-section">
-            <td class="label">Ambient</td>
-            <td>
+            </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Ambient</div>
+            <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-light-ambient-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-light-ambient-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-light-ambient-blue"></input></div>
-            </td>
-        </tr>
-        <tr class="light-section">
-            <td class="label">Specular</td>
-            <td>
+            </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Specular</div>
+            <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-light-specular-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-light-specular-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-light-specular-blue"></input></div>
-            </td>
-        </tr>
-        <tr class="light-section">
-            <td class="label">Constant Attenuation</td>
-            <td>
+            </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Constant Attenuation</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-light-constant-attenuation"></input>
-            </td>
-        </tr>
-        <tr class="light-section">
-            <td class="label">Linear Attenuation</td>
-            <td>
+            </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Linear Attenuation</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-light-linear-attenuation"></input>
-            </td>
-        </tr>
-        <tr class="light-section">
-            <td class="label">Quadratic Attenuation</td>
-            <td>
+            </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Quadratic Attenuation</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-light-quadratic-attenuation"></input>
-            </td>
-        </tr>
-        <tr class="light-section">
-            <td class="label">Exponent</td>
-            <td>
+            </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Exponent</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-light-exponent"></input>
-            </td>
-        </tr>
-        <tr class="light-section">
-            <td class="label">Cutoff (degrees)</td>
-            <td>
+            </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Cutoff (degrees)</div>
+            <div class="value">
                 <input class="coord" type='number' id="property-light-cutoff"></input>
-            </td>
-        </tr>
-    </table>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

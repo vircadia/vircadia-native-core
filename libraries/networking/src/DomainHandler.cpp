@@ -184,7 +184,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
 }
 
 void DomainHandler::requestDomainSettings() {
-    NodeType_t owningNodeType = NodeList::getInstance()->getOwnerType();
+    NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
     if (owningNodeType == NodeType::Agent) {
         // for now the agent nodes don't need any settings - this allows local assignment-clients
         // to connect to a domain that is using automatic networking (since we don't have TCP hole punch yet)
@@ -198,7 +198,7 @@ void DomainHandler::requestDomainSettings() {
             settingsJSONURL.setHost(_hostname);
             settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
             settingsJSONURL.setPath("/settings.json");
-            Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
+            Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
             settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
             
             qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();

@@ -35,25 +35,25 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _created = UNKNOWN_CREATED_TIME;
     _changedOnServer = 0;
 
-    _position = glm::vec3(0,0,0);
-    _dimensions = DEFAULT_DIMENSIONS;
-    _rotation = DEFAULT_ROTATION;
-    _glowLevel = DEFAULT_GLOW_LEVEL;
-    _localRenderAlpha = DEFAULT_LOCAL_RENDER_ALPHA;
-    _mass = DEFAULT_MASS;
-    _velocity = DEFAULT_VELOCITY;
-    _gravity = DEFAULT_GRAVITY;
-    _damping = DEFAULT_DAMPING;
-    _lifetime = DEFAULT_LIFETIME;
-    _script = DEFAULT_SCRIPT;
-    _registrationPoint = DEFAULT_REGISTRATION_POINT;
-    _angularVelocity = DEFAULT_ANGULAR_VELOCITY;
-    _angularDamping = DEFAULT_ANGULAR_DAMPING;
-    _visible = DEFAULT_VISIBLE;
-    _ignoreForCollisions = DEFAULT_IGNORE_FOR_COLLISIONS;
-    _collisionsWillMove = DEFAULT_COLLISIONS_WILL_MOVE;
-    _locked = DEFAULT_LOCKED;
-    _userData = DEFAULT_USER_DATA;
+    _position = ENTITY_ITEM_ZERO_VEC3;
+    _dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
+    _density = ENTITY_ITEM_DEFAULT_DENSITY;
+    _rotation = ENTITY_ITEM_DEFAULT_ROTATION;
+    _glowLevel = ENTITY_ITEM_DEFAULT_GLOW_LEVEL;
+    _localRenderAlpha = ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA;
+    _velocity = ENTITY_ITEM_DEFAULT_VELOCITY;
+    _gravity = ENTITY_ITEM_DEFAULT_GRAVITY;
+    _damping = ENTITY_ITEM_DEFAULT_DAMPING;
+    _lifetime = ENTITY_ITEM_DEFAULT_LIFETIME;
+    _script = ENTITY_ITEM_DEFAULT_SCRIPT;
+    _registrationPoint = ENTITY_ITEM_DEFAULT_REGISTRATION_POINT;
+    _angularVelocity = ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY;
+    _angularDamping = ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING;
+    _visible = ENTITY_ITEM_DEFAULT_VISIBLE;
+    _ignoreForCollisions = ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS;
+    _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
+    _locked = ENTITY_ITEM_DEFAULT_LOCKED;
+    _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
     
     recalculateCollisionShape();
 }
@@ -103,7 +103,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_POSITION;
     requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
     requestedProperties += PROP_ROTATION;
-    requestedProperties += PROP_MASS;
+    requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_VELOCITY;
     requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
@@ -219,7 +219,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         }
 
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
-        APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, getMass());
+        APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
@@ -495,7 +495,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
                 
         READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
-        READ_ENTITY_PROPERTY_SETTER(PROP_MASS, float, updateMass);
+        READ_ENTITY_PROPERTY_SETTER(PROP_DENSITY, float, updateDensity);
         READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
         READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
@@ -555,6 +555,46 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     }
 }
 
+float EntityItem::computeMass() const { 
+    // NOTE: we group the operations here in and attempt to reduce floating point error.
+    return ((_density * (_volumeMultiplier * _dimensions.x)) * _dimensions.y) * _dimensions.z;
+}
+
+void EntityItem::setDensity(float density) {
+    _density = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+}
+
+void EntityItem::updateDensity(float density) {
+    const float MIN_DENSITY_CHANGE_FACTOR = 0.001f; // 0.1 percent
+    float newDensity = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+    if (fabsf(_density - newDensity) / _density > MIN_DENSITY_CHANGE_FACTOR) {
+        _density = newDensity;
+        _dirtyFlags |= EntityItem::DIRTY_MASS;
+    }
+}
+
+void EntityItem::setMass(float mass) {
+    // Setting the mass actually changes the _density (at fixed volume), however
+    // we must protect the density range to help maintain stability of physics simulation
+    // therefore this method might not accept the mass that is supplied.
+
+    // NOTE: when computing the volume we group the _volumeMultiplier (typically a very large number, due
+    // to the TREE_SCALE transformation) with the first dimension component (typically a very small number) 
+    // in an attempt to reduce floating point error of the final result.
+    float volume = (_volumeMultiplier * _dimensions.x) * _dimensions.y * _dimensions.z;
+
+    // compute new density
+    const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
+    if (volume < 1.0e-6f) {
+        // avoid divide by zero
+        _density = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
+    } else {
+        _density = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+    }
+}
+
+const float ENTITY_ITEM_EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
+
 // TODO: we probably want to change this to make "down" be the direction of the entity's gravity vector
 //       for now, this is always true DOWN even if entity has non-down gravity.
 // TODO: the old code had "&& _velocity.y >= -EPSILON && _velocity.y <= EPSILON" --- what was I thinking?
@@ -562,7 +602,7 @@ bool EntityItem::isRestingOnSurface() const {
     glm::vec3 downwardVelocity = glm::vec3(0.0f, _velocity.y, 0.0f);
 
     return _position.y <= getDistanceToBottomOfEntity()
-            && (glm::length(downwardVelocity) <= EPSILON_VELOCITY_LENGTH)
+            && (glm::length(downwardVelocity) <= ENTITY_ITEM_EPSILON_VELOCITY_LENGTH)
             && _gravity.y < 0.0f;
 }
 
@@ -639,7 +679,7 @@ void EntityItem::simulate(const quint64& now) {
         
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            setAngularVelocity(NO_ANGULAR_VELOCITY);
+            setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
         } else {
             // NOTE: angularSpeed is currently in degrees/sec!!!
             // TODO: Andrew to convert to radians/sec
@@ -651,15 +691,7 @@ void EntityItem::simulate(const quint64& now) {
         }
     }
 
-#ifdef USE_BULLET_PHYSICS
-    // When Bullet is available we assume that "zero velocity" means "at rest"
-    // because of collision conditions this simulation does not know about
-    // so we don't fall in for the non-zero gravity case here.
     if (hasVelocity()) {
-#else // !USE_BULLET_PHYSICS
-    if (hasVelocity() || hasGravity()) {
-#endif // USE_BULLET_PHYSICS
-
         // linear damping
         glm::vec3 velocity = getVelocity();
         if (_damping > 0.0f) {
@@ -668,7 +700,7 @@ void EntityItem::simulate(const quint64& now) {
                 qDebug() << "    damping:" << _damping;
                 qDebug() << "    velocity AFTER dampingResistance:" << velocity;
                 qDebug() << "    glm::length(velocity):" << glm::length(velocity);
-                qDebug() << "    EPSILON_VELOCITY_LENGTH:" << EPSILON_VELOCITY_LENGTH;
+                qDebug() << "    velocityEspilon :" << ENTITY_ITEM_EPSILON_VELOCITY_LENGTH;
             }
         }
 
@@ -693,14 +725,6 @@ void EntityItem::simulate(const quint64& now) {
         // handle bounces off the ground... We bounce at the distance to the bottom of our entity
         if (position.y <= getDistanceToBottomOfEntity()) {
             velocity = velocity * glm::vec3(1,-1,1);
-
-#ifndef USE_BULLET_PHYSICS
-            // if we've slowed considerably, then just stop moving, but only if no BULLET
-            if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
-                velocity = NO_VELOCITY;
-            }
-#endif // !USE_BULLET_PHYSICS
-            
             position.y = getDistanceToBottomOfEntity();
         }
 
@@ -716,14 +740,8 @@ void EntityItem::simulate(const quint64& now) {
             }
         }
         
-#ifdef USE_BULLET_PHYSICS
-        // When Bullet is available we assume that it will tell us when velocities go to zero...
-#else // !USE_BULLET_PHYSICS
-        // ... otherwise we help things come to rest by clamping small velocities.
-        if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
-            velocity = NO_VELOCITY;
-        }
-#endif // USE_BULLET_PHYSICS
+        // NOTE: we don't zero out very small velocities --> we rely on a remote Bullet simulation 
+        // to tell us when the entity has stopped.
 
         // NOTE: the simulation should NOT set any DirtyFlags on this entity
         setPosition(position); // this will automatically recalculate our collision shape
@@ -741,13 +759,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::isMoving() const {
-#ifdef USE_BULLET_PHYSICS
-    // When Bullet is available we assume that "zero velocity" means "at rest"
-    // because of collision conditions this simulation does not know about.
     return hasVelocity() || hasAngularVelocity();
-#else // !USE_BULLET_PHYSICS
-    return hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity();
-#endif //USE_BULLET_PHYSICS
 }
 
 bool EntityItem::lifetimeHasExpired() const { 
@@ -769,7 +781,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPositionInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensionsInMeters); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(mass, getMass);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocityInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravityInMeters);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
@@ -797,7 +809,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePositionInMeters); // this will call recalculate collision shape if needed
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensionsInMeters); // NOTE: radius is obsolete
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, updateMass);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, updateDensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
@@ -909,7 +921,7 @@ AACube EntityItem::getMinimumAACube() const {
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
 
-    glm::vec3 unrotatedMinRelativeToEntity = glm::vec3(0.0f, 0.0f, 0.0f) - (_dimensions * _registrationPoint);
+    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
     glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
@@ -934,7 +946,7 @@ AABox EntityItem::getAABox() const {
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
     
-    glm::vec3 unrotatedMinRelativeToEntity = glm::vec3(0.0f, 0.0f, 0.0f) - (_dimensions * _registrationPoint);
+    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
     glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
@@ -997,8 +1009,7 @@ void EntityItem::recalculateCollisionShape() {
 
 const float MIN_POSITION_DELTA = 0.0001f;
 const float MIN_ALIGNMENT_DOT = 0.9999f;
-const float MIN_MASS_DELTA = 0.001f;
-const float MIN_VELOCITY_DELTA = 0.025f;
+const float MIN_VELOCITY_DELTA = 0.01f;
 const float MIN_DAMPING_DELTA = 0.001f;
 const float MIN_GRAVITY_DELTA = 0.001f;
 const float MIN_SPIN_DELTA = 0.0003f;
@@ -1045,9 +1056,29 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
     }
 }
 
-void EntityItem::updateMass(float value) {
-    if (fabsf(_mass - value) > MIN_MASS_DELTA) {
-        _mass = value;
+void EntityItem::updateMass(float mass) {
+    // Setting the mass actually changes the _density (at fixed volume), however
+    // we must protect the density range to help maintain stability of physics simulation
+    // therefore this method might not accept the mass that is supplied.
+
+    // NOTE: when computing the volume we group the _volumeMultiplier (typically a very large number, due
+    // to the TREE_SCALE transformation) with the first dimension component (typically a very small number) 
+    // in an attempt to reduce floating point error of the final result.
+    float volume = (_volumeMultiplier * _dimensions.x) * _dimensions.y * _dimensions.z;
+
+    // compute new density
+    float newDensity = _density;
+    const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
+    if (volume < 1.0e-6f) {
+        // avoid divide by zero
+        newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
+    } else {
+        newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+    }
+
+    const float MIN_DENSITY_CHANGE_FACTOR = 0.001f; // 0.1 percent
+    if (fabsf(_density - newDensity) / _density > MIN_DENSITY_CHANGE_FACTOR) {
+        _density = newDensity;
         _dirtyFlags |= EntityItem::DIRTY_MASS;
     }
 }
@@ -1055,7 +1086,7 @@ void EntityItem::updateMass(float value) {
 void EntityItem::updateVelocity(const glm::vec3& value) {
     if (glm::distance(_velocity, value) * (float)TREE_SCALE > MIN_VELOCITY_DELTA) {
         if (glm::length(value) * (float)TREE_SCALE < MIN_VELOCITY_DELTA) {
-            _velocity = glm::vec3(0.0f);
+            _velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _velocity = value;
         }
@@ -1067,7 +1098,7 @@ void EntityItem::updateVelocityInMeters(const glm::vec3& value) {
     glm::vec3 velocity = value / (float) TREE_SCALE; 
     if (glm::distance(_velocity, velocity) * (float)TREE_SCALE > MIN_VELOCITY_DELTA) {
         if (glm::length(value) < MIN_VELOCITY_DELTA) {
-            _velocity = glm::vec3(0.0f);
+            _velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _velocity = velocity;
         }
