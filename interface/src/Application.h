@@ -33,6 +33,7 @@
 #include <NodeList.h>
 #include <OctreeQuery.h>
 #include <PacketHeaders.h>
+#include <PhysicsEngine.h>
 #include <ScriptEngine.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>

@@ -16,6 +16,8 @@
 #include "BulletUtil.h"
 #endif // USE_BULLET_PHYSICS
 #include "EntityMotionState.h"
+#include "SimpleEntityKinematicController.h"
+
 
 QSet<EntityItem*>* _outgoingEntityList;
 
@@ -40,13 +42,24 @@ EntityMotionState::~EntityMotionState() {
     assert(_entity);
     _entity->setPhysicsInfo(NULL);
     _entity = NULL;
+    delete _kinematicController;
+    _kinematicController = NULL;
 }
 
 MotionType EntityMotionState::computeMotionType() const {
-    // HACK: According to EntityTree the meaning of "static" is "not moving" whereas
-    // to Bullet it means "can't move".  For demo purposes we temporarily interpret
-    // Entity::weightless to mean Bullet::static.
-    return _entity->getCollisionsWillMove() ? MOTION_TYPE_DYNAMIC : MOTION_TYPE_STATIC;
+    if (_entity->getCollisionsWillMove()) {
+        return MOTION_TYPE_DYNAMIC;
+    }
+    return _entity->isMoving() ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
+}
+
+void EntityMotionState::addKinematicController() {
+    if (!_kinematicController) {
+        _kinematicController = new SimpleEntityKinematicController(_entity);
+        _kinematicController->start();
+    } else {
+        _kinematicController->start();
+    }
 }
 
 #ifdef USE_BULLET_PHYSICS
@@ -56,6 +69,9 @@ MotionType EntityMotionState::computeMotionType() const {
 // (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
+    if (_kinematicController && _kinematicController->isRunning()) {
+        _kinematicController->stepForward();
+    }
     worldTrans.setOrigin(glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
 }
@@ -210,4 +226,17 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _sentFrame = frame;
     }
 #endif // USE_BULLET_PHYSICS
+}
+
+uint32_t EntityMotionState::getIncomingDirtyFlags() const { 
+    uint32_t dirtyFlags = _entity->getDirtyFlags(); 
+    
+    // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
+    int bodyFlags = _body->getCollisionFlags();
+    bool isMoving = _entity->isMoving();
+    if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
+            (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
+        dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE; 
+    }
+    return dirtyFlags;
 }

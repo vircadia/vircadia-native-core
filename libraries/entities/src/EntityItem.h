@@ -128,6 +128,8 @@ public:
     
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
+
+    void simulateSimpleKinematicMotion(float timeElapsed);
     
     virtual bool needsToCallUpdate() const { return false; }
 

@@ -14,7 +14,9 @@
 #include <math.h>
 
 #include "BulletUtil.h"
+#include "KinematicController.h"
 #include "ObjectMotionState.h"
+#include "PhysicsEngine.h"
 
 const float MIN_DENSITY = 200.0f;
 const float DEFAULT_DENSITY = 1000.0f;
@@ -67,6 +69,10 @@ ObjectMotionState::ObjectMotionState() :
 ObjectMotionState::~ObjectMotionState() {
     // NOTE: you MUST remove this MotionState from the world before you call the dtor.
     assert(_body == NULL);
+    if (_kinematicController) {
+        delete _kinematicController;
+        _kinematicController = NULL;
+    }
 }
 
 void ObjectMotionState::setDensity(float density) {
@@ -121,11 +127,9 @@ bool ObjectMotionState::doesNotNeedToSendUpdate() const {
     return !_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES;
 }
 
-const float FIXED_SUBSTEP = 1.0f / 60.0f;
-
 bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     assert(_body);
-    float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP;
+    float dt = (float)(simulationFrame - _sentFrame) * PHYSICS_ENGINE_FIXED_SUBSTEP;
     _sentFrame = simulationFrame;
     bool isActive = _body->isActive();
 
@@ -184,6 +188,13 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     const float MIN_ROTATION_DOT = 0.98f;
     glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
     return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
+}
+
+void ObjectMotionState::removeKinematicController() {
+    if (_kinematicController) {
+        delete _kinematicController;
+        _kinematicController = NULL;
+    }
 }
 
 #endif // USE_BULLET_PHYSICS
