@@ -39,6 +39,7 @@
 #include <ViewFrustum.h>
 
 #include "Audio.h"
+#include "Bookmarks.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -111,6 +112,10 @@ static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
 static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
+
+// 70 times per second - target is 60hz, but this helps account for any small deviations
+// in the update loop
+static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = (1000 * 1000) / 70;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
@@ -283,6 +288,7 @@ public:
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     float getRenderResolutionScale() const;
+    int getRenderAmbientLight() const;
 
     unsigned int getRenderTargetFramerate() const;
     bool isVSyncOn() const;
@@ -296,6 +302,8 @@ public:
     
     QRect getDesirableApplicationGeometry();
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
+
+    Bookmarks* getBookmarks() const { return _bookmarks; }
 
 signals:
 
@@ -566,9 +574,13 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
+    quint64 _lastSendAvatarDataTime;
+
     bool _isVSyncOn;
     
     bool _aboutToQuit;
+
+    Bookmarks* _bookmarks;
 };
 
 #endif // hifi_Application_h

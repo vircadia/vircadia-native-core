@@ -178,7 +178,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
     locations.texcoordMatrices = program.uniformLocation("texcoordMatrices");
     locations.emissiveParams = program.uniformLocation("emissiveParams");
-
+    locations.glowIntensity = program.uniformLocation("glowIntensity");
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
 
@@ -196,6 +196,35 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
         locations.emissiveTextureUnit = 3;
     } else {
         locations.emissiveTextureUnit = -1;
+    }
+
+    // bindable uniform version
+#if defined(Q_OS_MAC)
+    loc = program.uniformLocation("materialBuffer");
+    if (loc >= 0) {
+        locations.materialBufferUnit = loc;
+    } else {
+        locations.materialBufferUnit = -1;
+    }
+#elif defined(Q_OS_WIN)
+    loc = glGetUniformBlockIndex(program.programId(), "materialBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, 1);
+        locations.materialBufferUnit = 1;
+    } else {
+        locations.materialBufferUnit = -1;
+    }
+#else
+    loc = program.uniformLocation("materialBuffer");
+    if (loc >= 0) {
+        locations.materialBufferUnit = loc;
+    } else {
+        locations.materialBufferUnit = -1;
+    }
+#endif
+
+    if (!program.isLinked()) {
+        program.release();
     }
 
     program.release();
@@ -2348,6 +2377,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
             const FBXMeshPart& part = mesh.parts.at(j);
+            model::MaterialPointer material = part._material;
             if ((networkPart.isTranslucent() || part.opacity != 1.0f) != translucent) {
                 offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
@@ -2366,15 +2396,16 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         qDebug() << "NEW part.materialID:" << part.materialID;
                     }
 
-                    glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
-                    if (!(translucent && alphaThreshold == 0.0f)) {
-                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = glowEffect->getIntensity());
+                    if (locations->glowIntensity >= 0) {
+                        GLBATCH(glUniform1f)(locations->glowIntensity, glowEffect->getIntensity());
                     }
-                    glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-                    GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, (part.shininess > 128.0f ? 128.0f: part.shininess));
+                    if (!(translucent && alphaThreshold == 0.0f)) {
+                        GLBATCH(glAlphaFunc)(GL_EQUAL, glowEffect->getIntensity());
+                    }
+
+                    if (locations->materialBufferUnit >= 0) {
+                        batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
+                    }
 
                     Texture* diffuseMap = networkPart.diffuseTexture.data();
                     if (mesh.isEye && diffuseMap) {

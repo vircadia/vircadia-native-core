@@ -14,7 +14,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("../../libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+var RED = { red: 255, green: 0, blue: 0 };
+var LASER_WIDTH = 2;
+
+var pointer = [];
+pointer.push(Overlays.addOverlay("line3d", {
+    start: { x: 0, y: 0, z: 0 },
+    end: { x: 0, y: 0, z: 0 },
+    color: RED,
+    alpha: 1,
+    visible: true,
+    lineWidth: LASER_WIDTH
+}));
+pointer.push(Overlays.addOverlay("line3d", {
+    start: { x: 0, y: 0, z: 0 },
+    end: { x: 0, y: 0, z: 0 },
+    color: RED,
+    alpha: 1,
+    visible: true,
+    lineWidth: LASER_WIDTH
+}));
 
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
@@ -26,7 +47,7 @@ var yawFromMouse = 0;
 var pitchFromMouse = 0;
 var isMouseDown = false; 
 
-var BULLET_VELOCITY = 20.0;
+var BULLET_VELOCITY = 5.0;
 var MIN_THROWER_DELAY = 1000;
 var MAX_THROWER_DELAY = 1000;
 var LEFT_BUTTON_3 = 3;
@@ -106,8 +127,6 @@ if (showScore) {
                 });
 }
 
-
-
 function printVector(string, vector) {
     print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
@@ -115,7 +134,7 @@ function printVector(string, vector) {
 function shootBullet(position, velocity) {
     var BULLET_SIZE = 0.07;
     var BULLET_LIFETIME = 10.0;
-    var BULLET_GRAVITY = -0.02;
+    var BULLET_GRAVITY = 0.0;
     bulletID = Entities.addEntity(
         { type: "Sphere",
           position: position, 
@@ -124,6 +143,8 @@ function shootBullet(position, velocity) {
           velocity: velocity, 
           lifetime: BULLET_LIFETIME,
           gravity: {  x: 0, y: BULLET_GRAVITY, z: 0 },
+          damping: 0.01,
+          density: 5000,
           ignoreCollisions: false,
           collisionsWillMove: true
       });
@@ -146,11 +167,11 @@ function shootBullet(position, velocity) {
 
 function shootTarget() {
     var TARGET_SIZE = 0.50;
-    var TARGET_GRAVITY = -0.25;
+    var TARGET_GRAVITY = 0.0;
     var TARGET_LIFETIME = 300.0;
-    var TARGET_UP_VELOCITY = 0.5;
-    var TARGET_FWD_VELOCITY = 1.0;
-    var DISTANCE_TO_LAUNCH_FROM = 3.0;
+    var TARGET_UP_VELOCITY = 0.0;
+    var TARGET_FWD_VELOCITY = 0.0;
+    var DISTANCE_TO_LAUNCH_FROM = 5.0;
     var ANGLE_RANGE_FOR_LAUNCH = 20.0;
     var camera = Camera.getPosition();
     //printVector("camera", camera);
@@ -166,13 +187,14 @@ function shootTarget() {
     targetID = Entities.addEntity(
         { type: "Box",
           position: newPosition, 
-          dimensions: { x: TARGET_SIZE, y: TARGET_SIZE, z: TARGET_SIZE }, 
-          color: {  red: 0, green: 200, blue: 200 },  
-          //angularVelocity: { x: 1, y: 0, z: 0 },
+          dimensions: { x: TARGET_SIZE * (0.5 + Math.random()), y: TARGET_SIZE * (0.5 + Math.random()), z: TARGET_SIZE * (0.5 + Math.random()) / 4.0 }, 
+          color: {  red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },  
           velocity: velocity, 
           gravity: {  x: 0, y: TARGET_GRAVITY, z: 0 }, 
           lifetime: TARGET_LIFETIME,
-          damping: 0.0001, 
+          rotation:  Camera.getOrientation(),
+          damping: 0.1,
+          density: 100.0, 
           collisionsWillMove: true });
 
     // Record start time 
@@ -182,8 +204,6 @@ function shootTarget() {
     audioOptions.position = newPosition;   
     Audio.playSound(targetLaunchSound, audioOptions);
 }
-
-
 
 function entityCollisionWithEntity(entity1, entity2, collision) {
 
@@ -212,7 +232,7 @@ function keyPressEvent(event) {
     if (event.text == "t") {
         var time = MIN_THROWER_DELAY + Math.random() * MAX_THROWER_DELAY;
         Script.setTimeout(shootTarget, time); 
-    } else if (event.text == ".") {
+    } else if ((event.text == ".") || (event.text == "SPACE")) {
         shootFromMouse();
     } else if (event.text == "r") {
         playLoadSound();
@@ -254,7 +274,7 @@ function takeFiringPose() {
     }
 }
 
-//MyAvatar.attach(gunModel, "RightHand", {x:0.02, y: 0.11, z: 0.04}, Quat.fromPitchYawRollDegrees(-0, -160, -79), 0.20);
+MyAvatar.attach(gunModel, "RightHand", {x:0.02, y: 0.11, z: 0.04}, Quat.fromPitchYawRollDegrees(-0, -160, -79), 0.20);
 MyAvatar.attach(gunModel, "LeftHand", {x:-0.02, y: 0.11, z: 0.04}, Quat.fromPitchYawRollDegrees(0, 0, 79), 0.20);
 
 //  Give a bit of time to load before playing sound
@@ -262,7 +282,6 @@ Script.setTimeout(playLoadSound, 2000);
 
 function update(deltaTime) {
     if (bulletID && !bulletID.isKnownID) {
-        print("Trying to identify bullet");
         bulletID = Entities.identifyEntity(bulletID);
     }
     if (targetID && !targetID.isKnownID) {
@@ -304,15 +323,6 @@ function update(deltaTime) {
         }
     }
 
-    //  Check hydra controller for launch button press 
-    if (!isLaunchButtonPressed && Controller.isButtonPressed(LEFT_BUTTON_3)) {
-        isLaunchButtonPressed = true; 
-        var time = MIN_THROWER_DELAY + Math.random() * MAX_THROWER_DELAY;
-        Script.setTimeout(shootTarget, time);
-    } else if (isLaunchButtonPressed && !Controller.isButtonPressed(LEFT_BUTTON_3)) {
-        isLaunchButtonPressed = false;   
-        
-    }
 
     // check for trigger press
 
@@ -335,14 +345,21 @@ function update(deltaTime) {
                     shootABullet = true;
                 }
             }
+            var palmController = t * controllersPerTrigger; 
+            var palmPosition = Controller.getSpatialControlPosition(palmController);
+            var fingerTipController = palmController + 1; 
+            var fingerTipPosition = Controller.getSpatialControlPosition(fingerTipController);
+            var laserTip = Vec3.sum(Vec3.multiply(100.0, Vec3.subtract(fingerTipPosition, palmPosition)), palmPosition);
+
+            //  Update Lasers 
+            Overlays.editOverlay(pointer[t], {
+                start: palmPosition,
+                end: laserTip,
+                alpha: 1
+            });
 
             if (shootABullet) {
-                var palmController = t * controllersPerTrigger; 
-                var palmPosition = Controller.getSpatialControlPosition(palmController);
-
-                var fingerTipController = palmController + 1; 
-                var fingerTipPosition = Controller.getSpatialControlPosition(fingerTipController);
-                
+                 
                 var palmToFingerTipVector = 
                         {   x: (fingerTipPosition.x - palmPosition.x),
                             y: (fingerTipPosition.y - palmPosition.y),
@@ -361,20 +378,8 @@ function update(deltaTime) {
     }
 }
 
-function mousePressEvent(event) {
-    isMouseDown = true;
-    lastX = event.x;
-    lastY = event.y;
-
-    if (Overlays.getOverlayAtPoint({ x: event.x, y: event.y }) === offButton) {
-        Script.stop();
-    } else {
-        shootFromMouse();
-    } 
-}
-
 function shootFromMouse() {
-    var DISTANCE_FROM_CAMERA = 2.0;
+    var DISTANCE_FROM_CAMERA = 1.0;
     var camera = Camera.getPosition();
     var forwardVector = Quat.getFront(Camera.getOrientation());
     var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, DISTANCE_FROM_CAMERA));
@@ -402,6 +407,8 @@ function mouseMoveEvent(event) {
 function scriptEnding() {
     Overlays.deleteOverlay(reticle); 
     Overlays.deleteOverlay(offButton);
+    Overlays.deleteOverlay(pointer[0]);
+    Overlays.deleteOverlay(pointer[1]);
     Overlays.deleteOverlay(text);
     MyAvatar.detachOne(gunModel);
     clearPose();
@@ -410,7 +417,6 @@ function scriptEnding() {
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
-Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.keyPressEvent.connect(keyPressEvent);

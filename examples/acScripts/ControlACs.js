@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 // Set the following variables to the right value
 var NUM_AC = 3; // This is the number of AC. Their ID need to be unique and between 0 (included) and NUM_AC (excluded)

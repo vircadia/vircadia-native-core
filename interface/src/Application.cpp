@@ -91,6 +91,7 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
+#include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -254,6 +255,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
+    _bookmarks = new Bookmarks();  // Before setting up the menu
+
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
@@ -333,6 +336,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter(getPositionForPath);
     addressManager->setOrientationGetter(getOrientationForPath);
+    
+    connect(addressManager.data(), &AddressManager::rootPlaceNameChanged, this, &Application::updateWindowTitle);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -911,13 +916,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
-            case Qt::Key_N:
-                if (isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::NameLocation);
-                }
-                
-                break;
-
             case Qt::Key_Up:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     if (!isShifted) {
@@ -1683,6 +1681,7 @@ void Application::init() {
     DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
+    RealSense::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
@@ -2129,12 +2128,17 @@ void Application::updateMyAvatar(float deltaTime) {
 
     _myAvatar->update(deltaTime);
 
-    {
+    quint64 now = usecTimestampNow();
+    quint64 dt = now - _lastSendAvatarDataTime;
+
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
         QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
         packet.append(_myAvatar->toByteArray());
         controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
+
+        _lastSendAvatarDataTime = now;
     }
 }
 
@@ -2787,7 +2791,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     }
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
-
+    
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
@@ -2838,6 +2842,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
 
     {
+        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
+
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
@@ -3136,8 +3142,14 @@ void Application::updateWindowTitle(){
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
+    QString currentPlaceName = DependencyManager::get<AddressManager>()->getRootPlaceName();
+    
+    if (currentPlaceName.isEmpty()) {
+        currentPlaceName = nodeList->getDomainHandler().getHostname();
+    }
+    
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
+        + currentPlaceName + connectionStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -3149,23 +3161,34 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
+    auto addressManager = DependencyManager::get<AddressManager>();
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     
-    if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
+    if (accountManager.isLoggedIn() && domainHandler.isConnected()
+        && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
 
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
         QJsonObject locationObject;
         
-        QString pathString = DependencyManager::get<AddressManager>()->currentPath();
+        QString pathString = addressManager->currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
-        const QString PATH_KEY_IN_LOCATION = "path";
-        const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
         
+        const QString PATH_KEY_IN_LOCATION = "path";
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
+        
+        if (!addressManager->getRootPlaceID().isNull()) {
+            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
+            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
+            
+        } else {
+            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
+        }
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
@@ -3944,5 +3967,33 @@ float Application::getRenderResolutionScale() const {
         return 0.25f;
     } else {
         return 1.0f;
+    }
+}
+
+int Application::getRenderAmbientLight() const {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLightGlobal)) {
+        return -1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight0)) {
+        return 0;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight1)) {
+        return 1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight2)) {
+        return 2;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight3)) {
+        return 3;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight4)) {
+        return 4;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight5)) {
+        return 5;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight6)) {
+        return 6;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight7)) {
+        return 7;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight8)) {
+        return 8;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight9)) {
+        return 9;
+    } else {
+        return -1;
     }
 }

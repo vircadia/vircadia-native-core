@@ -12,7 +12,9 @@
 #ifndef hifi_PhysicsEngine_h
 #define hifi_PhysicsEngine_h
 
-typedef unsigned int uint32_t;
+#include <stdint.h>
+
+const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
 
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
@@ -27,8 +29,11 @@ typedef unsigned int uint32_t;
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
+class ObjectMotionState;
+
 class PhysicsEngine : public EntitySimulation {
 public:
+    static uint32_t getFrameCount();
 
     PhysicsEngine(const glm::vec3& offset);
 
@@ -66,9 +71,6 @@ public:
     /// \return duration of fixed simulation substep
     float getFixedSubStep() const;
 
-    /// \return number of simulation frames the physics engine has taken
-    uint32_t getFrameCount() const { return _frameCount; }
-
 protected:
     void updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
@@ -90,8 +92,6 @@ private:
     QSet<ObjectMotionState*> _outgoingPackets; // MotionStates with pending changes that need to be sent over wire
 
     EntityEditPacketSender* _entityPacketSender;
-
-    uint32_t _frameCount;
 };
 
 #endif // hifi_PhysicsEngine_h

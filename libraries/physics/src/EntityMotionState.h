@@ -14,6 +14,7 @@
 
 #include <AACube.h>
 
+#include "KinematicController.h"
 #include "ObjectMotionState.h"
 
 class EntityItem;
@@ -31,11 +32,15 @@ public:
     static void setOutgoingEntityList(QSet<EntityItem*>* list);
     static void enqueueOutgoingEntity(EntityItem* entity);
 
+    EntityMotionState() = delete; // prevent compiler from making default ctor
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
     MotionType computeMotionType() const;
+
+    // virtual override for ObjectMotionState
+    void addKinematicController();
 
     // this relays incoming position/rotation to the RigidBody
     void getWorldTransform(btTransform& worldTrans) const;
@@ -52,7 +57,7 @@ public:
 
     void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
 
-    uint32_t getIncomingDirtyFlags() const { return _entity->getDirtyFlags(); }
+    uint32_t getIncomingDirtyFlags() const;
     void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
 
 protected:
