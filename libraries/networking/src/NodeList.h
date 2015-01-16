@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <iterator>
+#include <assert.h>
 
 #ifndef _WIN32
 #include <unistd.h> // not on windows, not needed for mac or windows
@@ -27,6 +28,8 @@
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QUdpSocket>
 
+#include <DependencyManager.h>
+
 #include "DomainHandler.h"
 #include "LimitedNodeList.h"
 #include "Node.h"
@@ -39,9 +42,9 @@ class Assignment;
 
 class NodeList : public LimitedNodeList {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
+    
 public:
-    static NodeList* createInstance(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsPort = 0);
-    static NodeList* getInstance();
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
@@ -70,7 +73,8 @@ public slots:
 signals:
     void limitOfSilentDomainCheckInsReached();
 private:
-    NodeList(char ownerType, unsigned short socketListenPort, unsigned short dtlsListenPort);
+    NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
+    NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
     

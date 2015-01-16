@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 var panelWall = false;
 var orbShell = false;
@@ -66,20 +66,20 @@ function textOverlayPosition() {
                               Vec3.multiply(Quat.getUp(Camera.orientation), TEXT_DISTANCE_DOWN));
 }
 
-var panelLocationOrder = [
+var panelPlaceOrder = [
   7, 8, 9, 10, 11, 12, 13,
   0, 1, 2, 3, 4, 5, 6,
   14, 15, 16, 17, 18, 19, 20
 ];
 
-// Location index is 0-based
-function locationIndexToPanelIndex(locationIndex) {
-  return panelLocationOrder.indexOf(locationIndex) + 1;
+// place index is 0-based
+function placeIndexToPanelIndex(placeIndex) {
+  return panelPlaceOrder.indexOf(placeIndex) + 1;
 }
 
 // Panel index is 1-based
-function panelIndexToLocationIndex(panelIndex) {
-  return panelLocationOrder[panelIndex - 1];
+function panelIndexToPlaceIndex(panelIndex) {
+  return panelPlaceOrder[panelIndex - 1];
 }
 
 var MAX_NUM_PANELS = 21;
@@ -138,33 +138,34 @@ function drawLobby() {
     // add an attachment on this avatar so other people see them in the lobby
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
-    // start the drone sound
-    // currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+    if (droneSound.downloaded) {
+      // start the drone sound
+      currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+    }
     
     // start one of our muzak sounds
-    // playRandomMuzak();
+    playRandomMuzak();
   }
 }
 
-var locations = {};
+var places = {};
 
 function changeLobbyTextures() {
   var req = new XMLHttpRequest();
-  req.open("GET", "https://data.highfidelity.io/api/v1/locations?limit=21", false);
+  req.open("GET", "https://data.highfidelity.io/api/v1/places?limit=21", false);
   req.send();
 
-  locations = JSON.parse(req.responseText).data.locations;
+  places = JSON.parse(req.responseText).data.places;
   
-  var NUM_PANELS = locations.length;
+  var NUM_PANELS = places.length;
 
   var textureProp = { 
     textures: {}
   };
   
   for (var j = 0; j < NUM_PANELS; j++) {
-    var panelIndex = locationIndexToPanelIndex(j);
-    textureProp["textures"]["file" + panelIndex] = HIFI_PUBLIC_BUCKET + "images/locations/" 
-      + locations[j].id + "/hifi-location-" + locations[j].id + "_640x360.jpg";
+    var panelIndex = placeIndexToPanelIndex(j);
+    textureProp["textures"]["file" + panelIndex] = places[j].previews.lobby;
   };
   
   Overlays.editOverlay(panelWall, textureProp);
@@ -232,7 +233,7 @@ function cleanupLobby() {
   Audio.stopInjector(currentMuzakInjector);
   currentMuzakInjector = null;
   
-  locations = {};
+  places = {};
   toggleEnvironmentRendering(true);
   
   MyAvatar.detachOne(HELMET_ATTACHMENT_URL);
@@ -250,14 +251,14 @@ function actionStartEvent(event) {
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
         var panelIndex = parseInt(panelName.slice(5));
-        var locationIndex = panelIndexToLocationIndex(panelIndex);
-        if (locationIndex < locations.length) {
-          var actionLocation = locations[locationIndex];
+        var placeIndex = panelIndexToPlaceIndex(panelIndex);
+        if (placeIndex < places.length) {
+          var actionPlace = places[placeIndex];
           
-          print("Jumping to " + actionLocation.name + " at " + actionLocation.path 
-            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex + " with location index " + locationIndex);
+          print("Jumping to " + actionPlace.name + " at " + actionPlace.address 
+            + " after click on panel " + panelIndex + " with place index " + placeIndex);
           
-          Window.location = actionLocation;
+          Window.location = actionPlace.address;
           maybeCleanupLobby();
         }
       }
@@ -300,15 +301,15 @@ function handleLookAt(pickRay) {
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
         var panelIndex = parseInt(panelName.slice(5));
-        var locationIndex = panelIndexToLocationIndex(panelIndex);
-        if (locationIndex < locations.length) {
-          var actionLocation = locations[locationIndex];
+        var placeIndex = panelIndexToPlaceIndex(panelIndex);
+        if (placeIndex < places.length) {
+          var actionPlace = places[placeIndex];
           
-          if (actionLocation.description == "") {
-              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: showText });
+          if (actionPlace.description == "") {
+              Overlays.editOverlay(descriptionText, { text: actionPlace.name, visible: showText });
           } else {
               // handle line wrapping
-              var allWords = actionLocation.description.split(" ");
+              var allWords = actionPlace.description.split(" ");
               var currentGoodLine = "";
               var currentTestLine = "";
               var formatedDescription = "";
@@ -353,9 +354,9 @@ function update(deltaTime) {
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
-    // if (!Audio.isInjectorPlaying(currentMuzakInjector)) {
-//       playNextMuzak();
-//     }
+    if (currentMuzakInjector && !Audio.isInjectorPlaying(currentMuzakInjector)) {
+      playNextMuzak();
+    }
   }
 }
 

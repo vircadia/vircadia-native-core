@@ -97,7 +97,7 @@ void AudioIOStats::parseAudioStreamStatsPacket(const QByteArray& packet) {
 
 void AudioIOStats::sendDownstreamAudioStatsPacket() {
     
-    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<Audio>();
     
     // since this function is called every second, we'll sample for some of our stats here
     _inputRingBufferMsecsAvailableStats.update(audioIO->getInputRingBufferMsecsAvailable());
@@ -128,7 +128,7 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
     dataAt += sizeof(AudioStreamStats);
     
     // send packet
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
     nodeList->writeDatagram(packet, dataAt - packet, audioMixer);
 }

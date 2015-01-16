@@ -9,8 +9,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 Currently building on Windows has been tested using the following compilers:
 * Visual Studio 2013
-
-(If anyone can test using Visual Studio 2013 Express then please update this document)
+* Visual Studio 2013 Express
 
 ####Visual Studio 2013
 

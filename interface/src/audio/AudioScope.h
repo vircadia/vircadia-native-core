@@ -17,9 +17,9 @@
 #include <QByteArray>
 #include <QObject>
 
-class AudioScope : public QObject {
+class AudioScope : public QObject, public Dependency {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(AudioScope)
+    SINGLETON_DEPENDENCY
 public:
     // Audio scope methods for allocation/deallocation
     void allocateScope();

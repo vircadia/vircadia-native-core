@@ -19,32 +19,34 @@
 
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
+#include "EntityItemPropertiesDefaults.h"
 #include "ModelEntityItem.h"
 #include "TextEntityItem.h"
 
+
 EntityItemProperties::EntityItemProperties() :
 
-    CONSTRUCT_PROPERTY(visible, DEFAULT_VISIBLE),
+    CONSTRUCT_PROPERTY(visible, ENTITY_ITEM_DEFAULT_VISIBLE),
     CONSTRUCT_PROPERTY(position, 0),
-    CONSTRUCT_PROPERTY(dimensions, DEFAULT_DIMENSIONS),
-    CONSTRUCT_PROPERTY(rotation, DEFAULT_ROTATION),
-    CONSTRUCT_PROPERTY(mass, DEFAULT_MASS),
-    CONSTRUCT_PROPERTY(velocity, DEFAULT_VELOCITY),
-    CONSTRUCT_PROPERTY(gravity, DEFAULT_GRAVITY),
-    CONSTRUCT_PROPERTY(damping, DEFAULT_DAMPING),
-    CONSTRUCT_PROPERTY(lifetime, DEFAULT_LIFETIME),
-    CONSTRUCT_PROPERTY(script, DEFAULT_SCRIPT),
+    CONSTRUCT_PROPERTY(dimensions, ENTITY_ITEM_DEFAULT_DIMENSIONS),
+    CONSTRUCT_PROPERTY(rotation, ENTITY_ITEM_DEFAULT_ROTATION),
+    CONSTRUCT_PROPERTY(density, ENTITY_ITEM_DEFAULT_DENSITY),
+    CONSTRUCT_PROPERTY(velocity, ENTITY_ITEM_DEFAULT_VELOCITY),
+    CONSTRUCT_PROPERTY(gravity, ENTITY_ITEM_DEFAULT_GRAVITY),
+    CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
+    CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
+    CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
     CONSTRUCT_PROPERTY(color, ),
     CONSTRUCT_PROPERTY(modelURL, ""),
     CONSTRUCT_PROPERTY(animationURL, ""),
     CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
     CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
     CONSTRUCT_PROPERTY(animationIsPlaying, ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
-    CONSTRUCT_PROPERTY(registrationPoint, DEFAULT_REGISTRATION_POINT),
-    CONSTRUCT_PROPERTY(angularVelocity, DEFAULT_ANGULAR_VELOCITY),
-    CONSTRUCT_PROPERTY(angularDamping, DEFAULT_ANGULAR_DAMPING),
-    CONSTRUCT_PROPERTY(ignoreForCollisions, DEFAULT_IGNORE_FOR_COLLISIONS),
-    CONSTRUCT_PROPERTY(collisionsWillMove, DEFAULT_COLLISIONS_WILL_MOVE),
+    CONSTRUCT_PROPERTY(registrationPoint, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
+    CONSTRUCT_PROPERTY(angularVelocity, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
+    CONSTRUCT_PROPERTY(angularDamping, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
+    CONSTRUCT_PROPERTY(ignoreForCollisions, ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
+    CONSTRUCT_PROPERTY(collisionsWillMove, ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
     CONSTRUCT_PROPERTY(isSpotlight, false),
     CONSTRUCT_PROPERTY(diffuseColor, ),
     CONSTRUCT_PROPERTY(ambientColor, ),
@@ -54,10 +56,10 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(quadraticAttenuation, 0.0f),
     CONSTRUCT_PROPERTY(exponent, 0.0f),
     CONSTRUCT_PROPERTY(cutoff, PI),
-    CONSTRUCT_PROPERTY(locked, false),
+    CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
     CONSTRUCT_PROPERTY(textures, ""),
     CONSTRUCT_PROPERTY(animationSettings, ""),
-    CONSTRUCT_PROPERTY(userData, DEFAULT_USER_DATA),
+    CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
     CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
     CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
     CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
@@ -173,7 +175,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
-    CHECK_PROPERTY_CHANGE(PROP_MASS, mass);
+    CHECK_PROPERTY_CHANGE(PROP_DENSITY, density);
     CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
     CHECK_PROPERTY_CHANGE(PROP_GRAVITY, gravity);
     CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
@@ -230,7 +232,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(velocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(gravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(mass);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(age, getAge()); // gettable, but not settable
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
@@ -308,7 +310,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(position, setPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(dimensions, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(rotation, setRotation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(mass, setMass);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(density, setDensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(velocity, setVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(gravity, setGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(damping, setDamping);
@@ -477,7 +479,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, properties.getRotation());
-            APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, properties.getMass());
+            APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, properties.getDensity());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, properties.getVelocity());
             APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, properties.getGravity());
             APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
@@ -698,7 +700,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
     READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(PROP_ROTATION, setRotation);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MASS, float, setMass);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, glm::vec3, setGravity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
@@ -779,7 +781,7 @@ void EntityItemProperties::markAllChanged() {
     _positionChanged = true;
     _dimensionsChanged = true;
     _rotationChanged = true;
-    _massChanged = true;
+    _densityChanged = true;
     _velocityChanged = true;
     _gravityChanged = true;
     _dampingChanged = true;
@@ -858,7 +860,7 @@ AABox EntityItemProperties::getAABoxInMeters() const {
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
     
-    glm::vec3 unrotatedMinRelativeToEntity = glm::vec3(0.0f, 0.0f, 0.0f) - (_dimensions * _registrationPoint);
+    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
     glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());

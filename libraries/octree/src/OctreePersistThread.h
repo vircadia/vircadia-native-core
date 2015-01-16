@@ -22,15 +22,19 @@
 class OctreePersistThread : public GenericThread {
     Q_OBJECT
 public:
+    class BackupRule {
+    public:
+        QString name;
+        int interval;
+        QString extensionFormat;
+        int maxBackupVersions;
+        quint64 lastBackup;
+    };
+
     static const int DEFAULT_PERSIST_INTERVAL;
-    static const int DEFAULT_BACKUP_INTERVAL;
-    static const QString DEFAULT_BACKUP_EXTENSION_FORMAT;
-    static const int DEFAULT_MAX_BACKUP_VERSIONS;
 
     OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL, 
-                                bool wantBackup = false, int backupInterval = DEFAULT_BACKUP_INTERVAL,
-                                const QString& backupExtensionFormat = DEFAULT_BACKUP_EXTENSION_FORMAT,
-                                int maxBackupVersions = DEFAULT_MAX_BACKUP_VERSIONS,
+                                bool wantBackup = false, const QJsonObject& settings = QJsonObject(), 
                                 bool debugTimestampNow = false);
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
@@ -47,21 +51,24 @@ protected:
     
     void persist();
     void backup();
-    void rollOldBackupVersions();
+    void rollOldBackupVersions(const BackupRule& rule);
+    void restoreFromMostRecentBackup();
+    bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
+    quint64 getMostRecentBackupTimeInUsecs(const QString& format);
+    void parseSettings(const QJsonObject& settings);
+    
 private:
     Octree* _tree;
     QString _filename;
-    QString _backupExtensionFormat;
-    int _maxBackupVersions;
     int _persistInterval;
-    int _backupInterval;
     bool _initialLoadComplete;
 
     quint64 _loadTimeUSecs;
-    quint64 _lastCheck;
-    quint64 _lastBackup;
-    bool _wantBackup;
+
     time_t _lastPersistTime;
+    quint64 _lastCheck;
+    bool _wantBackup;
+    QVector<BackupRule> _backupRules;
     
     bool _debugTimestampNow;
     quint64 _lastTimeDebug;
