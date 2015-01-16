@@ -757,10 +757,6 @@ void Menu::scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set) {
     set->endGroup();
 }
 
-bool Menu::getShadowsEnabled() const {
-    return isOptionChecked(MenuOption::SimpleShadows) || isOptionChecked(MenuOption::CascadedShadows);
-}
-
 void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, int menuItemLocation) {
     QAction* actionBefore = NULL;
     if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
@@ -903,12 +899,246 @@ QAction* Menu::getActionForOption(const QString& menuOption) {
     return _actionHash.value(menuOption);
 }
 
+QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
+    QList<QAction*> menuActions;
+    if (menu) {
+        menuActions = menu->actions();
+    } else {
+        menuActions = actions();
+    }
+    
+    foreach (QAction* menuAction, menuActions) {
+        if (menuName == menuAction->text()) {
+            return menuAction;
+        }
+    }
+    return NULL;
+}
+
+QMenu* Menu::getSubMenuFromName(const QString& menuName, QMenu* menu) {
+    QAction* action = getActionFromName(menuName, menu);
+    if (action) {
+        return action->menu();
+    }
+    return NULL;
+}
+
+QMenu* Menu::getMenuParent(const QString& menuName, QString& finalMenuPart) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QMenu* menu = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        parent = menu;
+        finalMenuPart = menuTreePart.trimmed();
+        menu = getSubMenuFromName(finalMenuPart, parent);
+        if (!menu) {
+            break;
+        }
+    }
+    return parent;
+}
+
+QMenu* Menu::getMenu(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QMenu* menu = NULL;
+    int item = 0;
+    foreach (QString menuTreePart, menuTree) {
+        menu = getSubMenuFromName(menuTreePart.trimmed(), parent);
+        if (!menu) {
+            break;
+        }
+        parent = menu;
+        item++;
+    }
+    return menu;
+}
+
+QAction* Menu::getMenuAction(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QAction* action = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        action = getActionFromName(menuTreePart.trimmed(), parent);
+        if (!action) {
+            break;
+        }
+        parent = action->menu();
+    }
+    return action;
+}
+
+int Menu::findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem) {
+    int position = 0;
+    foreach(QAction* action, menu->actions()) {
+        if (action->text() == searchMenuItem) {
+            return position;
+        }
+        position++;
+    }
+    return UNSPECIFIED_POSITION; // not found
+}
+
+int Menu::positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition) {
+    QList<QAction*> menuActions = menu->actions();
+    if (requestedPosition > 1 && requestedPosition < menuActions.size()) {
+        QAction* beforeRequested = menuActions[requestedPosition - 1];
+        if (beforeRequested->isSeparator()) {
+            requestedPosition--;
+        }
+    }
+    return requestedPosition;
+}
+
+
+QMenu* Menu::addMenu(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* addTo = NULL;
+    QMenu* menu = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        menu = getSubMenuFromName(menuTreePart.trimmed(), addTo);
+        if (!menu) {
+            if (!addTo) {
+                menu = QMenuBar::addMenu(menuTreePart.trimmed());
+            } else {
+                menu = addTo->addMenu(menuTreePart.trimmed());
+            }
+        }
+        addTo = menu;
+    }
+    
+    QMenuBar::repaint();
+    return menu;
+}
+
+void Menu::removeMenu(const QString& menuName) {
+    QAction* action = getMenuAction(menuName);
+    
+    // only proceed if the menu actually exists
+    if (action) {
+        QString finalMenuPart;
+        QMenu* parent = getMenuParent(menuName, finalMenuPart);
+        if (parent) {
+            parent->removeAction(action);
+        } else {
+            QMenuBar::removeAction(action);
+        }
+        
+        QMenuBar::repaint();
+    }
+}
+
+bool Menu::menuExists(const QString& menuName) {
+    QAction* action = getMenuAction(menuName);
+    
+    // only proceed if the menu actually exists
+    if (action) {
+        return true;
+    }
+    return false;
+}
+
+void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
+    QMenu* menuObj = getMenu(menuName);
+    if (menuObj) {
+        addDisabledActionAndSeparator(menuObj, separatorName);
+    }
+}
+
+void Menu::removeSeparator(const QString& menuName, const QString& separatorName) {
+    QMenu* menu = getMenu(menuName);
+    bool separatorRemoved = false;
+    if (menu) {
+        int textAt = findPositionOfMenuItem(menu, separatorName);
+        QList<QAction*> menuActions = menu->actions();
+        QAction* separatorText = menuActions[textAt];
+        if (textAt > 0 && textAt < menuActions.size()) {
+            QAction* separatorLine = menuActions[textAt - 1];
+            if (separatorLine) {
+                if (separatorLine->isSeparator()) {
+                    menu->removeAction(separatorText);
+                    menu->removeAction(separatorLine);
+                    separatorRemoved = true;
+                }
+            }
+        }
+    }
+    if (separatorRemoved) {
+        QMenuBar::repaint();
+    }
+}
+
+void Menu::addMenuItem(const MenuItemProperties& properties) {
+    QMenu* menuObj = getMenu(properties.menuName);
+    if (menuObj) {
+        QShortcut* shortcut = NULL;
+        if (!properties.shortcutKeySequence.isEmpty()) {
+            shortcut = new QShortcut(properties.shortcutKeySequence, this);
+        }
+        
+        // check for positioning requests
+        int requestedPosition = properties.position;
+        if (requestedPosition == UNSPECIFIED_POSITION && !properties.beforeItem.isEmpty()) {
+            requestedPosition = findPositionOfMenuItem(menuObj, properties.beforeItem);
+            // double check that the requested location wasn't a separator label
+            requestedPosition = positionBeforeSeparatorIfNeeded(menuObj, requestedPosition);
+        }
+        if (requestedPosition == UNSPECIFIED_POSITION && !properties.afterItem.isEmpty()) {
+            int afterPosition = findPositionOfMenuItem(menuObj, properties.afterItem);
+            if (afterPosition != UNSPECIFIED_POSITION) {
+                requestedPosition = afterPosition + 1;
+            }
+        }
+        
+        QAction* menuItemAction = NULL;
+        if (properties.isSeparator) {
+            addDisabledActionAndSeparator(menuObj, properties.menuItemName, requestedPosition);
+        } else if (properties.isCheckable) {
+            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName,
+                                                                    properties.shortcutKeySequence, properties.isChecked,
+                                                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), requestedPosition);
+        } else {
+            menuItemAction = addActionToQMenuAndActionHash(menuObj, properties.menuItemName, properties.shortcutKeySequence,
+                                                           MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()),
+                                                           QAction::NoRole, requestedPosition);
+        }
+        if (shortcut && menuItemAction) {
+            connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
+        }
+        QMenuBar::repaint();
+    }
+}
+
+void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
+    QMenu* menuObj = getMenu(menu);
+    if (menuObj) {
+        removeAction(menuObj, menuitem);
+        QMenuBar::repaint();
+    }
+};
+
+bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
+    QAction* menuItemAction = _actionHash.value(menuitem);
+    if (menuItemAction) {
+        return (getMenu(menu) != NULL);
+    }
+    return false;
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////// TODO: Move to appropriate files ////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Menu::aboutApp() {
     InfoView::forcedShow(INFO_HELP_PATH);
 }
 
 void Menu::showEditEntitiesHelp() {
     InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
+}
+
+bool Menu::getShadowsEnabled() const {
+    return isOptionChecked(MenuOption::SimpleShadows) || isOptionChecked(MenuOption::CascadedShadows);
 }
 
 void Menu::bumpSettings() {
@@ -1510,232 +1740,6 @@ void Menu::hmdToolsClosed() {
 void Menu::runTests() {
     runTimingTests();
 }
-
-QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
-    QList<QAction*> menuActions;
-    if (menu) {
-        menuActions = menu->actions();
-    } else {
-        menuActions = actions();
-    }
-
-    foreach (QAction* menuAction, menuActions) {
-        if (menuName == menuAction->text()) {
-            return menuAction;
-        }
-    }
-    return NULL;
-}
-
-QMenu* Menu::getSubMenuFromName(const QString& menuName, QMenu* menu) {
-    QAction* action = getActionFromName(menuName, menu);
-    if (action) {
-        return action->menu();
-    }
-    return NULL;
-}
-
-QMenu* Menu::getMenuParent(const QString& menuName, QString& finalMenuPart) {
-    QStringList menuTree = menuName.split(">");
-    QMenu* parent = NULL;
-    QMenu* menu = NULL;
-    foreach (QString menuTreePart, menuTree) {
-        parent = menu;
-        finalMenuPart = menuTreePart.trimmed();
-        menu = getSubMenuFromName(finalMenuPart, parent);
-        if (!menu) {
-            break;
-        }
-    }
-    return parent;
-}
-
-QMenu* Menu::getMenu(const QString& menuName) {
-    QStringList menuTree = menuName.split(">");
-    QMenu* parent = NULL;
-    QMenu* menu = NULL;
-    int item = 0;
-    foreach (QString menuTreePart, menuTree) {
-        menu = getSubMenuFromName(menuTreePart.trimmed(), parent);
-        if (!menu) {
-            break;
-        }
-        parent = menu;
-        item++;
-    }
-    return menu;
-}
-
-QAction* Menu::getMenuAction(const QString& menuName) {
-    QStringList menuTree = menuName.split(">");
-    QMenu* parent = NULL;
-    QAction* action = NULL;
-    foreach (QString menuTreePart, menuTree) {
-        action = getActionFromName(menuTreePart.trimmed(), parent);
-        if (!action) {
-            break;
-        }
-        parent = action->menu();
-    }
-    return action;
-}
-
-int Menu::findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem) {
-    int position = 0;
-    foreach(QAction* action, menu->actions()) {
-        if (action->text() == searchMenuItem) {
-            return position;
-        }
-        position++;
-    }
-    return UNSPECIFIED_POSITION; // not found
-}
-
-int Menu::positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition) {
-    QList<QAction*> menuActions = menu->actions();
-    if (requestedPosition > 1 && requestedPosition < menuActions.size()) {
-        QAction* beforeRequested = menuActions[requestedPosition - 1];
-        if (beforeRequested->isSeparator()) {
-            requestedPosition--;
-        }
-    }
-    return requestedPosition;
-}
-
-
-QMenu* Menu::addMenu(const QString& menuName) {
-    QStringList menuTree = menuName.split(">");
-    QMenu* addTo = NULL;
-    QMenu* menu = NULL;
-    foreach (QString menuTreePart, menuTree) {
-        menu = getSubMenuFromName(menuTreePart.trimmed(), addTo);
-        if (!menu) {
-            if (!addTo) {
-                menu = QMenuBar::addMenu(menuTreePart.trimmed());
-            } else {
-                menu = addTo->addMenu(menuTreePart.trimmed());
-            }
-        }
-        addTo = menu;
-    }
-
-    QMenuBar::repaint();
-    return menu;
-}
-
-void Menu::removeMenu(const QString& menuName) {
-    QAction* action = getMenuAction(menuName);
-
-    // only proceed if the menu actually exists
-    if (action) {
-        QString finalMenuPart;
-        QMenu* parent = getMenuParent(menuName, finalMenuPart);
-        if (parent) {
-            parent->removeAction(action);
-        } else {
-            QMenuBar::removeAction(action);
-        }
-
-        QMenuBar::repaint();
-    }
-}
-
-bool Menu::menuExists(const QString& menuName) {
-    QAction* action = getMenuAction(menuName);
-
-    // only proceed if the menu actually exists
-    if (action) {
-        return true;
-    }
-    return false;
-}
-
-void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
-    QMenu* menuObj = getMenu(menuName);
-    if (menuObj) {
-        addDisabledActionAndSeparator(menuObj, separatorName);
-    }
-}
-
-void Menu::removeSeparator(const QString& menuName, const QString& separatorName) {
-    QMenu* menu = getMenu(menuName);
-    bool separatorRemoved = false;
-    if (menu) {
-        int textAt = findPositionOfMenuItem(menu, separatorName);
-        QList<QAction*> menuActions = menu->actions();
-        QAction* separatorText = menuActions[textAt];
-        if (textAt > 0 && textAt < menuActions.size()) {
-            QAction* separatorLine = menuActions[textAt - 1];
-            if (separatorLine) {
-                if (separatorLine->isSeparator()) {
-                    menu->removeAction(separatorText);
-                    menu->removeAction(separatorLine);
-                    separatorRemoved = true;
-                }
-            }
-        }
-    }
-    if (separatorRemoved) {
-        QMenuBar::repaint();
-    }
-}
-
-void Menu::addMenuItem(const MenuItemProperties& properties) {
-    QMenu* menuObj = getMenu(properties.menuName);
-    if (menuObj) {
-        QShortcut* shortcut = NULL;
-        if (!properties.shortcutKeySequence.isEmpty()) {
-            shortcut = new QShortcut(properties.shortcutKeySequence, this);
-        }
-
-        // check for positioning requests
-        int requestedPosition = properties.position;
-        if (requestedPosition == UNSPECIFIED_POSITION && !properties.beforeItem.isEmpty()) {
-            requestedPosition = findPositionOfMenuItem(menuObj, properties.beforeItem);
-            // double check that the requested location wasn't a separator label
-            requestedPosition = positionBeforeSeparatorIfNeeded(menuObj, requestedPosition);
-        }
-        if (requestedPosition == UNSPECIFIED_POSITION && !properties.afterItem.isEmpty()) {
-            int afterPosition = findPositionOfMenuItem(menuObj, properties.afterItem);
-            if (afterPosition != UNSPECIFIED_POSITION) {
-                requestedPosition = afterPosition + 1;
-            }
-        }
-
-        QAction* menuItemAction = NULL;
-        if (properties.isSeparator) {
-            addDisabledActionAndSeparator(menuObj, properties.menuItemName, requestedPosition);
-        } else if (properties.isCheckable) {
-            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName,
-                                    properties.shortcutKeySequence, properties.isChecked,
-                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), requestedPosition);
-        } else {
-            menuItemAction = addActionToQMenuAndActionHash(menuObj, properties.menuItemName, properties.shortcutKeySequence,
-                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()),
-                                    QAction::NoRole, requestedPosition);
-        }
-        if (shortcut && menuItemAction) {
-            connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
-        }
-        QMenuBar::repaint();
-    }
-}
-
-void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
-    QMenu* menuObj = getMenu(menu);
-    if (menuObj) {
-        removeAction(menuObj, menuitem);
-        QMenuBar::repaint();
-    }
-};
-
-bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
-    QAction* menuItemAction = _actionHash.value(menuitem);
-    if (menuItemAction) {
-        return (getMenu(menu) != NULL);
-    }
-    return false;
-};
 
 QString Menu::getSnapshotsLocation() const {
     if (_snapshotsLocation.isNull() || _snapshotsLocation.isEmpty() || QDir(_snapshotsLocation).exists() == false) {

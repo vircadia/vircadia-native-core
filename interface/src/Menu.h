@@ -83,7 +83,80 @@ public:
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-
+    
+    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                           const QString& actionName,
+                                           const QKeySequence& shortcut = 0,
+                                           const QObject* receiver = NULL,
+                                           const char* member = NULL,
+                                           QAction::MenuRole role = QAction::NoRole,
+                                           int menuItemLocation = UNSPECIFIED_POSITION);
+    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                           QAction* action,
+                                           const QString& actionName = QString(),
+                                           const QKeySequence& shortcut = 0,
+                                           QAction::MenuRole role = QAction::NoRole,
+                                           int menuItemLocation = UNSPECIFIED_POSITION);
+    
+    void removeAction(QMenu* menu, const QString& actionName);
+    
+public slots:
+    void loadSettings(QSettings* settings = NULL);
+    void saveSettings(QSettings* settings = NULL);
+    void importSettings();
+    void exportSettings();
+    
+    QMenu* addMenu(const QString& menuName);
+    void removeMenu(const QString& menuName);
+    bool menuExists(const QString& menuName);
+    void addSeparator(const QString& menuName, const QString& separatorName);
+    void removeSeparator(const QString& menuName, const QString& separatorName);
+    void addMenuItem(const MenuItemProperties& properties);
+    void removeMenuItem(const QString& menuName, const QString& menuitem);
+    bool menuItemExists(const QString& menuName, const QString& menuitem);
+    bool isOptionChecked(const QString& menuOption) const;
+    void setIsOptionChecked(const QString& menuOption, bool isChecked);
+    
+private:
+    static Menu* _instance;
+    Menu();
+    
+    typedef void(*settingsAction)(QSettings*, QAction*);
+    static void loadAction(QSettings* set, QAction* action);
+    static void saveAction(QSettings* set, QAction* action);
+    void scanMenuBar(settingsAction modifySetting, QSettings* set);
+    void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
+    
+    /// helper method to have separators with labels that are also compatible with OS X
+    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,
+                                       int menuItemLocation = UNSPECIFIED_POSITION);
+    
+    QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                                    const QString& actionName,
+                                                    const QKeySequence& shortcut = 0,
+                                                    const bool checked = false,
+                                                    const QObject* receiver = NULL,
+                                                    const char* member = NULL,
+                                                    int menuItemLocation = UNSPECIFIED_POSITION);
+    
+    QAction* getActionFromName(const QString& menuName, QMenu* menu);
+    QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
+    QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
+    
+    QAction* getMenuAction(const QString& menuName);
+    int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
+    int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
+    QMenu* getMenu(const QString& menuName);
+    
+    
+    QHash<QString, QAction*> _actionHash;
+    
+    
+    
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////// TODO: Move to appropriate files ////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+public:
     const InboundAudioStream::Settings& getReceivedAudioStreamSettings() const { return _receivedAudioStreamSettings; }
     void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& receivedAudioStreamSettings) { _receivedAudioStreamSettings = receivedAudioStreamSettings; }
     float getFieldOfView() const { return _fieldOfView; }
@@ -140,22 +213,6 @@ public:
     // User Tweakable PPS from Voxel Server
     int getMaxOctreePacketsPerSecond() const { return _maxOctreePacketsPerSecond; }
     void setMaxOctreePacketsPerSecond(int value) { _maxOctreePacketsPerSecond = value; bumpSettings(); }
-
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           const QString& actionName,
-                                           const QKeySequence& shortcut = 0,
-                                           const QObject* receiver = NULL,
-                                           const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = UNSPECIFIED_POSITION);
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           QAction* action,
-                                           const QString& actionName = QString(),
-                                           const QKeySequence& shortcut = 0,
-                                           QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = UNSPECIFIED_POSITION);
-
-    void removeAction(QMenu* menu, const QString& actionName);
     
     const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
@@ -172,27 +229,12 @@ public slots:
     void cachesSizeDialog();
     void lodTools();
     void hmdTools(bool showTools);
-    void loadSettings(QSettings* settings = NULL);
-    void saveSettings(QSettings* settings = NULL);
-    void importSettings();
-    void exportSettings();
     void toggleAddressBar();
     void copyAddress();
     void copyPath();
 
     void toggleLoginMenuItem();
     void toggleSixense(bool shouldEnable);
-
-    QMenu* addMenu(const QString& menuName);
-    void removeMenu(const QString& menuName);
-    bool menuExists(const QString& menuName);
-    void addSeparator(const QString& menuName, const QString& separatorName);
-    void removeSeparator(const QString& menuName, const QString& separatorName);
-    void addMenuItem(const MenuItemProperties& properties);
-    void removeMenuItem(const QString& menuName, const QString& menuitem);
-    bool menuItemExists(const QString& menuName, const QString& menuitem);
-    bool isOptionChecked(const QString& menuOption) const;
-    void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
 private slots:
     void aboutApp();
@@ -220,39 +262,6 @@ private slots:
     void loadRSSDKFile();
 
 private:
-    static Menu* _instance;
-
-    Menu();
-
-    typedef void(*settingsAction)(QSettings*, QAction*);
-    static void loadAction(QSettings* set, QAction* action);
-    static void saveAction(QSettings* set, QAction* action);
-    void scanMenuBar(settingsAction modifySetting, QSettings* set);
-    void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
-
-    /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,
-                                                int menuItemLocation = UNSPECIFIED_POSITION);
-
-    QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                                    const QString& actionName,
-                                                    const QKeySequence& shortcut = 0,
-                                                    const bool checked = false,
-                                                    const QObject* receiver = NULL,
-                                                    const char* member = NULL,
-                                                    int menuItemLocation = UNSPECIFIED_POSITION);
-
-    QAction* getActionFromName(const QString& menuName, QMenu* menu);
-    QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
-    QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
-
-    QAction* getMenuAction(const QString& menuName);
-    int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
-    int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
-    QMenu* getMenu(const QString& menuName);
-
-
-    QHash<QString, QAction*> _actionHash;
     InboundAudioStream::Settings _receivedAudioStreamSettings;
     // in Degrees, doesn't apply to HMD like Oculus
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
