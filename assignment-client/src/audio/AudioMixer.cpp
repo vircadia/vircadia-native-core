@@ -487,11 +487,11 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             
             // Modulate wet level with distance to wall
             float MIN_ATTENUATION_DISTANCE = 2.0f;
-            float MAX_ATTENUATION = 0.75f;
+            float MAX_ATTENUATION = -12; // dB
             glm::vec3 distanceToWalls = (box.getDimensions() / 2.0f) - glm::abs(streamPosition - box.calcCenter());
             float distanceToClosestWall = glm::min(distanceToWalls.x, distanceToWalls.z);
             if (distanceToClosestWall < MIN_ATTENUATION_DISTANCE) {
-                wetLevel *= 1.0f - MAX_ATTENUATION * (1.0f - distanceToClosestWall / MIN_ATTENUATION_DISTANCE);
+                wetLevel += MAX_ATTENUATION * (1.0f - distanceToClosestWall / MIN_ATTENUATION_DISTANCE);
             }
             break;
         }
