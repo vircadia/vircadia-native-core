@@ -47,6 +47,11 @@ inline uint qHash(const Vec2Pair& v, uint seed) {
     return qHash(v.first.x + 5009 * v.first.y + 5011 * v.second.x + 5021 * v.second.y, seed);
 }
 
+inline uint qHash(const glm::vec4& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.x + 5009 * v.y + 5011 * v.z + 5021 * v.w, seed);
+}
+
 inline uint qHash(const Vec2PairPair& v, uint seed) {
     // multiply by prime numbers greater than the possible size
     return qHash(v.first.first.x + 5009 * v.first.first.y 
@@ -73,7 +78,6 @@ inline uint qHash(const Vec3PairVec2Pair& v, uint seed) {
                  5051 * v.second.first.x + 5059 * v.second.first.y +
                  5077 * v.second.second.x + 5081 * v.second.second.y, seed);
 }
-
 
 /// Stores cached geometry.
 class GeometryCache : public ResourceCache, public Dependency {
@@ -172,6 +176,10 @@ private:
         int vertices;
         int vertexSize;
     };
+    
+    QHash<float, gpu::BufferPointer> _cubeVerticies;
+    QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
+    gpu::BufferPointer _wireCubeIndexBuffer;
     
     class BatchItemDetails {
     public:

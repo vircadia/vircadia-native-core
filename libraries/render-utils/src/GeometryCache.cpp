@@ -780,7 +780,8 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
 }
 
 void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
-    VerticesIndices& vbo = _wireCubeVBOs[size];
+
+    Vec2Pair colorKey(glm::vec2(color.x, color.y),glm::vec2(color.z, color.y));
     const int FLOATS_PER_VERTEX = 3;
     const int VERTICES_PER_EDGE = 2;
     const int TOP_EDGES = 4;
@@ -788,7 +789,11 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
     const int SIDE_EDGES = 4;
     const int vertices = 8;
     const int indices = (TOP_EDGES + BOTTOM_EDGES + SIDE_EDGES) * VERTICES_PER_EDGE;
-    if (vbo.first == 0) {    
+
+    if (!_cubeVerticies.contains(size)) {
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        _cubeVerticies[size] = verticesBuffer;
+
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
         GLfloat* vertexData = new GLfloat[vertexPoints]; // only vertices, no normals because we're a wire cube
         GLfloat* vertex = vertexData;
@@ -799,42 +804,65 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
                                       1,-1, 1,   1,-1,-1,  -1,-1,-1,  -1,-1, 1    // v4, v5, v6, v7 (bottom)
                                     };
 
-        // index array of vertex array for glDrawRangeElement() as a GL_LINES for each edge
+        for (int i = 0; i < vertexPoints; i++) {
+            vertex[i] = cannonicalVertices[i] * halfSize;
+        }
+
+        verticesBuffer->append(sizeof(GLfloat) * vertexPoints, (gpu::Buffer::Byte*) vertexData); // I'm skeptical that this is right
+    }
+
+    if (!_wireCubeIndexBuffer) {
         static GLubyte cannonicalIndices[indices]  = { 
                                       0, 1,  1, 2,  2, 3,  3, 0, // (top)
                                       4, 5,  5, 6,  6, 7,  7, 4, // (bottom)
                                       0, 4,  1, 5,  2, 6,  3, 7, // (side edges)
                                     };
-        
-        for (int i = 0; i < vertexPoints; i++) {
-            vertex[i] = cannonicalVertices[i] * halfSize;
-        }
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-        
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < indices; i++) {
-            index[i] = cannonicalIndices[i];
-        }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
+
+        gpu::BufferPointer indexBuffer(new gpu::Buffer());
+        _wireCubeIndexBuffer = indexBuffer;
     
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        _wireCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Buffer::Byte*) cannonicalIndices);
     }
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(FLOATS_PER_VERTEX, GL_FLOAT, FLOATS_PER_VERTEX * sizeof(float), 0);
-    glDrawRangeElementsEXT(GL_LINES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
-    glDisableClientState(GL_VERTEX_ARRAY);
+
+    if (!_cubeColors.contains(colorKey)) {
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        _cubeColors[colorKey] = colorBuffer;
+
+        const int NUM_COLOR_SCALARS_PER_CUBE = 8;
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+        int colors[NUM_COLOR_SCALARS_PER_CUBE] = { compactColor, compactColor, compactColor, compactColor,
+                                                   compactColor, compactColor, compactColor, compactColor };
+
+        colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+    }
+    gpu::BufferPointer verticesBuffer = _cubeVerticies[size];
+    gpu::BufferPointer colorBuffer = _cubeColors[colorKey];
+
+    const int VERTICES_SLOT = 0;
+    const int COLOR_SLOT = 1;
+    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
     
+    gpu::BufferView verticesView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
+    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
+    
+    gpu::Batch batch;
+
+    batch.setInputFormat(streamFormat);
+    batch.setInputBuffer(VERTICES_SLOT, verticesView);
+    batch.setInputBuffer(COLOR_SLOT, colorView);
+    batch.setIndexBuffer(gpu::UINT8, _wireCubeIndexBuffer, 0);
+    batch.drawIndexed(gpu::LINES, indices);
+
+    gpu::GLBackend::renderBatch(batch);
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
