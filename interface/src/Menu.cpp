@@ -13,6 +13,7 @@
 
 #include <QBoxLayout>
 #include <QColorDialog>
+#include <QClipboard>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -43,6 +44,7 @@
 #include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
+#include "devices/RealSense.h"
 #include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
@@ -122,22 +124,25 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
                                   appInstance, SLOT(toggleRunningScriptsWidget()));
 
-    addDisabledActionAndSeparator(fileMenu, "Go");
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::NameLocation,
-                                  Qt::CTRL | Qt::Key_N,
-                                  this,
-                                  SLOT(nameLocation()));
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::MyLocations,
-                                  Qt::CTRL | Qt::Key_K,
-                                  this,
-                                  SLOT(toggleLocationList()));
+    addDisabledActionAndSeparator(fileMenu, "Location");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::BookmarkLocation, 0,
+                                  this, SLOT(bookmarkLocation()));
+    _bookmarksMenu = fileMenu->addMenu(MenuOption::Bookmarks);
+    _bookmarksMenu->setEnabled(false);
+    _deleteBookmarksMenu = addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::DeleteBookmark, 0,
+                                  this, SLOT(deleteBookmark()));
+    _deleteBookmarksMenu->setEnabled(false);
+    loadBookmarks();
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
                                   Qt::Key_Enter,
                                   this,
                                   SLOT(toggleAddressBar()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
+                                  this, SLOT(copyAddress()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
+                                  this, SLOT(copyPath()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
@@ -261,7 +266,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
             avatar, SLOT(updateMotionBehavior()));
 
-    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With...");
+    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With");
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 
             avatar, SLOT(onToggleRagdoll()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
@@ -438,6 +443,11 @@ Menu::Menu() :
 
     QMenu* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
+
+#ifdef HAVE_RSSDK
+    QMenu* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
+    addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0, this, SLOT(loadRSSDKFile()));
+#endif
 
     QMenu* networkMenu = developerMenu->addMenu("Network");
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
@@ -1006,8 +1016,141 @@ void Menu::toggleAddressBar() {
     }
 }
 
+void Menu::copyAddress() {
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString address = addressManager->currentAddress().toString();
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(address);
+}
+
+void Menu::copyPath() {
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString path = addressManager->currentPath();
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(path);
+}
+
 void Menu::changeVSync() {
     Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
+}
+
+void Menu::loadBookmarks() {
+    QVariantMap* bookmarks = Application::getInstance()->getBookmarks()->getBookmarks();
+    if (bookmarks->count() > 0) {
+
+        QMapIterator<QString, QVariant> i(*bookmarks);
+        while (i.hasNext()) {
+            i.next();
+
+            QString bookmarkName = i.key();
+            QString bookmarkAddress = i.value().toString();
+
+            QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
+            teleportAction->setData(bookmarkAddress);
+            connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
+
+            addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0, QAction::NoRole);
+        }
+
+        _bookmarksMenu->setEnabled(true);
+        _deleteBookmarksMenu->setEnabled(true);
+    }
+}
+
+void Menu::bookmarkLocation() {
+
+    QInputDialog bookmarkLocationDialog(Application::getInstance()->getWindow());
+    bookmarkLocationDialog.setWindowTitle("Bookmark Location");
+    bookmarkLocationDialog.setLabelText("Name:");
+    bookmarkLocationDialog.setInputMode(QInputDialog::TextInput);
+    bookmarkLocationDialog.resize(400, 200);
+
+    if (bookmarkLocationDialog.exec() == QDialog::Rejected) {
+        return;
+    }
+
+    QString bookmarkName = bookmarkLocationDialog.textValue().trimmed();
+    bookmarkName = bookmarkName.replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
+    if (bookmarkName.length() == 0) {
+        return;
+    }
+
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString bookmarkAddress = addressManager->currentAddress().toString();
+
+    Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
+    if (bookmarks->contains(bookmarkName)) {
+        QMessageBox duplicateBookmarkMessage;
+        duplicateBookmarkMessage.setIcon(QMessageBox::Warning);
+        duplicateBookmarkMessage.setText("The bookmark name you entered already exists in your list.");
+        duplicateBookmarkMessage.setInformativeText("Would you like to overwrite it?");
+        duplicateBookmarkMessage.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        duplicateBookmarkMessage.setDefaultButton(QMessageBox::Yes);
+        if (duplicateBookmarkMessage.exec() == QMessageBox::No) {
+            return;
+        }
+        removeAction(_bookmarksMenu, bookmarkName);
+    }
+    
+    QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
+    teleportAction->setData(bookmarkAddress);
+    connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
+
+    QList<QAction*> menuItems = _bookmarksMenu->actions();
+    int position = 0;
+    while (position < menuItems.count() && bookmarkName > menuItems[position]->text()) {
+        position += 1;
+    }
+
+    addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0,
+                                  QAction::NoRole, position);
+
+    bookmarks->insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
+
+    _bookmarksMenu->setEnabled(true);
+    _deleteBookmarksMenu->setEnabled(true);
+}
+
+void Menu::teleportToBookmark() {
+    QAction *action = qobject_cast<QAction *>(sender());
+    QString address = action->data().toString();
+    DependencyManager::get<AddressManager>()->handleLookupString(address);
+}
+
+void Menu::deleteBookmark() {
+
+    QStringList bookmarkList;
+    QList<QAction*> menuItems = _bookmarksMenu->actions();
+    for (int i = 0; i < menuItems.count(); i += 1) {
+        bookmarkList.append(menuItems[i]->text());
+    }
+
+    QInputDialog deleteBookmarkDialog(Application::getInstance()->getWindow());
+    deleteBookmarkDialog.setWindowTitle("Delete Bookmark");
+    deleteBookmarkDialog.setLabelText("Select the bookmark to delete");
+    deleteBookmarkDialog.resize(400, 400);
+    deleteBookmarkDialog.setOption(QInputDialog::UseListViewForComboBoxItems);
+    deleteBookmarkDialog.setComboBoxItems(bookmarkList);
+    deleteBookmarkDialog.setOkButtonText("Delete");
+
+    if (deleteBookmarkDialog.exec() == QDialog::Rejected) {
+        return;
+    }
+
+    QString bookmarkName = deleteBookmarkDialog.textValue().trimmed();
+    if (bookmarkName.length() == 0) {
+        return;
+    }
+
+    removeAction(_bookmarksMenu, bookmarkName);
+
+    Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
+    bookmarks->remove(bookmarkName);
+
+    if (_bookmarksMenu->actions().count() == 0) {
+        _bookmarksMenu->setEnabled(false);
+        _deleteBookmarksMenu->setEnabled(false);
+    }
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {
@@ -1017,66 +1160,6 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
         msgBox.setText(errorString);
         msgBox.exec();
     }    
-}
-
-void Menu::toggleLocationList() {
-    if (!_userLocationsDialog) {
-        JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
-        _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
-    }
-    
-    if (!_userLocationsDialog->isVisible()) {
-        _userLocationsDialog->show();
-    }
-    
-    _userLocationsDialog->raise();
-    _userLocationsDialog->activateWindow();
-    _userLocationsDialog->showNormal();
-    
-}
-
-void Menu::nameLocation() {
-    // check if user is logged in or show login dialog if not
-
-    AccountManager& accountManager = AccountManager::getInstance();
-    
-    if (!accountManager.isLoggedIn()) {
-        QMessageBox msgBox;
-        msgBox.setText("We need to tie this location to your username.");
-        msgBox.setInformativeText("Please login first, then try naming the location again.");
-        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-        msgBox.button(QMessageBox::Ok)->setText("Login");
-        
-        if (msgBox.exec() == QMessageBox::Ok) {
-            loginForCurrentDomain();
-        }
-
-        return;
-    }
-    
-    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    if (domainHandler.getUUID().isNull()) {
-        const QString UNREGISTERED_DOMAIN_MESSAGE = "This domain is not registered with High Fidelity."
-            "\n\nYou cannot create a global location in an unregistered domain.";
-        QMessageBox::critical(this, "Unregistered Domain", UNREGISTERED_DOMAIN_MESSAGE);
-        
-        return;
-    }
-    
-    if (!_newLocationDialog) {
-        JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
-        _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
-    }
-    
-    if (!_newLocationDialog->isVisible()) {
-        _newLocationDialog->show();
-    }
-    
-    _newLocationDialog->raise();
-    _newLocationDialog->activateWindow();
-    _newLocationDialog->showNormal();
 }
 
 void Menu::toggleLoginMenuItem() {
@@ -1148,6 +1231,10 @@ void Menu::showChat() {
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
+}
+
+void Menu::loadRSSDKFile() {
+    RealSense::getInstance()->loadRSSDKFile();
 }
 
 void Menu::toggleChat() {

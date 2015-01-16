@@ -33,9 +33,8 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(bool isConnected READ isConnected)
     Q_PROPERTY(QUrl href READ currentAddress)
     Q_PROPERTY(QString protocol READ getProtocol)
-    Q_PROPERTY(QString hostname READ getCurrentDomain)
+    Q_PROPERTY(QString hostname READ getRootPlaceName)
     Q_PROPERTY(QString pathname READ currentPath)
-    Q_PROPERTY(QString domainID READ getDomainID)
 public:
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
@@ -43,8 +42,10 @@ public:
     const QUrl currentAddress() const;
     const QString currentPath(bool withOrientation = true) const;
     
-    const QString& getCurrentDomain() const { return _currentDomain; }
-    QString getDomainID() const;
+    const QUuid& getRootPlaceID() const { return _rootPlaceID; }
+    
+    const QString& getRootPlaceName() const { return _rootPlaceName; }
+    void setRootPlaceName(const QString& rootPlaceName);
     
     void attemptPlaceNameLookup(const QString& lookupString);
     
@@ -69,13 +70,14 @@ signals:
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
+    void rootPlaceNameChanged(const QString& newRootPlaceName);
 protected:
     AddressManager();
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
 private:
-    void setDomainInfo(const QString& hostname, quint16 port, const QString& domainName = QString());
+    void setDomainInfo(const QString& hostname, quint16 port);
     
     const JSONCallbackParameters& apiCallbackParameters();
     
@@ -85,7 +87,8 @@ private:
     bool handleRelativeViewpoint(const QString& pathSubsection, bool shouldFace = false);
     bool handleUsername(const QString& lookupString);
     
-    QString _currentDomain;
+    QString _rootPlaceName;
+    QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
 };
