@@ -60,18 +60,15 @@ public:
     virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
     virtual void updateObjectVelocities() = 0;
 
-    virtual void computeShapeInfo(ShapeInfo& info) = 0;
-
     virtual MotionType getMotionType() const { return _motionType; }
 
-    void setDensity(float density);
+    virtual void computeShapeInfo(ShapeInfo& info) = 0;
+    virtual float computeMass(const ShapeInfo& shapeInfo) const = 0;
+
     void setFriction(float friction);
     void setRestitution(float restitution);
     void setLinearDamping(float damping);
     void setAngularDamping(float damping);
-    void setVolume(float volume);
-
-    float getMass() const { return _volume * _density; }
 
     void setVelocity(const glm::vec3& velocity) const;
     void setAngularVelocity(const glm::vec3& velocity) const;
@@ -95,13 +92,12 @@ public:
 
     friend class PhysicsEngine;
 protected:
-    float _density;
-    float _volume;
+    // TODO: move these materials properties to EntityItem
     float _friction;
     float _restitution;
     float _linearDamping;
     float _angularDamping;
-    bool _wasInWorld;
+
     MotionType _motionType;
 
     // _body has NO setters -- it is only changed by PhysicsEngine

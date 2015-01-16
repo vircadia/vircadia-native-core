@@ -12,29 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
-
-// the normal texture
-uniform sampler2D normalMap;
-
-// the specular texture
-uniform sampler2D specularMap;
-
-// the depth texture
-uniform sampler2D depthMap;
-
-// the distance to the near clip plane
-uniform float near;
-
-// scale factor for depth: (far - near) / far
-uniform float depthScale;
-
-// offset for depth texture coordinates
-uniform vec2 depthTexCoordOffset;
-
-// scale for depth texture coordinates
-uniform vec2 depthTexCoordScale;
+// Everything about deferred buffer
+<@include DeferredBuffer.slh@>
 
 // the radius (hard cutoff) of the light effect
 uniform float radius;

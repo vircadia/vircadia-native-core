@@ -164,7 +164,7 @@ EntityPropertyDialogBox = (function () {
 
         array.push({ label: "Collisions:", type: "header" });
         index++;
-        array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
+        array.push({ label: "Density:", value: properties.density.toFixed(decimals) });
         index++;
         array.push({ label: "Ignore for Collisions:", type: "checkbox", value: properties.ignoreForCollisions });
         index++;
@@ -353,7 +353,7 @@ EntityPropertyDialogBox = (function () {
             properties.gravity.z = array[index++].value;
 
             index++; // skip header
-            properties.mass = array[index++].value;
+            properties.density = array[index++].value;
             properties.ignoreForCollisions = array[index++].value;
             properties.collisionsWillMove = array[index++].value;
 

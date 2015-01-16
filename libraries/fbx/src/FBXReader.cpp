@@ -753,6 +753,7 @@ public:
     float shininess;
     float opacity;
     QString id;
+    model::MaterialPointer _material;
 };
 
 class Cluster {
@@ -1715,6 +1716,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 #endif
                     }
                     material.id = getID(object.properties);
+
+                    material._material = model::MaterialPointer(new model::Material());
+                    material._material->setEmissive(material.emissive); 
+                    material._material->setDiffuse(material.diffuse); 
+                    material._material->setSpecular(material.specular); 
+                    material._material->setShininess(material.shininess); 
+                    material._material->setOpacity(material.opacity); 
+
                     materials.insert(material.id, material);
 
                 } else if (object.name == "NodeAttribute") {
@@ -2138,6 +2147,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     if (extracted.partMaterialTextures.at(j).first == materialIndex) {
                         FBXMeshPart& part = extracted.mesh.parts[j];
+
+                        part._material = material._material;
                         part.diffuseColor = material.diffuse;
                         part.specularColor = material.specular;
                         part.emissiveColor = material.emissive;

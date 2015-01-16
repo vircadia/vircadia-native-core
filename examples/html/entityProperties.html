@@ -31,8 +31,13 @@
         }
         function createEmitTextPropertyUpdateFunction(propertyName) {
             return function() {
+                var properties = {};
+                properties[propertyName] = this.value;
                 EventBridge.emitWebEvent(
-                    '{ "type":"update", "properties":{"' + propertyName + '":"' + this.value + '"}}'
+                    JSON.stringify({
+                        type: "update",
+                        properties: properties,
+                    })
                 );
             };
         }
@@ -109,7 +114,7 @@
             var elGravityY = document.getElementById("property-grav-y");
             var elGravityZ = document.getElementById("property-grav-z");
 
-            var elMass = document.getElementById("property-mass");
+            var elDensity = document.getElementById("property-density");
             var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
             var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
             var elLifetime = document.getElementById("property-lifetime");
@@ -146,6 +151,9 @@
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
             var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
+            var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
+            var elModelTextures = document.getElementById("property-model-textures");
+            var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
             var elTextSections = document.querySelectorAll(".text-section");
             var elTextText = document.getElementById("property-text-text");
@@ -211,7 +219,7 @@
                             elGravityY.value = properties.gravity.y.toFixed(2);
                             elGravityZ.value = properties.gravity.z.toFixed(2);
 
-                            elMass.value = properties.mass.toFixed(2);
+                            elDensity.value = properties.density.toFixed(2);
                             elIgnoreForCollisions.checked = properties.ignoreForCollisions;
                             elCollisionsWillMove.checked = properties.collisionsWillMove;
                             elLifetime.value = properties.lifetime;
@@ -244,6 +252,10 @@
                                 elModelAnimationURL.value = properties.animationURL;
                                 elModelAnimationPlaying.checked = properties.animationIsPlaying;
                                 elModelAnimationFPS.value = properties.animationFPS;
+                                elModelAnimationFrame.value = properties.animationFrameIndex;
+                                elModelAnimationSettings.value = properties.animationSettings;
+                                elModelTextures.value = properties.textures;
+                                elModelOriginalTextures.value = properties.originalTextures;
                             }
 
                             if (properties.type != "Text") {
@@ -344,7 +356,7 @@
             elGravityY.addEventListener('change', gravityChangeFunction);
             elGravityZ.addEventListener('change', gravityChangeFunction);
 
-            elMass.addEventListener('change', createEmitNumberPropertyUpdateFunction('mass'));
+            elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
             elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
             elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
@@ -387,6 +399,8 @@
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
             elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
+            elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
+            elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -428,7 +442,6 @@
                     percentage: parseInt(elRescaleDimensionsPct.value),
                 }));
             });
-
 
             var resizing = false;
             var startX = 0;
@@ -603,9 +616,9 @@
         </tr>
 
         <tr>
-            <td class="label">Mass</td>
+            <td class="label">Density</td>
             <td>
-                <input type='number' id="property-mass"></input>
+                <input type='number' id="property-density"></input>
             </td>
         </tr>
 
@@ -677,6 +690,24 @@
             <td class="label">Animation Frame</td>
             <td>
                 <input class="coord" type='number' id="property-model-animation-frame"></input>
+            </td>
+        </tr>
+        <tr class="model-section">
+            <td class="label">Animation Settings</td>
+            <td>
+                <textarea id="property-model-animation-settings" value='asdfasdf'></textarea>
+            </td>
+        </tr>
+        <tr class="model-section">
+            <td class="label">Textures</td>
+            <td>
+                <textarea id="property-model-textures" value='asdfasdf'></textarea>
+            </td>
+        </tr>
+        <tr class="model-section">
+            <td class="label">Original Textures</td>
+            <td>
+                <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
             </td>
         </tr>
 
