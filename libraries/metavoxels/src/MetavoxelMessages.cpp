@@ -213,8 +213,8 @@ bool SpannerProjectionFetchVisitor::visit(Spanner* spanner) {
         heightfield->getScale() * heightfield->getAspectZ())) *
         glm::mat4_cast(glm::inverse(heightfield->getRotation())) * glm::translate(-heightfield->getTranslation());
     Box transformedBounds = transform * _bounds;
-    if (transformedBounds.maximum.x < 0.0f && transformedBounds.maximum.z < 0.0f &&
-            transformedBounds.minimum.x > 1.0f && transformedBounds.minimum.z > 1.0f) {
+    if (transformedBounds.maximum.x < 0.0f || transformedBounds.maximum.z < 0.0f ||
+            transformedBounds.minimum.x > 1.0f || transformedBounds.minimum.z > 1.0f) {
         return true;
     }
     float distance = qMin(glm::abs(transformedBounds.minimum.y), glm::abs(transformedBounds.maximum.y));

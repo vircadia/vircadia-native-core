@@ -2079,8 +2079,19 @@ HeightfieldNode* HeightfieldNode::fillHeight(const glm::vec3& translation, const
 
 void HeightfieldNode::getRangeAfterEdit(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const Box& editBounds, float& minimum, float& maximum) const {
-    Box bounds = glm::translate(translation) * glm::mat4_cast(rotation) * Box(glm::vec3(), scale);
-    if (!bounds.intersects(editBounds)) {
+    if (!_height) {
+        return;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
+    glm::mat4 baseInverseTransform = glm::mat4_cast(glm::inverse(rotation)) * glm::translate(-translation);
+    glm::vec3 inverseScale(innerHeightWidth / scale.x, numeric_limits<quint16>::max() / scale.y, innerHeightHeight / scale.z);
+    glm::mat4 inverseTransform = glm::translate(glm::vec3(1.0f, 0.0f, 1.0f)) * glm::scale(inverseScale) * baseInverseTransform;
+    Box transformedBounds = inverseTransform * editBounds;
+    if (transformedBounds.maximum.x < 0.0f || transformedBounds.maximum.z < 0.0f ||
+            transformedBounds.minimum.x > heightWidth - 1 || transformedBounds.minimum.z > heightHeight - 1) {
         return;
     }
     if (!isLeaf()) {
@@ -2093,19 +2104,6 @@ void HeightfieldNode::getRangeAfterEdit(const glm::vec3& translation, const glm:
         }
         return;
     }
-    if (!_height) {
-        return;
-    }
-    int heightWidth = _height->getWidth();
-    int heightHeight = _height->getContents().size() / heightWidth;
-    int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
-    int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
-    
-    glm::mat4 baseInverseTransform = glm::mat4_cast(glm::inverse(rotation)) * glm::translate(-translation);
-    glm::vec3 inverseScale(innerHeightWidth / scale.x, numeric_limits<quint16>::max() / scale.y, innerHeightHeight / scale.z);
-    glm::mat4 inverseTransform = glm::translate(glm::vec3(1.0f, 0.0f, 1.0f)) * glm::scale(inverseScale) * baseInverseTransform;
-    Box transformedBounds = inverseTransform * editBounds;
-    
     glm::vec3 start = glm::floor(transformedBounds.minimum);
     glm::vec3 end = glm::ceil(transformedBounds.maximum);
     
@@ -3764,6 +3762,7 @@ void Heightfield::readExtraDelta(Bitstream& in, const SharedObject* reference) {
     HeightfieldStreamBase base = { in, lod, referenceLOD };
     HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
     
+    setRoot(static_cast<const Heightfield*>(reference)->getRoot());
     bool changed;
     in >> changed;
     if (changed) {
