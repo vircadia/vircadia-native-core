@@ -28,6 +28,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) 
 {
     this->setWindowTitle("LOD Tools");
+    auto lodManager = DependencyManager::get<LODManager>();
 
     // Create layouter
     QFormLayout* form = new QFormLayout(this);
@@ -45,7 +46,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _lodSize->setTickPosition(QSlider::TicksBelow);
     _lodSize->setFixedWidth(SLIDER_WIDTH);
     _lodSize->setPageStep(PAGE_STEP_LOD_SIZE);
-    int sliderValue = Menu::getInstance()->getOctreeSizeScale() / TREE_SCALE;
+    int sliderValue = lodManager->getOctreeSizeScale() / TREE_SCALE;
     _lodSize->setValue(sliderValue);
     form->addRow("LOD Size Scale:", _lodSize);
     connect(_lodSize,SIGNAL(valueChanged(int)),this,SLOT(sizeScaleValueChanged(int)));
@@ -60,7 +61,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _boundaryLevelAdjust->setTickInterval(STEP_ADJUST);
     _boundaryLevelAdjust->setTickPosition(QSlider::TicksBelow);
     _boundaryLevelAdjust->setFixedWidth(SLIDER_WIDTH);
-    sliderValue = Menu::getInstance()->getBoundaryLevelAdjust();
+    sliderValue = lodManager->getBoundaryLevelAdjust();
     _boundaryLevelAdjust->setValue(sliderValue);
     form->addRow("Boundary Level Adjust:", _boundaryLevelAdjust);
     connect(_boundaryLevelAdjust,SIGNAL(valueChanged(int)),this,SLOT(boundaryLevelValueChanged(int)));
@@ -71,22 +72,22 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     const unsigned redish  = 0xfff00000;
     palette.setColor(QPalette::WindowText, QColor::fromRgb(redish));
     _feedback->setPalette(palette);
-    _feedback->setText(Menu::getInstance()->getLODFeedbackText());
+    _feedback->setText(lodManager->getLODFeedbackText());
     const int FEEDBACK_WIDTH = 350;
     _feedback->setFixedWidth(FEEDBACK_WIDTH);
     form->addRow("You can see... ", _feedback);
-
+    
     form->addRow("Automatic Avatar LOD Adjustment:", _automaticAvatarLOD = new QCheckBox(this));
-    _automaticAvatarLOD->setChecked(Menu::getInstance()->getAutomaticAvatarLOD());
+    _automaticAvatarLOD->setChecked(lodManager->getAutomaticAvatarLOD());
     connect(_automaticAvatarLOD, SIGNAL(toggled(bool)), SLOT(updateAvatarLODControls()));
     
     form->addRow("Decrease Avatar LOD Below FPS:", _avatarLODDecreaseFPS = new QDoubleSpinBox(this));
-    _avatarLODDecreaseFPS->setValue(Menu::getInstance()->getAvatarLODDecreaseFPS());
+    _avatarLODDecreaseFPS->setValue(lodManager->getAvatarLODDecreaseFPS());
     _avatarLODDecreaseFPS->setDecimals(0);
     connect(_avatarLODDecreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
     form->addRow("Increase Avatar LOD Above FPS:", _avatarLODIncreaseFPS = new QDoubleSpinBox(this));
-    _avatarLODIncreaseFPS->setValue(Menu::getInstance()->getAvatarLODIncreaseFPS());
+    _avatarLODIncreaseFPS->setValue(lodManager->getAvatarLODIncreaseFPS());
     _avatarLODIncreaseFPS->setDecimals(0);
     connect(_avatarLODIncreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
@@ -94,7 +95,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _avatarLOD->setDecimals(3);
     _avatarLOD->setRange(1.0 / MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, 1.0 / MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER);
     _avatarLOD->setSingleStep(0.001);
-    _avatarLOD->setValue(1.0 / Menu::getInstance()->getAvatarLODDistanceMultiplier());
+    _avatarLOD->setValue(1.0 / lodManager->getAvatarLODDistanceMultiplier());
     connect(_avatarLOD, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
     // Add a button to reset
@@ -108,15 +109,17 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
 }
 
 void LodToolsDialog::reloadSliders() {
-    _lodSize->setValue(Menu::getInstance()->getOctreeSizeScale() / TREE_SCALE);
-    _boundaryLevelAdjust->setValue(Menu::getInstance()->getBoundaryLevelAdjust());
-    _feedback->setText(Menu::getInstance()->getLODFeedbackText());
+    auto lodManager = DependencyManager::get<LODManager>();
+    _lodSize->setValue(lodManager->getOctreeSizeScale() / TREE_SCALE);
+    _boundaryLevelAdjust->setValue(lodManager->getBoundaryLevelAdjust());
+    _feedback->setText(lodManager->getLODFeedbackText());
 }
 
 void LodToolsDialog::updateAvatarLODControls() {
     QFormLayout* form = static_cast<QFormLayout*>(layout());
     
-    Menu::getInstance()->setAutomaticAvatarLOD(_automaticAvatarLOD->isChecked());
+    auto lodManager = DependencyManager::get<LODManager>();
+    lodManager->setAutomaticAvatarLOD(_automaticAvatarLOD->isChecked());
     
     _avatarLODDecreaseFPS->setVisible(_automaticAvatarLOD->isChecked());
     form->labelForField(_avatarLODDecreaseFPS)->setVisible(_automaticAvatarLOD->isChecked());
@@ -128,7 +131,7 @@ void LodToolsDialog::updateAvatarLODControls() {
     form->labelForField(_avatarLOD)->setVisible(!_automaticAvatarLOD->isChecked());
     
     if (!_automaticAvatarLOD->isChecked()) {
-        _avatarLOD->setValue(1.0 / Menu::getInstance()->getAvatarLODDistanceMultiplier());
+        _avatarLOD->setValue(1.0 / lodManager->getAvatarLODDistanceMultiplier());
     }
     
     if (isVisible()) {
@@ -137,25 +140,28 @@ void LodToolsDialog::updateAvatarLODControls() {
 }
 
 void LodToolsDialog::updateAvatarLODValues() {
+    auto lodManager = DependencyManager::get<LODManager>();
     if (_automaticAvatarLOD->isChecked()) {
-        Menu::getInstance()->setAvatarLODDecreaseFPS(_avatarLODDecreaseFPS->value());
-        Menu::getInstance()->setAvatarLODIncreaseFPS(_avatarLODIncreaseFPS->value());
+        lodManager->setAvatarLODDecreaseFPS(_avatarLODDecreaseFPS->value());
+        lodManager->setAvatarLODIncreaseFPS(_avatarLODIncreaseFPS->value());
         
     } else {
-        Menu::getInstance()->setAvatarLODDistanceMultiplier(1.0 / _avatarLOD->value());
+        lodManager->setAvatarLODDistanceMultiplier(1.0 / _avatarLOD->value());
     }
 }
 
 void LodToolsDialog::sizeScaleValueChanged(int value) {
+    auto lodManager = DependencyManager::get<LODManager>();
     float realValue = value * TREE_SCALE;
-    Menu::getInstance()->setOctreeSizeScale(realValue);
+    lodManager->setOctreeSizeScale(realValue);
     
-    _feedback->setText(Menu::getInstance()->getLODFeedbackText());
+    _feedback->setText(lodManager->getLODFeedbackText());
 }
 
 void LodToolsDialog::boundaryLevelValueChanged(int value) {
-    Menu::getInstance()->setBoundaryLevelAdjust(value);
-    _feedback->setText(Menu::getInstance()->getLODFeedbackText());
+    auto lodManager = DependencyManager::get<LODManager>();
+    lodManager->setBoundaryLevelAdjust(value);
+    _feedback->setText(lodManager->getLODFeedbackText());
 }
 
 void LodToolsDialog::resetClicked(bool checked) {

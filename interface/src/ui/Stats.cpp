@@ -623,7 +623,7 @@ void Stats::display(
     // LOD Details
     if (_expanded) {
         octreeStats.str("");
-        QString displayLODDetails = Menu::getInstance()->getLODFeedbackText();
+        QString displayLODDetails = DependencyManager::get<LODManager>()->getLODFeedbackText();
         octreeStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);

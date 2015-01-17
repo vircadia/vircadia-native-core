@@ -114,8 +114,8 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 float Avatar::getLODDistance() const {
-    return Menu::getInstance()->getAvatarLODDistanceMultiplier() *
-        glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
+    return DependencyManager::get<LODManager>()->getAvatarLODDistanceMultiplier() *
+            glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
 }
 
 void Avatar::simulate(float deltaTime) {

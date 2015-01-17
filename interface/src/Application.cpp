@@ -80,6 +80,7 @@
 
 #include "Application.h"
 #include "InterfaceVersion.h"
+#include "LODManager.h"
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
@@ -173,6 +174,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
+    auto lodManager = DependencyManager::set<LODManager>();
     
     return true;
 }
@@ -1772,9 +1774,9 @@ void Application::updateLOD() {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
-        Menu::getInstance()->autoAdjustLOD(_fps);
+        DependencyManager::get<LODManager>()->autoAdjustLOD(_fps);
     } else {
-        Menu::getInstance()->resetLODAdjust();
+        DependencyManager::get<LODManager>()->resetLODAdjust();
     }
 }
 
@@ -2246,8 +2248,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
-    _octreeQuery.setOctreeSizeScale(Menu::getInstance()->getOctreeSizeScale());
-    _octreeQuery.setBoundaryLevelAdjust(Menu::getInstance()->getBoundaryLevelAdjust());
+    auto lodManager = DependencyManager::get<LODManager>();
+    _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
+    _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
 
     unsigned char queryPacket[MAX_PACKET_SIZE];
 
@@ -2649,11 +2652,11 @@ bool Application::shouldRenderMesh(float largestDimension, float distanceToCamer
 }
 
 float Application::getSizeScale() const { 
-    return Menu::getInstance()->getOctreeSizeScale();
+    return DependencyManager::get<LODManager>()->getOctreeSizeScale();
 }
 
 int Application::getBoundaryLevelAdjust() const { 
-    return Menu::getInstance()->getBoundaryLevelAdjust();
+    return DependencyManager::get<LODManager>()->getBoundaryLevelAdjust();
 }
 
 PickRay Application::computePickRay(float x, float y) {

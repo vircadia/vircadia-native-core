@@ -83,10 +83,13 @@ void Overlays::update(float deltatime) {
 
 void Overlays::renderHUD() {
     QReadLocker lock(&_lock);
-
+    
+    auto lodManager = DependencyManager::get<LODManager>();
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
-        Menu::getInstance()->getOctreeSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
-        RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        lodManager->getOctreeSizeScale(),
+                        lodManager->getBoundaryLevelAdjust(),
+                        RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     foreach(Overlay* thisOverlay, _overlaysHUD) {
         if (thisOverlay->is3D()) {
@@ -116,9 +119,12 @@ void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, Re
     glm::vec3 axis(0.0f, 1.0f, 0.0f);
     float myAvatarScale = 1.0f;
     
+    auto lodManager = DependencyManager::get<LODManager>();
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
-                        Menu::getInstance()->getOctreeSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
-                        renderMode, renderSide, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        lodManager->getOctreeSizeScale(),
+                        lodManager->getBoundaryLevelAdjust(),
+                        renderMode, renderSide,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
 
     foreach(Overlay* thisOverlay, _overlaysWorld) {

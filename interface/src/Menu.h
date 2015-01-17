@@ -21,7 +21,6 @@
 
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
-#include <OctreeConstants.h>
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -29,31 +28,10 @@
 
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
+#include "LODManager.h"
 #include "ui/ChatWindow.h"
 #include "ui/JSConsole.h"
 #include "ui/ScriptEditorWindow.h"
-
-// Make an LOD handler class and move everything overthere
-const float ADJUST_LOD_DOWN_FPS = 40.0;
-const float ADJUST_LOD_UP_FPS = 55.0;
-const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f;
-
-const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 5;
-const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
-
-const float ADJUST_LOD_DOWN_BY = 0.9f;
-const float ADJUST_LOD_UP_BY = 1.1f;
-
-const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.25f;
-const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
-
-const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
-const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
-const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
-
-const int ONE_SECOND_OF_FRAMES = 60;
-const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
-//////////////////////////////////////////////////////////
 
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
@@ -187,23 +165,6 @@ public:
 
     bool getShadowsEnabled() const;
 
-    // User Tweakable LOD Items
-    QString getLODFeedbackText();
-    void autoAdjustLOD(float currentFPS);
-    void resetLODAdjust();
-    void setOctreeSizeScale(float sizeScale);
-    float getOctreeSizeScale() const { return _octreeSizeScale; }
-    void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; bumpSettings(); }
-    bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
-    void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; bumpSettings(); }
-    float getAvatarLODDecreaseFPS() const { return _avatarLODDecreaseFPS; }
-    void setAvatarLODIncreaseFPS(float avatarLODIncreaseFPS) { _avatarLODIncreaseFPS = avatarLODIncreaseFPS; bumpSettings(); }
-    float getAvatarLODIncreaseFPS() const { return _avatarLODIncreaseFPS; }
-    void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier = multiplier; bumpSettings(); }
-    float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
-    void setBoundaryLevelAdjust(int boundaryLevelAdjust);
-    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
-
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -271,25 +232,12 @@ private:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-    float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     float _oculusUIAngularSize = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
     float _sixenseReticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
     bool _invertSixenseButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
     bool _hasLoginDialogDisplayed = false;
     
-    bool _automaticAvatarLOD = true;
-    float _avatarLODDecreaseFPS = DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS;
-    float _avatarLODIncreaseFPS = ADJUST_LOD_UP_FPS;
-    float _avatarLODDistanceMultiplier = DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER;
-    
-    int _boundaryLevelAdjust = 0;
     int _maxOctreePacketsPerSecond = DEFAULT_MAX_OCTREE_PPS;
-    
-    quint64 _lastAdjust;
-    quint64 _lastAvatarDetailDrop;
-    
-    SimpleMovingAverage _fpsAverage = FIVE_SECONDS_OF_FRAMES;
-    SimpleMovingAverage _fastFPSAverage = ONE_SECOND_OF_FRAMES;
     
     QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;
