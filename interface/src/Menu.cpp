@@ -125,15 +125,8 @@ Menu::Menu() :
                                   appInstance, SLOT(toggleRunningScriptsWidget()));
 
     addDisabledActionAndSeparator(fileMenu, "Location");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::BookmarkLocation, 0,
-                                  this, SLOT(bookmarkLocation()));
-    _bookmarksMenu = fileMenu->addMenu(MenuOption::Bookmarks);
-    _bookmarksMenu->setEnabled(false);
-    _deleteBookmarksMenu = addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::DeleteBookmark, 0,
-                                  this, SLOT(deleteBookmark()));
-    _deleteBookmarksMenu->setEnabled(false);
-    loadBookmarks();
+    qApp->getBookmarks()->setupMenus(this, fileMenu);
+    
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
                                   Qt::Key_Enter,
@@ -1264,125 +1257,6 @@ void Menu::changeVSync() {
     Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
 }
 
-void Menu::loadBookmarks() {
-    QVariantMap* bookmarks = Application::getInstance()->getBookmarks()->getBookmarks();
-    if (bookmarks->count() > 0) {
-
-        QMapIterator<QString, QVariant> i(*bookmarks);
-        while (i.hasNext()) {
-            i.next();
-
-            QString bookmarkName = i.key();
-            QString bookmarkAddress = i.value().toString();
-
-            QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
-            teleportAction->setData(bookmarkAddress);
-            connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
-
-            addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0, QAction::NoRole);
-        }
-
-        _bookmarksMenu->setEnabled(true);
-        _deleteBookmarksMenu->setEnabled(true);
-    }
-}
-
-void Menu::bookmarkLocation() {
-
-    QInputDialog bookmarkLocationDialog(Application::getInstance()->getWindow());
-    bookmarkLocationDialog.setWindowTitle("Bookmark Location");
-    bookmarkLocationDialog.setLabelText("Name:");
-    bookmarkLocationDialog.setInputMode(QInputDialog::TextInput);
-    bookmarkLocationDialog.resize(400, 200);
-
-    if (bookmarkLocationDialog.exec() == QDialog::Rejected) {
-        return;
-    }
-
-    QString bookmarkName = bookmarkLocationDialog.textValue().trimmed();
-    bookmarkName = bookmarkName.replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
-    if (bookmarkName.length() == 0) {
-        return;
-    }
-
-    auto addressManager = DependencyManager::get<AddressManager>();
-    QString bookmarkAddress = addressManager->currentAddress().toString();
-
-    Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
-    if (bookmarks->contains(bookmarkName)) {
-        QMessageBox duplicateBookmarkMessage;
-        duplicateBookmarkMessage.setIcon(QMessageBox::Warning);
-        duplicateBookmarkMessage.setText("The bookmark name you entered already exists in your list.");
-        duplicateBookmarkMessage.setInformativeText("Would you like to overwrite it?");
-        duplicateBookmarkMessage.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-        duplicateBookmarkMessage.setDefaultButton(QMessageBox::Yes);
-        if (duplicateBookmarkMessage.exec() == QMessageBox::No) {
-            return;
-        }
-        removeAction(_bookmarksMenu, bookmarkName);
-    }
-    
-    QAction* teleportAction = new QAction(getMenu(MenuOption::Bookmarks));
-    teleportAction->setData(bookmarkAddress);
-    connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
-
-    QList<QAction*> menuItems = _bookmarksMenu->actions();
-    int position = 0;
-    while (position < menuItems.count() && bookmarkName > menuItems[position]->text()) {
-        position += 1;
-    }
-
-    addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, bookmarkName, 0,
-                                  QAction::NoRole, position);
-
-    bookmarks->insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
-
-    _bookmarksMenu->setEnabled(true);
-    _deleteBookmarksMenu->setEnabled(true);
-}
-
-void Menu::teleportToBookmark() {
-    QAction *action = qobject_cast<QAction *>(sender());
-    QString address = action->data().toString();
-    DependencyManager::get<AddressManager>()->handleLookupString(address);
-}
-
-void Menu::deleteBookmark() {
-
-    QStringList bookmarkList;
-    QList<QAction*> menuItems = _bookmarksMenu->actions();
-    for (int i = 0; i < menuItems.count(); i += 1) {
-        bookmarkList.append(menuItems[i]->text());
-    }
-
-    QInputDialog deleteBookmarkDialog(Application::getInstance()->getWindow());
-    deleteBookmarkDialog.setWindowTitle("Delete Bookmark");
-    deleteBookmarkDialog.setLabelText("Select the bookmark to delete");
-    deleteBookmarkDialog.resize(400, 400);
-    deleteBookmarkDialog.setOption(QInputDialog::UseListViewForComboBoxItems);
-    deleteBookmarkDialog.setComboBoxItems(bookmarkList);
-    deleteBookmarkDialog.setOkButtonText("Delete");
-
-    if (deleteBookmarkDialog.exec() == QDialog::Rejected) {
-        return;
-    }
-
-    QString bookmarkName = deleteBookmarkDialog.textValue().trimmed();
-    if (bookmarkName.length() == 0) {
-        return;
-    }
-
-    removeAction(_bookmarksMenu, bookmarkName);
-
-    Bookmarks* bookmarks = Application::getInstance()->getBookmarks();
-    bookmarks->remove(bookmarkName);
-
-    if (_bookmarksMenu->actions().count() == 0) {
-        _bookmarksMenu->setEnabled(false);
-        _deleteBookmarksMenu->setEnabled(false);
-    }
-}
-
 void Menu::displayNameLocationResponse(const QString& errorString) {
 
     if (!errorString.isEmpty()) {
@@ -1753,3 +1627,4 @@ void Menu::setScriptsLocation(const QString& scriptsLocation) {
     bumpSettings();
     emit scriptLocationChanged(scriptsLocation);
 }
+

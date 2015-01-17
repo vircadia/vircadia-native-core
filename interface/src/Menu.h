@@ -80,6 +80,7 @@ class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
+    QMenu* getMenu(const QString& menuName);
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
@@ -146,7 +147,6 @@ private:
     QAction* getMenuAction(const QString& menuName);
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
-    QMenu* getMenu(const QString& menuName);
     
     
     QHash<QString, QAction*> _actionHash;
@@ -244,9 +244,6 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
-    void bookmarkLocation();
-    void teleportToBookmark();
-    void deleteBookmark();
     void hmdToolsClosed();
     void runTests();
     void showMetavoxelEditor();
@@ -318,10 +315,6 @@ private:
     
     bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
-
-    void loadBookmarks();
-    QMenu* _bookmarksMenu;
-    QAction* _deleteBookmarksMenu;
 };
 
 namespace MenuOption {
