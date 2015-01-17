@@ -5,9 +5,10 @@ body {
     margin: 0;
     padding: 0;
 
-    background-color: #efefef;
+    background-color: rgb(76, 76, 76);
+    color: rgb(204, 204, 204);
     font-family: Arial;
-    font-size: 11.5px;
+    font-size: 11px;
 
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -15,12 +16,6 @@ body {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-}
-
-body.properties {
-    background-color: rgb(76, 76, 76);
-    color: rgb(204, 204, 204);
-    font-size: 11px;
 }
 
 .selectable {
@@ -117,13 +112,13 @@ input.coord {
 table#entity-table {
     border-collapse: collapse;
     font-family: Sans-Serif;
-    /* font-size: 12px; */
+    font-size: 10px;
     width: 100%;
 }
 
 #entity-table tr {
     cursor: pointer;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid rgb(63, 63, 63)
 }
 
 #entity-table tr.selected {
@@ -140,6 +135,7 @@ table#entity-table {
 }
 
 #entity-table td {
+    font-size: 11px;
     border: 0px black solid;
     word-wrap: nowrap;
     white-space: nowrap;
