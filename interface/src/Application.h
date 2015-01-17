@@ -33,6 +33,7 @@
 #include <NodeList.h>
 #include <OctreeQuery.h>
 #include <PacketHeaders.h>
+#include <PhysicsEngine.h>
 #include <ScriptEngine.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
@@ -287,6 +288,7 @@ public:
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     float getRenderResolutionScale() const;
+    int getRenderAmbientLight() const;
 
     unsigned int getRenderTargetFramerate() const;
     bool isVSyncOn() const;

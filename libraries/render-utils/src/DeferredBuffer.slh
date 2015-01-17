@@ -11,7 +11,6 @@
 <@if not DEFERRED_BUFFER_SLH@>
 <@def DEFERRED_BUFFER_SLH@>
 
-
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
@@ -43,6 +42,10 @@ struct DeferredFragment {
     vec4 specularVal;
     vec4 position;
     vec3 normal;
+    vec3 diffuse;
+    float opacity;
+    vec3 specular;
+    float gloss;
 };
 
 DeferredFragment unpackDeferredFragment(vec2 texcoord) {
@@ -58,6 +61,11 @@ DeferredFragment unpackDeferredFragment(vec2 texcoord) {
 
    // Unpack the normal from the map
     frag.normal = normalize(frag.normalVal.xyz * 2.0 - vec3(1.0));
+
+    frag.diffuse = frag.diffuseVal.xyz;
+    frag.opacity = frag.diffuseVal.w;
+    frag.specular = frag.specularVal.xyz;
+    frag.gloss = frag.specularVal.w;
 
     return frag;
 }

@@ -245,8 +245,8 @@ font: bold 16px;
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>328</width>
-              <height>18</height>
+              <width>334</width>
+              <height>20</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -373,7 +373,7 @@ font: bold 16px;
 font: bold 16px;</string>
            </property>
            <property name="text">
-            <string>Scripts</string>
+            <string>Load Scripts</string>
            </property>
           </widget>
          </item>
@@ -391,9 +391,16 @@ font: bold 16px;</string>
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="loadScriptButton">
+          <widget class="QPushButton" name="loadScriptFromURLButton">
            <property name="text">
-            <string>Load script</string>
+            <string>from URL</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="loadScriptFromDiskButton">
+           <property name="text">
+            <string>from Disk</string>
            </property>
           </widget>
          </item>
@@ -429,7 +436,7 @@ font: bold 16px;</string>
           </widget>
          </item>
          <item>
-          <widget class="QListView" name="scriptListView">
+          <widget class="QTreeView" name="scriptTreeView">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
              <horstretch>0</horstretch>
@@ -442,6 +449,12 @@ font: bold 16px;</string>
            <property name="horizontalScrollBarPolicy">
             <enum>Qt::ScrollBarAlwaysOff</enum>
            </property>
+           <property name="rootIsDecorated">
+            <bool>true</bool>
+           </property>
+           <attribute name="headerVisible">
+            <bool>false</bool>
+           </attribute>
           </widget>
          </item>
         </layout>
