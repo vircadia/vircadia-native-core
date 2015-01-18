@@ -97,7 +97,7 @@ MetavoxelEditor::MetavoxelEditor() :
     _gridSpacing->setMinimum(-FLT_MAX);
     _gridSpacing->setMaximum(FLT_MAX);
     _gridSpacing->setPrefix("2^");
-    _gridSpacing->setValue(-3.0);
+    _gridSpacing->setValue(0.0);
     connect(_gridSpacing, SIGNAL(valueChanged(double)), SLOT(alignGridPosition()));
 
     formLayout->addRow("Grid Position:", _gridPosition = new QDoubleSpinBox());

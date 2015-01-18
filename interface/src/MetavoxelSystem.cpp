@@ -2241,7 +2241,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         // quads for each edge that includes a transition, using indices of previously generated vertices
                         int reclampedX = qMin(clampedX, stackWidth - 1);
                         int reclampedZ = qMin(clampedZ, stackHeight - 1);
-                        if (alpha0 != alpha1 && middleX) {
+                        if (alpha0 != alpha1 && y > position && z > 0) {
                             const NormalIndex& index1 = lastIndexY;
                             const NormalIndex& index2 = lastIndicesZ[x].get(y - 1);
                             const NormalIndex& index3 = lastIndicesZ[x].get(y);
@@ -2269,7 +2269,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             }
                         }
                         
-                        if (alpha0 != alpha2) {
+                        if (alpha0 != alpha2 && x > 0 && z > 0) {
                             const NormalIndex& index1 = lastIndicesZ[x].get(y);
                             const NormalIndex& index2 = lastIndicesZ[x - 1].get(y);
                             const NormalIndex& index3 = lastIndicesX.get(y);
@@ -2301,7 +2301,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             }
                         }
                         
-                        if (alpha0 != alpha4 && middleZ) {
+                        if (alpha0 != alpha4 && x > 0 && y > position) {
                             const NormalIndex& index1 = lastIndexY;
                             const NormalIndex& index2 = lastIndicesX.get(y - 1);
                             const NormalIndex& index3 = lastIndicesX.get(y);
