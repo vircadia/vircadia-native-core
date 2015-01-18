@@ -2648,7 +2648,7 @@ void Application::setupWorldLight() {
 }
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
-    return Menu::getInstance()->shouldRenderMesh(largestDimension, distanceToCamera);
+    return DependencyManager::get<LODManager>()->shouldRenderMesh(largestDimension, distanceToCamera);
 }
 
 float Application::getSizeScale() const { 

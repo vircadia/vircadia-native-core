@@ -18,6 +18,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <LODManager.h>
 #include <PerfStat.h>
 
 #include "Stats.h"

@@ -70,8 +70,10 @@ public:
     void autoAdjustLOD(float currentFPS);
     void resetLODAdjust();
     
+    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
+    
 private:
-    LODManager();
+    LODManager() {}
     
     void loadSettings(QSettings* settings);
     void saveSettings(QSettings* settings);

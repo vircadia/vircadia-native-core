@@ -25,6 +25,7 @@
 #include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
 #include <GlowEffect.h>
+#include <LODManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>

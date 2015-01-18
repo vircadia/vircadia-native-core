@@ -8,12 +8,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QScriptValueIterator>
+
 #include <limits>
 #include <typeinfo>
+
 #include <Application.h>
 #include <devices/OculusManager.h>
-#include <Menu.h>
-#include <QScriptValueIterator>
+#include <LODManager.h>
 
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"

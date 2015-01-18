@@ -9,16 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QFormLayout>
-#include <QDialogButtonBox>
-
-#include <QPalette>
 #include <QCheckBox>
 #include <QColor>
+#include <QDialogButtonBox>
 #include <QDoubleSpinBox>
-#include <QSlider>
+#include <QFormLayout>
+#include <QPalette>
 #include <QPushButton>
+#include <QSlider>
 #include <QString>
+
+#include <LODManager.h>
 
 #include "Menu.h"
 #include "ui/LodToolsDialog.h"

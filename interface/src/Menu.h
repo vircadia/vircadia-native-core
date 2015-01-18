@@ -28,7 +28,6 @@
 
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
-#include "LODManager.h"
 #include "ui/ChatWindow.h"
 #include "ui/JSConsole.h"
 #include "ui/ScriptEditorWindow.h"
@@ -164,8 +163,6 @@ public:
     HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
 
     bool getShadowsEnabled() const;
-
-    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }

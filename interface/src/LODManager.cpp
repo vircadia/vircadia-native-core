@@ -138,6 +138,44 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _shouldRenderTableNeedsRebuilding = true;
 }
 
+// TODO: This is essentially the same logic used to render octree cells, but since models are more detailed then octree cells
+//       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
+bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera) {
+    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
+    float octreeSizeScale = getOctreeSizeScale();
+    int boundaryLevelAdjust = getBoundaryLevelAdjust();
+    float maxScale = (float)TREE_SCALE;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
+    
+    if (_shouldRenderTableNeedsRebuilding) {
+        _shouldRenderTable.clear();
+        
+        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
+        float scale = maxScale;
+        float visibleDistanceAtScale = visibleDistanceAtMaxScale;
+        
+        while (scale > SMALLEST_SCALE_IN_TABLE) {
+            scale /= 2.0f;
+            visibleDistanceAtScale /= 2.0f;
+            _shouldRenderTable[scale] = visibleDistanceAtScale;
+        }
+        _shouldRenderTableNeedsRebuilding = false;
+    }
+    
+    float closestScale = maxScale;
+    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
+    QMap<float, float>::const_iterator lowerBound = _shouldRenderTable.lowerBound(largestDimension);
+    if (lowerBound != _shouldRenderTable.constEnd()) {
+        closestScale = lowerBound.key();
+        visibleDistanceAtClosestScale = lowerBound.value();
+    }
+    
+    if (closestScale < largestDimension) {
+        visibleDistanceAtClosestScale *= 2.0f;
+    }
+    
+    return (distanceToCamera <= visibleDistanceAtClosestScale);
+}
 
 void LODManager::loadSettings(QSettings* settings) {
     bool lockedSettings = false;
