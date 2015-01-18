@@ -664,7 +664,7 @@ void Application::paintGL() {
         _myCamera.update(1.0f / _fps);
     }
 
-    if (Menu::getInstance()->getShadowsEnabled()) {
+    if (getShadowsEnabled()) {
         updateShadowMap();
     }
 
@@ -2956,8 +2956,10 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     }
 }
 
-bool Application::getShadowsEnabled() { 
-    return Menu::getInstance()->getShadowsEnabled(); 
+bool Application::getShadowsEnabled() {
+    Menu* menubar = Menu::getInstance();
+    return menubar->isOptionChecked(MenuOption::SimpleShadows) ||
+           menubar->isOptionChecked(MenuOption::CascadedShadows);
 }
 
 bool Application::getCascadeShadowsEnabled() { 

@@ -136,8 +136,6 @@ public:
     const QString& getScriptsLocation() const { return _scriptsLocation; }
     void setScriptsLocation(const QString& scriptsLocation);
 
-    bool getShadowsEnabled() const;
-
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif

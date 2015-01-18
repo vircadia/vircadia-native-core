@@ -1090,10 +1090,6 @@ void Menu::showEditEntitiesHelp() {
     InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
 }
 
-bool Menu::getShadowsEnabled() const {
-    return isOptionChecked(MenuOption::SimpleShadows) || isOptionChecked(MenuOption::CascadedShadows);
-}
-
 void Menu::bumpSettings() {
     Application::getInstance()->bumpSettings();
 }
