@@ -61,6 +61,12 @@ public:
     float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
     float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
+    
+    float getEyeDeflection() const { return _eyeDeflection; }
+    void setEyeDeflection(float faceshiftEyeDeflection) { _eyeDeflection = faceshiftEyeDeflection; }
+    
+    const QString& getHostname() const { return _hostname; }
+    void setHostname(const QString& hostname) { _hostname = hostname; }
 
     void update();
     void reset();
@@ -144,6 +150,9 @@ private:
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
     bool _longTermAverageInitialized;
+    
+    float _eyeDeflection = DEFAULT_FACESHIFT_EYE_DEFLECTION;
+    QString _hostname = DEFAULT_FACESHIFT_HOSTNAME;
     
 };
 

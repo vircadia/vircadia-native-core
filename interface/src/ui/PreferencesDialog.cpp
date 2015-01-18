@@ -11,6 +11,8 @@
 
 #include <QFileDialog>
 
+#include <devices/Faceshift.h>
+
 #include "Application.h"
 #include "Audio.h"
 #include "MainWindow.h"
@@ -124,10 +126,11 @@ void PreferencesDialog::loadPreferences() {
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
     
-    ui.faceshiftEyeDeflectionSider->setValue(menuInstance->getFaceshiftEyeDeflection() *
+    auto faceshift = DependencyManager::get<Faceshift>();
+    ui.faceshiftEyeDeflectionSider->setValue(faceshift->getEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
-    ui.faceshiftHostnameEdit->setText(menuInstance->getFaceshiftHostname());
+    ui.faceshiftHostnameEdit->setText(faceshift->getHostname());
     
     auto audio = DependencyManager::get<Audio>();
     MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
@@ -231,11 +234,12 @@ void PreferencesDialog::savePreferences() {
     Menu::getInstance()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     Menu::getInstance()->setFieldOfView(ui.fieldOfViewSpin->value());
-
-    Menu::getInstance()->setFaceshiftEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
-                                                     (float)ui.faceshiftEyeDeflectionSider->maximum());
     
-    Menu::getInstance()->setFaceshiftHostname(ui.faceshiftHostnameEdit->text());    
+    auto faceshift = DependencyManager::get<Faceshift>();
+    faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
+                                (float)ui.faceshiftEyeDeflectionSider->maximum());
+    
+    faceshift->setHostname(ui.faceshiftHostnameEdit->text());
     
     Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 

@@ -26,7 +26,6 @@
 #include "SpeechRecognizer.h"
 #endif
 
-#include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
 #include "ui/ChatWindow.h"
 #include "ui/JSConsole.h"
@@ -141,10 +140,6 @@ public:
     bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
     void setInvertSixenseButtons(bool invertSixenseButtons) { _invertSixenseButtons = invertSixenseButtons; bumpSettings(); }
 
-    float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
-    void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; bumpSettings(); }
-    const QString& getFaceshiftHostname() const { return _faceshiftHostname; }
-    void setFaceshiftHostname(const QString& hostname) { _faceshiftHostname = hostname; bumpSettings(); }
     QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; bumpSettings(); }
 
@@ -215,8 +210,6 @@ private:
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
     //  The actual FOV set by the user's monitor size and view distance
     float _realWorldFieldOfView = DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES;
-    float _faceshiftEyeDeflection = DEFAULT_FACESHIFT_EYE_DEFLECTION;
-    QString _faceshiftHostname = DEFAULT_FACESHIFT_HOSTNAME;
     
     QDialog* _jsConsole = nullptr;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

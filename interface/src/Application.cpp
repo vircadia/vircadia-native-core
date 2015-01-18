@@ -1893,7 +1893,7 @@ void Application::updateMyAvatarLookAtPosition() {
         // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
-        float deflection = Menu::getInstance()->getFaceshiftEyeDeflection();
+        float deflection = DependencyManager::get<Faceshift>()->getEyeDeflection();
         if (isLookingAtSomeone) {
             deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
         }

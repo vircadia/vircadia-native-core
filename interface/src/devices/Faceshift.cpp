@@ -159,7 +159,7 @@ void Faceshift::connectSocket() {
             qDebug("Faceshift: Connecting...");
         }
 
-        _tcpSocket.connectToHost(Menu::getInstance()->getFaceshiftHostname(), FACESHIFT_PORT);
+        _tcpSocket.connectToHost(_hostname, FACESHIFT_PORT);
         _tracking = false;
     }
 }

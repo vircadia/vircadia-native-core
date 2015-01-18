@@ -44,6 +44,7 @@
 #include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
+#include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/Visage.h"
 #include "Menu.h"
@@ -591,8 +592,6 @@ void Menu::loadSettings(QSettings* settings) {
     
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
-    _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
-    _faceshiftHostname = settings->value("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME).toString();
     _maxOctreePacketsPerSecond = loadSetting(settings, "maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
     _snapshotsLocation = settings->value("snapshotsLocation",
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
@@ -638,8 +637,6 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("audioOutputBufferSize", audio->getOutputBufferSize());
 
     settings->setValue("fieldOfView", _fieldOfView);
-    settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
-    settings->setValue("faceshiftHostname", _faceshiftHostname);
     settings->setValue("maxOctreePPS", _maxOctreePacketsPerSecond);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->setValue("scriptsLocation", _scriptsLocation);
