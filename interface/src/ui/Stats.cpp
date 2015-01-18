@@ -18,6 +18,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <Application.h>
+#include <GeometryCache.h>
+#include <GLCanvas.h>
 #include <LODManager.h>
 #include <PerfStat.h>
 

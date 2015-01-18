@@ -14,9 +14,26 @@
 
 #include <QPointer>
 
+#include <Application.h>
 #include <DependencyManager.h>
 
+#include "HMDToolsDialog.h"
+
 class QAction;
+
+class AddressBarDialog;
+class AnimationsDialog;
+class AttachmentsDialog;
+class CachesSizeDialog;
+class ChatWindow;
+class BandwidthDialog;
+class LodToolsDialog;
+class LoginDialog;
+class MetavoxelEditor;
+class MetavoxelNetworkSimulator;
+class OctreeStatsDialog;
+class PreferencesDialog;
+class ScriptEditorWindow;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT

@@ -51,6 +51,9 @@
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#include "SpeechRecognizer.h"
+#endif
 #include "Util.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AnimationsDialog.h"
@@ -96,12 +99,7 @@ Menu::Menu() {
     QMenu* fileMenu = addMenu("File");
 
 #ifdef Q_OS_MAC
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::AboutApp,
-                                  0,
-                                  this,
-                                  SLOT(aboutApp()),
-                                  QAction::AboutRole);
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
 #endif
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     AccountManager& accountManager = AccountManager::getInstance();
@@ -577,7 +575,7 @@ Menu::Menu() {
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
-    connect(helpAction, SIGNAL(triggered()), this, SLOT(aboutApp()));
+    connect(helpAction, SIGNAL(triggered()), qApp, SLOT(aboutApp()));
 #endif
 }
 
@@ -1059,16 +1057,3 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     }
     return false;
 };
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////// TODO: Move to appropriate files ////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void Menu::aboutApp() {
-    InfoView::forcedShow(INFO_HELP_PATH);
-}
-
-void Menu::showEditEntitiesHelp() {
-    InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
-}
-

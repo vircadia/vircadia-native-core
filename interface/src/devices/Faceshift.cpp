@@ -11,6 +11,7 @@
 
 #include <QTimer>
 
+#include <GLMHelpers.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 

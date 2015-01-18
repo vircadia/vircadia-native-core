@@ -371,6 +371,8 @@ public slots:
     void setVSyncEnabled();
 
     void resetSensors();
+    void aboutApp();
+    void showEditEntitiesHelp();
 
 private slots:
     void clearDomainOctreeDetails();

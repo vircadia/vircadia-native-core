@@ -19,6 +19,7 @@
 #include <QStandardPaths>
 
 #include <AddressManager.h>
+#include <Application.h>
 
 #include "MainWindow.h"
 #include "Menu.h"

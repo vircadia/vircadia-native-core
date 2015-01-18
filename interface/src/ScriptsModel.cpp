@@ -17,6 +17,7 @@
 
 #include <NetworkAccessManager.h>
 
+#include "Application.h"
 #include "Menu.h"
 
 #include "ScriptsModel.h"

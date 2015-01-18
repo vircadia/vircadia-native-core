@@ -40,6 +40,7 @@
 #include <QScreen>
 #include <QSettings>
 #include <QShortcut>
+#include <QSystemTrayIcon>
 #include <QTimer>
 #include <QUrl>
 #include <QWindow>
@@ -101,7 +102,6 @@
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
 
-
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
@@ -112,6 +112,10 @@
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
+
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#include "SpeechRecognizer.h"
+#endif
 
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
@@ -725,6 +729,14 @@ void Application::paintGL() {
 
 void Application::runTests() {
     runTimingTests();
+}
+
+void Application::aboutApp() {
+    InfoView::forcedShow(INFO_HELP_PATH);
+}
+
+void Application::showEditEntitiesHelp() {
+    InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
 }
 
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {

@@ -13,6 +13,7 @@
 #define hifi_AnimationsDialog_h
 
 #include <QDialog>
+#include <QDoubleSpinBox>
 #include <QFrame>
 
 #include "avatar/MyAvatar.h"

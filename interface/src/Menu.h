@@ -19,35 +19,9 @@
 #include <QPointer>
 #include <QStandardPaths>
 
-#include <EventTypes.h>
 #include <MenuItemProperties.h>
 
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-#include "SpeechRecognizer.h"
-#endif
-
-#include "ui/ChatWindow.h"
-#include "ui/JSConsole.h"
-#include "ui/ScriptEditorWindow.h"
-
-const QString SETTINGS_ADDRESS_KEY = "address";
 class QSettings;
-
-class AddressBarDialog;
-class AnimationsDialog;
-class AttachmentsDialog;
-class CachesSizeDialog;
-class BandwidthDialog;
-class DataWebDialog;
-class HMDToolsDialog;
-class LodToolsDialog;
-class LoginDialog;
-class OctreeStatsDialog;
-class PreferencesDialog;
-class MetavoxelEditor;
-class MetavoxelNetworkSimulator;
-class ChatWindow;
-class MenuItemProperties;
 
 class Menu : public QMenuBar {
     Q_OBJECT
@@ -123,15 +97,6 @@ private:
     
     
     QHash<QString, QAction*> _actionHash;
-    
-    
-    
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////// TODO: Move to appropriate files ////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-private slots:
-    void aboutApp();
-    void showEditEntitiesHelp();
 };
 
 namespace MenuOption {
