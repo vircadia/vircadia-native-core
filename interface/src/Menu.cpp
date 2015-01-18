@@ -1086,8 +1086,6 @@ void Menu::bumpSettings() {
     Application::getInstance()->bumpSettings();
 }
 
-const float DIALOG_RATIO_OF_WINDOW = 0.30f;
-
 void Menu::displayNameLocationResponse(const QString& errorString) {
 
     if (!errorString.isEmpty()) {
