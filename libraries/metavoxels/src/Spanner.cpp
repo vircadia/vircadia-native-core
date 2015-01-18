@@ -2383,9 +2383,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                                 entryDest->material = index;
                             }
                             if (y + 1 > voxelHeight) {
-                                if (x < startX && z < startZ && x > endX && z > endZ) {
-                                    *heightLineDest = 0;
-                                }
+                                *heightLineDest = 0;
                                 entryDest->setHermiteY(glm::normalize(glm::vec3(deltaX, 2.0f, deltaZ)), voxelHeight - y);
                             }
                         }

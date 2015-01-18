@@ -2232,6 +2232,43 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         }
                                         break;
                                     }
+                                    case UPPER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex -
+                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
+                                        }
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex);
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[1]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[1].vertex -
+                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case LOWER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[2]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex -
+                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex);
+                                        }
+                                        break;
+                                    }
                                 }
                                 stitched = true;
                             }
