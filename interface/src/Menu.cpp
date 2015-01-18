@@ -569,8 +569,6 @@ Menu::Menu() {
                                             statsRenderer.data(),
                                             SLOT(toggleShowInjectedStreams()));
 
-    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
-
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
@@ -1171,13 +1169,6 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 
 void Menu::loadRSSDKFile() {
     RealSense::getInstance()->loadRSSDKFile();
-}
-
-void Menu::audioMuteToggled() {
-    QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
-    if (muteAction) {
-        muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
-    }
 }
 
 void Menu::runTests() {

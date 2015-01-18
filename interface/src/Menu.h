@@ -159,7 +159,6 @@ private slots:
     void bumpSettings();
     void changePrivateKey();
     void runTests();
-    void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
     void changeVSync();
     void loadRSSDKFile();

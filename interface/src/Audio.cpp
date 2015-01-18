@@ -97,8 +97,16 @@ Audio::Audio() :
     
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples, this, &Audio::processReceivedSamples, Qt::DirectConnection);
     
+    connect(this, SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    
     // Initialize GVerb
     initGverb();
+}
+
+void Audio::audioMuteToggled() {
+    QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteAudio);
+    Q_CHECK_PTR(muteAction);
+    muteAction->setChecked(isMuted());
 }
 
 void Audio::reset() {
