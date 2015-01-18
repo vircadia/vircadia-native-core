@@ -77,14 +77,14 @@ public:
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
 
-    /// Attempts to fill the spanner's height (removing volumetric information).
+    /// Attempts to fill the spanner's height (adding removing volumetric information).
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* fillHeight(const glm::vec3& position, float radius);
 
-    /// Attempts to "sculpt" or "paint" with the supplied spanner.
+    /// Attempts to "sculpt" or "paint," etc., with the supplied spanner.
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint);
+        const QColor& color, bool paint, bool voxelize);
 
     /// Checks whether this spanner has its own colors.
     virtual bool hasOwnColors() const;
@@ -700,9 +700,9 @@ public:
     
     void getRangeAfterEdit(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const Box& editBounds, float& minimum, float& maximum) const;
-            
+    
     HeightfieldNode* setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint,
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint, bool voxelize,
         float normalizeScale, float normalizeOffset);
         
     void read(HeightfieldStreamState& state);
@@ -805,7 +805,7 @@ public:
     virtual Spanner* fillHeight(const glm::vec3& position, float radius);
     
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint);
+        const QColor& color, bool paint, bool voxelize);
         
     virtual bool hasOwnColors() const;
     virtual bool hasOwnMaterials() const;

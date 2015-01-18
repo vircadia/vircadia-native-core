@@ -120,7 +120,7 @@ Spanner* Spanner::fillHeight(const glm::vec3& position, float radius) {
 }
 
 Spanner* Spanner::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint) {
+        const QColor& color, bool paint, bool voxelize) {
     return this;
 }
 
@@ -2129,7 +2129,7 @@ static inline bool isSet(const QVector<StackArray>& stackContents, int stackWidt
 }
 
 HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint,
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint, bool voxelize,
         float normalizeScale, float normalizeOffset) {
     if (!_height) {
         return this;
@@ -2150,8 +2150,8 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             glm::vec3 nextScale = scale * glm::vec3(0.5f, 1.0f, 0.5f);
             HeightfieldNode* newChild = _children[i]->setMaterial(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
-                    i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
-                nextScale, spanner, material, color, paint, normalizeScale, normalizeOffset);
+                    i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation, nextScale, spanner,
+                material, color, paint, voxelize, normalizeScale, normalizeOffset);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -2399,7 +2399,8 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                 float oldVoxelHeight = *oldHeightLineDest * voxelScale;
                 float oldNextVoxelHeightX = oldHeightLineDest[1] * voxelScale;
                 float oldNextVoxelHeightZ = oldHeightLineDest[heightWidth] * voxelScale;
-                for (int y = newTop; y >= newBottom; y--, entryDest--, pos -= worldStepY) {
+                // skip the actual set if voxelizing
+                for (int y = voxelize ? newBottom - 1 : newTop; y >= newBottom; y--, entryDest--, pos -= worldStepY) {
                     int oldCurrentAlpha = stackDest->getEntryAlpha(y, oldVoxelHeight);
                     if (spanner->contains(pos)) {
                         if (hasOwnColors && !erase) {
@@ -3376,7 +3377,7 @@ Spanner* Heightfield::fillHeight(const glm::vec3& position, float radius) {
 }
 
 Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint) {
+        const QColor& color, bool paint, bool voxelize) {
     // first see if we're going to exceed the range limits, normalizing if necessary
     Spanner* spannerData = static_cast<Spanner*>(spanner.data());
     float normalizeScale = 1.0f, normalizeOffset = 0.0f;
@@ -3391,7 +3392,7 @@ Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const Shar
     }
     newHeightfield->setRoot(HeightfieldNodePointer(_root->setMaterial(newHeightfield->getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), spannerData,
-        material, color, paint, normalizeScale, normalizeOffset)));
+        material, color, paint, voxelize, normalizeScale, normalizeOffset)));
     return newHeightfield;
 }
 

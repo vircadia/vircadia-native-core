@@ -419,6 +419,10 @@ public:
 protected:
     
     virtual QVariant createEdit(bool alternate);
+
+private:
+    
+    QComboBox* _mode;
 };
 
 /// Allows setting heightfield materials by dragging out a box.

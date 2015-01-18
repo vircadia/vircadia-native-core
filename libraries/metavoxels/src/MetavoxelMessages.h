@@ -233,17 +233,18 @@ public:
 
     STREAM SharedObjectPointer spanner;
     STREAM bool paint;
+    STREAM bool voxelize;
     
     HeightfieldMaterialSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer(),
         const SharedObjectPointer& material = SharedObjectPointer(),
-        const QColor& averageColor = QColor(), bool paint = false);
+        const QColor& averageColor = QColor(), bool paint = false, bool voxelize = false);
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(HeightfieldMaterialSpannerEdit)
 
-/// An edit that sets a region of a heightfield height.
+/// An edit that fills a region of a heightfield height.
 class FillHeightfieldHeightEdit : public MetavoxelEdit {
     STREAMABLE
 
@@ -251,7 +252,7 @@ public:
     
     STREAM glm::vec3 position;
     STREAM float radius;
-    
+
     FillHeightfieldHeightEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f);
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;

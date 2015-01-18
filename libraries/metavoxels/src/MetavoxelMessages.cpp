@@ -176,10 +176,11 @@ MaterialEdit::MaterialEdit(const SharedObjectPointer& material, const QColor& av
 }
 
 HeightfieldMaterialSpannerEdit::HeightfieldMaterialSpannerEdit(const SharedObjectPointer& spanner,
-        const SharedObjectPointer& material, const QColor& averageColor, bool paint) :
+        const SharedObjectPointer& material, const QColor& averageColor, bool paint, bool voxelize) :
     MaterialEdit(material, averageColor),
     spanner(spanner),
-    paint(paint) {
+    paint(paint),
+    voxelize(voxelize) {
 }
 
 class SpannerProjectionFetchVisitor : public SpannerVisitor {
@@ -246,7 +247,7 @@ void HeightfieldMaterialSpannerEdit::apply(MetavoxelData& data, const WeakShared
     }
     
     foreach (const SharedObjectPointer& result, results) {
-        Spanner* newResult = static_cast<Spanner*>(result.data())->setMaterial(spanner, material, color, paint);
+        Spanner* newResult = static_cast<Spanner*>(result.data())->setMaterial(spanner, material, color, paint, voxelize);
         if (newResult != result) {
             data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), result, newResult);
         }

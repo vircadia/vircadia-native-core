@@ -821,7 +821,7 @@ HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QStrin
     _form->addRow("Radius:", _radius = new QDoubleSpinBox());
     _radius->setSingleStep(0.01);
     _radius->setMaximum(FLT_MAX);
-    _radius->setValue(1.0);
+    _radius->setValue(5.0);
 }
 
 bool HeightfieldBrushTool::appliesTo(const AttributePointer& attribute) const {
@@ -975,10 +975,21 @@ QVariant HeightfieldSculptBrushTool::createEdit(bool alternate) {
 
 HeightfieldFillBrushTool::HeightfieldFillBrushTool(MetavoxelEditor* editor) :
     HeightfieldBrushTool(editor, "Fill Brush") {
+    
+    _form->addRow("Mode:", _mode = new QComboBox());
+    _mode->addItem("Fill");
+    _mode->addItem("Voxelize");
 }
 
 QVariant HeightfieldFillBrushTool::createEdit(bool alternate) {
-    return QVariant::fromValue(FillHeightfieldHeightEdit(_position, _radius->value()));
+    if (_mode->currentIndex() == 0) {
+        return QVariant::fromValue(FillHeightfieldHeightEdit(_position, _radius->value()));
+    }
+    Sphere* sphere = new Sphere();
+    sphere->setTranslation(_position);
+    sphere->setScale(_radius->value());
+    return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
+        SharedObjectPointer(), QColor(), false, true));
 }
 
 HeightfieldMaterialBoxTool::HeightfieldMaterialBoxTool(MetavoxelEditor* editor) :
