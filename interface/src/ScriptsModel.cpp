@@ -33,8 +33,8 @@ static const QString KEY_NAME = "Key";
 
 TreeNodeBase::TreeNodeBase(TreeNodeFolder* parent, const QString& name, TreeNodeType type) :
     _parent(parent),
-    _name(name),
-    _type(type) {
+    _type(type),
+    _name(name) {
 };
 
 TreeNodeScript::TreeNodeScript(const QString& localPath, const QString& fullPath, ScriptOrigin origin) :
