@@ -1747,33 +1747,33 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         stitchMinimumY = qMin(stitchMinimumY, (int)heightfieldHeight);
                         stitchMaximumY = qMax(stitchMaximumY, (int)heightfieldHeight);
                     }
-                    if (nextHeightfieldHeightX != 0.0f) {
+                    if (nextHeightfieldHeightX != 0.0f && x != stackWidth) {
                         corners |= UPPER_RIGHT_CORNER;
                         stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightX);
                         stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightX);
                     }
-                    if (nextHeightfieldHeightZ != 0.0f) {
+                    if (nextHeightfieldHeightZ != 0.0f && z != stackHeight) {
                         corners |= LOWER_LEFT_CORNER;
                         stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightZ);
                         stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightZ);
                     }
-                    if (nextHeightfieldHeightXZ != 0.0f) {
+                    if (nextHeightfieldHeightXZ != 0.0f && x != stackWidth && z != stackHeight) {
                         corners |= LOWER_RIGHT_CORNER;
                         stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightXZ);
                         stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightXZ);
                     }
-                    bool stitchable = middleX && middleZ && !(corners == NO_CORNERS || corners == ALL_CORNERS);
+                    bool stitchable = x != 0 && z != 0 && !(corners == NO_CORNERS || corners == ALL_CORNERS);
                     bool stitched = false;
                     VoxelPoint cornerPoints[4];
                     int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
                     if (stitchable) {
                         for (unsigned int i = 0; i < sizeof(cornerPoints) / sizeof(cornerPoints[0]); i++) {
+                            if (!(corners & (1 << i))) {
+                                continue;
+                            }
                             int offsetX = (i & X_MAXIMUM_FLAG) ? 1 : 0;
                             int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
                             const quint16* height = heightLineSrc + offsetZ * width + offsetX;
-                            if (*height == 0) {
-                                continue;
-                            }
                             VoxelPoint& point = cornerPoints[i];
                             int clampedOffsetX = clampedX + offsetX, clampedOffsetZ = clampedZ + offsetZ;
                             point.vertex = glm::vec3(clampedOffsetX, *height * voxelScale, clampedOffsetZ) * step;
