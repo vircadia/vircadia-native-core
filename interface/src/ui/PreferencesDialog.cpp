@@ -129,18 +129,19 @@ void PreferencesDialog::loadPreferences() {
     
     ui.faceshiftHostnameEdit->setText(menuInstance->getFaceshiftHostname());
     
-    const InboundAudioStream::Settings& streamSettings = menuInstance->getReceivedAudioStreamSettings();
-
-    ui.dynamicJitterBuffersCheckBox->setChecked(streamSettings._dynamicJitterBuffers);
-    ui.staticDesiredJitterBufferFramesSpin->setValue(streamSettings._staticDesiredJitterBufferFrames);
-    ui.maxFramesOverDesiredSpin->setValue(streamSettings._maxFramesOverDesired);
-    ui.useStdevForJitterCalcCheckBox->setChecked(streamSettings._useStDevForJitterCalc);
-    ui.windowStarveThresholdSpin->setValue(streamSettings._windowStarveThreshold);
-    ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->setValue(streamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
-    ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
-    ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
-
     auto audio = DependencyManager::get<Audio>();
+    MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
+
+    ui.dynamicJitterBuffersCheckBox->setChecked(stream.getDynamicJitterBuffers());
+    ui.staticDesiredJitterBufferFramesSpin->setValue(stream.getDesiredJitterBufferFrames());
+    ui.maxFramesOverDesiredSpin->setValue(stream.getMaxFramesOverDesired());
+    ui.useStdevForJitterCalcCheckBox->setChecked(stream.getUseStDevForJitterCalc());
+    ui.windowStarveThresholdSpin->setValue(stream.getWindowStarveThreshold());
+    ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->setValue(
+            stream.getWindowSecondsForDesiredCalcOnTooManyStarves());
+    ui.windowSecondsForDesiredReductionSpin->setValue(stream.getWindowSecondsForDesiredReduction());
+    ui.repetitionWithFadeCheckBox->setChecked(stream.getRepetitionWithFade());
+
     ui.outputBufferSizeSpinner->setValue(audio->getOutputBufferSize());
 
     ui.outputStarveDetectionCheckBox->setChecked(audio->getOutputStarveDetectionEnabled());
@@ -244,19 +245,17 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setInvertSixenseButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
-    InboundAudioStream::Settings streamSettings;
-    streamSettings._dynamicJitterBuffers = ui.dynamicJitterBuffersCheckBox->isChecked();
-    streamSettings._staticDesiredJitterBufferFrames = ui.staticDesiredJitterBufferFramesSpin->value();
-    streamSettings._maxFramesOverDesired = ui.maxFramesOverDesiredSpin->value();
-    streamSettings._useStDevForJitterCalc = ui.useStdevForJitterCalcCheckBox->isChecked();
-    streamSettings._windowStarveThreshold = ui.windowStarveThresholdSpin->value();
-    streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value();
-    streamSettings._windowSecondsForDesiredReduction = ui.windowSecondsForDesiredReductionSpin->value();
-    streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
-
-    Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
-
     auto audio = DependencyManager::get<Audio>();
+    MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
+    
+    stream.setDynamicJitterBuffers(ui.dynamicJitterBuffersCheckBox->isChecked());
+    stream.setStaticDesiredJitterBufferFrames(ui.staticDesiredJitterBufferFramesSpin->value());
+    stream.setMaxFramesOverDesired(ui.maxFramesOverDesiredSpin->value());
+    stream.setUseStDevForJitterCalc(ui.useStdevForJitterCalcCheckBox->isChecked());
+    stream.setWindowStarveThreshold(ui.windowStarveThresholdSpin->value());
+    stream.setWindowSecondsForDesiredCalcOnTooManyStarves(ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value());
+    stream.setWindowSecondsForDesiredReduction(ui.windowSecondsForDesiredReductionSpin->value());
+    stream.setRepetitionWithFade(ui.repetitionWithFadeCheckBox->isChecked());
 
     QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
 

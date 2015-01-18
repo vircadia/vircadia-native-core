@@ -132,8 +132,6 @@ private:
 /////////////////////////////////////////// TODO: Move to appropriate files ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
-    const InboundAudioStream::Settings& getReceivedAudioStreamSettings() const { return _receivedAudioStreamSettings; }
-    void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& receivedAudioStreamSettings) { _receivedAudioStreamSettings = receivedAudioStreamSettings; }
     float getFieldOfView() const { return _fieldOfView; }
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; bumpSettings(); }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
@@ -213,7 +211,6 @@ private slots:
     void loadRSSDKFile();
 
 private:
-    InboundAudioStream::Settings _receivedAudioStreamSettings;
     // in Degrees, doesn't apply to HMD like Oculus
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
     //  The actual FOV set by the user's monitor size and view distance
