@@ -453,8 +453,6 @@ Menu::Menu() {
                                            SLOT(disable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0,
                                   dialogsManager.data(), SLOT(cachesSizeDialog()));
-    
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::WalletPrivateKey, 0, this, SLOT(changePrivateKey()));
 
     QMenu* timingMenu = developerMenu->addMenu("Timing and Stats");
     QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
@@ -598,8 +596,6 @@ void Menu::loadSettings(QSettings* settings) {
     _speechRecognizer.setEnabled(settings->value("speechRecognitionEnabled", false).toBool());
 #endif
 
-    _walletPrivateKey = settings->value("privateKey").toByteArray();
-
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
@@ -637,7 +633,6 @@ void Menu::saveSettings(QSettings* settings) {
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     settings->setValue("speechRecognitionEnabled", _speechRecognizer.getEnabled());
 #endif
-    settings->setValue("privateKey", _walletPrivateKey);
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
@@ -1112,27 +1107,6 @@ void Menu::toggleSixense(bool shouldEnable) {
     }
     
     sixenseManager.setIsEnabled(shouldEnable);
-}
-
-void Menu::changePrivateKey() {
-    // setup the dialog
-    QInputDialog privateKeyDialog(Application::getInstance()->getWindow());
-    privateKeyDialog.setWindowTitle("Change Private Key");
-    privateKeyDialog.setLabelText("RSA 2048-bit Private Key:");
-    privateKeyDialog.setWindowFlags(Qt::Sheet);
-    privateKeyDialog.setTextValue(QString(_walletPrivateKey));
-    privateKeyDialog.resize(privateKeyDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
-                            privateKeyDialog.size().height());
-    
-    int dialogReturn = privateKeyDialog.exec();
-    if (dialogReturn == QDialog::Accepted) {
-        // pull the private key from the dialog
-        _walletPrivateKey = privateKeyDialog.textValue().toUtf8();
-    }
-
-    bumpSettings();
-    
-    sendFakeEnterEvent();
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {

@@ -159,7 +159,6 @@ private:
 #endif
     
     QString _scriptsLocation;
-    QByteArray _walletPrivateKey;
 };
 
 namespace MenuOption {
@@ -318,7 +317,6 @@ namespace MenuOption {
     const QString UploadSkeleton = "Upload Skeleton Model";
     const QString UserInterface = "User Interface";
     const QString Visage = "Visage";
-    const QString WalletPrivateKey = "Wallet Private Key...";
     const QString Wireframe = "Wireframe";
 }
 
