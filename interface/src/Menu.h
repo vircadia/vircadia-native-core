@@ -135,10 +135,6 @@ public:
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; bumpSettings(); }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
     void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
-    float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
-    void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; bumpSettings(); }
-    bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
-    void setInvertSixenseButtons(bool invertSixenseButtons) { _invertSixenseButtons = invertSixenseButtons; bumpSettings(); }
 
     QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; bumpSettings(); }
@@ -215,8 +211,7 @@ private:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-    float _sixenseReticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
-    bool _invertSixenseButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
+    
     bool _hasLoginDialogDisplayed = false;
     
     int _maxOctreePacketsPerSecond = DEFAULT_MAX_OCTREE_PPS;

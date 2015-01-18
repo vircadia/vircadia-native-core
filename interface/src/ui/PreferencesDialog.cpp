@@ -12,6 +12,7 @@
 #include <QFileDialog>
 
 #include <devices/Faceshift.h>
+#include <devices/SixenseManager.h>
 
 #include "Application.h"
 #include "Audio.h"
@@ -163,9 +164,9 @@ void PreferencesDialog::loadPreferences() {
 
     ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getOculusUIAngularSize());
 
-    ui.sixenseReticleMoveSpeedSpin->setValue(menuInstance->getSixenseReticleMoveSpeed());
-
-    ui.invertSixenseButtonsCheckBox->setChecked(menuInstance->getInvertSixenseButtons());
+    SixenseManager& sixense = SixenseManager::getInstance();
+    ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
+    ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
 }
 
@@ -244,10 +245,10 @@ void PreferencesDialog::savePreferences() {
     Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
     qApp->getApplicationOverlay().setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
-
-    Menu::getInstance()->setSixenseReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
-
-    Menu::getInstance()->setInvertSixenseButtons(ui.invertSixenseButtonsCheckBox->isChecked());
+    
+    SixenseManager& sixense = SixenseManager::getInstance();
+    sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
+    sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
     auto audio = DependencyManager::get<Audio>();
     MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();

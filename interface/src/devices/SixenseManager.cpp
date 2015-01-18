@@ -301,7 +301,7 @@ const float RANGE_MULT = (MAX_PIXEL_RANGE_MULT - MIN_PIXEL_RANGE_MULT) * 0.01;
 //Returns a multiplier to be applied to the cursor range for the controllers
 float SixenseManager::getCursorPixelRangeMult() const {
     //scales (0,100) to (MINIMUM_PIXEL_RANGE_MULT, MAXIMUM_PIXEL_RANGE_MULT)
-    return Menu::getInstance()->getSixenseReticleMoveSpeed() * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
+    return _reticleMoveSpeed * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
 }
 
 #ifdef HAVE_SIXENSE
@@ -459,7 +459,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
 
-    if (Menu::getInstance()->getInvertSixenseButtons()) {
+    if (_invertButtons) {
         bumperButton = Qt::LeftButton;
         triggerButton = Qt::RightButton;
     } else {
