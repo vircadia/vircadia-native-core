@@ -153,10 +153,6 @@ signals:
     void scriptLocationChanged(const QString& newPath);
 
 public slots:
-
-    void clearLoginDialogDisplayedFlag();
-    void loginForCurrentDomain();
-    void showLoginForCurrentDomain();
     void bandwidthDetails();
     void octreeStatsDetails();
     void cachesSizeDialog();
@@ -166,7 +162,6 @@ public slots:
     void copyAddress();
     void copyPath();
 
-    void toggleLoginMenuItem();
     void toggleSixense(bool shouldEnable);
 
 private slots:
@@ -195,8 +190,6 @@ private:
     SpeechRecognizer _speechRecognizer;
 #endif
     
-    bool _hasLoginDialogDisplayed = false;
-    
     QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
@@ -204,7 +197,6 @@ private:
     QPointer<CachesSizeDialog> _cachesSizeDialog;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
-    QPointer<LoginDialog> _loginDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
 
@@ -213,7 +205,6 @@ private:
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
     
-    QAction* _loginAction = nullptr;
     QAction* _chatAction = nullptr;
     QString _snapshotsLocation;
     QString _scriptsLocation;
@@ -307,7 +298,6 @@ namespace MenuOption {
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
-    const QString Logout = "Logout";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";

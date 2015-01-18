@@ -58,6 +58,7 @@
 #include "ui/BandwidthDialog.h"
 #include "ui/CachesSizeDialog.h"
 #include "ui/DataWebDialog.h"
+#include "ui/DialogsManager.h"
 #include "ui/HMDToolsDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LoginDialog.h"
@@ -102,20 +103,22 @@ Menu::Menu() {
                                   SLOT(aboutApp()),
                                   QAction::AboutRole);
 #endif
-
+    auto dialogsManager = DependencyManager::get<DialogsManager>();
     AccountManager& accountManager = AccountManager::getInstance();
 
-    _loginAction = addActionToQMenuAndActionHash(fileMenu, MenuOption::Logout);
-
-    // call our toggle login function now so the menu option is setup properly
-    toggleLoginMenuItem();
-
-    // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
-    connect(&accountManager, &AccountManager::profileChanged, this, &Menu::toggleLoginMenuItem);
-    connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
-
+    {
+        addActionToQMenuAndActionHash(fileMenu, MenuOption::Login);
+        
+        // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
+        connect(&accountManager, &AccountManager::profileChanged,
+                dialogsManager.data(), &DialogsManager::toggleLoginDialog);
+        connect(&accountManager, &AccountManager::logoutComplete,
+                dialogsManager.data(), &DialogsManager::toggleLoginDialog);
+    }
+    
     addDisabledActionAndSeparator(fileMenu, "Scripts");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
+                                  appInstance, SLOT(loadDialog()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScriptURL,
                                     Qt::CTRL | Qt::SHIFT | Qt::Key_O, appInstance, SLOT(loadScriptURLDialog()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, appInstance, SLOT(stopAllScripts()));
@@ -1109,26 +1112,6 @@ void sendFakeEnterEvent() {
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
-void Menu::clearLoginDialogDisplayedFlag() {
-    // Needed for domains that don't require login.
-    _hasLoginDialogDisplayed = false;
-}
-
-void Menu::loginForCurrentDomain() {
-    if (!_loginDialog && !_hasLoginDialogDisplayed) {
-        _loginDialog = new LoginDialog(Application::getInstance()->getWindow());
-        _loginDialog->show();
-        _loginDialog->resizeAndPosition(false);
-    }
-
-    _hasLoginDialogDisplayed = true;
-}
-
-void Menu::showLoginForCurrentDomain() {
-    _hasLoginDialogDisplayed = false;
-    loginForCurrentDomain();
-}
-
 void Menu::editPreferences() {
     if (!_preferencesDialog) {
         _preferencesDialog = new PreferencesDialog();
@@ -1224,23 +1207,6 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
         msgBox.setText(errorString);
         msgBox.exec();
     }    
-}
-
-void Menu::toggleLoginMenuItem() {
-    AccountManager& accountManager = AccountManager::getInstance();
-
-    disconnect(_loginAction, 0, 0, 0);
-
-    if (accountManager.isLoggedIn()) {
-        // change the menu item to logout
-        _loginAction->setText("Logout " + accountManager.getAccountInfo().getUsername());
-        connect(_loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
-    } else {
-        // change the menu item to login
-        _loginAction->setText("Login");
-
-        connect(_loginAction, &QAction::triggered, this, &Menu::showLoginForCurrentDomain);
-    }
 }
 
 void Menu::bandwidthDetails() {

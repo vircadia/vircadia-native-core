@@ -114,7 +114,9 @@
 #include "scripting/WebWindowClass.h"
 
 #include "ui/DataWebDialog.h"
+#include "ui/DialogsManager.h"
 #include "ui/InfoView.h"
+#include "ui/LoginDialog.h"
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
@@ -177,6 +179,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
     auto lodManager = DependencyManager::set<LODManager>();
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
+    auto dialogsManager = DependencyManager::set<DialogsManager>();
     
     return true;
 }
@@ -298,7 +301,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
-    connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -324,7 +326,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(&accountManager, &AccountManager::balanceChanged, this, &Application::updateWindowTitle);
 
-    connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
+    auto dialogsManager = DependencyManager::get<DialogsManager>();
+    connect(&accountManager, &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
     
     // once we have a profile in account manager make sure we generate a new keypair
