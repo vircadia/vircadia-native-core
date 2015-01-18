@@ -338,7 +338,8 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
-        float magnifyFieldOfView = Menu::getInstance()->getFieldOfView() / Menu::getInstance()->getRealWorldFieldOfView();
+        float magnifyFieldOfView = qApp->getViewFrustum()->getFieldOfView() /
+                                   qApp->getViewFrustum()->getRealWorldFieldOfView();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
     }

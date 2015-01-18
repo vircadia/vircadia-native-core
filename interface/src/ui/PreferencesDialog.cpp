@@ -152,9 +152,9 @@ void PreferencesDialog::loadPreferences() {
     ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
     ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
-    ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
+    ui.realWorldFieldOfViewSpin->setValue(qApp->getViewFrustum()->getRealWorldFieldOfView());
 
-    ui.fieldOfViewSpin->setValue(menuInstance->getFieldOfView());
+    ui.fieldOfViewSpin->setValue(qApp->getViewFrustum()->getFieldOfView());
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
     
@@ -232,9 +232,9 @@ void PreferencesDialog::savePreferences() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
-    Menu::getInstance()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    qApp->getViewFrustum()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
-    Menu::getInstance()->setFieldOfView(ui.fieldOfViewSpin->value());
+    qApp->getViewFrustum()->setFieldOfView(ui.fieldOfViewSpin->value());
     
     auto faceshift = DependencyManager::get<Faceshift>();
     faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /

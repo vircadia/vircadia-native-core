@@ -130,11 +130,6 @@ private:
 /////////////////////////////////////////// TODO: Move to appropriate files ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
-    float getFieldOfView() const { return _fieldOfView; }
-    void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; bumpSettings(); }
-    float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
-    void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
-
     QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; bumpSettings(); }
 
@@ -201,11 +196,6 @@ private slots:
     void loadRSSDKFile();
 
 private:
-    // in Degrees, doesn't apply to HMD like Oculus
-    float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
-    //  The actual FOV set by the user's monitor size and view distance
-    float _realWorldFieldOfView = DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES;
-    
     QDialog* _jsConsole = nullptr;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;

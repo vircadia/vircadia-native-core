@@ -722,7 +722,7 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
         TV3DManager::configureCamera(camera, width, height);
     } else {
         camera.setAspectRatio((float)width / height);
-        camera.setFieldOfView(Menu::getInstance()->getFieldOfView());
+        camera.setFieldOfView(_viewFrustum.getFieldOfView());
     }
 }
 
