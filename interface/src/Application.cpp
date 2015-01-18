@@ -3890,7 +3890,8 @@ void Application::takeSnapshot() {
     _snapshotShareDialog->show();
 }
 
-void Application::setVSyncEnabled(bool vsyncOn) {
+void Application::setVSyncEnabled() {
+    bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
 #if defined(Q_OS_WIN)
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         wglSwapIntervalEXT(vsyncOn);

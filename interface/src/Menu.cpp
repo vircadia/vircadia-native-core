@@ -353,7 +353,8 @@ Menu::Menu() {
 
 #if defined(Q_OS_MAC)
 #else
-        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true, this, SLOT(changeVSync()));
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
+                                               qApp, SLOT(changeVSync()));
 #endif
     }
 
@@ -1152,10 +1153,6 @@ void Menu::copyPath() {
     QString path = addressManager->currentPath();
     QClipboard* clipboard = QApplication::clipboard();
     clipboard->setText(path);
-}
-
-void Menu::changeVSync() {
-    Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {

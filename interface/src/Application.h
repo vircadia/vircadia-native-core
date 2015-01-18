@@ -363,7 +363,7 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
-    void setVSyncEnabled(bool vsyncOn);
+    void setVSyncEnabled();
 
     void resetSensors();
 

@@ -141,8 +141,6 @@ public:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif
-    
-    const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
 signals:
     void scriptLocationChanged(const QString& newPath);
@@ -160,7 +158,6 @@ private slots:
     void changePrivateKey();
     void runTests();
     void displayNameLocationResponse(const QString& errorString);
-    void changeVSync();
     void loadRSSDKFile();
 
 private:
