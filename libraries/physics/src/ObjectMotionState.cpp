@@ -14,7 +14,9 @@
 #include <math.h>
 
 #include "BulletUtil.h"
+#include "KinematicController.h"
 #include "ObjectMotionState.h"
+#include "PhysicsEngine.h"
 
 const float MIN_DENSITY = 200.0f;
 const float DEFAULT_DENSITY = 1000.0f;
@@ -64,6 +66,10 @@ ObjectMotionState::ObjectMotionState() :
 ObjectMotionState::~ObjectMotionState() {
     // NOTE: you MUST remove this MotionState from the world before you call the dtor.
     assert(_body == NULL);
+    if (_kinematicController) {
+        delete _kinematicController;
+        _kinematicController = NULL;
+    }
 }
 
 void ObjectMotionState::setFriction(float friction) {
@@ -110,30 +116,23 @@ bool ObjectMotionState::doesNotNeedToSendUpdate() const {
     return !_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES;
 }
 
-const float FIXED_SUBSTEP = 1.0f / 60.0f;
-
 bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     assert(_body);
-    float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP;
+    float dt = (float)(simulationFrame - _sentFrame) * PHYSICS_ENGINE_FIXED_SUBSTEP;
     _sentFrame = simulationFrame;
     bool isActive = _body->isActive();
 
-    if (isActive) {
-        const float MAX_UPDATE_PERIOD_FOR_ACTIVE_THINGS = 10.0f;
-        if (dt > MAX_UPDATE_PERIOD_FOR_ACTIVE_THINGS) {
-            return true;
-        }
-    } else if (_sentMoving) { 
-        if (!isActive) {
+    if (!isActive) {
+        if (_sentMoving) { 
             // this object just went inactive so send an update immediately
             return true;
-        }
-    } else {
-        const float NON_MOVING_UPDATE_PERIOD = 1.0f;
-        if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
-            // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets we repeat these
-            // at a faster rate than the MAX period above, and only send a limited number of them.
-            return true;
+        } else {
+            const float NON_MOVING_UPDATE_PERIOD = 1.0f;
+            if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
+                // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets we repeat these
+                // at a faster rate than the MAX period above, and only send a limited number of them.
+                return true;
+            }
         }
     }
 
@@ -173,6 +172,13 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     const float MIN_ROTATION_DOT = 0.98f;
     glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
     return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
+}
+
+void ObjectMotionState::removeKinematicController() {
+    if (_kinematicController) {
+        delete _kinematicController;
+        _kinematicController = NULL;
+    }
 }
 
 #endif // USE_BULLET_PHYSICS

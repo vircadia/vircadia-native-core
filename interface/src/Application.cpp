@@ -3187,11 +3187,13 @@ void Application::updateLocationInServer() {
         
         if (!addressManager->getRootPlaceID().isNull()) {
             const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
-            locationObject.insert(PLACE_ID_KEY_IN_LOCATION, addressManager->getRootPlaceID().toString());
+            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
             
         } else {
             const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
-            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
+            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
         }
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
