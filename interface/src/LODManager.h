@@ -43,12 +43,6 @@ class LODManager : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    // TODO: actually use them
-    bool shouldRenderTableNeedsRebuilding() const { return _shouldRenderTableNeedsRebuilding; }
-    void setShouldRenderTableNeedsRebuilding(bool shouldRenderTableNeedsRebuilding)  {
-        _shouldRenderTableNeedsRebuilding = shouldRenderTableNeedsRebuilding;
-    }
-    
     // TODO: replace bumpSettings()
     void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; }
     bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
@@ -91,8 +85,6 @@ private:
     SimpleMovingAverage _fpsAverage = FIVE_SECONDS_OF_FRAMES;
     SimpleMovingAverage _fastFPSAverage = ONE_SECOND_OF_FRAMES;
     
-    
-    // TODO: actually use them
     bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
 };
