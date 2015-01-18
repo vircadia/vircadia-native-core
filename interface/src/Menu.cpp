@@ -1080,15 +1080,6 @@ void Menu::bumpSettings() {
     Application::getInstance()->bumpSettings();
 }
 
-void Menu::displayNameLocationResponse(const QString& errorString) {
-
-    if (!errorString.isEmpty()) {
-        QMessageBox msgBox;
-        msgBox.setText(errorString);
-        msgBox.exec();
-    }    
-}
-
 void Menu::runTests() {
     runTimingTests();
 }

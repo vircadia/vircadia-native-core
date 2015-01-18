@@ -134,8 +134,6 @@ private slots:
     void showEditEntitiesHelp();
     void bumpSettings();
     void runTests();
-    void displayNameLocationResponse(const QString& errorString);
-
 };
 
 namespace MenuOption {
