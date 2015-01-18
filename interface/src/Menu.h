@@ -146,10 +146,6 @@ public:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif
-
-    // User Tweakable PPS from Voxel Server
-    int getMaxOctreePacketsPerSecond() const { return _maxOctreePacketsPerSecond; }
-    void setMaxOctreePacketsPerSecond(int value) { _maxOctreePacketsPerSecond = value; bumpSettings(); }
     
     const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
@@ -200,8 +196,6 @@ private:
 #endif
     
     bool _hasLoginDialogDisplayed = false;
-    
-    int _maxOctreePacketsPerSecond = DEFAULT_MAX_OCTREE_PPS;
     
     QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;

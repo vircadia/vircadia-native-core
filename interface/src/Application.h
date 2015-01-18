@@ -186,6 +186,7 @@ public:
     PrioVR* getPrioVR() { return &_prioVR; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
+    OctreeQuery& getOctreeQuery() { return _octreeQuery; }
     
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }

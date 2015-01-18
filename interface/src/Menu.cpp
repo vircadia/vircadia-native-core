@@ -592,7 +592,6 @@ void Menu::loadSettings(QSettings* settings) {
     int bufferSize = settings->value("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES).toInt();
     QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, bufferSize));
     
-    _maxOctreePacketsPerSecond = loadSetting(settings, "maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
     _snapshotsLocation = settings->value("snapshotsLocation",
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
     setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
@@ -636,7 +635,6 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
     settings->setValue("audioOutputBufferSize", audio->getOutputBufferSize());
 
-    settings->setValue("maxOctreePPS", _maxOctreePacketsPerSecond);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->setValue("scriptsLocation", _scriptsLocation);
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

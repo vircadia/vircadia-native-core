@@ -44,8 +44,8 @@ class OctreeQuery : public NodeData {
     Q_OBJECT
 
 public:
-    OctreeQuery();
-    virtual ~OctreeQuery();
+    OctreeQuery() {}
+    virtual ~OctreeQuery() {}
 
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(const QByteArray& packet);
@@ -92,23 +92,23 @@ public slots:
 
 protected:
     // camera details for the avatar
-    glm::vec3 _cameraPosition;
-    glm::quat _cameraOrientation;
-    float _cameraFov;
-    float _cameraAspectRatio;
-    float _cameraNearClip;
-    float _cameraFarClip;
-    glm::vec3 _cameraEyeOffsetPosition;
+    glm::vec3 _cameraPosition = glm::vec3(0.0f);
+    glm::quat _cameraOrientation = glm::quat();
+    float _cameraFov = 0.0f;
+    float _cameraAspectRatio = 0.0f;
+    float _cameraNearClip = 0.0f;
+    float _cameraFarClip = 0.0f;
+    glm::vec3 _cameraEyeOffsetPosition = glm::vec3(0.0f);
 
     // octree server sending items
-    bool _wantColor;
-    bool _wantDelta;
-    bool _wantLowResMoving;
-    bool _wantOcclusionCulling;
-    bool _wantCompression;
-    int _maxOctreePPS;
-    float _octreeElementSizeScale; /// used for LOD calculations
-    int _boundaryLevelAdjust; /// used for LOD calculations
+    bool _wantColor = true;
+    bool _wantDelta = true;
+    bool _wantLowResMoving = true;
+    bool _wantOcclusionCulling = false;
+    bool _wantCompression = false;
+    int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
+    float _octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE; /// used for LOD calculations
+    int _boundaryLevelAdjust = 0; /// used for LOD calculations
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

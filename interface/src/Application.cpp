@@ -2304,7 +2304,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = Menu::getInstance()->getMaxOctreePacketsPerSecond();
+    int totalPPS = _octreeQuery.getMaxOctreePacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
