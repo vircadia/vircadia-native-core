@@ -185,8 +185,10 @@ Menu::Menu() {
                                   dialogsManager.data(), SLOT(editAnimations()));
 
     QMenu* toolsMenu = addMenu("Tools");
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S, this, SLOT(showScriptEditor()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0,
+                                  dialogsManager.data(), SLOT(showMetavoxelEditor()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S,
+                                  dialogsManager.data(), SLOT(showScriptEditor()));
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech,
@@ -409,8 +411,8 @@ Menu::Menu() {
         Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderSpanners, 0, true);
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderDualContourSurfaces, 0, true);
-    addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0, this,
-        SLOT(showMetavoxelNetworkSimulator()));
+    addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0,
+                                  dialogsManager.data(), SLOT(showMetavoxelNetworkSimulator()));
     
     QMenu* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
@@ -1176,27 +1178,6 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
         msgBox.setText(errorString);
         msgBox.exec();
     }    
-}
-
-void Menu::showMetavoxelEditor() {
-    if (!_MetavoxelEditor) {
-        _MetavoxelEditor = new MetavoxelEditor();
-    }
-    _MetavoxelEditor->raise();
-}
-
-void Menu::showMetavoxelNetworkSimulator() {
-    if (!_metavoxelNetworkSimulator) {
-        _metavoxelNetworkSimulator = new MetavoxelNetworkSimulator();
-    }
-    _metavoxelNetworkSimulator->raise();
-}
-
-void Menu::showScriptEditor() {
-    if(!_ScriptEditor || !_ScriptEditor->isVisible()) {
-        _ScriptEditor = new ScriptEditorWindow();
-    }
-    _ScriptEditor->raise();
 }
 
 void Menu::showChat() {

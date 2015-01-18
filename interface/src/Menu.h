@@ -159,9 +159,6 @@ private slots:
     void bumpSettings();
     void changePrivateKey();
     void runTests();
-    void showMetavoxelEditor();
-    void showMetavoxelNetworkSimulator();
-    void showScriptEditor();
     void showChat();
     void toggleChat();
     void audioMuteToggled();
@@ -173,10 +170,6 @@ private:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-
-    QPointer<MetavoxelEditor> _MetavoxelEditor;
-    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
-    QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
     
     QAction* _chatAction = nullptr;

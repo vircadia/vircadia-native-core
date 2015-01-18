@@ -50,8 +50,8 @@ enum GridPlane {
 
 const glm::vec2 INVALID_VECTOR(FLT_MAX, FLT_MAX);
 
-MetavoxelEditor::MetavoxelEditor() :
-    QWidget(Application::getInstance()->getWindow(), Qt::Tool) {
+MetavoxelEditor::MetavoxelEditor(QWidget* parent) :
+    QWidget(parent, Qt::Tool) {
     
     setWindowTitle("Metavoxel Editor");
     setAttribute(Qt::WA_DeleteOnClose);

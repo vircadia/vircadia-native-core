@@ -20,8 +20,11 @@
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
+#include "MetavoxelEditor.h"
+#include "MetavoxelNetworkSimulator.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
+#include "ScriptEditorWindow.h"
 
 #include "DialogsManager.h"
 
@@ -140,6 +143,21 @@ void DialogsManager::hmdTools(bool showTools) {
 void DialogsManager::hmdToolsClosed() {
     Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
     _hmdToolsDialog->hide();
+}
+
+void DialogsManager::showMetavoxelEditor() {
+    maybeCreateDialog(_metavoxelEditor);
+    _metavoxelEditor->raise();
+}
+
+void DialogsManager::showMetavoxelNetworkSimulator() {
+    maybeCreateDialog(_metavoxelNetworkSimulator);
+    _metavoxelNetworkSimulator->raise();
+}
+
+void DialogsManager::showScriptEditor() {
+    maybeCreateDialog(_scriptEditor);
+    _scriptEditor->raise();
 }
 
 

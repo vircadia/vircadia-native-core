@@ -40,6 +40,9 @@ public slots:
     void bandwidthDetails();
     void lodTools();
     void hmdTools(bool showTools);
+    void showMetavoxelEditor();
+    void showMetavoxelNetworkSimulator();
+    void showScriptEditor();
     
 private slots:
     void toggleToolWindow();
@@ -70,8 +73,11 @@ private:
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<LoginDialog> _loginDialog;
+    QPointer<MetavoxelEditor> _metavoxelEditor;
+    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
+    QPointer<ScriptEditorWindow> _scriptEditor;
 };
 
 #endif // hifi_DialogsManager_h

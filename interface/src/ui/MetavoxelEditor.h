@@ -38,7 +38,7 @@ class MetavoxelEditor : public QWidget {
 
 public:
     
-    MetavoxelEditor();
+    MetavoxelEditor(QWidget* parent = nullptr);
 
     QString getSelectedAttribute() const;
     
