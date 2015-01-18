@@ -137,7 +137,6 @@ public:
     void setScriptsLocation(const QString& scriptsLocation);
 
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
-    OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
 
@@ -154,7 +153,6 @@ signals:
 
 public slots:
     void bandwidthDetails();
-    void octreeStatsDetails();
     void cachesSizeDialog();
     void lodTools();
     void hmdTools(bool showTools);
@@ -195,7 +193,6 @@ private:
     QPointer<CachesSizeDialog> _cachesSizeDialog;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
-    QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
 
     QPointer<MetavoxelEditor> _MetavoxelEditor;

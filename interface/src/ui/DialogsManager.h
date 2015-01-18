@@ -18,16 +18,22 @@
 
 class AddressBarDialog;
 class LoginDialog;
+class OctreeStatsDialog;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+    
+public:
+    QPointer<OctreeStatsDialog> getOctreeStatsDialog() { return _octreeStatsDialog; }
     
 public slots:
     void toggleAddressBar();
     
     void toggleLoginDialog();
     void showLoginDialog();
+    
+    void octreeStatsDetails();
     
 private:
     DialogsManager() {}
@@ -44,6 +50,7 @@ private:
     
     QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<LoginDialog> _loginDialog;
+    QPointer<OctreeStatsDialog> _octreeStatsDialog;
 };
 
 #endif // hifi_DialogsManager_h

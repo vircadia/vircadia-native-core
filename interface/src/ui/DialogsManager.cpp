@@ -14,6 +14,7 @@
 
 #include "AddressBarDialog.h"
 #include "LoginDialog.h"
+#include "OctreeStatsDialog.h"
 
 #include "DialogsManager.h"
 
@@ -33,5 +34,19 @@ void DialogsManager::toggleLoginDialog() {
 void DialogsManager::showLoginDialog() {
     maybeCreateDialog(_loginDialog);
     _loginDialog->showLoginForCurrentDomain();
+}
+
+void DialogsManager::octreeStatsDetails() {
+    if (!_octreeStatsDialog) {
+        _octreeStatsDialog = new OctreeStatsDialog(DependencyManager::get<GLCanvas>().data(),
+                                                   Application::getInstance()->getOcteeSceneStats());
+        connect(_octreeStatsDialog, SIGNAL(closed()), _octreeStatsDialog, SLOT(deleteLater()));
+        _octreeStatsDialog->show();
+        //TODO: wire hmdToolsDialog once moved
+//        if (_hmdToolsDialog) {
+//            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
+//        }
+    }
+    _octreeStatsDialog->raise();
 }
 

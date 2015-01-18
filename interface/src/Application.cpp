@@ -1970,14 +1970,15 @@ void Application::updateDialogs(float deltaTime) {
     PerformanceTimer perfTimer("updateDialogs");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
-
+    auto dialogsManager = DependencyManager::get<DialogsManager>();
+    
     // Update bandwidth dialog, if any
     BandwidthDialog* bandwidthDialog = Menu::getInstance()->getBandwidthDialog();
     if (bandwidthDialog) {
         bandwidthDialog->update();
     }
 
-    OctreeStatsDialog* octreeStatsDialog = Menu::getInstance()->getOctreeStatsDialog();
+    QPointer<OctreeStatsDialog> octreeStatsDialog = dialogsManager->getOctreeStatsDialog();
     if (octreeStatsDialog) {
         octreeStatsDialog->update();
     }

@@ -326,7 +326,8 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, appInstance, SLOT(toggleLogDialog()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
+                                  dialogsManager.data(), SLOT(octreeStatsDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::EditEntitiesHelp, 0, this, SLOT(showEditEntitiesHelp()));
 
     QMenu* developerMenu = addMenu("Developer");
@@ -1286,19 +1287,6 @@ void Menu::audioMuteToggled() {
     if (muteAction) {
         muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
     }
-}
-
-void Menu::octreeStatsDetails() {
-    if (!_octreeStatsDialog) {
-        _octreeStatsDialog = new OctreeStatsDialog(DependencyManager::get<GLCanvas>().data(),
-                                                 Application::getInstance()->getOcteeSceneStats());
-        connect(_octreeStatsDialog, SIGNAL(closed()), _octreeStatsDialog, SLOT(deleteLater()));
-        _octreeStatsDialog->show();
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
-        }
-    }
-    _octreeStatsDialog->raise();
 }
 
 void Menu::cachesSizeDialog() {
