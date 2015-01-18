@@ -75,14 +75,14 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     if (Application::getInstance()->getToolWindow()) {
         watchWindow(Application::getInstance()->getToolWindow()->windowHandle());
     }
-    if (Menu::getInstance()->getBandwidthDialog()) {
-        watchWindow(Menu::getInstance()->getBandwidthDialog()->windowHandle());
+    if (dialogsManager->getBandwidthDialog()) {
+        watchWindow(dialogsManager->getBandwidthDialog()->windowHandle());
     }
     if (dialogsManager->getOctreeStatsDialog()) {
         watchWindow(dialogsManager->getOctreeStatsDialog()->windowHandle());
     }
-    if (Menu::getInstance()->getLodToolsDialog()) {
-        watchWindow(Menu::getInstance()->getLodToolsDialog()->windowHandle());
+    if (dialogsManager->getLodToolsDialog()) {
+        watchWindow(dialogsManager->getLodToolsDialog()->windowHandle());
     }
     
     // when the application is about to quit, leave HDM mode

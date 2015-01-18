@@ -23,6 +23,11 @@ class DialogsManager : public QObject, public Dependency {
 public:
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() { return _octreeStatsDialog; }
     
+    
+    BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
+    LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
+    HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
+    
 public slots:
     void toggleAddressBar();
     void toggleLoginDialog();
@@ -32,6 +37,13 @@ public slots:
     void editPreferences();
     void editAttachments();
     void editAnimations();
+    void bandwidthDetails();
+    void lodTools();
+    void hmdTools(bool showTools);
+    
+private slots:
+    void toggleToolWindow();
+    void hmdToolsClosed();
     
 private:
     DialogsManager() {}
@@ -43,17 +55,23 @@ private:
             Q_CHECK_PTR(parent);
             member = new T(parent);
             Q_CHECK_PTR(member);
+            
+            if (_hmdToolsDialog) {
+                _hmdToolsDialog->watchWindow(member->windowHandle());
+            }
         }
     }
     
+    QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
+    QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
-    QPointer<PreferencesDialog> _preferencesDialog;
-    
-    QPointer<AddressBarDialog> _addressBarDialog;
+    QPointer<HMDToolsDialog> _hmdToolsDialog;
+    QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<LoginDialog> _loginDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
+    QPointer<PreferencesDialog> _preferencesDialog;
 };
 
 #endif // hifi_DialogsManager_h

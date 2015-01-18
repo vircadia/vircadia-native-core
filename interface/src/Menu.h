@@ -136,10 +136,6 @@ public:
     const QString& getScriptsLocation() const { return _scriptsLocation; }
     void setScriptsLocation(const QString& scriptsLocation);
 
-    BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
-    LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
-    HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
-
     bool getShadowsEnabled() const;
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -152,9 +148,6 @@ signals:
     void scriptLocationChanged(const QString& newPath);
 
 public slots:
-    void bandwidthDetails();
-    void lodTools();
-    void hmdTools(bool showTools);
     void copyAddress();
     void copyPath();
 
@@ -165,13 +158,11 @@ private slots:
     void showEditEntitiesHelp();
     void bumpSettings();
     void changePrivateKey();
-    void hmdToolsClosed();
     void runTests();
     void showMetavoxelEditor();
     void showMetavoxelNetworkSimulator();
     void showScriptEditor();
     void showChat();
-    void toggleToolWindow();
     void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
@@ -182,10 +173,6 @@ private:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-    
-    QPointer<BandwidthDialog> _bandwidthDialog;
-    QPointer<HMDToolsDialog> _hmdToolsDialog;
-    QPointer<LodToolsDialog> _lodToolsDialog;
 
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;

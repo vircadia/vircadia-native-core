@@ -214,7 +214,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ToolWindow,
                                   Qt::CTRL | Qt::ALT | Qt::Key_T,
-                                  this,
+                                  dialogsManager.data(),
                                   SLOT(toggleToolWindow()));
 
     addActionToQMenuAndActionHash(toolsMenu,
@@ -298,7 +298,7 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
                                            false,
-                                           this,
+                                           dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
 
 
@@ -327,7 +327,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Percent);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, appInstance, SLOT(toggleLogDialog()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
+                                  dialogsManager.data(), SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
                                   dialogsManager.data(), SLOT(octreeStatsDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::EditEntitiesHelp, 0, this, SLOT(showEditEntitiesHelp()));
@@ -380,7 +381,8 @@ Menu::Menu() {
                                             DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
-    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L,
+                                  dialogsManager.data(), SLOT(lodTools()));
 
     QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");
 #ifdef HAVE_FACESHIFT
@@ -1176,21 +1178,6 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
     }    
 }
 
-void Menu::bandwidthDetails() {
-    if (! _bandwidthDialog) {
-        _bandwidthDialog = new BandwidthDialog(DependencyManager::get<GLCanvas>().data(),
-                                               Application::getInstance()->getBandwidthMeter());
-        connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
-
-        _bandwidthDialog->show();
-        
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
-        }
-    }
-    _bandwidthDialog->raise();
-}
-
 void Menu::showMetavoxelEditor() {
     if (!_MetavoxelEditor) {
         _MetavoxelEditor = new MetavoxelEditor();
@@ -1250,50 +1237,11 @@ void Menu::toggleChat() {
 #endif
 }
 
-void Menu::toggleToolWindow() {
-    QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
-    toolWindow->setVisible(!toolWindow->isVisible());
-    if (_hmdToolsDialog) {
-        _hmdToolsDialog->watchWindow(toolWindow->windowHandle());
-    }
-}
-
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     if (muteAction) {
         muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
     }
-}
-
-void Menu::lodTools() {
-    if (!_lodToolsDialog) {
-        _lodToolsDialog = new LodToolsDialog(DependencyManager::get<GLCanvas>().data());
-        connect(_lodToolsDialog, SIGNAL(closed()), _lodToolsDialog, SLOT(deleteLater()));
-        _lodToolsDialog->show();
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_lodToolsDialog->windowHandle());
-        }
-    }
-    _lodToolsDialog->raise();
-}
-
-void Menu::hmdTools(bool showTools) {
-    if (showTools) {
-        if (!_hmdToolsDialog) {
-            _hmdToolsDialog = new HMDToolsDialog(DependencyManager::get<GLCanvas>().data());
-            connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
-        }
-        _hmdToolsDialog->show();
-        _hmdToolsDialog->raise();
-    } else {
-        hmdToolsClosed();
-    }
-    Application::getInstance()->getWindow()->activateWindow();
-}
-
-void Menu::hmdToolsClosed() {
-    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
-    _hmdToolsDialog->hide();
 }
 
 void Menu::runTests() {

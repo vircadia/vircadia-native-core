@@ -15,7 +15,10 @@
 #include "AddressBarDialog.h"
 #include "AnimationsDialog.h"
 #include "AttachmentsDialog.h"
+#include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
+#include "HMDToolsDialog.h"
+#include "LodToolsDialog.h"
 #include "LoginDialog.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
@@ -42,14 +45,13 @@ void DialogsManager::showLoginDialog() {
 
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
-        _octreeStatsDialog = new OctreeStatsDialog(DependencyManager::get<GLCanvas>().data(),
-                                                   Application::getInstance()->getOcteeSceneStats());
+        _octreeStatsDialog = new OctreeStatsDialog(qApp->getWindow(), qApp->getOcteeSceneStats());
+        
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
+        }
         connect(_octreeStatsDialog, SIGNAL(closed()), _octreeStatsDialog, SLOT(deleteLater()));
         _octreeStatsDialog->show();
-        //TODO: wire hmdToolsDialog once moved
-//        if (_hmdToolsDialog) {
-//            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
-//        }
     }
     _octreeStatsDialog->raise();
 }
@@ -61,11 +63,6 @@ void DialogsManager::cachesSizeDialog() {
         
         connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
         _cachesSizeDialog->show();
-        
-        //TODO: wire hmdToolsDialog once moved
-//        if (_hmdToolsDialog) {
-//            _hmdToolsDialog->watchWindow(_cachesSizeDialog->windowHandle());
-//        }
     }
     _cachesSizeDialog->raise();
 }
@@ -96,4 +93,55 @@ void DialogsManager::editAnimations() {
         _animationsDialog->close();
     }
 }
+
+void DialogsManager::bandwidthDetails() {
+    if (! _bandwidthDialog) {
+        _bandwidthDialog = new BandwidthDialog(qApp->getWindow(), qApp->getBandwidthMeter());
+        connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
+        
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
+        }
+        
+        _bandwidthDialog->show();
+    }
+    _bandwidthDialog->raise();
+}
+
+void DialogsManager::lodTools() {
+    if (!_lodToolsDialog) {
+        maybeCreateDialog(_lodToolsDialog);
+        
+        connect(_lodToolsDialog, SIGNAL(closed()), _lodToolsDialog, SLOT(deleteLater()));
+        _lodToolsDialog->show();
+    }
+    _lodToolsDialog->raise();
+}
+
+void DialogsManager::toggleToolWindow() {
+    QMainWindow* toolWindow = qApp->getToolWindow();
+    toolWindow->setVisible(!toolWindow->isVisible());
+}
+
+void DialogsManager::hmdTools(bool showTools) {
+    if (showTools) {
+        if (!_hmdToolsDialog) {
+            maybeCreateDialog(_hmdToolsDialog);
+            connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
+        }
+        _hmdToolsDialog->show();
+        _hmdToolsDialog->raise();
+    } else {
+        hmdToolsClosed();
+    }
+    qApp->getWindow()->activateWindow();
+}
+
+void DialogsManager::hmdToolsClosed() {
+    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
+    _hmdToolsDialog->hide();
+}
+
+
+
 

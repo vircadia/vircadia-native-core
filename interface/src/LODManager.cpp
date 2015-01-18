@@ -12,6 +12,7 @@
 #include <Util.h>
 
 #include "Application.h"
+#include "ui/DialogsManager.h"
 
 #include "LODManager.h"
 
@@ -81,10 +82,10 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     
     if (changed) {
         _shouldRenderTableNeedsRebuilding = true;
-        // TODO: reactivate lodToolsDialog here
-//        if (_lodToolsDialog) {
-//            _lodToolsDialog->reloadSliders();
-//        }
+        auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
+        if (lodToolsDialog) {
+            lodToolsDialog->reloadSliders();
+        }
     }
 }
 

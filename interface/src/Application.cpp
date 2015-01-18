@@ -1471,7 +1471,7 @@ void Application::checkBandwidthMeterClick() {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
-        Menu::getInstance()->bandwidthDetails();
+        DependencyManager::get<DialogsManager>()->bandwidthDetails();
     }
 }
 
@@ -1973,7 +1973,7 @@ void Application::updateDialogs(float deltaTime) {
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     
     // Update bandwidth dialog, if any
-    BandwidthDialog* bandwidthDialog = Menu::getInstance()->getBandwidthDialog();
+    BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
     if (bandwidthDialog) {
         bandwidthDialog->update();
     }
@@ -2429,7 +2429,7 @@ QRect Application::getDesirableApplicationGeometry() {
     
     // If our parent window is on the HMD, then don't use it's geometry, instead use
     // the "main screen" geometry.
-    HMDToolsDialog* hmdTools = Menu::getInstance()->getHMDToolsDialog();
+    HMDToolsDialog* hmdTools = DependencyManager::get<DialogsManager>()->getHMDToolsDialog();
     if (hmdTools && hmdTools->hasHMDScreen()) {
         QScreen* hmdScreen = hmdTools->getHMDScreen();
         QWindow* appWindow = getWindow()->windowHandle();
