@@ -9,33 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <cstdlib>
-
-#include <QBoxLayout>
-#include <QColorDialog>
-#include <QClipboard>
-#include <QDialogButtonBox>
-#include <QDoubleSpinBox>
 #include <QFileDialog>
-#include <QFormLayout>
-#include <QInputDialog>
-#include <QLineEdit>
-#include <QMainWindow>
 #include <QMenuBar>
-#include <QMessageBox>
 #include <QShortcut>
-#include <QSlider>
-#include <QUuid>
-#include <QHBoxLayout>
-#include <QDesktopServices>
 
-#include <AccountManager.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
-#include <MainWindow.h>
 #include <GlowEffect.h>
 #include <PathUtils.h>
-#include <UUID.h>
 #include <UserActivityLogger.h>
 #include <XmppClient.h>
 
@@ -48,31 +29,16 @@
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
-#include "Menu.h"
-#include "scripting/LocationScriptingInterface.h"
+#include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
-#include "Util.h"
-#include "ui/AddressBarDialog.h"
-#include "ui/AnimationsDialog.h"
-#include "ui/AttachmentsDialog.h"
-#include "ui/BandwidthDialog.h"
-#include "ui/CachesSizeDialog.h"
-#include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
-#include "ui/HMDToolsDialog.h"
-#include "ui/LodToolsDialog.h"
-#include "ui/LoginDialog.h"
-#include "ui/OctreeStatsDialog.h"
-#include "ui/PreferencesDialog.h"
-#include "ui/InfoView.h"
-#include "ui/MetavoxelEditor.h"
-#include "ui/MetavoxelNetworkSimulator.h"
-#include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
 #include "ui/StandAloneJSConsole.h"
+
+#include "Menu.h"
 
 Menu* Menu::_instance = NULL;
 
@@ -94,8 +60,6 @@ Menu* Menu::getInstance() {
 }
 
 Menu::Menu() {
-    Application *appInstance = Application::getInstance();
-
     QMenu* fileMenu = addMenu("File");
 
 #ifdef Q_OS_MAC
@@ -116,14 +80,14 @@ Menu::Menu() {
     
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
-                                  appInstance, SLOT(loadDialog()));
+                                  qApp, SLOT(loadDialog()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScriptURL,
-                                    Qt::CTRL | Qt::SHIFT | Qt::Key_O, appInstance, SLOT(loadScriptURLDialog()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, appInstance, SLOT(stopAllScripts()));
+                                    Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
-                                  appInstance, SLOT(reloadAllScripts()));
+                                  qApp, SLOT(reloadAllScripts()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
-                                  appInstance, SLOT(toggleRunningScriptsWidget()));
+                                  qApp, SLOT(toggleRunningScriptsWidget()));
 
     addDisabledActionAndSeparator(fileMenu, "Location");
     qApp->getBookmarks()->setupMenus(this, fileMenu);
@@ -141,13 +105,13 @@ Menu::Menu() {
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
-                                  Application::getInstance(), SLOT(uploadHead()));
+                                  qApp, SLOT(uploadHead()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadSkeleton, 0,
-                                  Application::getInstance(), SLOT(uploadSkeleton()));
+                                  qApp, SLOT(uploadSkeleton()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadAttachment, 0,
-                                  Application::getInstance(), SLOT(uploadAttachment()));
+                                  qApp, SLOT(uploadAttachment()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadEntity, 0,
-                                  Application::getInstance(), SLOT(uploadEntity()));
+                                  qApp, SLOT(uploadEntity()));
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
@@ -155,14 +119,14 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
-                                  appInstance,
+                                  qApp,
                                   SLOT(quit()),
                                   QAction::QuitRole);
 
 
     QMenu* editMenu = addMenu("Edit");
 
-    QUndoStack* undoStack = Application::getInstance()->getUndoStack();
+    QUndoStack* undoStack = qApp->getUndoStack();
     QAction* undoAction = undoStack->createUndoAction(editMenu);
     undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, undoAction);
@@ -220,7 +184,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ResetSensors,
                                   Qt::Key_Apostrophe,
-                                  appInstance,
+                                  qApp,
                                   SLOT(resetSensors()));
 
     QMenu* avatarMenu = addMenu("Avatar");
@@ -229,20 +193,20 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
                                   Qt::Key_Plus,
-                                  appInstance->getAvatar(),
+                                  qApp->getAvatar(),
                                   SLOT(increaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::DecreaseAvatarSize,
                                   Qt::Key_Minus,
-                                  appInstance->getAvatar(),
+                                  qApp->getAvatar(),
                                   SLOT(decreaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::ResetAvatarSize,
                                   Qt::Key_Equal,
-                                  appInstance->getAvatar(),
+                                  qApp->getAvatar(),
                                   SLOT(resetSize()));
 
-    QObject* avatar = appInstance->getAvatar();
+    QObject* avatar = qApp->getAvatar();
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::KeyboardMotorControl, 
             Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
@@ -273,21 +237,21 @@ Menu::Menu() {
                                            MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::META | Qt::Key_F,
                                            false,
-                                           appInstance,
+                                           qApp,
                                            SLOT(setFullscreen(bool)));
 #else
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::Key_F,
                                            false,
-                                           appInstance,
+                                           qApp,
                                            SLOT(setFullscreen(bool)));
 #endif
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
-                                            appInstance,SLOT(cameraMenuChanged()));
+                                            qApp,SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
-                                            appInstance, SLOT(cameraMenuChanged()));
+                                            qApp, SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
@@ -298,17 +262,17 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
-                                           appInstance,
+                                           qApp,
                                            SLOT(setEnableVRMode(bool)));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
                                            false,
-                                           appInstance,
+                                           qApp,
                                            SLOT(setEnable3DTVMode(bool)));
 
 
     QMenu* nodeBordersMenu = viewMenu->addMenu("Server Borders");
-    NodeBounds& nodeBounds = appInstance->getNodeBoundsDisplay();
+    NodeBounds& nodeBounds = qApp->getNodeBoundsDisplay();
     addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
@@ -319,7 +283,7 @@ Menu::Menu() {
 
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Percent);
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, appInstance, SLOT(toggleLogDialog()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, qApp, SLOT(toggleLogDialog()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
@@ -401,7 +365,7 @@ Menu::Menu() {
 
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
-        Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
+        qApp->getMetavoxels(), SLOT(refreshVoxelData()));
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderSpanners, 0, true);
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderDualContourSurfaces, 0, true);
     addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0,
@@ -432,7 +396,7 @@ Menu::Menu() {
                                            MenuOption::LowVelocityFilter,
                                            0,
                                            true,
-                                           appInstance,
+                                           qApp,
                                            SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, false);
@@ -582,7 +546,7 @@ Menu::Menu() {
 void Menu::loadSettings(QSettings* settings) {
     bool lockedSettings = false;
     if (!settings) {
-        settings = Application::getInstance()->lockSettings();
+        settings = qApp->lockSettings();
         lockedSettings = true;
     }
 
@@ -594,26 +558,26 @@ void Menu::loadSettings(QSettings* settings) {
     QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, bufferSize));
 
     scanMenuBar(&loadAction, settings);
-    Application::getInstance()->getAvatar()->loadData(settings);
-    Application::getInstance()->updateWindowTitle();
+    qApp->getAvatar()->loadData(settings);
+    qApp->updateWindowTitle();
 
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     setIsOptionChecked(MenuOption::KeyboardMotorControl , true);
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = qApp->getAvatar();
     myAvatar->updateCollisionGroups();
     myAvatar->onToggleRagdoll();
     myAvatar->updateMotionBehavior();
 
     if (lockedSettings) {
-        Application::getInstance()->unlockSettings();
+        qApp->unlockSettings();
     }
 }
 
 void Menu::saveSettings(QSettings* settings) {
     bool lockedSettings = false;
     if (!settings) {
-        settings = Application::getInstance()->lockSettings();
+        settings = qApp->lockSettings();
         lockedSettings = true;
     }
 
@@ -624,18 +588,18 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("audioOutputBufferSize", audio->getOutputBufferSize());
 
     scanMenuBar(&saveAction, settings);
-    Application::getInstance()->getAvatar()->saveData(settings);
+    qApp->getAvatar()->saveData(settings);
     
     DependencyManager::get<AddressManager>()->storeCurrentAddress();
 
     if (lockedSettings) {
-        Application::getInstance()->unlockSettings();
+        qApp->unlockSettings();
     }
 }
 
 void Menu::importSettings() {
     QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
-    QString fileName = QFileDialog::getOpenFileName(Application::getInstance()->getWindow(),
+    QString fileName = QFileDialog::getOpenFileName(qApp->getWindow(),
                                                     tr("Open .ini config file"),
                                                     locationDir,
                                                     tr("Text files (*.ini)"));
@@ -647,7 +611,7 @@ void Menu::importSettings() {
 
 void Menu::exportSettings() {
     QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
-    QString fileName = QFileDialog::getSaveFileName(Application::getInstance()->getWindow(),
+    QString fileName = QFileDialog::getSaveFileName(qApp->getWindow(),
                                                     tr("Save .ini config file"),
                                                     locationDir,
                                                     tr("Text files (*.ini)"));
