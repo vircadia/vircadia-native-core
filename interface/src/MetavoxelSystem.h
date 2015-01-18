@@ -82,7 +82,8 @@ public:
     void addHermiteBatch(const HermiteBatch& batch) { _hermiteBatches.append(batch); }
 
     Q_INVOKABLE void deleteTextures(int heightTextureID, int colorTextureID, int materialTextureID) const;
-        
+    Q_INVOKABLE void deleteBuffers(int vertexBufferID, int indexBufferID, int hermiteBufferID) const;
+    
 signals:
 
     void rendering();
@@ -152,8 +153,8 @@ private:
 /// Base class for all batches.
 class MetavoxelBatch {
 public:
-    QOpenGLBuffer* vertexBuffer;
-    QOpenGLBuffer* indexBuffer;
+    GLuint vertexBufferID;
+    GLuint indexBufferID;
     glm::vec3 translation;
     glm::quat rotation;
     glm::vec3 scale;
@@ -200,7 +201,7 @@ public:
 /// A batch containing Hermite data for debugging.
 class HermiteBatch {
 public:
-    QOpenGLBuffer* vertexBuffer;
+    GLuint vertexBufferID;
     glm::vec3 translation;
     glm::quat rotation;
     glm::vec3 scale;
@@ -316,6 +317,7 @@ public:
     VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
         const QMultiHash<VoxelCoord, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
             QVector<SharedObjectPointer>());
+    virtual ~VoxelBuffer();
 
     bool isHermiteEnabled() const { return _hermiteEnabled; }
 
@@ -336,9 +338,9 @@ private:
     int _vertexCount;
     int _indexCount;
     int _hermiteCount;
-    QOpenGLBuffer _vertexBuffer;
-    QOpenGLBuffer _indexBuffer;
-    QOpenGLBuffer _hermiteBuffer;
+    GLuint _vertexBufferID;
+    GLuint _indexBufferID;
+    GLuint _hermiteBufferID;
     QVector<SharedObjectPointer> _materials;
     QVector<NetworkTexturePointer> _networkTextures;
 };

@@ -223,8 +223,8 @@ void MetavoxelSystem::render() {
             glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
             glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
             
-            batch.vertexBuffer->bind();
-            batch.indexBuffer->bind();
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
         
             HeightfieldPoint* point = 0;
             glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
@@ -245,8 +245,8 @@ void MetavoxelSystem::render() {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, 0);
         
-            batch.vertexBuffer->release();
-            batch.indexBuffer->release();
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
             glPopMatrix();
         }
@@ -273,8 +273,8 @@ void MetavoxelSystem::render() {
                 glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
                 glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
                 
-                batch.vertexBuffer->bind();
-                batch.indexBuffer->bind();
+                glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
             
                 HeightfieldPoint* point = 0;
                 glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
@@ -324,8 +324,8 @@ void MetavoxelSystem::render() {
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, 0);
             
-                batch.vertexBuffer->release();
-                batch.indexBuffer->release();
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
                 
                 glPopMatrix();   
             }
@@ -368,8 +368,8 @@ void MetavoxelSystem::render() {
             glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
             glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
                 
-            batch.vertexBuffer->bind();
-            batch.indexBuffer->bind();
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
             
             VoxelPoint* point = 0;
             glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
@@ -378,8 +378,8 @@ void MetavoxelSystem::render() {
             
             glDrawRangeElements(GL_QUADS, 0, batch.vertexCount - 1, batch.indexCount, GL_UNSIGNED_INT, 0);
             
-            batch.vertexBuffer->release();
-            batch.indexBuffer->release();
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
             
             glPopMatrix();
         }
@@ -409,8 +409,8 @@ void MetavoxelSystem::render() {
                 glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
                 glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
             
-                batch.vertexBuffer->bind();
-                batch.indexBuffer->bind();
+                glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
                 
                 VoxelPoint* point = 0;
                 glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
@@ -453,8 +453,8 @@ void MetavoxelSystem::render() {
             
                 glActiveTexture(GL_TEXTURE0);
         
-                batch.vertexBuffer->release();
-                batch.indexBuffer->release();
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
                 
                 glPopMatrix();
             }
@@ -492,13 +492,13 @@ void MetavoxelSystem::render() {
             glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
             glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
                 
-            batch.vertexBuffer->bind();
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
             
             glVertexPointer(3, GL_FLOAT, 0, 0);
             
             glDrawArrays(GL_LINES, 0, batch.vertexCount);
             
-            batch.vertexBuffer->release();
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
             
             glPopMatrix();
         }
@@ -545,6 +545,12 @@ void MetavoxelSystem::deleteTextures(int heightTextureID, int colorTextureID, in
     glDeleteTextures(1, (const GLuint*)&heightTextureID);
     glDeleteTextures(1, (const GLuint*)&colorTextureID);
     glDeleteTextures(1, (const GLuint*)&materialTextureID);
+}
+
+void MetavoxelSystem::deleteBuffers(int vertexBufferID, int indexBufferID, int hermiteBufferID) const {
+    glDeleteBuffers(1, (const GLuint*)&vertexBufferID);
+    glDeleteBuffers(1, (const GLuint*)&indexBufferID);
+    glDeleteBuffers(1, (const GLuint*)&hermiteBufferID);
 }
 
 class SpannerRenderVisitor : public SpannerVisitor {
@@ -649,8 +655,8 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
             glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
             glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
             
-            batch.vertexBuffer->bind();
-            batch.indexBuffer->bind();
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
         
             HeightfieldPoint* point = 0;
             glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
@@ -662,8 +668,8 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
             
             glBindTexture(GL_TEXTURE_2D, 0);
         
-            batch.vertexBuffer->release();
-            batch.indexBuffer->release();
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
             glPopMatrix();
         }
@@ -687,16 +693,16 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
             glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
             glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
                 
-            batch.vertexBuffer->bind();
-            batch.indexBuffer->bind();
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
             
             VoxelPoint* point = 0;
             glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
             
             glDrawRangeElements(GL_QUADS, 0, batch.vertexCount - 1, batch.indexCount, GL_UNSIGNED_INT, 0);
             
-            batch.vertexBuffer->release();
-            batch.indexBuffer->release();
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
             
             glPopMatrix();
         }
@@ -1033,8 +1039,15 @@ VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>
     _vertexCount(vertices.size()),
     _indexCount(indices.size()),
     _hermiteCount(hermite.size()),
-    _indexBuffer(QOpenGLBuffer::IndexBuffer),
+    _vertexBufferID(0),
+    _indexBufferID(0),
+    _hermiteBufferID(0),
     _materials(materials) {
+}
+
+VoxelBuffer::~VoxelBuffer() {
+    QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "deleteBuffers", Q_ARG(int, _vertexBufferID),
+        Q_ARG(int, _indexBufferID), Q_ARG(int, _hermiteBufferID));
 }
 
 bool VoxelBuffer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -1106,16 +1119,16 @@ bool VoxelBuffer::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
 }
 
 void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
-    if (!_vertexBuffer.isCreated()) {
-        _vertexBuffer.create();
-        _vertexBuffer.bind();
-        _vertexBuffer.allocate(_vertices.constData(), _vertices.size() * sizeof(VoxelPoint));
-        _vertexBuffer.release();
+    if (_vertexBufferID == 0) {
+        glGenBuffers(1, &_vertexBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferID);
+        glBufferData(GL_ARRAY_BUFFER, _vertices.size() * sizeof(VoxelPoint), _vertices.constData(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         
-        _indexBuffer.create();
-        _indexBuffer.bind();
-        _indexBuffer.allocate(_indices.constData(), _indices.size() * sizeof(int));
-        _indexBuffer.release();
+        glGenBuffers(1, &_indexBufferID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indexBufferID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, _indices.size() * sizeof(int), _indices.constData(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
         if (!_materials.isEmpty()) {
             _networkTextures.resize(_materials.size());
@@ -1134,8 +1147,8 @@ void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation
     baseBatch.translation = translation;
     baseBatch.rotation = rotation;
     baseBatch.scale = scale;
-    baseBatch.vertexBuffer = &_vertexBuffer;
-    baseBatch.indexBuffer = &_indexBuffer;
+    baseBatch.vertexBufferID = _vertexBufferID;
+    baseBatch.indexBufferID = _indexBufferID;
     baseBatch.vertexCount = _vertexCount;
     baseBatch.indexCount = _indexCount;
     Application::getInstance()->getMetavoxels()->addVoxelBaseBatch(baseBatch);
@@ -1145,8 +1158,8 @@ void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation
         splatBatch.translation = translation;
         splatBatch.rotation = rotation;
         splatBatch.scale = scale;
-        splatBatch.vertexBuffer = &_vertexBuffer;
-        splatBatch.indexBuffer = &_indexBuffer;
+        splatBatch.vertexBufferID = _vertexBufferID;
+        splatBatch.indexBufferID = _indexBufferID;
         splatBatch.vertexCount = _vertexCount;
         splatBatch.indexCount = _indexCount;
         splatBatch.splatTextureOffset = glm::vec3(
@@ -1178,18 +1191,18 @@ void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation
     }
     
     if (_hermiteCount > 0) {
-        if (!_hermiteBuffer.isCreated()) {
-            _hermiteBuffer.create();
-            _hermiteBuffer.bind();
-            _hermiteBuffer.allocate(_hermite.constData(), _hermite.size() * sizeof(glm::vec3));    
-            _hermiteBuffer.release();
+        if (_hermiteBufferID == 0) {
+            glGenBuffers(1, &_hermiteBufferID);
+            glBindBuffer(GL_ARRAY_BUFFER, _hermiteBufferID);
+            glBufferData(GL_ARRAY_BUFFER, _hermite.size() * sizeof(glm::vec3), _hermite.constData(), GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
             _hermite.clear();
         }
         HermiteBatch hermiteBatch;
         hermiteBatch.translation = translation;
         hermiteBatch.rotation = rotation;
         hermiteBatch.scale = scale;
-        hermiteBatch.vertexBuffer = &_hermiteBuffer;
+        hermiteBatch.vertexBufferID = _hermiteBufferID;
         hermiteBatch.vertexCount = _hermiteCount;
         Application::getInstance()->getMetavoxels()->addHermiteBatch(hermiteBatch);
     }
@@ -1741,29 +1754,19 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                     const int NO_CORNERS = 0;
                     const int ALL_CORNERS = UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER | LOWER_RIGHT_CORNER;
                     int corners = NO_CORNERS;
-                    int stitchMinimumY = INT_MAX, stitchMaximumY = -1;
                     if (heightfieldHeight != 0.0f) {
                         corners |= UPPER_LEFT_CORNER;
-                        stitchMinimumY = qMin(stitchMinimumY, (int)heightfieldHeight);
-                        stitchMaximumY = qMax(stitchMaximumY, (int)heightfieldHeight);
                     }
                     if (nextHeightfieldHeightX != 0.0f && x != stackWidth) {
                         corners |= UPPER_RIGHT_CORNER;
-                        stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightX);
-                        stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightX);
                     }
                     if (nextHeightfieldHeightZ != 0.0f && z != stackHeight) {
                         corners |= LOWER_LEFT_CORNER;
-                        stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightZ);
-                        stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightZ);
                     }
                     if (nextHeightfieldHeightXZ != 0.0f && x != stackWidth && z != stackHeight) {
                         corners |= LOWER_RIGHT_CORNER;
-                        stitchMinimumY = qMin(stitchMinimumY, (int)nextHeightfieldHeightXZ);
-                        stitchMaximumY = qMax(stitchMaximumY, (int)nextHeightfieldHeightXZ);
                     }
                     bool stitchable = x != 0 && z != 0 && !(corners == NO_CORNERS || corners == ALL_CORNERS);
-                    bool stitched = false;
                     VoxelPoint cornerPoints[4];
                     int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
                     if (stitchable) {
@@ -2105,7 +2108,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 vertices.append(point);
                             }
                         
-                            if (stitchable && !stitched && y >= stitchMinimumY && y <= stitchMaximumY) {
+                            if (stitchable) {
                                 int nextIndex = vertices.size();
                                 const NormalIndex& previousIndexX = lastIndicesX.getClosest(y);
                                 const NormalIndex& previousIndexZ = lastIndicesZ[x].getClosest(y);
@@ -2270,7 +2273,6 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         break;
                                     }
                                 }
-                                stitched = true;
                             }
                         }
                         
@@ -2395,8 +2397,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     }
     
     HeightfieldBaseLayerBatch baseBatch;
-    baseBatch.vertexBuffer = &bufferPair.first;
-    baseBatch.indexBuffer = &bufferPair.second;
+    baseBatch.vertexBufferID = bufferPair.first.bufferId();
+    baseBatch.indexBufferID = bufferPair.second.bufferId();
     baseBatch.translation = translation;
     baseBatch.rotation = rotation;
     baseBatch.scale = scale;
@@ -2410,8 +2412,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     
     if (!(cursor || _networkTextures.isEmpty())) {
         HeightfieldSplatBatch splatBatch;
-        splatBatch.vertexBuffer = &bufferPair.first;
-        splatBatch.indexBuffer = &bufferPair.second;
+        splatBatch.vertexBufferID = bufferPair.first.bufferId();
+        splatBatch.indexBufferID = bufferPair.second.bufferId();
         splatBatch.translation = translation;
         splatBatch.rotation = rotation;
         splatBatch.scale = scale;
