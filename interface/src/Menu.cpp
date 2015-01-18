@@ -135,10 +135,11 @@ Menu::Menu() {
                                   Qt::Key_Enter,
                                   dialogsManager.data(),
                                   SLOT(toggleAddressBar()));
+    auto addressManager = DependencyManager::get<AddressManager>();
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
-                                  this, SLOT(copyAddress()));
+                                  addressManager.data(), SLOT(copyAddress()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
-                                  this, SLOT(copyPath()));
+                                  addressManager.data(), SLOT(copyPath()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
@@ -1139,20 +1140,6 @@ void Menu::changePrivateKey() {
     bumpSettings();
     
     sendFakeEnterEvent();
-}
-
-void Menu::copyAddress() {
-    auto addressManager = DependencyManager::get<AddressManager>();
-    QString address = addressManager->currentAddress().toString();
-    QClipboard* clipboard = QApplication::clipboard();
-    clipboard->setText(address);
-}
-
-void Menu::copyPath() {
-    auto addressManager = DependencyManager::get<AddressManager>();
-    QString path = addressManager->currentPath();
-    QClipboard* clipboard = QApplication::clipboard();
-    clipboard->setText(path);
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {

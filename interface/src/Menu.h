@@ -146,9 +146,6 @@ signals:
     void scriptLocationChanged(const QString& newPath);
 
 public slots:
-    void copyAddress();
-    void copyPath();
-
     void toggleSixense(bool shouldEnable);
 
 private slots:

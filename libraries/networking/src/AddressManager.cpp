@@ -9,10 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qdebug.h>
-#include <qjsondocument.h>
-#include <qregexp.h>
-#include <qstringlist.h>
+#include <QApplication>
+#include <QClipboard>
+#include <QDebug>
+#include <QJsonDocument>
+#include <QRegExp>
+#include <QStringList>
 
 #include <GLMHelpers.h>
 #include <UUID.h>
@@ -398,4 +400,12 @@ void AddressManager::goToUser(const QString& username) {
     AccountManager::getInstance().unauthenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
                                                          QNetworkAccessManager::GetOperation,
                                                          apiCallbackParameters());
+}
+
+void AddressManager::copyAddress() {
+    QApplication::clipboard()->setText(currentAddress().toString());
+}
+
+void AddressManager::copyPath() {
+    QApplication::clipboard()->setText(currentPath());
 }
