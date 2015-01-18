@@ -32,8 +32,6 @@
 #include "ui/JSConsole.h"
 #include "ui/ScriptEditorWindow.h"
 
-const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
-
 const QString SETTINGS_ADDRESS_KEY = "address";
 class QSettings;
 
@@ -140,8 +138,6 @@ public:
     void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; bumpSettings(); }
     float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
     void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
-    float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
-    void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; bumpSettings(); }
     float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
     void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; bumpSettings(); }
     bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
@@ -229,7 +225,6 @@ private:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-    float _oculusUIAngularSize = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
     float _sixenseReticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
     bool _invertSixenseButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
     bool _hasLoginDialogDisplayed = false;

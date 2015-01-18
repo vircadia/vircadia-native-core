@@ -157,7 +157,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.maxOctreePPSSpin->setValue(menuInstance->getMaxOctreePacketsPerSecond());
 
-    ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
+    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getOculusUIAngularSize());
 
     ui.sixenseReticleMoveSpeedSpin->setValue(menuInstance->getSixenseReticleMoveSpeed());
 
@@ -238,7 +238,7 @@ void PreferencesDialog::savePreferences() {
     
     Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
-    Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+    qApp->getApplicationOverlay().setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
 
     Menu::getInstance()->setSixenseReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
 
