@@ -69,9 +69,6 @@ public:
 private:
     LODManager() {}
     
-    void loadSettings(QSettings* settings);
-    void saveSettings(QSettings* settings);
-    
     bool _automaticAvatarLOD = true;
     float _avatarLODDecreaseFPS = DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS;
     float _avatarLODIncreaseFPS = ADJUST_LOD_UP_FPS;
