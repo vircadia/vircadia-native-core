@@ -12,11 +12,19 @@
 #include <Application.h>
 #include <MainWindow.h>
 
+#include "AddressBarDialog.h"
 #include "LoginDialog.h"
 
 #include "DialogsManager.h"
 
+void DialogsManager::toggleAddressBar() {
+    maybeCreateDialog(_addressBarDialog);
     
+    if (!_addressBarDialog->isVisible()) {
+        _addressBarDialog->show();
+    }
+}
+
 void DialogsManager::toggleLoginDialog() {
     maybeCreateDialog(_loginDialog);
     _loginDialog->toggleQAction();

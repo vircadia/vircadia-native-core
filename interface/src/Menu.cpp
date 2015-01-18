@@ -133,7 +133,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
                                   Qt::Key_Enter,
-                                  this,
+                                  dialogsManager.data(),
                                   SLOT(toggleAddressBar()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
                                   this, SLOT(copyAddress()));
@@ -1170,16 +1170,6 @@ void Menu::changePrivateKey() {
     bumpSettings();
     
     sendFakeEnterEvent();
-}
-
-void Menu::toggleAddressBar() {
-    if (!_addressBarDialog) {
-        _addressBarDialog = new AddressBarDialog();
-    }
-    
-    if (!_addressBarDialog->isVisible()) {
-        _addressBarDialog->show();
-    }
 }
 
 void Menu::copyAddress() {

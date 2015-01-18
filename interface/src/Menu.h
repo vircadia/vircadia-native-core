@@ -158,7 +158,6 @@ public slots:
     void cachesSizeDialog();
     void lodTools();
     void hmdTools(bool showTools);
-    void toggleAddressBar();
     void copyAddress();
     void copyPath();
 
@@ -190,7 +189,6 @@ private:
     SpeechRecognizer _speechRecognizer;
 #endif
     
-    QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;

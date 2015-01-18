@@ -16,6 +16,7 @@
 
 #include <DependencyManager.h>
 
+class AddressBarDialog;
 class LoginDialog;
 
 class DialogsManager : public QObject, public Dependency {
@@ -23,6 +24,8 @@ class DialogsManager : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
     
 public slots:
+    void toggleAddressBar();
+    
     void toggleLoginDialog();
     void showLoginDialog();
     
@@ -39,6 +42,7 @@ private:
         }
     }
     
+    QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<LoginDialog> _loginDialog;
 };
 
