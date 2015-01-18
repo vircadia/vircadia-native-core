@@ -116,6 +116,7 @@
 #include "ui/DataWebDialog.h"
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
+#include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 
 
@@ -175,6 +176,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
     auto lodManager = DependencyManager::set<LODManager>();
+    auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     
     return true;
 }

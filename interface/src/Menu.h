@@ -187,7 +187,6 @@ private slots:
     void showMetavoxelNetworkSimulator();
     void showScriptEditor();
     void showChat();
-    void toggleConsole();
     void toggleToolWindow();
     void toggleChat();
     void audioMuteToggled();
@@ -196,7 +195,6 @@ private slots:
     void loadRSSDKFile();
 
 private:
-    QDialog* _jsConsole = nullptr;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif

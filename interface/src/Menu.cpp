@@ -68,6 +68,7 @@
 #include "ui/MetavoxelNetworkSimulator.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
+#include "ui/StandAloneJSConsole.h"
 
 Menu* Menu::_instance = NULL;
 
@@ -214,7 +215,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::Console,
                                   Qt::CTRL | Qt::ALT | Qt::Key_J,
-                                  this,
+                                  DependencyManager::get<StandAloneJSConsole>().data(),
                                   SLOT(toggleConsole()));
 
     addActionToQMenuAndActionHash(toolsMenu,
@@ -1316,25 +1317,6 @@ void Menu::toggleChat() {
         }
     }
 #endif
-}
-
-void Menu::toggleConsole() {
-    QMainWindow* mainWindow = Application::getInstance()->getWindow();
-    if (!_jsConsole) {
-        QDialog* dialog = new QDialog(mainWindow, Qt::WindowStaysOnTopHint);
-        QVBoxLayout* layout = new QVBoxLayout(dialog);
-        dialog->setLayout(new QVBoxLayout(dialog));
-
-        dialog->resize(QSize(CONSOLE_WIDTH, CONSOLE_HEIGHT));
-        layout->setMargin(0);
-        layout->setSpacing(0);
-        layout->addWidget(new JSConsole(dialog));
-        dialog->setWindowOpacity(CONSOLE_WINDOW_OPACITY);
-        dialog->setWindowTitle(CONSOLE_TITLE);
-
-        _jsConsole = dialog;
-    }
-    _jsConsole->setVisible(!_jsConsole->isVisible());
 }
 
 void Menu::toggleToolWindow() {
