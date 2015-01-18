@@ -3915,6 +3915,7 @@ void Application::setVSyncEnabled() {
 #else
     qDebug("V-Sync is FORCED ON on this system\n");
 #endif
+    vsyncOn = true; // Turns off unused variable warning
 }
 
 bool Application::isVSyncOn() const {
