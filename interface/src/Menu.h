@@ -320,6 +320,4 @@ namespace MenuOption {
     const QString Wireframe = "Wireframe";
 }
 
-void sendFakeEnterEvent();
-
 #endif // hifi_Menu_h

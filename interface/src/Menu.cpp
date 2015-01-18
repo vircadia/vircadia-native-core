@@ -1086,15 +1086,6 @@ void Menu::bumpSettings() {
     Application::getInstance()->bumpSettings();
 }
 
-void sendFakeEnterEvent() {
-    QPoint lastCursorPosition = QCursor::pos();
-    auto glCanvas = DependencyManager::get<GLCanvas>();
-
-    QPoint windowPosition = glCanvas->mapFromGlobal(lastCursorPosition);
-    QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);
-    QCoreApplication::sendEvent(glCanvas.data(), &enterEvent);
-}
-
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::toggleSixense(bool shouldEnable) {

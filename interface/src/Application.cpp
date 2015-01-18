@@ -3768,7 +3768,6 @@ void Application::loadDialog() {
 }
 
 void Application::loadScriptURLDialog() {
-
     QInputDialog scriptURLDialog(Application::getInstance()->getWindow());
     scriptURLDialog.setWindowTitle("Open and Run Script URL");
     scriptURLDialog.setLabelText("Script:");
@@ -3786,8 +3785,6 @@ void Application::loadScriptURLDialog() {
         }
         loadScript(newScript);
     }
-
-    sendFakeEnterEvent();
 }
 
 
