@@ -1817,7 +1817,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                     }
                     for (int y = position, end = position + count; y < end; y++) {
                         const StackArray::Entry& entry = lineSrc->getEntry(y, heightfieldHeight);
-                        if (displayHermite && x != 0 && z != 0) {
+                        if (displayHermite && x != 0 && z != 0 && !lineSrc->isEmpty() && y >= lineSrc->getPosition()) {
                             glm::vec3 normal;
                             if (entry.hermiteX != 0) {
                                 glm::vec3 start = glm::vec3(clampedX + entry.getHermiteX(normal), y, clampedZ) * step;
