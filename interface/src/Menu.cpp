@@ -440,7 +440,8 @@ Menu::Menu() {
 
 #ifdef HAVE_RSSDK
     QMenu* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
-    addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0, this, SLOT(loadRSSDKFile()));
+    addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0,
+                                  RealSense::getInstance(), SLOT(loadRSSDKFile()));
 #endif
 
     QMenu* networkMenu = developerMenu->addMenu("Network");
@@ -1093,10 +1094,6 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
         msgBox.setText(errorString);
         msgBox.exec();
     }    
-}
-
-void Menu::loadRSSDKFile() {
-    RealSense::getInstance()->loadRSSDKFile();
 }
 
 void Menu::runTests() {

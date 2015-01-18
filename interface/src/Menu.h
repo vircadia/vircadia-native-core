@@ -148,7 +148,6 @@ private slots:
     void changePrivateKey();
     void runTests();
     void displayNameLocationResponse(const QString& errorString);
-    void loadRSSDKFile();
 
 private:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
