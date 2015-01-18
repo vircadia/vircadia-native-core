@@ -398,6 +398,8 @@ private slots:
     void parseVersionXml();
 
     void manageRunningScriptsWidgetVisibility(bool shown);
+    
+    void runTests();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);

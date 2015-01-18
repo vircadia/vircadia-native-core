@@ -723,6 +723,10 @@ void Application::paintGL() {
     _frameCount++;
 }
 
+void Application::runTests() {
+    runTimingTests();
+}
+
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
     if (OculusManager::isConnected()) {
         OculusManager::configureCamera(camera, width, height);

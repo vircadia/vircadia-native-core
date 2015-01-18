@@ -470,7 +470,7 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
-    addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
+    addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
 
@@ -598,9 +598,6 @@ void Menu::loadSettings(QSettings* settings) {
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
-
-    // notify that a settings has changed
-    connect(&DependencyManager::get<NodeList>()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
 
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
@@ -800,7 +797,6 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                         QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
-    connect(action, SIGNAL(changed()), this, SLOT(bumpSettings()));
 
     return action;
 }
@@ -1074,13 +1070,5 @@ void Menu::aboutApp() {
 
 void Menu::showEditEntitiesHelp() {
     InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
-}
-
-void Menu::bumpSettings() {
-    Application::getInstance()->bumpSettings();
-}
-
-void Menu::runTests() {
-    runTimingTests();
 }
 

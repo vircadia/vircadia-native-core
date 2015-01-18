@@ -132,8 +132,6 @@ private:
 private slots:
     void aboutApp();
     void showEditEntitiesHelp();
-    void bumpSettings();
-    void runTests();
 };
 
 namespace MenuOption {
