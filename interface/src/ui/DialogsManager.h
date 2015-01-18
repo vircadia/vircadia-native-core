@@ -16,17 +16,19 @@
 
 #include <DependencyManager.h>
 
+class QAction;
+
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     
 public:
-    QPointer<OctreeStatsDialog> getOctreeStatsDialog() { return _octreeStatsDialog; }
+    QPointer<BandwidthDialog> getBandwidthDialog() const { return _bandwidthDialog; }
+    QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
+    QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
+    QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
     
-    
-    BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
-    LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
-    HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
+    void setupChat();
     
 public slots:
     void toggleAddressBar();
@@ -43,10 +45,12 @@ public slots:
     void showMetavoxelEditor();
     void showMetavoxelNetworkSimulator();
     void showScriptEditor();
+    void showChat();
     
 private slots:
     void toggleToolWindow();
     void hmdToolsClosed();
+    void toggleChat();
     
 private:
     DialogsManager() {}
@@ -70,6 +74,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
+    QPointer<ChatWindow> _chatWindow;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<LoginDialog> _loginDialog;

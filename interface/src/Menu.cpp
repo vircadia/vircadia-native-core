@@ -197,20 +197,9 @@ Menu::Menu() {
 #endif
 
 #ifdef HAVE_QXMPP
-    _chatAction = addActionToQMenuAndActionHash(toolsMenu,
-                                                MenuOption::Chat,
-                                                Qt::Key_Backslash,
-                                                this,
-                                                SLOT(showChat()));
-
-    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
-    toggleChat();
-    connect(&xmppClient, &QXmppClient::connected, this, &Menu::toggleChat);
-    connect(&xmppClient, &QXmppClient::disconnected, this, &Menu::toggleChat);
-
-    QDir::setCurrent(PathUtils::resourcesPath());
-    // init chat window to listen chat
-    _chatWindow = new ChatWindow(Application::getInstance()->getWindow());
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, Qt::Key_Backslash,
+                                  dialogsManager.data(), SLOT(showChat()));
+    dialogsManager->setupChat();
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu,
@@ -1180,42 +1169,8 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
     }    
 }
 
-void Menu::showChat() {
-    if (AccountManager::getInstance().isLoggedIn()) {
-        QMainWindow* mainWindow = Application::getInstance()->getWindow();
-        if (!_chatWindow) {
-            _chatWindow = new ChatWindow(mainWindow);
-        }
-
-        if (_chatWindow->isHidden()) {
-            _chatWindow->show();
-        }
-        _chatWindow->raise();
-        _chatWindow->activateWindow();
-        _chatWindow->setFocus();
-    } else {
-        Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
-    }
-}
-
 void Menu::loadRSSDKFile() {
     RealSense::getInstance()->loadRSSDKFile();
-}
-
-void Menu::toggleChat() {
-#ifdef HAVE_QXMPP
-    _chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!_chatAction->isEnabled() && _chatWindow && AccountManager::getInstance().isLoggedIn()) {
-        if (_chatWindow->isHidden()) {
-            _chatWindow->show();
-            _chatWindow->raise();
-            _chatWindow->activateWindow();
-            _chatWindow->setFocus();
-        } else {
-            _chatWindow->hide();
-        }
-    }
-#endif
 }
 
 void Menu::audioMuteToggled() {

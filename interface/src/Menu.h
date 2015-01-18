@@ -159,8 +159,6 @@ private slots:
     void bumpSettings();
     void changePrivateKey();
     void runTests();
-    void showChat();
-    void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
     void changeVSync();
@@ -170,9 +168,7 @@ private:
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
-    QPointer<ChatWindow> _chatWindow;
     
-    QAction* _chatAction = nullptr;
     QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;

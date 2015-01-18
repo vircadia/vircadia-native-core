@@ -9,8 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <AccountManager.h>
 #include <Application.h>
 #include <MainWindow.h>
+#include <PathUtils.h>
+#include <XmppClient.h>
 
 #include "AddressBarDialog.h"
 #include "AnimationsDialog.h"
@@ -158,6 +161,51 @@ void DialogsManager::showMetavoxelNetworkSimulator() {
 void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
     _scriptEditor->raise();
+}
+
+void DialogsManager::setupChat() {
+    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
+    connect(&xmppClient, &QXmppClient::connected, this, &DialogsManager::toggleChat);
+    connect(&xmppClient, &QXmppClient::disconnected, this, &DialogsManager::toggleChat);
+    
+    QDir::setCurrent(PathUtils::resourcesPath());
+    // init chat window to listen chat
+    maybeCreateDialog(_chatWindow);
+}
+
+void DialogsManager::showChat() {
+    if (AccountManager::getInstance().isLoggedIn()) {
+        maybeCreateDialog(_chatWindow);
+        
+        if (_chatWindow->isHidden()) {
+            _chatWindow->show();
+        }
+        _chatWindow->raise();
+        _chatWindow->activateWindow();
+        _chatWindow->setFocus();
+    } else {
+        qApp->getTrayIcon()->showMessage("Interface",
+                                         "You need to login to be able to chat with others on this domain.");
+    }
+}
+
+void DialogsManager::toggleChat() {
+#ifdef HAVE_QXMPP
+    QAction* chatAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
+    Q_CHECK_PTR(chatAction);
+    
+    chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
+    if (!chatAction->isEnabled() && _chatWindow && AccountManager::getInstance().isLoggedIn()) {
+        if (_chatWindow->isHidden()) {
+            _chatWindow->show();
+            _chatWindow->raise();
+            _chatWindow->activateWindow();
+            _chatWindow->setFocus();
+        } else {
+            _chatWindow->hide();
+        }
+    }
+#endif
 }
 
 
