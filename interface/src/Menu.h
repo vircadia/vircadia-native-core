@@ -130,8 +130,6 @@ private:
 /////////////////////////////////////////// TODO: Move to appropriate files ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
-    QString getSnapshotsLocation() const;
-    void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; bumpSettings(); }
 
     const QString& getScriptsLocation() const { return _scriptsLocation; }
     void setScriptsLocation(const QString& scriptsLocation);
@@ -160,7 +158,6 @@ private:
     SpeechRecognizer _speechRecognizer;
 #endif
     
-    QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;
 };

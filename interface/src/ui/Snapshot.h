@@ -41,14 +41,17 @@ private:
 };
 
 class Snapshot {
-
 public:
+    static QString getSnapshotsLocation();
+    static void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; }
     static QString saveSnapshot();
     static QTemporaryFile* saveTempSnapshot();
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
     
 private:
     static QFile* savedFileForSnapshot(bool isTemporary);
+    
+    static QString _snapshotsLocation;
 };
 
 #endif // hifi_Snapshot_h

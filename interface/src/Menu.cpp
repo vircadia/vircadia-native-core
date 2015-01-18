@@ -592,8 +592,6 @@ void Menu::loadSettings(QSettings* settings) {
     int bufferSize = settings->value("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES).toInt();
     QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, bufferSize));
     
-    _snapshotsLocation = settings->value("snapshotsLocation",
-                                         QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
     setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -635,7 +633,6 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
     settings->setValue("audioOutputBufferSize", audio->getOutputBufferSize());
 
-    settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->setValue("scriptsLocation", _scriptsLocation);
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     settings->setValue("speechRecognitionEnabled", _speechRecognizer.getEnabled());
@@ -1153,13 +1150,6 @@ void Menu::loadRSSDKFile() {
 
 void Menu::runTests() {
     runTimingTests();
-}
-
-QString Menu::getSnapshotsLocation() const {
-    if (_snapshotsLocation.isNull() || _snapshotsLocation.isEmpty() || QDir(_snapshotsLocation).exists() == false) {
-        return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    }
-    return _snapshotsLocation;
 }
 
 void Menu::setScriptsLocation(const QString& scriptsLocation) {

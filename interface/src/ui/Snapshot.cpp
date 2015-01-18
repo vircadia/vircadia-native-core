@@ -10,13 +10,15 @@
 //
 
 #include <QDateTime>
+#include <QDir>
 #include <QFileInfo>
+#include <QStandardPaths>
 
 #include <AccountManager.h>
+#include <Application.h>
 #include <FileUtils.h>
 
 #include "Snapshot.h"
-#include "Menu.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -35,6 +37,8 @@ const QString ORIENTATION_Z = "orientation-z";
 const QString ORIENTATION_W = "orientation-w";
 
 const QString DOMAIN_KEY = "domain";
+
+QString Snapshot::_snapshotsLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     
@@ -86,7 +90,7 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     QImage shot = glCanvas->grabFrameBuffer();
     
-    Avatar* avatar = Application::getInstance()->getAvatar();
+    Avatar* avatar = qApp->getAvatar();
     
     glm::vec3 location = avatar->getPosition();
     glm::quat orientation = avatar->getHead()->getOrientation();
@@ -118,7 +122,7 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
     const int IMAGE_QUALITY = 100;
     
     if (!isTemporary) {
-        QString snapshotFullPath = Menu::getInstance()->getSnapshotsLocation();
+        QString snapshotFullPath = getSnapshotsLocation();
         
         if (!snapshotFullPath.endsWith(QDir::separator())) {
             snapshotFullPath.append(QDir::separator());
@@ -146,6 +150,15 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
         
         return imageTempFile;
     }
+}
+
+QString Snapshot::getSnapshotsLocation() {
+    if (_snapshotsLocation.isNull() ||
+        _snapshotsLocation.isEmpty() ||
+        QDir(_snapshotsLocation).exists() == false) {
+        return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    }
+    return _snapshotsLocation;
 }
 
 

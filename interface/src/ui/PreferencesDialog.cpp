@@ -20,6 +20,7 @@
 #include "Menu.h"
 #include "ModelsBrowser.h"
 #include "PreferencesDialog.h"
+#include "Snapshot.h"
 #include "UserActivityLogger.h"
 
 const int PREFERENCES_HEIGHT_PADDING = 20;
@@ -120,7 +121,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
-    ui.snapshotLocationEdit->setText(menuInstance->getSnapshotsLocation());
+    ui.snapshotLocationEdit->setText(Snapshot::getSnapshotsLocation());
 
     ui.scriptsLocationEdit->setText(menuInstance->getScriptsLocation());
 
@@ -218,7 +219,7 @@ void PreferencesDialog::savePreferences() {
     }
 
     if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
-        Menu::getInstance()->setSnapshotsLocation(ui.snapshotLocationEdit->text());
+        Snapshot::setSnapshotsLocation(ui.snapshotLocationEdit->text());
     }
 
     if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
