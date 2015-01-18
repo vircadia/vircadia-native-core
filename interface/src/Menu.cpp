@@ -46,6 +46,7 @@
 #include "audio/AudioScope.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
+#include "devices/SixenseManager.h"
 #include "devices/Visage.h"
 #include "Menu.h"
 #include "scripting/LocationScriptingInterface.h"

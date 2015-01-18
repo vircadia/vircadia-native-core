@@ -26,7 +26,6 @@
 #include "SpeechRecognizer.h"
 #endif
 
-#include "devices/SixenseManager.h"
 #include "ui/ChatWindow.h"
 #include "ui/JSConsole.h"
 #include "ui/ScriptEditorWindow.h"
