@@ -1678,11 +1678,11 @@ void Application::init() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseEnabled)) {
         // on OS X we only setup sixense if the user wants it on - this allows running without the hid_init crash
         // if hydra support is temporarily not required
-        Menu::getInstance()->toggleSixense(true);
+        SixenseManager::getInstance().toggleSixense(true);
     }
 #else
     // setup sixense
-    Menu::getInstance()->toggleSixense(true);
+    SixenseManager::getInstance().toggleSixense(true);
 #endif
 
     // initialize our face trackers after loading the menu settings

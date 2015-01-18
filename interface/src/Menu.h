@@ -141,9 +141,6 @@ public:
 signals:
     void scriptLocationChanged(const QString& newPath);
 
-public slots:
-    void toggleSixense(bool shouldEnable);
-
 private slots:
     void aboutApp();
     void showEditEntitiesHelp();

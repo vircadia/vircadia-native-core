@@ -568,5 +568,14 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     }
 }
 
+void SixenseManager::toggleSixense(bool shouldEnable) {
+    if (shouldEnable && !isInitialized()) {
+        initialize();
+        setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
+        setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
+    }
+    setIsEnabled(shouldEnable);
+}
+
 #endif  // HAVE_SIXENSE
 

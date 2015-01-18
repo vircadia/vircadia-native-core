@@ -417,7 +417,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::SixenseEnabled,
                                            0, false,
-                                           this,
+                                           &SixenseManager::getInstance(),
                                            SLOT(toggleSixense(bool)));
 #endif
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
@@ -1087,18 +1087,6 @@ void Menu::bumpSettings() {
 }
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
-
-void Menu::toggleSixense(bool shouldEnable) {
-    SixenseManager& sixenseManager = SixenseManager::getInstance();
-    
-    if (shouldEnable && !sixenseManager.isInitialized()) {
-        sixenseManager.initialize();
-        sixenseManager.setFilter(isOptionChecked(MenuOption::FilterSixense));
-        sixenseManager.setLowVelocityFilter(isOptionChecked(MenuOption::LowVelocityFilter));
-    }
-    
-    sixenseManager.setIsEnabled(shouldEnable);
-}
 
 void Menu::displayNameLocationResponse(const QString& errorString) {
 

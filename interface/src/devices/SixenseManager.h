@@ -61,7 +61,7 @@ public:
     void setInvertButtons(bool invertSixenseButtons) { _invertButtons = invertSixenseButtons; }
     
 public slots:
-    
+    void toggleSixense(bool shouldEnable);
     void setFilter(bool filter);
     void setLowVelocityFilter(bool lowVelocityFilter) { _lowVelocityFilter = lowVelocityFilter; };
 
