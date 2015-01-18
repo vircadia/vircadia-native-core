@@ -175,12 +175,14 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu,
                                   MenuOption::Preferences,
                                   Qt::CTRL | Qt::Key_Comma,
-                                  this,
+                                  dialogsManager.data(),
                                   SLOT(editPreferences()),
                                   QAction::PreferencesRole);
 
-    addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0, this, SLOT(editAttachments()));
-    addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0, this, SLOT(editAnimations()));
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0,
+                                  dialogsManager.data(), SLOT(editAttachments()));
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0,
+                                  dialogsManager.data(), SLOT(editAnimations()));
 
     QMenu* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
@@ -454,7 +456,8 @@ Menu::Menu() {
                                            false,
                                            &UserActivityLogger::getInstance(),
                                            SLOT(disable(bool)));
-    addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0, this, SLOT(cachesSizeDialog()));
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0,
+                                  dialogsManager.data(), SLOT(cachesSizeDialog()));
     
     addActionToQMenuAndActionHash(developerMenu, MenuOption::WalletPrivateKey, 0, this, SLOT(changePrivateKey()));
 
@@ -1113,33 +1116,6 @@ void sendFakeEnterEvent() {
 
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
-void Menu::editPreferences() {
-    if (!_preferencesDialog) {
-        _preferencesDialog = new PreferencesDialog();
-        _preferencesDialog->show();
-    } else {
-        _preferencesDialog->close();
-    }
-}
-
-void Menu::editAttachments() {
-    if (!_attachmentsDialog) {
-        _attachmentsDialog = new AttachmentsDialog();
-        _attachmentsDialog->show();
-    } else {
-        _attachmentsDialog->close();
-    }
-}
-
-void Menu::editAnimations() {
-    if (!_animationsDialog) {
-        _animationsDialog = new AnimationsDialog();
-        _animationsDialog->show();
-    } else {
-        _animationsDialog->close();
-    }
-}
-
 void Menu::toggleSixense(bool shouldEnable) {
     SixenseManager& sixenseManager = SixenseManager::getInstance();
     
@@ -1287,19 +1263,6 @@ void Menu::audioMuteToggled() {
     if (muteAction) {
         muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
     }
-}
-
-void Menu::cachesSizeDialog() {
-    qDebug() << "Caches size:" << _cachesSizeDialog.isNull();
-    if (!_cachesSizeDialog) {
-        _cachesSizeDialog = new CachesSizeDialog(DependencyManager::get<GLCanvas>().data());
-        connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
-        _cachesSizeDialog->show();
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_cachesSizeDialog->windowHandle());
-        }
-    }
-    _cachesSizeDialog->raise();
 }
 
 void Menu::lodTools() {

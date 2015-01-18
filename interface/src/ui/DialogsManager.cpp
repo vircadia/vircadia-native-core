@@ -13,8 +13,12 @@
 #include <MainWindow.h>
 
 #include "AddressBarDialog.h"
+#include "AnimationsDialog.h"
+#include "AttachmentsDialog.h"
+#include "CachesSizeDialog.h"
 #include "LoginDialog.h"
 #include "OctreeStatsDialog.h"
+#include "PreferencesDialog.h"
 
 #include "DialogsManager.h"
 
@@ -48,5 +52,48 @@ void DialogsManager::octreeStatsDetails() {
 //        }
     }
     _octreeStatsDialog->raise();
+}
+
+void DialogsManager::cachesSizeDialog() {
+    qDebug() << "Caches size:" << _cachesSizeDialog.isNull();
+    if (!_cachesSizeDialog) {
+        maybeCreateDialog(_cachesSizeDialog);
+        
+        connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
+        _cachesSizeDialog->show();
+        
+        //TODO: wire hmdToolsDialog once moved
+//        if (_hmdToolsDialog) {
+//            _hmdToolsDialog->watchWindow(_cachesSizeDialog->windowHandle());
+//        }
+    }
+    _cachesSizeDialog->raise();
+}
+
+void DialogsManager::editPreferences() {
+    if (!_preferencesDialog) {
+        maybeCreateDialog(_preferencesDialog);
+        _preferencesDialog->show();
+    } else {
+        _preferencesDialog->close();
+    }
+}
+
+void DialogsManager::editAttachments() {
+    if (!_attachmentsDialog) {
+        maybeCreateDialog(_attachmentsDialog);
+        _attachmentsDialog->show();
+    } else {
+        _attachmentsDialog->close();
+    }
+}
+
+void DialogsManager::editAnimations() {
+    if (!_animationsDialog) {
+        maybeCreateDialog(_animationsDialog);
+        _animationsDialog->show();
+    } else {
+        _animationsDialog->close();
+    }
 }
 

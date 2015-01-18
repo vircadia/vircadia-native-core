@@ -30,7 +30,7 @@ class AnimationsDialog : public QDialog {
 
 public:
     
-    AnimationsDialog();
+    AnimationsDialog(QWidget* parent = nullptr);
 
     virtual void setVisible(bool visible);
 

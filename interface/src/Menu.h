@@ -153,7 +153,6 @@ signals:
 
 public slots:
     void bandwidthDetails();
-    void cachesSizeDialog();
     void lodTools();
     void hmdTools(bool showTools);
     void copyAddress();
@@ -165,9 +164,6 @@ private slots:
     void aboutApp();
     void showEditEntitiesHelp();
     void bumpSettings();
-    void editPreferences();
-    void editAttachments();
-    void editAnimations();
     void changePrivateKey();
     void hmdToolsClosed();
     void runTests();
@@ -187,13 +183,9 @@ private:
     SpeechRecognizer _speechRecognizer;
 #endif
     
-    QPointer<AnimationsDialog> _animationsDialog;
-    QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
-    QPointer<CachesSizeDialog> _cachesSizeDialog;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
-    QPointer<PreferencesDialog> _preferencesDialog;
 
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;

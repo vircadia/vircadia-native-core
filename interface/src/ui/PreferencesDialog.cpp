@@ -24,8 +24,8 @@
 
 const int PREFERENCES_HEIGHT_PADDING = 20;
 
-PreferencesDialog::PreferencesDialog() :
-    QDialog(Application::getInstance()->getWindow()) {
+PreferencesDialog::PreferencesDialog(QWidget* parent) :
+    QDialog(parent) {
         
     setAttribute(Qt::WA_DeleteOnClose);
 

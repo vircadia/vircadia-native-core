@@ -16,10 +16,6 @@
 
 #include <DependencyManager.h>
 
-class AddressBarDialog;
-class LoginDialog;
-class OctreeStatsDialog;
-
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -29,11 +25,13 @@ public:
     
 public slots:
     void toggleAddressBar();
-    
     void toggleLoginDialog();
     void showLoginDialog();
-    
     void octreeStatsDetails();
+    void cachesSizeDialog();
+    void editPreferences();
+    void editAttachments();
+    void editAnimations();
     
 private:
     DialogsManager() {}
@@ -47,6 +45,11 @@ private:
             Q_CHECK_PTR(member);
         }
     }
+    
+    QPointer<AnimationsDialog> _animationsDialog;
+    QPointer<AttachmentsDialog> _attachmentsDialog;
+    QPointer<CachesSizeDialog> _cachesSizeDialog;
+    QPointer<PreferencesDialog> _preferencesDialog;
     
     QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<LoginDialog> _loginDialog;

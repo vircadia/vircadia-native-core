@@ -24,8 +24,8 @@
 #include "Application.h"
 #include "MainWindow.h"
 
-AnimationsDialog::AnimationsDialog() :
-    QDialog(Application::getInstance()->getWindow()) {
+AnimationsDialog::AnimationsDialog(QWidget* parent) :
+    QDialog(parent) {
     
     setWindowTitle("Edit Animations");
     setAttribute(Qt::WA_DeleteOnClose);
