@@ -257,9 +257,6 @@ private:
     QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;
-    
-    bool _shouldRenderTableNeedsRebuilding = true;
-    QMap<float, float> _shouldRenderTable;
 };
 
 namespace MenuOption {
