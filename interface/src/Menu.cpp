@@ -192,9 +192,13 @@ Menu::Menu() {
                                   dialogsManager.data(), SLOT(showScriptEditor()));
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+    auto speechRecognizer = DependencyManager::get<SpeechRecognizer>();
     QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech,
-            Qt::CTRL | Qt::SHIFT | Qt::Key_C, _speechRecognizer.getEnabled(), &_speechRecognizer, SLOT(setEnabled(bool)));
-    connect(&_speechRecognizer, SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
+                                                                             Qt::CTRL | Qt::SHIFT | Qt::Key_C,
+                                                                             speechRecognizer->getEnabled(),
+                                                                             speechRecognizer.data(),
+                                                                             SLOT(setEnabled(bool)));
+    connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
 
 #ifdef HAVE_QXMPP
@@ -590,12 +594,6 @@ void Menu::loadSettings(QSettings* settings) {
     audio->setOutputStarveDetectionPeriod(settings->value("audioOutputStarveDetectionPeriod", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD).toInt());
     int bufferSize = settings->value("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES).toInt();
     QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, bufferSize));
-    
-    setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
-
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    _speechRecognizer.setEnabled(settings->value("speechRecognitionEnabled", false).toBool());
-#endif
 
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
@@ -629,11 +627,6 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("audioOutputStarveDetectionThreshold", audio->getOutputStarveDetectionThreshold());
     settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
     settings->setValue("audioOutputBufferSize", audio->getOutputBufferSize());
-
-    settings->setValue("scriptsLocation", _scriptsLocation);
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    settings->setValue("speechRecognitionEnabled", _speechRecognizer.getEnabled());
-#endif
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
@@ -1098,11 +1091,5 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 
 void Menu::runTests() {
     runTimingTests();
-}
-
-void Menu::setScriptsLocation(const QString& scriptsLocation) {
-    _scriptsLocation = scriptsLocation;
-    bumpSettings();
-    emit scriptLocationChanged(scriptsLocation);
 }
 

@@ -180,6 +180,9 @@ bool setupEssentials(int& argc, char** argv) {
     auto lodManager = DependencyManager::set<LODManager>();
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     auto dialogsManager = DependencyManager::set<DialogsManager>();
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+    auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
+#endif
     
     return true;
 }
@@ -3464,7 +3467,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Camera", &_myCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
+    scriptEngine->registerGlobalObject("SpeechRecognizer", DependencyManager::get<SpeechRecognizer>().data());
 #endif
 
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
@@ -3787,7 +3790,10 @@ void Application::loadScriptURLDialog() {
     }
 }
 
-
+void Application::setScriptsLocation(const QString& scriptsLocation) {
+    _scriptsLocation = scriptsLocation;
+    emit scriptLocationChanged(scriptsLocation);
+}
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {

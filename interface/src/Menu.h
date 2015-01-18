@@ -129,32 +129,13 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////// TODO: Move to appropriate files ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-public:
-
-    const QString& getScriptsLocation() const { return _scriptsLocation; }
-    void setScriptsLocation(const QString& scriptsLocation);
-
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
-#endif
-
-signals:
-    void scriptLocationChanged(const QString& newPath);
-
 private slots:
     void aboutApp();
     void showEditEntitiesHelp();
     void bumpSettings();
-    void changePrivateKey();
     void runTests();
     void displayNameLocationResponse(const QString& errorString);
 
-private:
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    SpeechRecognizer _speechRecognizer;
-#endif
-    
-    QString _scriptsLocation;
 };
 
 namespace MenuOption {

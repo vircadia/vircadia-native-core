@@ -309,6 +309,9 @@ public:
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
     Bookmarks* getBookmarks() const { return _bookmarks; }
+    
+    const QString& getScriptsLocation() const { return _scriptsLocation; }
+    void setScriptsLocation(const QString& scriptsLocation);
 
 signals:
 
@@ -323,6 +326,8 @@ signals:
 
     /// Fired when the import window is closed
     void importDone();
+    
+    void scriptLocationChanged(const QString& newPath);
 
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -575,6 +580,7 @@ private:
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
+    QString _scriptsLocation;
 
     QSystemTrayIcon* _trayIcon;
 

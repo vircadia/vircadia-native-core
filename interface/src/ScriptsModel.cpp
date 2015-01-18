@@ -58,10 +58,10 @@ ScriptsModel::ScriptsModel(QObject* parent) :
     _localDirectory.setFilter(QDir::Files | QDir::Readable);
     _localDirectory.setNameFilters(QStringList("*.js"));
 
-    updateScriptsLocation(Menu::getInstance()->getScriptsLocation());
+    updateScriptsLocation(qApp->getScriptsLocation());
     
     connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &ScriptsModel::reloadLocalFiles);
-    connect(Menu::getInstance(), &Menu::scriptLocationChanged, this, &ScriptsModel::updateScriptsLocation);
+    connect(qApp, &Application::scriptLocationChanged, this, &ScriptsModel::updateScriptsLocation);
 
     reloadLocalFiles();
     reloadRemoteFiles();

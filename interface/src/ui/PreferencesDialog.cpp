@@ -123,7 +123,7 @@ void PreferencesDialog::loadPreferences() {
 
     ui.snapshotLocationEdit->setText(Snapshot::getSnapshotsLocation());
 
-    ui.scriptsLocationEdit->setText(menuInstance->getScriptsLocation());
+    ui.scriptsLocationEdit->setText(qApp->getScriptsLocation());
 
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
@@ -223,7 +223,7 @@ void PreferencesDialog::savePreferences() {
     }
 
     if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
-        Menu::getInstance()->setScriptsLocation(ui.scriptsLocationEdit->text());
+        qApp->setScriptsLocation(ui.scriptsLocationEdit->text());
     }
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());
