@@ -681,41 +681,17 @@ void HeightfieldHeightEditor::clear() {
 }
 
 static QByteArray encodeHeightfieldColor(int offsetX, int offsetY, int width, int height, const QByteArray& contents) {
-    QByteArray inflated(HEIGHTFIELD_DATA_HEADER_SIZE + contents.size(), 0);
+    QByteArray inflated(HEIGHTFIELD_DATA_HEADER_SIZE, 0);
     qint32* header = (qint32*)inflated.data();
     *header++ = offsetX;
     *header++ = offsetY;
     *header++ = width;
     *header++ = height;
     if (!contents.isEmpty()) {
-        // encode with Paeth filter (see http://en.wikipedia.org/wiki/Portable_Network_Graphics#Filtering)
-        const uchar* src = (const uchar*)contents.constData();
-        uchar* dest = (uchar*)inflated.data() + HEIGHTFIELD_DATA_HEADER_SIZE;
-        *dest++ = *src++;
-        *dest++ = *src++;
-        *dest++ = *src++;
-        int stride = width * DataBlock::COLOR_BYTES;
-        for (uchar* end = dest + stride - DataBlock::COLOR_BYTES; dest != end; dest++, src++) {
-            *dest = *src - src[-DataBlock::COLOR_BYTES];
-        }
-        for (int y = 1; y < height; y++) {
-            *dest++ = *src - src[-stride];
-            src++;
-            *dest++ = *src - src[-stride];
-            src++;
-            *dest++ = *src - src[-stride];
-            src++;
-            for (uchar* end = dest + stride - DataBlock::COLOR_BYTES; dest != end; dest++, src++) {
-                int a = src[-DataBlock::COLOR_BYTES];
-                int b = src[-stride];
-                int c = src[-stride - DataBlock::COLOR_BYTES];
-                int p = a + b - c;
-                int ad = abs(a - p);
-                int bd = abs(b - p);
-                int cd = abs(c - p);
-                *dest = *src - (ad < bd ? (ad < cd ? a : c) : (bd < cd ? b : c));
-            }
-        }
+        QBuffer buffer(&inflated);
+        buffer.open(QIODevice::WriteOnly | QIODevice::Append);
+        QImage((const uchar*)contents.constData(), width, height, width * DataBlock::COLOR_BYTES,
+            QImage::Format_RGB888).save(&buffer, "JPG");
     }
     return qCompress(inflated);
 }
@@ -727,35 +703,19 @@ static QByteArray decodeHeightfieldColor(const QByteArray& encoded, int& offsetX
     offsetY = *header++;
     width = *header++;
     height = *header++;
-    QByteArray contents(inflated.size() - HEIGHTFIELD_DATA_HEADER_SIZE, 0);
-    if (!contents.isEmpty()) {
-        const uchar* src = (const uchar*)inflated.constData() + HEIGHTFIELD_DATA_HEADER_SIZE;
-        uchar* dest = (uchar*)contents.data();
-        *dest++ = *src++;
-        *dest++ = *src++;
-        *dest++ = *src++;
-        int stride = width * DataBlock::COLOR_BYTES;
-        for (uchar* end = dest + stride - DataBlock::COLOR_BYTES; dest != end; dest++, src++) {
-            *dest = *src + dest[-DataBlock::COLOR_BYTES];
-        }
-        for (int y = 1; y < height; y++) {
-            *dest = (*src++) + dest[-stride];
-            dest++;
-            *dest = (*src++) + dest[-stride];
-            dest++;
-            *dest = (*src++) + dest[-stride];
-            dest++;
-            for (uchar* end = dest + stride - DataBlock::COLOR_BYTES; dest != end; dest++, src++) {
-                int a = dest[-DataBlock::COLOR_BYTES];
-                int b = dest[-stride];
-                int c = dest[-stride - DataBlock::COLOR_BYTES];
-                int p = a + b - c;
-                int ad = abs(a - p);
-                int bd = abs(b - p);
-                int cd = abs(c - p);
-                *dest = *src + (ad < bd ? (ad < cd ? a : c) : (bd < cd ? b : c));
-            }
-        }
+    int payloadSize = inflated.size() - HEIGHTFIELD_DATA_HEADER_SIZE;
+    if (payloadSize == 0) {
+        return QByteArray();
+    }
+    QImage image = QImage::fromData((const uchar*)inflated.constData() + HEIGHTFIELD_DATA_HEADER_SIZE, payloadSize, "JPG");
+    if (image.format() != QImage::Format_RGB888) {
+        image = image.convertToFormat(QImage::Format_RGB888);
+    }
+    QByteArray contents(width * height * DataBlock::COLOR_BYTES, 0);
+    char* dest = contents.data();
+    int stride = width * DataBlock::COLOR_BYTES;
+    for (int y = 0; y < height; y++, dest += stride) {
+        memcpy(dest, image.constScanLine(y), stride);
     }
     return contents;
 }
