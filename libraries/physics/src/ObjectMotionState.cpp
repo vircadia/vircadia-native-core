@@ -9,22 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <math.h>
 
 #include "BulletUtil.h"
 #include "KinematicController.h"
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
-
-const float MIN_DENSITY = 200.0f;
-const float DEFAULT_DENSITY = 1000.0f;
-const float MAX_DENSITY = 20000.0f;
-
-const float MIN_VOLUME = 0.001f;
-const float DEFAULT_VOLUME = 1.0f;
-const float MAX_VOLUME = 1000000.0f;
 
 const float DEFAULT_FRICTION = 0.5f;
 const float MAX_FRICTION = 10.0f;
@@ -180,5 +170,3 @@ void ObjectMotionState::removeKinematicController() {
         _kinematicController = NULL;
     }
 }
-
-#endif // USE_BULLET_PHYSICS

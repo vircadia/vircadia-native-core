@@ -18,7 +18,6 @@
 #ifndef hifi_ThreadSafeDynamicsWorld_h
 #define hifi_ThreadSafeDynamicsWorld_h
 
-#ifdef USE_BULLET_PHYSICS
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
 ATTRIBUTE_ALIGNED16(class) ThreadSafeDynamicsWorld : public btDiscreteDynamicsWorld {
@@ -39,14 +38,5 @@ public:
     // smoother rendering of objects when the physics simulation loop is ansynchronous to the render loop).
     float getLocalTimeAccumulation() const { return m_localTime; }
 };
-
-#else // USE_BULLET_PHYSICS
-// stubbery for ThreadSafeDynamicsWorld when Bullet not available
-class ThreadSafeDynamicsWorld {
-public:
-    ThreadSafeDynamicsWorld() {}
-};
-
-#endif // USE_BULLET_PHYSICS
 
 #endif // hifi_ThreadSafeDynamicsWorld_h

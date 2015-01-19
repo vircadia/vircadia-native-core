@@ -12,7 +12,12 @@
 #ifndef hifi_ObjectMotionState_h
 #define hifi_ObjectMotionState_h
 
+#include <btBulletDynamicsCommon.h>
+#include <glm/glm.hpp>
+
 #include <EntityItem.h>
+
+#include "ShapeInfo.h"
 
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
@@ -32,13 +37,6 @@ const uint32_t DIRTY_PHYSICS_FLAGS = HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSI
 // These are the outgoing flags that the PhysicsEngine can affect:
 const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY;
 
-#ifdef USE_BULLET_PHYSICS
-
-#include <btBulletDynamicsCommon.h>
-#include <glm/glm.hpp>
-#include <EntityItem.h> // for EntityItem::DIRTY_FOO bitmasks
-
-#include "ShapeInfo.h"
 
 class OctreeEditPacketSender;
 class KinematicController;
@@ -117,5 +115,4 @@ protected:
     KinematicController* _kinematicController = NULL;
 };
 
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_ObjectMotionState_h
