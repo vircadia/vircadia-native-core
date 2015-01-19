@@ -877,8 +877,11 @@ HeightfieldHeightBrushTool::HeightfieldHeightBrushTool(MetavoxelEditor* editor) 
 }
 
 QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
+    const int SET_MODE_INDEX = 1;
+    const int ERASE_MODE_INDEX = 2;
     return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(),
-        alternate ? -_height->value() : _height->value(), _mode->currentIndex() == 1, _mode->currentIndex() == 2));
+        alternate ? -_height->value() : _height->value(), _mode->currentIndex() == SET_MODE_INDEX,
+            _mode->currentIndex() == ERASE_MODE_INDEX));
 }
 
 MaterialControl::MaterialControl(QWidget* widget, QFormLayout* form, bool clearable) :
@@ -987,7 +990,8 @@ HeightfieldFillBrushTool::HeightfieldFillBrushTool(MetavoxelEditor* editor) :
 }
 
 QVariant HeightfieldFillBrushTool::createEdit(bool alternate) {
-    if (_mode->currentIndex() == 0) {
+    const int FILL_MODE_INDEX = 0;
+    if (_mode->currentIndex() == FILL_MODE_INDEX) {
         return QVariant::fromValue(FillHeightfieldHeightEdit(_position, _radius->value()));
     }
     Sphere* sphere = new Sphere();
