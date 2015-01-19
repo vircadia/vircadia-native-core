@@ -9,7 +9,7 @@ OverlayGroup = function(opts) {
 
     var rootPosition = opts.position || { x: 0, y: 0, z: 0 };
     var rootRotation = opts.rotation || Quat.fromPitchYawRollRadians(0, 0, 0);
-    var visible = true;
+    var visible = opts.visible == true;
 
     function updateOverlays() {
         for (overlayID in overlays) {

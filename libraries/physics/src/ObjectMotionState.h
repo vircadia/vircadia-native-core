@@ -22,7 +22,6 @@ enum MotionType {
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
 // and re-added to the physics engine and "easy" which just updates the body properties.
-typedef unsigned int uint32_t;
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY |
                 EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP);
@@ -42,6 +41,7 @@ const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | Entit
 #include "ShapeInfo.h"
 
 class OctreeEditPacketSender;
+class KinematicController;
 
 class ObjectMotionState : public btMotionState {
 public:
@@ -56,21 +56,19 @@ public:
     ObjectMotionState();
     ~ObjectMotionState();
 
-    virtual void applyVelocities() const = 0;
-    virtual void applyGravity() const = 0;
-
-    virtual void computeShapeInfo(ShapeInfo& info) = 0;
+    // An EASY update does not require the object to be removed and then reinserted into the PhysicsEngine
+    virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
+    virtual void updateObjectVelocities() = 0;
 
     virtual MotionType getMotionType() const { return _motionType; }
 
-    void setDensity(float density);
+    virtual void computeShapeInfo(ShapeInfo& info) = 0;
+    virtual float computeMass(const ShapeInfo& shapeInfo) const = 0;
+
     void setFriction(float friction);
     void setRestitution(float restitution);
     void setLinearDamping(float damping);
     void setAngularDamping(float damping);
-    void setVolume(float volume);
-
-    float getMass() const { return _volume * _density; }
 
     void setVelocity(const glm::vec3& velocity) const;
     void setAngularVelocity(const glm::vec3& velocity) const;
@@ -84,20 +82,22 @@ public:
     void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
 
     bool doesNotNeedToSendUpdate() const;
-    virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder);
+    virtual bool shouldSendUpdate(uint32_t simulationFrame);
     virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
     virtual MotionType computeMotionType() const = 0;
 
+    virtual void addKinematicController() = 0;
+    virtual void removeKinematicController();
+
     friend class PhysicsEngine;
 protected:
-    float _density;
-    float _volume;
+    // TODO: move these materials properties to EntityItem
     float _friction;
     float _restitution;
     float _linearDamping;
     float _angularDamping;
-    bool _wasInWorld;
+
     MotionType _motionType;
 
     // _body has NO setters -- it is only changed by PhysicsEngine
@@ -113,6 +113,8 @@ protected:
     glm::vec3 _sentVelocity;
     glm::vec3 _sentAngularVelocity; // radians per second
     glm::vec3 _sentAcceleration;
+
+    KinematicController* _kinematicController = NULL;
 };
 
 #endif // USE_BULLET_PHYSICS

@@ -29,6 +29,8 @@
 
 #include <tbb/concurrent_unordered_map.h>
 
+#include <DependencyManager.h>
+
 #include "DomainHandler.h"
 #include "Node.h"
 #include "UUIDHasher.h"
@@ -67,12 +69,11 @@ namespace PingType {
     const PingType_t Symmetric = 3;
 }
 
-class LimitedNodeList : public QObject {
+class LimitedNodeList : public QObject, public Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
+    
 public:
-    static LimitedNodeList* createInstance(unsigned short socketListenPort = 0, unsigned short dtlsPort = 0);
-    static LimitedNodeList* getInstance();
-
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
     
@@ -179,10 +180,9 @@ signals:
     
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
+    
 protected:
-    static std::unique_ptr<LimitedNodeList> _sharedInstance;
-
-    LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort);
+    LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     

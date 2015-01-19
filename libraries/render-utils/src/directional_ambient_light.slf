@@ -1,0 +1,42 @@
+<@include Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  directional_light.frag
+//  fragment shader
+//
+//  Created by Andrzej Kapolka on 9/3/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+// Everything about deferred buffer
+<@include DeferredBuffer.slh@>
+
+<@include DeferredLighting.slh@>
+
+void main(void) {
+    DeferredFragment frag = unpackDeferredFragment(gl_TexCoord[0].st);
+
+    // Light mapped or not ?
+    if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
+        gl_FragColor = vec4( evalLightmappedColor(
+                        1.0,
+                        frag.normal,
+                        frag.diffuse,
+                        frag.specularVal.xyz),
+                        1.0);
+    } else {
+        vec3 color =   evalAmbientSphereColor(frag.normal, frag.diffuse, frag.specular, frag.gloss)
+                     + evalDirectionalColor(1.0,
+                                        frag.position.xyz,
+                                        frag.normal,
+                                        frag.diffuse,
+                                        frag.specular,
+                                        frag.gloss);
+
+        gl_FragColor = vec4(color, frag.normalVal.a);
+    }
+}

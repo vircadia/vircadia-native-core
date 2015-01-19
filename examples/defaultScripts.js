@@ -11,7 +11,7 @@
 Script.load("lookWithTouch.js");
 Script.load("editEntities.js");
 Script.load("selectAudioDevice.js");
-Script.load("hydraMove.js");
+Script.load("controllers/hydra/hydraMove.js");
 Script.load("headMove.js");
 Script.load("inspect.js");
 Script.load("lobby.js");

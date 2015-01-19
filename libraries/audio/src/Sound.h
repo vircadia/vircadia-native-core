@@ -45,8 +45,12 @@ private:
 typedef QSharedPointer<Sound> SharedSoundPointer;
 
 Q_DECLARE_METATYPE(SharedSoundPointer)
+QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in);
+void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer &out);
 
-QScriptValue soundToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in);
-void soundFromScriptValue(const QScriptValue& object, SharedSoundPointer& out);
+Q_DECLARE_METATYPE(Sound*)
+QScriptValue soundPointerToScriptValue(QScriptEngine* engine, Sound* const& in);
+void soundPointerFromScriptValue(const QScriptValue& object, Sound* &out);
+
 
 #endif // hifi_Sound_h

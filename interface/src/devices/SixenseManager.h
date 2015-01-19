@@ -25,6 +25,8 @@
 
 #endif
 
+class PalmData;
+
 const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 const unsigned int BUTTON_1 = 1U << 5;
 const unsigned int BUTTON_2 = 1U << 6;

@@ -85,10 +85,13 @@
 #include "Util.h"
 
 #include "audio/AudioToolBox.h"
+#include "audio/AudioIOStatsRenderer.h"
+#include "audio/AudioScope.h"
 
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
+#include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -142,8 +145,42 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+bool setupEssentials(int& argc, char** argv) {
+    unsigned int listenPort = 0; // bind to an ephemeral port by default
+    const char** constArgv = const_cast<const char**>(argv);
+    const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
+    if (portStr) {
+        listenPort = atoi(portStr);
+    }
+    
+    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+    
+    // Set dependencies
+    auto glCanvas = DependencyManager::set<GLCanvas>();
+    auto addressManager = DependencyManager::set<AddressManager>();
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
+    auto geometryCache = DependencyManager::set<GeometryCache>();
+    auto glowEffect = DependencyManager::set<GlowEffect>();
+    auto faceshift = DependencyManager::set<Faceshift>();
+    auto audio = DependencyManager::set<Audio>();
+    auto audioScope = DependencyManager::set<AudioScope>();
+    auto audioIOStatsRenderer = DependencyManager::set<AudioIOStatsRenderer>();
+    auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
+    auto ambientOcclusionEffect = DependencyManager::set<AmbientOcclusionEffect>();
+    auto textureCache = DependencyManager::set<TextureCache>();
+    auto animationCache = DependencyManager::set<AnimationCache>();
+    auto visage = DependencyManager::set<Visage>();
+    auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
+    auto modelBlender = DependencyManager::set<ModelBlender>();
+    auto audioToolBox = DependencyManager::set<AudioToolBox>();
+    
+    return true;
+}
+
+
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
+        _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _nodeThread(new QThread(this)),
@@ -189,8 +226,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto nodeList = DependencyManager::get<NodeList>();
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
+    
     
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -218,27 +257,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
+    _bookmarks = new Bookmarks();  // Before setting up the menu
+
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-
-    unsigned int listenPort = 0; // bind to an ephemeral port by default
-    const char** constArgv = const_cast<const char**>(argv);
-    const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
-    if (portStr) {
-        listenPort = atoi(portStr);
-    }
     
     // start the nodeThread so its event loop is running
     _nodeThread->start();
 
     // make sure the node thread is given highest priority
     _nodeThread->setPriority(QThread::TimeCriticalPriority);
-
+    
     // put the NodeList and datagram processing on the node thread
-    NodeList* nodeList = NodeList::createInstance(NodeType::Agent, listenPort);
-
     nodeList->moveToThread(_nodeThread);
     _datagramProcessor.moveToThread(_nodeThread);
 
@@ -248,7 +280,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
     
-    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<Audio>();
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &Audio::start);
 
@@ -271,11 +303,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
-    connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
-    connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    connect(nodeList, &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
-    connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
+    connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
+    connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
+    connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -301,11 +333,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
     
-    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+    auto addressManager = DependencyManager::get<AddressManager>();
     
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter(getPositionForPath);
     addressManager->setOrientationGetter(getOrientationForPath);
+    
+    connect(addressManager.data(), &AddressManager::rootPlaceNameChanged, this, &Application::updateWindowTitle);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -325,7 +359,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     silentNodeTimer->moveToThread(_nodeThread);
 
@@ -444,7 +478,7 @@ Application::~Application() {
     // kill any audio injectors that are still around
     AudioScriptingInterface::getInstance().stopAllInjectors();
     
-    Audio::SharedPointer audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<Audio>();
 
     // stop the audio process
     QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
@@ -459,6 +493,8 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
+    
+    DependencyManager::destroy<GLCanvas>();
 }
 
 void Application::saveSettings() {
@@ -734,7 +770,7 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
     foreach(NodeType_t type, destinationNodeTypes) {
 
         // Perform the broadcast for one type
-        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, NodeSet() << type);
+        int nReceivingNodes = DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
 
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
@@ -882,13 +918,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
-            case Qt::Key_N:
-                if (isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::NameLocation);
-                }
-                
-                break;
-
             case Qt::Key_Up:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     if (!isShifted) {
@@ -953,7 +982,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+                        auto glCanvas = DependencyManager::get<GLCanvas>();
                         TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
                 } else {
@@ -966,7 +995,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+                        auto glCanvas = DependencyManager::get<GLCanvas>();
                         TV3DManager::configureCamera(_myCamera, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
                     }
 
@@ -1328,7 +1357,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-            NodeList::getInstance()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
+            DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -1342,7 +1371,7 @@ void Application::dropEvent(QDropEvent *event) {
 }
 
 void Application::sendPingPackets() {
-    QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
+    QByteArray pingPacket = DependencyManager::get<NodeList>()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
                                << NodeType::EntityServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
@@ -1368,7 +1397,7 @@ void Application::timer() {
     _timerStart.start();
 
     // ask the node list to check in with the domain server
-    NodeList::getInstance()->sendDomainServerCheckIn();
+    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 }
 
 void Application::idle() {
@@ -1424,7 +1453,7 @@ void Application::idle() {
 
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
         Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
@@ -1460,7 +1489,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -1486,7 +1515,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -1496,7 +1525,7 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 
 bool Application::mouseOnScreen() const {
     if (OculusManager::isConnected()) {
-        GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+        auto glCanvas = DependencyManager::get<GLCanvas>();
         return getMouseX() >= 0 && getMouseX() <= glCanvas->getDeviceWidth() &&
                getMouseY() >= 0 && getMouseY() <= glCanvas->getDeviceHeight();
     }
@@ -1538,9 +1567,9 @@ int Application::getMouseDragStartedY() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
-    Visage::SharedPointer visage = DependencyManager::get<Visage>();
-    DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
+    auto faceshift = DependencyManager::get<Faceshift>();
+    auto visage = DependencyManager::get<Visage>();
+    auto dde = DependencyManager::get<DdeFaceTracker>();
     
     return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
             (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) :
@@ -1654,9 +1683,10 @@ void Application::init() {
     DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
+    RealSense::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
-    NodeList::getInstance()->sendDomainServerCheckIn();
+    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
@@ -1684,7 +1714,7 @@ void Application::init() {
 
     _metavoxels.init();
 
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     _rearMirrorTools = new RearMirrorTools(glCanvas.data(), _mirrorViewRect, _settings);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
@@ -1774,7 +1804,7 @@ void Application::updateMouseRay() {
 void Application::updateFaceshift() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-    Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
+    auto faceshift = DependencyManager::get<Faceshift>();
     //  Update faceshift
     faceshift->update();
 
@@ -2104,12 +2134,17 @@ void Application::updateMyAvatar(float deltaTime) {
 
     _myAvatar->update(deltaTime);
 
-    {
+    quint64 now = usecTimestampNow();
+    quint64 dt = now - _lastSendAvatarDataTime;
+
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
         QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
         packet.append(_myAvatar->toByteArray());
         controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
+
+        _lastSendAvatarDataTime = now;
     }
 }
 
@@ -2123,7 +2158,7 @@ int Application::sendNackPackets() {
     char packet[MAX_PACKET_SIZE];
 
     // iterates thru all nodes in NodeList
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     nodeList->eachNode([&](const SharedNodePointer& node){
         
@@ -2221,7 +2256,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     nodeList->eachNode([&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are serverType
@@ -2585,7 +2620,7 @@ void Application::updateShadowMap() {
     
     fbo->release();
     
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 }
 
@@ -2762,7 +2797,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     }
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
-
+    
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
@@ -2813,6 +2848,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
 
     {
+        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
+
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
@@ -2921,7 +2958,7 @@ bool Application::getCascadeShadowsEnabled() {
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     float horizontalScale = glCanvas->getDeviceWidth() / 2.0f;
     float verticalScale   = glCanvas->getDeviceHeight() / 2.0f;
 
@@ -3107,12 +3144,18 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 void Application::updateWindowTitle(){
 
     QString buildVersion = " (build " + applicationVersion() + ")";
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
+    QString currentPlaceName = DependencyManager::get<AddressManager>()->getRootPlaceName();
+    
+    if (currentPlaceName.isEmpty()) {
+        currentPlaceName = nodeList->getDomainHandler().getHostname();
+    }
+    
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
+        + currentPlaceName + connectionStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -3124,23 +3167,34 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    auto addressManager = DependencyManager::get<AddressManager>();
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     
-    if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
+    if (accountManager.isLoggedIn() && domainHandler.isConnected()
+        && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
 
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
         QJsonObject locationObject;
         
-        QString pathString = DependencyManager::get<AddressManager>()->currentPath();
+        QString pathString = addressManager->currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
-        const QString PATH_KEY_IN_LOCATION = "path";
-        const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
         
+        const QString PATH_KEY_IN_LOCATION = "path";
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
+        
+        if (!addressManager->getRootPlaceID().isNull()) {
+            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
+            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
+            
+        } else {
+            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
+        }
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
@@ -3175,7 +3229,7 @@ void Application::domainChanged(const QString& domainHostname) {
 
 void Application::connectedToDomain(const QString& hostname) {
     AccountManager& accountManager = AccountManager::getInstance();
-    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    const QUuid& domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
     
     if (accountManager.isLoggedIn() && !domainID.isNull()) {
         // update our data-server with the domain-server we're logged in with
@@ -3437,6 +3491,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
 
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+    qScriptRegisterMetaType(scriptEngine, DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
     
@@ -3461,8 +3516,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
 
-    NodeList* nodeList = NodeList::getInstance();
-    connect(nodeList, &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
 
     scriptEngine->moveToThread(workerThread);
 
@@ -3920,5 +3975,33 @@ float Application::getRenderResolutionScale() const {
         return 0.25f;
     } else {
         return 1.0f;
+    }
+}
+
+int Application::getRenderAmbientLight() const {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLightGlobal)) {
+        return -1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight0)) {
+        return 0;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight1)) {
+        return 1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight2)) {
+        return 2;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight3)) {
+        return 3;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight4)) {
+        return 4;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight5)) {
+        return 5;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight6)) {
+        return 6;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight7)) {
+        return 7;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight8)) {
+        return 8;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight9)) {
+        return 9;
+    } else {
+        return -1;
     }
 }

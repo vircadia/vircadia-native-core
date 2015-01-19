@@ -147,7 +147,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     removeDeadInjectedStreams();
 
     char packet[MAX_PACKET_SIZE];
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     // The append flag is a boolean value that will be packed right after the header.  The first packet sent 
     // inside this method will have 0 for this flag, while every subsequent packet will have 1 for this flag.

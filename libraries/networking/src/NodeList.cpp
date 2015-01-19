@@ -26,33 +26,6 @@
 #include "SharedUtil.h"
 #include "UUID.h"
 
-NodeList* NodeList::createInstance(char ownerType, unsigned short socketListenPort, unsigned short dtlsPort) {
-    
-    NodeType::init();
-    
-    if (_sharedInstance.get()) {
-        qDebug() << "NodeList called with existing instance." <<
-        "Releasing unique_ptr, deleting existing instance and creating a new one.";
-        
-        delete _sharedInstance.release();
-    }
-    
-    _sharedInstance = std::move(std::unique_ptr<LimitedNodeList>(new NodeList(ownerType, socketListenPort, dtlsPort)));
-    
-    // register the SharedNodePointer meta-type for signals/slots
-    qRegisterMetaType<SharedNodePointer>();
-    
-    return static_cast<NodeList*>(_sharedInstance.get());
-}
-
-NodeList* NodeList::getInstance() {
-    if (!_sharedInstance.get()) {
-        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.");
-    }
-
-    return static_cast<NodeList*>(_sharedInstance.get());
-}
-
 NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
@@ -63,7 +36,14 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _hasCompletedInitialSTUNFailure(false),
     _stunRequestsSinceSuccess(0)
 {
-    AddressManager::SharedPointer addressManager = DependencyManager::get<AddressManager>();
+    static bool firstCall = true;
+    if (firstCall) {
+        NodeType::init();
+        // register the SharedNodePointer meta-type for signals/slots
+        qRegisterMetaType<SharedNodePointer>();
+        firstCall = false;
+    }
+    auto addressManager = DependencyManager::get<AddressManager>();
     
     // handle domain change signals from AddressManager
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequired,

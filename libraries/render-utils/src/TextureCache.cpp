@@ -39,6 +39,8 @@ TextureCache::TextureCache() :
     _frameBufferSize(100, 100),
     _associatedWidget(NULL)
 {
+    const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
+    setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 TextureCache::~TextureCache() {
@@ -203,7 +205,7 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type
         texture->setCache(this);
         _dilatableNetworkTextures.insert(url, texture);
     } else {
-        _unusedResources.remove(texture->getLRUKey());
+        removeUnusedResource(texture);
     }
     return texture;
 }

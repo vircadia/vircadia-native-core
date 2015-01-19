@@ -30,9 +30,9 @@ typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
-class TextureCache : public ResourceCache {
+class TextureCache : public ResourceCache, public Dependency {
     Q_OBJECT
-    SINGLETON_DEPENDENCY(TextureCache)
+    SINGLETON_DEPENDENCY
     
 public:
 
