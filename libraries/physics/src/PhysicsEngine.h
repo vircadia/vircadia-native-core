@@ -16,8 +16,6 @@
 
 const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
 
@@ -96,11 +94,4 @@ private:
     EntityEditPacketSender* _entityPacketSender;
 };
 
-#else // USE_BULLET_PHYSICS
-// PhysicsEngine stubbery until Bullet is required
-class PhysicsEngine {
-public:
-    static uint32_t getFrameCount();
-};
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_PhysicsEngine_h

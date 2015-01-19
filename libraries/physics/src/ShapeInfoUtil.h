@@ -12,8 +12,6 @@
 #ifndef hifi_ShapeInfoUtil_h
 #define hifi_ShapeInfoUtil_h
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
 
@@ -35,5 +33,4 @@ namespace ShapeInfoUtil {
     int fromBulletShapeType(int bulletShapeType);
 };
 
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_ShapeInfoUtil_h

@@ -17,7 +17,6 @@
 #include "ShapeManagerTests.h"
 
 void ShapeManagerTests::testShapeAccounting() {
-#ifdef USE_BULLET_PHYSICS
     ShapeManager shapeManager;
     ShapeInfo info;
     info.setBox(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -118,11 +117,9 @@ void ShapeManagerTests::testShapeAccounting() {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: expected refcount = 1 for shape but found refcount = " << numReferences << std::endl;
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeManagerTests::addManyShapes() {
-#ifdef USE_BULLET_PHYSICS
     ShapeManager shapeManager;
 
     int numSizes = 100;
@@ -152,11 +149,9 @@ void ShapeManagerTests::addManyShapes() {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: expected numShapes = " << numSizes << " but found numShapes = " << numShapes << std::endl;
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeManagerTests::addBoxShape() {
-#ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
     glm::vec3 halfExtents(1.23f, 4.56f, 7.89f);
     info.setBox(halfExtents);
@@ -172,11 +167,9 @@ void ShapeManagerTests::addBoxShape() {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: Box ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeManagerTests::addSphereShape() {
-#ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
     float radius = 1.23f;
     info.setSphere(radius);
@@ -192,11 +185,9 @@ void ShapeManagerTests::addSphereShape() {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: Sphere ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeManagerTests::addCylinderShape() {
-#ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
     float radius = 1.23f;
     float height = 4.56f;
@@ -213,11 +204,9 @@ void ShapeManagerTests::addCylinderShape() {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: Cylinder ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeManagerTests::addCapsuleShape() {
-#ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
     float radius = 1.23f;
     float height = 4.56f;
@@ -234,7 +223,6 @@ void ShapeManagerTests::addCapsuleShape() {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: Capsule ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeManagerTests::runAllTests() {

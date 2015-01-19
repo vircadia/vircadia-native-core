@@ -10,7 +10,8 @@
 //
 
 #include "PhysicsEngine.h"
-
+#include "ShapeInfoUtil.h"
+#include "ThreadSafeDynamicsWorld.h"
 
 static uint32_t _frameCount;
 
@@ -18,11 +19,6 @@ static uint32_t _frameCount;
 uint32_t PhysicsEngine::getFrameCount() {
     return _frameCount;
 }
-
-#ifdef USE_BULLET_PHYSICS
-
-#include "ShapeInfoUtil.h"
-#include "ThreadSafeDynamicsWorld.h"
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
     :   _collisionConfig(NULL), 
@@ -411,5 +407,3 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
     body->activate();
 }
-
-#endif // USE_BULLET_PHYSICS
