@@ -691,15 +691,7 @@ void EntityItem::simulate(const quint64& now) {
         }
     }
 
-#ifdef USE_BULLET_PHYSICS
-    // When Bullet is available we assume that "zero velocity" means "at rest"
-    // because of collision conditions this simulation does not know about
-    // so we don't fall in for the non-zero gravity case here.
     if (hasVelocity()) {
-#else // !USE_BULLET_PHYSICS
-    if (hasVelocity() || hasGravity()) {
-#endif // USE_BULLET_PHYSICS
-
         // linear damping
         glm::vec3 velocity = getVelocity();
         if (_damping > 0.0f) {
@@ -733,14 +725,6 @@ void EntityItem::simulate(const quint64& now) {
         // handle bounces off the ground... We bounce at the distance to the bottom of our entity
         if (position.y <= getDistanceToBottomOfEntity()) {
             velocity = velocity * glm::vec3(1,-1,1);
-
-#ifndef USE_BULLET_PHYSICS
-            // if we've slowed considerably, then just stop moving, but only if no BULLET
-            if (glm::length(velocity) <= ENTITY_ITEM_EPSILON_VELOCITY_LENGTH) {
-                velocity = ENTITY_ITEM_ZERO_VEC3;
-            }
-#endif // !USE_BULLET_PHYSICS
-            
             position.y = getDistanceToBottomOfEntity();
         }
 
@@ -756,14 +740,8 @@ void EntityItem::simulate(const quint64& now) {
             }
         }
         
-#ifdef USE_BULLET_PHYSICS
-        // When Bullet is available we assume that it will tell us when velocities go to zero...
-#else // !USE_BULLET_PHYSICS
-        // ... otherwise we help things come to rest by clamping small velocities.
-        if (glm::length(velocity) <= ENTITY_ITEM_EPSILON_VELOCITY_LENGTH) {
-            velocity = ENTITY_ITEM_ZERO_VEC3;
-        }
-#endif // USE_BULLET_PHYSICS
+        // NOTE: we don't zero out very small velocities --> we rely on a remote Bullet simulation 
+        // to tell us when the entity has stopped.
 
         // NOTE: the simulation should NOT set any DirtyFlags on this entity
         setPosition(position); // this will automatically recalculate our collision shape
@@ -780,14 +758,56 @@ void EntityItem::simulate(const quint64& now) {
     _lastSimulated = now;
 }
 
+void EntityItem::simulateSimpleKinematicMotion(float timeElapsed) {
+    if (hasAngularVelocity()) {
+        // angular damping
+        glm::vec3 angularVelocity = getAngularVelocity();
+        if (_angularDamping > 0.0f) {
+            angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
+            setAngularVelocity(angularVelocity);
+        }
+
+        float angularSpeed = glm::length(_angularVelocity);
+        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
+        if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
+            setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
+        } else {
+            // NOTE: angularSpeed is currently in degrees/sec!!!
+            // TODO: Andrew to convert to radians/sec
+            float angle = timeElapsed * glm::radians(angularSpeed);
+            glm::vec3 axis = _angularVelocity / angularSpeed;
+            glm::quat  dQ = glm::angleAxis(angle, axis);
+            glm::quat rotation = getRotation();
+            rotation = glm::normalize(dQ * rotation);
+            setRotation(rotation);
+        }
+    }
+
+    if (hasVelocity()) {
+        // linear damping
+        glm::vec3 velocity = getVelocity();
+        if (_damping > 0.0f) {
+            velocity *= powf(1.0f - _damping, timeElapsed);
+        }
+
+        // integrate position forward
+        glm::vec3 position = getPosition() + (velocity * timeElapsed);
+
+        // apply gravity
+        if (hasGravity()) { 
+            // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
+            // "ground" plane of the domain, but for now it's what we've got
+            velocity += getGravity() * timeElapsed;
+        }
+        
+        // NOTE: the simulation should NOT set any DirtyFlags on this entity
+        setPosition(position); // this will automatically recalculate our collision shape
+        setVelocity(velocity);
+    }
+}
+
 bool EntityItem::isMoving() const {
-#ifdef USE_BULLET_PHYSICS
-    // When Bullet is available we assume that "zero velocity" means "at rest"
-    // because of collision conditions this simulation does not know about.
     return hasVelocity() || hasAngularVelocity();
-#else // !USE_BULLET_PHYSICS
-    return hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity();
-#endif //USE_BULLET_PHYSICS
 }
 
 bool EntityItem::lifetimeHasExpired() const { 

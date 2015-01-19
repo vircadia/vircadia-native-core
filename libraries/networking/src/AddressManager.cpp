@@ -392,6 +392,8 @@ void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
     _rootPlaceName = hostname;
     _rootPlaceID = QUuid();
     
+    qDebug() << "Possible domain change required to connect to domain at" << hostname << "on" << port;
+    
     emit possibleDomainChangeRequired(hostname, port);
 }
 

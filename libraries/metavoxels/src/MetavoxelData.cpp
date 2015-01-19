@@ -29,7 +29,9 @@ MetavoxelLOD::MetavoxelLOD(const glm::vec3& position, float threshold) :
 }
 
 bool MetavoxelLOD::shouldSubdivide(const glm::vec3& minimum, float size, float multiplier) const {
-    return size >= glm::distance(position, minimum + glm::vec3(size, size, size) * 0.5f) * threshold * multiplier;
+    float halfSize = size * 0.5f;
+    return size >= (glm::distance(position, minimum + glm::vec3(halfSize, halfSize, halfSize)) - halfSize) *
+        threshold * multiplier;
 }
 
 bool MetavoxelLOD::becameSubdivided(const glm::vec3& minimum, float size,
@@ -57,7 +59,9 @@ bool MetavoxelLOD::becameSubdividedOrCollapsed(const glm::vec3& minimum, float s
 }
 
 bool MetavoxelLOD::shouldSubdivide(const glm::vec2& minimum, float size, float multiplier) const {
-    return size >= glm::distance(glm::vec2(position), minimum + glm::vec2(size, size) * 0.5f) * threshold * multiplier;
+    float halfSize = size * 0.5f;
+    return size >= (glm::distance(glm::vec2(position), minimum + glm::vec2(halfSize, halfSize)) - halfSize) *
+        threshold * multiplier;
 }
 
 bool MetavoxelLOD::becameSubdivided(const glm::vec2& minimum, float size,
@@ -1188,67 +1192,6 @@ void MetavoxelNode::writeSpanners(MetavoxelStreamState& state) const {
     }
 }
 
-void MetavoxelNode::writeSpannerDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const {
-    SharedObjectSet oldSet = decodeInline<SharedObjectSet>(reference.getAttributeValue());
-    SharedObjectSet newSet = decodeInline<SharedObjectSet>(_attributeValue);
-    foreach (const SharedObjectPointer& object, oldSet) {
-        if (static_cast<Spanner*>(object.data())->testAndSetVisited(state.base.visit) && !newSet.contains(object)) {
-            state.base.stream << object;
-        }
-    }
-    foreach (const SharedObjectPointer& object, newSet) {
-        if (static_cast<Spanner*>(object.data())->testAndSetVisited(state.base.visit) && !oldSet.contains(object)) {
-            state.base.stream << object;
-        }
-    }
-    if (isLeaf() || !state.shouldSubdivide()) {
-        if (!reference.isLeaf() && state.shouldSubdivideReference()) {
-            MetavoxelStreamState nextState = { state.base, glm::vec3(), state.size * 0.5f };
-            for (int i = 0; i < CHILD_COUNT; i++) {
-                nextState.setMinimum(state.minimum, i);
-                reference._children[i]->writeSpanners(nextState);
-            }
-        }
-        return;
-    }
-    MetavoxelStreamState nextState = { state.base, glm::vec3(), state.size * 0.5f };
-    if (reference.isLeaf() || !state.shouldSubdivideReference()) {
-        for (int i = 0; i < CHILD_COUNT; i++) {
-            nextState.setMinimum(state.minimum, i);
-            _children[i]->writeSpanners(nextState);
-        }
-        return;
-    }
-    for (int i = 0; i < CHILD_COUNT; i++) {
-        nextState.setMinimum(state.minimum, i);
-        if (_children[i] != reference._children[i]) {
-            _children[i]->writeSpannerDelta(*reference._children[i], nextState);
-            
-        } else if (nextState.becameSubdivided()) {
-            _children[i]->writeSpannerSubdivision(nextState);
-        }
-    }
-}
-
-void MetavoxelNode::writeSpannerSubdivision(MetavoxelStreamState& state) const {
-    if (!isLeaf()) {
-        MetavoxelStreamState nextState = { state.base, glm::vec3(), state.size * 0.5f };
-        if (!state.shouldSubdivideReference()) {
-            for (int i = 0; i < CHILD_COUNT; i++) {
-                nextState.setMinimum(state.minimum, i);
-                _children[i]->writeSpanners(nextState);
-            }
-        } else {
-            for (int i = 0; i < CHILD_COUNT; i++) {
-                nextState.setMinimum(state.minimum, i);
-                if (nextState.becameSubdivided()) {
-                    _children[i]->writeSpannerSubdivision(nextState);
-                }
-            }
-        }
-    }
-}
-
 void MetavoxelNode::decrementReferenceCount(const AttributePointer& attribute) {
     if (!_referenceCount.deref()) {
         destroy(attribute);
@@ -1621,8 +1564,9 @@ static inline bool defaultGuideToChildren(MetavoxelVisitation& visitation, int e
 
 bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
-    visitation.info.lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
-        visitation.visitor->getLOD().threshold;
+    float halfSize = visitation.info.size * 0.5f;
+    visitation.info.lodBase = (glm::distance(visitation.visitor->getLOD().position, visitation.info.minimum +
+        glm::vec3(halfSize, halfSize, halfSize)) - halfSize) * visitation.visitor->getLOD().threshold;
     visitation.info.isLODLeaf = (visitation.info.size < visitation.info.lodBase *
         visitation.visitor->getMinimumLODThresholdMultiplier());
     visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();
@@ -1651,8 +1595,9 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
 
 bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
     // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
-    visitation.info.lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
-        visitation.visitor->getLOD().threshold;
+    float halfSize = visitation.info.size * 0.5f;
+    visitation.info.lodBase = (glm::distance(visitation.visitor->getLOD().position, visitation.info.minimum +
+        glm::vec3(halfSize, halfSize, halfSize)) - halfSize) * visitation.visitor->getLOD().threshold;
     visitation.info.isLODLeaf = (visitation.info.size < visitation.info.lodBase *
         visitation.visitor->getMinimumLODThresholdMultiplier());
     visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();

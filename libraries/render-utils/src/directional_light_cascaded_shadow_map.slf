@@ -15,55 +15,35 @@
 // Everything about deferred buffer
 <@include DeferredBuffer.slh@>
 
+<@include DeferredLighting.slh@>
+
 // Everything about shadow
 <@include Shadow.slh@>
 
 void main(void) {
     DeferredFragment frag = unpackDeferredFragment(gl_TexCoord[0].st);
-    vec4 normalVal = frag.normalVal;
-    vec4 diffuseVal = frag.diffuseVal;
-    vec4 specularVal = frag.specularVal;
 
     // Eval shadow Texcoord and then Attenuation
     vec4 shadowTexcoord = evalCascadedShadowTexcoord(frag.position);
     float shadowAttenuation = evalShadowAttenuation(shadowTexcoord);
 
-    // how much this fragment faces the light direction
-    float diffuse = dot(frag.normal, gl_LightSource[0].position.xyz);
-
     // Light mapped or not ?
-    if ((normalVal.a >= 0.45) && (normalVal.a <= 0.55)) {
-        normalVal.a = 1.0;
-
-        // need to catch normals perpendicular to the projection plane hence the magic number for the threshold
-        // it should be just 0, but we have innacurracy so we need to overshoot
-        const float PERPENDICULAR_THRESHOLD = -0.005;
-        float facingLight = step(PERPENDICULAR_THRESHOLD, diffuse); 
-        
-        // evaluate the shadow test but only relevant for light facing fragments
-        float lightAttenuation = (1 - facingLight) + facingLight * shadowAttenuation;
-            
-        // diffuse light is the lightmap dimmed by shadow
-        vec3 diffuseLight = lightAttenuation * specularVal.rgb;
-        // ambient is a tiny percentage of the lightmap and only when in the shadow
-        vec3 ambientLight = (1 - lightAttenuation) * 0.5 * specularVal.rgb; 
-
-        gl_FragColor = vec4(diffuseVal.rgb * (ambientLight +  diffuseLight), 1.0);
+    if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
+        gl_FragColor = vec4(evalLightmappedColor(
+                                shadowAttenuation,
+                                frag.normal,
+                                frag.diffuse,
+                                frag.specularVal.xyz),
+                            1.0);
     } else {
+        vec3 color =   evalAmbientColor(frag.normal, frag.diffuse, frag.specular, frag.gloss)
+                     + evalDirectionalColor(shadowAttenuation,
+                                        frag.position.xyz,
+                                        frag.normal,
+                                        frag.diffuse,
+                                        frag.specular,
+                                        frag.gloss);
 
-        // average values from the shadow map
-        float facingLight = step(0.0, diffuse) * shadowAttenuation;
-        
-        // compute the base color based on OpenGL lighting model
-        vec3 baseColor = diffuseVal.rgb * (gl_FrontLightModelProduct.sceneColor.rgb + 
-            gl_FrontLightProduct[0].ambient.rgb + gl_FrontLightProduct[0].diffuse.rgb * (diffuse * facingLight));
-        
-        // compute the specular multiplier (sans exponent)
-        float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position.xyz - normalize(frag.position.xyz)),
-            frag.normal));    
-        
-        // add specular contribution
-        vec4 specularColor = specularVal;
-        gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb, normalVal.a);
+        gl_FragColor = vec4(color, frag.normalVal.a);
     }
 }
