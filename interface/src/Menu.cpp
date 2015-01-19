@@ -289,7 +289,7 @@ Menu::Menu() {
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
                                   dialogsManager.data(), SLOT(octreeStatsDetails()));
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::EditEntitiesHelp, 0, this, SLOT(showEditEntitiesHelp()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
 
     QMenu* developerMenu = addMenu("Developer");
 
