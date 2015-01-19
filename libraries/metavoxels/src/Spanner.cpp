@@ -2126,11 +2126,6 @@ void HeightfieldNode::getRangeAfterEdit(const glm::vec3& translation, const glm:
     }
 }
 
-static inline bool isSet(const StackArray& array, int y) {
-    return !array.isEmpty() && y < array.getPosition() + array.getEntryCount() &&
-        array.getEntryData()[qMax(0, y - array.getPosition())].isSet();
-}
-
 HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint, bool voxelize,
         float normalizeScale, float normalizeOffset) {
