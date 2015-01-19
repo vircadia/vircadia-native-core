@@ -607,7 +607,7 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {
-    qDebug() << "GeometryCache::updateVertices(vec2.... id=" << id <<")...";
+    //qDebug() << "GeometryCache::updateVertices(vec2.... id=" << id <<")...";
     BatchItemDetails& details = _registeredVertices[id];
 
     if (details.isCreated) {
@@ -652,18 +652,14 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    //qDebug() << "    details.vertices:" << details.vertices;
-    //qDebug() << "    points.size:" << points.size();
-
     foreach (const glm::vec2& point, points) {
-        //qDebug() << "    point:" << point;
         *(vertex++) = point.x;
         *(vertex++) = point.y;
         
         *(colorDataAt++) = compactColor;
     }
 
-    details.verticesBuffer->append(FLOATS_PER_VERTEX * details.vertices, (gpu::Buffer::Byte*) vertexData);
+    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Buffer::Byte*) vertexData);
     details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Buffer::Byte*) colorData);
     delete[] vertexData;
     delete[] colorData;
@@ -727,7 +723,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
         *(colorDataAt++) = compactColor;
     }
 
-    details.verticesBuffer->append(FLOATS_PER_VERTEX * details.vertices, (gpu::Buffer::Byte*) vertexData);
+    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Buffer::Byte*) vertexData);
     details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Buffer::Byte*) colorData);
     delete[] vertexData;
     delete[] colorData;
@@ -738,7 +734,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
 }
 
 void GeometryCache::renderVertices(gpu::Primitive primitiveType, int id) {
-    qDebug() << "GeometryCache::renderVertices(id=" << id <<")...";
+    //qDebug() << "GeometryCache::renderVertices(id=" << id <<")...";
 
     BatchItemDetails& details = _registeredVertices[id];
     if (details.isCreated) {
