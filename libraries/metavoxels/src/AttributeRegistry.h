@@ -30,16 +30,10 @@ class QScriptValue;
 
 class Attribute;
 class DataBlock;
-class HeightfieldColorData;
-class HeightfieldHeightData;
-class HeightfieldMaterialData;
 class MetavoxelData;
 class MetavoxelLOD;
 class MetavoxelNode;
 class MetavoxelStreamState;
-class VoxelColorData;
-class VoxelHermiteData;
-class VoxelMaterialData;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
@@ -88,24 +82,6 @@ public:
     /// Returns a reference to the standard SharedObjectSet "spanners" attribute.
     const AttributePointer& getSpannersAttribute() const { return _spannersAttribute; }
     
-    /// Returns a reference to the standard HeightfieldHeightDataPointer "heightfield" attribute.
-    const AttributePointer& getHeightfieldAttribute() const { return _heightfieldAttribute; }
-    
-    /// Returns a reference to the standard HeightfieldColorDataPointer "heightfieldColor" attribute.
-    const AttributePointer& getHeightfieldColorAttribute() const { return _heightfieldColorAttribute; }
-    
-    /// Returns a reference to the standard HeightfieldMaterialDataPointer "heightfieldMaterial" attribute.
-    const AttributePointer& getHeightfieldMaterialAttribute() const { return _heightfieldMaterialAttribute; } 
-    
-    /// Returns a reference to the standard VoxelColorDataPointer "voxelColor" attribute.
-    const AttributePointer& getVoxelColorAttribute() const { return _voxelColorAttribute; } 
-    
-    /// Returns a reference to the standard VoxelMaterialDataPointer "voxelMaterial" attribute.
-    const AttributePointer& getVoxelMaterialAttribute() const { return _voxelMaterialAttribute; } 
-    
-    /// Returns a reference to the standard VoxelHermiteDataPointer "voxelHermite" attribute.
-    const AttributePointer& getVoxelHermiteAttribute() const { return _voxelHermiteAttribute; }
-    
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
@@ -116,12 +92,6 @@ private:
     AttributePointer _guideAttribute;
     AttributePointer _rendererAttribute;
     AttributePointer _spannersAttribute;
-    AttributePointer _heightfieldAttribute;
-    AttributePointer _heightfieldColorAttribute;
-    AttributePointer _heightfieldMaterialAttribute;
-    AttributePointer _voxelColorAttribute;
-    AttributePointer _voxelMaterialAttribute;
-    AttributePointer _voxelHermiteAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -353,213 +323,6 @@ class FloatAttribute : public SimpleInlineAttribute<float> {
 public:
     
     Q_INVOKABLE FloatAttribute(const QString& name = QString());
-};
-
-/// Packs a normal into an RGB value.
-QRgb packNormal(const glm::vec3& normal);
-
-/// Packs a normal (plus extra alpha value) into an RGBA value.
-QRgb packNormal(const glm::vec3& normal, int alpha);
-
-/// Unpacks a normal from an RGB value.
-glm::vec3 unpackNormal(QRgb value);
-
-typedef QExplicitlySharedDataPointer<DataBlock> DataBlockPointer;
-
-/// Base class for blocks of data.
-class DataBlock : public QSharedData {
-public:
-
-    static const int COLOR_BYTES = 3;
-    
-    virtual ~DataBlock();
-    
-    void setDeltaData(const DataBlockPointer& deltaData) { _deltaData = deltaData; }
-    const DataBlockPointer& getDeltaData() const { return _deltaData; }
-    
-    void setEncodedDelta(const QByteArray& encodedDelta) { _encodedDelta = encodedDelta; }
-    const QByteArray& getEncodedDelta() const { return _encodedDelta; }
-    
-    QMutex& getEncodedDeltaMutex() { return _encodedDeltaMutex; }
-
-protected:
-    
-    QByteArray _encoded;
-    QMutex _encodedMutex;
-    
-    DataBlockPointer _deltaData;
-    QByteArray _encodedDelta;
-    QMutex _encodedDeltaMutex;
-
-    class EncodedSubdivision {
-    public:
-        DataBlockPointer ancestor;
-        QByteArray data;
-    };
-    QVector<EncodedSubdivision> _encodedSubdivisions;
-    QMutex _encodedSubdivisionsMutex;
-};
-
-/// Contains the description of a material.
-class MaterialObject : public SharedObject {
-    Q_OBJECT
-    Q_PROPERTY(QUrl diffuse MEMBER _diffuse)
-    Q_PROPERTY(float scaleS MEMBER _scaleS)
-    Q_PROPERTY(float scaleT MEMBER _scaleT)
-    
-public:
-    
-    Q_INVOKABLE MaterialObject();
-
-    const QUrl& getDiffuse() const { return _diffuse; }
-
-    float getScaleS() const { return _scaleS; }
-    float getScaleT() const { return _scaleT; }
-
-private:
-    
-    QUrl _diffuse;
-    float _scaleS;
-    float _scaleT;
-};
-
-/// Utility method for editing: given a material pointer and a list of materials, returns the corresponding material index,
-/// creating a new entry in the list if necessary.
-uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials, QByteArray& contents);
-
-/// Utility method for editing: removes any unused materials from the supplied list.
-void clearUnusedMaterials(QVector<SharedObjectPointer>& materials, const QByteArray& contents);
-
-typedef QExplicitlySharedDataPointer<VoxelColorData> VoxelColorDataPointer;
-
-/// Contains a block of voxel color data.
-class VoxelColorData : public DataBlock {
-public:
-    
-    VoxelColorData(const QVector<QRgb>& contents, int size);
-    VoxelColorData(Bitstream& in, int bytes);
-    VoxelColorData(Bitstream& in, int bytes, const VoxelColorDataPointer& reference);
-    
-    const QVector<QRgb>& getContents() const { return _contents; }
-
-    int getSize() const { return _size; }
-
-    void write(Bitstream& out);
-    void writeDelta(Bitstream& out, const VoxelColorDataPointer& reference);
-
-private:
-    
-    void read(Bitstream& in, int bytes);
-    
-    QVector<QRgb> _contents;
-    int _size;
-};
-
-/// An attribute that stores voxel colors.
-class VoxelColorAttribute : public InlineAttribute<VoxelColorDataPointer> {
-    Q_OBJECT
-    
-public:
-    
-    Q_INVOKABLE VoxelColorAttribute(const QString& name = QString());
-    
-    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
-    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
-    
-    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
-    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-};
-
-typedef QExplicitlySharedDataPointer<VoxelMaterialData> VoxelMaterialDataPointer;
-
-/// Contains a block of voxel material data.
-class VoxelMaterialData : public DataBlock {
-public:
-    
-    VoxelMaterialData(const QByteArray& contents, int size,
-        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
-    VoxelMaterialData(Bitstream& in, int bytes);
-    VoxelMaterialData(Bitstream& in, int bytes, const VoxelMaterialDataPointer& reference);
-    
-    const QByteArray& getContents() const { return _contents; }
-
-    int getSize() const { return _size; }
-
-    const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
-    
-    void write(Bitstream& out);
-    void writeDelta(Bitstream& out, const VoxelMaterialDataPointer& reference);
-
-private:
-    
-    void read(Bitstream& in, int bytes);
-    
-    QByteArray _contents;
-    int _size;
-    QVector<SharedObjectPointer> _materials;
-};
-
-/// An attribute that stores voxel materials.
-class VoxelMaterialAttribute : public InlineAttribute<VoxelMaterialDataPointer> {
-    Q_OBJECT
-    
-public:
-    
-    Q_INVOKABLE VoxelMaterialAttribute(const QString& name = QString());
-    
-    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
-    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
-    
-    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
-    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-};
-
-typedef QExplicitlySharedDataPointer<VoxelHermiteData> VoxelHermiteDataPointer;
-
-/// Contains a block of voxel Hermite data (positions and normals at edge crossings).
-class VoxelHermiteData : public DataBlock {
-public:
-    
-    static const int EDGE_COUNT = 3;
-    
-    VoxelHermiteData(const QVector<QRgb>& contents, int size);
-    VoxelHermiteData(Bitstream& in, int bytes);
-    VoxelHermiteData(Bitstream& in, int bytes, const VoxelHermiteDataPointer& reference);
-    
-    const QVector<QRgb>& getContents() const { return _contents; }
-
-    int getSize() const { return _size; }
-
-    void write(Bitstream& out);
-    void writeDelta(Bitstream& out, const VoxelHermiteDataPointer& reference);
-
-private:
-    
-    void read(Bitstream& in, int bytes);
-    
-    QVector<QRgb> _contents;
-    int _size;
-};
-
-/// An attribute that stores voxel Hermite data.
-class VoxelHermiteAttribute : public InlineAttribute<VoxelHermiteDataPointer> {
-    Q_OBJECT
-    
-public:
-    
-    Q_INVOKABLE VoxelHermiteAttribute(const QString& name = QString());
-    
-    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
-    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
-    
-    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const;
-    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
 };
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).

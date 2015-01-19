@@ -262,7 +262,7 @@ bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direc
         return false; // origin below plane
     }
     float divisor = glm::dot(normal, direction);
-    if (divisor > -EPSILON) {
+    if (divisor >= 0.0f) {
         return false;
     }
     float t = dividend / divisor;
