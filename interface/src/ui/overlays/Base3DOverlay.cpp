@@ -41,7 +41,9 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     _rotation(base3DOverlay->_rotation),
     _isSolid(base3DOverlay->_isSolid),
     _isDashedLine(base3DOverlay->_isDashedLine),
-    _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection)
+    _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
+    _drawInFront(base3DOverlay->_drawInFront),
+    _drawOnHUD(base3DOverlay->_drawOnHUD)
 {
 }
 

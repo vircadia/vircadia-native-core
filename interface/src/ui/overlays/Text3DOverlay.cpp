@@ -238,8 +238,8 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
 
     QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
-    const float TEXT_SCALE_ADJUST = 1.02f;  // Experimentally detemined for the specified font
-    const int TEXT_HEIGHT_ADJUST = -6;
+    const float TEXT_SCALE_ADJUST = 1.025f;  // Experimentally detemined for the specified font
+    const int TEXT_HEIGHT_ADJUST = -10;
     float scaleFactor = _lineHeight * TEXT_SCALE_ADJUST * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
 
     QStringList lines = text.split(QRegExp("\r\n|\r|\n"));

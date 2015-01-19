@@ -177,6 +177,8 @@ public slots:
     void importSettings();
     void exportSettings();
     void toggleAddressBar();
+    void copyAddress();
+    void copyPath();
 
     void toggleLoginMenuItem();
     void toggleSixense(bool shouldEnable);
@@ -200,8 +202,9 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
-    void nameLocation();
-    void toggleLocationList();
+    void bookmarkLocation();
+    void teleportToBookmark();
+    void deleteBookmark();
     void hmdToolsClosed();
     void runTests();
     void showMetavoxelEditor();
@@ -214,6 +217,7 @@ private slots:
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
     void changeVSync();
+    void loadRSSDKFile();
 
 private:
     static Menu* _instance;
@@ -286,8 +290,6 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
-    QPointer<DataWebDialog> _newLocationDialog;
-    QPointer<DataWebDialog> _userLocationsDialog;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<LoginDialog> _loginDialog;
@@ -307,6 +309,10 @@ private:
     
     bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
+
+    void loadBookmarks();
+    QMenu* _bookmarksMenu;
+    QAction* _deleteBookmarksMenu;
 };
 
 namespace MenuOption {
@@ -334,6 +340,8 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
+    const QString BookmarkLocation = "Bookmark Location";
+    const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "Caches Size";
     const QString Chat = "Chat...";
@@ -343,7 +351,10 @@ namespace MenuOption {
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
+    const QString CopyAddress = "Copy Address to Clipboard";
+    const QString CopyPath = "Copy Path to Clipboard";
     const QString ControlWithSpeech = "Control With Speech";
+    const QString DeleteBookmark = "Delete Bookmark...";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
@@ -387,6 +398,7 @@ namespace MenuOption {
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
+    const QString LoadRSSDKFile = "Load .rssdk file";
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
@@ -397,8 +409,6 @@ namespace MenuOption {
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
-    const QString MyLocations = "My Locations...";
-    const QString NameLocation = "Name this location";
     const QString NetworkSimulator = "Network Simulator...";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
@@ -430,6 +440,18 @@ namespace MenuOption {
     const QString RenderResolutionHalf = "1/2";
     const QString RenderResolutionThird = "1/3";
     const QString RenderResolutionQuarter = "1/4";
+    const QString RenderAmbientLight = "Ambient Light";
+    const QString RenderAmbientLightGlobal = "Global";
+    const QString RenderAmbientLight0 = "OLD_TOWN_SQUARE";
+    const QString RenderAmbientLight1 = "GRACE_CATHEDRAL";
+    const QString RenderAmbientLight2 = "EUCALYPTUS_GROVE";
+    const QString RenderAmbientLight3 = "ST_PETERS_BASILICA";
+    const QString RenderAmbientLight4 = "UFFIZI_GALLERY";
+    const QString RenderAmbientLight5 = "GALILEOS_TOMB";
+    const QString RenderAmbientLight6 = "VINE_STREET_KITCHEN";
+    const QString RenderAmbientLight7 = "BREEZEWAY";
+    const QString RenderAmbientLight8 = "CAMPUS_SUNSET";
+    const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";

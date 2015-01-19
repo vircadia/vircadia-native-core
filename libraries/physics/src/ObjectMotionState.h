@@ -12,7 +12,12 @@
 #ifndef hifi_ObjectMotionState_h
 #define hifi_ObjectMotionState_h
 
+#include <btBulletDynamicsCommon.h>
+#include <glm/glm.hpp>
+
 #include <EntityItem.h>
+
+#include "ShapeInfo.h"
 
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
@@ -22,7 +27,6 @@ enum MotionType {
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
 // and re-added to the physics engine and "easy" which just updates the body properties.
-typedef unsigned int uint32_t;
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY |
                 EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP);
@@ -33,15 +37,9 @@ const uint32_t DIRTY_PHYSICS_FLAGS = HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSI
 // These are the outgoing flags that the PhysicsEngine can affect:
 const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY;
 
-#ifdef USE_BULLET_PHYSICS
-
-#include <btBulletDynamicsCommon.h>
-#include <glm/glm.hpp>
-#include <EntityItem.h> // for EntityItem::DIRTY_FOO bitmasks
-
-#include "ShapeInfo.h"
 
 class OctreeEditPacketSender;
+class KinematicController;
 
 class ObjectMotionState : public btMotionState {
 public:
@@ -87,6 +85,9 @@ public:
 
     virtual MotionType computeMotionType() const = 0;
 
+    virtual void addKinematicController() = 0;
+    virtual void removeKinematicController();
+
     friend class PhysicsEngine;
 protected:
     // TODO: move these materials properties to EntityItem
@@ -110,7 +111,8 @@ protected:
     glm::vec3 _sentVelocity;
     glm::vec3 _sentAngularVelocity; // radians per second
     glm::vec3 _sentAcceleration;
+
+    KinematicController* _kinematicController = NULL;
 };
 
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_ObjectMotionState_h

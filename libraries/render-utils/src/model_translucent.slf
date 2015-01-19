@@ -12,10 +12,29 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include DeferredBufferWrite.slh@>
+
+<@include Material.slh@>
+
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
+varying vec4 normal;
+
 void main(void) {
+
+    // Fetch diffuse map
+    vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
+
+    Material mat = getMaterial();
+
+    packDeferredFragmentTranslucent(
+        normalize(normal.xyz), 
+        getMaterialOpacity(mat) * diffuse.a,
+        getMaterialDiffuse(mat) * diffuse.rgb,
+        getMaterialSpecular(mat),
+        getMaterialShininess(mat));
+
     // set the diffuse data
-    gl_FragData[0] = gl_Color * texture2D(diffuseMap, gl_TexCoord[0].st);
+ //   gl_FragData[0] = gl_Color * texture2D(diffuseMap, gl_TexCoord[0].st);
 }
