@@ -3390,43 +3390,41 @@ void Application::packetSent(quint64 length) {
 
 void Application::loadScripts() {
     // loads all saved scripts
-    int size = lockSettings()->beginReadArray("Settings");
-    unlockSettings();
+    Settings settings;
+    int size = settings.beginReadArray("Settings");
     for (int i = 0; i < size; ++i){
-        lockSettings()->setArrayIndex(i);
-        QString string = _settings->value("script").toString();
-        unlockSettings();
+        settings.setArrayIndex(i);
+        QString string = settings.value("script").toString();
         if (!string.isEmpty()) {
             loadScript(string);
         }
     }
-
-    QMutexLocker locker(&_settingsMutex);
-    _settings->endArray();
+    settings.endArray();
 }
 
 void Application::clearScriptsBeforeRunning() {
     // clears all scripts from the settings
-    QMutexLocker locker(&_settingsMutex);
-    _settings->remove("Settings");
+    Settings().remove("Settings");
 }
 
 void Application::saveScripts() {
-    // Saves all currently running user-loaded scripts
-    QMutexLocker locker(&_settingsMutex);
-    _settings->beginWriteArray("Settings");
-
     QStringList runningScripts = getRunningScripts();
+    if (runningScripts.isEmpty()) {
+        return;
+    }
+    
+    // Saves all currently running user-loaded scripts
+    Settings settings;
+    settings.beginWriteArray("Settings");
     int i = 0;
-    for (QStringList::const_iterator it = runningScripts.begin(); it != runningScripts.end(); it += 1) {
+    for (auto it = runningScripts.begin(); it != runningScripts.end(); ++it) {
         if (getScriptEngine(*it)->isUserLoaded()) {
-            _settings->setArrayIndex(i);
-            _settings->setValue("script", *it);
-            i += 1;
+            settings.setArrayIndex(i);
+            settings.setValue("script", *it);
+            ++i;
         }
     }
-
-    _settings->endArray();
+    settings.endArray();
 }
 
 QScriptValue joystickToScriptValue(QScriptEngine *engine, Joystick* const &in) {
