@@ -74,8 +74,10 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
     /// Attempts to modify the spanner's height.
+    /// \param set whether to set the height as opposed to raising/lowering it
+    /// \param erase whether to erase height values
     /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
+    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase);
 
     /// Attempts to fill the spanner's height (adding removing volumetric information).
     /// \return the modified spanner, or this if no modification was performed
@@ -693,7 +695,8 @@ public:
         const glm::vec3& position, float radius, float height, float& minimum, float& maximum) const;
     
     HeightfieldNode* paintHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const glm::vec3& position, float radius, float height, float normalizeScale, float normalizeOffset);
+        const glm::vec3& position, float radius, float height, bool set, bool erase,
+        float normalizeScale, float normalizeOffset);
     
     HeightfieldNode* fillHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& position, float radius);
@@ -800,7 +803,7 @@ public:
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
+    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase);
     
     virtual Spanner* fillHeight(const glm::vec3& position, float radius);
     

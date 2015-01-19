@@ -111,7 +111,7 @@ bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& dire
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
-Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float height) {
+Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase) {
     return this;
 }
 
@@ -1825,7 +1825,8 @@ void HeightfieldNode::getRangeAfterHeightPaint(const glm::vec3& translation, con
 }
 
 HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const glm::vec3& position, float radius, float height, float normalizeScale, float normalizeOffset) {
+        const glm::vec3& position, float radius, float height, bool set, bool erase,
+        float normalizeScale, float normalizeOffset) {
     if (!_height) {
         return this;
     }
@@ -1852,7 +1853,7 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
             HeightfieldNode* newChild = _children[i]->paintHeight(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
-                nextScale, position, radius, height, normalizeScale, normalizeOffset);
+                nextScale, position, radius, height, set, erase, normalizeScale, normalizeOffset);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -1896,16 +1897,22 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
     float squaredRadiusReciprocal = 1.0f / squaredRadius;
     float multiplierZ = extents.x / extents.z;
     float relativeHeight = height * numeric_limits<quint16>::max() / scale.y;
+    quint16 heightValue = erase ? 0 : relativeHeight;
     for (float z = start.z; z <= end.z; z += 1.0f) {
         quint16* dest = lineDest;
         for (float x = start.x; x <= end.x; x += 1.0f, dest++) {
             float dx = x - center.x, dz = (z - center.z) * multiplierZ;
             float distanceSquared = dx * dx + dz * dz;
             if (distanceSquared <= squaredRadius) {
-                // height falls off towards edges
-                int value = *dest;
-                if (value != 0) {
-                    *dest = value + relativeHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
+                if (erase || set) {
+                    *dest = heightValue;
+                    
+                } else {
+                    // height falls off towards edges
+                    int value = *dest;
+                    if (value != 0) {
+                        *dest = value + relativeHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
+                    }
                 }
             }
         }
@@ -3352,18 +3359,25 @@ bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
         getScale() * _aspectZ), origin, direction, distance);
 }
 
-Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height) {
+Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase) {
     // first see if we're going to exceed the range limits
     float minimumValue = 1.0f, maximumValue = numeric_limits<quint16>::max();
-    _root->getRangeAfterHeightPaint(getTranslation(), getRotation(), glm::vec3(getScale(), getScale() * _aspectY,
-        getScale() * _aspectZ), position, radius, height, minimumValue, maximumValue);
+    if (set) {
+        float heightValue = height * numeric_limits<quint16>::max() / (getScale() * _aspectY);
+        minimumValue = qMin(minimumValue, heightValue);    
+        maximumValue = qMax(maximumValue, heightValue);
+    
+    } else if (!erase) {
+        _root->getRangeAfterHeightPaint(getTranslation(), getRotation(), glm::vec3(getScale(), getScale() * _aspectY,
+            getScale() * _aspectZ), position, radius, height, minimumValue, maximumValue);
+    }
     
     // normalize if necessary
     float normalizeScale, normalizeOffset;
     Heightfield* newHeightfield = prepareEdit(minimumValue, maximumValue, normalizeScale, normalizeOffset);
     newHeightfield->setRoot(HeightfieldNodePointer(_root->paintHeight(newHeightfield->getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), position, radius, height,
-        normalizeScale, normalizeOffset)));
+        set, erase, normalizeScale, normalizeOffset)));
     return newHeightfield;
 }
 

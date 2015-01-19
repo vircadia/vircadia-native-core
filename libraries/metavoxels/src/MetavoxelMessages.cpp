@@ -148,10 +148,13 @@ void SetDataEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects
     data.set(minimum, this->data, blend);
 }
 
-PaintHeightfieldHeightEdit::PaintHeightfieldHeightEdit(const glm::vec3& position, float radius, float height) :
+PaintHeightfieldHeightEdit::PaintHeightfieldHeightEdit(const glm::vec3& position, float radius,
+        float height, bool set, bool erase) :
     position(position),
     radius(radius),
-    height(height) {
+    height(height),
+    set(set),
+    erase(erase) {
 }
 
 void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
@@ -163,7 +166,7 @@ void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObje
         Box(position - extents, position + extents), results);
     
     foreach (const SharedObjectPointer& spanner, results) {
-        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintHeight(position, radius, height);
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintHeight(position, radius, height, set, erase);
         if (newSpanner != spanner) {
             data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
         }

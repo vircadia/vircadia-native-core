@@ -346,6 +346,7 @@ protected:
 private:
     
     QDoubleSpinBox* _height;
+    QComboBox* _mode;
 };
 
 /// Contains widgets for editing materials.

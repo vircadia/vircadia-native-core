@@ -203,8 +203,11 @@ public:
     STREAM glm::vec3 position;
     STREAM float radius;
     STREAM float height;
+    STREAM bool set;
+    STREAM bool erase;
     
-    PaintHeightfieldHeightEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f, float height = 0.0f);
+    PaintHeightfieldHeightEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
+        float height = 0.0f, bool set = false, bool erase = false);
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };

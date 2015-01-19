@@ -869,11 +869,16 @@ HeightfieldHeightBrushTool::HeightfieldHeightBrushTool(MetavoxelEditor* editor) 
     _height->setMinimum(-FLT_MAX);
     _height->setMaximum(FLT_MAX);
     _height->setValue(1.0);
+    
+    _form->addRow("Mode:", _mode = new QComboBox());
+    _mode->addItem("Raise/Lower");
+    _mode->addItem("Set");
+    _mode->addItem("Erase");
 }
 
 QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
     return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(),
-        alternate ? -_height->value() : _height->value()));
+        alternate ? -_height->value() : _height->value(), _mode->currentIndex() == 1, _mode->currentIndex() == 2));
 }
 
 MaterialControl::MaterialControl(QWidget* widget, QFormLayout* form, bool clearable) :
