@@ -607,7 +607,7 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {
-    qDebug() << "GeometryCache::updateVertices(id=" << id <<")...";
+    qDebug() << "GeometryCache::updateVertices(vec2.... id=" << id <<")...";
     BatchItemDetails& details = _registeredVertices[id];
 
     if (details.isCreated) {
@@ -632,7 +632,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     details.streamFormat = streamFormat;
     details.stream = stream;
 
-    details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
     details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -652,7 +652,11 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
+    //qDebug() << "    details.vertices:" << details.vertices;
+    //qDebug() << "    points.size:" << points.size();
+
     foreach (const glm::vec2& point, points) {
+        //qDebug() << "    point:" << point;
         *(vertex++) = point.x;
         *(vertex++) = point.y;
         
@@ -670,7 +674,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color) {
-    qDebug() << "GeometryCache::updateVertices(id=" << id <<")...";
+    //qDebug() << "GeometryCache::updateVertices(id=" << id <<")...";
     BatchItemDetails& details = _registeredVertices[id];
 
     if (details.isCreated) {
@@ -965,7 +969,7 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
 }
 
 void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id) {
-    qDebug() << "GeometryCache::renderBevelCornersRect(id=" << id <<")...";
+    //qDebug() << "GeometryCache::renderBevelCornersRect(id=" << id <<")...";
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(glm::vec3(x, y, 0.0f), glm::vec3(width, height, bevelDistance));
     BatchItemDetails& details = registered ? _registeredBevelRects[id] : _bevelRects[key];
@@ -1073,7 +1077,7 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
 }
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
-    qDebug() << "GeometryCache::renderQuad(vec2,id=" << id <<")...";
+    //qDebug() << "GeometryCache::renderQuad(vec2,id=" << id <<")...";
     bool registered = (id != UNKNOWN_ID);
     Vec2Pair key(minCorner, maxCorner);
     BatchItemDetails& details = registered ? _registeredQuad2D[id] : _quad2D[key];
@@ -1157,7 +1161,7 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
                     const glm::vec4& color, int id) {
 
-    qDebug() << "GeometryCache::renderQuad(vec2/texture,id=" << id <<")...";
+    //qDebug() << "GeometryCache::renderQuad(vec2/texture,id=" << id <<")...";
     bool registered = (id != UNKNOWN_ID);
     Vec2PairPair key(Vec2Pair(minCorner, maxCorner), Vec2Pair(texCoordMinCorner, texCoordMaxCorner));
     BatchItemDetails& details = registered ? _registeredQuad2DTextures[id] : _quad2DTextures[key];
@@ -1248,7 +1252,7 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
 }
 
 void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
-    qDebug() << "GeometryCache::renderQuad(vec3,id=" << id <<")...";
+    //qDebug() << "GeometryCache::renderQuad(vec3,id=" << id <<")...";
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(minCorner, maxCorner);
     BatchItemDetails& details = registered ? _registeredQuad3D[id] : _quad3D[key];
@@ -1569,7 +1573,7 @@ void GeometryCache::BatchItemDetails::clear() {
 void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, 
                                const glm::vec4& color1, const glm::vec4& color2, int id) {
                                
-    qDebug() << "GeometryCache::renderLine(vec3)...";
+    //qDebug() << "GeometryCache::renderLine(vec3)...";
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(p1, p2);
 
@@ -1662,7 +1666,7 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2,
 void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
                                 const glm::vec4& color1, const glm::vec4& color2, int id) {
                                
-    qDebug() << "GeometryCache::renderLine(vec2)...";
+    //qDebug() << "GeometryCache::renderLine(vec2)...";
     bool registered = (id != UNKNOWN_ID);
     Vec2Pair key(p1, p2);
 
