@@ -304,6 +304,15 @@ float SixenseManager::getCursorPixelRangeMult() const {
     return _reticleMoveSpeed * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
 }
 
+void SixenseManager::toggleSixense(bool shouldEnable) {
+    if (shouldEnable && !isInitialized()) {
+        initialize();
+        setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
+        setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
+    }
+    setIsEnabled(shouldEnable);
+}
+
 #ifdef HAVE_SIXENSE
 
 // the calibration sequence is:
@@ -566,15 +575,6 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
         _triggerPressed[index] = false;
     }
-}
-
-void SixenseManager::toggleSixense(bool shouldEnable) {
-    if (shouldEnable && !isInitialized()) {
-        initialize();
-        setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-        setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
-    }
-    setIsEnabled(shouldEnable);
 }
 
 #endif  // HAVE_SIXENSE
