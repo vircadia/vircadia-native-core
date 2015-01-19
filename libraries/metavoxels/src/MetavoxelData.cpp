@@ -29,7 +29,9 @@ MetavoxelLOD::MetavoxelLOD(const glm::vec3& position, float threshold) :
 }
 
 bool MetavoxelLOD::shouldSubdivide(const glm::vec3& minimum, float size, float multiplier) const {
-    return size >= glm::distance(position, minimum + glm::vec3(size, size, size) * 0.5f) * threshold * multiplier;
+    float halfSize = size * 0.5f;
+    return size >= (glm::distance(position, minimum + glm::vec3(halfSize, halfSize, halfSize)) - halfSize) *
+        threshold * multiplier;
 }
 
 bool MetavoxelLOD::becameSubdivided(const glm::vec3& minimum, float size,
@@ -57,7 +59,9 @@ bool MetavoxelLOD::becameSubdividedOrCollapsed(const glm::vec3& minimum, float s
 }
 
 bool MetavoxelLOD::shouldSubdivide(const glm::vec2& minimum, float size, float multiplier) const {
-    return size >= glm::distance(glm::vec2(position), minimum + glm::vec2(size, size) * 0.5f) * threshold * multiplier;
+    float halfSize = size * 0.5f;
+    return size >= (glm::distance(glm::vec2(position), minimum + glm::vec2(halfSize, halfSize)) - halfSize) *
+        threshold * multiplier;
 }
 
 bool MetavoxelLOD::becameSubdivided(const glm::vec2& minimum, float size,
@@ -1560,8 +1564,9 @@ static inline bool defaultGuideToChildren(MetavoxelVisitation& visitation, int e
 
 bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
-    visitation.info.lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
-        visitation.visitor->getLOD().threshold;
+    float halfSize = visitation.info.size * 0.5f;
+    visitation.info.lodBase = (glm::distance(visitation.visitor->getLOD().position, visitation.info.minimum +
+        glm::vec3(halfSize, halfSize, halfSize)) - halfSize) * visitation.visitor->getLOD().threshold;
     visitation.info.isLODLeaf = (visitation.info.size < visitation.info.lodBase *
         visitation.visitor->getMinimumLODThresholdMultiplier());
     visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();
@@ -1590,8 +1595,9 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
 
 bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
     // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
-    visitation.info.lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
-        visitation.visitor->getLOD().threshold;
+    float halfSize = visitation.info.size * 0.5f;
+    visitation.info.lodBase = (glm::distance(visitation.visitor->getLOD().position, visitation.info.minimum +
+        glm::vec3(halfSize, halfSize, halfSize)) - halfSize) * visitation.visitor->getLOD().threshold;
     visitation.info.isLODLeaf = (visitation.info.size < visitation.info.lodBase *
         visitation.visitor->getMinimumLODThresholdMultiplier());
     visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();

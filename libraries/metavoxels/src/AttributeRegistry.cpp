@@ -40,7 +40,7 @@ AttributeRegistry::AttributeRegistry() :
     _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))) {
     
     // our baseline LOD threshold is for voxels; spanners are a different story
-    const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
+    const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 16.0f;
     _spannersAttribute->setLODThresholdMultiplier(SPANNER_LOD_THRESHOLD_MULTIPLIER);
     _spannersAttribute->setUserFacing(true);
 }
