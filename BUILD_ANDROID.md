@@ -2,7 +2,12 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 ###Android Dependencies
 
-There are no Android specific dependencies to build hifi. However, you will need to compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
+You will need the following tools to build our Android targets.
+
+* [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) ~> r10c
+* [Android SDK](http://developer.android.com/sdk/installing/index.html) = 4.4.2 (API Level 19)
+
+You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
 
 ####ANDROID_LIB_DIR
 
@@ -28,7 +33,7 @@ Download the [OpenSSL source](https://www.openssl.org/source/) and extract the t
 
 You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki. 
 
-First, make sure `ANDROID_NDK_ROOT` is set in your env. `setenv-android.sh` needs `ANDROID_NDK_ROOT`.
+First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path to the root of your Android NDK install. If you've configured your machine to build the Android client using the instructions below, you can set it to the value of $ANDROID_NDK. `setenv-android.sh` needs `ANDROID_NDK_ROOT` to set the environment variables required for building OpenSSL.
 
 Execute the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling.
 
@@ -51,9 +56,11 @@ Download the [Intel Threading Building Blocks source](https://www.threadingbuild
 
 From the tbb directory, execute the following commands. This will set the compiler and archive tool to the correct ones from the NDK install and then build TBB using `ndk-build`. Then, the compiled libs are copied to a lib folder in the root of tbb directory.
 
+Note that you will need to replace the value of $HOST below with whatever is appropriate for your host OS. On OS X, for example, the full exported value for CC is `$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-gcc`.
+
 ```
-export CC=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-gcc
-export AR=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
+export CC=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/$HOST/bin/arm-linux-androideabi-gcc
+export AR=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/$HOST/bin/arm-linux-androideabi-ar
 cd jni
 ndk-build target=android tbb tbbmalloc arch=arm
 cd ../
@@ -64,3 +71,5 @@ cp -rf build/linux_arm_*/**/*.so lib/
 ####GLM
 
 Since GLM is a header only library, assuming it is installed at a system path or a path where our FindGLM module will find it you do not need to do anything specific for the Android build.
+
+###Building the APK
