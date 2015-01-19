@@ -367,7 +367,7 @@ void SkeletonModel::renderJointConstraints(int jointIndex) {
             // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
             // better if the skeleton model cached these buffers for each of the joints they are rendering
             geometryCache->updateVertices(_triangleFanID, points, color);
-            geometryCache->renderVertices(GL_TRIANGLE_FAN, _triangleFanID);
+            geometryCache->renderVertices(gpu::TRIANGLE_FAN, _triangleFanID);
             
         }
         glPopMatrix();

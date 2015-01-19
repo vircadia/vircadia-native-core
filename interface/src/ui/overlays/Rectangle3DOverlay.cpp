@@ -100,7 +100,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                         _previousHalfDimensions = halfDimensions;
                         
                     }
-                    geometryCache->renderVertices(GL_LINE_STRIP, _geometryCacheID);
+                    geometryCache->renderVertices(gpu::LINE_STRIP, _geometryCacheID);
                 }
             }
  

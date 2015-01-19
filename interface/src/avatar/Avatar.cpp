@@ -574,7 +574,6 @@ void Avatar::renderBillboard() {
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-
     
     glPopMatrix();
     
@@ -990,7 +989,7 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
         // better if the avatars cached these buffers for each of the joints they are rendering
         geometryCache->updateVertices(_jointConesID, points, color);
-        geometryCache->renderVertices(GL_TRIANGLES, _jointConesID);
+        geometryCache->renderVertices(gpu::TRIANGLES, _jointConesID);
     }
 }
 

@@ -164,7 +164,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
                     geometryCache->updateVertices(_quadVerticesID, points, color);
                 }
                 
-                geometryCache->renderVertices(GL_QUAD_STRIP, _quadVerticesID);
+                geometryCache->renderVertices(gpu::QUAD_STRIP, _quadVerticesID);
 
             } else {
                 if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
@@ -203,9 +203,9 @@ void Circle3DOverlay::render(RenderArgs* args) {
                 }
 
                 if (getIsDashedLine()) {
-                    geometryCache->renderVertices(GL_LINES, _lineVerticesID);
+                    geometryCache->renderVertices(gpu::LINES, _lineVerticesID);
                 } else {
-                    geometryCache->renderVertices(GL_LINE_STRIP, _lineVerticesID);
+                    geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
                 }
             }
             
@@ -280,9 +280,9 @@ void Circle3DOverlay::render(RenderArgs* args) {
                     geometryCache->updateVertices(_minorTicksVerticesID, minorPoints, minorColor);
                 }
 
-                geometryCache->renderVertices(GL_LINES, _majorTicksVerticesID);
+                geometryCache->renderVertices(gpu::LINES, _majorTicksVerticesID);
 
-                geometryCache->renderVertices(GL_LINES, _minorTicksVerticesID);
+                geometryCache->renderVertices(gpu::LINES, _minorTicksVerticesID);
             }
             
  

@@ -93,7 +93,9 @@ static const GLenum _primitiveToGLmode[NUM_PRIMITIVES] = {
     GL_LINE_STRIP,
     GL_TRIANGLES,
     GL_TRIANGLE_STRIP,
+    GL_TRIANGLE_FAN,
     GL_QUADS,
+    GL_QUAD_STRIP,
 };
 
 static const GLenum _elementTypeToGLType[NUM_TYPES]= {

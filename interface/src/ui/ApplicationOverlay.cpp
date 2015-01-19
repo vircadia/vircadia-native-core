@@ -767,7 +767,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
             glDisable(GL_TEXTURE_2D);
             glLineWidth(1.0f);
             //Outer Line
-            geometryCache->renderVertices(GL_LINE_STRIP, _magnifierBorder);
+            geometryCache->renderVertices(gpu::LINE_STRIP, _magnifierBorder);
             glEnable(GL_TEXTURE_2D);
         }
         glColor4f(1.0f, 1.0f, 1.0f, _alpha);
@@ -970,7 +970,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
 
         glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
 
-        geometryCache->renderVertices(GL_LINE_STRIP, _domainStatusBorder);
+        geometryCache->renderVertices(gpu::LINE_STRIP, _domainStatusBorder);
     }
 }
 

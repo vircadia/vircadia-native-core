@@ -45,7 +45,9 @@ enum Primitive {
     LINE_STRIP,
     TRIANGLES,
     TRIANGLE_STRIP,
+    TRIANGLE_FAN,
     QUADS,
+    QUAD_STRIP,
 
     NUM_PRIMITIVES,
 };

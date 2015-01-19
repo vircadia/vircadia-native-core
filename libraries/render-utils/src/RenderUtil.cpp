@@ -22,5 +22,6 @@ void renderFullscreenQuad(float sMin, float sMax, float tMin, float tMax) {
     glm::vec2 bottomRight(1.0f, 1.0f);
     glm::vec2 texCoordTopLeft(sMin, tMin);
     glm::vec2 texCoordBottomRight(sMax, tMax);
+
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
 }

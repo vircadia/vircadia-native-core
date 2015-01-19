@@ -25,7 +25,9 @@
 
 #include <AnimationCache.h>
 
-#include "gpu/Stream.h"
+#include <gpu/Batch.h>
+#include <gpu/Stream.h>
+
 
 class NetworkGeometry;
 class NetworkMesh;
@@ -153,7 +155,7 @@ public:
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
-    void renderVertices(GLenum mode, int id);
+    void renderVertices(gpu::Primitive primitiveType, int id);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -244,7 +246,7 @@ private:
     QHash<Vec2Pair, BatchItemDetails> _line2DVBOs;
     QHash<int, BatchItemDetails> _registeredLine2DVBOs;
     
-    QHash<int, BufferDetails> _registeredVertices;
+    QHash<int, BatchItemDetails> _registeredVertices;
 
     QHash<int, Vec3Pair> _lastRegisteredDashedLines;
     QHash<Vec3Pair, BufferDetails> _dashedLines;

@@ -89,7 +89,7 @@ void ImageOverlay::render(RenderArgs* args) {
 
     float imageWidth = _textureImage.width();
     float imageHeight = _textureImage.height();
-    
+
     QRect fromImage;
     if (_wantClipFromImage) {
         fromImage = _fromImage;
@@ -114,7 +114,8 @@ void ImageOverlay::render(RenderArgs* args) {
     glm::vec2 texCoordTopLeft(x, 1.0f - y);
     glm::vec2 texCoordBottomRight(x + w, 1.0f - (y + h));
 
-    if (_renderImage) {
+    // if for some reason our image is not over 0 width or height, don't attempt to render the image
+    if (_renderImage && imageWidth > 0 && imageHeight > 0) {
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
     } else {
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);

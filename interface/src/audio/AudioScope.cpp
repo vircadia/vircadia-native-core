@@ -195,7 +195,7 @@ void AudioScope::renderLineStrip(int id, const glm::vec4& color, int x, int y, i
     
     
     geometryCache->updateVertices(id, points, color);
-    geometryCache->renderVertices(GL_LINE_STRIP, id);
+    geometryCache->renderVertices(gpu::LINE_STRIP, id);
     
     glColor4f(1, 1, 1, 1); 
 }
