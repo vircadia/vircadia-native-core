@@ -20,6 +20,8 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
+#include <Settings.h>
+
 #include "AnimationsDialog.h"
 #include "Application.h"
 #include "MainWindow.h"
@@ -157,14 +159,13 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
 }
 
 void AnimationPanel::chooseURL() {
-    QString directory = Application::getInstance()->lockSettings()->value("animation_directory").toString();
-    Application::getInstance()->unlockSettings();
+    Settings settings;
+    QString directory = settings.value("animation_directory").toString();
     QString filename = QFileDialog::getOpenFileName(this, "Choose Animation", directory, "Animation files (*.fbx)");
     if (filename.isEmpty()) {
         return;
     }
-    Application::getInstance()->lockSettings()->setValue("animation_directory", QFileInfo(filename).path());
-    Application::getInstance()->unlockSettings();
+    settings.setValue("animation_directory", QFileInfo(filename).path());
     _url->setText(QUrl::fromLocalFile(filename).toString());
     emit _url->returnPressed();
 }
