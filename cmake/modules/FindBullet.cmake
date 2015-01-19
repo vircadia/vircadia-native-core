@@ -42,11 +42,9 @@ macro(_FIND_BULLET_LIBRARY _var)
         ${BULLET_SEARCH_DIRS}
         $ENV{BULLET_ROOT_DIR}
         ${BULLET_ROOT}
-        ${BULLET_ROOT}/lib/Release
-        ${BULLET_ROOT}/lib/Debug
         ${BULLET_ROOT}/out/release8/libs
         ${BULLET_ROOT}/out/debug8/libs
-     PATH_SUFFIXES lib
+        PATH_SUFFIXES lib lib/Release lib/Debug
   )
   mark_as_advanced(${_var})
 endmacro()
