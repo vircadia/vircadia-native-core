@@ -2131,10 +2131,6 @@ static inline bool isSet(const StackArray& array, int y) {
         array.getEntryData()[qMax(0, y - array.getPosition())].isSet();
 }
 
-static inline bool isSet(const QVector<StackArray>& stackContents, int stackWidth, int x, int y, int z) {
-    return isSet(stackContents.at(z * stackWidth + x), y);
-}
-
 HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint, bool voxelize,
         float normalizeScale, float normalizeOffset) {
