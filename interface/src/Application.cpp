@@ -3694,7 +3694,6 @@ void Application::updateMyAvatarTransform() {
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
-    
     // from the domain-handler, figure out the satoshi cost per voxel and per meter cubed
     const QString VOXEL_SETTINGS_KEY = "voxels";
     const QString PER_VOXEL_COST_KEY = "per-voxel-credits";
@@ -3737,9 +3736,7 @@ QString Application::getPreviousScriptLocation() {
 
 void Application::setPreviousScriptLocation(const QString& previousScriptLocation) {
     _previousScriptLocation = previousScriptLocation;
-    QMutexLocker locker(&_settingsMutex);
-    _settings->setValue("LastScriptLocation", _previousScriptLocation);
-    bumpSettings();
+    Settings().setValue("LastScriptLocation", _previousScriptLocation);
 }
 
 void Application::loadDialog() {
