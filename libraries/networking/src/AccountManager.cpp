@@ -21,6 +21,8 @@
 #include <QtNetwork/QNetworkRequest>
 #include <qthread.h>
 
+#include <Settings.h>
+
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "RSAKeypairGenerator.h"
@@ -88,7 +90,7 @@ void AccountManager::logout() {
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
     
     if (_shouldPersistToSettingsFile) {
-        QSettings settings;
+        Settings settings;
         settings.beginGroup(ACCOUNTS_GROUP);
         
         QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
@@ -127,7 +129,7 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         
         if (_shouldPersistToSettingsFile) {
             // check if there are existing access tokens to load from settings
-            QSettings settings;
+            Settings settings;
             settings.beginGroup(ACCOUNTS_GROUP);
             
             foreach(const QString& key, settings.allKeys()) {
@@ -322,7 +324,7 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
 void AccountManager::persistAccountToSettings() {
     if (_shouldPersistToSettingsFile) {
         // store this access token into the local settings
-        QSettings localSettings;
+        Settings localSettings;
         localSettings.beginGroup(ACCOUNTS_GROUP);
         localSettings.setValue(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
                                QVariant::fromValue(_accountInfo));

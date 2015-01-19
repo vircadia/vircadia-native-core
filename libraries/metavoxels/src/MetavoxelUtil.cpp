@@ -19,11 +19,11 @@
 #include <QMetaType>
 #include <QPushButton>
 #include <QScriptEngine>
-#include <QSettings>
 #include <QVBoxLayout>
 #include <QtDebug>
 
 #include <GLMHelpers.h>
+#include <Settings.h>
 
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
@@ -492,7 +492,7 @@ QUrlEditor::QUrlEditor(QWidget* parent) :
     setInsertPolicy(InsertAtTop);
     
     // populate initial URL list from settings
-    addItems(QSettings().value("editorURLs").toStringList());
+    addItems(Settings().value("editorURLs").toStringList());
     
     connect(this, SIGNAL(activated(const QString&)), SLOT(updateURL(const QString&)));
     connect(model(), SIGNAL(rowsInserted(const QModelIndex&,int,int)), SLOT(updateSettings()));
@@ -512,7 +512,7 @@ void QUrlEditor::updateSettings() {
     for (int i = 0, size = qMin(MAX_STORED_URLS, count()); i < size; i++) {
         urls.append(itemText(i));
     }
-    QSettings().setValue("editorURLs", urls);
+    Settings().setValue("editorURLs", urls);
 }
 
 BaseVec3Editor::BaseVec3Editor(QWidget* parent) : QWidget(parent) {

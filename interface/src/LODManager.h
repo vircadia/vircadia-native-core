@@ -12,8 +12,6 @@
 #ifndef hifi_LODManager_h
 #define hifi_LODManager_h
 
-#include <QSettings>
-
 #include <DependencyManager.h>
 #include <OctreeConstants.h>
 #include <SharedUtil.h>

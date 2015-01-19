@@ -19,7 +19,6 @@
 #include <QImage>
 #include <QPointer>
 #include <QSet>
-#include <QSettings>
 #include <QStringList>
 #include <QUndoStack>
 

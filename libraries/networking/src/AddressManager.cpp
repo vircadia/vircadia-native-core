@@ -17,6 +17,7 @@
 #include <QStringList>
 
 #include <GLMHelpers.h>
+#include <Settings.h>
 #include <UUID.h>
 
 #include "NodeList.h"
@@ -51,7 +52,7 @@ const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        QSettings settings;
+        Settings settings;
         settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
         handleLookupString(settings.value(SETTINGS_CURRENT_ADDRESS_KEY).toString());
     } else {
@@ -60,7 +61,7 @@ void AddressManager::loadSettings(const QString& lookupString) {
 }
 
 void AddressManager::storeCurrentAddress() {
-    QSettings settings;
+    Settings settings;
 
     settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
     settings.setValue(SETTINGS_CURRENT_ADDRESS_KEY, currentAddress());

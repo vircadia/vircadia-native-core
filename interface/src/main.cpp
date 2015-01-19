@@ -8,12 +8,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
-
 #include <QDebug>
 #include <QDir>
+#include <QSettings>
 #include <QTranslator>
+
 #include <SharedUtil.h>
+
+#include "Application.h"
 
 int main(int argc, const char * argv[]) {
     QElapsedTimer startupTime;

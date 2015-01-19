@@ -15,7 +15,6 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
-#include <QSettings>
 
 enum ZoomLevel {
     HEAD,

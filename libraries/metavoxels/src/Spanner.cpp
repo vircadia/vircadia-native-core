@@ -17,12 +17,12 @@
 #include <QItemEditorFactory>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QSettings>
 #include <QThread>
 
 #include <glm/gtx/transform.hpp>
 
 #include <GeometryUtil.h>
+#include <Settings.h>
 
 #include "MetavoxelData.h"
 #include "Spanner.h"
@@ -606,7 +606,7 @@ static int getHeightfieldSize(int size) {
 }
 
 void HeightfieldHeightEditor::select() {
-    QSettings settings;
+    Settings settings;
     QString result = QFileDialog::getOpenFileName(this, "Select Height Image", settings.value("heightDir").toString(),
         "Images (*.png *.jpg *.bmp *.raw *.mdr)");
     if (result.isNull()) {
@@ -916,7 +916,7 @@ void HeightfieldColorEditor::setColor(const HeightfieldColorPointer& color) {
 }
 
 void HeightfieldColorEditor::select() {
-    QSettings settings;
+    Settings settings;
     QString result = QFileDialog::getOpenFileName(this, "Select Color Image", settings.value("heightDir").toString(),
         "Images (*.png *.jpg *.bmp)");
     if (result.isNull()) {
