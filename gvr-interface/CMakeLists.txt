@@ -13,7 +13,7 @@ include_glm()
 set(REQUIRED_HIFI_LIBRARIES "shared" "networking")
 
 link_hifi_libraries(${REQUIRED_HIFI_LIBRARIES})
-link_shared_dependencies()
+include_dependency_includes()
 
 set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
 set(ANDROID_APP_DISPLAY_NAME Interface)

@@ -49,7 +49,7 @@ If you have been building other components it is possible that the OpenSSL compi
 
 Download the [Intel Threading Building Blocks source](https://www.threadingbuildingblocks.org/download) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `tbb`.
 
-From the tbb directory, execute the following commands. This will set the compiler and archive tool to the correct ones from the NDK install and then build TBB using `ndk-build`.
+From the tbb directory, execute the following commands. This will set the compiler and archive tool to the correct ones from the NDK install and then build TBB using `ndk-build`. Then, the compiled libs are copied to a lib folder in the root of tbb directory.
 
 ```
 export CC=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-gcc
@@ -57,8 +57,9 @@ export AR=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_
 cd jni
 ndk-build target=android tbb tbbmalloc arch=arm
 cd ../
+mkdir lib
 cp -rf build/linux_arm_*/**/*.so lib/
-``` 
+```
 
 ####GLM
 
