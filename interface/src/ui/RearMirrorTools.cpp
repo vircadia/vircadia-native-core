@@ -14,6 +14,7 @@
 #include <QMouseEvent>
 
 #include <PathUtils.h>
+#include <Settings.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
@@ -26,17 +27,13 @@ const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";
 const int ICON_SIZE = 24;
 const int ICON_PADDING = 5;
 
-RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds, QSettings* settings) :
+RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds) :
     _parent(parent),
     _bounds(bounds),
     _windowed(false),
     _fullScreen(false)
 {
-    _zoomLevel = HEAD;
     _closeTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/close.svg"));
-
-    // Disabled for now https://worklist.net/19548
-    // _resetTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/reset.png"));
 
     _zoomHeadTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/plus.svg"));
     _zoomBodyTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/minus.svg"));
@@ -46,11 +43,7 @@ RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds, QSettings* se
     _resetIconRect = QRect(_bounds.width() - ICON_SIZE - ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _bodyZoomIconRect = QRect(_bounds.width() - ICON_SIZE - ICON_PADDING, _bounds.bottom() - ICON_PADDING - ICON_SIZE, ICON_SIZE, ICON_SIZE);
     _headZoomIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.bottom() - ICON_PADDING - ICON_SIZE, ICON_SIZE, ICON_SIZE);
-    
-    settings->beginGroup(SETTINGS_GROUP_NAME);
-    _zoomLevel = loadSetting(settings, ZOOM_LEVEL_SETTINGS, 0) == HEAD ? HEAD : BODY;
-    settings->endGroup();
-};
+}
 
 void RearMirrorTools::render(bool fullScreen) {
     if (fullScreen) {
@@ -63,11 +56,8 @@ void RearMirrorTools::render(bool fullScreen) {
         if (_windowed) {
             displayIcon(_bounds, _closeIconRect, _closeTextureId);
 
-            // Disabled for now https://worklist.net/19548
-            // displayIcon(_bounds, _resetIconRect, _resetTextureId);
-
-            displayIcon(_bounds, _headZoomIconRect, _zoomHeadTextureId, _zoomLevel == HEAD);
-            displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTextureId, _zoomLevel == BODY);
+            displayIcon(_bounds, _headZoomIconRect, _zoomHeadTextureId, getZoomLevel() == HEAD);
+            displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTextureId, getZoomLevel() == BODY);
         }
     }
 }
@@ -79,23 +69,14 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
             emit closeView();
             return true;
         }
-
-        /* Disabled for now https://worklist.net/19548
-        if (_resetIconRect.contains(x, y)) {
-            emit resetView();
-            return true;
-        }
-        */
         
         if (_headZoomIconRect.contains(x, y)) {
-            _zoomLevel = HEAD;
-            Application::getInstance()->bumpSettings();
+            setZoomLevel(HEAD);
             return true;
         }
         
         if (_bodyZoomIconRect.contains(x, y)) {
-            _zoomLevel = BODY;
-            Application::getInstance()->bumpSettings();
+            setZoomLevel(BODY);
             return true;
         }
 
@@ -116,10 +97,20 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
     return false;
 }
 
-void RearMirrorTools::saveSettings(QSettings* settings) {
-    settings->beginGroup(SETTINGS_GROUP_NAME);
-    settings->setValue(ZOOM_LEVEL_SETTINGS, _zoomLevel);
-    settings->endGroup();
+ZoomLevel RearMirrorTools::getZoomLevel() {
+    Settings settings;
+    settings.beginGroup(SETTINGS_GROUP_NAME);
+    ZoomLevel zoomLevel = (ZoomLevel)settings.value(ZOOM_LEVEL_SETTINGS, HEAD).toInt();
+    settings.endGroup();
+    
+    return zoomLevel;
+}
+
+void RearMirrorTools::setZoomLevel(ZoomLevel zoomLevel) {
+    Settings settings;
+    settings.beginGroup(SETTINGS_GROUP_NAME);
+    settings.setValue(ZOOM_LEVEL_SETTINGS, zoomLevel);
+    settings.endGroup();
 }
 
 void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint textureId, bool selected) {

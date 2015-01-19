@@ -25,11 +25,12 @@ enum ZoomLevel {
 class RearMirrorTools : public QObject {
     Q_OBJECT
 public:
-    RearMirrorTools(QGLWidget* parent, QRect& bounds, QSettings* settings);
+    RearMirrorTools(QGLWidget* parent, QRect& bounds);
     void render(bool fullScreen);
     bool mousePressEvent(int x, int y);
-    ZoomLevel getZoomLevel() { return _zoomLevel; }
-    void saveSettings(QSettings* settings);
+    
+    ZoomLevel getZoomLevel();
+    void setZoomLevel(ZoomLevel zoomLevel);
 
 signals:
     void closeView();
@@ -44,7 +45,6 @@ private:
     GLuint _resetTextureId;
     GLuint _zoomBodyTextureId;
     GLuint _zoomHeadTextureId;
-    ZoomLevel _zoomLevel;
     
     QRect _closeIconRect;
     QRect _resetIconRect;

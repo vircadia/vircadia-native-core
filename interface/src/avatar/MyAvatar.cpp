@@ -28,6 +28,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
+#include <Settings.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <TextRenderer.h>
@@ -795,62 +796,60 @@ void MyAvatar::loadData(QSettings* settings) {
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
-    QSettings* settings = Application::getInstance()->lockSettings();
-    settings->beginGroup("savedAttachmentData");
-    settings->beginGroup(_skeletonModel.getURL().toString());
-    settings->beginGroup(attachment.modelURL.toString());
-    settings->setValue("jointName", attachment.jointName);
+    Settings settings;
+    settings.beginGroup("savedAttachmentData");
+    settings.beginGroup(_skeletonModel.getURL().toString());
+    settings.beginGroup(attachment.modelURL.toString());
+    settings.setValue("jointName", attachment.jointName);
     
-    settings->beginGroup(attachment.jointName);
-    settings->setValue("translation_x", attachment.translation.x);
-    settings->setValue("translation_y", attachment.translation.y);
-    settings->setValue("translation_z", attachment.translation.z);
+    settings.beginGroup(attachment.jointName);
+    settings.setValue("translation_x", attachment.translation.x);
+    settings.setValue("translation_y", attachment.translation.y);
+    settings.setValue("translation_z", attachment.translation.z);
     glm::vec3 eulers = safeEulerAngles(attachment.rotation);
-    settings->setValue("rotation_x", eulers.x);
-    settings->setValue("rotation_y", eulers.y);
-    settings->setValue("rotation_z", eulers.z);
-    settings->setValue("scale", attachment.scale);
+    settings.setValue("rotation_x", eulers.x);
+    settings.setValue("rotation_y", eulers.y);
+    settings.setValue("rotation_z", eulers.z);
+    settings.setValue("scale", attachment.scale);
     
-    settings->endGroup();
-    settings->endGroup();
-    settings->endGroup();
-    settings->endGroup();
-    Application::getInstance()->unlockSettings();
+    settings.endGroup();
+    settings.endGroup();
+    settings.endGroup();
+    settings.endGroup();
 }
 
 AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString& jointName) const {
-    QSettings* settings = Application::getInstance()->lockSettings();
-    settings->beginGroup("savedAttachmentData");
-    settings->beginGroup(_skeletonModel.getURL().toString());
-    settings->beginGroup(modelURL.toString());
+    Settings settings;
+    settings.beginGroup("savedAttachmentData");
+    settings.beginGroup(_skeletonModel.getURL().toString());
+    settings.beginGroup(modelURL.toString());
     
     AttachmentData attachment;
     attachment.modelURL = modelURL;
     if (jointName.isEmpty()) {
-        attachment.jointName = settings->value("jointName").toString();
+        attachment.jointName = settings.value("jointName").toString();
     } else {
         attachment.jointName = jointName;
     }
-    settings->beginGroup(attachment.jointName);
-    if (settings->contains("translation_x")) {
-        attachment.translation.x = loadSetting(settings, "translation_x", 0.0f);
-        attachment.translation.y = loadSetting(settings, "translation_y", 0.0f);
-        attachment.translation.z = loadSetting(settings, "translation_z", 0.0f);
+    settings.beginGroup(attachment.jointName);
+    if (settings.contains("translation_x")) {
+        attachment.translation.x = loadSetting(&settings, "translation_x", 0.0f);
+        attachment.translation.y = loadSetting(&settings, "translation_y", 0.0f);
+        attachment.translation.z = loadSetting(&settings, "translation_z", 0.0f);
         glm::vec3 eulers;
-        eulers.x = loadSetting(settings, "rotation_x", 0.0f);
-        eulers.y = loadSetting(settings, "rotation_y", 0.0f);
-        eulers.z = loadSetting(settings, "rotation_z", 0.0f);
+        eulers.x = loadSetting(&settings, "rotation_x", 0.0f);
+        eulers.y = loadSetting(&settings, "rotation_y", 0.0f);
+        eulers.z = loadSetting(&settings, "rotation_z", 0.0f);
         attachment.rotation = glm::quat(eulers);
-        attachment.scale = loadSetting(settings, "scale", 1.0f);
+        attachment.scale = loadSetting(&settings, "scale", 1.0f);
     } else {
         attachment = AttachmentData();
     }
     
-    settings->endGroup();
-    settings->endGroup();
-    settings->endGroup();
-    settings->endGroup();
-    Application::getInstance()->unlockSettings();
+    settings.endGroup();
+    settings.endGroup();
+    settings.endGroup();
+    settings.endGroup();
     
     return attachment;
 }

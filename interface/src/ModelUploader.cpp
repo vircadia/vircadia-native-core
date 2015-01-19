@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QBuffer>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDebug>
@@ -21,6 +22,7 @@
 #include <QHBoxLayout>
 #include <QHttpMultiPart>
 #include <QImage>
+#include <QJsonDocument>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QProgressBar>
@@ -28,12 +30,17 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QTextStream>
+#include <QThread>
 #include <QVBoxLayout>
 #include <QVariant>
 
 #include <AccountManager.h>
+#include <GeometryCache.h>
+#include <GLMHelpers.h>
+#include <ResourceCache.h>
+#include <Settings.h>
+#include <TextureCache.h>
 
-#include "Application.h"
 #include "ModelUploader.h"
 
 
@@ -107,8 +114,8 @@ ModelUploader::~ModelUploader() {
 
 bool ModelUploader::zip() {
     // File Dialog
-    QSettings* settings = Application::getInstance()->lockSettings();
-    QString lastLocation = settings->value(SETTING_NAME).toString();
+    Settings settings;
+    QString lastLocation = settings.value(SETTING_NAME).toString();
     
     if (lastLocation.isEmpty()) {
        lastLocation  = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
@@ -123,11 +130,9 @@ bool ModelUploader::zip() {
         lastLocation, "Model files (*.fst *.fbx)");
     if (filename == "") {
         // If the user canceled we return.
-        Application::getInstance()->unlockSettings();
         return false;
     }
-    settings->setValue(SETTING_NAME, filename);
-    Application::getInstance()->unlockSettings();
+    settings.setValue(SETTING_NAME, filename);
     
     // First we check the FST file (if any)
     QFile* fst;

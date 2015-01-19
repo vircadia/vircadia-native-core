@@ -10,14 +10,14 @@
 //
 
 #include <QApplication>
-
+#include <QDesktopWidget>
+#include <QFileInfo>
 #include <QtWebKitWidgets/QWebFrame>
 #include <QtWebKit/QWebElement>
-#include <QDesktopWidget>
 
 #include <PathUtils.h>
+#include <Settings.h>
 
-#include "Application.h"
 #include "InfoView.h"
 
 #define SETTINGS_VERSION_KEY "info-version"
@@ -49,20 +49,19 @@ bool InfoView::shouldShow() {
         return true;
     }
     
-    QSettings* settings = Application::getInstance()->lockSettings();
+    Settings settings;
     
-    QString lastVersion = settings->value(SETTINGS_VERSION_KEY).toString();
+    QString lastVersion = settings.value(SETTINGS_VERSION_KEY).toString();
     
     QWebElement versionTag = page()->mainFrame()->findFirstElement("#version");
     QString version = versionTag.attribute("value");
     
     if (version != QString::null && (lastVersion == QString::null || lastVersion != version)) {
-        settings->setValue(SETTINGS_VERSION_KEY, version);
+        settings.setValue(SETTINGS_VERSION_KEY, version);
         shouldShow = true;
     } else {
         shouldShow = false;
     }
-    Application::getInstance()->unlockSettings();
     return shouldShow;
 }
 
@@ -72,7 +71,7 @@ void InfoView::loaded(bool ok) {
         return;
     }
     
-    QDesktopWidget* desktop = Application::getInstance()->desktop();
+    QDesktopWidget* desktop = qApp->desktop();
     QWebFrame* mainFrame = page()->mainFrame();
     
     int height = mainFrame->contentsSize().height() > desktop->height() ?

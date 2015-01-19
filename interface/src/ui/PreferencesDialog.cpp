@@ -270,6 +270,4 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
-
-    Application::getInstance()->bumpSettings();
 }

@@ -17,6 +17,7 @@
 #include <DependencyManager.h>
 #include <GlowEffect.h>
 #include <PathUtils.h>
+#include <Settings.h>
 #include <UserActivityLogger.h>
 #include <XmppClient.h>
 
@@ -544,10 +545,9 @@ Menu::Menu() {
 }
 
 void Menu::loadSettings(QSettings* settings) {
-    bool lockedSettings = false;
+    Settings defaultSettings;
     if (!settings) {
-        settings = qApp->lockSettings();
-        lockedSettings = true;
+        settings = &defaultSettings;
     }
 
     auto audio = DependencyManager::get<Audio>();
@@ -568,17 +568,12 @@ void Menu::loadSettings(QSettings* settings) {
     myAvatar->updateCollisionGroups();
     myAvatar->onToggleRagdoll();
     myAvatar->updateMotionBehavior();
-
-    if (lockedSettings) {
-        qApp->unlockSettings();
-    }
 }
 
 void Menu::saveSettings(QSettings* settings) {
-    bool lockedSettings = false;
+    Settings defaultSettings;
     if (!settings) {
-        settings = qApp->lockSettings();
-        lockedSettings = true;
+        settings = &defaultSettings;
     }
 
     auto audio = DependencyManager::get<Audio>();
@@ -591,10 +586,6 @@ void Menu::saveSettings(QSettings* settings) {
     qApp->getAvatar()->saveData(settings);
     
     DependencyManager::get<AddressManager>()->storeCurrentAddress();
-
-    if (lockedSettings) {
-        qApp->unlockSettings();
-    }
 }
 
 void Menu::importSettings() {

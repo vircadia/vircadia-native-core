@@ -356,9 +356,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     connect(addressManager.data(), &AddressManager::rootPlaceNameChanged, this, &Application::updateWindowTitle);
 
-    _settings = new QSettings(this);
-    _numChangedSettings = 0;
-
     #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
@@ -514,10 +511,6 @@ Application::~Application() {
 
 void Application::saveSettings() {
     Menu::getInstance()->saveSettings();
-    _rearMirrorTools->saveSettings(_settings);
-
-    _settings->sync();
-    _numChangedSettings = 0;
 }
 
 void Application::initializeGL() {
@@ -1439,10 +1432,6 @@ void Application::idle() {
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
-            
-            if (_numChangedSettings > 0) {
-                saveSettings();
-            }
         }
     }
 }
@@ -1711,15 +1700,12 @@ void Application::init() {
     _metavoxels.init();
 
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    _rearMirrorTools = new RearMirrorTools(glCanvas.data(), _mirrorViewRect, _settings);
+    _rearMirrorTools = new RearMirrorTools(glCanvas.data(), _mirrorViewRect);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-
-    // save settings when avatar changes
-    connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 
 #ifdef USE_BULLET_PHYSICS
     EntityTree* tree = _entities.getTree();
@@ -3551,7 +3537,6 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     if (activateMainWindow && !loadScriptFromEditor) {
         _window->activateWindow();
     }
-    bumpSettings();
 
     return scriptEngine;
 }
@@ -3579,7 +3564,6 @@ void Application::scriptFinished(const QString& scriptName) {
         _scriptEnginesHash.erase(it);
         _runningScriptsWidget->scriptStopped(scriptName);
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        bumpSettings();
     }
 }
 
@@ -3675,7 +3659,6 @@ void Application::openUrl(const QUrl& url) {
 }
 
 void Application::updateMyAvatarTransform() {
-    bumpSettings();
 #ifdef USE_BULLET_PHYSICS
     const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
     glm::vec3 avatarPosition = _myAvatar->getPosition();

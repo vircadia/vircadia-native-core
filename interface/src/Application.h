@@ -219,10 +219,6 @@ public:
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
 
-    /// if you need to access the application settings, use lockSettings()/unlockSettings()
-    QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
-    void unlockSettings() { _settingsMutex.unlock(); }
-
     void saveSettings();
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
@@ -361,7 +357,6 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
-    void bumpSettings() { ++_numChangedSettings; }
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
@@ -454,10 +449,6 @@ private:
 
     QThread* _nodeThread;
     DatagramProcessor _datagramProcessor;
-
-    QMutex _settingsMutex;
-    QSettings* _settings;
-    int _numChangedSettings;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;

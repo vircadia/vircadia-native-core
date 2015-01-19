@@ -22,6 +22,7 @@
 #include <AddressManager.h>
 #include <AccountManager.h>
 #include <PathUtils.h>
+#include <Settings.h>
 
 #include "Application.h"
 #include "ChatMessageArea.h"
@@ -377,12 +378,11 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     if (message.body().contains(usernameMention)) {
 
         // Don't show messages already seen in icon tray at start-up.
-        QSettings* settings = Application::getInstance()->lockSettings();
-        bool showMessage = settings->value("usernameMentionTimestamp").toDateTime() < _lastMessageStamp;
+        Settings settings;
+        bool showMessage = settings.value("usernameMentionTimestamp").toDateTime() < _lastMessageStamp;
         if (showMessage) {
-            settings->setValue("usernameMentionTimestamp", _lastMessageStamp);
+            settings.setValue("usernameMentionTimestamp", _lastMessageStamp);
         }
-        Application::getInstance()->unlockSettings();
 
         if (isHidden() && showMessage) {
 
