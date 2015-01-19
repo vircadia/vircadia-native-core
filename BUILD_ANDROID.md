@@ -72,4 +72,17 @@ cp -rf build/linux_arm_*/**/*.so lib/
 
 Since GLM is a header only library, assuming it is installed at a system path or a path where our FindGLM module will find it you do not need to do anything specific for the Android build.
 
-###Building the APK
+###CMake
+
+We use CMake to generate the makefiles that compile and deploy the Android APKs to your device. In order to create Makefiles for the Android targets, CMake requires that some environment variables are set, and that other variables are passed to it when it is run.
+
+The following must be set in your environment:
+
+* ANDROID_NDK - the root of your Android NDK install
+* ANDROID_HOME - the root of your Android SDK install
+* ANDROID_LIB_DIR - the directory containing cross-compiled versions of dependencies
+
+The following must be passed to CMake when it is run:
+
+* CMAKE_TOOLCHAIN_FILE - full path to the android.toolchain.cmake file that is included in this repository (/cmake/android/android.toolchain.cmake)
+* ANDROID_NATIVE_API_LEVEL - the API level you want to use (this should be 19 for GearVR)
