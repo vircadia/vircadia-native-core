@@ -22,7 +22,9 @@ If you would like to install Qt to a different location, or attempt to build wit
 
 Cross-compilation of OpenSSL has only been tested from an OS X machine running 10.10 compiling OpenSSL 1.0.1j. It is likely that the steps below will work for other OpenSSL versions than 1.0.1j.
 
-Download the (OpenSSL source)[https://www.openssl.org/source/] and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `openssl`.
+The full instructions to compile OpenSSL for Android from your host environment can be found [here](http://wiki.openssl.org/index.php/Android).
+
+Download the [OpenSSL source](https://www.openssl.org/source/) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `openssl`.
 
 You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki. 
 
@@ -45,7 +47,7 @@ If you have been building other components it is possible that the OpenSSL compi
 
 ####Intel Threading Building Blocks
 
-Download the (Intel Threading Building Blocks source)[https://www.threadingbuildingblocks.org/download] and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `tbb`.
+Download the [Intel Threading Building Blocks source](https://www.threadingbuildingblocks.org/download) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `tbb`.
 
 From the tbb directory, execute the following commands. This will set the compiler and archive tool to the correct ones from the NDK install and then build TBB using `ndk-build`.
 
