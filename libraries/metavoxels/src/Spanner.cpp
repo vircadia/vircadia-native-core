@@ -658,17 +658,17 @@ void HeightfieldHeightEditor::select() {
         QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
         return;
     }
-    image = image.convertToFormat(QImage::Format_RGB888);
+    image = image.convertToFormat(QImage::Format_ARGB32);
     int width = getHeightfieldSize(image.width()) + 2 * HeightfieldHeight::HEIGHT_BORDER;
     int height = getHeightfieldSize(image.height()) + 2 * HeightfieldHeight::HEIGHT_BORDER;
     QVector<quint16> contents(width * height);
     quint16* dest = contents.data() + (width + 1) * HeightfieldHeight::HEIGHT_BORDER;
     const float CONVERSION_SCALE = 65534.0f / numeric_limits<quint8>::max();
     for (int i = 0; i < image.height(); i++, dest += width) {
-        const uchar* src = image.constScanLine(i);
-        for (quint16* lineDest = dest, *end = dest + image.width(); lineDest != end; lineDest++,
-                src += DataBlock::COLOR_BYTES) {
-            *lineDest = (quint16)(*src * CONVERSION_SCALE) + CONVERSION_OFFSET;
+        const QRgb* src = (const QRgb*)image.constScanLine(i);
+        for (quint16* lineDest = dest, *end = dest + image.width(); lineDest != end; lineDest++, src++) {
+            *lineDest = (qAlpha(*src) < numeric_limits<qint8>::max()) ? 0 :
+                (quint16)(qRed(*src) * CONVERSION_SCALE) + CONVERSION_OFFSET;
         }
     }
     emit heightChanged(_height = new HeightfieldHeight(width, contents));
