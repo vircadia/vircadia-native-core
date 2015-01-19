@@ -9,9 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "MainWindow.h"
-#include "Menu.h"
-
+#include <QApplication>
+#include <QDesktopWidget>
 #include <QEvent>
 #include <QMoveEvent>
 #include <QResizeEvent>
@@ -19,8 +18,43 @@
 #include <QHideEvent>
 #include <QWindowStateChangeEvent>
 
-MainWindow::MainWindow(QWidget* parent) :
-    QMainWindow(parent) {
+#include <Settings.h>
+
+#include "MainWindow.h"
+#include "Menu.h"
+#include "Util.h"
+
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+}
+
+void MainWindow::restoreGeometry() {
+    QRect available = qApp->desktop()->availableGeometry();
+    
+    Settings settings;
+    settings.beginGroup("Window");
+    
+    int x = (int)loadSetting(&settings, "x", 0);
+    int y = (int)loadSetting(&settings, "y", 0);
+    move(x, y);
+    
+    int width = (int)loadSetting(&settings, "width", available.width());
+    int height = (int)loadSetting(&settings, "height", available.height());
+    resize(width, height);
+    
+    settings.endGroup();
+}
+
+void MainWindow::saveGeometry() {
+    Settings settings;
+    settings.beginGroup("Window");
+    
+    settings.setValue("width", rect().width());
+    settings.setValue("height", rect().height());
+    
+    settings.setValue("x", pos().x());
+    settings.setValue("y", pos().y());
+    
+    settings.endGroup();
 }
 
 void MainWindow::moveEvent(QMoveEvent* event) {

@@ -140,11 +140,9 @@ public:
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
 
-    void restoreSizeAndPosition();
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
-    void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
     void initializeGL();
     void paintGL();

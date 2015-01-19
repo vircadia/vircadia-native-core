@@ -399,7 +399,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _window->setCentralWidget(glCanvas.data());
 
-    restoreSizeAndPosition();
+    _window->restoreGeometry();
 
     _window->setVisible(true);
     glCanvas->setFocusPolicy(Qt::StrongFocus);
@@ -475,7 +475,7 @@ Application::~Application() {
     qInstallMessageHandler(NULL);
     
     saveSettings();
-    storeSizeAndPosition();
+    _window->saveGeometry();
     
     int DELAY_TIME = 1000;
     UserActivityLogger::getInstance().close(DELAY_TIME);
@@ -518,37 +518,6 @@ void Application::saveSettings() {
 
     _settings->sync();
     _numChangedSettings = 0;
-}
-
-
-void Application::restoreSizeAndPosition() {
-    QRect available = desktop()->availableGeometry();
-
-    QMutexLocker locker(&_settingsMutex);
-    _settings->beginGroup("Window");
-
-    int x = (int)loadSetting(_settings, "x", 0);
-    int y = (int)loadSetting(_settings, "y", 0);
-    _window->move(x, y);
-
-    int width = (int)loadSetting(_settings, "width", available.width());
-    int height = (int)loadSetting(_settings, "height", available.height());
-    _window->resize(width, height);
-
-    _settings->endGroup();
-}
-
-void Application::storeSizeAndPosition() {
-    QMutexLocker locker(&_settingsMutex);
-    _settings->beginGroup("Window");
-
-    _settings->setValue("width", _window->rect().width());
-    _settings->setValue("height", _window->rect().height());
-
-    _settings->setValue("x", _window->pos().x());
-    _settings->setValue("y", _window->pos().y());
-
-    _settings->endGroup();
 }
 
 void Application::initializeGL() {
