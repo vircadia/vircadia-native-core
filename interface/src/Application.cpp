@@ -74,6 +74,7 @@
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
+#include <Settings.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
@@ -432,21 +433,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // check first run...
-    QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
+    Settings settings;
+    QString firstRunKey = "firstRun";
+    QVariant firstRunValue = settings.value(firstRunKey, true);
     if (firstRunValue.isValid() && firstRunValue.toBool()) {
         qDebug() << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript(DEFAULT_SCRIPTS_JS_URL);
 
-        QMutexLocker locker(&_settingsMutex);
-        _settings->setValue("firstRun",QVariant(false));
+        settings.setValue(firstRunKey, false);
     } else {
         // do this as late as possible so that all required subsystems are initialized
         loadScripts();
 
-        QMutexLocker locker(&_settingsMutex);
-        _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
+        _previousScriptLocation = settings.value("LastScriptLocation", "").toString();
     }
 
     _trayIcon->show();

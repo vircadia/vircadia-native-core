@@ -80,7 +80,6 @@
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
-class QSettings;
 class QSystemTrayIcon;
 class QTouchEvent;
 class QWheelEvent;
