@@ -158,7 +158,8 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
 void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
                                           const JSONCallbackParameters& callbackParams,
                                           const QByteArray& dataByteArray,
-                                          QHttpMultiPart* dataMultiPart) {
+                                          QHttpMultiPart* dataMultiPart,
+                                          const QVariantMap& propertyMap) {
     
     QMetaObject::invokeMethod(this, "invokedRequest",
                               Q_ARG(const QString&, path),
@@ -166,13 +167,15 @@ void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessMan
                               Q_ARG(QNetworkAccessManager::Operation, operation),
                               Q_ARG(const JSONCallbackParameters&, callbackParams),
                               Q_ARG(const QByteArray&, dataByteArray),
-                              Q_ARG(QHttpMultiPart*, dataMultiPart));
+                              Q_ARG(QHttpMultiPart*, dataMultiPart),
+                              Q_ARG(QVariantMap, propertyMap));
 }
 
 void AccountManager::unauthenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                          const JSONCallbackParameters& callbackParams,
-                                          const QByteArray& dataByteArray,
-                                          QHttpMultiPart* dataMultiPart) {
+                                            const JSONCallbackParameters& callbackParams,
+                                            const QByteArray& dataByteArray,
+                                            QHttpMultiPart* dataMultiPart,
+                                            const QVariantMap& propertyMap) {
     
     QMetaObject::invokeMethod(this, "invokedRequest",
                               Q_ARG(const QString&, path),
@@ -180,14 +183,16 @@ void AccountManager::unauthenticatedRequest(const QString& path, QNetworkAccessM
                               Q_ARG(QNetworkAccessManager::Operation, operation),
                               Q_ARG(const JSONCallbackParameters&, callbackParams),
                               Q_ARG(const QByteArray&, dataByteArray),
-                              Q_ARG(QHttpMultiPart*, dataMultiPart));
+                              Q_ARG(QHttpMultiPart*, dataMultiPart),
+                              Q_ARG(QVariantMap, propertyMap));
 }
 
 void AccountManager::invokedRequest(const QString& path,
                                     bool requiresAuthentication,
                                     QNetworkAccessManager::Operation operation,
                                     const JSONCallbackParameters& callbackParams,
-                                    const QByteArray& dataByteArray, QHttpMultiPart* dataMultiPart) {
+                                    const QByteArray& dataByteArray, QHttpMultiPart* dataMultiPart,
+                                    const QVariantMap& propertyMap) {
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
@@ -255,6 +260,14 @@ void AccountManager::invokedRequest(const QString& path,
     }
     
     if (networkReply) {
+        if (!propertyMap.isEmpty()) {
+            // we have properties to set on the reply so the user can check them after
+            foreach(const QString& propertyKey, propertyMap.keys()) {
+                networkReply->setProperty(qPrintable(propertyKey), propertyMap.value(propertyKey));
+            }
+        }
+        
+        
         if (!callbackParams.isEmpty()) {
             // if we have information for a callback, insert the callbackParams into our local map
             _pendingCallbackMap.insert(networkReply, callbackParams);
