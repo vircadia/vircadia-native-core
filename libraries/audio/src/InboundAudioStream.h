@@ -126,6 +126,8 @@ public:
     void setWindowSecondsForDesiredReduction(int windowSecondsForDesiredReduction);
     void setRepetitionWithFade(bool repetitionWithFade) { _repetitionWithFade = repetitionWithFade; }
 
+    void loadSettings();
+    void saveSettings();
 
     virtual AudioStreamStats getAudioStreamStats() const;
 

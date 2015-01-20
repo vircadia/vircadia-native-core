@@ -9,11 +9,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PacketHeaders.h>
 #include <GLMHelpers.h>
+#include <PacketHeaders.h>
+#include <Settings.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
+
+namespace SettingHandles {
+    const SettingHandle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+}
+
+OctreeQuery::OctreeQuery() {
+    _maxOctreePPS = SettingHandles::maxOctreePacketsPerSecond.get();
+}
+
+void OctreeQuery::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
+    _maxOctreePPS = maxOctreePPS;
+    SettingHandles::maxOctreePacketsPerSecond.set(_maxOctreePPS);
+}
+
 
 int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;

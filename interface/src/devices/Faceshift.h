@@ -63,10 +63,10 @@ public:
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
     
     float getEyeDeflection() const { return _eyeDeflection; }
-    void setEyeDeflection(float faceshiftEyeDeflection) { _eyeDeflection = faceshiftEyeDeflection; }
+    void setEyeDeflection(float faceshiftEyeDeflection);
     
     const QString& getHostname() const { return _hostname; }
-    void setHostname(const QString& hostname) { _hostname = hostname; }
+    void setHostname(const QString& hostname);
 
     void update();
     void reset();

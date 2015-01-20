@@ -34,6 +34,8 @@ const float DEFAULT_FAR_CLIP = TREE_SCALE;
 
 class ViewFrustum {
 public:
+    ViewFrustum();
+    
     // setters for camera attributes
     void setPosition(const glm::vec3& p) { _position = p; _positionVoxelScale = (p / (float)TREE_SCALE); }
     void setOrientation(const glm::quat& orientationAsQuaternion);
@@ -50,8 +52,8 @@ public:
     void setOrthographic(bool orthographic) { _orthographic = orthographic; }
     void setWidth(float width) { _width = width; }
     void setHeight(float height) { _height = height; }
-    void setFieldOfView(float f) { _fieldOfView = f; }
-    void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; }
+    void setFieldOfView(float f);
+    void setRealWorldFieldOfView(float realWorldFieldOfView);
     void setAspectRatio(float a) { _aspectRatio = a; }
     void setNearClip(float n) { _nearClip = n; }
     void setFarClip(float f) { _farClip = f; }

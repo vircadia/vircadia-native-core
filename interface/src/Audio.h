@@ -173,6 +173,9 @@ public slots:
 
     void outputNotify();
     
+    void loadSettings();
+    void saveSettings();
+    
 private slots:
     void audioMuteToggled();
     

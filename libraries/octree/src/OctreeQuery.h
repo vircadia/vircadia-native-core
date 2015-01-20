@@ -44,7 +44,7 @@ class OctreeQuery : public NodeData {
     Q_OBJECT
 
 public:
-    OctreeQuery() {}
+    OctreeQuery();
     virtual ~OctreeQuery() {}
 
     int getBroadcastData(unsigned char* destinationBuffer);
@@ -86,7 +86,7 @@ public slots:
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     void setWantCompression(bool wantCompression) { _wantCompression = wantCompression; }
-    void setMaxOctreePacketsPerSecond(int maxOctreePPS) { _maxOctreePPS = maxOctreePPS; }
+    void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
 

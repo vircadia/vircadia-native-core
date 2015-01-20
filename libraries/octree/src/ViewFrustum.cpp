@@ -17,6 +17,8 @@
 
 #include <QtCore/QDebug>
 
+#include <Settings.h>
+
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
 #include "ViewFrustum.h"
@@ -24,11 +26,30 @@
 
 using namespace std;
 
+namespace SettingHandles {
+    const SettingHandle<float> fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
+    const SettingHandle<float> realWorldFieldOfView("realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
+}
+
+ViewFrustum::ViewFrustum() {
+    _fieldOfView = SettingHandles::fieldOfView.get();
+    _realWorldFieldOfView = SettingHandles::realWorldFieldOfView.get();
+}
+
 void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
     _orientation = orientationAsQuaternion;
-    _right       = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_RIGHT, 0.0f));
-    _up          = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_UP,    0.0f));
-    _direction   = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FRONT, 0.0f));
+    _right = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_RIGHT, 0.0f));
+    _up = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_UP,    0.0f));
+    _direction = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FRONT, 0.0f));
+}
+
+void ViewFrustum::setFieldOfView(float f) {
+    _fieldOfView = f;
+    SettingHandles::fieldOfView.set(f);
+}
+void ViewFrustum::setRealWorldFieldOfView(float realWorldFieldOfView) {
+    _realWorldFieldOfView = realWorldFieldOfView;
+    SettingHandles::realWorldFieldOfView.set(realWorldFieldOfView);
 }
 
 // ViewFrustum::calculateViewFrustum()
