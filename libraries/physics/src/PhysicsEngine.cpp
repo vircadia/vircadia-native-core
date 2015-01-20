@@ -13,11 +13,11 @@
 #include "ShapeInfoUtil.h"
 #include "ThreadSafeDynamicsWorld.h"
 
-static uint32_t _frameCount;
+static uint32_t _numSubsteps;
 
 // static
-uint32_t PhysicsEngine::getFrameCount() {
-    return _frameCount;
+uint32_t PhysicsEngine::getNumSubsteps() {
+    return _numSubsteps;
 }
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
@@ -47,8 +47,8 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
         ObjectMotionState* state = *stateItr;
         if (state->doesNotNeedToSendUpdate()) {
             stateItr = _outgoingPackets.erase(stateItr);
-        } else if (state->shouldSendUpdate(_frameCount)) {
-            state->sendUpdate(_entityPacketSender, _frameCount);
+        } else if (state->shouldSendUpdate(_numSubsteps)) {
+            state->sendUpdate(_entityPacketSender, _numSubsteps);
             ++stateItr;
         } else {
             ++stateItr;
@@ -141,7 +141,7 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             } else if (flags) {
                 // an EASY update does NOT require that the body be pulled out of physics engine
                 // hence the MotionState has all the knowledge and authority to perform the update.
-                motionState->updateObjectEasy(flags, _frameCount);
+                motionState->updateObjectEasy(flags, _numSubsteps);
             }
         }
 
@@ -216,8 +216,8 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     // This is step (2).
-    int numSubSteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
-    _frameCount += (uint32_t)numSubSteps;
+    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    _numSubsteps += (uint32_t)numSubsteps;
     unlock();
 
     // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
@@ -233,6 +233,12 @@ void PhysicsEngine::stepSimulation() {
     _dynamicsWorld->synchronizeMotionStates();
     unlock();
     _entityTree->unlock();
+
+    handleCollisionEvents();
+}
+
+void PhysicsEngine::handleCollisionEvents() {
+
 }
 
 // Bullet collision flags are as follows:
@@ -352,7 +358,7 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     }
     bool easyUpdate = flags & EASY_DIRTY_PHYSICS_FLAGS;
     if (easyUpdate) {
-        motionState->updateObjectEasy(flags, _frameCount);
+        motionState->updateObjectEasy(flags, _numSubsteps);
     }
 
     // update the motion parameters

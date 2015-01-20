@@ -13,9 +13,9 @@
 #include "SimpleEntityKinematicController.h"
 
 void SimpleEntityKinematicController:: stepForward() {
-    uint32_t frame = PhysicsEngine::getFrameCount();
-    float dt = (frame - _lastFrame) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+    uint32_t substep = PhysicsEngine::getNumSubsteps();
+    float dt = (substep - _lastSubstep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
     _entity->simulateSimpleKinematicMotion(dt);
-    _lastFrame = frame;
+    _lastSubstep = substep;
 }
 

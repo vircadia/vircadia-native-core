@@ -33,7 +33,7 @@ class ObjectMotionState;
 
 class PhysicsEngine : public EntitySimulation {
 public:
-    static uint32_t getFrameCount();
+    static uint32_t getNumSubsteps();
 
     PhysicsEngine(const glm::vec3& offset);
 
@@ -50,6 +50,8 @@ public:
     virtual void init(EntityEditPacketSender* packetSender);
 
     void stepSimulation();
+
+    void handleCollisionEvents();
 
     /// \param offset position of simulation origin in domain-frame
     void setOriginOffset(const glm::vec3& offset) { _originOffset = offset; }
