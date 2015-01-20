@@ -40,6 +40,10 @@ void Client::setupNetworking() {
     
     // TODO: once the Client knows its Address on start-up we should be able to immediately send a check in here
     domainCheckInTimer->start();
+    
+    // handle the case where the domain stops talking to us
+    // TODO: can we just have the nodelist do this when it sets up? Is there a user of the NodeList that wouldn't want this?
+    connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
 }
 
 void Client::processDatagrams() {
