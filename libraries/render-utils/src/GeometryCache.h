@@ -178,7 +178,7 @@ private:
         int vertices;
         int vertexSize;
     };
-    
+
     QHash<float, gpu::BufferPointer> _cubeVerticies;
     QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
     gpu::BufferPointer _wireCubeIndexBuffer;
@@ -255,9 +255,15 @@ private:
     QHash<IntPair, BufferDetails> _colors;
 
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
-    QHash<int, QOpenGLBuffer> _registeredAlternateGridBuffers;
-    QHash<Vec3Pair, QOpenGLBuffer> _alternateGridBuffers;
-    QHash<int, Vec3Pair> _lastRegisteredGrid;
+
+    //QHash<int, QOpenGLBuffer> _registeredAlternateGridBuffers;
+    //QHash<Vec3Pair, QOpenGLBuffer> _alternateGridBuffers;
+    //QHash<int, Vec3Pair> _lastRegisteredGrid;
+
+    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
+    QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
+    QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
+    
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
 };

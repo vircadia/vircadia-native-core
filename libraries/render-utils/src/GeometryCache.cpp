@@ -523,31 +523,23 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
 }
 
 void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
+    qDebug() << "GeometryCache::renderGrid(x["<<x<<"], "
+            "y["<<y<<"],"
+            "w["<<width<<"],"
+            "h["<<height<<"],"
+            "rows["<<rows<<"],"
+            "cols["<<cols<<"],"
+            " id:"<<id<<")...";
+            
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(glm::vec3(x, y, width), glm::vec3(height, rows, cols));
-    QOpenGLBuffer& buffer = registered ? _registeredAlternateGridBuffers[id] : _alternateGridBuffers[key];
-
-    // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registered && buffer.isCreated()) {
-        Vec3Pair& lastKey = _lastRegisteredGrid[id];
-        if (lastKey != key) {
-            buffer.destroy();
-            #ifdef WANT_DEBUG
-                qDebug() << "renderGrid()... RELEASING REGISTERED";
-            #endif // def WANT_DEBUG
-        }
-        #ifdef WANT_DEBUG
-        else {
-            qDebug() << "renderGrid()... REUSING PREVIOUSLY REGISTERED";
-        }
-        #endif // def WANT_DEBUG
-    }
+    Vec3Pair colorKey(glm::vec3(color.x, color.y, rows),glm::vec3(color.z, color.y, cols));
 
     int vertices = (cols + 1 + rows + 1) * 2;
-    if (!buffer.isCreated()) {
-    
-        _lastRegisteredGrid[id] = key;
-        
+
+    if ((registered && !_registeredAlternateGridBuffers.contains(id)) || (!registered && !_alternateGridBuffers.contains(key))) {
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+
         GLfloat* vertexData = new GLfloat[vertices * 2];
         GLfloat* vertex = vertexData;
 
@@ -578,32 +570,63 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
             tx += dx;
         }
 
-        buffer.create();
-        buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-        buffer.bind();
-        buffer.allocate(vertexData, vertices * 2 * sizeof(GLfloat));
+        verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Buffer::Byte*) vertexData);
         delete[] vertexData;
-
-        #ifdef WANT_DEBUG
-            if (id == UNKNOWN_ID) {
-                qDebug() << "new grid buffer made -- _alternateGridBuffers.size():" << _alternateGridBuffers.size();
-            } else {
-                qDebug() << "new registered grid buffer made -- _registeredAlternateGridBuffers.size():" << _registeredAlternateGridBuffers.size();
-            }
-        #endif
         
-    } else {
-        buffer.bind();
+        if (registered) {
+            _registeredAlternateGridBuffers[id] = verticesBuffer;
+        } else {
+            _alternateGridBuffers[key] = verticesBuffer;
+        }
     }
-    glEnableClientState(GL_VERTEX_ARRAY);
+
+    if (!_gridColors.contains(colorKey)) {
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        _gridColors[colorKey] = colorBuffer;
+
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+
+        int* colorData = new int[vertices];
+        int* colorDataAt = colorData;
+                            
+                            
+        for(int v = 0; v < vertices; v++) {
+            *(colorDataAt++) = compactColor;
+        }
+
+        colorBuffer->append(sizeof(int) * vertices, (gpu::Buffer::Byte*) colorData);
+        delete[] colorData;
+    }
+    gpu::BufferPointer verticesBuffer = registered ? _registeredAlternateGridBuffers[id] : _alternateGridBuffers[key];
     
-    glVertexPointer(2, GL_FLOAT, 0, 0);
+    gpu::BufferPointer colorBuffer = _gridColors[colorKey];
+
+    const int VERTICES_SLOT = 0;
+    const int COLOR_SLOT = 1;
+    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
     
-    glDrawArrays(GL_LINES, 0, vertices);
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+    gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
+    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
     
+    gpu::Batch batch;
+
+    batch.setInputFormat(streamFormat);
+    batch.setInputBuffer(VERTICES_SLOT, verticesView);
+    batch.setInputBuffer(COLOR_SLOT, colorView);
+    batch.draw(gpu::LINES, vertices, 0);
+
+    gpu::GLBackend::renderBatch(batch);
+
     glDisableClientState(GL_VERTEX_ARRAY);
-    
-    buffer.release();
+    glDisableClientState(GL_COLOR_ARRAY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {
