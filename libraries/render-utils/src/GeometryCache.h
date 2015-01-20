@@ -90,9 +90,6 @@ public:
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
 
-    void renderHemisphere(int slices, int stacks);
-    void renderSquare(int xDivisions, int yDivisions);
-    void renderHalfCylinder(int slices, int stacks);
     void renderCone(float base, float height, int slices, int stacks);
 
     void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true) 
@@ -205,10 +202,7 @@ private:
         void clear();
     };
     
-    QHash<IntPair, VerticesIndices> _hemisphereVBOs;
     QHash<IntPair, VerticesIndices> _sphereVBOs;
-    QHash<IntPair, VerticesIndices> _squareVBOs;
-    QHash<IntPair, VerticesIndices> _halfCylinderVBOs;
     QHash<IntPair, VerticesIndices> _coneVBOs;
     QHash<float, VerticesIndices> _wireCubeVBOs;
     QHash<float, VerticesIndices> _solidCubeVBOs;
