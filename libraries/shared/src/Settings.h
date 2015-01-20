@@ -12,17 +12,23 @@
 #ifndef hifi_Settings_h
 #define hifi_Settings_h
 
+#include <QSettings>
 #include <QString>
 #include <QVariant>
+
+// TODO: remove
+class Settings : public QSettings {
+    
+};
 
 template <typename T>
 class SettingHandle {
 public:
     SettingHandle(const QString& key, const T& defaultValue);
     
-    const T& get() const; // Returns setting value, returns its default value if not found
-    const T& get(const T& other) const; // Returns setting value, returns other if not found
-    const T& getDefault() const;
+    T get() const; // Returns setting value, returns its default value if not found
+    T get(const T& other) const; // Returns setting value, returns other if not found
+    T getDefault() const;
     
     void set(const T& value) const;
     void reset() const;
@@ -32,9 +38,15 @@ public:
 private:
     const QString _key;
     const QVariant _defaultValue;
+};
+
+class SettingsBridge {
+private:
+    static QVariant getFromSettings(const QString& key, const QVariant& defaultValue);
+    static void setInSettings(const QString& key, const QVariant& value);
     
-    friend QVariant getFromSettings(QString key, QVariant defaultValue);
-    friend void setInSettings(QString key, QVariant value);
+    template<typename T>
+    friend class SettingHandle;
 };
 
 // Specialize template here for types used in Setting
@@ -52,8 +64,8 @@ SettingHandle<T>::SettingHandle(const QString& key, const T& defaultValue) : _ke
 }
 
 template <typename T>
-const T& SettingHandle<T>::get() const {
-    QVariant variant = getFromSettings(_key, _defaultValue);
+T SettingHandle<T>::get() const {
+    QVariant variant = SettingsBridge::getFromSettings(_key, _defaultValue);
     if (variant.type() == type) {
         return variant.value<T>();
     }
@@ -61,8 +73,8 @@ const T& SettingHandle<T>::get() const {
 }
 
 template <typename T>
-const T& SettingHandle<T>::get(const T& other) const {
-    QVariant variant = getFromSettings(_key, _defaultValue);
+T SettingHandle<T>::get(const T& other) const {
+    QVariant variant = SettingsBridge::getFromSettings(_key, _defaultValue);
     if (variant.type() == type) {
         return variant.value<T>();
     }
@@ -70,13 +82,13 @@ const T& SettingHandle<T>::get(const T& other) const {
 }
 
 template <typename T> inline
-const T& SettingHandle<T>::getDefault() const {
+T SettingHandle<T>::getDefault() const {
     return _defaultValue.value<T>();
 }
 
 template <typename T> inline
 void SettingHandle<T>::set(const T& value) const {
-    setInSettings(_key, QVariant(value));
+    SettingsBridge::setInSettings(_key, QVariant(value));
 }
 
 template <typename T> inline

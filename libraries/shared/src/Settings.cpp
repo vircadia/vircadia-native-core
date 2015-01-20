@@ -9,16 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QSettings>
 
 #include "Settings.h"
 
-QVariant getFromSettings(QString key, QVariant defaultValue) {
+QVariant SettingsBridge::getFromSettings(const QString& key, const QVariant& defaultValue) {
     return QSettings().value(key, defaultValue);
 }
 
-void setInSettings(QString key, QVariant value) {
+void SettingsBridge::setInSettings(const QString& key, const QVariant& value) {
     QSettings().setValue(key, value);
 }
-
-
