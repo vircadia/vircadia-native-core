@@ -151,7 +151,7 @@ function Notify(notice, button, height) {
     myAlpha.push(0);
     var last = notifications.length - 1;
     createArrays(notifications[last], buttons[last], times[last], heights[last], myAlpha[last]);
-    fadeIn(notifications[last], buttons[last])
+    fadeIn(notifications[last], buttons[last]);
 }
 
 //  This function creates and sizes the overlays
@@ -189,7 +189,7 @@ function createNotification(text) {
         topMargin: topMargin,
         leftMargin: leftMargin,
         font: {size: fontSize},
-        text: text,
+        text: text
     };
 
     bLevel = level + 12.0;
@@ -202,7 +202,7 @@ function createNotification(text) {
         imageURL: "http://hifi-public.s3.amazonaws.com/images/close-small-light.svg",
         color: { red: 255, green: 255, blue: 255},
         visible: true,
-        alpha: backgroundAlpha,
+        alpha: backgroundAlpha
     };
 
     Notify(overlayProperties, buttonProperties, height);
@@ -242,7 +242,7 @@ function checkSize() {
         windowDimensions = Controller.getViewportDimensions();
         overlayLocationX = (windowDimensions.x - (width + 60.0));
         buttonLocationX = overlayLocationX + (width - 35.0);
-        createNotification(windowResize)
+        createNotification(windowResize);
     }
 }
 
