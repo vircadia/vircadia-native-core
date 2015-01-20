@@ -10,6 +10,7 @@
 //
 
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QInputDialog>
 #include <QtWidgets/QMenuBar>
 
@@ -34,11 +35,29 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     fileMenu->addAction(goToAddress);
     helpMenu->addAction(aboutQt);
 
-    QObject::connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
-    QObject::connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
+    connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
+    connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
+    
+    QWidget* baseWidget = new QWidget(this);
+    
+    // setup a layout so we can vertically align to top
+    _mainLayout = new QVBoxLayout(baseWidget);
+    _mainLayout->setAlignment(Qt::AlignTop);
+    
+    // set the layout on the base widget
+    baseWidget->setLayout(_mainLayout);
+    
+    setCentralWidget(baseWidget);
 }
 
 void GVRMainWindow::showAddressBar() {
-    QString addressString = QInputDialog::getText(centralWidget(), "Go to Address", "Address");
-    DependencyManager::get<AddressManager>()->handleLookupString(addressString);
+    // setup the address QInputDialog
+    QInputDialog* addressDialog = new QInputDialog(this);
+    addressDialog->setLabelText("Address");
+    
+    // add the address dialog to the main layout
+    _mainLayout->addWidget(addressDialog);
+    
+    connect(addressDialog, &QInputDialog::textValueSelected, 
+            DependencyManager::get<AddressManager>().data(), &AddressManager::handleLookupString);
 }

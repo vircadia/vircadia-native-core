@@ -14,12 +14,16 @@
 
 #include <QtWidgets/QMainWindow>
 
+class QVBoxLayout;
+
 class GVRMainWindow : public QMainWindow {
     Q_OBJECT
 public:
     GVRMainWindow(QWidget* parent = 0);
 public slots:
     void showAddressBar();
+private:
+    QVBoxLayout* _mainLayout;
 };
 
 #endif // hifi_GVRMainWindow_h
