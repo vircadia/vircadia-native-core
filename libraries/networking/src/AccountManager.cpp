@@ -240,8 +240,9 @@ void AccountManager::invokedRequest(const QString& path,
                 } else {
                     networkReply = networkAccessManager.put(networkRequest, dataMultiPart);
                 }
-                qDebug() << "IS THIS WHERE?";
-                dataMultiPart->setParent(networkReply);
+                
+                // make sure dataMultiPart is destroyed when the reply is
+                connect(networkReply, &QNetworkReply::destroyed, dataMultiPart, &QHttpMultiPart::deleteLater);
             } else {
                 networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
                 if (operation == QNetworkAccessManager::PostOperation) {
