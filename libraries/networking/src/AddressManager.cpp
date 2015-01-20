@@ -207,6 +207,8 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
                     
+                    qDebug() << "Possible domain change required to connect to" << domainHostname
+                        << "on" << DEFAULT_DOMAIN_SERVER_PORT;
                     emit possibleDomainChangeRequired(domainHostname, DEFAULT_DOMAIN_SERVER_PORT);
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
@@ -214,6 +216,9 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     const QString DOMAIN_ID_KEY = "id";
                     QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
                     QUuid domainID(domainIDString);
+                    
+                    qDebug() << "Possible domain change required to connect to domain with ID" << domainID
+                        << "via ice-server at" << iceServerAddress;
                     
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
                 }

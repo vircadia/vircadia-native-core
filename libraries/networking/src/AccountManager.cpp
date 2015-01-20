@@ -240,6 +240,7 @@ void AccountManager::invokedRequest(const QString& path,
                 } else {
                     networkReply = networkAccessManager.put(networkRequest, dataMultiPart);
                 }
+                qDebug() << "IS THIS WHERE?";
                 dataMultiPart->setParent(networkReply);
             } else {
                 networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
