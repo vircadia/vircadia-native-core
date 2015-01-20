@@ -190,9 +190,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-#ifdef USE_BULLET_PHYSICS
         _physicsEngine(glm::vec3(0.0f)),
-#endif // USE_BULLET_PHYSICS
         _entities(true, this, this),
         _entityCollisionSystem(),
         _entityClipboardRenderer(false, this, this),
@@ -338,6 +336,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter(getPositionForPath);
     addressManager->setOrientationGetter(getOrientationForPath);
+    
+    connect(addressManager.data(), &AddressManager::rootPlaceNameChanged, this, &Application::updateWindowTitle);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -916,13 +916,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
-            case Qt::Key_N:
-                if (isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::NameLocation);
-                }
-                
-                break;
-
             case Qt::Key_Up:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     if (!isShifted) {
@@ -1730,12 +1723,10 @@ void Application::init() {
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 
-#ifdef USE_BULLET_PHYSICS
     EntityTree* tree = _entities.getTree();
     _physicsEngine.setEntityTree(tree);
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
-#endif // USE_BULLET_PHYSICS
     // make sure our texture cache knows about window size changes
     DependencyManager::get<TextureCache>()->associateWithWidget(glCanvas.data());
 
@@ -2046,12 +2037,10 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
 
-#ifdef USE_BULLET_PHYSICS
     {
         PerformanceTimer perfTimer("physics");
         _physicsEngine.stepSimulation();
     }
-#endif // USE_BULLET_PHYSICS
 
     if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
@@ -2802,7 +2791,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     }
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
-
+    
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
@@ -2853,6 +2842,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
 
     {
+        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
+
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
@@ -3151,8 +3142,14 @@ void Application::updateWindowTitle(){
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
+    QString currentPlaceName = DependencyManager::get<AddressManager>()->getRootPlaceName();
+    
+    if (currentPlaceName.isEmpty()) {
+        currentPlaceName = nodeList->getDomainHandler().getHostname();
+    }
+    
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + DependencyManager::get<AddressManager>()->getCurrentDomain() + connectionStatus + buildVersion;
+        + currentPlaceName + connectionStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
@@ -3164,23 +3161,34 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
+    auto addressManager = DependencyManager::get<AddressManager>();
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     
-    if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
+    if (accountManager.isLoggedIn() && domainHandler.isConnected()
+        && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
 
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
         QJsonObject locationObject;
         
-        QString pathString = DependencyManager::get<AddressManager>()->currentPath();
+        QString pathString = addressManager->currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
-        const QString PATH_KEY_IN_LOCATION = "path";
-        const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
         
+        const QString PATH_KEY_IN_LOCATION = "path";
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
+        
+        if (!addressManager->getRootPlaceID().isNull()) {
+            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
+            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
+            
+        } else {
+            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
+                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
+        }
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
@@ -3668,7 +3676,6 @@ void Application::openUrl(const QUrl& url) {
 
 void Application::updateMyAvatarTransform() {
     bumpSettings();
-#ifdef USE_BULLET_PHYSICS
     const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
     glm::vec3 avatarPosition = _myAvatar->getPosition();
     glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();
@@ -3682,7 +3689,6 @@ void Application::updateMyAvatarTransform() {
         // TODO: Andrew to replace this with method that actually moves existing object positions in PhysicsEngine
         _physicsEngine.setOriginOffset(newOriginOffset);
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
@@ -3961,5 +3967,33 @@ float Application::getRenderResolutionScale() const {
         return 0.25f;
     } else {
         return 1.0f;
+    }
+}
+
+int Application::getRenderAmbientLight() const {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLightGlobal)) {
+        return -1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight0)) {
+        return 0;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight1)) {
+        return 1;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight2)) {
+        return 2;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight3)) {
+        return 3;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight4)) {
+        return 4;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight5)) {
+        return 5;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight6)) {
+        return 6;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight7)) {
+        return 7;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight8)) {
+        return 8;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderAmbientLight9)) {
+        return 9;
+    } else {
+        return -1;
     }
 }

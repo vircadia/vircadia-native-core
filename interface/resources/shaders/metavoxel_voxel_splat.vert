@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// the splat texture offset
+uniform vec3 splatTextureOffset;
+
 // the splat textures scales on the S axis
 uniform vec4 splatTextureScalesS;
 
@@ -43,7 +46,7 @@ void main(void) {
     normal = gl_Normal;
     
     // pass along the scaled/offset texture coordinates
-    vec4 textureSpacePosition = gl_Vertex.xyyz;
+    vec4 textureSpacePosition = (gl_Vertex.xyz + splatTextureOffset).xyyz;
     gl_TexCoord[0] = textureSpacePosition * vec4(splatTextureScalesS[0], splatTextureScalesT[0],
         splatTextureScalesS[0], splatTextureScalesT[0]);
     gl_TexCoord[1] = textureSpacePosition * vec4(splatTextureScalesS[1], splatTextureScalesT[1],

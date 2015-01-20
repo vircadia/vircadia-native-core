@@ -10,12 +10,15 @@
 //
 
 #include "PhysicsEngine.h"
-#ifdef USE_BULLET_PHYSICS
-
 #include "ShapeInfoUtil.h"
 #include "ThreadSafeDynamicsWorld.h"
 
-class EntityTree;
+static uint32_t _frameCount;
+
+// static
+uint32_t PhysicsEngine::getFrameCount() {
+    return _frameCount;
+}
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
     :   _collisionConfig(NULL), 
@@ -24,8 +27,7 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
         _constraintSolver(NULL), 
         _dynamicsWorld(NULL),
         _originOffset(offset),
-        _entityPacketSender(NULL),
-        _frameCount(0) {
+        _entityPacketSender(NULL) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -64,7 +66,7 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
             _entityMotionStates.insert(motionState);
         } else {
             // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-            qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+            //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
             delete motionState;
         }
     }
@@ -196,8 +198,6 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
     EntityMotionState::setOutgoingEntityList(&_entitiesToBeSorted);
 }
 
-const float FIXED_SUBSTEP = 1.0f / 60.0f;
-
 void PhysicsEngine::stepSimulation() {
     lock();
     // NOTE: the grand order of operations is:
@@ -210,13 +210,13 @@ void PhysicsEngine::stepSimulation() {
     relayIncomingChangesToSimulation();
 
     const int MAX_NUM_SUBSTEPS = 4;
-    const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * FIXED_SUBSTEP;
+    const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * PHYSICS_ENGINE_FIXED_SUBSTEP;
     float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     // This is step (2).
-    int numSubSteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, FIXED_SUBSTEP);
+    int numSubSteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     _frameCount += (uint32_t)numSubSteps;
     unlock();
 
@@ -257,9 +257,12 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
             case MOTION_TYPE_KINEMATIC: {
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
-                body->setActivationState(DISABLE_DEACTIVATION);
                 body->updateInertiaTensor();
                 motionState->_body = body;
+                motionState->addKinematicController();
+                const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
+                const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
+                body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
                 break;
             }
             case MOTION_TYPE_DYNAMIC: {
@@ -271,9 +274,9 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
                 motionState->updateObjectVelocities();
                 // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
                 // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
-                const float LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-                const float ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-                body->setSleepingThresholds(LINEAR_VELOCITY_THRESHOLD, ANGULAR_VELOCITY_THRESHOLD);
+                const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
+                const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
+                body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
                 break;
             }
             case MOTION_TYPE_STATIC:
@@ -307,6 +310,7 @@ bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
         _shapeManager.releaseShape(shapeInfo);
         delete body;
         motionState->_body = NULL;
+        motionState->removeKinematicController();
         return true;
     }
     return false;
@@ -361,6 +365,7 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
             body->setMassProps(0.0f, btVector3(0.0f, 0.0f, 0.0f));
             body->updateInertiaTensor();
+            motionState->addKinematicController();
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
@@ -377,6 +382,7 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
                 body->updateInertiaTensor();
             }
             body->forceActivationState(ACTIVE_TAG);
+            motionState->removeKinematicController();
             break;
         }
         default: {
@@ -391,6 +397,7 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
             body->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
             body->setAngularVelocity(btVector3(0.0f, 0.0f, 0.0f));
+            motionState->removeKinematicController();
             break;
         }
     }
@@ -400,5 +407,3 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
     body->activate();
 }
-
-#endif // USE_BULLET_PHYSICS

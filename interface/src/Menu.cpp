@@ -13,6 +13,7 @@
 
 #include <QBoxLayout>
 #include <QColorDialog>
+#include <QClipboard>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -123,7 +124,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
                                   appInstance, SLOT(toggleRunningScriptsWidget()));
 
-    addDisabledActionAndSeparator(fileMenu, "Go");
+    addDisabledActionAndSeparator(fileMenu, "Location");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::BookmarkLocation, 0,
                                   this, SLOT(bookmarkLocation()));
     _bookmarksMenu = fileMenu->addMenu(MenuOption::Bookmarks);
@@ -134,20 +135,14 @@ Menu::Menu() :
     _deleteBookmarksMenu->setEnabled(false);
     loadBookmarks();
     addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::NameLocation,
-                                  Qt::CTRL | Qt::Key_N,
-                                  this,
-                                  SLOT(nameLocation()));
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::MyLocations,
-                                  Qt::CTRL | Qt::Key_K,
-                                  this,
-                                  SLOT(toggleLocationList()));
-    addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
                                   Qt::Key_Enter,
                                   this,
                                   SLOT(toggleAddressBar()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
+                                  this, SLOT(copyAddress()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
+                                  this, SLOT(copyPath()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
@@ -348,6 +343,21 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DontFadeOnOctreeServerChanges);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DisableAutoAdjustLOD);
+
+    QMenu* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
+    QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
+    ambientLightGroup->setExclusive(true);
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLightGlobal, 0, true));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight0, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight1, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight2, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight3, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight4, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight5, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight6, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight7, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight8, 0, false));
+    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight9, 0, false));
     
     QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
@@ -409,9 +419,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
 
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
-    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
-        Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
-    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderSpanners, 0, true);
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false);
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderHeightfields, 0, true);
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderDualContourSurfaces, 0, true);
     addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0, this,
         SLOT(showMetavoxelNetworkSimulator()));
@@ -1021,6 +1030,20 @@ void Menu::toggleAddressBar() {
     }
 }
 
+void Menu::copyAddress() {
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString address = addressManager->currentAddress().toString();
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(address);
+}
+
+void Menu::copyPath() {
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString path = addressManager->currentPath();
+    QClipboard* clipboard = QApplication::clipboard();
+    clipboard->setText(path);
+}
+
 void Menu::changeVSync() {
     Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
 }
@@ -1151,66 +1174,6 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
         msgBox.setText(errorString);
         msgBox.exec();
     }    
-}
-
-void Menu::toggleLocationList() {
-    if (!_userLocationsDialog) {
-        JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
-        _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
-    }
-    
-    if (!_userLocationsDialog->isVisible()) {
-        _userLocationsDialog->show();
-    }
-    
-    _userLocationsDialog->raise();
-    _userLocationsDialog->activateWindow();
-    _userLocationsDialog->showNormal();
-    
-}
-
-void Menu::nameLocation() {
-    // check if user is logged in or show login dialog if not
-
-    AccountManager& accountManager = AccountManager::getInstance();
-    
-    if (!accountManager.isLoggedIn()) {
-        QMessageBox msgBox;
-        msgBox.setText("We need to tie this location to your username.");
-        msgBox.setInformativeText("Please login first, then try naming the location again.");
-        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-        msgBox.button(QMessageBox::Ok)->setText("Login");
-        
-        if (msgBox.exec() == QMessageBox::Ok) {
-            loginForCurrentDomain();
-        }
-
-        return;
-    }
-    
-    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    if (domainHandler.getUUID().isNull()) {
-        const QString UNREGISTERED_DOMAIN_MESSAGE = "This domain is not registered with High Fidelity."
-            "\n\nYou cannot create a global location in an unregistered domain.";
-        QMessageBox::critical(this, "Unregistered Domain", UNREGISTERED_DOMAIN_MESSAGE);
-        
-        return;
-    }
-    
-    if (!_newLocationDialog) {
-        JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", DependencyManager::get<AddressManager>().data());
-        _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
-    }
-    
-    if (!_newLocationDialog->isVisible()) {
-        _newLocationDialog->show();
-    }
-    
-    _newLocationDialog->raise();
-    _newLocationDialog->activateWindow();
-    _newLocationDialog->showNormal();
 }
 
 void Menu::toggleLoginMenuItem() {
