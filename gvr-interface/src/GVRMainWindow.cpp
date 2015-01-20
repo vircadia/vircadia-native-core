@@ -9,9 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QInputDialog>
 #include <QtWidgets/QMenuBar>
 
-#include "GVRInterface.h"
+#include <AddressManager.h>
+
 #include "RenderingClient.h"
 
 #include "GVRMainWindow.h"
@@ -31,6 +34,11 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     fileMenu->addAction(goToAddress);
     helpMenu->addAction(aboutQt);
 
-    QObject::connect(goToAddress, &QAction::triggered, qApp->getClient(), &RenderingClient::showAddressBar);
+    QObject::connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
     QObject::connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
+}
+
+void GVRMainWindow::showAddressBar() {
+    QString addressString = QInputDialog::getText(centralWidget(), "Go to Address", "Address");
+    DependencyManager::get<AddressManager>()->handleLookupString(addressString);
 }

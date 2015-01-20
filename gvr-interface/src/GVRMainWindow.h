@@ -18,6 +18,8 @@ class GVRMainWindow : public QMainWindow {
     Q_OBJECT
 public:
     GVRMainWindow(QWidget* parent = 0);
+public slots:
+    void showAddressBar();
 };
 
 #endif // hifi_GVRMainWindow_h

@@ -19,8 +19,6 @@ class RenderingClient : public Client {
     Q_OBJECT
 public:
     RenderingClient(QObject* parent = 0);
-public slots:
-    void showAddressBar();
 };
 
 #endif // hifi_RenderingClient_h

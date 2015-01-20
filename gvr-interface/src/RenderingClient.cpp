@@ -11,19 +11,10 @@
 
 #include <QtWidgets/QInputDialog>
 
-#include "GVRInterface.h"
-#include "GVRMainWindow.h"
-
 #include "RenderingClient.h"
 
 RenderingClient::RenderingClient(QObject *parent) :
     Client(parent)
 {
     
-}
-
-void RenderingClient::showAddressBar() {
-#ifdef Q_OS_ANDROID
-    QString addressString = QInputDialog::getText(qApp->getMainWindow()->centralWidget(), "Go to Address", "Address");
-#endif
 }

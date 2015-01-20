@@ -27,7 +27,7 @@
 
 #include "AccountManager.h"
 
-const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
+const bool VERBOSE_HTTP_REQUEST_DEBUGGING = true;
 
 AccountManager& AccountManager::getInstance(bool forceReset) {
     static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());
@@ -59,7 +59,7 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
 }
 
 AccountManager::AccountManager() :
-    _authURL(),
+    _authURL(DEFAULT_NODE_AUTH_URL),
     _pendingCallbackMap(),
     _accountInfo(),
     _shouldPersistToSettingsFile(true)

@@ -15,7 +15,6 @@
 #include <QtWidgets/QApplication>
 
 class RenderingClient;
-class GVRMainWindow;
 
 #if defined(qApp)
 #undef qApp
@@ -26,14 +25,10 @@ class GVRInterface : public QApplication {
     Q_OBJECT
 public:
     GVRInterface(int argc, char* argv[]);
-    
-    void setMainWindow(GVRMainWindow* mainWindow) { _mainWindow = mainWindow; }
-    GVRMainWindow* getMainWindow() { return _mainWindow; }
-    
+      
     RenderingClient* getClient() { return _client; }
     
 private:
-    GVRMainWindow* _mainWindow;
     RenderingClient* _client;
 };
 
