@@ -101,7 +101,6 @@
                     currentSortColumn = column;
                     currentSortOrder = "asc";
                 }
-                console.log(currentSortColumn, currentSortOrder);
                 elSortOrder[column].innerHTML = currentSortOrder == "asc" ? ASC_STRING : DESC_STRING;
                 entityList.sort(currentSortColumn, { order: currentSortOrder });
             }
