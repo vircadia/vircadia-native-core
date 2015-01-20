@@ -27,7 +27,7 @@
 
 #include "AccountManager.h"
 
-const bool VERBOSE_HTTP_REQUEST_DEBUGGING = true;
+const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
 AccountManager& AccountManager::getInstance(bool forceReset) {
     static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());
