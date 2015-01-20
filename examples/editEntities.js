@@ -725,6 +725,7 @@ function cleanupModelMenus() {
         Menu.removeMenuItem("Edit", "Delete");
     }
 
+    Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Paste Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
@@ -733,8 +734,6 @@ function cleanupModelMenus() {
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
     Menu.removeMenuItem("File", "Import Models");
-
-    Menu.removeMenuItem("Tools", "Entity List...");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
