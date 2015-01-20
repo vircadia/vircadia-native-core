@@ -87,16 +87,72 @@ var heights = [];
 var myAlpha = [];
 var arrays = [];
 
-//  When our script shuts down, we should clean up all of our overlays
-function scriptEnding() {
-    var i;
-
-    for (i = 0; i < notifications.length; i++) {
-        Overlays.deleteOverlay(notifications[i]);
-        Overlays.deleteOverlay(buttons[i]);
-    }
+//  push data from above to the 2 dimensional array
+function createArrays(notice, button, createTime, height, myAlpha) {
+    arrays.push([notice, button, createTime, height, myAlpha]);
 }
-Script.scriptEnding.connect(scriptEnding);
+
+//  This handles the final dismissal of a notification after fading
+function dismiss(firstNoteOut, firstButOut, firstOut) {
+    Overlays.deleteOverlay(firstNoteOut);
+    Overlays.deleteOverlay(firstButOut);
+    notifications.splice(firstOut, 1);
+    buttons.splice(firstOut, 1);
+    times.splice(firstOut, 1);
+    heights.splice(firstOut, 1);
+    myAlpha.splice(firstOut, 1);
+}
+
+function fadeIn(noticeIn, buttonIn) {
+    var q = 0,
+        qFade,
+        pauseTimer = null;
+
+    pauseTimer = Script.setInterval(function () {
+        q++;
+        qFade = q / 10.0;
+        Overlays.editOverlay(noticeIn, { alpha: qFade });
+        Overlays.editOverlay(buttonIn, { alpha: qFade });
+        if (q >= 9.0) {
+            Script.clearInterval(pauseTimer);
+        }
+    }, 10);
+}
+
+//  this fades the notification ready for dismissal, and removes it from the arrays
+function fadeOut(noticeOut, buttonOut, arraysOut) {
+    var r = 9.0,
+        rFade,
+        pauseTimer = null;
+
+    pauseTimer = Script.setInterval(function () {
+        r--;
+        rFade = r / 10.0;
+        Overlays.editOverlay(noticeOut, { alpha: rFade });
+        Overlays.editOverlay(buttonOut, { alpha: rFade });
+        if (r < 0) {
+            dismiss(noticeOut, buttonOut, arraysOut);
+            arrays.splice(arraysOut, 1);
+            ready = true;
+            Script.clearInterval(pauseTimer);
+        }
+    }, 20);
+}
+
+//  Pushes data to each array and sets up data for 2nd dimension array 
+//  to handle auxiliary data not carried by the overlay class
+//  specifically notification "heights", "times" of creation, and . 
+function Notify(notice, button, height) {
+    notifications.push((Overlays.addOverlay("text", notice)));
+    buttons.push((Overlays.addOverlay("image", button)));
+    times.push(new Date().getTime() / 1000);
+    height = height + 1.0;
+    heights.push(height);
+    myAlpha.push(0);
+    var last = notifications.length - 1;
+    createArrays(notifications[last], buttons[last], times[last], heights[last], myAlpha[last]);
+    fadeIn(notifications[last], buttons[last])
+}
 
 //  This function creates and sizes the overlays
 function createNotification(text) {
@@ -152,101 +208,6 @@ function createNotification(text) {
     Notify(overlayProperties, buttonProperties, height);
 }
 
-//  Pushes data to each array and sets up data for 2nd dimension array 
-//  to handle auxiliary data not carried by the overlay class
-//  specifically notification "heights", "times" of creation, and . 
-function Notify(notice, button, height) {
-    notifications.push((Overlays.addOverlay("text", notice)));
-    buttons.push((Overlays.addOverlay("image", button)));
-    times.push(new Date().getTime() / 1000);
-    height = height + 1.0;
-    heights.push(height);
-    myAlpha.push(0);
-    var last = notifications.length - 1;
-    createArrays(notifications[last], buttons[last], times[last], heights[last], myAlpha[last]);
-    fadeIn(notifications[last], buttons[last])
-}
-
-function fadeIn(noticeIn, buttonIn) {
-    var q = 0,
-        qFade,
-        pauseTimer = null;
-
-    pauseTimer = Script.setInterval(function () {
-        q++;
-        qFade = q / 10.0;
-        Overlays.editOverlay(noticeIn, {alpha: qFade});
-        Overlays.editOverlay(buttonIn, {alpha: qFade});
-        if (q >= 9.0) {
-            Script.clearInterval(pauseTimer);
-        }
-    }, 10);
-}
-
-
-//  push data from above to the 2 dimensional array
-function createArrays(notice, button, createTime, height, myAlpha) {
-    arrays.push([notice, button, createTime, height, myAlpha]);
-}
-
-//  handles mouse clicks on buttons
-function mousePressEvent(event) {
-    var clickedOverlay,
-        i;
-
-    clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y}); //identify which overlay was clicked
-
-    for (i = 0; i < buttons.length; i++) { //if user clicked a button
-        if (clickedOverlay == buttons[i]) {
-            Overlays.deleteOverlay(notifications[i]);
-            Overlays.deleteOverlay(buttons[i]);
-            notifications.splice(i, 1);
-            buttons.splice(i, 1);
-            times.splice(i, 1);
-            heights.splice(i, 1);
-            myAlpha.splice(i, 1);
-            arrays.splice(i, 1);
-        }
-    }
-}
-
-//  Control key remains active only while key is held down
-function keyReleaseEvent(key) {
-    if (key.key == 16777249) {
-        ctrlIsPressed = false;
-    }
-}
-
-//  Triggers notification on specific key driven events
-function keyPressEvent(key) {
-    var numUsers,
-        welcome,
-        noteString;
-
-    if (key.key == 16777249) {
-        ctrlIsPressed = true;
-    }
-
-    if (key.text == "q") { //queries number of users online
-        numUsers = GlobalServices.onlineUsers.length;
-        welcome = "There are " + numUsers + " users online now.";
-        createNotification(welcome);
-    }
-
-    if (key.text == "s") {
-        if (ctrlIsPressed == true) {
-            noteString = "Snapshot taken.";
-            createNotification(noteString);
-        }
-    }
-}
-
-//  formats string to add newline every 43 chars
-function wordWrap(str) {
-    var result = stringDivider(str, 43.0, "\n");
-    createNotification(result);
-}
-
 //  wraps whole word to newline
 function stringDivider(str, slotWidth, spaceReplacer) {
     var p,
@@ -266,6 +227,12 @@ function stringDivider(str, slotWidth, spaceReplacer) {
     return str;
 }
 
+//  formats string to add newline every 43 chars
+function wordWrap(str) {
+    var result = stringDivider(str, 43.0, "\n");
+    createNotification(result);
+}
+
 //  This fires a notification on window resize
 function checkSize() {
     if ((Window.innerWidth != ourWidth) || (Window.innerHeight != ourHeight)) {
@@ -277,6 +244,72 @@ function checkSize() {
         buttonLocationX = overlayLocationX + (width - 35.0);
         createNotification(windowResize)
     }
+}
+
+function update() {
+    var nextOverlay,
+        noticeOut,
+        buttonOut,
+        arraysOut,
+        i,
+        j,
+        k;
+
+    frame++;
+    if ((frame % 60.0) == 0) { // only update once a second
+        checkSize(); // checks for size change to trigger windowResize notification
+        locationY = 20.0;
+        for (i = 0; i < arrays.length; i++) { //repositions overlays as others fade
+            nextOverlay = Overlays.getOverlayAtPoint({ x: overlayLocationX, y: locationY });
+            Overlays.editOverlay(notifications[i], { x: overlayLocationX, y: locationY });
+            Overlays.editOverlay(buttons[i], { x: buttonLocationX, y: locationY + 12.0 });
+            locationY = locationY + arrays[i][3];
+        }
+    }
+
+    //  This checks the age of the notification and prepares to fade it after 9.0 seconds (var persistTime - 1)
+    for (i = 0; i < arrays.length; i++) {
+        if (ready) {
+            j = arrays[i][2];
+            k = j + persistTime;
+            if (k < (new Date().getTime() / 1000)) {
+                ready = false;
+                noticeOut = arrays[i][0];
+                buttonOut = arrays[i][1];
+                arraysOut = i;
+                fadeOut(noticeOut, buttonOut, arraysOut);
+            }
+        }
+    }
+}
+
+var STARTUP_TIMEOUT = 500,  // ms
+    startingUp = true,
+    startupTimer = null;
+
+//  This reports the number of users online at startup
+function reportUsers() {
+    var welcome;
+
+    welcome = "Welcome! There are " + GlobalServices.onlineUsers.length + " users online now.";
+    createNotification(welcome);
+}
+
+function finishStartup() {
+    startingUp = false;
+    Script.clearTimeout(startupTimer);
+    reportUsers();
+}
+
+function isStartingUp() {
+    // Is starting up until get no checks that it is starting up for STARTUP_TIMEOUT
+    if (startingUp) {
+        if (startupTimer) {
+            Script.clearTimeout(startupTimer);
+        }
+        startupTimer = Script.setTimeout(finishStartup, STARTUP_TIMEOUT);
+    }
+    return startingUp;
 }
 
 //  Triggers notification if a user logs on or off
@@ -325,103 +358,66 @@ function onMuteStateChanged() {
     createNotification(muteString);
 }
 
-function update() {
-    var nextOverlay,
-        noticeOut,
-        buttonOut,
-        arraysOut,
-        i,
-        j,
-        k;
+//  handles mouse clicks on buttons
+function mousePressEvent(event) {
+    var clickedOverlay,
+        i;
 
-    frame++;
-    if ((frame % 60.0) == 0) { // only update once a second
-        checkSize(); // checks for size change to trigger windowResize notification
-        locationY = 20.0;
-        for (i = 0; i < arrays.length; i++) { //repositions overlays as others fade
-            nextOverlay = Overlays.getOverlayAtPoint({ x: overlayLocationX, y: locationY });
-            Overlays.editOverlay(notifications[i], { x: overlayLocationX, y: locationY});
-            Overlays.editOverlay(buttons[i], { x: buttonLocationX, y: locationY + 12.0});
-            locationY = locationY + arrays[i][3];
-        }
-    }
+    clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y }); //identify which overlay was clicked
 
-    //  This checks the age of the notification and prepares to fade it after 9.0 seconds (var persistTime - 1)
-    for (i = 0; i < arrays.length; i++) {
-        if (ready) {
-            j = arrays[i][2];
-            k = j + persistTime;
-            if (k  < (new Date().getTime() / 1000)) {
-                ready = false;
-                noticeOut = arrays[i][0];
-                buttonOut = arrays[i][1];
-                arraysOut = i;
-                fadeOut(noticeOut, buttonOut, arraysOut);
-            }
+    for (i = 0; i < buttons.length; i++) { //if user clicked a button
+        if (clickedOverlay == buttons[i]) {
+            Overlays.deleteOverlay(notifications[i]);
+            Overlays.deleteOverlay(buttons[i]);
+            notifications.splice(i, 1);
+            buttons.splice(i, 1);
+            times.splice(i, 1);
+            heights.splice(i, 1);
+            myAlpha.splice(i, 1);
+            arrays.splice(i, 1);
         }
     }
 }
 
-//  this fades the notification ready for dismissal, and removes it from the arrays
-function fadeOut(noticeOut, buttonOut, arraysOut) {
-    var r = 9.0,
-        rFade,
-        pauseTimer = null;
-
-    pauseTimer = Script.setInterval(function () {
-        r--;
-        rFade = r / 10.0;
-        Overlays.editOverlay(noticeOut, { alpha: rFade });
-        Overlays.editOverlay(buttonOut, { alpha: rFade });
-        if (r < 0) {
-            dismiss(noticeOut, buttonOut, arraysOut);
-            arrays.splice(arraysOut, 1);
-            ready = true;
-            Script.clearInterval(pauseTimer);
-        }
-    }, 20);
+//  Control key remains active only while key is held down
+function keyReleaseEvent(key) {
+    if (key.key == 16777249) {
+        ctrlIsPressed = false;
+    }
 }
 
-//  This handles the final dismissal of a notification after fading
-function dismiss(firstNoteOut, firstButOut, firstOut) {
-    Overlays.deleteOverlay(firstNoteOut);
-    Overlays.deleteOverlay(firstButOut);
-    notifications.splice(firstOut, 1);
-    buttons.splice(firstOut, 1);
-    times.splice(firstOut, 1);
-    heights.splice(firstOut, 1);
-    myAlpha.splice(firstOut, 1);
-}
-
-//  This reports the number of users online at startup
-function reportUsers() {
+//  Triggers notification on specific key driven events
+function keyPressEvent(key) {
     var numUsers,
-        welcome;
+        welcome,
+        noteString;
 
-    numUsers = GlobalServices.onlineUsers.length;
-    welcome = "Welcome! There are " + numUsers + " users online now.";
-    createNotification(welcome);
-}
-
-var STARTUP_TIMEOUT = 500,  // ms
-    startingUp = true,
-    startupTimer = null;
-
-function finishStartup() {
-    startingUp = false;
-    Script.clearTimeout(startupTimer);
-    reportUsers();
-}
-
-function isStartingUp() {
-    // Is starting up until get no checks that it is starting up for STARTUP_TIMEOUT
-    if (startingUp) {
-        if (startupTimer) {
-            Script.clearTimeout(startupTimer);
-        }
-        startupTimer = Script.setTimeout(finishStartup, STARTUP_TIMEOUT);
+    if (key.key == 16777249) {
+        ctrlIsPressed = true;
     }
-    return startingUp;
+
+    if (key.text == "q") { //queries number of users online
+        numUsers = GlobalServices.onlineUsers.length;
+        welcome = "There are " + numUsers + " users online now.";
+        createNotification(welcome);
+    }
+
+    if (key.text == "s") {
+        if (ctrlIsPressed == true) {
+            noteString = "Snapshot taken.";
+            createNotification(noteString);
+        }
+    }
+}
+
+//  When our script shuts down, we should clean up all of our overlays
+function scriptEnding() {
+    var i;
+
+    for (i = 0; i < notifications.length; i++) {
+        Overlays.deleteOverlay(notifications[i]);
+        Overlays.deleteOverlay(buttons[i]);
+    }
 }
 
 AudioDevice.muteToggled.connect(onMuteStateChanged);
@@ -431,3 +427,4 @@ GlobalServices.onlineUsersChanged.connect(onOnlineUsersChanged);
 GlobalServices.incomingMessage.connect(onIncomingMessage);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.update.connect(update);
+Script.scriptEnding.connect(scriptEnding);
