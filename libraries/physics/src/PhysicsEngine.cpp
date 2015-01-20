@@ -66,7 +66,7 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
             _entityMotionStates.insert(motionState);
         } else {
             // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-            qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+            //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
             delete motionState;
         }
     }

@@ -135,7 +135,7 @@ void SharedObject::writeExtra(Bitstream& out) const {
     // nothing by default
 }
 
-void SharedObject::readExtra(Bitstream& in) {
+void SharedObject::readExtra(Bitstream& in, bool reread) {
     // nothing by default
 }
 
@@ -143,7 +143,7 @@ void SharedObject::writeExtraDelta(Bitstream& out, const SharedObject* reference
     // nothing by default
 }
 
-void SharedObject::readExtraDelta(Bitstream& in, const SharedObject* reference) {
+void SharedObject::readExtraDelta(Bitstream& in, const SharedObject* reference, bool reread) {
     // nothing by default
 }
 
