@@ -12,14 +12,12 @@
 #ifndef hifi_GVRInterface_h
 #define hifi_GVRInterface_h
 
-#include <QtGui/qguiapplication.h>
+#include <QtWidgets/QApplication>
 
-class GVRInterface : public QGuiApplication {
+class GVRInterface : public QApplication {
     Q_OBJECT
 public:
     GVRInterface(int argc, char* argv[]);
-private slots:
-    void processDatagrams();
 };
 
 #endif // hifi_GVRInterface_h

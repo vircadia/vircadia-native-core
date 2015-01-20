@@ -72,10 +72,22 @@ macro(qt_create_apk)
     else ()
       if(NOT _DEP MATCHES "Qt5::.*")
         get_property(_DEP_LOCATION TARGET ${_DEP} PROPERTY "LOCATION_${CMAKE_BUILD_TYPE}")
+        
+        # recurisvely add libraries which are dependencies of this target
+        get_property(_DEP_DEPENDENCIES TARGET ${_DEP} PROPERTY INTERFACE_LINK_LIBRARIES)
+      
+        foreach(_SUB_DEP IN LISTS _DEP_DEPENDENCIES)
+          if (NOT TARGET ${_SUB_DEP} AND NOT _SUB_DEP MATCHES "Qt5::.*")
+            list(APPEND _DEPS_LIST ${_SUB_DEP})
+          endif()
+        endforeach()
+        
         list(APPEND _DEPS_LIST ${_DEP_LOCATION})
       endif()
     endif ()
   endforeach()
+  
+  list(REMOVE_DUPLICATES _DEPS_LIST)
   
   # just copy static libs to apk libs folder - don't add to deps list
   foreach(_LOCATED_DEP IN LISTS _DEPS_LIST)

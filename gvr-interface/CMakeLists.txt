@@ -6,7 +6,7 @@ set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
 set(BUILD_SHARED_LIBS ON)
 
-setup_hifi_library()
+setup_hifi_library(Gui Widgets)
 
 include_glm()
 
