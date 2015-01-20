@@ -3678,9 +3678,18 @@ void Heightfield::writeExtra(Bitstream& out) const {
     _root->write(state);
 }
 
-void Heightfield::readExtra(Bitstream& in) {
+void Heightfield::readExtra(Bitstream& in, bool reread) {
     if (getWillBeVoxelized()) {
-        in >> _height >> _color >> _material >> _stack;
+        if (reread) {
+            HeightfieldHeightPointer height;
+            HeightfieldColorPointer color;
+            HeightfieldMaterialPointer material;
+            HeightfieldStackPointer stack;
+            in >> height >> color >> material >> stack;
+            
+        } else {
+            in >> _height >> _color >> _material >> _stack;
+        }
         return;
     }
     MetavoxelLOD lod;
@@ -3692,7 +3701,9 @@ void Heightfield::readExtra(Bitstream& in) {
     
     HeightfieldNodePointer root(new HeightfieldNode());
     root->read(state);
-    setRoot(root);
+    if (!reread) {
+        setRoot(root);
+    }
 }
 
 void Heightfield::writeExtraDelta(Bitstream& out, const SharedObject* reference) const {
@@ -3716,7 +3727,7 @@ void Heightfield::writeExtraDelta(Bitstream& out, const SharedObject* reference)
     }    
 }
 
-void Heightfield::readExtraDelta(Bitstream& in, const SharedObject* reference) {
+void Heightfield::readExtraDelta(Bitstream& in, const SharedObject* reference, bool reread) {
     MetavoxelLOD lod, referenceLOD;
     if (in.getContext()) {
         MetavoxelStreamBase* base = static_cast<MetavoxelStreamBase*>(in.getContext());
@@ -3726,16 +3737,21 @@ void Heightfield::readExtraDelta(Bitstream& in, const SharedObject* reference) {
     HeightfieldStreamBase base = { in, lod, referenceLOD };
     HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
     
-    setRoot(static_cast<const Heightfield*>(reference)->getRoot());
     bool changed;
     in >> changed;
     if (changed) {
         HeightfieldNodePointer root(new HeightfieldNode());
         root->readDelta(static_cast<const Heightfield*>(reference)->getRoot(), state);
-        setRoot(root);
-    
+        if (!reread) {
+            setRoot(root);
+        }
     } else if (state.becameSubdividedOrCollapsed()) {
-        setRoot(HeightfieldNodePointer(_root->readSubdivision(state)));
+        HeightfieldNodePointer root(_root->readSubdivision(state));
+        if (!reread) {
+            setRoot(root);
+        }
+    } else if (!reread) {
+        setRoot(static_cast<const Heightfield*>(reference)->getRoot());
     }
 }
 
