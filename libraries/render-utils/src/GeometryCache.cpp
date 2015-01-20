@@ -479,11 +479,18 @@ void GeometryCache::renderCone(float base, float height, int slices, int stacks)
 }
 
 void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& color) {
-    QOpenGLBuffer& buffer = _gridBuffers[IntPair(xDivisions, yDivisions)];
+    qDebug() << "GeometryCache::renderGrid(xDivisions["<<xDivisions<<"], yDivisions["<<yDivisions<<"])";
+
+    IntPair key(xDivisions, yDivisions);
+    Vec3Pair colorKey(glm::vec3(color.x, color.y, yDivisions),glm::vec3(color.z, color.y, xDivisions));
+
     int vertices = (xDivisions + 1 + yDivisions + 1) * 2;
-    if (!buffer.isCreated()) {
+    if (!_gridBuffers.contains(key)) {
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+
         GLfloat* vertexData = new GLfloat[vertices * 2];
         GLfloat* vertex = vertexData;
+
         for (int i = 0; i <= xDivisions; i++) {
             float x = (float)i / xDivisions;
         
@@ -502,26 +509,64 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
             *(vertex++) = 1.0f;
             *(vertex++) = y;
         }
-        buffer.create();
-        buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-        buffer.bind();
-        buffer.allocate(vertexData, vertices * 2 * sizeof(GLfloat));
+
+        verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Buffer::Byte*) vertexData);
         delete[] vertexData;
         
-    } else {
-        buffer.bind();
+        _gridBuffers[key] = verticesBuffer;
     }
-    glEnableClientState(GL_VERTEX_ARRAY);
+
+    if (!_gridColors.contains(colorKey)) {
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        _gridColors[colorKey] = colorBuffer;
+
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+
+        int* colorData = new int[vertices];
+        int* colorDataAt = colorData;
+                            
+                            
+        for(int v = 0; v < vertices; v++) {
+            *(colorDataAt++) = compactColor;
+        }
+
+        colorBuffer->append(sizeof(int) * vertices, (gpu::Buffer::Byte*) colorData);
+        delete[] colorData;
+    }
+    gpu::BufferPointer verticesBuffer = _gridBuffers[key];
+    gpu::BufferPointer colorBuffer = _gridColors[colorKey];
+
+    const int VERTICES_SLOT = 0;
+    const int COLOR_SLOT = 1;
+    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
     
-    glVertexPointer(2, GL_FLOAT, 0, 0);
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+    gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
+    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
     
-    glDrawArrays(GL_LINES, 0, vertices);
-    
+    gpu::Batch batch;
+
+    batch.setInputFormat(streamFormat);
+    batch.setInputBuffer(VERTICES_SLOT, verticesView);
+    batch.setInputBuffer(COLOR_SLOT, colorView);
+    batch.draw(gpu::LINES, vertices, 0);
+
+    gpu::GLBackend::renderBatch(batch);
+
     glDisableClientState(GL_VERTEX_ARRAY);
-    
-    buffer.release();
+    glDisableClientState(GL_COLOR_ARRAY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 }
 
+// TODO: properly handle the x,y,w,h changing for an ID
+// TODO: why do we seem to create extra BatchItemDetails when we resize the window?? what's that??
 void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
     qDebug() << "GeometryCache::renderGrid(x["<<x<<"], "
             "y["<<y<<"],"
@@ -536,7 +581,6 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
     Vec3Pair colorKey(glm::vec3(color.x, color.y, rows),glm::vec3(color.z, color.y, cols));
 
     int vertices = (cols + 1 + rows + 1) * 2;
-
     if ((registered && !_registeredAlternateGridBuffers.contains(id)) || (!registered && !_alternateGridBuffers.contains(key))) {
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
 

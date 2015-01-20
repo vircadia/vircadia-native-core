@@ -254,12 +254,7 @@ private:
 
     QHash<IntPair, BufferDetails> _colors;
 
-    QHash<IntPair, QOpenGLBuffer> _gridBuffers;
-
-    //QHash<int, QOpenGLBuffer> _registeredAlternateGridBuffers;
-    //QHash<Vec3Pair, QOpenGLBuffer> _alternateGridBuffers;
-    //QHash<int, Vec3Pair> _lastRegisteredGrid;
-
+    QHash<IntPair, gpu::BufferPointer> _gridBuffers;
     QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
