@@ -11,8 +11,10 @@
 
 #include <QDateTime>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
-#include <QStandardPaths>
+#include <QImage>
+#include <QTemporaryFile>
 
 #include <AccountManager.h>
 #include <Application.h>
@@ -37,8 +39,6 @@ const QString ORIENTATION_Z = "orientation-z";
 const QString ORIENTATION_W = "orientation-w";
 
 const QString DOMAIN_KEY = "domain";
-
-QString Snapshot::_snapshotsLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     
@@ -122,7 +122,7 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
     const int IMAGE_QUALITY = 100;
     
     if (!isTemporary) {
-        QString snapshotFullPath = getSnapshotsLocation();
+        QString snapshotFullPath = SettingHandles::snapshotsLocation.get();
         
         if (!snapshotFullPath.endsWith(QDir::separator())) {
             snapshotFullPath.append(QDir::separator());
@@ -150,15 +150,6 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
         
         return imageTempFile;
     }
-}
-
-QString Snapshot::getSnapshotsLocation() {
-    if (_snapshotsLocation.isNull() ||
-        _snapshotsLocation.isEmpty() ||
-        QDir(_snapshotsLocation).exists() == false) {
-        return QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    }
-    return _snapshotsLocation;
 }
 
 

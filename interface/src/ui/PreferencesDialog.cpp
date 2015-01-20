@@ -121,7 +121,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
-    ui.snapshotLocationEdit->setText(Snapshot::getSnapshotsLocation());
+    ui.snapshotLocationEdit->setText(SettingHandles::snapshotsLocation.get());
 
     ui.scriptsLocationEdit->setText(qApp->getScriptsLocation());
 
@@ -219,7 +219,7 @@ void PreferencesDialog::savePreferences() {
     }
 
     if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
-        Snapshot::setSnapshotsLocation(ui.snapshotLocationEdit->text());
+        SettingHandles::snapshotsLocation.set(ui.snapshotLocationEdit->text());
     }
 
     if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
