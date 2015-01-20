@@ -555,13 +555,13 @@ Menu::Menu() {
 #endif
 }
 
-void Menu::loadAction(QSettings& settings, QAction& action) {
+void Menu::loadAction(Settings& settings, QAction& action) {
     if (action.isChecked() != settings.value(action.text(), action.isChecked()).toBool()) {
         action.trigger();
     }
 }
 
-void Menu::saveAction(QSettings& settings, QAction& action) {
+void Menu::saveAction(Settings& settings, QAction& action) {
     settings.setValue(action.text(),  action.isChecked());
 }
 
@@ -572,12 +572,12 @@ void Menu::scanMenuBar(settingsAction modifySetting) {
     }
 }
 
-void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, QSettings& settings) {
+void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings) {
     settings.beginGroup(menu.title());
     foreach (QAction* action, menu.actions()) {
         if (action->menu()) {
             scanMenu(*action->menu(), modifySetting, settings);
-        } else (action->isCheckable()) {
+        } else if (action->isCheckable()) {
             modifySetting(settings, *action);
         }
     }
