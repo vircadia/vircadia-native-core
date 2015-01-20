@@ -109,7 +109,7 @@ function fadeIn(noticeIn, buttonIn) {
         pauseTimer = null;
 
     pauseTimer = Script.setInterval(function () {
-        q++;
+        q += 1;
         qFade = q / 10.0;
         Overlays.editOverlay(noticeIn, { alpha: qFade });
         Overlays.editOverlay(buttonIn, { alpha: qFade });
@@ -126,7 +126,7 @@ function fadeOut(noticeOut, buttonOut, arraysOut) {
         pauseTimer = null;
 
     pauseTimer = Script.setInterval(function () {
-        r--;
+        r -= 1;
         rFade = r / 10.0;
         Overlays.editOverlay(noticeOut, { alpha: rFade });
         Overlays.editOverlay(buttonOut, { alpha: rFade });
@@ -142,7 +142,7 @@ function fadeOut(noticeOut, buttonOut, arraysOut) {
 //  Pushes data to each array and sets up data for 2nd dimension array 
 //  to handle auxiliary data not carried by the overlay class
 //  specifically notification "heights", "times" of creation, and . 
-function Notify(notice, button, height) {
+function notify(notice, button, height) {
     notifications.push((Overlays.addOverlay("text", notice)));
     buttons.push((Overlays.addOverlay("image", button)));
     times.push(new Date().getTime() / 1000);
@@ -172,7 +172,7 @@ function createNotification(text) {
         breaks = count;
     }
     extraLine = breaks * 16.0;
-    for (i = 0; i < heights.length; i++) {
+    for (i = 0; i < heights.length; i += 1) {
         stack = stack + heights[i];
     }
 
@@ -205,7 +205,7 @@ function createNotification(text) {
         alpha: backgroundAlpha
     };
 
-    Notify(overlayProperties, buttonProperties, height);
+    notify(overlayProperties, buttonProperties, height);
 }
 
 //  wraps whole word to newline
@@ -235,7 +235,7 @@ function wordWrap(str) {
 
 //  This fires a notification on window resize
 function checkSize() {
-    if ((Window.innerWidth != ourWidth) || (Window.innerHeight != ourHeight)) {
+    if ((Window.innerWidth !== ourWidth) || (Window.innerHeight !== ourHeight)) {
         var windowResize = "Window has been resized";
         ourWidth = Window.innerWidth;
         ourHeight = Window.innerHeight;
@@ -255,11 +255,11 @@ function update() {
         j,
         k;
 
-    frame++;
-    if ((frame % 60.0) == 0) { // only update once a second
+    frame += 1;
+    if ((frame % 60.0) === 0) { // only update once a second
         checkSize(); // checks for size change to trigger windowResize notification
         locationY = 20.0;
-        for (i = 0; i < arrays.length; i++) { //repositions overlays as others fade
+        for (i = 0; i < arrays.length; i += 1) { //repositions overlays as others fade
             nextOverlay = Overlays.getOverlayAtPoint({ x: overlayLocationX, y: locationY });
             Overlays.editOverlay(notifications[i], { x: overlayLocationX, y: locationY });
             Overlays.editOverlay(buttons[i], { x: buttonLocationX, y: locationY + 12.0 });
@@ -268,7 +268,7 @@ function update() {
     }
 
     //  This checks the age of the notification and prepares to fade it after 9.0 seconds (var persistTime - 1)
-    for (i = 0; i < arrays.length; i++) {
+    for (i = 0; i < arrays.length; i += 1) {
         if (ready) {
             j = arrays[i][2];
             k = j + persistTime;
@@ -318,13 +318,13 @@ function onOnlineUsersChanged(users) {
 
     if (!isStartingUp()) {  // Skip user notifications at startup.
         for (user in users) {
-            if (last_users.indexOf(users[user]) == -1.0) {
+            if (last_users.indexOf(users[user]) === -1.0) {
                 createNotification(users[user] + " has joined");
             }
         }
 
         for (user in last_users) {
-            if (users.indexOf(last_users[user]) == -1.0) {
+            if (users.indexOf(last_users[user]) === -1.0) {
                 createNotification(last_users[user] + " has left");
             }
         }
@@ -365,8 +365,8 @@ function mousePressEvent(event) {
 
     clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y }); //identify which overlay was clicked
 
-    for (i = 0; i < buttons.length; i++) { //if user clicked a button
-        if (clickedOverlay == buttons[i]) {
+    for (i = 0; i < buttons.length; i += 1) { //if user clicked a button
+        if (clickedOverlay === buttons[i]) {
             Overlays.deleteOverlay(notifications[i]);
             Overlays.deleteOverlay(buttons[i]);
             notifications.splice(i, 1);
@@ -381,7 +381,7 @@ function mousePressEvent(event) {
 
 //  Control key remains active only while key is held down
 function keyReleaseEvent(key) {
-    if (key.key == 16777249) {
+    if (key.key === 16777249) {
         ctrlIsPressed = false;
     }
 }
@@ -392,18 +392,18 @@ function keyPressEvent(key) {
         welcome,
         noteString;
 
-    if (key.key == 16777249) {
+    if (key.key === 16777249) {
         ctrlIsPressed = true;
     }
 
-    if (key.text == "q") { //queries number of users online
+    if (key.text === "q") { //queries number of users online
         numUsers = GlobalServices.onlineUsers.length;
         welcome = "There are " + numUsers + " users online now.";
         createNotification(welcome);
     }
 
-    if (key.text == "s") {
-        if (ctrlIsPressed == true) {
+    if (key.text === "s") {
+        if (ctrlIsPressed === true) {
             noteString = "Snapshot taken.";
             createNotification(noteString);
         }
@@ -414,7 +414,7 @@ function keyPressEvent(key) {
 function scriptEnding() {
     var i;
 
-    for (i = 0; i < notifications.length; i++) {
+    for (i = 0; i < notifications.length; i += 1) {
         Overlays.deleteOverlay(notifications[i]);
         Overlays.deleteOverlay(buttons[i]);
     }
