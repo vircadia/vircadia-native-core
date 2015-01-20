@@ -22,7 +22,8 @@ varying vec4 alphaValues;
 
 void main(void) {
     // blend the splat textures
-    gl_FragColor = vec4(gl_Color.rgb, step(0.5, gl_Color.a)) * (texture2D(diffuseMaps[0], gl_TexCoord[0].st) * alphaValues.x +
+    gl_FragColor = vec4(gl_Color.rgb, step(1.0, gl_Color.a + 1.0 / 512.0)) *
+        (texture2D(diffuseMaps[0], gl_TexCoord[0].st) * alphaValues.x +
         texture2D(diffuseMaps[1], gl_TexCoord[1].st) * alphaValues.y +
         texture2D(diffuseMaps[2], gl_TexCoord[2].st) * alphaValues.z +
         texture2D(diffuseMaps[3], gl_TexCoord[3].st) * alphaValues.w);
