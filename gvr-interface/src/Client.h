@@ -14,10 +14,16 @@
 
 #include <QtCore/QObject>
 
+class QThread;
+
 class Client : public QObject {
     Q_OBJECT
 public:
     Client(QObject* parent = 0);
+private slots:
+    void processDatagrams();
+private:
+    void setupNetworking();
 };
 
 #endif // hifi_Client_h
