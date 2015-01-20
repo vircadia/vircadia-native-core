@@ -16,26 +16,26 @@
 
 #include "LODManager.h"
 
-namespace SettingsKey {
+namespace SettingHandles {
     const SettingHandle<int> boundaryLevelAdjust("boundaryLevelAdjust", 0);
     const SettingHandle<float> octreeSizeScale("octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
 }
 
 float LODManager::getOctreeSizeScale() const {
-    return SettingsKey::octreeSizeScale.get();
+    return SettingHandles::octreeSizeScale.get();
 }
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
-    SettingsKey::octreeSizeScale.set(sizeScale);
+    SettingHandles::octreeSizeScale.set(sizeScale);
     _shouldRenderTableNeedsRebuilding = true;
 }
 
 int LODManager::getBoundaryLevelAdjust() const {
-    return SettingsKey::boundaryLevelAdjust.get();
+    return SettingHandles::boundaryLevelAdjust.get();
 }
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
-    SettingsKey::boundaryLevelAdjust.set(boundaryLevelAdjust);
+    SettingHandles::boundaryLevelAdjust.set(boundaryLevelAdjust);
     _shouldRenderTableNeedsRebuilding = true;
 }
 
