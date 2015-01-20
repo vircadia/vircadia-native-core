@@ -17,18 +17,9 @@
 #include <QVariant>
 
 // TODO: remove
-#include <glm/glm.hpp>
 class Settings : public QSettings {
     
 };
-float loadSetting(QSettings* settings, const char* name, float defaultValue) {
-    float value = settings->value(name, defaultValue).toFloat();
-    if (glm::isnan(value)) {
-        value = defaultValue;
-    }
-    return value;
-}
-////
 
 namespace SettingHandles {
     

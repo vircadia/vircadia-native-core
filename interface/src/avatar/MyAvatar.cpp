@@ -731,6 +731,14 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->endGroup();
 }
 
+float loadSetting(QSettings* settings, const char* name, float defaultValue) {
+    float value = settings->value(name, defaultValue).toFloat();
+    if (glm::isnan(value)) {
+        value = defaultValue;
+    }
+    return value;
+}
+
 void MyAvatar::loadData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
