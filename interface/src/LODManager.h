@@ -14,6 +14,7 @@
 
 #include <DependencyManager.h>
 #include <OctreeConstants.h>
+#include <Settings.h>
 #include <SharedUtil.h>
 #include <SimpleMovingAverage.h>
 
@@ -37,26 +38,26 @@ const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
 
+namespace SettingHandles {
+    const SettingHandle<bool> automaticAvatarLOD("automaticAvatarLOD", true);
+    const SettingHandle<float> avatarLODDecreaseFPS("avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS);
+    const SettingHandle<float> avatarLODIncreaseFPS("avatarLODIncreaseFPS",  ADJUST_LOD_UP_FPS);
+    const SettingHandle<float> avatarLODDistanceMultiplier("avatarLODDistanceMultiplier",
+                                                           DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
+}
+
 class LODManager : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; }
-    bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
-    void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; }
-    float getAvatarLODDecreaseFPS() const { return _avatarLODDecreaseFPS; }
-    void setAvatarLODIncreaseFPS(float avatarLODIncreaseFPS) { _avatarLODIncreaseFPS = avatarLODIncreaseFPS; }
-    float getAvatarLODIncreaseFPS() const { return _avatarLODIncreaseFPS; }
-    void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier = multiplier; }
-    float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
+    // TODO: Once the SettingWatcher is implemented, replace them with normal SettingHandles.
+    float getOctreeSizeScale() const;
+    void setOctreeSizeScale(float sizeScale);
+    int getBoundaryLevelAdjust() const;
+    void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     
     // User Tweakable LOD Items
     QString getLODFeedbackText();
-    void setOctreeSizeScale(float sizeScale);
-    float getOctreeSizeScale() const { return _octreeSizeScale; }
-    
-    void setBoundaryLevelAdjust(int boundaryLevelAdjust);
-    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     
     void autoAdjustLOD(float currentFPS);
     void resetLODAdjust();
@@ -65,14 +66,6 @@ public:
     
 private:
     LODManager() {}
-    
-    bool _automaticAvatarLOD = true;
-    float _avatarLODDecreaseFPS = DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS;
-    float _avatarLODIncreaseFPS = ADJUST_LOD_UP_FPS;
-    float _avatarLODDistanceMultiplier = DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER;
-    
-    float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
-    int _boundaryLevelAdjust = 0;
     
     quint64 _lastAdjust = 0;
     quint64 _lastAvatarDetailDrop = 0;
