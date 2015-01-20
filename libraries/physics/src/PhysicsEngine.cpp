@@ -132,7 +132,7 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
         ObjectMotionState* motionState = *stateItr;
         uint32_t flags = motionState->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
 
-        btRigidBody* body = motionState->_body;
+        btRigidBody* body = motionState->getRigidBody();
         if (body) {
             if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
                 // a HARD update requires the body be pulled out of physics engine, changed, then reinserted
@@ -258,7 +258,7 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
                 body->updateInertiaTensor();
-                motionState->_body = body;
+                motionState->setRigidBody(body);
                 motionState->addKinematicController();
                 const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
                 const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
@@ -270,7 +270,7 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
                 shape->calculateLocalInertia(mass, inertia);
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->updateInertiaTensor();
-                motionState->_body = body;
+                motionState->setRigidBody(body);
                 motionState->updateObjectVelocities();
                 // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
                 // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
@@ -284,7 +284,7 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
                 body->updateInertiaTensor();
-                motionState->_body = body;
+                motionState->setRigidBody(body);
                 break;
             }
         }
@@ -301,7 +301,7 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
 
 bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
     assert(motionState);
-    btRigidBody* body = motionState->_body;
+    btRigidBody* body = motionState->getRigidBody();
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
         ShapeInfo shapeInfo;
@@ -309,7 +309,7 @@ bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
         _dynamicsWorld->removeRigidBody(body);
         _shapeManager.releaseShape(shapeInfo);
         delete body;
-        motionState->_body = NULL;
+        motionState->setRigidBody(NULL);
         motionState->removeKinematicController();
         return true;
     }

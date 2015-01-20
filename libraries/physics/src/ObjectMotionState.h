@@ -88,9 +88,13 @@ public:
     virtual void addKinematicController() = 0;
     virtual void removeKinematicController();
 
+    btRigidBody* getRigidBody() const { return _body; }
+
     friend class PhysicsEngine;
 protected:
-    // TODO: move these materials properties to EntityItem
+    void setRigidBody(btRigidBody* body);
+
+    // TODO: move these materials properties outside of ObjectMotionState
     float _friction;
     float _restitution;
     float _linearDamping;
@@ -98,7 +102,6 @@ protected:
 
     MotionType _motionType;
 
-    // _body has NO setters -- it is only changed by PhysicsEngine
     btRigidBody* _body;
 
     bool _sentMoving;   // true if last update was moving
