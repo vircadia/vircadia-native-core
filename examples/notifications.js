@@ -216,8 +216,10 @@ function stringDivider(str, slotWidth, spaceReplacer) {
 
     if (str.length > slotWidth) {
         p = slotWidth;
-        for (; p > 0 && str[p] != ' '; p--) {
+        while (p > 0 && str[p] !== ' ') {
+            p -= 1;
         }
+
         if (p > 0) {
             left = str.substring(0, p);
             right = str.substring(p + 1);
@@ -314,18 +316,20 @@ function isStartingUp() {
 
 //  Triggers notification if a user logs on or off
 function onOnlineUsersChanged(users) {
-    var user;
+    var user,
+        i;
 
     if (!isStartingUp()) {  // Skip user notifications at startup.
-        for (user in users) {
-            if (last_users.indexOf(users[user]) === -1.0) {
-                createNotification(users[user] + " has joined");
+        for (i = 0; i < users.length; i += 1) {
+            if (last_users.indexOf(users[i]) === -1.0) {
+                createNotification(users[i] + " has joined");
             }
+
         }
 
-        for (user in last_users) {
-            if (users.indexOf(last_users[user]) === -1.0) {
-                createNotification(last_users[user] + " has left");
+        for (i = 0; i < last_users.length; i += 1) {
+            if (users.indexOf(last_users[i]) === -1.0) {
+                createNotification(last_users[i] + " has left");
             }
         }
     }
