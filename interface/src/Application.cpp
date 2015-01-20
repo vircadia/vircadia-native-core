@@ -3743,8 +3743,12 @@ void Application::loadScriptURLDialog() {
     }
 }
 
+QString Application::getScriptsLocation() const {
+    return Settings().value("scriptsLocation", QString()).toString();
+}
+
 void Application::setScriptsLocation(const QString& scriptsLocation) {
-    _scriptsLocation = scriptsLocation;
+    Settings().setValue("scriptsLocation", scriptsLocation);
     emit scriptLocationChanged(scriptsLocation);
 }
 

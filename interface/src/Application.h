@@ -302,7 +302,7 @@ public:
 
     Bookmarks* getBookmarks() const { return _bookmarks; }
     
-    const QString& getScriptsLocation() const { return _scriptsLocation; }
+    QString getScriptsLocation() const;
     void setScriptsLocation(const QString& scriptsLocation);
 
 signals:
