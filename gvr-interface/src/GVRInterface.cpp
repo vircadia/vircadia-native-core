@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenuBar>
 
 #include "GVRInterface.h"
@@ -17,6 +16,5 @@
 GVRInterface::GVRInterface(int argc, char* argv[]) : 
     QApplication(argc, argv)
 {
-    QMainWindow mainWindow;
-    mainWindow.menuBar()->addAction("Go to Address");
+    
 }

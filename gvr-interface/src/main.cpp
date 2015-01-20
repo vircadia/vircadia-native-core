@@ -9,9 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GVRMainWindow.h"
 #include "GVRInterface.h"
 
 int main(int argc, char* argv[]) {
     GVRInterface app(argc, argv);
+    
+    GVRMainWindow mainWindow;
+    mainWindow.showMaximized();
+    
     return app.exec();
 }

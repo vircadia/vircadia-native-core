@@ -19,7 +19,6 @@ set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
 set(ANDROID_APP_DISPLAY_NAME Interface)
 set(ANDROID_API_LEVEL 19)
 set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
-set(ANDROID_APK_FULLSCREEN true)
 
 # we need VRLib, so add a project.properties to our apk build folder that says that
 find_path(_OCULUS_VRLIB_DIR NAME VRLib.vcxproj HINTS "/ovr_mobile_sdk/VRLib/")
