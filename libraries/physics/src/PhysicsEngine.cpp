@@ -21,13 +21,7 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 }
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
-    :   _collisionConfig(NULL), 
-        _collisionDispatcher(NULL), 
-        _broadphaseFilter(NULL), 
-        _constraintSolver(NULL), 
-        _dynamicsWorld(NULL),
-        _originOffset(offset),
-        _entityPacketSender(NULL) {
+    :  _originOffset(offset) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -234,10 +228,10 @@ void PhysicsEngine::stepSimulation() {
     unlock();
     _entityTree->unlock();
 
-    handleCollisionEvents();
+    computeCollisionEvents();
 }
 
-void PhysicsEngine::handleCollisionEvents() {
+void PhysicsEngine::computeCollisionEvents() {
 
 }
 

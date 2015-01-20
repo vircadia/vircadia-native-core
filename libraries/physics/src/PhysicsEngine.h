@@ -33,8 +33,10 @@ class ObjectMotionState;
 
 class PhysicsEngine : public EntitySimulation {
 public:
+    // TODO: find a good way to make this a non-static method
     static uint32_t getNumSubsteps();
 
+    PhysicsEngine() = delete; // prevent compiler from creating default ctor
     PhysicsEngine(const glm::vec3& offset);
 
     ~PhysicsEngine();
@@ -51,7 +53,7 @@ public:
 
     void stepSimulation();
 
-    void handleCollisionEvents();
+    void computeCollisionEvents();
 
     /// \param offset position of simulation origin in domain-frame
     void setOriginOffset(const glm::vec3& offset) { _originOffset = offset; }
@@ -70,22 +72,18 @@ public:
     /// process queue of changed from external sources
     void relayIncomingChangesToSimulation();
 
-    /// \return duration of fixed simulation substep
-    float getFixedSubStep() const;
-
-protected:
+private:
     void updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
 
     btClock _clock;
-    btDefaultCollisionConfiguration* _collisionConfig;
-    btCollisionDispatcher* _collisionDispatcher;
-    btBroadphaseInterface* _broadphaseFilter;
-    btSequentialImpulseConstraintSolver* _constraintSolver;
-    ThreadSafeDynamicsWorld* _dynamicsWorld;
+    btDefaultCollisionConfiguration* _collisionConfig = NULL;
+    btCollisionDispatcher* _collisionDispatcher = NULL;
+    btBroadphaseInterface* _broadphaseFilter = NULL;
+    btSequentialImpulseConstraintSolver* _constraintSolver = NULL;
+    ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
     ShapeManager _shapeManager;
 
-private:
     glm::vec3 _originOffset;
 
     // EntitySimulation stuff
@@ -93,7 +91,8 @@ private:
     QSet<ObjectMotionState*> _incomingChanges; // entities with pending physics changes by script or packet
     QSet<ObjectMotionState*> _outgoingPackets; // MotionStates with pending changes that need to be sent over wire
 
-    EntityEditPacketSender* _entityPacketSender;
+    EntityEditPacketSender* _entityPacketSender = NULL;
+    uint32_t _numSteps = 0; // do not confuse with static _numSubsteps
 };
 
 #endif // hifi_PhysicsEngine_h
