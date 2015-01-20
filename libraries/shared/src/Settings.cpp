@@ -10,21 +10,34 @@
 //
 
 #include <QSettings>
+#include <QThread>
+#include <QThreadStorage>
 
 #include "Settings.h"
 
 namespace SettingHandles {
     
+static QThreadStorage<QSettings*> storage;
+    
+QSettings* getSettings() {
+    if (!storage.hasLocalData()) {
+        storage.setLocalData(new QSettings());
+        QObject::connect(QThread::currentThread(), &QThread::destroyed,
+                         storage.localData(), &QSettings::deleteLater);
+    }
+    return storage.localData();
+}
+    
 QVariant SettingsBridge::getFromSettings(const QString& key, const QVariant& defaultValue) {
-    return QSettings().value(key, defaultValue);
+    return getSettings()->value(key, defaultValue);
 }
 
 void SettingsBridge::setInSettings(const QString& key, const QVariant& value) {
-    QSettings().setValue(key, value);
+    getSettings()->setValue(key, value);
 }
     
 void SettingsBridge::removeFromSettings(const QString& key) {
-    QSettings().remove(key);
+    getSettings()->remove(key);
 }
 
 }
