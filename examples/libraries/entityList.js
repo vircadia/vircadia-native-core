@@ -13,6 +13,10 @@ EntityListTool = function(opts) {
         webView.setVisible(visible);
     };
 
+    that.toggleVisible = function() {
+        that.setVisible(!visible);
+    }
+
     selectionManager.addEventListener(function() {
         var selectedIDs = [];
 
