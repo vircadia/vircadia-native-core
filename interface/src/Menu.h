@@ -21,7 +21,7 @@
 
 #include <MenuItemProperties.h>
 
-class QSettings;
+class Settings;
 
 class Menu : public QMenuBar {
     Q_OBJECT
@@ -49,11 +49,6 @@ public:
     void removeAction(QMenu* menu, const QString& actionName);
     
 public slots:
-    void loadSettings(QSettings* settings = NULL);
-    void saveSettings(QSettings* settings = NULL);
-    void importSettings();
-    void exportSettings();
-    
     QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
     bool menuExists(const QString& menuName);
@@ -69,11 +64,11 @@ private:
     static Menu* _instance;
     Menu();
     
-    typedef void(*settingsAction)(QSettings*, QAction*);
-    static void loadAction(QSettings* set, QAction* action);
-    static void saveAction(QSettings* set, QAction* action);
-    void scanMenuBar(settingsAction modifySetting, QSettings* set);
-    void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
+    typedef void(*settingsAction)(Settings&, QAction&);
+    static void loadAction(Settings& settings, QAction& action);
+    static void saveAction(Settings& settings, QAction& action);
+    void scanMenuBar(settingsAction modifySetting);
+    void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
     
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,

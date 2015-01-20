@@ -41,7 +41,6 @@ class LODManager : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    // TODO: replace bumpSettings()
     void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; }
     bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
     void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; }

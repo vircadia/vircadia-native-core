@@ -469,7 +469,6 @@ Application::~Application() {
     _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
     
-    saveSettings();
     _window->saveGeometry();
     
     int DELAY_TIME = 1000;
@@ -505,10 +504,6 @@ Application::~Application() {
     _myAvatar = NULL;
     
     DependencyManager::destroy<GLCanvas>();
-}
-
-void Application::saveSettings() {
-    Menu::getInstance()->saveSettings();
 }
 
 void Application::initializeGL() {
@@ -1635,8 +1630,6 @@ void Application::init() {
 
     _timerStart.start();
     _lastTimeUpdated.start();
-
-    Menu::getInstance()->loadSettings();
     
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -3657,11 +3650,6 @@ void Application::openUrl(const QUrl& url) {
 }
 
 void Application::updateMyAvatarTransform() {
-<<<<<<< HEAD
-#ifdef USE_BULLET_PHYSICS
-=======
-    bumpSettings();
->>>>>>> 215e3b732e8aa1f36a6bef9534c77a7bcecacc04
     const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
     glm::vec3 avatarPosition = _myAvatar->getPosition();
     glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();

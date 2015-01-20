@@ -113,9 +113,6 @@ Menu::Menu() {
                                   qApp, SLOT(uploadAttachment()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadEntity, 0,
                                   qApp, SLOT(uploadEntity()));
-    addDisabledActionAndSeparator(fileMenu, "Settings");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
 
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
@@ -558,106 +555,33 @@ Menu::Menu() {
 #endif
 }
 
-void Menu::loadSettings(QSettings* settings) {
-    Settings defaultSettings;
-    if (!settings) {
-        settings = &defaultSettings;
-    }
-
-    auto audio = DependencyManager::get<Audio>();
-    audio->setOutputStarveDetectionEnabled(settings->value("audioOutputStarveDetectionEnabled", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED).toBool());
-    audio->setOutputStarveDetectionThreshold(settings->value("audioOutputStarveDetectionThreshold", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD).toInt());
-    audio->setOutputStarveDetectionPeriod(settings->value("audioOutputStarveDetectionPeriod", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD).toInt());
-    int bufferSize = settings->value("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES).toInt();
-    QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, bufferSize));
-
-    scanMenuBar(&loadAction, settings);
-    qApp->getAvatar()->loadData(settings);
-    qApp->updateWindowTitle();
-
-    // MyAvatar caches some menu options, so we have to update them whenever we load settings.
-    // TODO: cache more settings in MyAvatar that are checked with very high frequency.
-    setIsOptionChecked(MenuOption::KeyboardMotorControl , true);
-    MyAvatar* myAvatar = qApp->getAvatar();
-    myAvatar->updateCollisionGroups();
-    myAvatar->onToggleRagdoll();
-    myAvatar->updateMotionBehavior();
-}
-
-void Menu::saveSettings(QSettings* settings) {
-    Settings defaultSettings;
-    if (!settings) {
-        settings = &defaultSettings;
-    }
-
-    auto audio = DependencyManager::get<Audio>();
-    settings->setValue("audioOutputStarveDetectionEnabled", audio->getOutputStarveDetectionEnabled());
-    settings->setValue("audioOutputStarveDetectionThreshold", audio->getOutputStarveDetectionThreshold());
-    settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
-    settings->setValue("audioOutputBufferSize", audio->getOutputBufferSize());
-
-    scanMenuBar(&saveAction, settings);
-    qApp->getAvatar()->saveData(settings);
-    
-    DependencyManager::get<AddressManager>()->storeCurrentAddress();
-}
-
-void Menu::importSettings() {
-    QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
-    QString fileName = QFileDialog::getOpenFileName(qApp->getWindow(),
-                                                    tr("Open .ini config file"),
-                                                    locationDir,
-                                                    tr("Text files (*.ini)"));
-    if (fileName != "") {
-        QSettings tmp(fileName, QSettings::IniFormat);
-        loadSettings(&tmp);
+void Menu::loadAction(QSettings& settings, QAction& action) {
+    if (action.isChecked() != settings.value(action.text(), action.isChecked()).toBool()) {
+        action.trigger();
     }
 }
 
-void Menu::exportSettings() {
-    QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
-    QString fileName = QFileDialog::getSaveFileName(qApp->getWindow(),
-                                                    tr("Save .ini config file"),
-                                                    locationDir,
-                                                    tr("Text files (*.ini)"));
-    if (fileName != "") {
-        QSettings tmp(fileName, QSettings::IniFormat);
-        saveSettings(&tmp);
-        tmp.sync();
+void Menu::saveAction(QSettings& settings, QAction& action) {
+    settings.setValue(action.text(),  action.isChecked());
+}
+
+void Menu::scanMenuBar(settingsAction modifySetting) {
+    Settings settings;
+    foreach (QMenu* menu, findChildren<QMenu*>()) {
+        scanMenu(*menu, modifySetting, settings);
     }
 }
 
-void Menu::loadAction(QSettings* set, QAction* action) {
-    if (action->isChecked() != set->value(action->text(), action->isChecked()).toBool()) {
-        action->trigger();
-    }
-}
-
-void Menu::saveAction(QSettings* set, QAction* action) {
-    set->setValue(action->text(),  action->isChecked());
-}
-
-void Menu::scanMenuBar(settingsAction modifySetting, QSettings* set) {
-    QList<QMenu*> menus = this->findChildren<QMenu *>();
-
-    for (QList<QMenu *>::const_iterator it = menus.begin(); menus.end() != it; ++it) {
-        scanMenu(*it, modifySetting, set);
-    }
-}
-
-void Menu::scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set) {
-    QList<QAction*> actions = menu->actions();
-
-    set->beginGroup(menu->title());
-    for (QList<QAction *>::const_iterator it = actions.begin(); actions.end() != it; ++it) {
-        if ((*it)->menu()) {
-            scanMenu((*it)->menu(), modifySetting, set);
-        }
-        if ((*it)->isCheckable()) {
-            modifySetting(set, *it);
+void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, QSettings& settings) {
+    settings.beginGroup(menu.title());
+    foreach (QAction* action, menu.actions()) {
+        if (action->menu()) {
+            scanMenu(*action->menu(), modifySetting, settings);
+        } else (action->isCheckable()) {
+            modifySetting(settings, *action);
         }
     }
-    set->endGroup();
+    settings.endGroup();
 }
 
 void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, int menuItemLocation) {

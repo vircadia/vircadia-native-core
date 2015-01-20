@@ -219,8 +219,6 @@ public:
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
 
-    void saveSettings();
-
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }

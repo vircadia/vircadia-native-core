@@ -1947,8 +1947,9 @@ void DomainServer::loadExistingSessionsFromSettings() {
     Settings domainServerSettings;
     domainServerSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
     
-    foreach(const QString& uuidKey, domainServerSettings.childKeys()) {
-        _cookieSessionHash.insert(QUuid(uuidKey), domainServerSettings.value(uuidKey).value<DomainServerWebSessionData>());
+    foreach(const QString& uuidKey, domainServerSettings.childKeys())
+        _cookieSessionHash.insert(QUuid(uuidKey),
+                                  domainServerSettings.value(uuidKey).value<DomainServerWebSessionData>());
         qDebug() << "Pulled web session from settings - cookie UUID is" << uuidKey;
     }
 }
