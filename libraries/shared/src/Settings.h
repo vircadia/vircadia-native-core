@@ -21,6 +21,8 @@ class Settings : public QSettings {
     
 };
 
+namespace SettingHandles {
+    
 template <typename T>
 class SettingHandle {
 public:
@@ -32,8 +34,6 @@ public:
     
     void set(const T& value) const;
     void reset() const;
-    
-    static const QVariant::Type type;
     
 private:
     const QString _key;
@@ -48,25 +48,15 @@ private:
     template<typename T>
     friend class SettingHandle;
 };
-
-// Specialize template here for types used in Setting
-template<typename T> const QVariant::Type SettingHandle<T>::type = QVariant::Invalid;
-template<> const QVariant::Type SettingHandle<int>::type = QVariant::Int;
-template<> const QVariant::Type SettingHandle<bool>::type = QVariant::Bool;
-template<> const QVariant::Type SettingHandle<float>::type = QVariant::Double;
-template<> const QVariant::Type SettingHandle<double>::type = QVariant::Double;
-template<> const QVariant::Type SettingHandle<QString>::type = QVariant::String;
-
+    
 template <typename T>
 SettingHandle<T>::SettingHandle(const QString& key, const T& defaultValue) : _key(key), _defaultValue(defaultValue) {
-    // Will fire if template not specialized for that type below
-    Q_STATIC_ASSERT_X(SettingHandle<T>::type != QVariant::Invalid, "SettingHandle: Invalid type");
 }
 
 template <typename T>
 T SettingHandle<T>::get() const {
     QVariant variant = SettingsBridge::getFromSettings(_key, _defaultValue);
-    if (variant.type() == type) {
+    if (variant.canConvert<T>()) {
         return variant.value<T>();
     }
     return _defaultValue.value<T>();
@@ -74,8 +64,8 @@ T SettingHandle<T>::get() const {
 
 template <typename T>
 T SettingHandle<T>::get(const T& other) const {
-    QVariant variant = SettingsBridge::getFromSettings(_key, _defaultValue);
-    if (variant.type() == type) {
+    QVariant variant = SettingsBridge::getFromSettings(_key, QVariant(other));
+    if (variant.canConvert<T>()) {
         return variant.value<T>();
     }
     return other;
@@ -95,10 +85,7 @@ template <typename T> inline
 void SettingHandle<T>::reset() const {
     setInSettings(_key, _defaultValue);
 }
-
-// Put applicationwide settings here
-namespace SettingHandles {
-
+    
 }
 
 #endif // hifi_Settings_h

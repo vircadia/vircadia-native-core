@@ -12,10 +12,14 @@
 
 #include "Settings.h"
 
+namespace SettingHandles {
+    
 QVariant SettingsBridge::getFromSettings(const QString& key, const QVariant& defaultValue) {
     return QSettings().value(key, defaultValue);
 }
 
 void SettingsBridge::setInSettings(const QString& key, const QVariant& value) {
     QSettings().setValue(key, value);
+}
+
 }
