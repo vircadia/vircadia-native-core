@@ -80,16 +80,16 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     form->addRow("You can see... ", _feedback);
     
     form->addRow("Automatic Avatar LOD Adjustment:", _automaticAvatarLOD = new QCheckBox(this));
-    _automaticAvatarLOD->setChecked(SettingHandles::automaticAvatarLOD.get());
+    _automaticAvatarLOD->setChecked(lodManager->getAutomaticAvatarLOD());
     connect(_automaticAvatarLOD, SIGNAL(toggled(bool)), SLOT(updateAvatarLODControls()));
     
     form->addRow("Decrease Avatar LOD Below FPS:", _avatarLODDecreaseFPS = new QDoubleSpinBox(this));
-    _avatarLODDecreaseFPS->setValue(SettingHandles::avatarLODDecreaseFPS.get());
+    _avatarLODDecreaseFPS->setValue(lodManager->getAvatarLODDecreaseFPS());
     _avatarLODDecreaseFPS->setDecimals(0);
     connect(_avatarLODDecreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
     form->addRow("Increase Avatar LOD Above FPS:", _avatarLODIncreaseFPS = new QDoubleSpinBox(this));
-    _avatarLODIncreaseFPS->setValue(SettingHandles::avatarLODIncreaseFPS.get());
+    _avatarLODIncreaseFPS->setValue(lodManager->getAvatarLODIncreaseFPS());
     _avatarLODIncreaseFPS->setDecimals(0);
     connect(_avatarLODIncreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
@@ -97,7 +97,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _avatarLOD->setDecimals(3);
     _avatarLOD->setRange(1.0 / MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, 1.0 / MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER);
     _avatarLOD->setSingleStep(0.001);
-    _avatarLOD->setValue(1.0 / SettingHandles::avatarLODDistanceMultiplier.get());
+    _avatarLOD->setValue(1.0 / lodManager->getAvatarLODDistanceMultiplier());
     connect(_avatarLOD, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
     
     // Add a button to reset
@@ -120,7 +120,8 @@ void LodToolsDialog::reloadSliders() {
 void LodToolsDialog::updateAvatarLODControls() {
     QFormLayout* form = static_cast<QFormLayout*>(layout());
     
-    SettingHandles::automaticAvatarLOD.set(_automaticAvatarLOD->isChecked());
+    auto lodManager = DependencyManager::get<LODManager>();
+    lodManager->setAutomaticAvatarLOD(_automaticAvatarLOD->isChecked());
     
     _avatarLODDecreaseFPS->setVisible(_automaticAvatarLOD->isChecked());
     form->labelForField(_avatarLODDecreaseFPS)->setVisible(_automaticAvatarLOD->isChecked());
@@ -132,7 +133,7 @@ void LodToolsDialog::updateAvatarLODControls() {
     form->labelForField(_avatarLOD)->setVisible(!_automaticAvatarLOD->isChecked());
     
     if (!_automaticAvatarLOD->isChecked()) {
-        _avatarLOD->setValue(1.0 / SettingHandles::avatarLODDistanceMultiplier.get());
+        _avatarLOD->setValue(1.0 / lodManager->getAvatarLODDistanceMultiplier());
     }
     
     if (isVisible()) {
@@ -141,12 +142,13 @@ void LodToolsDialog::updateAvatarLODControls() {
 }
 
 void LodToolsDialog::updateAvatarLODValues() {
+    auto lodManager = DependencyManager::get<LODManager>();
     if (_automaticAvatarLOD->isChecked()) {
-        SettingHandles::avatarLODDecreaseFPS.set(_avatarLODDecreaseFPS->value());
-        SettingHandles::avatarLODIncreaseFPS.set(_avatarLODIncreaseFPS->value());
+        lodManager->setAvatarLODDecreaseFPS(_avatarLODDecreaseFPS->value());
+        lodManager->setAvatarLODIncreaseFPS(_avatarLODIncreaseFPS->value());
         
     } else {
-        SettingHandles::avatarLODDistanceMultiplier.set(1.0 / _avatarLOD->value());
+        lodManager->setAvatarLODDistanceMultiplier(1.0 / _avatarLOD->value());
     }
 }
 
