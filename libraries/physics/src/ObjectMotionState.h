@@ -17,6 +17,7 @@
 
 #include <EntityItem.h>
 
+#include "ContactInfo.h"
 #include "ShapeInfo.h"
 
 enum MotionType {
@@ -87,6 +88,8 @@ public:
 
     virtual void addKinematicController() = 0;
     virtual void removeKinematicController();
+
+    virtual void handleContactEvent(ContactEventType type, ObjectMotionState* otherState);
 
     btRigidBody* getRigidBody() const { return _body; }
 

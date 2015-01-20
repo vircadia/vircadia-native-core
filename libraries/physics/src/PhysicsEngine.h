@@ -23,6 +23,7 @@ const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
 #include <EntitySimulation.h>
 
 #include "BulletUtil.h"
+#include "ContactInfo.h"
 #include "EntityMotionState.h"
 #include "ShapeManager.h"
 #include "ThreadSafeDynamicsWorld.h"
@@ -30,6 +31,18 @@ const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
 class ObjectMotionState;
+
+// simple class for keeping track of contacts
+class ContactKey {
+public:
+    ContactKey() = delete;
+    ContactKey(void* a, void* b) : _a(a), _b(b) {}
+    bool operator<(const ContactKey& other) const { return _a < other._a || (_a == other._a && _b < other._b); }
+    void* _a;
+    void* _b;
+};
+
+typedef std::map<ContactKey, ContactInfo> ContactMap;
 
 class PhysicsEngine : public EntitySimulation {
 public:
@@ -73,6 +86,7 @@ public:
     void relayIncomingChangesToSimulation();
 
 private:
+    void removeContacts(ObjectMotionState* motionState);
     void updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
 
@@ -92,7 +106,8 @@ private:
     QSet<ObjectMotionState*> _outgoingPackets; // MotionStates with pending changes that need to be sent over wire
 
     EntityEditPacketSender* _entityPacketSender = NULL;
-    uint32_t _numSteps = 0; // do not confuse with static _numSubsteps
+
+    ContactMap _contactMap;
 };
 
 #endif // hifi_PhysicsEngine_h

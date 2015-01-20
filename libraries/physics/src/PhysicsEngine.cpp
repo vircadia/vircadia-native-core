@@ -154,6 +154,20 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
     _incomingChanges.clear();
 }
 
+void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
+    // trigger events for new/existing/old contacts
+	ContactMap::iterator contactItr = _contactMap.begin();
+	while (contactItr != _contactMap.end()) {
+        if (contactItr->first._a == motionState || contactItr->first._b == motionState) {
+			ContactMap::iterator iterToDelete = contactItr;
+			++contactItr;
+			_contactMap.erase(iterToDelete);
+        } else {
+			++contactItr;
+        }
+    }
+}
+
 // virtual
 void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
     // _entityTree should be set prior to the init() call
@@ -232,7 +246,42 @@ void PhysicsEngine::stepSimulation() {
 }
 
 void PhysicsEngine::computeCollisionEvents() {
-
+    // update all contacts
+    int numManifolds = _collisionDispatcher->getNumManifolds();
+	for (int i = 0; i < numManifolds; ++i) {
+		btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
+        if (contactManifold->getNumContacts() > 0) {
+		    const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
+		    const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
+        
+            void* a = objectA->getUserPointer();
+            void* b = objectB->getUserPointer();
+            if (a || b ) {
+				_contactMap[ContactKey(a, b)].update(_numSubsteps);
+            }
+        }
+    }
+	
+    // scan known contacts and trigger events
+	ContactMap::iterator contactItr = _contactMap.begin();
+	while (contactItr != _contactMap.end()) {
+		ContactEventType type = contactItr->second.computeType(_numSubsteps);
+		ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
+		ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
+        if (A) {
+            A->handleContactEvent(type, B);
+        }
+        if (B) {
+            B->handleContactEvent(type, A);
+        }
+        if (type == CONTACT_TYPE_END) {
+			ContactMap::iterator iterToDelete = contactItr;
+			++contactItr;
+			_contactMap.erase(iterToDelete);
+        } else {
+			++contactItr;
+        }
+    }
 }
 
 // Bullet collision flags are as follows:
@@ -311,6 +360,8 @@ bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
         delete body;
         motionState->setRigidBody(NULL);
         motionState->removeKinematicController();
+
+        removeContacts(motionState);
         return true;
     }
     return false;

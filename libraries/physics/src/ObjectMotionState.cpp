@@ -171,6 +171,14 @@ void ObjectMotionState::removeKinematicController() {
     }
 }
 
+void ObjectMotionState::handleContactEvent(ContactEventType type, ObjectMotionState* otherState) {
+    if (type == CONTACT_TYPE_START) {
+        std::cout << "adebug start " << (void*)(this) << " vs " << (void*)(otherState) << std::endl;  // adebug
+    } else if (type == CONTACT_TYPE_END) {
+        std::cout << "adebug end " << (void*)(this) << " vs " << (void*)(otherState) << std::endl;  // adebug
+    }
+}
+
 void ObjectMotionState::setRigidBody(btRigidBody* body) {
     // give the body a (void*) back-pointer to this ObjectMotionState
     if (_body != body) {
