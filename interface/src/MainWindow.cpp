@@ -25,7 +25,7 @@
 #include "Util.h"
 
 namespace SettingHandles {
-    const SettingHandle<QRect> windowGeometry("WindowGeometry", qApp->desktop()->availableGeometry());
+    const SettingHandle<QRect> windowGeometry("WindowGeometry");
 }
 
 
