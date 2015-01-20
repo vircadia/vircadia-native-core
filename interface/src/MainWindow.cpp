@@ -33,11 +33,18 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 }
 
 void MainWindow::restoreGeometry() {
-    setGeometry(SettingHandles::windowGeometry.get(qApp->desktop()->availableGeometry()));
+    // Did not use setGeometry() on purpose,
+    // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
+    QRect geometry = SettingHandles::windowGeometry.get(qApp->desktop()->availableGeometry());
+    move(geometry.topLeft());
+    resize(geometry.size());
 }
 
 void MainWindow::saveGeometry() {
-    SettingHandles::windowGeometry.set(geometry());
+    // Did not use geometry() on purpose,
+    // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
+    QRect geometry(pos(), size());
+    SettingHandles::windowGeometry.set(geometry);
 }
 
 void MainWindow::moveEvent(QMoveEvent* event) {
