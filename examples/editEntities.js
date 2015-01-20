@@ -44,10 +44,16 @@ var entityListTool = EntityListTool();
 
 var hasShownPropertiesTool = false;
 
+var entityListVisible = false;
+
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     if (selectionManager.hasSelection() && !hasShownPropertiesTool) {
+        // Open properties and model list, but force selection of model list tab
+        propertiesTool.setVisible(false);
+        entityListTool.setVisible(false);
         propertiesTool.setVisible(true);
+        entityListTool.setVisible(true);
         hasShownPropertiesTool = true;
     }
 });
@@ -232,7 +238,6 @@ var toolBar = (function () {
                 cameraManager.disable();
             } else {
                 hasShownPropertiesTool = false;
-                entityListTool.setVisible(true);
                 cameraManager.enable();
                 gridTool.setVisible(true);
                 grid.setEnabled(true);
@@ -703,6 +708,8 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
 
+    Menu.addMenuItem({ menuName: "Tools", menuItemName: "Entity List...", shortcutKey: "CTRL+META+L", afterItem: "Tool Window" });
+
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 
@@ -726,6 +733,8 @@ function cleanupModelMenus() {
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
     Menu.removeMenuItem("File", "Import Models");
+
+    Menu.removeMenuItem("Tools", "Entity List...");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
@@ -797,6 +806,10 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Import Models") {
         modelImporter.doImport();
+    } else if (menuItem == "Entity List...") {
+        if (isActive) {
+            entityListTool.toggleVisible();
+        }
     }
     tooltip.show(false);
 }
