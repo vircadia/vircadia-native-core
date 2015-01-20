@@ -2407,7 +2407,14 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     baseBatch.heightTextureID = _heightTextureID;
     baseBatch.heightScale = glm::vec4(1.0f / width, 1.0f / height, (innerWidth - 1) / -2.0f, (innerHeight - 1) / -2.0f);
     baseBatch.colorTextureID = _colorTextureID;
-    baseBatch.colorScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
+    float widthMultiplier = 1.0f / (0.5f - 1.5f / width);
+    float heightMultiplier = 1.0f / (0.5f - 1.5f / height);
+    if (node->getColor()) {
+        int colorWidth = node->getColor()->getWidth();
+        int colorHeight = node->getColor()->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+        baseBatch.colorScale = glm::vec2((0.5f - 0.5f / colorWidth) * widthMultiplier,
+            (0.5f - 0.5f / colorHeight) * heightMultiplier);
+    }
     Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);
     
     if (!(cursor || _networkTextures.isEmpty())) {
@@ -2422,7 +2429,12 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         splatBatch.heightTextureID = _heightTextureID;
         splatBatch.heightScale = glm::vec4(1.0f / width, 1.0f / height, 0.0f, 0.0f);
         splatBatch.materialTextureID = _materialTextureID;
-        splatBatch.textureScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
+        if (node->getMaterial()) {
+            int materialWidth = node->getMaterial()->getWidth();
+            int materialHeight = node->getMaterial()->getContents().size() / materialWidth;
+            splatBatch.textureScale = glm::vec2((0.5f - 0.5f / materialWidth) * widthMultiplier,
+                (0.5f - 0.5f / materialHeight) * heightMultiplier);
+        }
         splatBatch.splatTextureOffset = glm::vec2(
             glm::dot(translation, rotation * glm::vec3(1.0f, 0.0f, 0.0f)) / scale.x,
             glm::dot(translation, rotation * glm::vec3(0.0f, 0.0f, 1.0f)) / scale.z);
