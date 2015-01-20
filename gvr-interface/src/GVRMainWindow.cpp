@@ -9,12 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtWidgets/QApplication>
 #include <QtWidgets/QMenuBar>
+
+#include "GVRInterface.h"
+#include "RenderingClient.h"
 
 #include "GVRMainWindow.h"
 
-GVRMainWindow::GVRMainWindow() {
+GVRMainWindow::GVRMainWindow(QWidget* parent) :
+    QMainWindow(parent)
+{
     QMenu *fileMenu = new QMenu("File");
     QMenu *helpMenu = new QMenu("Help");
     
@@ -27,5 +31,6 @@ GVRMainWindow::GVRMainWindow() {
     fileMenu->addAction(goToAddress);
     helpMenu->addAction(aboutQt);
 
+    QObject::connect(goToAddress, &QAction::triggered, qApp->getClient(), &RenderingClient::showAddressBar);
     QObject::connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
 }

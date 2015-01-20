@@ -18,5 +18,7 @@ int main(int argc, char* argv[]) {
     GVRMainWindow mainWindow;
     mainWindow.showMaximized();
     
+    app.setMainWindow(&mainWindow);
+    
     return app.exec();
 }

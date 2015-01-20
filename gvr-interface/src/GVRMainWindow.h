@@ -17,7 +17,7 @@
 class GVRMainWindow : public QMainWindow {
     Q_OBJECT
 public:
-    GVRMainWindow();
+    GVRMainWindow(QWidget* parent = 0);
 };
 
 #endif // hifi_GVRMainWindow_h

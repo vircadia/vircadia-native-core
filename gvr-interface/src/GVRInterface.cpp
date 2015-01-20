@@ -11,10 +11,13 @@
 
 #include <QtWidgets/QMenuBar>
 
+#include "GVRMainWindow.h"
+#include "RenderingClient.h"
+
 #include "GVRInterface.h"
 
 GVRInterface::GVRInterface(int argc, char* argv[]) : 
     QApplication(argc, argv)
 {
-    
+    _client = new RenderingClient(this);
 }
