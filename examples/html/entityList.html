@@ -83,13 +83,6 @@
                 }
             }
 
-            function removeEntity(id) {
-                if (entities[id] !== undefined) {
-                    elEntityTableBody.removeChild(entities[id].el);
-                    delete entities[id];
-                }
-            }
-
             function clearEntities() {
                 entities = {};
                 entityList.clear();
