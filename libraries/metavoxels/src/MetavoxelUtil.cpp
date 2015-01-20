@@ -485,6 +485,10 @@ void QColorEditor::selectColor() {
     }
 }
 
+namespace SettingHandles {
+    const SettingHandle<QStringList> editorURLs("editorURLs");
+}
+
 QUrlEditor::QUrlEditor(QWidget* parent) :
     QComboBox(parent) {
     
@@ -492,7 +496,7 @@ QUrlEditor::QUrlEditor(QWidget* parent) :
     setInsertPolicy(InsertAtTop);
     
     // populate initial URL list from settings
-    addItems(Settings().value("editorURLs").toStringList());
+    addItems(SettingHandles::editorURLs.get());
     
     connect(this, SIGNAL(activated(const QString&)), SLOT(updateURL(const QString&)));
     connect(model(), SIGNAL(rowsInserted(const QModelIndex&,int,int)), SLOT(updateSettings()));
@@ -512,7 +516,7 @@ void QUrlEditor::updateSettings() {
     for (int i = 0, size = qMin(MAX_STORED_URLS, count()); i < size; i++) {
         urls.append(itemText(i));
     }
-    Settings().setValue("editorURLs", urls);
+    SettingHandles::editorURLs.set(urls);
 }
 
 BaseVec3Editor::BaseVec3Editor(QWidget* parent) : QWidget(parent) {

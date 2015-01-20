@@ -42,6 +42,10 @@ const QRegularExpression regexHifiLinks("([#@]\\S+)");
 const QString mentionSoundsPath("/mention-sounds/");
 const QString mentionRegex("@(\\b%1\\b)");
 
+namespace SettingHandles {
+    const SettingHandle<QDateTime> usernameMentionTimestamp("MentionTimestamp", QDateTime());
+}
+
 ChatWindow::ChatWindow(QWidget* parent) :
     QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
             Qt::WindowCloseButtonHint),
@@ -378,10 +382,9 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     if (message.body().contains(usernameMention)) {
 
         // Don't show messages already seen in icon tray at start-up.
-        Settings settings;
-        bool showMessage = settings.value("usernameMentionTimestamp").toDateTime() < _lastMessageStamp;
+        bool showMessage = SettingHandles::usernameMentionTimestamp.get() < _lastMessageStamp;
         if (showMessage) {
-            settings.setValue("usernameMentionTimestamp", _lastMessageStamp);
+            SettingHandles::usernameMentionTimestamp.set(_lastMessageStamp);
         }
 
         if (isHidden() && showMessage) {

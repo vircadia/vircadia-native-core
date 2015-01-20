@@ -38,7 +38,6 @@
 #include <QObject>
 #include <QWheelEvent>
 #include <QScreen>
-#include <QSettings>
 #include <QShortcut>
 #include <QSystemTrayIcon>
 #include <QTimer>
@@ -145,6 +144,12 @@ const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
+
+namespace SettingHandles {
+    const SettingHandle<bool> firstRun("firstRun", true);
+    const SettingHandle<QString> lastScriptLocation("LastScriptLocation");
+    const SettingHandle<QString> scriptsLocation("scriptsLocation");
+}
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
@@ -428,21 +433,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // check first run...
-    Settings settings;
-    QString firstRunKey = "firstRun";
-    QVariant firstRunValue = settings.value(firstRunKey, true);
-    if (firstRunValue.isValid() && firstRunValue.toBool()) {
+    bool firstRun = SettingHandles::firstRun.get();
+    if (firstRun) {
         qDebug() << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript(DEFAULT_SCRIPTS_JS_URL);
 
-        settings.setValue(firstRunKey, false);
+        SettingHandles::firstRun.set(false);
     } else {
         // do this as late as possible so that all required subsystems are initialized
         loadScripts();
 
-        _previousScriptLocation = settings.value("LastScriptLocation", "").toString();
+        _previousScriptLocation = SettingHandles::lastScriptLocation.get();
     }
 
     _trayIcon->show();
@@ -2968,7 +2971,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
-    } else if (_rearMirrorTools->getZoomLevel() == BODY) {
+    } else if (SettingHandles::rearViewZoomLevel.get() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
@@ -3365,10 +3368,12 @@ void Application::packetSent(quint64 length) {
     _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(length);
 }
 
+const QString SETTINGS_KEY = "Settings";
+
 void Application::loadScripts() {
     // loads all saved scripts
     Settings settings;
-    int size = settings.beginReadArray("Settings");
+    int size = settings.beginReadArray(SETTINGS_KEY);
     for (int i = 0; i < size; ++i){
         settings.setArrayIndex(i);
         QString string = settings.value("script").toString();
@@ -3381,7 +3386,7 @@ void Application::loadScripts() {
 
 void Application::clearScriptsBeforeRunning() {
     // clears all scripts from the settings
-    Settings().remove("Settings");
+    SettingHandles::SettingHandle<QVariant>(SETTINGS_KEY).remove();
 }
 
 void Application::saveScripts() {
@@ -3392,7 +3397,7 @@ void Application::saveScripts() {
     
     // Saves all currently running user-loaded scripts
     Settings settings;
-    settings.beginWriteArray("Settings");
+    settings.beginWriteArray(SETTINGS_KEY);
     int i = 0;
     for (auto it = runningScripts.begin(); it != runningScripts.end(); ++it) {
         if (getScriptEngine(*it)->isUserLoaded()) {
@@ -3708,7 +3713,7 @@ QString Application::getPreviousScriptLocation() {
 
 void Application::setPreviousScriptLocation(const QString& previousScriptLocation) {
     _previousScriptLocation = previousScriptLocation;
-    Settings().setValue("LastScriptLocation", _previousScriptLocation);
+    SettingHandles::lastScriptLocation.set(_previousScriptLocation);
 }
 
 void Application::loadDialog() {
@@ -3744,11 +3749,11 @@ void Application::loadScriptURLDialog() {
 }
 
 QString Application::getScriptsLocation() const {
-    return Settings().value("scriptsLocation", QString()).toString();
+    return SettingHandles::scriptsLocation.get();
 }
 
 void Application::setScriptsLocation(const QString& scriptsLocation) {
-    Settings().setValue("scriptsLocation", scriptsLocation);
+    SettingHandles::scriptsLocation.set(scriptsLocation);
     emit scriptLocationChanged(scriptsLocation);
 }
 

@@ -26,6 +26,10 @@
 #include "Application.h"
 #include "MainWindow.h"
 
+namespace SettingHandles {
+    const SettingHandle<QString> animationDirectory("animation_directory", QString());
+}
+
 AnimationsDialog::AnimationsDialog(QWidget* parent) :
     QDialog(parent) {
     
@@ -159,13 +163,12 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
 }
 
 void AnimationPanel::chooseURL() {
-    Settings settings;
-    QString directory = settings.value("animation_directory").toString();
+    QString directory = SettingHandles::animationDirectory.get();
     QString filename = QFileDialog::getOpenFileName(this, "Choose Animation", directory, "Animation files (*.fbx)");
     if (filename.isEmpty()) {
         return;
     }
-    settings.setValue("animation_directory", QFileInfo(filename).path());
+    SettingHandles::animationDirectory.set(QFileInfo(filename).path());
     _url->setText(QUrl::fromLocalFile(filename).toString());
     emit _url->returnPressed();
 }

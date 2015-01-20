@@ -24,6 +24,14 @@
 
 #include "AddressManager.h"
 
+const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
+const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
+namespace SettingHandles {
+    const SettingHandle<QUrl> currentAddress(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP
+                                             << "address",
+                                             QUrl());
+}
+
 AddressManager::AddressManager() :
     _rootPlaceName(),
     _rootPlaceID(),
@@ -47,25 +55,16 @@ const QUrl AddressManager::currentAddress() const {
     return hifiURL;
 }
 
-const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
-const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
-
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        Settings settings;
-        settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
-        handleLookupString(settings.value(SETTINGS_CURRENT_ADDRESS_KEY).toString());
+        handleLookupString(SettingHandles::currentAddress.get().toString());
     } else {
         handleLookupString(lookupString);
     }
 }
 
 void AddressManager::storeCurrentAddress() {
-    Settings settings;
-
-    settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
-    settings.setValue(SETTINGS_CURRENT_ADDRESS_KEY, currentAddress());
-    settings.endGroup();
+    SettingHandles::currentAddress.set(currentAddress());
 }
 
 const QString AddressManager::currentPath(bool withOrientation) const {

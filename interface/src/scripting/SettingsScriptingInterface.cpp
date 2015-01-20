@@ -20,7 +20,7 @@ SettingsScriptingInterface* SettingsScriptingInterface::getInstance() {
 }
 
 QVariant SettingsScriptingInterface::getValue(const QString& setting) {
-    QVariant value = Settings().value(setting);
+    QVariant value = SettingHandles::SettingHandle<QVariant>(setting).get();
     if (!value.isValid()) {
         value = "";
     }
@@ -28,7 +28,7 @@ QVariant SettingsScriptingInterface::getValue(const QString& setting) {
 }
 
 QVariant SettingsScriptingInterface::getValue(const QString& setting, const QVariant& defaultValue) {
-    QVariant value = Settings().value(setting, defaultValue);
+    QVariant value = SettingHandles::SettingHandle<QVariant>(setting, defaultValue).get();
     if (!value.isValid()) {
         value = "";
     }
@@ -36,5 +36,5 @@ QVariant SettingsScriptingInterface::getValue(const QString& setting, const QVar
 }
 
 void SettingsScriptingInterface::setValue(const QString& setting, const QVariant& value) {
-    Settings().setValue(setting, value);
+    SettingHandles::SettingHandle<QVariant>(setting).set(value);
 }

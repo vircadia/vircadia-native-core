@@ -60,8 +60,6 @@ static const QString BLENDSHAPE_FIELD = "bs";
 static const QString S3_URL = "http://public.highfidelity.io";
 static const QString MODEL_URL = "/api/v1/models";
 
-static const QString SETTING_NAME = "LastModelUploadLocation";
-
 static const unsigned long long MAX_SIZE = 50 * 1024 * BYTES_PER_MEGABYTES; // 50 GB (Virtually remove limit)
 static const int MAX_TEXTURE_SIZE = 1024;
 static const int TIMEOUT = 1000;
@@ -69,6 +67,11 @@ static const int MAX_CHECK = 30;
 
 static const int QCOMPRESS_HEADER_POSITION = 0;
 static const int QCOMPRESS_HEADER_SIZE = 4;
+
+namespace SettingHandles {
+    const SettingHandle<QString> lastModelUploadLocation("LastModelUploadLocation",
+                        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
+}
 
 void ModelUploader::uploadModel(ModelType modelType) {
     ModelUploader* uploader = new ModelUploader(modelType);
@@ -114,8 +117,7 @@ ModelUploader::~ModelUploader() {
 
 bool ModelUploader::zip() {
     // File Dialog
-    Settings settings;
-    QString lastLocation = settings.value(SETTING_NAME).toString();
+    QString lastLocation = SettingHandles::lastModelUploadLocation.get();
     
     if (lastLocation.isEmpty()) {
        lastLocation  = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
@@ -132,7 +134,7 @@ bool ModelUploader::zip() {
         // If the user canceled we return.
         return false;
     }
-    settings.setValue(SETTING_NAME, filename);
+    SettingHandles::lastModelUploadLocation.set(filename);
     
     // First we check the FST file (if any)
     QFile* fst;

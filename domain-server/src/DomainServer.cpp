@@ -1921,10 +1921,8 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     _cookieSessionHash.insert(cookieUUID, sessionData);
     
     // persist the cookie to settings file so we can get it back on DS relaunch
-    QSettings localSettings;
-    localSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
-    QVariant sessionVariant = QVariant::fromValue(sessionData);
-    localSettings.setValue(cookieUUID.toString(), QVariant::fromValue(sessionData));
+    QStringList path = QStringList() << DS_SETTINGS_SESSIONS_GROUP << cookieUUID.toString();
+    SettingHandles::SettingHandle<QVariant>(path).set(QVariant::fromValue(sessionData));
     
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);

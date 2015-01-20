@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QSettings>
 
 #include "Settings.h"
 
@@ -20,6 +21,10 @@ QVariant SettingsBridge::getFromSettings(const QString& key, const QVariant& def
 
 void SettingsBridge::setInSettings(const QString& key, const QVariant& value) {
     QSettings().setValue(key, value);
+}
+    
+void SettingsBridge::removeFromSettings(const QString& key) {
+    QSettings().remove(key);
 }
 
 }

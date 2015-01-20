@@ -14,16 +14,12 @@
 #include <QMouseEvent>
 
 #include <PathUtils.h>
-#include <Settings.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
 #include "RearMirrorTools.h"
 #include "Util.h"
 
-
-const char SETTINGS_GROUP_NAME[] = "Rear View Tools";
-const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";
 const int ICON_SIZE = 24;
 const int ICON_PADDING = 5;
 
@@ -56,8 +52,9 @@ void RearMirrorTools::render(bool fullScreen) {
         if (_windowed) {
             displayIcon(_bounds, _closeIconRect, _closeTextureId);
 
-            displayIcon(_bounds, _headZoomIconRect, _zoomHeadTextureId, getZoomLevel() == HEAD);
-            displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTextureId, getZoomLevel() == BODY);
+            ZoomLevel zoomLevel = (ZoomLevel)SettingHandles::rearViewZoomLevel.get();
+            displayIcon(_bounds, _headZoomIconRect, _zoomHeadTextureId, zoomLevel == HEAD);
+            displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTextureId, zoomLevel == BODY);
         }
     }
 }
@@ -71,12 +68,12 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
         }
         
         if (_headZoomIconRect.contains(x, y)) {
-            setZoomLevel(HEAD);
+            SettingHandles::rearViewZoomLevel.set(HEAD);
             return true;
         }
         
         if (_bodyZoomIconRect.contains(x, y)) {
-            setZoomLevel(BODY);
+            SettingHandles::rearViewZoomLevel.set(BODY);
             return true;
         }
 
@@ -95,22 +92,6 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
         }
     }
     return false;
-}
-
-ZoomLevel RearMirrorTools::getZoomLevel() {
-    Settings settings;
-    settings.beginGroup(SETTINGS_GROUP_NAME);
-    ZoomLevel zoomLevel = (ZoomLevel)settings.value(ZOOM_LEVEL_SETTINGS, HEAD).toInt();
-    settings.endGroup();
-    
-    return zoomLevel;
-}
-
-void RearMirrorTools::setZoomLevel(ZoomLevel zoomLevel) {
-    Settings settings;
-    settings.beginGroup(SETTINGS_GROUP_NAME);
-    settings.setValue(ZOOM_LEVEL_SETTINGS, zoomLevel);
-    settings.endGroup();
 }
 
 void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint textureId, bool selected) {

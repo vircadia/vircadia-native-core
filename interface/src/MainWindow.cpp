@@ -24,37 +24,20 @@
 #include "Menu.h"
 #include "Util.h"
 
+namespace SettingHandles {
+    const SettingHandle<QRect> windowGeometry("WindowGeometry", qApp->desktop()->availableGeometry());
+}
+
+
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 }
 
 void MainWindow::restoreGeometry() {
-    QRect available = qApp->desktop()->availableGeometry();
-    
-    Settings settings;
-    settings.beginGroup("Window");
-    
-    int x = (int)loadSetting(&settings, "x", 0);
-    int y = (int)loadSetting(&settings, "y", 0);
-    move(x, y);
-    
-    int width = (int)loadSetting(&settings, "width", available.width());
-    int height = (int)loadSetting(&settings, "height", available.height());
-    resize(width, height);
-    
-    settings.endGroup();
+    setGeometry(SettingHandles::windowGeometry.get(qApp->desktop()->availableGeometry()));
 }
 
 void MainWindow::saveGeometry() {
-    Settings settings;
-    settings.beginGroup("Window");
-    
-    settings.setValue("width", rect().width());
-    settings.setValue("height", rect().height());
-    
-    settings.setValue("x", pos().x());
-    settings.setValue("y", pos().y());
-    
-    settings.endGroup();
+    SettingHandles::windowGeometry.set(geometry());
 }
 
 void MainWindow::moveEvent(QMoveEvent* event) {

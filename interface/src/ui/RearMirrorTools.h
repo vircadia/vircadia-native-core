@@ -16,10 +16,19 @@
 
 #include <QGLWidget>
 
+#include <Settings.h>
+
 enum ZoomLevel {
-    HEAD,
-    BODY
+    HEAD = 0,
+    BODY = 1
 };
+
+namespace SettingHandles {
+    const char SETTINGS_GROUP_NAME[] = "Rear View Tools";
+    const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";
+    const SettingHandle<int> rearViewZoomLevel(QStringList() << SETTINGS_GROUP_NAME << ZOOM_LEVEL_SETTINGS,
+                                                     ZoomLevel::HEAD);
+}
 
 class RearMirrorTools : public QObject {
     Q_OBJECT
@@ -27,9 +36,6 @@ public:
     RearMirrorTools(QGLWidget* parent, QRect& bounds);
     void render(bool fullScreen);
     bool mousePressEvent(int x, int y);
-    
-    ZoomLevel getZoomLevel();
-    void setZoomLevel(ZoomLevel zoomLevel);
 
 signals:
     void closeView();

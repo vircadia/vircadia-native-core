@@ -17,16 +17,28 @@
 #include <QVariant>
 
 // TODO: remove
+#include <glm/glm.hpp>
 class Settings : public QSettings {
     
 };
+float loadSetting(QSettings* settings, const char* name, float defaultValue) {
+    float value = settings->value(name, defaultValue).toFloat();
+    if (glm::isnan(value)) {
+        value = defaultValue;
+    }
+    return value;
+}
+////
 
 namespace SettingHandles {
     
 template <typename T>
 class SettingHandle {
 public:
+    SettingHandle(const QString& key);
+    SettingHandle(const QStringList& path);
     SettingHandle(const QString& key, const T& defaultValue);
+    SettingHandle(const QStringList& path, const T& defaultValue);
     
     T get() const; // Returns setting value, returns its default value if not found
     T get(const T& other) const; // Returns setting value, returns other if not found
@@ -34,6 +46,8 @@ public:
     
     void set(const T& value) const;
     void reset() const;
+    
+    void remove() const;
     
 private:
     const QString _key;
@@ -44,13 +58,31 @@ class SettingsBridge {
 private:
     static QVariant getFromSettings(const QString& key, const QVariant& defaultValue);
     static void setInSettings(const QString& key, const QVariant& value);
+    static void removeFromSettings(const QString& key);
     
     template<typename T>
     friend class SettingHandle;
 };
     
 template <typename T>
-SettingHandle<T>::SettingHandle(const QString& key, const T& defaultValue) : _key(key), _defaultValue(defaultValue) {
+SettingHandle<T>::SettingHandle(const QString& key) : _key(key) {
+}
+
+template <typename T>
+SettingHandle<T>::SettingHandle(const QStringList& path) : _key(path.join("/")) {
+}
+    
+template <typename T>
+SettingHandle<T>::SettingHandle(const QString& key, const T& defaultValue) :
+    _key(key),
+    _defaultValue(defaultValue) {
+}
+
+template <typename T>
+SettingHandle<T>::SettingHandle(const QStringList& path, const T& defaultValue) :
+    _key(path.join("/")),
+    _defaultValue(defaultValue) {
+        
 }
 
 template <typename T>
@@ -83,7 +115,12 @@ void SettingHandle<T>::set(const T& value) const {
 
 template <typename T> inline
 void SettingHandle<T>::reset() const {
-    setInSettings(_key, _defaultValue);
+    SettingsBridge::setInSettings(_key, _defaultValue);
+}
+    
+template <typename T> inline
+void SettingHandle<T>::remove() const {
+    SettingsBridge::removeFromSettings(_key);
 }
     
 }
