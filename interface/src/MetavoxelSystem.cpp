@@ -154,7 +154,7 @@ void MetavoxelSystem::simulate(float deltaTime) {
     }
 
     SimulateVisitor simulateVisitor(deltaTime, getLOD());
-    guide(simulateVisitor);
+    guideToAugmented(simulateVisitor);
 }
 
 class RenderVisitor : public MetavoxelVisitor {
@@ -199,7 +199,7 @@ void MetavoxelSystem::render() {
         viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
    
     RenderVisitor renderVisitor(getLOD());
-    guide(renderVisitor);
+    guideToAugmented(renderVisitor, true);
     
     if (!_heightfieldBaseBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::RenderHeightfields)) {
         glEnableClientState(GL_VERTEX_ARRAY);
