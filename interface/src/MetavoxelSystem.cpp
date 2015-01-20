@@ -1617,7 +1617,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     
         glGenTextures(1, &_colorTextureID);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         if (node->getColor()) {
@@ -1625,6 +1625,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, node->getColor()->getWidth(),
                 contents.size() / (node->getColor()->getWidth() * DataBlock::COLOR_BYTES),
                 0, GL_RGB, GL_UNSIGNED_BYTE, contents.constData());
+            glGenerateMipmap(GL_TEXTURE_2D);
             
         } else {
             const quint8 WHITE_COLOR[] = { 255, 255, 255 };
