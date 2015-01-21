@@ -1,7 +1,7 @@
 set(TARGET_NAME audio-client)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(Network)
+setup_hifi_library(Network Multimedia)
 
 link_hifi_libraries(audio)
 
