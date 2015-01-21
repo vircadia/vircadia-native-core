@@ -378,9 +378,11 @@ void AudioClient::start() {
     
     if (!inputFormatSupported) {
         qDebug() << "Unable to set up audio input because of a problem with input format.";
+        qDebug() << "The closest format available is" << inputDeviceInfo.nearestFormat(_desiredInputFormat);
     }
     if (!outputFormatSupported) {
         qDebug() << "Unable to set up audio output because of a problem with output format.";
+        qDebug() << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
     }
 
     if (_audioInput) {

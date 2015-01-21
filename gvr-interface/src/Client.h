@@ -14,14 +14,17 @@
 
 #include <QtCore/QObject>
 
+#include <HifiSockAddr.h>
+
 class QThread;
 
 class Client : public QObject {
     Q_OBJECT
 public:
     Client(QObject* parent = 0);
-private:
+protected:
     void setupNetworking();
+    virtual void processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket);
 private slots:
     void processDatagrams();
 };
