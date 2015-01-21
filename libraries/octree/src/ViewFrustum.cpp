@@ -44,12 +44,16 @@ void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
 }
 
 void ViewFrustum::setFieldOfView(float f) {
-    _fieldOfView = f;
-    SettingHandles::fieldOfView.set(f);
+    if (f != _fieldOfView) {
+        _fieldOfView = f;
+        SettingHandles::fieldOfView.set(f);
+    }
 }
 void ViewFrustum::setRealWorldFieldOfView(float realWorldFieldOfView) {
-    _realWorldFieldOfView = realWorldFieldOfView;
-    SettingHandles::realWorldFieldOfView.set(realWorldFieldOfView);
+    if (realWorldFieldOfView != _realWorldFieldOfView) {
+        _realWorldFieldOfView = realWorldFieldOfView;
+        SettingHandles::realWorldFieldOfView.set(realWorldFieldOfView);
+    }
 }
 
 // ViewFrustum::calculateViewFrustum()

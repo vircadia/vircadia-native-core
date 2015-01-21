@@ -25,8 +25,10 @@ OctreeQuery::OctreeQuery() {
 }
 
 void OctreeQuery::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
-    _maxOctreePPS = maxOctreePPS;
-    SettingHandles::maxOctreePacketsPerSecond.set(_maxOctreePPS);
+    if (maxOctreePPS != _maxOctreePPS) {
+        _maxOctreePPS = maxOctreePPS;
+        SettingHandles::maxOctreePacketsPerSecond.set(_maxOctreePPS);
+    }
 }
 
 

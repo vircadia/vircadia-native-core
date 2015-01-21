@@ -101,7 +101,9 @@ T SettingHandle<T>::getDefault() const {
 
 template <typename T> inline
 void SettingHandle<T>::set(const T& value) const {
-    SettingsBridge::setInSettings(_key, QVariant(value));
+    if (value != get()) {
+        SettingsBridge::setInSettings(_key, QVariant(value));
+    }
 }
 
 template <typename T> inline
