@@ -47,7 +47,6 @@ var yawFromMouse = 0;
 var pitchFromMouse = 0;
 var isMouseDown = false; 
 
-var BULLET_VELOCITY = 5.0;
 var MIN_THROWER_DELAY = 1000;
 var MAX_THROWER_DELAY = 1000;
 var LEFT_BUTTON_3 = 3;
@@ -98,7 +97,7 @@ var reticle = Overlays.addOverlay("image", {
                     y: screenSize.y / 2 - 16,
                     width: 32,
                     height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/reticle.png",
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/billiardsReticle.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
@@ -131,10 +130,12 @@ function printVector(string, vector) {
     print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
 }
 
+var BULLET_VELOCITY = 15.0;
+
 function shootBullet(position, velocity) {
     var BULLET_SIZE = 0.07;
     var BULLET_LIFETIME = 10.0;
-    var BULLET_GRAVITY = 0.0;
+    var BULLET_GRAVITY = -0.25;
     bulletID = Entities.addEntity(
         { type: "Sphere",
           position: position, 
@@ -144,7 +145,7 @@ function shootBullet(position, velocity) {
           lifetime: BULLET_LIFETIME,
           gravity: {  x: 0, y: BULLET_GRAVITY, z: 0 },
           damping: 0.01,
-          density: 5000,
+          density: 10000,
           ignoreCollisions: false,
           collisionsWillMove: true
       });
@@ -158,11 +159,58 @@ function shootBullet(position, velocity) {
     }
 
     // Kickback the arm 
+    if (elbowKickAngle > 0.0) {
+        MyAvatar.setJointData("LeftForeArm", rotationBeforeKickback);
+    }
     rotationBeforeKickback = MyAvatar.getJointRotation("LeftForeArm"); 
     var armRotation = MyAvatar.getJointRotation("LeftForeArm"); 
     armRotation = Quat.multiply(armRotation, Quat.fromPitchYawRollDegrees(0.0, 0.0, KICKBACK_ANGLE));
     MyAvatar.setJointData("LeftForeArm", armRotation);
     elbowKickAngle = KICKBACK_ANGLE;
+}
+
+function makeGrid(type, gravity, scale, size) {
+    var separation = scale * 2; 
+    var pos = Vec3.sum(Camera.getPosition(), Vec3.multiply(10.0 * scale * separation, Quat.getFront(Camera.getOrientation())));
+    pos.y -= separation * size;
+    var x, y, z;
+    var GRID_LIFE = 60.0; 
+    var dimensions; 
+
+    for (x = 0; x < size; x++) {
+        for (y = 0; y < size; y++) {
+            for (z = 0; z < size; z++) {
+                if (gravity == 0) {
+                    dimensions = { x: separation/2.0 * (0.5 + Math.random()), y: separation/2.0 * (0.5 + Math.random()), z: separation/2.0 * (0.5 + Math.random()) / 4.0 };
+                } else {
+                    dimensions = { x: separation/2.0 * (0.5 + Math.random()), y: separation/4.0 * (0.5 + Math.random()), z: separation/2.0 * (0.5 + Math.random()) };
+                }
+
+                Entities.addEntity(
+                    { type: type,
+                      position: { x: pos.x + x * separation, y: pos.y + y * separation, z: pos.z + z * separation },
+                      dimensions: dimensions, 
+                      color: {  red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },  
+                      velocity: {  x: 0, y: 0, z: 0 }, 
+                      gravity: {  x: 0, y: gravity, z: 0 }, 
+                      lifetime: GRID_LIFE,
+                      rotation:  Camera.getOrientation(),
+                      damping: 0.1,
+                      density: 100.0, 
+                      collisionsWillMove: true });
+            }
+        }
+    }
+    if (gravity < 0) {
+        // Make a floor for this stuff to fall onto
+        Entities.addEntity({
+            type: "Box",
+            position: { x: pos.x, y: pos.y - separation / 2.0, z: pos.z }, 
+            dimensions: { x: 2.0 * separation * size, y: separation / 2.0, z: 2.0 * separation * size },
+            color: { red: 128, green: 128, blue: 128 },
+            lifetime: GRID_LIFE
+        });
+    }
 }
 
 function shootTarget() {
@@ -236,6 +284,10 @@ function keyPressEvent(event) {
         shootFromMouse();
     } else if (event.text == "r") {
         playLoadSound();
+    } else if (event.text == "g") {
+        makeGrid("Box", 0.0, 0.4, 3);
+    } else if (event.text == "f") {
+        makeGrid("Box", -9.8, 0.4, 5);
     } else if (event.text == "s") {
         //  Hit this key to dump a posture from hydra to log
         Quat.print("arm = ", MyAvatar.getJointRotation("LeftArm"));
