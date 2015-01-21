@@ -1,6 +1,6 @@
 //
 //  Resource.h
-//  interface/src/gpu
+//  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 10/8/2014.
 //  Copyright 2014 High Fidelity, Inc.
@@ -79,17 +79,19 @@ protected:
 
         // Access the byte array.
         // The edit version allow to map data.
-        inline const Byte* readData() const { return _data; } 
-        inline Byte* editData() { _stamp++; return _data; }
+        const Byte* readData() const { return _data; } 
+        Byte* editData() { _stamp++; return _data; }
 
         template< typename T > const T* read() const { return reinterpret_cast< T* > ( _data ); } 
         template< typename T > T* edit() { _stamp++; return reinterpret_cast< T* > ( _data ); } 
 
         // Access the current version of the sysmem, used to compare if copies are in sync
-        inline Stamp getStamp() const { return _stamp; }
+        Stamp getStamp() const { return _stamp; }
 
         static Size allocateMemory(Byte** memAllocated, Size size);
         static void deallocateMemory(Byte* memDeallocated, Size size);
+
+        bool isAvailable() const { return (_data != 0); }
 
     private:
         Stamp _stamp;
@@ -136,9 +138,9 @@ public:
 
 protected:
 
-    Sysmem* _sysmem;
+    Sysmem* _sysmem = NULL;
 
-    mutable GPUObject* _gpuObject;
+    mutable GPUObject* _gpuObject = NULL;
 
     // This shouldn't be used by anything else than the Backend class with the proper casting.
     void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
@@ -363,64 +365,6 @@ public:
     }
 };
  
-
- // TODO: For now TextureView works with Buffer as a place holder for the Texture.
- // The overall logic should be about the same except that the Texture will be a real GL Texture under the hood
-class TextureView {
-public:
-    typedef Resource::Size Size;
-    typedef int Index;
-
-    BufferPointer _buffer;
-    Size _offset;
-    Size _size;
-    Element _element;
-    uint16 _stride;
-
-    TextureView() :
-        _buffer(NULL),
-        _offset(0),
-        _size(0),
-        _element(gpu::VEC3, gpu::UINT8, gpu::RGB),
-        _stride(1)
-    {};
-
-    TextureView(const Element& element) :
-        _buffer(NULL),
-        _offset(0),
-        _size(0),
-        _element(element),
-        _stride(uint16(element.getSize()))
-    {};
-
-    // create the BufferView and own the Buffer
-    TextureView(Buffer* newBuffer, const Element& element) :
-        _buffer(newBuffer),
-        _offset(0),
-        _size(newBuffer->getSize()),
-        _element(element),
-        _stride(uint16(element.getSize()))
-    {};
-    TextureView(const BufferPointer& buffer, const Element& element) :
-        _buffer(buffer),
-        _offset(0),
-        _size(buffer->getSize()),
-        _element(element),
-        _stride(uint16(element.getSize()))
-    {};
-    TextureView(const BufferPointer& buffer, Size offset, Size size, const Element& element) :
-        _buffer(buffer),
-        _offset(offset),
-        _size(size),
-        _element(element),
-        _stride(uint16(element.getSize()))
-    {};
-    ~TextureView() {}
-    TextureView(const TextureView& view) = default;
-    TextureView& operator=(const TextureView& view) = default;
 };
-
-};
-
 
 #endif

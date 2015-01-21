@@ -29,6 +29,8 @@ TextureCache::TextureCache() :
     _permutationNormalTextureID(0),
     _whiteTextureID(0),
     _blueTextureID(0),
+    _whiteTexture(0),
+    _blueTexture(0),
     _primaryDepthTextureID(0),
     _primaryNormalTextureID(0),
     _primarySpecularTextureID(0),
@@ -176,6 +178,14 @@ GLuint TextureCache::getWhiteTextureID() {
     return _whiteTextureID;
 }
 
+const gpu::TexturePointer& TextureCache::getWhiteTexture() {
+    if (_whiteTexture.isNull()) {
+        _whiteTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _whiteTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
+    }
+    return _whiteTexture;
+}
+
 GLuint TextureCache::getBlueTextureID() {
     if (_blueTextureID == 0) {
         glGenTextures(1, &_blueTextureID);
@@ -184,6 +194,15 @@ GLuint TextureCache::getBlueTextureID() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _blueTextureID;
+}
+
+
+const gpu::TexturePointer& TextureCache::getBlueTexture() {
+    if (_blueTexture.isNull()) {
+        _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
+    }
+    return _blueTexture;
 }
 
 /// Extra data for creating textures.
@@ -547,6 +566,16 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (image.hasAlphaChannel()) {
+        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), image.width(), image.height()));
+        _gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA), image.byteCount(), image.constBits());
+        _gpuTexture->autoGenerateMips(-1);
+    } else {
+        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), image.width(), image.height()));
+        _gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), image.byteCount(), image.constBits());
+        _gpuTexture->autoGenerateMips(-1);
+    }
 }
 
 void NetworkTexture::imageLoaded(const QImage& image) {
@@ -586,6 +615,16 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             glGenerateMipmap(GL_TEXTURE_2D);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glBindTexture(GL_TEXTURE_2D, 0);
+
+            if (dilatedImage.hasAlphaChannel()) {
+                texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), dilatedImage.width(), dilatedImage.height()));
+                texture->_gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA), dilatedImage.byteCount(), dilatedImage.constBits());
+                texture->_gpuTexture->autoGenerateMips(-1);
+            } else {
+                texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), dilatedImage.width(), dilatedImage.height()));
+                texture->_gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), dilatedImage.byteCount(), dilatedImage.constBits());
+                texture->_gpuTexture->autoGenerateMips(-1);
+            }
         }
         
         _dilatedTextures.insert(dilation, texture);

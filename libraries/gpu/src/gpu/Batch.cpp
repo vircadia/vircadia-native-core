@@ -23,6 +23,7 @@ Batch::Batch() :
     _resources(),
     _data(),
     _buffers(),
+    _textures(),
     _streamFormats(),
     _transforms()
 {
@@ -38,6 +39,7 @@ void Batch::clear() {
     _resources.clear();
     _data.clear();
     _buffers.clear();
+    _textures.clear();
     _streamFormats.clear();
     _transforms.clear();
 }
@@ -170,4 +172,15 @@ void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
     setUniformBuffer(slot, view._buffer, view._offset, view._size);
 }
 
+
+void Batch::setUniformTexture(uint32 slot, const TexturePointer& texture) {
+    ADD_COMMAND(setUniformTexture);
+
+    _params.push_back(_textures.cache(texture));
+    _params.push_back(slot);
+}
+
+void Batch::setUniformTexture(uint32 slot, const TextureView& view) {
+    setUniformTexture(slot, view._texture);
+}
 

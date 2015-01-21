@@ -13,6 +13,7 @@
 #define hifi_TextureCache_h
 
 #include <gpu/GPUConfig.h>
+#include <gpu/Texture.h>
 
 #include <QImage>
 #include <QMap>
@@ -50,8 +51,15 @@ public:
     /// Returns the ID of an opaque white texture (useful for a default).
     GLuint getWhiteTextureID();
 
+    /// Returns an opaque white texture (useful for a default).
+    const gpu::TexturePointer& getWhiteTexture();
+
     /// Returns the ID of a pale blue texture (useful for a normal map).
     GLuint getBlueTextureID();
+
+    /// Returns the ID of a pale blue texture (useful for a normal map).
+    /// Returns an opaque white texture (useful for a default).
+    const gpu::TexturePointer& getBlueTexture();
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
@@ -104,6 +112,8 @@ private:
     GLuint _permutationNormalTextureID;
     GLuint _whiteTextureID;
     GLuint _blueTextureID;
+    gpu::TexturePointer _whiteTexture;
+    gpu::TexturePointer _blueTexture;
     
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
     
@@ -124,14 +134,19 @@ private:
 /// A simple object wrapper for an OpenGL texture.
 class Texture {
 public:
-    
+    friend class TextureCache;
+    friend class DilatableNetworkTexture;
     Texture();
     ~Texture();
 
     GLuint getID() const { return _id; }
 
+    const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
+
+protected:
+    gpu::TexturePointer _gpuTexture;
+
 private:
-    
     GLuint _id;
 };
 

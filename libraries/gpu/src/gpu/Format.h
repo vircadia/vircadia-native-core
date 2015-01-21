@@ -95,6 +95,7 @@ enum Semantic {
     RAW = 0, // used as RAW memory
     RGB,
     RGBA,
+    BGRA,
     XYZ,
     XYZW,
     POS_XYZ,
@@ -102,9 +103,11 @@ enum Semantic {
     QUAT,
     DIR_XYZ,
     UV,
-    R8,
     INDEX, //used by index buffer of a mesh
     PART, // used by part buffer of a mesh
+
+    DEPTH, // Depth buffer
+    DEPTH_STENCIL, // Depth Stencil buffer
 
     NUM_SEMANTICS,
 };
@@ -124,7 +127,7 @@ public:
         _dimension(SCALAR),
         _type(INT8)
     {}
-
+ 
     Semantic getSemantic() const { return (Semantic)_semantic; }
 
     Dimension getDimension() const { return (Dimension)_dimension; }
@@ -135,11 +138,21 @@ public:
 
     uint32 getSize() const { return DIMENSION_COUNT[_dimension] * TYPE_SIZE[_type]; }
 
-protected:
+    uint16 getRaw() const { return *((uint16*) (this)); }
+
+ protected:
     uint8 _semantic;
     uint8 _dimension : 4;
     uint8 _type : 4;
 };
+ 
+ 
+static bool operator ==(const Element& left, const Element& right) {
+    return left.getRaw() == right.getRaw();
+} 
+static bool operator !=(const Element& left, const Element& right) {
+    return left.getRaw() != right.getRaw();
+}
 
 
 };

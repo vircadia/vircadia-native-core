@@ -2224,7 +2224,10 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
     
     GLBATCH(glUseProgram)(activeProgram->programId());
-    GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+
+    if ((activeLocations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
+        GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+    }
 }
 
 int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
@@ -2414,9 +2417,12 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
                     static bool showDiffuse = true;
                     if (showDiffuse && diffuseMap) {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
+                       // GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
+                        batch.setUniformTexture(0, diffuseMap->getGPUTexture());
+                        
                     } else {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, textureCache->getWhiteTextureID());
+                     //   GLBATCH(glBindTexture)(GL_TEXTURE_2D, textureCache->getWhiteTextureID());
+                        batch.setUniformTexture(0, textureCache->getWhiteTexture());
                     }
 
                     if (locations->texcoordMatrices >= 0) {
