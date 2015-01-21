@@ -178,6 +178,8 @@ public slots:
 signals:
     bool muteToggled();
     void inputReceived(const QByteArray& inputSamples);
+    void outputBytesToNetwork(int numBytes);
+    void inputBytesFromNetwork(int numBytes);
 
 protected:
     AudioClient();
