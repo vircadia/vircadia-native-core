@@ -159,14 +159,14 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
 
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
     // trigger events for new/existing/old contacts
-	ContactMap::iterator contactItr = _contactMap.begin();
-	while (contactItr != _contactMap.end()) {
+    ContactMap::iterator contactItr = _contactMap.begin();
+    while (contactItr != _contactMap.end()) {
         if (contactItr->first._a == motionState || contactItr->first._b == motionState) {
-			ContactMap::iterator iterToDelete = contactItr;
-			++contactItr;
-			_contactMap.erase(iterToDelete);
+            ContactMap::iterator iterToDelete = contactItr;
+            ++contactItr;
+            _contactMap.erase(iterToDelete);
         } else {
-			++contactItr;
+            ++contactItr;
         }
     }
 }
@@ -251,26 +251,26 @@ void PhysicsEngine::stepSimulation() {
 void PhysicsEngine::computeCollisionEvents() {
     // update all contacts
     int numManifolds = _collisionDispatcher->getNumManifolds();
-	for (int i = 0; i < numManifolds; ++i) {
-		btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
+    for (int i = 0; i < numManifolds; ++i) {
+        btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
         if (contactManifold->getNumContacts() > 0) {
-		    const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
-		    const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
+            const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
+            const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
         
             void* a = objectA->getUserPointer();
             void* b = objectB->getUserPointer();
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
-				_contactMap[ContactKey(a, b)].update(_numSubsteps, contactManifold->getContactPoint(0), _originOffset);
+                _contactMap[ContactKey(a, b)].update(_numSubsteps, contactManifold->getContactPoint(0), _originOffset);
             }
         }
     }
-	
+    
     // scan known contacts and trigger events
-	ContactMap::iterator contactItr = _contactMap.begin();
-	while (contactItr != _contactMap.end()) {
-		ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
-		ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
+    ContactMap::iterator contactItr = _contactMap.begin();
+    while (contactItr != _contactMap.end()) {
+        ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
+        ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
 
         // TODO: make triggering these events clean and efficient.  The code at this context shouldn't 
         // have to figure out what kind of object (entity, avatar, etc) these are in order to properly 
@@ -289,13 +289,13 @@ void PhysicsEngine::computeCollisionEvents() {
         }
 
         // TODO: enable scripts to filter based on contact event type
-		ContactEventType type = contactItr->second.computeType(_numSubsteps);
+        ContactEventType type = contactItr->second.computeType(_numSubsteps);
         if (type == CONTACT_EVENT_TYPE_END) {
-			ContactMap::iterator iterToDelete = contactItr;
-			++contactItr;
-			_contactMap.erase(iterToDelete);
+            ContactMap::iterator iterToDelete = contactItr;
+            ++contactItr;
+            _contactMap.erase(iterToDelete);
         } else {
-			++contactItr;
+            ++contactItr;
         }
     }
 }
