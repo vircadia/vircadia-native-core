@@ -364,6 +364,9 @@ public slots:
     void resetSensors();
     void aboutApp();
     void showEditEntitiesHelp();
+    
+    void loadSettings();
+    void saveSettings();
 
 private slots:
     void clearDomainOctreeDetails();

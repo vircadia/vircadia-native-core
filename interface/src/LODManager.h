@@ -65,11 +65,11 @@ public:
     
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
     
-private:
-    LODManager() {}
-    
     void loadSettings();
     void saveSettings();
+    
+private:
+    LODManager() {}
     
     bool _automaticAvatarLOD = true;
     float _avatarLODDecreaseFPS = DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS;

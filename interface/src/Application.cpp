@@ -312,6 +312,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
+    connect(&domainHandler, &DomainHandler::hostnameChanged,
+            DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -447,6 +449,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
         _previousScriptLocation = SettingHandles::lastScriptLocation.get();
     }
+    
+    loadSettings();
 
     _trayIcon->show();
     
@@ -468,6 +472,7 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
+    saveSettings();
     
     _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
@@ -1581,6 +1586,20 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     // restore the main window's active state
     _window->activateWindow();
     return true;
+}
+
+void Application::loadSettings() {
+    DependencyManager::get<Audio>()->loadSettings();
+    DependencyManager::get<LODManager>()->loadSettings();
+    Menu::getInstance()->loadSettings();
+    _myAvatar->loadData();
+}
+
+void Application::saveSettings() {
+    DependencyManager::get<Audio>()->saveSettings();
+    DependencyManager::get<LODManager>()->saveSettings();
+    Menu::getInstance()->saveSettings();
+    _myAvatar->saveData();
 }
 
 bool Application::importEntities(const QString& filename) {

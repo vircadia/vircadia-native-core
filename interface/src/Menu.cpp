@@ -555,6 +555,14 @@ Menu::Menu() {
 #endif
 }
 
+void Menu::loadSettings() {
+    scanMenuBar(&Menu::loadAction);
+}
+
+void Menu::saveSettings() {
+    scanMenuBar(&Menu::saveAction);
+}
+
 void Menu::loadAction(Settings& settings, QAction& action) {
     if (action.isChecked() != settings.value(action.text(), action.isChecked()).toBool()) {
         action.trigger();

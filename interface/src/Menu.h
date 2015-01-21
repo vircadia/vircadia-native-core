@@ -27,6 +27,10 @@ class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
+    
+    void loadSettings();
+    void saveSettings();
+    
     QMenu* getMenu(const QString& menuName);
 
     void triggerOption(const QString& menuOption);
