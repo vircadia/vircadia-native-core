@@ -23,6 +23,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AnimationHandle.h>
+#include <AudioClient.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
@@ -33,7 +34,6 @@
 #include <TextRenderer.h>
 
 #include "Application.h"
-#include "Audio.h"
 #include "Environment.h"
 #include "Menu.h"
 #include "ModelReferential.h"

@@ -11,8 +11,9 @@
 
 #include <QFileDialog>
 
+#include <AudioClient.h>
+
 #include "Application.h"
-#include "Audio.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
