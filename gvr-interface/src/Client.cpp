@@ -28,6 +28,7 @@ Client::Client(QObject* parent) :
 
 void Client::setupNetworking() {
     // setup the NodeList for this client
+    DependencyManager::registerInheritance<LimitedNodeList, NodeList>(); 
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, 0);
     
     // while datagram processing remains simple for targets using Client, we'll handle datagrams

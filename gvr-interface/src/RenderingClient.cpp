@@ -11,10 +11,13 @@
 
 #include <QtWidgets/QInputDialog>
 
+#include <NodeList.h>
+
 #include "RenderingClient.h"
 
 RenderingClient::RenderingClient(QObject *parent) :
     Client(parent)
 {
-    
+    // tell the NodeList which node types all rendering clients will want to know about
+    DependencyManager::get<NodeList>()->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer);
 }
