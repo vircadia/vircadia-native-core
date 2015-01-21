@@ -13,7 +13,6 @@
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
-#include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
@@ -170,11 +169,6 @@ void Agent::run() {
    
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
-    
-    QNetworkDiskCache* cache = new QNetworkDiskCache();
-    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
-    networkAccessManager.setCache(cache);
     
     qDebug() << "Downloading script at" << scriptURL.toString();
     
