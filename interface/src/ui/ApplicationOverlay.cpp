@@ -787,7 +787,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
 
 void ApplicationOverlay::renderAudioMeter() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
 
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;

@@ -10,9 +10,7 @@ setup_hifi_library(Gui Widgets)
 
 include_glm()
 
-set(REQUIRED_HIFI_LIBRARIES "shared" "networking")
-
-link_hifi_libraries(${REQUIRED_HIFI_LIBRARIES})
+link_hifi_libraries(shared networking audio-client)
 include_dependency_includes()
 
 set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})

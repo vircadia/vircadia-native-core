@@ -1,6 +1,6 @@
 //
 //  Recorder.h
-//
+//  libraries/avatars/src
 //
 //  Created by Clement on 8/7/14.
 //  Copyright 2014 High Fidelity, Inc.

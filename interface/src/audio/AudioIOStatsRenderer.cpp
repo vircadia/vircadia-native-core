@@ -28,7 +28,7 @@ AudioIOStatsRenderer::AudioIOStatsRenderer() :
     _shouldShowInjectedStreams(false)
 {
     // grab the stats object from the audio I/O singleton
-    _stats = &DependencyManager::get<Audio>()->getStats();
+    _stats = &DependencyManager::get<AudioClient>()->getStats();
 }
 
 #ifdef _WIN32

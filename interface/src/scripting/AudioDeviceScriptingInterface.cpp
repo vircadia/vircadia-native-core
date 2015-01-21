@@ -19,13 +19,13 @@ AudioDeviceScriptingInterface* AudioDeviceScriptingInterface::getInstance() {
 }
 
 AudioDeviceScriptingInterface::AudioDeviceScriptingInterface() {
-    connect(DependencyManager::get<Audio>().data(), &Audio::muteToggled,
+    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::muteToggled,
             this, &AudioDeviceScriptingInterface::muteToggled);
 }
 
 bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
     bool result;
-    QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "switchInputToAudioDevice",
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "switchInputToAudioDevice",
                               Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(bool, result),
                               Q_ARG(const QString&, deviceName));
@@ -35,7 +35,7 @@ bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
 
 bool AudioDeviceScriptingInterface::setOutputDevice(const QString& deviceName) {
     bool result;
-    QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "switchOutputToAudioDevice",
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "switchOutputToAudioDevice",
                               Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(bool, result),
                               Q_ARG(const QString&, deviceName));
@@ -44,50 +44,50 @@ bool AudioDeviceScriptingInterface::setOutputDevice(const QString& deviceName) {
 }
 
 QString AudioDeviceScriptingInterface::getInputDevice() {
-    return DependencyManager::get<Audio>()->getDeviceName(QAudio::AudioInput);
+    return DependencyManager::get<AudioClient>()->getDeviceName(QAudio::AudioInput);
 }
 
 QString AudioDeviceScriptingInterface::getOutputDevice() {
-    return DependencyManager::get<Audio>()->getDeviceName(QAudio::AudioOutput);
+    return DependencyManager::get<AudioClient>()->getDeviceName(QAudio::AudioOutput);
 }
 
 QString AudioDeviceScriptingInterface::getDefaultInputDevice() {
-    return DependencyManager::get<Audio>()->getDefaultDeviceName(QAudio::AudioInput);
+    return DependencyManager::get<AudioClient>()->getDefaultDeviceName(QAudio::AudioInput);
 }
 
 QString AudioDeviceScriptingInterface::getDefaultOutputDevice() {
-    return DependencyManager::get<Audio>()->getDefaultDeviceName(QAudio::AudioOutput);
+    return DependencyManager::get<AudioClient>()->getDefaultDeviceName(QAudio::AudioOutput);
 }
 
 QVector<QString> AudioDeviceScriptingInterface::getInputDevices() {
-    return DependencyManager::get<Audio>()->getDeviceNames(QAudio::AudioInput);
+    return DependencyManager::get<AudioClient>()->getDeviceNames(QAudio::AudioInput);
 }
 
 QVector<QString> AudioDeviceScriptingInterface::getOutputDevices() {
-    return DependencyManager::get<Audio>()->getDeviceNames(QAudio::AudioOutput);
+    return DependencyManager::get<AudioClient>()->getDeviceNames(QAudio::AudioOutput);
 }
 
 
 float AudioDeviceScriptingInterface::getInputVolume() {
-    return DependencyManager::get<Audio>()->getInputVolume();
+    return DependencyManager::get<AudioClient>()->getInputVolume();
 }
 
 void AudioDeviceScriptingInterface::setInputVolume(float volume) {
-    DependencyManager::get<Audio>()->setInputVolume(volume);
+    DependencyManager::get<AudioClient>()->setInputVolume(volume);
 }
 
 void AudioDeviceScriptingInterface::setReverb(bool reverb) {
-    DependencyManager::get<Audio>()->setReverb(reverb);
+    DependencyManager::get<AudioClient>()->setReverb(reverb);
 }
 
 void AudioDeviceScriptingInterface::setReverbOptions(const AudioEffectOptions* options) {
-    DependencyManager::get<Audio>()->setReverbOptions(options);
+    DependencyManager::get<AudioClient>()->setReverbOptions(options);
 }
 
 void AudioDeviceScriptingInterface::toggleMute() {
-    DependencyManager::get<Audio>()->toggleMute();
+    DependencyManager::get<AudioClient>()->toggleMute();
 }
 
 bool AudioDeviceScriptingInterface::getMuted() {
-    return DependencyManager::get<Audio>()->isMuted();
+    return DependencyManager::get<AudioClient>()->isMuted();
 }
