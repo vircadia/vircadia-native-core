@@ -21,8 +21,8 @@ class HMDScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool magnifier READ getMagnifier)
     Q_PROPERTY(bool active READ isHMDMode)
-    Q_PROPERTY(float getHUDLookAtPositionX READ getHUDLookAtPositionX)
-    Q_PROPERTY(float getHUDLookAtPositionY READ getHUDLookAtPositionY)
+    Q_PROPERTY(glm::vec3 HUDLookAtPosition3D READ getHUDLookAtPosition3D)
+    Q_PROPERTY(glm::vec2 HUDLookAtPosition2D READ getHUDLookAtPosition2D)
 public:
     static HMDScriptingInterface& getInstance();
 
@@ -33,22 +33,9 @@ private:
     HMDScriptingInterface() {};
     bool getMagnifier() const { return Application::getInstance()->getApplicationOverlay().hasMagnifier(); };
     bool isHMDMode() const { return Application::getInstance()->isHMDMode(); }
-    float getHUDLookAtPositionX() const {
-        float pitch, yaw, roll;
-        OculusManager::getEulerAngles(yaw, pitch, roll);
-        glm::vec3 relativePos = OculusManager::getRelativePosition();
-        glm::quat rotation = ::rotationBetween(glm::vec3(), relativePos);
-        glm::vec2 screenPos = Application::getInstance()->getApplicationOverlay().sphericalToOverlay(glm::vec2(yaw, -pitch));
-        
-        return screenPos.x;
-    }
-    float getHUDLookAtPositionY() const {
-        float pitch, yaw, roll;
-        OculusManager::getEulerAngles(yaw, pitch, roll);
-        glm::vec2 screenPos = Application::getInstance()->getApplicationOverlay().sphericalToOverlay(glm::vec2(yaw, -pitch));
-        return screenPos.y;
-    }
 
+    glm::vec3 getHUDLookAtPosition3D() const;
+    glm::vec2 getHUDLookAtPosition2D() const;
 };
 
 #endif // hifi_HMDScriptingInterface_h

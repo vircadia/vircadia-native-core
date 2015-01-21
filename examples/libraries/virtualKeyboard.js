@@ -510,16 +510,14 @@ Cursor = (function(params) {
                 });
             }
             var editobject = {};
-            //if (MyAvatar.getHeadFinalYaw() <= VIEW_ANGLE_BY_TWO && MyAvatar.getHeadFinalYaw() >= -1 * VIEW_ANGLE_BY_TWO) {
-                 //angle = ((-1 * MyAvatar.getHeadFinalYaw()) + VIEW_ANGLE_BY_TWO) / VIEW_ANGLE;
-                 tthis.x = HMD.getHUDLookAtPositionX;//angle * windowDimensions.x;
+            if (tthis.x !== HMD.getHUDLookAtPosition2D.x) {
+                 tthis.x = HMD.getHUDLookAtPosition2D.x;
                  editobject.x = tthis.x - (CURSOR_WIDTH / 2);
-         //   }
-           // if (MyAvatar.getHeadFinalPitch() <= VIEW_ANGLE_BY_TWO && MyAvatar.getHeadFinalPitch() >= -1 * VIEW_ANGLE_BY_TWO) {
-             //    angle = ((-1 * MyAvatar.getHeadFinalPitch()) + VIEW_ANGLE_BY_TWO) / VIEW_ANGLE;
-                 tthis.y = HMD.getHUDLookAtPositionY;//angle * windowDimensions.y;
+            }
+            if (tthis.y !== HMD.getHUDLookAtPosition2D.y) {
+                 tthis.y = HMD.getHUDLookAtPosition2D.y;
                  editobject.y = tthis.y - (CURSOR_HEIGHT / 2);
-           // }
+            }
             if (Object.keys(editobject).length > 0) {
                 Overlays.editOverlay(tthis.overlay, editobject);
                 if (tthis.onUpdate != null) {
