@@ -132,6 +132,35 @@ This package contains only headers, so there's nothing to add to the PATH.
 
 Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
 
+###Bullet
+
+Bullet 2.82 source can be downloaded [here](https://code.google.com/p/bullet/downloads/detail?name=bullet-2.82-r2704.zip). Bullet does not come with prebuilt libraries, you need to make those yourself.
+
+* Download the zip file and extract into a temporary folder
+* Create a directory named cmakebuild. Bullet comes with a build\ directory by default, however, that directory is intended for use with premake, and considering premake doesn't support VS2013, I prefer to run the cmake build on its own directory.
+* Make the following modifications to Bullet's source:
+   1. In file: Extras\HACD\hacdICHull.cpp --- in line: 17 --- insert: #include <algorithm>
+   2. In file: src\MiniCL\cl_MiniCL_Defs.h --- comment lines 364 to 372
+   3. In file: CMakeLists.txt set to ON the option USE_MSVC_RUNTIME_LIBRARY_DLL in line 27
+
+Then create the Visual Studio solution and build the libraries - run the following commands from a Visual Studio 2013 command prompt, from within the cmakebuild directory created before:
+
+```shell
+cmake .. -G "Visual Studio 12"
+msbuild BULLET_PHYSICS.sln /p:Configuration=Debug
+```
+
+This will create Debug libraries in cmakebuild\lib\Debug you can replace Debug with Release in the msbuild command and that will generate Release libraries in cmakebuild\lib\Release.
+
+You now have Bullet libraries compiled, now you need to put them in the right place for hifi to find them:
+
+* Create a directory named bullet\ inside your %HIFI_LIB_DIR%
+* Create two directores named lib\ and include\ inside bullet\
+* Copy all the contents inside src\ from the bullet unzip path into %HIFI_LIB_DIR%\bullet\include\
+* Copy all the contents inside cmakebuild\lib\ into %HIFI_LIB_DIR\bullet\lib
+
+*Note that the INSTALL target should handle the copying of files into an install directory automatically, however, without modifications to Cmake, the install target didn't work right for me, please update this instructions if you get that working right - Leo <leo@highfidelity.io>" 
+
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
 
