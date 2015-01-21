@@ -18,11 +18,13 @@
 #include "MetavoxelUtil.h"
 
 class AbstractHeightfieldNodeRenderer;
+class DataBlock;
 class Heightfield;
 class HeightfieldColor;
 class HeightfieldHeight;
 class HeightfieldMaterial;
 class HeightfieldNode;
+class HeightfieldStack;
 class SpannerRenderer;
 
 /// An object that spans multiple octree cells.
@@ -71,19 +73,20 @@ public:
     /// Finds the intersection between the described ray and this spanner.
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    /// Attempts to paint on the spanner.
-    /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* paintMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material,
-        const QColor& color);
-
     /// Attempts to modify the spanner's height.
+    /// \param set whether to set the height as opposed to raising/lowering it
+    /// \param erase whether to erase height values
     /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
+    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase);
 
-    /// Attempts to clear and fetch part of the spanner's height.
-    /// \param heightfield the heightfield to populate
+    /// Attempts to fill the spanner's height (adding removing volumetric information).
     /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield);
+    virtual Spanner* fillHeight(const glm::vec3& position, float radius);
+
+    /// Attempts to "sculpt" or "paint," etc., with the supplied spanner.
+    /// \return the modified spanner, or this if no modification was performed
+    virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+        const QColor& color, bool paint, bool voxelize);
 
     /// Checks whether this spanner has its own colors.
     virtual bool hasOwnColors() const;
@@ -292,6 +295,42 @@ private:
     QUrl _url;
 };
 
+typedef QExplicitlySharedDataPointer<DataBlock> DataBlockPointer;
+
+/// Base class for blocks of data.
+class DataBlock : public QSharedData {
+public:
+
+    static const int COLOR_BYTES = 3;
+    
+    virtual ~DataBlock();
+    
+    void setDeltaData(const DataBlockPointer& deltaData) { _deltaData = deltaData; }
+    const DataBlockPointer& getDeltaData() const { return _deltaData; }
+    
+    void setEncodedDelta(const QByteArray& encodedDelta) { _encodedDelta = encodedDelta; }
+    const QByteArray& getEncodedDelta() const { return _encodedDelta; }
+    
+    QMutex& getEncodedDeltaMutex() { return _encodedDeltaMutex; }
+
+protected:
+    
+    QByteArray _encoded;
+    QMutex _encodedMutex;
+    
+    DataBlockPointer _deltaData;
+    QByteArray _encodedDelta;
+    QMutex _encodedDeltaMutex;
+
+    class EncodedSubdivision {
+    public:
+        DataBlockPointer ancestor;
+        QByteArray data;
+    };
+    QVector<EncodedSubdivision> _encodedSubdivisions;
+    QMutex _encodedSubdivisionsMutex;
+};
+
 /// Base class for heightfield data blocks.
 class HeightfieldData : public DataBlock {
 public:
@@ -466,6 +505,126 @@ Bitstream& operator>>(Bitstream& in, HeightfieldMaterialPointer& value);
 template<> void Bitstream::writeRawDelta(const HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 
+/// Contains the description of a material.
+class MaterialObject : public SharedObject {
+    Q_OBJECT
+    Q_PROPERTY(QUrl diffuse MEMBER _diffuse)
+    Q_PROPERTY(float scaleS MEMBER _scaleS)
+    Q_PROPERTY(float scaleT MEMBER _scaleT)
+    
+public:
+    
+    Q_INVOKABLE MaterialObject();
+
+    const QUrl& getDiffuse() const { return _diffuse; }
+
+    float getScaleS() const { return _scaleS; }
+    float getScaleT() const { return _scaleT; }
+
+private:
+    
+    QUrl _diffuse;
+    float _scaleS;
+    float _scaleT;
+};
+
+/// Finds a material index for the supplied material in the provided list, adding an entry if necessary.  Returns -1
+/// on failure (no room to add new material).
+int getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials);
+
+typedef QExplicitlySharedDataPointer<HeightfieldStack> HeightfieldStackPointer;
+
+/// A single column within a stack block.
+class StackArray : public QByteArray {
+public:
+    
+#pragma pack(push, 1)
+    /// A single entry within the array.
+    class Entry {
+    public:
+        quint32 color;
+        uchar material;
+        quint32 hermiteX;
+        quint32 hermiteY;
+        quint32 hermiteZ;
+        
+        Entry();
+        
+        bool isSet() const { return qAlpha(color) != 0; }
+        
+        bool isZero() const;
+        bool isMergeable(const Entry& other) const;
+        
+        void setHermiteX(const glm::vec3& normal, float position);
+        float getHermiteX(glm::vec3& normal) const;
+        
+        void setHermiteY(const glm::vec3& normal, float position);
+        float getHermiteY(glm::vec3& normal) const;
+        
+        void setHermiteZ(const glm::vec3& normal, float position);
+        float getHermiteZ(glm::vec3& normal) const;
+    };
+#pragma pack(pop)
+
+    static int getSize(int entries) { return (entries == 0) ? 0 : sizeof(quint16) + sizeof(Entry) * entries; }
+
+    StackArray() : QByteArray() { }
+    StackArray(int entries) : QByteArray(getSize(entries), 0) { }
+    StackArray(const QByteArray& other) : QByteArray(other) { }
+    StackArray(const char* src, int bytes) : QByteArray(src, bytes) { }
+    
+    int getPosition() const { return *(const quint16*)constData(); }
+    void setPosition(int position) { *(quint16*)data() = position; }
+    
+    quint16& getPositionRef() { return *(quint16*)data(); }
+    
+    int getEntryCount() const { return isEmpty() ? 0 : (size() - sizeof(quint16)) / sizeof(Entry); }
+    
+    Entry* getEntryData() { return (Entry*)(data() + sizeof(quint16)); }
+    const Entry* getEntryData() const { return (const Entry*)(constData() + sizeof(quint16)); }
+    
+    int getEntryAlpha(int y, float heightfieldHeight = 0.0f) const;
+    
+    Entry& getEntry(int y, float heightfieldHeight = 0.0f);
+    const Entry& getEntry(int y, float heightfieldHeight = 0.0f) const;
+    
+    void getExtents(int& minimumY, int& maximumY) const;
+    
+    bool hasSetEntries() const;
+    
+    void removeEntries(int position, int count) { remove(sizeof(quint16) + position * sizeof(Entry), count * sizeof(Entry)); }
+};
+
+/// A block of stack data associated with a heightfield.
+class HeightfieldStack : public HeightfieldData {
+public:
+
+    HeightfieldStack(int width, const QVector<StackArray>& contents, const QVector<SharedObjectPointer>& materials);
+    HeightfieldStack(Bitstream& in, int bytes);
+    HeightfieldStack(Bitstream& in, int bytes, const HeightfieldStackPointer& reference);
+    
+    QVector<StackArray>& getContents() { return _contents; }
+    QVector<SharedObjectPointer>& getMaterials() { return _materials; }
+    
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const HeightfieldStackPointer& reference);
+    
+private:
+    
+    void read(Bitstream& in, int bytes);
+    
+    QVector<StackArray> _contents;
+    QVector<SharedObjectPointer> _materials;
+};
+
+Q_DECLARE_METATYPE(HeightfieldStackPointer)
+
+Bitstream& operator<<(Bitstream& out, const HeightfieldStackPointer& value);
+Bitstream& operator>>(Bitstream& in, HeightfieldStackPointer& value);
+
+template<> void Bitstream::writeRawDelta(const HeightfieldStackPointer& value, const HeightfieldStackPointer& reference);
+template<> void Bitstream::readRawDelta(HeightfieldStackPointer& value, const HeightfieldStackPointer& reference);
+
 typedef QExplicitlySharedDataPointer<HeightfieldNode> HeightfieldNodePointer;
 
 /// Holds the base state used in streaming heightfield data.
@@ -499,14 +658,15 @@ public:
     
     HeightfieldNode(const HeightfieldHeightPointer& height = HeightfieldHeightPointer(),
         const HeightfieldColorPointer& color = HeightfieldColorPointer(),
-        const HeightfieldMaterialPointer& material = HeightfieldMaterialPointer());
+        const HeightfieldMaterialPointer& material = HeightfieldMaterialPointer(),
+        const HeightfieldStackPointer& stack = HeightfieldStackPointer());
     
     HeightfieldNode(const HeightfieldNode& other);
     
     ~HeightfieldNode();
     
     void setContents(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
-        const HeightfieldMaterialPointer& material);
+        const HeightfieldMaterialPointer& material, const HeightfieldStackPointer& stack);
     
     void setHeight(const HeightfieldHeightPointer& height) { _height = height; }
     const HeightfieldHeightPointer& getHeight() const { return _height; }
@@ -517,6 +677,9 @@ public:
     void setMaterial(const HeightfieldMaterialPointer& material) { _material = material; }
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
     
+    void setStack(const HeightfieldStackPointer& stack) { _stack = stack; }
+    const HeightfieldStackPointer& getStack() const { return _stack; }
+    
     void setRenderer(AbstractHeightfieldNodeRenderer* renderer) { _renderer = renderer; }
     AbstractHeightfieldNodeRenderer* getRenderer() const { return _renderer; }
     
@@ -525,21 +688,25 @@ public:
     void setChild(int index, const HeightfieldNodePointer& child) { _children[index] = child; }
     const HeightfieldNodePointer& getChild(int index) const { return _children[index]; }
     
-    float getHeight(const glm::vec3& location) const;
+    bool findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    void getRangeAfterHeightPaint(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& position, float radius, float height, float& minimum, float& maximum) const;
     
-    HeightfieldNode* paintMaterial(const glm::vec3& position, const glm::vec3& radius, const SharedObjectPointer& material,
-        const QColor& color);
-    
-    void getRangeAfterHeightPaint(const glm::vec3& position, const glm::vec3& radius,
-        float height, int& minimum, int& maximum) const;
-    
-    HeightfieldNode* paintHeight(const glm::vec3& position, const glm::vec3& radius, float height,
+    HeightfieldNode* paintHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& position, float radius, float height, bool set, bool erase,
         float normalizeScale, float normalizeOffset);
-        
-    HeightfieldNode* clearAndFetchHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const Box& bounds, SharedObjectPointer& heightfield);
+    
+    HeightfieldNode* fillHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& position, float radius);
+    
+    void getRangeAfterEdit(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const Box& editBounds, float& minimum, float& maximum) const;
+    
+    HeightfieldNode* setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint, bool voxelize,
+        float normalizeScale, float normalizeOffset);
         
     void read(HeightfieldStreamState& state);
     void write(HeightfieldStreamState& state) const;
@@ -563,9 +730,16 @@ private:
     QRgb getColorAt(const glm::vec3& location) const;
     int getMaterialAt(const glm::vec3& location) const;
     
+    void maybeRenormalize(const glm::vec3& scale, float normalizeScale, float normalizeOffset, int innerStackWidth,
+        QVector<quint16>& heightContents, QVector<StackArray>& stackContents);
+    
+    bool findHeightfieldRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        float boundsDistance, float& distance) const;
+    
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
     HeightfieldMaterialPointer _material;
+    HeightfieldStackPointer _stack;
     
     HeightfieldNodePointer _children[CHILD_COUNT];
     
@@ -577,6 +751,9 @@ class AbstractHeightfieldNodeRenderer {
 public:
     
     virtual ~AbstractHeightfieldNodeRenderer();
+    
+    virtual bool findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& origin, const glm::vec3& direction, float boundsDistance, float& distance) const; 
 };
 
 /// A heightfield represented as a spanner.
@@ -588,8 +765,9 @@ class Heightfield : public Transformable {
     Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged STORED false)
     Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged STORED false
         DESIGNABLE false)
-    Q_PROPERTY(HeightfieldNodePointer root MEMBER _root WRITE setRoot NOTIFY rootChanged STORED false DESIGNABLE false)
-
+    Q_PROPERTY(HeightfieldStackPointer stack MEMBER _stack WRITE setStack NOTIFY stackChanged STORED false
+        DESIGNABLE false)
+        
 public:
     
     Q_INVOKABLE Heightfield();
@@ -609,7 +787,10 @@ public:
     void setMaterial(const HeightfieldMaterialPointer& material);
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
 
-    void setRoot(const HeightfieldNodePointer& root);
+    void setStack(const HeightfieldStackPointer& stack);
+    const HeightfieldStackPointer& getStack() const { return _stack; }
+    
+    void setRoot(const HeightfieldNodePointer& root) { _root = root; }
     const HeightfieldNodePointer& getRoot() const { return _root; }
 
     MetavoxelLOD transformLOD(const MetavoxelLOD& lod) const;
@@ -622,13 +803,13 @@ public:
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    virtual Spanner* paintMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material,
-        const QColor& color);
-
-    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
+    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase);
     
-    virtual Spanner* clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield);
+    virtual Spanner* fillHeight(const glm::vec3& position, float radius);
     
+    virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+        const QColor& color, bool paint, bool voxelize);
+        
     virtual bool hasOwnColors() const;
     virtual bool hasOwnMaterials() const;
     virtual QRgb getColorAt(const glm::vec3& point);
@@ -639,9 +820,9 @@ public:
     virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
     
     virtual void writeExtra(Bitstream& out) const;
-    virtual void readExtra(Bitstream& in);
+    virtual void readExtra(Bitstream& in, bool reread);
     virtual void writeExtraDelta(Bitstream& out, const SharedObject* reference) const;
-    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
+    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference, bool reread);
     virtual void maybeWriteSubdivision(Bitstream& out);
     virtual SharedObject* readSubdivision(Bitstream& in);
     
@@ -652,7 +833,7 @@ signals:
     void heightChanged(const HeightfieldHeightPointer& height);
     void colorChanged(const HeightfieldColorPointer& color);
     void materialChanged(const HeightfieldMaterialPointer& material);
-    void rootChanged(const HeightfieldNodePointer& root);
+    void stackChanged(const HeightfieldStackPointer& stack);
     
 protected:
     
@@ -665,12 +846,15 @@ private slots:
     
 private:
 
+    Heightfield* prepareEdit(float minimumValue, float maximumValue, float& normalizeScale, float& normalizeOffset);
+
     float _aspectY;
     float _aspectZ;
     
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
     HeightfieldMaterialPointer _material;
+    HeightfieldStackPointer _stack;
     
     HeightfieldNodePointer _root;
 };
