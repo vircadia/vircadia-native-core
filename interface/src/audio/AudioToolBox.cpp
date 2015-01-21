@@ -11,11 +11,10 @@
 
 #include "InterfaceConfig.h"
 
+#include <AudioClient.h>
 #include <GLCanvas.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
-
-#include "Audio.h"
 
 #include "AudioToolBox.h"
 
