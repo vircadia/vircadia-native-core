@@ -466,7 +466,6 @@ private:
     PhysicsEngine _physicsEngine;
 
     EntityTreeRenderer _entities;
-    EntityCollisionSystem _entityCollisionSystem;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTree _entityClipboard;
 

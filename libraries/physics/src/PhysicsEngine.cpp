@@ -256,8 +256,9 @@ void PhysicsEngine::computeCollisionEvents() {
         
             void* a = objectA->getUserPointer();
             void* b = objectB->getUserPointer();
-            if (a || b ) {
-				_contactMap[ContactKey(a, b)].update(_numSubsteps);
+            if (a || b) {
+                // the manifold has up to 4 distinct points, but only extract info from the first
+				_contactMap[ContactKey(a, b)].update(_numSubsteps, contactManifold->getContactPoint(0), _originOffset);
             }
         }
     }
@@ -265,16 +266,28 @@ void PhysicsEngine::computeCollisionEvents() {
     // scan known contacts and trigger events
 	ContactMap::iterator contactItr = _contactMap.begin();
 	while (contactItr != _contactMap.end()) {
-		ContactEventType type = contactItr->second.computeType(_numSubsteps);
 		ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
 		ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
-        if (A) {
-            A->handleContactEvent(type, B);
+
+        // TODO: make triggering these events clean and efficient.  The code at this context shouldn't 
+        // have to figure out what kind of object (entity, avatar, etc) these are in order to properly 
+        // emit a collision event.
+        if (A && A->getType() == MOTION_STATE_TYPE_ENTITY) {
+            EntityItemID idA = static_cast<EntityMotionState*>(A)->getEntity()->getEntityItemID();
+            EntityItemID idB;
+            if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
+                idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+            }
+            emitEntityCollisionWithEntity(idA, idB, contactItr->second);
+        } else if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
+            EntityItemID idA;
+            EntityItemID idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+            emitEntityCollisionWithEntity(idA, idB, contactItr->second);
         }
-        if (B) {
-            B->handleContactEvent(type, A);
-        }
-        if (type == CONTACT_TYPE_END) {
+
+        // TODO: enable scripts to filter based on contact event type
+		ContactEventType type = contactItr->second.computeType(_numSubsteps);
+        if (type == CONTACT_EVENT_TYPE_END) {
 			ContactMap::iterator iterToDelete = contactItr;
 			++contactItr;
 			_contactMap.erase(iterToDelete);

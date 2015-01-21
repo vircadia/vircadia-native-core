@@ -26,6 +26,12 @@ enum MotionType {
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
+enum MotionStateType {
+    MOTION_STATE_TYPE_UNKNOWN,
+    MOTION_STATE_TYPE_ENTITY,
+    MOTION_STATE_TYPE_AVATAR
+};
+
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
 // and re-added to the physics engine and "easy" which just updates the body properties.
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
@@ -59,6 +65,7 @@ public:
     virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
     virtual void updateObjectVelocities() = 0;
 
+    MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
 
     virtual void computeShapeInfo(ShapeInfo& info) = 0;
@@ -89,13 +96,13 @@ public:
     virtual void addKinematicController() = 0;
     virtual void removeKinematicController();
 
-    virtual void handleContactEvent(ContactEventType type, ObjectMotionState* otherState);
-
     btRigidBody* getRigidBody() const { return _body; }
 
     friend class PhysicsEngine;
 protected:
     void setRigidBody(btRigidBody* body);
+
+    MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN;
 
     // TODO: move these materials properties outside of ObjectMotionState
     float _friction;

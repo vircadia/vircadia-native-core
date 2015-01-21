@@ -31,8 +31,7 @@ class AvatarData;
 class EntityEditPacketSender;
 class EntityTree;
 
-class EntityCollisionSystem : public QObject, public SimpleEntitySimulation {
-Q_OBJECT
+class EntityCollisionSystem : public SimpleEntitySimulation {
 public:
     EntityCollisionSystem();
 
@@ -45,19 +44,13 @@ public:
     void checkEntity(EntityItem* Entity);
     void updateCollisionWithEntities(EntityItem* Entity);
     void updateCollisionWithAvatars(EntityItem* Entity);
-    void queueEntityPropertiesUpdate(EntityItem* Entity);
-
-signals:
-    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 private:
     void applyHardCollision(EntityItem* entity, const CollisionInfo& collisionInfo);
 
     static bool updateOperation(OctreeElement* element, void* extraData);
-    void emitGlobalEntityCollisionWithEntity(EntityItem* entityA, EntityItem* entityB, const Collision& penetration);
 
     EntityEditPacketSender* _packetSender;
-    AbstractAudioInterface* _audio;
     AvatarHashMap* _avatars;
     CollisionList _collisions;
 };

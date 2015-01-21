@@ -62,14 +62,6 @@ void EntityCollisionSystem::checkEntity(EntityItem* entity) {
     updateCollisionWithAvatars(entity);
 }
 
-void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* entityA, 
-                                            EntityItem* entityB, const Collision& collision) {
-                                            
-    EntityItemID idA = entityA->getEntityItemID();
-    EntityItemID idB = entityB->getEntityItemID();
-    emit entityCollisionWithEntity(idA, idB, collision);
-}
-
 void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
 
     if (entityA->getIgnoreForCollisions()) {
@@ -193,7 +185,10 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                 Collision collision;
                 collision.penetration = penetration;
                 collision.contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
-                emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
+
+                EntityItemID idA = entityA->getEntityItemID();
+                EntityItemID idB = entityB->getEntityItemID();
+                emitEntityCollisionWithEntity(idA, idB, collision);
             }
         }
     }

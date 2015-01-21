@@ -12,6 +12,7 @@
 #ifndef hifi_EntitySimulation_h
 #define hifi_EntitySimulation_h
 
+#include <QtCore/QObject>
 #include <QSet>
 
 #include <PerfStat.h>
@@ -31,7 +32,8 @@ const int DIRTY_SIMULATION_FLAGS =
         EntityItem::DIRTY_LIFETIME |
         EntityItem::DIRTY_UPDATEABLE;
 
-class EntitySimulation {
+class EntitySimulation : public QObject {
+Q_OBJECT
 public:
     EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
@@ -60,6 +62,9 @@ public:
     void clearEntities();
 
     EntityTree* getEntityTree() { return _entityTree; }
+
+signals:
+    void emitEntityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected:
 

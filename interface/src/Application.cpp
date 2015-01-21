@@ -192,7 +192,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _justStarted(true),
         _physicsEngine(glm::vec3(0.0f)),
         _entities(true, this, this),
-        _entityCollisionSystem(),
         _entityClipboardRenderer(false, this, this),
         _entityClipboard(),
         _viewFrustum(),
@@ -1689,17 +1688,16 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
-    EntityTree* entityTree = _entities.getTree();
-    
-    _entityCollisionSystem.init(&_entityEditSender, entityTree, &_avatarManager);
-    
-    entityTree->setSimulation(&_entityCollisionSystem);
+    EntityTree* tree = _entities.getTree();
+    _physicsEngine.setEntityTree(tree);
+    tree->setSimulation(&_physicsEngine);
+    _physicsEngine.init(&_entityEditSender);
 
-    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
+    connect(&_physicsEngine, &EntitySimulation::emitEntityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
+    connect(&_physicsEngine, &EntitySimulation::emitEntityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
@@ -1723,10 +1721,6 @@ void Application::init() {
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 
-    EntityTree* tree = _entities.getTree();
-    _physicsEngine.setEntityTree(tree);
-    tree->setSimulation(&_physicsEngine);
-    _physicsEngine.init(&_entityEditSender);
     // make sure our texture cache knows about window size changes
     DependencyManager::get<TextureCache>()->associateWithWidget(glCanvas.data());
 
@@ -2047,9 +2041,6 @@ void Application::update(float deltaTime) {
         // NOTE: the _entities.update() call below will wait for lock 
         // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
         _entities.update(); // update the models...
-        // The _entityCollisionSystem.updateCollisions() call below merely tries for lock,
-        // and on failure it skips collision detection.
-        _entityCollisionSystem.updateCollisions(); // collide the entities...
     }
 
     {
