@@ -586,6 +586,9 @@ private:
     bool _aboutToQuit;
 
     Bookmarks* _bookmarks;
+    
+    QThread _settingsThread;
+    QTimer _settingsTimer;
 };
 
 #endif // hifi_Application_h

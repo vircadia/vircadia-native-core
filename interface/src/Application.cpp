@@ -451,7 +451,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     }
     
     loadSettings();
-
+    int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
+    connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
+    connect(&_settingsThread, SIGNAL(started), &_settingsTimer, SLOT(start));
+    connect(&_settingsThread, &QThread::finished, &_settingsTimer, &QTimer::deleteLater);
+    _settingsTimer.moveToThread(&_settingsThread);
+    _settingsTimer.setSingleShot(false);
+    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
+    _settingsThread.start();
+    
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
