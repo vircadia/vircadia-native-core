@@ -68,6 +68,9 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
+typedef const glm::vec3& (*PositionGetter)();
+typedef glm::quat (*OrientationGetter)();
+
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -122,6 +125,9 @@ public:
 
     int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold; }
     void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold = threshold; }
+    
+    void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
+    void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
     static const float CALLBACK_ACCELERATOR_RATIO;
     
@@ -270,6 +276,9 @@ private:
     AudioIOStats _stats;
     
     AudioNoiseGate _inputGate;
+    
+    PositionGetter _positionGetter;
+    OrientationGetter _orientationGetter;
 };
 
 

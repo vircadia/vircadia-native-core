@@ -690,9 +690,8 @@ void AudioClient::handleAudioInput() {
         }
         
         if (audioMixer && audioMixer->getActiveSocket()) {
-            const MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
-            glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead()->getFinalOrientationInWorldFrame();
+            glm::vec3 headPosition = _positionGetter();
+            glm::quat headOrientation = _orientationGetter();
             quint8 isStereo = _isStereoInput ? 1 : 0;
 
             PacketType packetType;
@@ -748,8 +747,8 @@ void AudioClient::handleAudioInput() {
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
 
-            Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                .updateValue(packetBytes);
+//            Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
+//                .updateValue(packetBytes);
         }
         delete[] inputAudioSamples;
     }
@@ -788,8 +787,8 @@ void AudioClient::sendMuteEnvironmentPacket() {
     
     const float MUTE_RADIUS = 50;
     
-    mutePacketStream.writeBytes(reinterpret_cast<const char *>(&Application::getInstance()->getAvatar()->getPosition()),
-                                sizeof(glm::vec3));
+    glm::vec3 currentSourcePosition = _positionGetter();
+    mutePacketStream.writeBytes(reinterpret_cast<const char *>(&currentSourcePosition), sizeof(glm::vec3));
     mutePacketStream.writeBytes(reinterpret_cast<const char *>(&MUTE_RADIUS), sizeof(float));
     
     // grab our audio mixer from the NodeList, if it exists
@@ -808,7 +807,7 @@ void AudioClient::addReceivedAudioToStream(const QByteArray& audioByteArray) {
         _receivedAudioStream.parseData(audioByteArray);
     }
 
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
+//    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
 }
 
 void AudioClient::parseAudioEnvironmentData(const QByteArray &packet) {

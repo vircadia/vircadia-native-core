@@ -38,7 +38,7 @@
 #include <TextureCache.h>
 #include <ViewFrustum.h>
 
-#include "Audio.h"
+#include "AudioClient.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
