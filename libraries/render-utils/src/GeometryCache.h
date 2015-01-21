@@ -208,7 +208,6 @@ private:
     QHash<float, VerticesIndices> _solidCubeVBOs;
     QHash<Vec2Pair, VerticesIndices> _quad2DVBOs;
     QHash<Vec2PairPair, BatchItemDetails> _quad2DTextureVBOs;
-    //QHash<Vec3Pair, VerticesIndices> _quad3DVBOs;
     QHash<Vec3PairVec2Pair, VerticesIndices> _quad3DTextureVBOs;
     QHash<int, VerticesIndices> _registeredQuadVBOs;
     int _nextID;
