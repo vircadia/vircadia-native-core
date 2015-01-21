@@ -13,10 +13,9 @@
 
 #include <limits>
 
+#include <AudioClient.h>
 #include <AudioConstants.h>
 #include <GeometryCache.h>
-
-#include "Audio.h"
 
 #include "AudioScope.h"
 

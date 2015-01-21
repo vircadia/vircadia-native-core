@@ -11,14 +11,13 @@
 
 #include "InterfaceConfig.h"
 
+#include <AudioClient.h>
 #include <AudioConstants.h>
+#include <AudioIOStats.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <NodeList.h>
 #include <Util.h>
-
-#include "Audio.h"
-#include "AudioIOStats.h"
 
 #include "AudioIOStatsRenderer.h"
 
