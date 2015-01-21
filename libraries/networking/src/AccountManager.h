@@ -48,13 +48,15 @@ public:
                               QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
                               const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                               const QByteArray& dataByteArray = QByteArray(),
-                              QHttpMultiPart* dataMultiPart = NULL);
+                              QHttpMultiPart* dataMultiPart = NULL,
+                              const QVariantMap& propertyMap = QVariantMap());
     
     void unauthenticatedRequest(const QString& path,
                                 QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
                                 const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                                 const QByteArray& dataByteArray = QByteArray(),
-                                QHttpMultiPart* dataMultiPart = NULL);
+                                QHttpMultiPart* dataMultiPart = NULL,
+                                const QVariantMap& propertyMap = QVariantMap()) ;
 
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
@@ -109,7 +111,8 @@ private:
                                     QNetworkAccessManager::Operation operation,
                                     const JSONCallbackParameters& callbackParams,
                                     const QByteArray& dataByteArray,
-                                    QHttpMultiPart* dataMultiPart);
+                                    QHttpMultiPart* dataMultiPart,
+                                    const QVariantMap& propertyMap);
 
     QUrl _authURL;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;

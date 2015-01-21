@@ -47,7 +47,7 @@ public:
     const QString& getRootPlaceName() const { return _rootPlaceName; }
     void setRootPlaceName(const QString& rootPlaceName);
     
-    void attemptPlaceNameLookup(const QString& lookupString);
+    void attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath = QString());
     
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
@@ -57,7 +57,7 @@ public:
 public slots:
     void handleLookupString(const QString& lookupString);
     void goToUser(const QString& username);
-    void goToAddressFromObject(const QVariantMap& addressMap);
+    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
     
     void storeCurrentAddress();
     

@@ -228,7 +228,12 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
     } else if (_overlaysWorld.contains(id)) {
         thisOverlay = _overlaysWorld[id];
     }
-    return addOverlay(thisOverlay->createClone());
+
+    if (thisOverlay) {
+        return addOverlay(thisOverlay->createClone());
+    } 
+    
+    return 0;  // Not found
 }
 
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
