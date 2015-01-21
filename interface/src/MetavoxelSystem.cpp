@@ -1498,6 +1498,17 @@ const NormalIndex& IndexVector::get(int y) const {
     return (relative >= 0 && relative < size()) ? at(relative) : invalidIndex;
 }
 
+static inline glm::vec3 getNormal(const QVector<VoxelPoint>& vertices, const NormalIndex& i0,
+        const NormalIndex& i1, const NormalIndex& i2, const NormalIndex& i3) {
+    // check both triangles in case one is degenerate
+    const glm::vec3& v0 = vertices.at(i0.indices[0]).vertex;
+    glm::vec3 normal = glm::cross(vertices.at(i1.indices[0]).vertex - v0, vertices.at(i2.indices[0]).vertex - v0);
+    if (glm::length(normal) > EPSILON) {
+        return normal;
+    }
+    return glm::cross(vertices.at(i2.indices[0]).vertex - v0, vertices.at(i3.indices[0]).vertex - v0);
+}
+
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
         const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
     if (!node->getHeight()) {
@@ -2174,10 +2185,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ - 1), indices.size());
                                     quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
                                 }
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                    vertices.at(index3.indices[0]).vertex - first);
-                                
+                                glm::vec3 normal = getNormal(vertices, index, index1, index2, index3);
                                 if (alpha0 == 0) { // quad faces negative x
                                     indices.append(index3.getClosestIndex(normal = -normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
@@ -2206,10 +2214,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 if (reclampedZ > 0) {
                                     quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
                                 }
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index3.indices[0]).vertex - first,
-                                    vertices.at(index1.indices[0]).vertex - first);
-                                
+                                glm::vec3 normal = getNormal(vertices, index, index3, index2, index1);
                                 if (alpha0 == 0) { // quad faces negative y
                                     indices.append(index3.getClosestIndex(normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
@@ -2235,10 +2240,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 }
                                 quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
                                 
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                    vertices.at(index3.indices[0]).vertex - first);
-                                
+                                glm::vec3 normal = getNormal(vertices, index, index1, index2, index3);
                                 if (alpha0 == 0) { // quad faces negative z
                                     indices.append(index1.getClosestIndex(normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
