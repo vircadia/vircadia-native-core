@@ -159,7 +159,7 @@ You now have Bullet libraries compiled, now you need to put them in the right pl
 * Copy all the contents inside src\ from the bullet unzip path into %HIFI_LIB_DIR%\bullet\include\
 * Copy all the contents inside cmakebuild\lib\ into %HIFI_LIB_DIR\bullet\lib
 
-*Note that the INSTALL target should handle the copying of files into an install directory automatically, however, without modifications to Cmake, the install target didn't work right for me, please update this instructions if you get that working right - Leo <leo@highfidelity.io>" 
+_Note that the INSTALL target should handle the copying of files into an install directory automatically, however, without modifications to Cmake, the install target didn't work right for me, please update this instructions if you get that working right - Leo <leo@highfidelity.io>_
 
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
