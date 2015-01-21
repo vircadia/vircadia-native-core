@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <glm/gtx/norm.hpp>
 
 #include "ShapeInfoUtil.h"
@@ -104,6 +102,3 @@ int ShapeManager::getNumReferences(const ShapeInfo& info) const {
     }
     return -1;
 }
-
-
-#endif // USE_BULLET_PHYSICS

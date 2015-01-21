@@ -15,9 +15,6 @@
 #include "ShapeInfoUtil.h"
 #include "BulletUtil.h"
 
-#ifdef USE_BULLET_PHYSICS
-
-
 int ShapeInfoUtil::toBulletShapeType(int shapeInfoType) {
     int bulletShapeType = INVALID_SHAPE_PROXYTYPE;
     switch(shapeInfoType) {
@@ -168,5 +165,3 @@ DoubleHashKey ShapeInfoUtil::computeHash(const ShapeInfo& info) {
     key._hash2 = (int)hash;
     return key;
 }
-
-#endif // USE_BULLET_PHYSICS

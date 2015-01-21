@@ -191,9 +191,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
-#ifdef USE_BULLET_PHYSICS
         _physicsEngine(glm::vec3(0.0f)),
-#endif // USE_BULLET_PHYSICS
         _entities(true, this, this),
         _entityCollisionSystem(),
         _entityClipboardRenderer(false, this, this),
@@ -1726,12 +1724,10 @@ void Application::init() {
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 
-#ifdef USE_BULLET_PHYSICS
     EntityTree* tree = _entities.getTree();
     _physicsEngine.setEntityTree(tree);
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
-#endif // USE_BULLET_PHYSICS
     // make sure our texture cache knows about window size changes
     DependencyManager::get<TextureCache>()->associateWithWidget(glCanvas.data());
 
@@ -2042,12 +2038,10 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
 
-#ifdef USE_BULLET_PHYSICS
     {
         PerformanceTimer perfTimer("physics");
         _physicsEngine.stepSimulation();
     }
-#endif // USE_BULLET_PHYSICS
 
     if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
@@ -3685,7 +3679,6 @@ void Application::openUrl(const QUrl& url) {
 
 void Application::updateMyAvatarTransform() {
     bumpSettings();
-#ifdef USE_BULLET_PHYSICS
     const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
     glm::vec3 avatarPosition = _myAvatar->getPosition();
     glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();
@@ -3699,7 +3692,6 @@ void Application::updateMyAvatarTransform() {
         // TODO: Andrew to replace this with method that actually moves existing object positions in PhysicsEngine
         _physicsEngine.setOriginOffset(newOriginOffset);
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {

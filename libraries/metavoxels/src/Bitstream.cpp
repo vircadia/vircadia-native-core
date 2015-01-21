@@ -2432,12 +2432,13 @@ void MappedObjectStreamer::writeRawDelta(Bitstream& out, const QObject* object, 
 }
 
 QObject* MappedObjectStreamer::read(Bitstream& in, QObject* object) const {
+    bool reread = (object != NULL);
     if (!object && _metaObject) {
         object = _metaObject->newInstance();
     }
     foreach (const StreamerPropertyPair& property, _properties) {
         QVariant value = property.first->read(in);
-        if (property.second.isValid() && object) {
+        if (property.second.isValid() && object && !reread) {
             property.second.write(object, value);
         }
     }
@@ -2445,6 +2446,7 @@ QObject* MappedObjectStreamer::read(Bitstream& in, QObject* object) const {
 }
 
 QObject* MappedObjectStreamer::readRawDelta(Bitstream& in, const QObject* reference, QObject* object) const {
+    bool reread = (object != NULL);
     if (!object && _metaObject) {
         object = _metaObject->newInstance();
     }
@@ -2452,7 +2454,7 @@ QObject* MappedObjectStreamer::readRawDelta(Bitstream& in, const QObject* refere
         QVariant value;
         property.first->readDelta(in, value, (property.second.isValid() && reference &&
             reference->metaObject() == _metaObject) ? property.second.read(reference) : QVariant());
-        if (property.second.isValid() && object) {
+        if (property.second.isValid() && object && !reread) {
             property.second.write(object, value);
         }
     }
@@ -2475,13 +2477,13 @@ void SharedObjectStreamer::writeRawDelta(Bitstream& out, const QObject* object, 
 
 QObject* SharedObjectStreamer::read(Bitstream& in, QObject* object) const {
     QObject* result = MappedObjectStreamer::read(in, object);
-    static_cast<SharedObject*>(result)->readExtra(in);
+    static_cast<SharedObject*>(result)->readExtra(in, object != NULL);
     return result;
 }
 
 QObject* SharedObjectStreamer::readRawDelta(Bitstream& in, const QObject* reference, QObject* object) const {
     QObject* result = MappedObjectStreamer::readRawDelta(in, reference, object);
-    static_cast<SharedObject*>(result)->readExtraDelta(in, static_cast<const SharedObject*>(reference));
+    static_cast<SharedObject*>(result)->readExtraDelta(in, static_cast<const SharedObject*>(reference), object != NULL);
     return result;
 }
 
@@ -2592,6 +2594,7 @@ void GenericObjectStreamer::writeRawDelta(Bitstream& out, const QObject* object,
 }
 
 QObject* GenericObjectStreamer::read(Bitstream& in, QObject* object) const {
+    bool reread = (object != NULL);
     if (!object) {
         object = new GenericSharedObject(_weakSelf);
     }
@@ -2599,11 +2602,14 @@ QObject* GenericObjectStreamer::read(Bitstream& in, QObject* object) const {
     foreach (const StreamerNamePair& property, _properties) {
         values.append(property.first->read(in));
     }
-    static_cast<GenericSharedObject*>(object)->setValues(values);
+    if (!reread) {
+        static_cast<GenericSharedObject*>(object)->setValues(values);
+    }
     return object;
 }
 
 QObject* GenericObjectStreamer::readRawDelta(Bitstream& in, const QObject* reference, QObject* object) const {
+    bool reread = (object != NULL);
     if (!object) {
         object = new GenericSharedObject(_weakSelf);
     }
@@ -2615,7 +2621,9 @@ QObject* GenericObjectStreamer::readRawDelta(Bitstream& in, const QObject* refer
             static_cast<const GenericSharedObject*>(reference)->getValues().at(i) : QVariant());
         values.append(value);
     }
-    static_cast<GenericSharedObject*>(object)->setValues(values);
+    if (!reread) {
+        static_cast<GenericSharedObject*>(object)->setValues(values);
+    }
     return object;
 }
 
