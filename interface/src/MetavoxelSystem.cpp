@@ -1738,7 +1738,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             cornerMinimumY = qMin(cornerMinimumY, y);
                             cornerMaximumY = qMax(cornerMaximumY, y);
                             EdgeCrossing& crossing = cornerCrossings[i];
-                            crossing.point = glm::vec3(offsetX, heightValue - y, offsetZ);
+                            crossing.point = glm::vec3(offsetX, heightValue, offsetZ);
                             int left = height[-1];
                             int right = height[1];
                             int down = height[-width];
@@ -1860,6 +1860,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
                                 case UPPER_LEFT_CORNER | LOWER_RIGHT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[0];
+                                    crossings[crossingCount - 1].point.y -= y;
                                     break;
                                     
                                 case UPPER_RIGHT_CORNER:
@@ -1867,18 +1868,21 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
                                 case UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[1];
+                                    crossings[crossingCount - 1].point.y -= y;
                                     break;
                                     
                                 case LOWER_LEFT_CORNER:
                                 case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
                                 case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER | UPPER_LEFT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[2];
+                                    crossings[crossingCount - 1].point.y -= y;
                                     break;
                                     
                                 case LOWER_RIGHT_CORNER:
                                 case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
                                 case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[3];
+                                    crossings[crossingCount - 1].point.y -= y;
                                     break;
                                 
                                 case NO_CORNERS:
@@ -1906,9 +1910,11 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         float t2 = (y + 1 - heightValue) / divisor;
                                         if (t1 >= 0.0f && t1 <= 1.0f) {
                                             crossings[crossingCount++].mix(cornerCrossings[i], cornerCrossings[nextIndex], t1);
+                                            crossings[crossingCount - 1].point.y -= y;
                                         }
                                         if (t2 >= 0.0f && t2 <= 1.0f) {
                                             crossings[crossingCount++].mix(cornerCrossings[i], cornerCrossings[nextIndex], t2);
+                                            crossings[crossingCount - 1].point.y -= y;
                                         }
                                     }
                                     break;
