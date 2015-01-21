@@ -77,7 +77,6 @@ macro(qt_create_apk)
         get_property(_DEP_DEPENDENCIES TARGET ${_DEP} PROPERTY INTERFACE_LINK_LIBRARIES)
       
         foreach(_SUB_DEP IN LISTS _DEP_DEPENDENCIES)
-          message("${_SUB_DEP} is a DEP of ${DEP}")
           if (NOT TARGET ${_SUB_DEP} AND NOT _SUB_DEP MATCHES "Qt5::.*")
             list(APPEND _DEPS_LIST ${_SUB_DEP})
           endif()
