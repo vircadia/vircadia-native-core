@@ -139,7 +139,7 @@ Bullet 2.82 source can be downloaded [here](https://code.google.com/p/bullet/dow
 * Download the zip file and extract into a temporary folder
 * Create a directory named cmakebuild. Bullet comes with a build\ directory by default, however, that directory is intended for use with premake, and considering premake doesn't support VS2013, I prefer to run the cmake build on its own directory.
 * Make the following modifications to Bullet's source:
-   1. In file: Extras\HACD\hacdICHull.cpp --- in line: 17 --- insert: #include <algorithm>
+   1. In file: Extras\HACD\hacdICHull.cpp --- in line: 17 --- insert: #include &lt;algorithm&gt;
    2. In file: src\MiniCL\cl_MiniCL_Defs.h --- comment lines 364 to 372
    3. In file: CMakeLists.txt set to ON the option USE_MSVC_RUNTIME_LIBRARY_DLL in line 27
 
@@ -159,7 +159,7 @@ You now have Bullet libraries compiled, now you need to put them in the right pl
 * Copy all the contents inside src\ from the bullet unzip path into %HIFI_LIB_DIR%\bullet\include\
 * Copy all the contents inside cmakebuild\lib\ into %HIFI_LIB_DIR\bullet\lib
 
-_Note that the INSTALL target should handle the copying of files into an install directory automatically, however, without modifications to Cmake, the install target didn't work right for me, please update this instructions if you get that working right - Leo <leo@highfidelity.io>_
+_Note that the INSTALL target should handle the copying of files into an install directory automatically, however, without modifications to Cmake, the install target didn't work right for me, please update this instructions if you get that working right - Leo &lt;leo@highfidelity.io&gt;_
 
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
