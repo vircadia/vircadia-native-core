@@ -23,8 +23,8 @@ else (GVERB_INCLUDE_DIRS)
   include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
   hifi_library_search_hints("gverb")
 
-  find_path(GVERB_INCLUDE_DIRS gverb.h PATH_SUFFIXES include HINTS ${GVERB_SEARCH_DIRS})
-  find_path(GVERB_SRC_DIRS gverb.c PATH_SUFFIXES src HINTS ${GVERB_SEARCH_DIRS})
+  find_path(GVERB_INCLUDE_DIRS gverb.h PATH_SUFFIXES include HINTS ${GVERB_SEARCH_DIRS} NO_CMAKE_FIND_ROOT_PATH)
+  find_path(GVERB_SRC_DIRS gverb.c PATH_SUFFIXES src HINTS ${GVERB_SEARCH_DIRS} NO_CMAKE_FIND_ROOT_PATH)
 
   if (GVERB_INCLUDE_DIRS)
     set(GVERB_FOUND TRUE)
