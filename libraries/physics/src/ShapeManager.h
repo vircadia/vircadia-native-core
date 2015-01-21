@@ -12,8 +12,6 @@
 #ifndef hifi_ShapeManager_h
 #define hifi_ShapeManager_h
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
 
@@ -52,5 +50,4 @@ private:
     btAlignedObjectArray<DoubleHashKey> _pendingGarbage;
 };
 
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_ShapeManager_h

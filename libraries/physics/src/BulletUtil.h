@@ -12,8 +12,6 @@
 #ifndef hifi_BulletUtil_h
 #define hifi_BulletUtil_h
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -34,5 +32,4 @@ inline btQuaternion glmToBullet(const glm::quat& g) {
     return btQuaternion(g.x, g.y, g.z, g.w);
 }
 
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_BulletUtil_h
