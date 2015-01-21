@@ -1857,11 +1857,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 if (!(corners & (1 << i))) {
                                     continue;
                                 }
-                                int offsetX = (i & X_MAXIMUM_FLAG) ? 1 : 0;
-                                int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
-                                const quint16* height = heightLineSrc + offsetZ * width + offsetX;
-                                float heightValue = *height * voxelScale;
-                                if (heightValue >= y && heightValue < y + 1) {
+                                const EdgeCrossing& cornerCrossing = cornerCrossings[i];
+                                if (cornerCrossing.point.y >= y && cornerCrossing.point.y < y + 1) {
                                     crossedCorners |= (1 << i);
                                 }
                             }
@@ -1901,30 +1898,24 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         if (!(corners & (1 << i))) {
                                             continue;
                                         }
-                                        int offsetX = (i & X_MAXIMUM_FLAG) ? 1 : 0;
-                                        int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
-                                        const quint16* height = heightLineSrc + offsetZ * width + offsetX;
-                                        float heightValue = *height * voxelScale;
                                         int nextIndex = NEXT_CORNERS[i];
                                         if (!(corners & (1 << nextIndex))) {
                                             continue;
                                         }
-                                        int nextOffsetX = (nextIndex & X_MAXIMUM_FLAG) ? 1 : 0;
-                                        int nextOffsetZ = (nextIndex & Y_MAXIMUM_FLAG) ? 1 : 0;
-                                        const quint16* nextHeight = heightLineSrc + nextOffsetZ * width + nextOffsetX;
-                                        float nextHeightValue = *nextHeight * voxelScale;
-                                        float divisor = (nextHeightValue - heightValue);
+                                        const EdgeCrossing& cornerCrossing = cornerCrossings[i];
+                                        const EdgeCrossing& nextCornerCrossing = cornerCrossings[nextIndex];
+                                        float divisor = (nextCornerCrossing.point.y - cornerCrossing.point.y);
                                         if (divisor == 0.0f) {
                                             continue;
                                         }
-                                        float t1 = (y - heightValue) / divisor;
-                                        float t2 = (y + 1 - heightValue) / divisor;
+                                        float t1 = (y - cornerCrossing.point.y) / divisor;
+                                        float t2 = (y + 1 - cornerCrossing.point.y) / divisor;
                                         if (t1 >= 0.0f && t1 <= 1.0f) {
-                                            crossings[crossingCount++].mix(cornerCrossings[i], cornerCrossings[nextIndex], t1);
+                                            crossings[crossingCount++].mix(cornerCrossing, nextCornerCrossing, t1);
                                             crossings[crossingCount - 1].point.y -= y;
                                         }
                                         if (t2 >= 0.0f && t2 <= 1.0f) {
-                                            crossings[crossingCount++].mix(cornerCrossings[i], cornerCrossings[nextIndex], t2);
+                                            crossings[crossingCount++].mix(cornerCrossing, nextCornerCrossing, t2);
                                             crossings[crossingCount - 1].point.y -= y;
                                         }
                                     }
