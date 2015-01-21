@@ -31,6 +31,7 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AudioClient.h>
 #include <DependencyManager.h>
 #include <MainWindow.h>
 #include <GlowEffect.h>
@@ -41,7 +42,6 @@
 
 #include "Application.h"
 #include "AccountManager.h"
-#include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "devices/RealSense.h"
@@ -490,7 +490,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
 
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
@@ -615,7 +615,7 @@ void Menu::loadSettings(QSettings* settings) {
     _receivedAudioStreamSettings._windowSecondsForDesiredReduction = settings->value("windowSecondsForDesiredReduction", DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION).toInt();
     _receivedAudioStreamSettings._repetitionWithFade = settings->value("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE).toBool();
 
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
     audio->setOutputStarveDetectionEnabled(settings->value("audioOutputStarveDetectionEnabled", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED).toBool());
     audio->setOutputStarveDetectionThreshold(settings->value("audioOutputStarveDetectionThreshold", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD).toInt());
     audio->setOutputStarveDetectionPeriod(settings->value("audioOutputStarveDetectionPeriod", DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD).toInt());
@@ -680,7 +680,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("windowSecondsForDesiredReduction", _receivedAudioStreamSettings._windowSecondsForDesiredReduction);
     settings->setValue("repetitionWithFade", _receivedAudioStreamSettings._repetitionWithFade);
 
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
     settings->setValue("audioOutputStarveDetectionEnabled", audio->getOutputStarveDetectionEnabled());
     settings->setValue("audioOutputStarveDetectionThreshold", audio->getOutputStarveDetectionThreshold());
     settings->setValue("audioOutputStarveDetectionPeriod", audio->getOutputStarveDetectionPeriod());
@@ -1297,7 +1297,7 @@ void Menu::toggleToolWindow() {
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     if (muteAction) {
-        muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
+        muteAction->setChecked(DependencyManager::get<AudioClient>()->isMuted());
     }
 }
 

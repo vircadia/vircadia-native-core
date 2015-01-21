@@ -38,7 +38,7 @@
 #include <TextureCache.h>
 #include <ViewFrustum.h>
 
-#include "Audio.h"
+#include "AudioClient.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
@@ -132,6 +132,8 @@ public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
+    static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
+    static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
 
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();

@@ -23,6 +23,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AnimationHandle.h>
+#include <AudioClient.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
@@ -33,7 +34,6 @@
 #include <TextRenderer.h>
 
 #include "Application.h"
-#include "Audio.h"
 #include "Environment.h"
 #include "Menu.h"
 #include "ModelReferential.h"
@@ -146,7 +146,7 @@ void MyAvatar::update(float deltaTime) {
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
     //  Get audio loudness data from audio input device
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
@@ -490,7 +490,7 @@ void MyAvatar::startRecording() {
     if (!_recorder) {
         _recorder = RecorderPointer(new Recorder(this));
     }
-    DependencyManager::get<Audio>()->setRecorder(_recorder);
+    DependencyManager::get<AudioClient>()->setRecorder(_recorder);
     _recorder->startRecording();
     
 }

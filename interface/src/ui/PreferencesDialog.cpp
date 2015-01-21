@@ -11,8 +11,9 @@
 
 #include <QFileDialog>
 
+#include <AudioClient.h>
+
 #include "Application.h"
-#include "Audio.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
@@ -140,7 +141,7 @@ void PreferencesDialog::loadPreferences() {
     ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
     ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
 
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
     ui.outputBufferSizeSpinner->setValue(audio->getOutputBufferSize());
 
     ui.outputStarveDetectionCheckBox->setChecked(audio->getOutputStarveDetectionEnabled());
@@ -256,7 +257,7 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
 
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
 
     QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
 

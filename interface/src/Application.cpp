@@ -162,7 +162,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto geometryCache = DependencyManager::set<GeometryCache>();
     auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
-    auto audio = DependencyManager::set<Audio>();
+    auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
     auto audioIOStatsRenderer = DependencyManager::set<AudioIOStatsRenderer>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
@@ -278,9 +278,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
     
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
+    
+    audioIO->setPositionGetter(getPositionForAudio);
+    audioIO->setOrientationGetter(getOrientationForAudio);
+    
     audioIO->moveToThread(audioThread);
-    connect(audioThread, &QThread::started, audioIO.data(), &Audio::start);
+    connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
 
     audioThread->start();
     
@@ -476,7 +480,7 @@ Application::~Application() {
     // kill any audio injectors that are still around
     AudioScriptingInterface::getInstance().stopAllInjectors();
     
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
 
     // stop the audio process
     QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
@@ -2117,7 +2121,7 @@ void Application::update(float deltaTime) {
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
 
-            QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
 }
@@ -3113,7 +3117,7 @@ void Application::resetSensors() {
     
     _myAvatar->reset();
 
-    QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "reset", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -3253,7 +3257,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
-        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "audioMixerKilled");
+        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     }
 
     if (node->getType() == NodeType::EntityServer) {
