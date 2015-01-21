@@ -64,7 +64,7 @@ public:
     EntityTree* getEntityTree() { return _entityTree; }
 
 signals:
-    void emitEntityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected:
 

@@ -281,11 +281,11 @@ void PhysicsEngine::computeCollisionEvents() {
             if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
                 idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
             }
-            emitEntityCollisionWithEntity(idA, idB, contactItr->second);
+            emit entityCollisionWithEntity(idA, idB, contactItr->second);
         } else if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
             EntityItemID idA;
             EntityItemID idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
-            emitEntityCollisionWithEntity(idA, idB, contactItr->second);
+            emit entityCollisionWithEntity(idA, idB, contactItr->second);
         }
 
         // TODO: enable scripts to filter based on contact event type

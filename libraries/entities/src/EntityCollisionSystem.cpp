@@ -188,7 +188,7 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
 
                 EntityItemID idA = entityA->getEntityItemID();
                 EntityItemID idB = entityB->getEntityItemID();
-                emitEntityCollisionWithEntity(idA, idB, collision);
+                emit entityCollisionWithEntity(idA, idB, collision);
             }
         }
     }

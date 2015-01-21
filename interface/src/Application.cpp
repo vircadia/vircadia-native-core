@@ -1693,11 +1693,11 @@ void Application::init() {
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
 
-    connect(&_physicsEngine, &EntitySimulation::emitEntityCollisionWithEntity,
+    connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(&_physicsEngine, &EntitySimulation::emitEntityCollisionWithEntity,
+    connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
