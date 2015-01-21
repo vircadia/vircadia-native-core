@@ -23,14 +23,14 @@
 GVRMainWindow::GVRMainWindow(QWidget* parent) :
     QMainWindow(parent)
 {
-    QMenu *fileMenu = new QMenu("File");
-    QMenu *helpMenu = new QMenu("Help");
+    QMenu* fileMenu = new QMenu("File");
+    QMenu* helpMenu = new QMenu("Help");
     
     menuBar()->addMenu(fileMenu);
     menuBar()->addMenu(helpMenu);
     
-    QAction *goToAddress = new QAction("Go to Address", fileMenu);
-    QAction *aboutQt = new QAction("About Qt", helpMenu);
+    QAction* goToAddress = new QAction("Go to Address", fileMenu);
+    QAction* aboutQt = new QAction("About Qt", helpMenu);
     
     fileMenu->addAction(goToAddress);
     helpMenu->addAction(aboutQt);
