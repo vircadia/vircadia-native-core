@@ -33,7 +33,7 @@ else (GVERB_INCLUDE_DIRS)
   if (GVERB_FOUND)
     message(STATUS "Found Gverb: ${GVERB_INCLUDE_DIRS}")
   else (GVERB_FOUND)
-    message(FATAL_ERROR "Could NOT find Gverb. Read ./interface/externals/gverb/readme.txt")
+    message(FATAL_ERROR "Could NOT find Gverb. Read ./libraries/audio-client/externals/gverb/readme.txt")
   endif (GVERB_FOUND)
 
 endif(GVERB_INCLUDE_DIRS)
