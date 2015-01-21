@@ -40,5 +40,5 @@ glm::vec2 HMDScriptingInterface::getHUDLookAtPosition2D() const {
     glm::quat rotation = ::rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), direction);
     glm::vec3 eulers = ::safeEulerAngles(rotation);
 
-    return Application::getInstance()->getApplicationOverlay().sphericalToOverlay(glm::vec2(eulers.y, -eulers.x));;
+    return Application::getInstance()->getApplicationOverlay().sphericalToOverlay(glm::vec2(eulers.y, -eulers.x));
 }
