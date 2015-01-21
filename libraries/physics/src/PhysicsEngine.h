@@ -59,7 +59,7 @@ public:
 
     /// \param motionState pointer to Object's MotionState
     /// \return true if Object added
-    bool addObject(ObjectMotionState* motionState);
+    void addObject(const ShapeInfo& shapeInfo, btCollisionShape* shape, ObjectMotionState* motionState);
 
     /// \param motionState pointer to Object's MotionState
     /// \return true if Object removed
