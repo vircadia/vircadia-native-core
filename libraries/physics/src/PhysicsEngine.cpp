@@ -54,14 +54,17 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        EntityMotionState* motionState = new EntityMotionState(entity);
-        if (addObject(motionState)) {
+        ShapeInfo shapeInfo;
+        entity->computeShapeInfo(shapeInfo);
+        btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+        if (shape) {
+            EntityMotionState* motionState = new EntityMotionState(entity);
             entity->setPhysicsInfo(static_cast<void*>(motionState));
             _entityMotionStates.insert(motionState);
+            addObject(shapeInfo, shape, motionState);
         } else {
             // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
             //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
-            delete motionState;
         }
     }
 }
@@ -306,59 +309,53 @@ void PhysicsEngine::computeCollisionEvents() {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
+void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shape, ObjectMotionState* motionState) {
+    assert(shape);
     assert(motionState);
-    ShapeInfo shapeInfo;
-    motionState->computeShapeInfo(shapeInfo);
-    btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
-    if (shape) {
-        btVector3 inertia(0.0f, 0.0f, 0.0f);
-        float mass = 0.0f;
-        btRigidBody* body = NULL;
-        switch(motionState->computeMotionType()) {
-            case MOTION_TYPE_KINEMATIC: {
-                body = new btRigidBody(mass, motionState, shape, inertia);
-                body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
-                body->updateInertiaTensor();
-                motionState->setRigidBody(body);
-                motionState->addKinematicController();
-                const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
-                const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
-                body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
-                break;
-            }
-            case MOTION_TYPE_DYNAMIC: {
-                mass = motionState->computeMass(shapeInfo);
-                shape->calculateLocalInertia(mass, inertia);
-                body = new btRigidBody(mass, motionState, shape, inertia);
-                body->updateInertiaTensor();
-                motionState->setRigidBody(body);
-                motionState->updateObjectVelocities();
-                // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
-                // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
-                const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-                const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-                body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
-                break;
-            }
-            case MOTION_TYPE_STATIC:
-            default: {
-                body = new btRigidBody(mass, motionState, shape, inertia);
-                body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-                body->updateInertiaTensor();
-                motionState->setRigidBody(body);
-                break;
-            }
+
+    btVector3 inertia(0.0f, 0.0f, 0.0f);
+    float mass = 0.0f;
+    btRigidBody* body = NULL;
+    switch(motionState->computeMotionType()) {
+        case MOTION_TYPE_KINEMATIC: {
+            body = new btRigidBody(mass, motionState, shape, inertia);
+            body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+            body->updateInertiaTensor();
+            motionState->setRigidBody(body);
+            motionState->addKinematicController();
+            const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
+            const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
+            body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
+            break;
         }
-        // wtf?
-        body->setFlags(BT_DISABLE_WORLD_GRAVITY);
-        body->setRestitution(motionState->_restitution);
-        body->setFriction(motionState->_friction);
-        body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
-        _dynamicsWorld->addRigidBody(body);
-        return true;
+        case MOTION_TYPE_DYNAMIC: {
+            mass = motionState->computeMass(shapeInfo);
+            shape->calculateLocalInertia(mass, inertia);
+            body = new btRigidBody(mass, motionState, shape, inertia);
+            body->updateInertiaTensor();
+            motionState->setRigidBody(body);
+            motionState->updateObjectVelocities();
+            // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
+            // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
+            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
+            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
+            body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+            break;
+        }
+        case MOTION_TYPE_STATIC:
+        default: {
+            body = new btRigidBody(mass, motionState, shape, inertia);
+            body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
+            body->updateInertiaTensor();
+            motionState->setRigidBody(body);
+            break;
+        }
     }
-    return false;
+    body->setFlags(BT_DISABLE_WORLD_GRAVITY);
+    body->setRestitution(motionState->_restitution);
+    body->setFriction(motionState->_friction);
+    body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
+    _dynamicsWorld->addRigidBody(body);
 }
 
 bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
