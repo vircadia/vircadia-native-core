@@ -685,10 +685,6 @@ void AudioClient::handleAudioInput() {
         auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
-        if (_recorder && _recorder.data()->isRecording()) {
-            _recorder.data()->record(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
-        }
-        
         if (audioMixer && audioMixer->getActiveSocket()) {
             glm::vec3 headPosition = _positionGetter();
             glm::quat headOrientation = _orientationGetter();

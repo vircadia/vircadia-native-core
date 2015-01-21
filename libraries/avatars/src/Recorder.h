@@ -26,7 +26,8 @@ typedef QSharedPointer<Recorder> RecorderPointer;
 typedef QWeakPointer<Recorder> WeakRecorderPointer;
 
 /// Records a recording
-class Recorder {
+class Recorder : public QObject {
+    Q_OBJECT
 public:
     Recorder(AvatarData* avatar);
     
@@ -40,7 +41,8 @@ public slots:
     void stopRecording();
     void saveToFile(const QString& file);
     void record();
-    void record(char* samples, int size);
+    void recordAudio(const QByteArray& audioArray);
+    
     
 private:
     QElapsedTimer _timer;

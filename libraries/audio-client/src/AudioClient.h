@@ -37,8 +37,6 @@
 #include <RingBufferHistory.h>
 #include <StDev.h>
 
-#include "Recorder.h"
-
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
 
@@ -112,8 +110,6 @@ public:
 
     float getInputRingBufferMsecsAvailable() const;
     float getAudioOutputMsecsUnplayed() const;
-    
-    void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
 
     int getOutputBufferSize() { return _outputBufferSizeFrames; }
 
@@ -272,8 +268,6 @@ private:
     quint16 _outgoingAvatarAudioSequenceNumber;
 
     AudioOutputIODevice _audioOutputIODevice;
-    
-    WeakRecorderPointer _recorder;
     
     AudioIOStats _stats;
     
