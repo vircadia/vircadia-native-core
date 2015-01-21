@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
+
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
@@ -33,6 +35,8 @@
 
 #include "Application.h"
 #include "MetavoxelSystem.h"
+
+using namespace std;
 
 REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
@@ -59,11 +63,6 @@ MetavoxelSystem::~MetavoxelSystem() {
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     
-    _voxelBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
-        new BufferDataAttribute("voxelBuffer"));
-    _voxelBufferAttribute->setLODThresholdMultiplier(
-        AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
-        
     _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() +
             "shaders/metavoxel_heightfield_base.vert");
     _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() +
@@ -202,7 +201,7 @@ void MetavoxelSystem::render() {
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor, true);
     
-    if (!_heightfieldBaseBatches.isEmpty()) {
+    if (!_heightfieldBaseBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::RenderHeightfields)) {
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
@@ -224,8 +223,8 @@ void MetavoxelSystem::render() {
             glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
             glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
             
-            batch.vertexBuffer->bind();
-            batch.indexBuffer->bind();
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
         
             HeightfieldPoint* point = 0;
             glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
@@ -246,8 +245,8 @@ void MetavoxelSystem::render() {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, 0);
         
-            batch.vertexBuffer->release();
-            batch.indexBuffer->release();
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
             glPopMatrix();
         }
@@ -274,8 +273,8 @@ void MetavoxelSystem::render() {
                 glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
                 glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
                 
-                batch.vertexBuffer->bind();
-                batch.indexBuffer->bind();
+                glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
             
                 HeightfieldPoint* point = 0;
                 glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
@@ -325,8 +324,8 @@ void MetavoxelSystem::render() {
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, 0);
             
-                batch.vertexBuffer->release();
-                batch.indexBuffer->release();
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
                 
                 glPopMatrix();   
             }
@@ -336,19 +335,17 @@ void MetavoxelSystem::render() {
             glDisable(GL_POLYGON_OFFSET_FILL);
             glDepthMask(true);
             glDepthFunc(GL_LESS);
-            
-            _heightfieldSplatBatches.clear();
         }
         
         glDisable(GL_CULL_FACE);
         
         glDisableClientState(GL_TEXTURE_COORD_ARRAY);    
         glDisableClientState(GL_VERTEX_ARRAY);  
-        
-        _heightfieldBaseBatches.clear();
     }
+    _heightfieldBaseBatches.clear();
+    _heightfieldSplatBatches.clear();
     
-    if (!_voxelBaseBatches.isEmpty()) {
+    if (!_voxelBaseBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::RenderDualContourSurfaces)) {
         DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
     
         glEnableClientState(GL_VERTEX_ARRAY);
@@ -364,9 +361,15 @@ void MetavoxelSystem::render() {
             
         _baseVoxelProgram.bind();
         
-        foreach (const VoxelBatch& batch, _voxelBaseBatches) {
-            batch.vertexBuffer->bind();
-            batch.indexBuffer->bind();
+        foreach (const MetavoxelBatch& batch, _voxelBaseBatches) {
+            glPushMatrix();
+            glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
+            glm::vec3 axis = glm::axis(batch.rotation);
+            glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
+            glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
+                
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
             
             VoxelPoint* point = 0;
             glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
@@ -375,8 +378,10 @@ void MetavoxelSystem::render() {
             
             glDrawRangeElements(GL_QUADS, 0, batch.vertexCount - 1, batch.indexCount, GL_UNSIGNED_INT, 0);
             
-            batch.vertexBuffer->release();
-            batch.indexBuffer->release();
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            
+            glPopMatrix();
         }
         
         _baseVoxelProgram.release();
@@ -398,8 +403,14 @@ void MetavoxelSystem::render() {
             _splatVoxelProgram.enableAttributeArray(_splatVoxelLocations.materialWeights);
             
             foreach (const VoxelSplatBatch& batch, _voxelSplatBatches) {
-                batch.vertexBuffer->bind();
-                batch.indexBuffer->bind();
+                glPushMatrix();
+                glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
+                glm::vec3 axis = glm::axis(batch.rotation);
+                glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
+                glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
+            
+                glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
                 
                 VoxelPoint* point = 0;
                 glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
@@ -410,8 +421,9 @@ void MetavoxelSystem::render() {
                     GL_UNSIGNED_BYTE, (qint64)&point->materials, SPLAT_COUNT, sizeof(VoxelPoint));
                 _splatVoxelProgram.setAttributeBuffer(_splatVoxelLocations.materialWeights,
                     GL_UNSIGNED_BYTE, (qint64)&point->materialWeights, SPLAT_COUNT, sizeof(VoxelPoint));
-                
+                    
                 const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
+                _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureOffset, batch.splatTextureOffset);
                 _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureScalesS, batch.splatTextureScalesS);
                 _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureScalesT, batch.splatTextureScalesT);
                 _splatVoxelProgram.setUniformValue(
@@ -441,8 +453,10 @@ void MetavoxelSystem::render() {
             
                 glActiveTexture(GL_TEXTURE0);
         
-                batch.vertexBuffer->release();
-                batch.indexBuffer->release();
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+                
+                glPopMatrix();
             }
             
             glDisable(GL_POLYGON_OFFSET_FILL);
@@ -451,17 +465,15 @@ void MetavoxelSystem::render() {
             
             _splatVoxelProgram.disableAttributeArray(_splatVoxelLocations.materials);
             _splatVoxelProgram.disableAttributeArray(_splatVoxelLocations.materialWeights);
-            
-            _voxelSplatBatches.clear();
         }
         
         glDisableClientState(GL_VERTEX_ARRAY);
         glDisableClientState(GL_COLOR_ARRAY);
         glDisableClientState(GL_NORMAL_ARRAY);
         glDisable(GL_CULL_FACE);
-        
-        _voxelBaseBatches.clear();
     }
+    _voxelBaseBatches.clear();
+    _voxelSplatBatches.clear();
     
     if (!_hermiteBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
         DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true);
@@ -474,13 +486,21 @@ void MetavoxelSystem::render() {
         DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
         
         foreach (const HermiteBatch& batch, _hermiteBatches) {
-            batch.vertexBuffer->bind();
+            glPushMatrix();
+            glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
+            glm::vec3 axis = glm::axis(batch.rotation);
+            glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
+            glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
+                
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
             
             glVertexPointer(3, GL_FLOAT, 0, 0);
             
             glDrawArrays(GL_LINES, 0, batch.vertexCount);
             
-            batch.vertexBuffer->release();
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            
+            glPopMatrix();
         }
         
         DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
@@ -495,88 +515,29 @@ void MetavoxelSystem::render() {
     emit rendering();
 }
 
-void MetavoxelSystem::refreshVoxelData() {
-    NodeList::getInstance()->eachNode([](const SharedNodePointer& node){
-        if (node->getType() == NodeType::MetavoxelServer) {
-            QMutexLocker locker(&node->getMutex());
-            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
-            if (client) {
-                QMetaObject::invokeMethod(client, "refreshVoxelData");
-            }
-        }
-    });
-}
-
-class RayVoxelIntersectionVisitor : public RayIntersectionVisitor {
-public:
-    
-    float intersectionDistance;
-    
-    RayVoxelIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction, const MetavoxelLOD& lod);
-    
-    virtual int visit(MetavoxelInfo& info, float distance);
-};
-
-RayVoxelIntersectionVisitor::RayVoxelIntersectionVisitor(const glm::vec3& origin,
-        const glm::vec3& direction, const MetavoxelLOD& lod) :
-    RayIntersectionVisitor(origin, direction, QVector<AttributePointer>() <<
-        Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), QVector<AttributePointer>(), lod),
-    intersectionDistance(FLT_MAX) {
-}
-
-int RayVoxelIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
-    if (!info.isLeaf) {
-        return _order;
-    }
-    const VoxelBuffer* buffer = static_cast<VoxelBuffer*>(
-        info.inputValues.at(0).getInlineValue<BufferDataPointer>().data());
-    if (!buffer) {
-        return STOP_RECURSION;
-    }
-    glm::vec3 entry = ((_origin + distance * _direction) - info.minimum) / info.size;
-    if (buffer->findFirstRayIntersection(entry, _origin, _direction, intersectionDistance)) {
-        return SHORT_CIRCUIT;
-    }
-    return STOP_RECURSION;
-}
-
-bool MetavoxelSystem::findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) {
-    RayVoxelIntersectionVisitor visitor(origin, direction, getLOD());
-    guideToAugmented(visitor);
-    if (visitor.intersectionDistance == FLT_MAX) {
-        return false;
-    }
-    distance = visitor.intersectionDistance;
-    return true;
-}
-
 void MetavoxelSystem::paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldMaterialEdit(position, radius, SharedObjectPointer(), color)) };
-    applyEdit(edit, true);
+    Sphere* sphere = new Sphere();
+    sphere->setTranslation(position);
+    sphere->setScale(radius);
+    setHeightfieldColor(SharedObjectPointer(sphere), color, true);
 }
 
 void MetavoxelSystem::paintHeightfieldMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldMaterialEdit(position, radius, material)) };
-    applyMaterialEdit(edit, true);
+    Sphere* sphere = new Sphere();
+    sphere->setTranslation(position);
+    sphere->setScale(radius);
+    setHeightfieldMaterial(SharedObjectPointer(sphere), material, true);
 }
 
-void MetavoxelSystem::paintVoxelColor(const glm::vec3& position, float radius, const QColor& color) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintVoxelMaterialEdit(position, radius, SharedObjectPointer(), color)) };
+void MetavoxelSystem::setHeightfieldColor(const SharedObjectPointer& spanner, const QColor& color, bool paint) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner,
+        SharedObjectPointer(), color, paint)) };
     applyEdit(edit, true);
 }
 
-void MetavoxelSystem::paintVoxelMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(PaintVoxelMaterialEdit(position, radius, material)) };
-    applyMaterialEdit(edit, true);
-}
-
-void MetavoxelSystem::setVoxelColor(const SharedObjectPointer& spanner, const QColor& color) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, SharedObjectPointer(), color)) };
-    applyEdit(edit, true);
-}
-
-void MetavoxelSystem::setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material) {
-    MetavoxelEditMessage edit = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, material)) };
+void MetavoxelSystem::setHeightfieldMaterial(const SharedObjectPointer& spanner,
+        const SharedObjectPointer& material, bool paint) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner, material, QColor(), paint)) };
     applyMaterialEdit(edit, true);
 }
 
@@ -584,6 +545,12 @@ void MetavoxelSystem::deleteTextures(int heightTextureID, int colorTextureID, in
     glDeleteTextures(1, (const GLuint*)&heightTextureID);
     glDeleteTextures(1, (const GLuint*)&colorTextureID);
     glDeleteTextures(1, (const GLuint*)&materialTextureID);
+}
+
+void MetavoxelSystem::deleteBuffers(int vertexBufferID, int indexBufferID, int hermiteBufferID) const {
+    glDeleteBuffers(1, (const GLuint*)&vertexBufferID);
+    glDeleteBuffers(1, (const GLuint*)&indexBufferID);
+    glDeleteBuffers(1, (const GLuint*)&hermiteBufferID);
 }
 
 class SpannerRenderVisitor : public SpannerVisitor {
@@ -661,75 +628,6 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    
-    _heightfieldCursorProgram.bind();
-    
-    glActiveTexture(GL_TEXTURE4);
-    float scale = 1.0f / radius;
-    glm::vec4 sCoefficients(scale, 0.0f, 0.0f, -scale * position.x);
-    glm::vec4 tCoefficients(0.0f, 0.0f, scale, -scale * position.z);
-    glm::vec4 rCoefficients(0.0f, 0.0f, 0.0f, 0.0f);
-    glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&sCoefficients);
-    glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&tCoefficients);
-    glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&rCoefficients);
-    glActiveTexture(GL_TEXTURE0);
-    
-    glm::vec3 extents(radius, radius, radius);
-    SpannerCursorRenderVisitor visitor(getLOD(), Box(position - extents, position + extents));
-    guide(visitor);
-    
-    _heightfieldCursorProgram.release();
-    
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    glDisable(GL_CULL_FACE);
-    glDepthFunc(GL_LESS);
-}
-
-class BufferCursorRenderVisitor : public MetavoxelVisitor {
-public:
-    
-    BufferCursorRenderVisitor(const AttributePointer& attribute, const Box& bounds);
-
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    Box _bounds;
-};
-
-BufferCursorRenderVisitor::BufferCursorRenderVisitor(const AttributePointer& attribute, const Box& bounds) :
-    MetavoxelVisitor(QVector<AttributePointer>() << attribute),
-    _bounds(bounds) {
-}
-
-int BufferCursorRenderVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_bounds)) {
-        return STOP_RECURSION;
-    }
-    BufferData* buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>().data();
-    if (buffer) {
-        buffer->render(true);
-    }
-    return info.isLeaf ? STOP_RECURSION : DEFAULT_ORDER;
-}
-
-void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius) {
-    glDepthFunc(GL_LEQUAL);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(-1.0f, -1.0f);
-    
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    
-    glEnableClientState(GL_VERTEX_ARRAY);
-    
-    _voxelCursorProgram.bind();
-    
     glActiveTexture(GL_TEXTURE4);
     float scale = 1.0f / radius;
     glm::vec4 sCoefficients(scale, 0.0f, 0.0f, -scale * position.x);
@@ -741,24 +639,79 @@ void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius)
     glActiveTexture(GL_TEXTURE0);
     
     glm::vec3 extents(radius, radius, radius);
-    Box bounds(position - extents, position + extents);
-    BufferCursorRenderVisitor voxelVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), bounds);
-    guideToAugmented(voxelVisitor);
+    SpannerCursorRenderVisitor visitor(getLOD(), Box(position - extents, position + extents));
+    guide(visitor);
     
-    _voxelCursorProgram.release();
+    if (!_heightfieldBaseBatches.isEmpty()) {
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        _heightfieldCursorProgram.bind();
     
-    _heightfieldCursorProgram.bind();
+        foreach (const HeightfieldBaseLayerBatch& batch, _heightfieldBaseBatches) {
+            glPushMatrix();
+            glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
+            glm::vec3 axis = glm::axis(batch.rotation);
+            glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
+            glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
+            
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
+        
+            HeightfieldPoint* point = 0;
+            glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
+            glTexCoordPointer(2, GL_FLOAT, sizeof(HeightfieldPoint), &point->textureCoord);
+            
+            glBindTexture(GL_TEXTURE_2D, batch.heightTextureID);
+            
+            glDrawRangeElements(GL_TRIANGLES, 0, batch.vertexCount - 1, batch.indexCount, GL_UNSIGNED_INT, 0);
+            
+            glBindTexture(GL_TEXTURE_2D, 0);
+        
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        
+            glPopMatrix();
+        }
+        
+        _heightfieldCursorProgram.release();
     
-    SpannerCursorRenderVisitor spannerVisitor(getLOD(), bounds);
-    guide(spannerVisitor);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
+    }
+    _heightfieldBaseBatches.clear();
     
-    _heightfieldCursorProgram.release();
+    if (!_voxelBaseBatches.isEmpty()) {
+        glEnableClientState(GL_VERTEX_ARRAY);
     
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        _voxelCursorProgram.bind();
     
-    glDisableClientState(GL_VERTEX_ARRAY);
+        foreach (const MetavoxelBatch& batch, _voxelBaseBatches) {
+            glPushMatrix();
+            glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
+            glm::vec3 axis = glm::axis(batch.rotation);
+            glRotatef(glm::degrees(glm::angle(batch.rotation)), axis.x, axis.y, axis.z);
+            glScalef(batch.scale.x, batch.scale.y, batch.scale.z);
+                
+            glBindBuffer(GL_ARRAY_BUFFER, batch.vertexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch.indexBufferID);
+            
+            VoxelPoint* point = 0;
+            glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
+            
+            glDrawRangeElements(GL_QUADS, 0, batch.vertexCount - 1, batch.indexCount, GL_UNSIGNED_INT, 0);
+            
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            
+            glPopMatrix();
+        }
+        
+        _voxelCursorProgram.release();
+        
+        glDisableClientState(GL_VERTEX_ARRAY);
+    }
+    _voxelBaseBatches.clear();
     
     glDisable(GL_POLYGON_OFFSET_FILL);
     glDisable(GL_CULL_FACE);
@@ -798,7 +751,7 @@ void MetavoxelSystem::applyMaterialEdit(const MetavoxelEditMessage& message, boo
                 Q_ARG(bool, reliable));
             return;
         }
-        QSharedPointer<NetworkTexture> texture = DependencyManager::get<TextureCache>()->getTexture(
+        auto texture = DependencyManager::get<TextureCache>()->getTexture(
             material->getDiffuse(), SPLAT_TEXTURE);
         if (texture->isLoaded()) {
             MetavoxelEditMessage newMessage = message;
@@ -819,7 +772,7 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
 }
 
 void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
-    NodeList::getInstance()->eachNode([&visitor, &render](const SharedNodePointer& node){
+    DependencyManager::get<NodeList>()->eachNode([&visitor, &render](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -1013,14 +966,6 @@ void Augmenter::run() {
     QMetaObject::invokeMethod(node->getLinkedData(), "setAugmentedData", Q_ARG(const MetavoxelData&, _data));
 }
 
-void MetavoxelSystemClient::refreshVoxelData() {
-    // make it look as if all the colors have changed
-    MetavoxelData oldData = getAugmentedData();
-    oldData.touch(AttributeRegistry::getInstance()->getVoxelColorAttribute());
-
-    QThreadPool::globalInstance()->start(new Augmenter(_node, _data, oldData, _remoteDataLOD));
-}
-
 void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
     MetavoxelClient::dataChanged(oldData);
     QThreadPool::globalInstance()->start(new Augmenter(_node, _data, getAugmentedData(), _remoteDataLOD));
@@ -1045,7 +990,7 @@ SendDelayer::SendDelayer(const SharedNodePointer& node, const QByteArray& data) 
 }
 
 void SendDelayer::timerEvent(QTimerEvent* event) {
-    NodeList::getInstance()->writeDatagram(_data, _node);
+    DependencyManager::get<NodeList>()->writeDatagram(_data, _node);
     deleteLater();
 }
 
@@ -1068,7 +1013,7 @@ void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
             delayer->startTimer(delay);
             
         } else {
-            NodeList::getInstance()->writeDatagram(data, _node);
+            DependencyManager::get<NodeList>()->writeDatagram(data, _node);
         }
         Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
     }
@@ -1088,25 +1033,34 @@ VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>
     _vertices(vertices),
     _indices(indices),
     _hermite(hermite),
+    _hermiteEnabled(Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)),
     _quadIndices(quadIndices),
     _size(size),
     _vertexCount(vertices.size()),
     _indexCount(indices.size()),
     _hermiteCount(hermite.size()),
-    _indexBuffer(QOpenGLBuffer::IndexBuffer),
+    _vertexBufferID(0),
+    _indexBufferID(0),
+    _hermiteBufferID(0),
     _materials(materials) {
 }
 
-bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
-        const glm::vec3& direction, float& distance) const {
+VoxelBuffer::~VoxelBuffer() {
+    QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "deleteBuffers", Q_ARG(int, _vertexBufferID),
+        Q_ARG(int, _indexBufferID), Q_ARG(int, _hermiteBufferID));
+}
+
+bool VoxelBuffer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        float boundsDistance, float& distance) const {
     float highest = _size - 1.0f;
-    glm::vec3 position = entry * highest;
+    glm::vec3 position = (origin + direction * boundsDistance) * highest;
     glm::vec3 floors = glm::floor(position);
     int max = _size - 2;
     int x = qMin((int)floors.x, max), y = qMin((int)floors.y, max), z = qMin((int)floors.z, max);
     forever {
-        for (QMultiHash<VoxelCoord, int>::const_iterator it = _quadIndices.constFind(qRgb(x + 1, y + 1, z + 1));
-                it != _quadIndices.constEnd(); it++) {
+        VoxelCoord key(qRgb(x, y, z));
+        for (QMultiHash<VoxelCoord, int>::const_iterator it = _quadIndices.constFind(key);
+                it != _quadIndices.constEnd() && it.key() == key; it++) {
             const int* indices = _indices.constData() + *it;
             if (findRayTriangleIntersection(origin, direction, _vertices.at(indices[0]).vertex,
                     _vertices.at(indices[1]).vertex, _vertices.at(indices[2]).vertex, distance) ||
@@ -1164,21 +1118,21 @@ bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::ve
     return false;
 }
 
-void VoxelBuffer::render(bool cursor) {
-    if (!_vertexBuffer.isCreated()) {
-        _vertexBuffer.create();
-        _vertexBuffer.bind();
-        _vertexBuffer.allocate(_vertices.constData(), _vertices.size() * sizeof(VoxelPoint));
-        _vertexBuffer.release();
+void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
+    if (_vertexBufferID == 0) {
+        glGenBuffers(1, &_vertexBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferID);
+        glBufferData(GL_ARRAY_BUFFER, _vertices.size() * sizeof(VoxelPoint), _vertices.constData(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         
-        _indexBuffer.create();
-        _indexBuffer.bind();
-        _indexBuffer.allocate(_indices.constData(), _indices.size() * sizeof(int));
-        _indexBuffer.release();
+        glGenBuffers(1, &_indexBufferID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indexBufferID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, _indices.size() * sizeof(int), _indices.constData(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
         if (!_materials.isEmpty()) {
             _networkTextures.resize(_materials.size());
-            TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
+            auto textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < _materials.size(); i++) {
                 const SharedObjectPointer material = _materials.at(i);
                 if (material) {
@@ -1189,36 +1143,30 @@ void VoxelBuffer::render(bool cursor) {
         }
     }
     
-    if (cursor) {
-        _vertexBuffer.bind();
-        _indexBuffer.bind();
-        
-        VoxelPoint* point = 0;
-        glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
-        glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
-        glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
-        
-        glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
-        
-        _vertexBuffer.release();
-        _indexBuffer.release();
-        return;
-    }
-    
-    VoxelBatch baseBatch;
-    baseBatch.vertexBuffer = &_vertexBuffer;
-    baseBatch.indexBuffer = &_indexBuffer;
+    MetavoxelBatch baseBatch;
+    baseBatch.translation = translation;
+    baseBatch.rotation = rotation;
+    baseBatch.scale = scale;
+    baseBatch.vertexBufferID = _vertexBufferID;
+    baseBatch.indexBufferID = _indexBufferID;
     baseBatch.vertexCount = _vertexCount;
     baseBatch.indexCount = _indexCount;
     Application::getInstance()->getMetavoxels()->addVoxelBaseBatch(baseBatch);
     
-    if (!_materials.isEmpty()) {
+    if (!(cursor || _materials.isEmpty())) {
         VoxelSplatBatch splatBatch;
-        splatBatch.vertexBuffer = &_vertexBuffer;
-        splatBatch.indexBuffer = &_indexBuffer;
+        splatBatch.translation = translation;
+        splatBatch.rotation = rotation;
+        splatBatch.scale = scale;
+        splatBatch.vertexBufferID = _vertexBufferID;
+        splatBatch.indexBufferID = _indexBufferID;
         splatBatch.vertexCount = _vertexCount;
         splatBatch.indexCount = _indexCount;
-    
+        splatBatch.splatTextureOffset = glm::vec3(
+            glm::dot(translation, rotation * glm::vec3(1.0f, 0.0f, 0.0f)) / scale.x,
+            glm::dot(translation, rotation * glm::vec3(0.0f, 1.0f, 0.0f)) / scale.y,
+            glm::dot(translation, rotation * glm::vec3(0.0f, 0.0f, 1.0f)) / scale.z);
+            
         for (int i = 0; i < _materials.size(); i += SPLAT_COUNT) {
             for (int j = 0; j < SPLAT_COUNT; j++) {
                 int index = i + j;
@@ -1226,8 +1174,8 @@ void VoxelBuffer::render(bool cursor) {
                     const NetworkTexturePointer& texture = _networkTextures.at(index);
                     if (texture) {
                         MaterialObject* material = static_cast<MaterialObject*>(_materials.at(index).data());
-                        splatBatch.splatTextureScalesS[j] = 1.0f / material->getScaleS();
-                        splatBatch.splatTextureScalesT[j] = 1.0f / material->getScaleT();
+                        splatBatch.splatTextureScalesS[j] = scale.x / material->getScaleS();
+                        splatBatch.splatTextureScalesT[j] = scale.z / material->getScaleT();
                         splatBatch.splatTextureIDs[j] = texture->getID();
                            
                     } else {
@@ -1243,649 +1191,24 @@ void VoxelBuffer::render(bool cursor) {
     }
     
     if (_hermiteCount > 0) {
-        if (!_hermiteBuffer.isCreated()) {
-            _hermiteBuffer.create();
-            _hermiteBuffer.bind();
-            _hermiteBuffer.allocate(_hermite.constData(), _hermite.size() * sizeof(glm::vec3));    
-            _hermiteBuffer.release();
+        if (_hermiteBufferID == 0) {
+            glGenBuffers(1, &_hermiteBufferID);
+            glBindBuffer(GL_ARRAY_BUFFER, _hermiteBufferID);
+            glBufferData(GL_ARRAY_BUFFER, _hermite.size() * sizeof(glm::vec3), _hermite.constData(), GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
             _hermite.clear();
         }
         HermiteBatch hermiteBatch;
-        hermiteBatch.vertexBuffer = &_hermiteBuffer;
+        hermiteBatch.translation = translation;
+        hermiteBatch.rotation = rotation;
+        hermiteBatch.scale = scale;
+        hermiteBatch.vertexBufferID = _hermiteBufferID;
         hermiteBatch.vertexCount = _hermiteCount;
         Application::getInstance()->getMetavoxels()->addHermiteBatch(hermiteBatch);
     }
 }
 
-BufferDataAttribute::BufferDataAttribute(const QString& name) :
-    InlineAttribute<BufferDataPointer>(name) {
-}
-
-bool BufferDataAttribute::merge(void*& parent, void* children[], bool postRead) const {
-    *(BufferDataPointer*)&parent = _defaultValue;
-    for (int i = 0; i < MERGE_COUNT; i++) {
-        if (decodeInline<BufferDataPointer>(children[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-AttributeValue BufferDataAttribute::inherit(const AttributeValue& parentValue) const {
-    return AttributeValue(parentValue.getAttribute());
-}
-
 DefaultMetavoxelRendererImplementation::DefaultMetavoxelRendererImplementation() {
-}
-
-class VoxelAugmentVisitor : public MetavoxelVisitor {
-public:
-
-    VoxelAugmentVisitor(const MetavoxelLOD& lod);
-    
-    virtual int visit(MetavoxelInfo& info);
-};
-
-VoxelAugmentVisitor::VoxelAugmentVisitor(const MetavoxelLOD& lod) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
-        AttributeRegistry::getInstance()->getVoxelMaterialAttribute() <<
-            AttributeRegistry::getInstance()->getVoxelHermiteAttribute(), QVector<AttributePointer>() <<
-                Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), lod) {
-}
-
-class EdgeCrossing {
-public:
-    glm::vec3 point;
-    glm::vec3 normal;
-    QRgb color;
-    char material;
-};
-
-const int MAX_NORMALS_PER_VERTEX = 4;
-
-class NormalIndex {
-public:
-    int indices[MAX_NORMALS_PER_VERTEX];
-    
-    int getClosestIndex(const glm::vec3& normal, QVector<VoxelPoint>& vertices) const;
-};
-
-int NormalIndex::getClosestIndex(const glm::vec3& normal, QVector<VoxelPoint>& vertices) const {
-    int firstIndex = indices[0];
-    int closestIndex = firstIndex;
-    const VoxelPoint& firstVertex = vertices.at(firstIndex);
-    float closest = normal.x * firstVertex.normal[0] + normal.y * firstVertex.normal[1] + normal.z * firstVertex.normal[2];
-    for (int i = 1; i < MAX_NORMALS_PER_VERTEX; i++) {
-        int index = indices[i];
-        if (index == firstIndex) {
-            break;
-        }
-        const VoxelPoint& vertex = vertices.at(index);
-        float product = normal.x * vertex.normal[0] + normal.y * vertex.normal[1] + normal.z * vertex.normal[2];
-        if (product > closest) {
-            closest = product;
-            closestIndex = index;
-        }
-    }
-    return closestIndex;
-}
-
-static glm::vec3 safeNormalize(const glm::vec3& vector) {
-    float length = glm::length(vector);
-    return (length > 0.0f) ? (vector / length) : vector;
-}
-
-int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
-    if (!info.isLeaf) {
-        return DEFAULT_ORDER;
-    }
-    BufferData* buffer = NULL;
-    VoxelColorDataPointer color = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
-    VoxelMaterialDataPointer material = info.inputValues.at(1).getInlineValue<VoxelMaterialDataPointer>();
-    VoxelHermiteDataPointer hermite = info.inputValues.at(2).getInlineValue<VoxelHermiteDataPointer>();
-    
-    if (color && hermite) {
-        QVector<VoxelPoint> vertices;
-        QVector<int> indices;
-        QVector<glm::vec3> hermiteSegments;
-        QMultiHash<VoxelCoord, int> quadIndices;
-        
-        // see http://www.frankpetterson.com/publications/dualcontour/dualcontour.pdf for a description of the
-        // dual contour algorithm for generating meshes from voxel data using Hermite-tagged edges
-        const QVector<QRgb>& colorContents = color->getContents();
-        const QVector<QRgb>& hermiteContents = hermite->getContents();
-        int size = color->getSize();
-        int area = size * size;
-        
-        // number variables such as offset3 and alpha0 in this function correspond to cube corners, where the x, y, and z
-        // components are represented as bits in the 0, 1, and 2 position, respectively; hence, alpha0 is the value at
-        // the minimum x, y, and z corner and alpha7 is the value at the maximum x, y, and z
-        int offset3 = size + 1;
-        int offset5 = area + 1;
-        int offset6 = area + size;
-        int offset7 = area + size + 1;
-        
-        const QRgb* colorZ = colorContents.constData();
-        const QRgb* hermiteData = hermiteContents.constData();
-        int hermiteStride = hermite->getSize() * VoxelHermiteData::EDGE_COUNT;
-        int hermiteArea = hermiteStride * hermite->getSize();
-        
-        const char* materialData = material ? material->getContents().constData() : NULL;
-        
-        // as we scan down the cube generating vertices between grid points, we remember the indices of the last
-        // (element, line, section--x, y, z) so that we can connect generated vertices as quads
-        int expanded = size + 1;
-        QVector<NormalIndex> lineIndices(expanded);
-        QVector<NormalIndex> lastLineIndices(expanded);
-        QVector<NormalIndex> planeIndices(expanded * expanded);
-        QVector<NormalIndex> lastPlaneIndices(expanded * expanded);
-        
-        const int EDGES_PER_CUBE = 12;
-        EdgeCrossing crossings[EDGES_PER_CUBE];
-        
-        float highest = size - 1.0f;
-        float scale = info.size / highest;
-        const int ALPHA_OFFSET = 24;
-        bool displayHermite = Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData);
-        for (int z = 0; z < expanded; z++) {
-            const QRgb* colorY = colorZ;
-            for (int y = 0; y < expanded; y++) {
-                NormalIndex lastIndex;
-                const QRgb* colorX = colorY;
-                for (int x = 0; x < expanded; x++) {
-                    int alpha0 = colorX[0] >> ALPHA_OFFSET;
-                    int alpha1 = alpha0, alpha2 = alpha0, alpha4 = alpha0;
-                    int alphaTotal = alpha0;
-                    int possibleTotal = EIGHT_BIT_MAXIMUM;
-                    
-                    // cubes on the edge are two-dimensional: this ensures that their vertices will be shared between
-                    // neighboring blocks, which share only one layer of points
-                    bool middleX = (x != 0 && x != size);
-                    bool middleY = (y != 0 && y != size);
-                    bool middleZ = (z != 0 && z != size);
-                    if (middleZ) {
-                        alphaTotal += (alpha4 = colorX[area] >> ALPHA_OFFSET);
-                        possibleTotal += EIGHT_BIT_MAXIMUM;
-                    }
-                    
-                    int alpha5 = alpha4, alpha6 = alpha4;
-                    if (middleY) {
-                        alphaTotal += (alpha2 = colorX[size] >> ALPHA_OFFSET);
-                        possibleTotal += EIGHT_BIT_MAXIMUM;
-                        
-                        if (middleZ) {
-                            alphaTotal += (alpha6 = colorX[offset6] >> ALPHA_OFFSET);
-                            possibleTotal += EIGHT_BIT_MAXIMUM;
-                        }
-                    }
-                    
-                    int alpha3 = alpha2, alpha7 = alpha6;
-                    if (middleX) {
-                        alphaTotal += (alpha1 = colorX[1] >> ALPHA_OFFSET);
-                        possibleTotal += EIGHT_BIT_MAXIMUM;
-                        
-                        if (middleY) {
-                            alphaTotal += (alpha3 = colorX[offset3] >> ALPHA_OFFSET);
-                            possibleTotal += EIGHT_BIT_MAXIMUM;
-                            
-                            if (middleZ) {
-                                alphaTotal += (alpha7 = colorX[offset7] >> ALPHA_OFFSET);
-                                possibleTotal += EIGHT_BIT_MAXIMUM;
-                            }
-                        }
-                        if (middleZ) {
-                            alphaTotal += (alpha5 = colorX[offset5] >> ALPHA_OFFSET);
-                            possibleTotal += EIGHT_BIT_MAXIMUM;
-                        }
-                    }
-                    if (alphaTotal == 0 || alphaTotal == possibleTotal) {
-                        if (x != 0) {
-                            colorX++;
-                        }
-                        continue; // no corners set/all corners set
-                    }
-                    // the terrifying conditional code that follows checks each cube edge for a crossing, gathering
-                    // its properties (color, material, normal) if one is present; as before, boundary edges are excluded
-                    int clampedX = qMax(x - 1, 0), clampedY = qMax(y - 1, 0), clampedZ = qMax(z - 1, 0);
-                    const QRgb* hermiteBase = hermiteData + clampedZ * hermiteArea + clampedY * hermiteStride +
-                        clampedX * VoxelHermiteData::EDGE_COUNT;
-                    const char* materialBase = materialData ?
-                        (materialData + clampedZ * area + clampedY * size + clampedX) : NULL;
-                    int crossingCount = 0;
-                    if (middleX) {
-                        if (alpha0 != alpha1) {
-                            QRgb hermite = hermiteBase[0];
-                            EdgeCrossing& crossing = crossings[crossingCount++];
-                            crossing.normal = unpackNormal(hermite);
-                            if (alpha0 == 0) {
-                                crossing.color = colorX[1];
-                                crossing.material = materialBase ? materialBase[1] : 0;
-                            } else {
-                                crossing.color = colorX[0];
-                                crossing.material = materialBase ? materialBase[0] : 0;
-                            }
-                            crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 0.0f);
-                        }
-                        if (middleY) {
-                            if (alpha1 != alpha3) {
-                                QRgb hermite = hermiteBase[VoxelHermiteData::EDGE_COUNT + 1];
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.normal = unpackNormal(hermite);
-                                if (alpha1 == 0) {
-                                    crossing.color = colorX[offset3];
-                                    crossing.material = materialBase ? materialBase[offset3] : 0;
-                                } else {
-                                    crossing.color = colorX[1];
-                                    crossing.material = materialBase ? materialBase[1] : 0;
-                                }
-                                crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
-                            }
-                            if (alpha2 != alpha3) {
-                                QRgb hermite = hermiteBase[hermiteStride];
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.normal = unpackNormal(hermite);
-                                if (alpha2 == 0) {
-                                    crossing.color = colorX[offset3];
-                                    crossing.material = materialBase ? materialBase[offset3] : 0;
-                                } else {
-                                    crossing.color = colorX[size];
-                                    crossing.material = materialBase ? materialBase[size] : 0;
-                                }
-                                crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 0.0f);
-                            }
-                            if (middleZ) {
-                                if (alpha3 != alpha7) {
-                                    QRgb hermite = hermiteBase[hermiteStride + VoxelHermiteData::EDGE_COUNT + 2];
-                                    EdgeCrossing& crossing = crossings[crossingCount++];
-                                    crossing.normal = unpackNormal(hermite);
-                                    if (alpha3 == 0) {
-                                        crossing.color = colorX[offset7];
-                                        crossing.material = materialBase ? materialBase[offset7] : 0;
-                                    } else {
-                                        crossing.color = colorX[offset3];
-                                        crossing.material = materialBase ? materialBase[offset3] : 0;
-                                    }
-                                    crossing.point = glm::vec3(1.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                                }
-                                if (alpha5 != alpha7) {
-                                    QRgb hermite = hermiteBase[hermiteArea + VoxelHermiteData::EDGE_COUNT + 1];
-                                    EdgeCrossing& crossing = crossings[crossingCount++];
-                                    crossing.normal = unpackNormal(hermite);
-                                    if (alpha5 == 0) {
-                                        crossing.color = colorX[offset7];
-                                        crossing.material = materialBase ? materialBase[offset7] : 0;
-                                    } else {
-                                        crossing.color = colorX[offset5];
-                                        crossing.material = materialBase ? materialBase[offset5] : 0;
-                                    }
-                                    crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
-                                }
-                                if (alpha6 != alpha7) {
-                                    QRgb hermite = hermiteBase[hermiteArea + hermiteStride];
-                                    EdgeCrossing& crossing = crossings[crossingCount++];
-                                    crossing.normal = unpackNormal(hermite);
-                                    if (alpha6 == 0) {
-                                        crossing.color = colorX[offset7];
-                                        crossing.material = materialBase ? materialBase[offset7] : 0;
-                                    } else {
-                                        crossing.color = colorX[offset6];
-                                        crossing.material = materialBase ? materialBase[offset6] : 0;
-                                    }
-                                    crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 1.0f);
-                                }
-                            }
-                        }
-                        if (middleZ) {
-                            if (alpha1 != alpha5) {
-                                QRgb hermite = hermiteBase[VoxelHermiteData::EDGE_COUNT + 2];
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.normal = unpackNormal(hermite);
-                                if (alpha1 == 0) {
-                                    crossing.color = colorX[offset5];
-                                    crossing.material = materialBase ? materialBase[offset5] : 0;
-                                } else {
-                                    crossing.color = colorX[1];
-                                    crossing.material = materialBase ? materialBase[1] : 0;
-                                }
-                                crossing.point = glm::vec3(1.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                            }
-                            if (alpha4 != alpha5) {
-                                QRgb hermite = hermiteBase[hermiteArea];
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.normal = unpackNormal(hermite);
-                                if (alpha4 == 0) {
-                                    crossing.color = colorX[offset5];
-                                    crossing.material = materialBase ? materialBase[offset5] : 0;
-                                } else {
-                                    crossing.color = colorX[area];
-                                    crossing.material = materialBase ? materialBase[area] : 0;
-                                }
-                                crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 1.0f);
-                            }
-                        }
-                    }
-                    if (middleY) {
-                        if (alpha0 != alpha2) {
-                            QRgb hermite = hermiteBase[1];
-                            EdgeCrossing& crossing = crossings[crossingCount++];
-                            crossing.normal = unpackNormal(hermite);
-                            if (alpha0 == 0) {
-                                crossing.color = colorX[size];
-                                crossing.material = materialBase ? materialBase[size] : 0;
-                            } else {
-                                crossing.color = colorX[0];
-                                crossing.material = materialBase ? materialBase[0] : 0;
-                            }
-                            crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
-                        }
-                        if (middleZ) {
-                            if (alpha2 != alpha6) {
-                                QRgb hermite = hermiteBase[hermiteStride + 2];
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.normal = unpackNormal(hermite);
-                                if (alpha2 == 0) {
-                                    crossing.color = colorX[offset6];
-                                    crossing.material = materialBase ? materialBase[offset6] : 0;
-                                } else {
-                                    crossing.color = colorX[size];
-                                    crossing.material = materialBase ? materialBase[size] : 0;
-                                }
-                                crossing.point = glm::vec3(0.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                            }
-                            if (alpha4 != alpha6) {
-                                QRgb hermite = hermiteBase[hermiteArea + 1];
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.normal = unpackNormal(hermite);
-                                if (alpha4 == 0) {
-                                    crossing.color = colorX[offset6];
-                                    crossing.material = materialBase ? materialBase[offset6] : 0;
-                                } else {
-                                    crossing.color = colorX[area];
-                                    crossing.material = materialBase ? materialBase[area] : 0;
-                                }
-                                crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
-                            }
-                        }
-                    }
-                    if (middleZ && alpha0 != alpha4) {
-                        QRgb hermite = hermiteBase[2];
-                        EdgeCrossing& crossing = crossings[crossingCount++];
-                        crossing.normal = unpackNormal(hermite);
-                        if (alpha0 == 0) {
-                            crossing.color = colorX[area];
-                            crossing.material = materialBase ? materialBase[area] : 0;
-                        } else {
-                            crossing.color = colorX[0];
-                            crossing.material = materialBase ? materialBase[0] : 0;
-                        }
-                        crossing.point = glm::vec3(0.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                    }
-                    // at present, we simply average the properties of each crossing as opposed to finding the vertex that
-                    // minimizes the quadratic error function as described in the reference paper
-                    glm::vec3 center;
-                    glm::vec3 normals[MAX_NORMALS_PER_VERTEX];
-                    int normalCount = 0;
-                    const float CREASE_COS_NORMAL = glm::cos(glm::radians(45.0f));
-                    const int MAX_MATERIALS_PER_VERTEX = 4;
-                    quint8 materials[] = { 0, 0, 0, 0 };
-                    glm::vec4 materialWeights;
-                    float totalWeight = 0.0f;
-                    int red = 0, green = 0, blue = 0;
-                    for (int i = 0; i < crossingCount; i++) {
-                        const EdgeCrossing& crossing = crossings[i];
-                        center += crossing.point;
-                        
-                        int j = 0;
-                        for (; j < normalCount; j++) {
-                            if (glm::dot(normals[j], crossing.normal) > CREASE_COS_NORMAL) {
-                                normals[j] = safeNormalize(normals[j] + crossing.normal);
-                                break;
-                            }
-                        }
-                        if (j == normalCount) {
-                            normals[normalCount++] = crossing.normal;
-                        }
-                        
-                        red += qRed(crossing.color);
-                        green += qGreen(crossing.color);
-                        blue += qBlue(crossing.color);
-                        
-                        if (displayHermite) {
-                            glm::vec3 start = info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) +
-                                crossing.point) * scale;
-                            hermiteSegments.append(start);
-                            hermiteSegments.append(start + crossing.normal * scale);
-                        }
-                        
-                        // when assigning a material, search for its presence and, if not found,
-                        // place it in the first empty slot
-                        if (crossing.material != 0) {
-                            for (j = 0; j < MAX_MATERIALS_PER_VERTEX; j++) {
-                                if (materials[j] == crossing.material) {
-                                    materialWeights[j] += 1.0f;
-                                    totalWeight += 1.0f;
-                                    break;
-                                    
-                                } else if (materials[j] == 0) {
-                                    materials[j] = crossing.material;
-                                    materialWeights[j] = 1.0f;
-                                    totalWeight += 1.0f;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    center /= crossingCount;
-                    
-                    // use a sequence of Givens rotations to perform a QR decomposition
-                    // see http://www.cs.rice.edu/~jwarren/papers/techreport02408.pdf
-                    glm::mat4 r(0.0f);
-                    glm::vec4 bottom;
-                    for (int i = 0; i < crossingCount; i++) {
-                        const EdgeCrossing& crossing = crossings[i];
-                        bottom = glm::vec4(crossing.normal, glm::dot(crossing.normal, crossing.point - center));
-                        
-                        for (int j = 0; j < 4; j++) {
-                            float angle = glm::atan(-bottom[j], r[j][j]);
-                            float sina = glm::sin(angle);
-                            float cosa = glm::cos(angle);
-                            
-                            for (int k = 0; k < 4; k++) {
-                                float tmp = bottom[k];
-                                bottom[k] = sina * r[k][j] + cosa * tmp;
-                                r[k][j] = cosa * r[k][j] - sina * tmp;
-                            }
-                        }
-                    }
-                    
-                    // extract the submatrices, form ata
-                    glm::mat3 a(r);
-                    glm::vec3 b(r[3]);
-                    glm::mat3 atrans = glm::transpose(a);
-                    glm::mat3 ata = atrans * a;
-                    
-                    // find the eigenvalues and eigenvectors of ata
-                    // (see http://en.wikipedia.org/wiki/Jacobi_eigenvalue_algorithm)
-                    glm::mat3 d = ata;
-                    glm::quat combinedRotation;
-                    const int MAX_ITERATIONS = 20;
-                    for (int i = 0; i < MAX_ITERATIONS; i++) {
-                        glm::vec3 offDiagonals = glm::abs(glm::vec3(d[1][0], d[2][0], d[2][1]));
-                        int largestIndex = (offDiagonals[0] > offDiagonals[1]) ? (offDiagonals[0] > offDiagonals[2] ? 0 : 2) :
-                            (offDiagonals[1] > offDiagonals[2] ? 1 : 2);
-                        const float DESIRED_PRECISION = 0.00001f;
-                        if (offDiagonals[largestIndex] < DESIRED_PRECISION) {
-                            break;
-                        }
-                        int largestJ = (largestIndex == 2) ? 1 : 0;
-                        int largestI = (largestIndex == 0) ? 1 : 2; 
-                        float sjj = d[largestJ][largestJ];
-                        float sii = d[largestI][largestI];
-                        float angle = glm::atan(2.0f * d[largestJ][largestI], sjj - sii) / 2.0f;
-                        glm::quat rotation = glm::angleAxis(angle, largestIndex == 0 ? glm::vec3(0.0f, 0.0f, -1.0f) :
-                            (largestIndex == 1 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f)));
-                        combinedRotation = glm::normalize(rotation * combinedRotation);
-                        glm::mat3 matrix = glm::mat3_cast(combinedRotation);
-                        d = matrix * ata * glm::transpose(matrix);
-                    }
-                    
-                    // form the singular matrix from the eigenvalues
-                    const float MIN_SINGULAR_THRESHOLD = 0.1f;
-                    d[0][0] = (d[0][0] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[0][0];
-                    d[1][1] = (d[1][1] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[1][1];
-                    d[2][2] = (d[2][2] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[2][2];
-                    
-                    // compute the pseudo-inverse, ataplus, and use to find the minimizing solution
-                    glm::mat3 u = glm::mat3_cast(combinedRotation);
-                    glm::mat3 ataplus = glm::transpose(u) * d * u; 
-                    glm::vec3 solution = (ataplus * atrans * b) + center;
-                    
-                    // make sure it doesn't fall beyond the cell boundaries
-                    center = glm::clamp(solution, 0.0f, 1.0f);
-                    
-                    if (totalWeight > 0.0f) {
-                        materialWeights *= (EIGHT_BIT_MAXIMUM / totalWeight);
-                    }
-                    VoxelPoint point = { info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) + center) * scale,
-                        { (quint8)(red / crossingCount), (quint8)(green / crossingCount), (quint8)(blue / crossingCount) },
-                        { (char)(normals[0].x * 127.0f), (char)(normals[0].y * 127.0f), (char)(normals[0].z * 127.0f) },
-                        { materials[0], materials[1], materials[2], materials[3] },
-                        { (quint8)materialWeights[0], (quint8)materialWeights[1], (quint8)materialWeights[2],
-                            (quint8)materialWeights[3] } };
-                    
-                    NormalIndex index = { { vertices.size(), vertices.size(), vertices.size(), vertices.size() } };
-                    vertices.append(point);
-                    for (int i = 1; i < normalCount; i++) {
-                        index.indices[i] = vertices.size();
-                        point.setNormal(normals[i]);
-                        vertices.append(point);
-                    }
-                    
-                    // the first x, y, and z are repeated for the boundary edge; past that, we consider generating
-                    // quads for each edge that includes a transition, using indices of previously generated vertices
-                    if (x != 0 && y != 0 && z != 0) {
-                        if (alpha0 != alpha1) {
-                            quadIndices.insert(qRgb(x, y, z), indices.size());
-                            quadIndices.insert(qRgb(x, y - 1, z), indices.size());
-                            quadIndices.insert(qRgb(x, y - 1, z - 1), indices.size());
-                            quadIndices.insert(qRgb(x, y, z - 1), indices.size());
-                            
-                            const NormalIndex& index1 = lastLineIndices.at(x);
-                            const NormalIndex& index2 = lastPlaneIndices.at((y - 1) * expanded + x);
-                            const NormalIndex& index3 = lastPlaneIndices.at(y * expanded + x);
-                            
-                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                            glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                vertices.at(index3.indices[0]).vertex - first);
-                            
-                            if (alpha0 == 0) { // quad faces negative x
-                                indices.append(index3.getClosestIndex(normal = -normal, vertices));
-                                indices.append(index2.getClosestIndex(normal, vertices));
-                                indices.append(index1.getClosestIndex(normal, vertices));
-                            } else { // quad faces positive x
-                                indices.append(index1.getClosestIndex(normal, vertices));
-                                indices.append(index2.getClosestIndex(normal, vertices));
-                                indices.append(index3.getClosestIndex(normal, vertices));
-                            }
-                            indices.append(index.getClosestIndex(normal, vertices));
-                        }
-                        
-                        if (alpha0 != alpha2) {
-                            quadIndices.insert(qRgb(x, y, z), indices.size());
-                            quadIndices.insert(qRgb(x - 1, y, z), indices.size());
-                            quadIndices.insert(qRgb(x - 1, y, z - 1), indices.size());
-                            quadIndices.insert(qRgb(x, y, z - 1), indices.size());
-                            
-                            const NormalIndex& index1 = lastIndex;
-                            const NormalIndex& index2 = lastPlaneIndices.at(y * expanded + x - 1);
-                            const NormalIndex& index3 = lastPlaneIndices.at(y * expanded + x);
-                            
-                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                            glm::vec3 normal = glm::cross(vertices.at(index3.indices[0]).vertex - first,
-                                vertices.at(index1.indices[0]).vertex - first);
-                            
-                            if (alpha0 == 0) { // quad faces negative y
-                                indices.append(index1.getClosestIndex(normal = -normal, vertices));
-                                indices.append(index2.getClosestIndex(normal, vertices));
-                                indices.append(index3.getClosestIndex(normal, vertices));
-                            } else { // quad faces positive y
-                                indices.append(index3.getClosestIndex(normal, vertices));
-                                indices.append(index2.getClosestIndex(normal, vertices));
-                                indices.append(index1.getClosestIndex(normal, vertices));
-                            }
-                            indices.append(index.getClosestIndex(normal, vertices));
-                        }
-                        
-                        if (alpha0 != alpha4) {
-                            quadIndices.insert(qRgb(x, y, z), indices.size());
-                            quadIndices.insert(qRgb(x - 1, y, z), indices.size());
-                            quadIndices.insert(qRgb(x - 1, y - 1, z), indices.size());
-                            quadIndices.insert(qRgb(x, y - 1, z), indices.size());
-                            
-                            const NormalIndex& index1 = lastIndex;
-                            const NormalIndex& index2 = lastLineIndices.at(x - 1);
-                            const NormalIndex& index3 = lastLineIndices.at(x);
-                            
-                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                            glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                vertices.at(index3.indices[0]).vertex - first);
-                            
-                            if (alpha0 == 0) { // quad faces negative z
-                                indices.append(index3.getClosestIndex(normal = -normal, vertices));
-                                indices.append(index2.getClosestIndex(normal, vertices));
-                                indices.append(index1.getClosestIndex(normal, vertices));
-                            } else { // quad faces positive z
-                                indices.append(index1.getClosestIndex(normal, vertices));
-                                indices.append(index2.getClosestIndex(normal, vertices));
-                                indices.append(index3.getClosestIndex(normal, vertices));
-                            }
-                            indices.append(index.getClosestIndex(normal, vertices));
-                        }
-                    }
-                    lastIndex = index;
-                    lineIndices[x] = index;
-                    planeIndices[y * expanded + x] = index;
-                    
-                    if (x != 0) {
-                        colorX++;
-                    }
-                }
-                lineIndices.swap(lastLineIndices);
-                
-                if (y != 0) {
-                    colorY += size;
-                }
-            }
-            planeIndices.swap(lastPlaneIndices);
-            
-            if (z != 0) {
-                colorZ += area;
-            }
-        }
-        buffer = new VoxelBuffer(vertices, indices, hermiteSegments, quadIndices, size,
-            material ? material->getMaterials() : QVector<SharedObjectPointer>());
-    }
-    BufferDataPointer pointer(buffer);
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
-    return STOP_RECURSION;
-}
-
-void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const MetavoxelData& previous,
-        MetavoxelInfo& info, const MetavoxelLOD& lod) {
-    // copy the previous buffers
-    MetavoxelData expandedPrevious = previous;
-    while (expandedPrevious.getSize() < data.getSize()) {
-        expandedPrevious.expand();
-    }
-    const AttributePointer& voxelBufferAttribute =
-        Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute();
-    MetavoxelNode* root = expandedPrevious.getRoot(voxelBufferAttribute);
-    if (root) {
-        data.setRoot(voxelBufferAttribute, root);
-        root->incrementReferenceCount();
-    }
-    VoxelAugmentVisitor voxelAugmentVisitor(lod);
-    data.guideToDifferent(expandedPrevious, voxelAugmentVisitor);
 }
 
 class SpannerSimulateVisitor : public SpannerVisitor {
@@ -1917,58 +1240,13 @@ void DefaultMetavoxelRendererImplementation::simulate(MetavoxelData& data, float
     data.guide(spannerSimulateVisitor);
 }
 
-class BufferRenderVisitor : public MetavoxelVisitor {
-public:
-    
-    BufferRenderVisitor(const AttributePointer& attribute);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    int _order;
-    int _containmentDepth;
-};
-
-BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute) :
-    MetavoxelVisitor(QVector<AttributePointer>() << attribute),
-    _order(encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
-    _containmentDepth(INT_MAX) {
-}
-
-int BufferRenderVisitor::visit(MetavoxelInfo& info) {
-    if (_containmentDepth >= _depth) {
-        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
-            info.getBounds());
-        if (intersection == Frustum::NO_INTERSECTION) {
-            return STOP_RECURSION;
-        }
-        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
-    }
-    if (!info.isLeaf) {
-        return _order;
-    }
-    BufferDataPointer buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>();
-    if (buffer) {
-        buffer->render();
-    }
-    return STOP_RECURSION;
-}
-
 void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSpanners)) {
-        SpannerRenderVisitor spannerRenderVisitor(lod);
-        data.guide(spannerRenderVisitor);
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderDualContourSurfaces)) {
-        BufferRenderVisitor voxelRenderVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute());
-        data.guide(voxelRenderVisitor);
-    }
+    SpannerRenderVisitor spannerRenderVisitor(lod);
+    data.guide(spannerRenderVisitor);
 }
 
 SphereRenderer::SphereRenderer() {
 }
-
 
 void SphereRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     Sphere* sphere = static_cast<Sphere*>(_spanner);
@@ -2126,6 +1404,141 @@ HeightfieldNodeRenderer::~HeightfieldNodeRenderer() {
         Q_ARG(int, _colorTextureID), Q_ARG(int, _materialTextureID));
 }
 
+bool HeightfieldNodeRenderer::findRayIntersection(const glm::vec3& translation, const glm::quat& rotation,
+        const glm::vec3& scale, const glm::vec3& origin, const glm::vec3& direction,
+        float boundsDistance, float& distance) const {
+    if (!_voxels) {
+        return false;
+    }
+    glm::quat inverseRotation = glm::inverse(rotation);
+    float inverseScale = 1.0f / scale.x;
+    return static_cast<const VoxelBuffer*>(_voxels.data())->findRayIntersection(
+        inverseRotation * (origin - translation) * inverseScale, inverseRotation * direction * inverseScale,
+        boundsDistance, distance);
+}
+
+class EdgeCrossing {
+public:
+    glm::vec3 point;
+    glm::vec3 normal;
+    QRgb color;
+    char material;
+    
+    void setColorMaterial(const StackArray::Entry& entry) { color = entry.color; material = entry.material; }
+};
+
+const int MAX_NORMALS_PER_VERTEX = 4;
+
+class NormalIndex {
+public:
+    int indices[MAX_NORMALS_PER_VERTEX];
+    
+    bool isValid() const;
+    
+    int getClosestIndex(const glm::vec3& normal, QVector<VoxelPoint>& vertices) const;
+};
+
+bool NormalIndex::isValid() const {
+    for (int i = 0; i < MAX_NORMALS_PER_VERTEX; i++) {
+        if (indices[i] >= 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int NormalIndex::getClosestIndex(const glm::vec3& normal, QVector<VoxelPoint>& vertices) const {
+    int firstIndex = indices[0];
+    int closestIndex = firstIndex;
+    const VoxelPoint& firstVertex = vertices.at(firstIndex);
+    float closest = normal.x * firstVertex.normal[0] + normal.y * firstVertex.normal[1] + normal.z * firstVertex.normal[2];
+    for (int i = 1; i < MAX_NORMALS_PER_VERTEX; i++) {
+        int index = indices[i];
+        if (index == firstIndex) {
+            break;
+        }
+        const VoxelPoint& vertex = vertices.at(index);
+        float product = normal.x * vertex.normal[0] + normal.y * vertex.normal[1] + normal.z * vertex.normal[2];
+        if (product > closest) {
+            closest = product;
+            closestIndex = index;
+        }
+    }
+    return closestIndex;
+}
+
+static glm::vec3 safeNormalize(const glm::vec3& vector) {
+    float length = glm::length(vector);
+    return (length > 0.0f) ? (vector / length) : vector;
+}
+
+class IndexVector : public QVector<NormalIndex> {
+public:
+    
+    int position;
+    
+    void swap(IndexVector& other) { QVector<NormalIndex>::swap(other); qSwap(position, other.position); }
+    
+    const NormalIndex& get(int y) const;
+    const NormalIndex& getClosest(int y) const;
+};
+
+const NormalIndex& IndexVector::get(int y) const {
+    static NormalIndex invalidIndex = { { -1, -1, -1, -1 } };
+    int relative = y - position;
+    return (relative >= 0 && relative < size()) ? at(relative) : invalidIndex;
+}
+
+const NormalIndex& IndexVector::getClosest(int y) const {
+    static NormalIndex invalidIndex = { { -1, -1, -1, -1 } };
+    int relative = y - position;
+    if (relative < 0 || relative >= size()) {
+        return invalidIndex;
+    }
+    const NormalIndex& first = at(relative);
+    if (first.isValid()) {
+        return first;
+    }
+    for (int distance = 1; relative - distance >= 0 || relative + distance < size(); distance++) {
+        int previous = relative - distance;
+        if (previous >= 0) {
+            const NormalIndex& previousIndex = at(previous);
+            if (previousIndex.isValid()) {
+                return previousIndex;
+            }
+        }
+        int next = relative + distance;
+        if (next < size()) {
+            const NormalIndex& nextIndex = at(next);
+            if (nextIndex.isValid()) {
+                return nextIndex;
+            }
+        }
+    }
+    return invalidIndex;
+}
+
+static inline void appendIndices(QVector<int>& indices, QMultiHash<VoxelCoord, int>& quadIndices,
+        const QVector<VoxelPoint>& vertices, float step, int i0, int i1, int i2, int i3) {
+    int newIndices[] = { i0, i1, i2, i3 };
+    glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    int indexIndex = indices.size();
+    for (unsigned int i = 0; i < sizeof(newIndices) / sizeof(newIndices[0]); i++) {
+        int index = newIndices[i];
+        indices.append(index);
+        const glm::vec3& vertex = vertices.at(index).vertex;
+        minima = glm::min(vertex, minima);
+        maxima = glm::max(vertex, maxima);
+    }
+    for (int z = (int)minima.z, endZ = (int)glm::ceil(maxima.z); z < endZ; z++) {
+        for (int y = (int)minima.x, endY = (int)glm::ceil(maxima.y); y < endY; y++) {
+            for (int x = (int)minima.x, endX = (int)glm::ceil(maxima.x); x < endX; x++) {
+                quadIndices.insert(qRgb(x, y, z), indexIndex);
+            }
+        }
+    }
+}
+
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
         const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
     if (!node->getHeight()) {
@@ -2199,9 +1612,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        const QVector<quint16>& heightContents = node->getHeight()->getContents();
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0,
-            GL_RED, GL_UNSIGNED_SHORT, heightContents.constData());
+            GL_RED, GL_UNSIGNED_SHORT, node->getHeight()->getContents().constData());
     
         glGenTextures(1, &_colorTextureID);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
@@ -2233,7 +1645,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                 
             const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
             _networkTextures.resize(materials.size());
-            TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
+            auto textureCache = DependencyManager::get<TextureCache>();
             for (int i = 0; i < materials.size(); i++) {
                 const SharedObjectPointer& material = materials.at(i);
                 if (material) {
@@ -2250,36 +1662,743 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         // restore the default alignment; it's what Qt uses for image storage
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     }
-    
-    if (cursor) {
-        bufferPair.first.bind();
-        bufferPair.second.bind();
-    
-        glPushMatrix();
-        glTranslatef(translation.x, translation.y, translation.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glScalef(scale.x, scale.y, scale.z);
+    bool displayHermite = Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData);
+    if ((!_voxels || (displayHermite && !static_cast<VoxelBuffer*>(_voxels.data())->isHermiteEnabled())) && node->getStack()) {
+        // see http://www.frankpetterson.com/publications/dualcontour/dualcontour.pdf for a description of the
+        // dual contour algorithm for generating meshes from voxel data using Hermite-tagged edges
         
-        HeightfieldPoint* point = 0;
-        glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
-        glTexCoordPointer(2, GL_FLOAT, sizeof(HeightfieldPoint), &point->textureCoord);
+        QVector<VoxelPoint> vertices;
+        QVector<int> indices;
+        QVector<glm::vec3> hermiteSegments;
+        QMultiHash<VoxelCoord, int> quadIndices;
         
-        glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+        int stackWidth = node->getStack()->getWidth();
+        int stackHeight = node->getStack()->getContents().size() / stackWidth;
+        int innerStackWidth = stackWidth - HeightfieldData::SHARED_EDGE;
+        int innerStackHeight = stackHeight - HeightfieldData::SHARED_EDGE;
+        const StackArray* src = node->getStack()->getContents().constData();
+        const quint16* heightSrc = node->getHeight()->getContents().constData() +
+            (width + 1) * HeightfieldHeight::HEIGHT_BORDER;
+        QVector<SharedObjectPointer> stackMaterials = node->getStack()->getMaterials();
+        QHash<int, int> materialMap;
         
-        glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+        int colorWidth;
+        const uchar* colorSrc = NULL;
+        float colorStepX, colorStepZ;
+        if (node->getColor()) {
+            colorWidth = node->getColor()->getWidth();
+            int colorHeight = node->getColor()->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+            colorSrc = (const uchar*)node->getColor()->getContents().constData();
+            colorStepX = (colorWidth - HeightfieldData::SHARED_EDGE) / (float)innerStackWidth;
+            colorStepZ = (colorHeight - HeightfieldData::SHARED_EDGE) / (float)innerStackHeight;
+        }
         
-        glBindTexture(GL_TEXTURE_2D, 0);
+        int materialWidth;
+        const uchar* materialSrc = NULL;
+        float materialStepX, materialStepZ;
+        if (node->getMaterial()) {
+            materialWidth = node->getMaterial()->getWidth();
+            int materialHeight = node->getMaterial()->getContents().size() / materialWidth;
+            materialSrc = (const uchar*)node->getMaterial()->getContents().constData();
+            materialStepX = (materialWidth - HeightfieldData::SHARED_EDGE) / (float)innerStackWidth;
+            materialStepZ = (materialHeight - HeightfieldData::SHARED_EDGE) / (float)innerStackHeight;
+        }
         
-        glPopMatrix();
+        const int EDGES_PER_CUBE = 12;
+        EdgeCrossing crossings[EDGES_PER_CUBE];
         
-        bufferPair.first.release();
-        bufferPair.second.release();
-        return;
+        // as we scan down the cube generating vertices between grid points, we remember the indices of the last
+        // (element, line, section--x, y, z) so that we can connect generated vertices as quads
+        IndexVector indicesX;
+        IndexVector lastIndicesX;
+        QVector<IndexVector> indicesZ(stackWidth + 1);
+        QVector<IndexVector> lastIndicesZ(stackWidth + 1);
+        float step = 1.0f / innerStackWidth;
+        float voxelScale = scale.y / (numeric_limits<quint16>::max() * scale.x * step);
+        
+        for (int z = 0; z <= stackHeight; z++) {
+            bool middleZ = (z != 0 && z != stackHeight);
+            const StackArray* lineSrc = src;
+            const quint16* heightLineSrc = heightSrc;
+            for (int x = 0; x <= stackWidth; x++) {
+                bool middleX = (x != 0 && x != stackWidth);
+                
+                // find the y extents of this and the neighboring columns
+                int minimumY = INT_MAX, maximumY = -1;
+                lineSrc->getExtents(minimumY, maximumY);
+                if (middleX) {
+                    lineSrc[1].getExtents(minimumY, maximumY);
+                    if (middleZ) {
+                        lineSrc[stackWidth + 1].getExtents(minimumY, maximumY);
+                    }
+                }
+                if (middleZ) {
+                    lineSrc[stackWidth].getExtents(minimumY, maximumY);
+                }
+                if (maximumY >= minimumY) {
+                    int position = minimumY;
+                    int count = maximumY - minimumY + 1;
+                    NormalIndex lastIndexY = { { -1, -1, -1, -1 } };
+                    indicesX.position = position;
+                    indicesX.resize(count);
+                    indicesZ[x].position = position;
+                    indicesZ[x].resize(count);
+                    float heightfieldHeight = *heightLineSrc * voxelScale;
+                    float nextHeightfieldHeightX = heightLineSrc[1] * voxelScale;
+                    float nextHeightfieldHeightZ = heightLineSrc[width] * voxelScale;
+                    float nextHeightfieldHeightXZ = heightLineSrc[width + 1] * voxelScale;
+                    const int UPPER_LEFT_CORNER = 1;
+                    const int UPPER_RIGHT_CORNER = 2;
+                    const int LOWER_LEFT_CORNER = 4;
+                    const int LOWER_RIGHT_CORNER = 8;
+                    const int NO_CORNERS = 0;
+                    const int ALL_CORNERS = UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER | LOWER_RIGHT_CORNER;
+                    int corners = NO_CORNERS;
+                    if (heightfieldHeight != 0.0f) {
+                        corners |= UPPER_LEFT_CORNER;
+                    }
+                    if (nextHeightfieldHeightX != 0.0f && x != stackWidth) {
+                        corners |= UPPER_RIGHT_CORNER;
+                    }
+                    if (nextHeightfieldHeightZ != 0.0f && z != stackHeight) {
+                        corners |= LOWER_LEFT_CORNER;
+                    }
+                    if (nextHeightfieldHeightXZ != 0.0f && x != stackWidth && z != stackHeight) {
+                        corners |= LOWER_RIGHT_CORNER;
+                    }
+                    bool stitchable = x != 0 && z != 0 && !(corners == NO_CORNERS || corners == ALL_CORNERS);
+                    VoxelPoint cornerPoints[4];
+                    int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
+                    if (stitchable) {
+                        for (unsigned int i = 0; i < sizeof(cornerPoints) / sizeof(cornerPoints[0]); i++) {
+                            if (!(corners & (1 << i))) {
+                                continue;
+                            }
+                            int offsetX = (i & X_MAXIMUM_FLAG) ? 1 : 0;
+                            int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
+                            const quint16* height = heightLineSrc + offsetZ * width + offsetX;
+                            VoxelPoint& point = cornerPoints[i];
+                            int clampedOffsetX = clampedX + offsetX, clampedOffsetZ = clampedZ + offsetZ;
+                            point.vertex = glm::vec3(clampedOffsetX, *height * voxelScale, clampedOffsetZ) * step;
+                            int left = height[-1];
+                            int right = height[1];
+                            int down = height[-width];
+                            int up = height[width];
+                            glm::vec3 normal = glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f : left - right,
+                                2.0f / voxelScale, (up == 0 || down == 0) ? 0.0f : down - up));
+                            point.normal[0] = normal.x * numeric_limits<qint8>::max();
+                            point.normal[1] = normal.y * numeric_limits<qint8>::max();
+                            point.normal[2] = normal.z * numeric_limits<qint8>::max();
+                            if (colorSrc) {
+                                const uchar* color = colorSrc + ((int)(clampedOffsetZ * colorStepZ) * colorWidth +
+                                    (int)(clampedOffsetX * colorStepX)) * DataBlock::COLOR_BYTES;
+                                point.color[0] = color[0];
+                                point.color[1] = color[1];
+                                point.color[2] = color[2];
+                            
+                            } else {
+                                point.color[0] = point.color[1] = point.color[2] = numeric_limits<quint8>::max();
+                            }
+                            int material = 0;
+                            if (materialSrc) {
+                                material = materialSrc[(int)(clampedOffsetZ * materialStepZ) * materialWidth +
+                                    (int)(clampedOffsetX * materialStepX)];
+                                if (material != 0) {
+                                    int& mapping = materialMap[material];
+                                    if (mapping == 0) {
+                                        mapping = getMaterialIndex(node->getMaterial()->getMaterials().at(material - 1),
+                                            stackMaterials);
+                                    }
+                                    material = mapping;
+                                }
+                            }
+                            point.materials[0] = material;
+                            point.materials[1] = point.materials[2] = point.materials[3] = 0;
+                            point.materialWeights[0] = numeric_limits<quint8>::max();
+                            point.materialWeights[1] = point.materialWeights[2] = point.materialWeights[3] = 0;
+                        }
+                    }
+                    for (int y = position, end = position + count; y < end; y++) {
+                        const StackArray::Entry& entry = lineSrc->getEntry(y, heightfieldHeight);
+                        if (displayHermite && x != 0 && z != 0 && !lineSrc->isEmpty() && y >= lineSrc->getPosition()) {
+                            glm::vec3 normal;
+                            if (entry.hermiteX != 0) {
+                                glm::vec3 start = glm::vec3(clampedX + entry.getHermiteX(normal), y, clampedZ) * step;
+                                hermiteSegments.append(start);
+                                hermiteSegments.append(start + normal * step);
+                            }
+                            if (entry.hermiteY != 0) {
+                                glm::vec3 start = glm::vec3(clampedX, y + entry.getHermiteY(normal), clampedZ) * step;
+                                hermiteSegments.append(start);
+                                hermiteSegments.append(start + normal * step);
+                            }
+                            if (entry.hermiteZ != 0) {
+                                glm::vec3 start = glm::vec3(clampedX, y, clampedZ + entry.getHermiteZ(normal)) * step;
+                                hermiteSegments.append(start);
+                                hermiteSegments.append(start + normal * step);
+                            }
+                        }
+                        // number variables correspond to cube corners, where the x, y, and z components are represented as
+                        // bits in the 0, 1, and 2 position, respectively; hence, alpha0 is the value at the minimum x, y, and
+                        // z corner and alpha7 is the value at the maximum x, y, and z
+                        int alpha0 = lineSrc->getEntryAlpha(y, heightfieldHeight);
+                        int alpha2 = lineSrc->getEntryAlpha(y + 1, heightfieldHeight);
+                        int alpha1 = alpha0, alpha3 = alpha2, alpha4 = alpha0, alpha6 = alpha2;
+                        int alphaTotal = alpha0 + alpha2;
+                        int possibleTotal = 2 * numeric_limits<uchar>::max();
+                        
+                        // cubes on the edge are two-dimensional: this ensures that their vertices will be shared between
+                        // neighboring blocks, which share only one layer of points
+                        if (middleZ) {
+                            alphaTotal += (alpha4 = lineSrc[stackWidth].getEntryAlpha(y, nextHeightfieldHeightZ));
+                            possibleTotal += numeric_limits<uchar>::max();
+                            
+                            alphaTotal += (alpha6 = lineSrc[stackWidth].getEntryAlpha(y + 1, nextHeightfieldHeightZ));
+                            possibleTotal += numeric_limits<uchar>::max();
+                        }
+                        int alpha5 = alpha4, alpha7 = alpha6;
+                        if (middleX) {
+                            alphaTotal += (alpha1 = lineSrc[1].getEntryAlpha(y, nextHeightfieldHeightX));
+                            possibleTotal += numeric_limits<uchar>::max();
+                            
+                            alphaTotal += (alpha3 = lineSrc[1].getEntryAlpha(y + 1, nextHeightfieldHeightX));
+                            possibleTotal += numeric_limits<uchar>::max();
+                                
+                            if (middleZ) {
+                                alphaTotal += (alpha5 = lineSrc[stackWidth + 1].getEntryAlpha(y, nextHeightfieldHeightXZ));
+                                possibleTotal += numeric_limits<uchar>::max();
+                                
+                                alphaTotal += (alpha7 = lineSrc[stackWidth + 1].getEntryAlpha(y + 1, nextHeightfieldHeightXZ));
+                                possibleTotal += numeric_limits<uchar>::max();
+                            }
+                        }
+                        if (alphaTotal == 0 || alphaTotal == possibleTotal) {
+                            continue; // no corners set/all corners set
+                        }
+                        // the terrifying conditional code that follows checks each cube edge for a crossing, gathering
+                        // its properties (color, material, normal) if one is present; as before, boundary edges are excluded
+                        int crossingCount = 0;
+                        const StackArray::Entry& nextEntryY = lineSrc->getEntry(y + 1, heightfieldHeight);
+                        if (middleX) {
+                            const StackArray::Entry& nextEntryX = lineSrc[1].getEntry(y, nextHeightfieldHeightX);
+                            const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1, nextHeightfieldHeightX);    
+                            if (alpha0 != alpha1) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(entry.getHermiteX(crossing.normal), 0.0f, 0.0f);
+                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryX : entry);
+                            }
+                            if (alpha1 != alpha3) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(1.0f, nextEntryX.getHermiteY(crossing.normal), 0.0f);
+                                crossing.setColorMaterial(alpha1 == 0 ? nextEntryXY : nextEntryX);
+                            }
+                            if (alpha2 != alpha3) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(nextEntryY.getHermiteX(crossing.normal), 1.0f, 0.0f);
+                                crossing.setColorMaterial(alpha2 == 0 ? nextEntryXY : nextEntryY);
+                            }
+                            if (middleZ) {
+                                const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y, nextHeightfieldHeightZ);
+                                const StackArray::Entry& nextEntryXZ = lineSrc[stackWidth + 1].getEntry(
+                                    y, nextHeightfieldHeightXZ);
+                                const StackArray::Entry& nextEntryXYZ = lineSrc[stackWidth + 1].getEntry(
+                                    y + 1, nextHeightfieldHeightXZ);
+                                if (alpha1 != alpha5) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.point = glm::vec3(1.0f, 0.0f, nextEntryX.getHermiteZ(crossing.normal));
+                                    crossing.setColorMaterial(alpha1 == 0 ? nextEntryXZ : nextEntryX);
+                                }
+                                if (alpha3 != alpha7) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1, nextHeightfieldHeightX);
+                                    crossing.point = glm::vec3(1.0f, 1.0f, nextEntryXY.getHermiteZ(crossing.normal));
+                                    crossing.setColorMaterial(alpha3 == 0 ? nextEntryXYZ : nextEntryXY);
+                                }
+                                if (alpha4 != alpha5) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.point = glm::vec3(nextEntryZ.getHermiteX(crossing.normal), 0.0f, 1.0f);
+                                    crossing.setColorMaterial(alpha4 == 0 ? nextEntryXZ : nextEntryZ);
+                                }
+                                if (alpha5 != alpha7) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    const StackArray::Entry& nextEntryXZ = lineSrc[stackWidth + 1].getEntry(
+                                        y, nextHeightfieldHeightXZ);
+                                    crossing.point = glm::vec3(1.0f, nextEntryXZ.getHermiteY(crossing.normal), 1.0f);
+                                    crossing.setColorMaterial(alpha5 == 0 ? nextEntryXYZ : nextEntryXZ);
+                                }
+                                if (alpha6 != alpha7) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(
+                                        y + 1, nextHeightfieldHeightZ);
+                                    crossing.point = glm::vec3(nextEntryYZ.getHermiteX(crossing.normal), 1.0f, 1.0f);
+                                    crossing.setColorMaterial(alpha6 == 0 ? nextEntryXYZ : nextEntryYZ);
+                                }
+                            }
+                        }
+                        if (alpha0 != alpha2) {
+                            EdgeCrossing& crossing = crossings[crossingCount++];
+                            crossing.point = glm::vec3(0.0f, entry.getHermiteY(crossing.normal), 0.0f);
+                            crossing.setColorMaterial(alpha0 == 0 ? nextEntryY : entry);
+                        }
+                        if (middleZ) {
+                            const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y, nextHeightfieldHeightZ);
+                            const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(y + 1, nextHeightfieldHeightZ);
+                            if (alpha0 != alpha4) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(0.0f, 0.0f, entry.getHermiteZ(crossing.normal));
+                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryZ : entry);
+                            }
+                            if (alpha2 != alpha6) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(0.0f, 1.0f, nextEntryY.getHermiteZ(crossing.normal));
+                                crossing.setColorMaterial(alpha2 == 0 ? nextEntryYZ : nextEntryY);
+                            }
+                            if (alpha4 != alpha6) {
+                                EdgeCrossing& crossing = crossings[crossingCount++];
+                                crossing.point = glm::vec3(0.0f, nextEntryZ.getHermiteY(crossing.normal), 1.0f);
+                                crossing.setColorMaterial(alpha4 == 0 ? nextEntryYZ : nextEntryZ);
+                            }
+                        }
+                        // determine whether we should ignore this vertex because it will be stitched
+                        int validCrossings = 0;
+                        for (int i = 0; i < crossingCount; i++) {
+                            if (qAlpha(crossings[i].color) != 0) {
+                                validCrossings++;
+                            }
+                        }
+                        NormalIndex index = { { -1, -1, -1, -1 } };
+                        if (validCrossings != 0) {
+                            index.indices[0] = index.indices[1] = index.indices[2] = index.indices[3] = vertices.size();
+                            glm::vec3 center;
+                            glm::vec3 normals[MAX_NORMALS_PER_VERTEX];
+                            int normalCount = 0;
+                            const float CREASE_COS_NORMAL = glm::cos(glm::radians(45.0f));
+                            const int MAX_MATERIALS_PER_VERTEX = 4;
+                            quint8 materials[] = { 0, 0, 0, 0 };
+                            glm::vec4 materialWeights;
+                            float totalWeight = 0.0f;
+                            int red = 0, green = 0, blue = 0;
+                            for (int i = 0; i < crossingCount; i++) {
+                                const EdgeCrossing& crossing = crossings[i];
+                                if (qAlpha(crossing.color) == 0) {
+                                    continue;
+                                }
+                                center += crossing.point;
+                                
+                                int j = 0;
+                                for (; j < normalCount; j++) {
+                                    if (glm::dot(normals[j], crossing.normal) > CREASE_COS_NORMAL) {
+                                        normals[j] = safeNormalize(normals[j] + crossing.normal);
+                                        break;
+                                    }
+                                }
+                                if (j == normalCount) {
+                                    normals[normalCount++] = crossing.normal;
+                                }
+                                
+                                red += qRed(crossing.color);
+                                green += qGreen(crossing.color);
+                                blue += qBlue(crossing.color);
+                                
+                                // when assigning a material, search for its presence and, if not found,
+                                // place it in the first empty slot
+                                if (crossing.material != 0) {
+                                    for (j = 0; j < MAX_MATERIALS_PER_VERTEX; j++) {
+                                        if (materials[j] == crossing.material) {
+                                            materialWeights[j] += 1.0f;
+                                            totalWeight += 1.0f;
+                                            break;
+                                            
+                                        } else if (materials[j] == 0) {
+                                            materials[j] = crossing.material;
+                                            materialWeights[j] = 1.0f;
+                                            totalWeight += 1.0f;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            center /= validCrossings;
+                            
+                            // use a sequence of Givens rotations to perform a QR decomposition
+                            // see http://www.cs.rice.edu/~jwarren/papers/techreport02408.pdf
+                            glm::mat4 r(0.0f);
+                            glm::vec4 bottom;
+                            for (int i = 0; i < crossingCount; i++) {
+                                const EdgeCrossing& crossing = crossings[i];
+                                if (qAlpha(crossing.color) == 0) {
+                                    continue;
+                                }
+                                bottom = glm::vec4(crossing.normal, glm::dot(crossing.normal, crossing.point - center));
+                                
+                                for (int j = 0; j < 4; j++) {
+                                    float angle = glm::atan(-bottom[j], r[j][j]);
+                                    float sina = glm::sin(angle);
+                                    float cosa = glm::cos(angle);
+                                    
+                                    for (int k = 0; k < 4; k++) {
+                                        float tmp = bottom[k];
+                                        bottom[k] = sina * r[k][j] + cosa * tmp;
+                                        r[k][j] = cosa * r[k][j] - sina * tmp;
+                                    }
+                                }
+                            }
+                            
+                            // extract the submatrices, form ata
+                            glm::mat3 a(r);
+                            glm::vec3 b(r[3]);
+                            glm::mat3 atrans = glm::transpose(a);
+                            glm::mat3 ata = atrans * a;
+                            
+                            // find the eigenvalues and eigenvectors of ata
+                            // (see http://en.wikipedia.org/wiki/Jacobi_eigenvalue_algorithm)
+                            glm::mat3 d = ata;
+                            glm::quat combinedRotation;
+                            const int MAX_ITERATIONS = 20;
+                            for (int i = 0; i < MAX_ITERATIONS; i++) {
+                                glm::vec3 offDiagonals = glm::abs(glm::vec3(d[1][0], d[2][0], d[2][1]));
+                                int largestIndex = (offDiagonals[0] > offDiagonals[1]) ?
+                                    (offDiagonals[0] > offDiagonals[2] ? 0 : 2) : (offDiagonals[1] > offDiagonals[2] ? 1 : 2);
+                                const float DESIRED_PRECISION = 0.00001f;
+                                if (offDiagonals[largestIndex] < DESIRED_PRECISION) {
+                                    break;
+                                }
+                                int largestJ = (largestIndex == 2) ? 1 : 0;
+                                int largestI = (largestIndex == 0) ? 1 : 2; 
+                                float sjj = d[largestJ][largestJ];
+                                float sii = d[largestI][largestI];
+                                float angle = glm::atan(2.0f * d[largestJ][largestI], sjj - sii) / 2.0f;
+                                glm::quat rotation = glm::angleAxis(angle, largestIndex == 0 ? glm::vec3(0.0f, 0.0f, -1.0f) :
+                                    (largestIndex == 1 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f)));
+                                combinedRotation = glm::normalize(rotation * combinedRotation);
+                                glm::mat3 matrix = glm::mat3_cast(combinedRotation);
+                                d = matrix * ata * glm::transpose(matrix);
+                            }
+                            
+                            // form the singular matrix from the eigenvalues
+                            const float MIN_SINGULAR_THRESHOLD = 0.1f;
+                            d[0][0] = (d[0][0] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[0][0];
+                            d[1][1] = (d[1][1] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[1][1];
+                            d[2][2] = (d[2][2] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[2][2];
+                            
+                            // compute the pseudo-inverse, ataplus, and use to find the minimizing solution
+                            glm::mat3 u = glm::mat3_cast(combinedRotation);
+                            glm::mat3 ataplus = glm::transpose(u) * d * u; 
+                            glm::vec3 solution = (ataplus * atrans * b) + center;
+                            
+                            // make sure it doesn't fall beyond the cell boundaries
+                            center = glm::clamp(solution, 0.0f, 1.0f);
+                        
+                            if (totalWeight > 0.0f) {
+                                materialWeights *= (numeric_limits<quint8>::max() / totalWeight);
+                            }
+                            VoxelPoint point = { (glm::vec3(clampedX, y, clampedZ) + center) * step,
+                                { (quint8)(red / validCrossings), (quint8)(green / validCrossings),
+                                    (quint8)(blue / validCrossings) },
+                                { (char)(normals[0].x * 127.0f), (char)(normals[0].y * 127.0f),
+                                    (char)(normals[0].z * 127.0f) },
+                                { materials[0], materials[1], materials[2], materials[3] },
+                                { (quint8)materialWeights[0], (quint8)materialWeights[1], (quint8)materialWeights[2],
+                                    (quint8)materialWeights[3] } };
+                            
+                            vertices.append(point);
+                            for (int i = 1; i < normalCount; i++) {
+                                index.indices[i] = vertices.size();
+                                point.setNormal(normals[i]);
+                                vertices.append(point);
+                            }
+                        
+                            if (stitchable) {
+                                int nextIndex = vertices.size();
+                                const NormalIndex& previousIndexX = lastIndicesX.getClosest(y);
+                                const NormalIndex& previousIndexZ = lastIndicesZ[x].getClosest(y);
+                                switch (corners) {
+                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        vertices.append(cornerPoints[3]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex - cornerPoints[1].vertex,
+                                            cornerPoints[3].vertex - cornerPoints[1].vertex);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_LEFT_CORNER | LOWER_LEFT_CORNER | LOWER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        vertices.append(cornerPoints[3]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - cornerPoints[2].vertex,
+                                            cornerPoints[0].vertex - cornerPoints[2].vertex);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex, nextIndex + 1, nextIndex + 1);
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex);
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[1]);
+                                        vertices.append(cornerPoints[2]);
+                                        vertices.append(cornerPoints[3]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - cornerPoints[2].vertex,
+                                            cornerPoints[1].vertex - cornerPoints[2].vertex);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 2, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex + 2, nextIndex + 2);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex + 1);
+                                        }
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        vertices.append(cornerPoints[1]);
+                                        vertices.append(cornerPoints[2]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex - cornerPoints[0].vertex,
+                                            cornerPoints[1].vertex - cornerPoints[0].vertex);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex, nextIndex + 2, nextIndex + 2);
+                                        break;
+                                    }
+                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        vertices.append(cornerPoints[1]);
+                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                        glm::vec3 normal = glm::cross(cornerPoints[1].vertex - first,
+                                            cornerPoints[0].vertex - first);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[1]);
+                                        vertices.append(cornerPoints[3]);
+                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - first,
+                                            cornerPoints[1].vertex - first);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                                firstIndex, nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[3]);
+                                        vertices.append(cornerPoints[2]);
+                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex - first,
+                                            cornerPoints[3].vertex - first);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex + 1);
+                                        }
+                                        break;
+                                    }
+                                    case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[2]);
+                                        vertices.append(cornerPoints[0]);
+                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex - first,
+                                            cornerPoints[2].vertex - first);
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
+                                            nextIndex + 1, nextIndex, nextIndex);
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex + 1);
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[0]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex -
+                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
+                                        }
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex);
+                                        }
+                                        break;
+                                    }
+                                    case UPPER_RIGHT_CORNER: {
+                                        vertices.append(cornerPoints[1]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[1].vertex -
+                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        if (previousIndexZ.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
+                                        }
+                                        break;
+                                    }
+                                    case LOWER_LEFT_CORNER: {
+                                        vertices.append(cornerPoints[2]);
+                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex -
+                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
+                                        int firstIndex = index.getClosestIndex(normal, vertices);
+                                        if (previousIndexX.isValid()) {
+                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
+                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // the first x, y, and z are repeated for the boundary edge; past that, we consider generating
+                        // quads for each edge that includes a transition, using indices of previously generated vertices
+                        int reclampedX = qMin(clampedX, stackWidth - 1);
+                        int reclampedZ = qMin(clampedZ, stackHeight - 1);
+                        if (alpha0 != alpha1 && y > position && z > 0) {
+                            const NormalIndex& index1 = lastIndexY;
+                            const NormalIndex& index2 = lastIndicesZ[x].get(y - 1);
+                            const NormalIndex& index3 = lastIndicesZ[x].get(y);
+                            if (index.isValid() && index1.isValid() && index2.isValid() && index3.isValid()) {
+                                quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
+                                quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
+                                if (reclampedZ > 0) {
+                                    quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ - 1), indices.size());
+                                    quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
+                                }
+                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
+                                    vertices.at(index3.indices[0]).vertex - first);
+                                
+                                if (alpha0 == 0) { // quad faces negative x
+                                    indices.append(index3.getClosestIndex(normal = -normal, vertices));
+                                    indices.append(index2.getClosestIndex(normal, vertices));
+                                    indices.append(index1.getClosestIndex(normal, vertices));
+                                } else { // quad faces positive x
+                                    indices.append(index1.getClosestIndex(normal, vertices));
+                                    indices.append(index2.getClosestIndex(normal, vertices));
+                                    indices.append(index3.getClosestIndex(normal, vertices));
+                                }
+                                indices.append(index.getClosestIndex(normal, vertices));
+                            }
+                        }
+                        
+                        if (alpha0 != alpha2 && x > 0 && z > 0) {
+                            const NormalIndex& index1 = lastIndicesZ[x].get(y);
+                            const NormalIndex& index2 = lastIndicesZ[x - 1].get(y);
+                            const NormalIndex& index3 = lastIndicesX.get(y);
+                            if (index.isValid() && index1.isValid() && index2.isValid() && index3.isValid()) {
+                                quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
+                                if (reclampedX > 0) {
+                                    quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ), indices.size());
+                                    if (reclampedZ > 0) {
+                                        quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ - 1), indices.size());
+                                    }
+                                }
+                                if (reclampedZ > 0) {
+                                    quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
+                                }
+                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                glm::vec3 normal = glm::cross(vertices.at(index3.indices[0]).vertex - first,
+                                    vertices.at(index1.indices[0]).vertex - first);
+                                
+                                if (alpha0 == 0) { // quad faces negative y
+                                    indices.append(index3.getClosestIndex(normal, vertices));
+                                    indices.append(index2.getClosestIndex(normal, vertices));
+                                    indices.append(index1.getClosestIndex(normal, vertices));
+                                } else { // quad faces positive y
+                                    indices.append(index1.getClosestIndex(normal = -normal, vertices));
+                                    indices.append(index2.getClosestIndex(normal, vertices));
+                                    indices.append(index3.getClosestIndex(normal, vertices));
+                                }
+                                indices.append(index.getClosestIndex(normal, vertices));
+                            }
+                        }
+                        
+                        if (alpha0 != alpha4 && x > 0 && y > position) {
+                            const NormalIndex& index1 = lastIndexY;
+                            const NormalIndex& index2 = lastIndicesX.get(y - 1);
+                            const NormalIndex& index3 = lastIndicesX.get(y);
+                            if (index.isValid() && index1.isValid() && index2.isValid() && index3.isValid()) {
+                                quadIndices.insert(qRgb(reclampedX, y, reclampedZ), indices.size());
+                                if (reclampedX > 0) {
+                                    quadIndices.insert(qRgb(reclampedX - 1, y, reclampedZ), indices.size());
+                                    quadIndices.insert(qRgb(reclampedX - 1, y - 1, reclampedZ), indices.size());
+                                }
+                                quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
+                                
+                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                                glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
+                                    vertices.at(index3.indices[0]).vertex - first);
+                                
+                                if (alpha0 == 0) { // quad faces negative z
+                                    indices.append(index1.getClosestIndex(normal, vertices));
+                                    indices.append(index2.getClosestIndex(normal, vertices));
+                                    indices.append(index3.getClosestIndex(normal, vertices));
+                                } else { // quad faces positive z
+                                    indices.append(index3.getClosestIndex(normal = -normal, vertices));
+                                    indices.append(index2.getClosestIndex(normal, vertices));
+                                    indices.append(index1.getClosestIndex(normal, vertices));
+                                }
+                                indices.append(index.getClosestIndex(normal, vertices));
+                            }
+                        }
+                        lastIndexY = index;
+                        indicesX[y - position] = index;
+                        indicesZ[x][y - position] = index;
+                    }
+                } else {
+                    indicesX.clear();
+                    indicesZ[x].clear();
+                }
+                if (x != 0) {
+                    lineSrc++;
+                    heightLineSrc++;
+                }
+                indicesX.swap(lastIndicesX);
+            }
+            if (z != 0) {
+                src += stackWidth;
+                heightSrc += width;
+            }
+            indicesZ.swap(lastIndicesZ);
+            lastIndicesX.clear();
+        }
+        _voxels = new VoxelBuffer(vertices, indices, hermiteSegments, quadIndices, stackWidth, stackMaterials);
     }
+    
+    if (_voxels) {
+        _voxels->render(translation, rotation, glm::vec3(scale.x, scale.x, scale.x), cursor);
+    }
+    
     HeightfieldBaseLayerBatch baseBatch;
-    baseBatch.vertexBuffer = &bufferPair.first;
-    baseBatch.indexBuffer = &bufferPair.second;
+    baseBatch.vertexBufferID = bufferPair.first.bufferId();
+    baseBatch.indexBufferID = bufferPair.second.bufferId();
     baseBatch.translation = translation;
     baseBatch.rotation = rotation;
     baseBatch.scale = scale;
@@ -2289,12 +2408,12 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     baseBatch.heightScale = glm::vec4(1.0f / width, 1.0f / height, (innerWidth - 1) / -2.0f, (innerHeight - 1) / -2.0f);
     baseBatch.colorTextureID = _colorTextureID;
     baseBatch.colorScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
-    Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);    
+    Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);
     
-    if (!_networkTextures.isEmpty()) {
+    if (!(cursor || _networkTextures.isEmpty())) {
         HeightfieldSplatBatch splatBatch;
-        splatBatch.vertexBuffer = &bufferPair.first;
-        splatBatch.indexBuffer = &bufferPair.second;
+        splatBatch.vertexBufferID = bufferPair.first.bufferId();
+        splatBatch.indexBufferID = bufferPair.second.bufferId();
         splatBatch.translation = translation;
         splatBatch.rotation = rotation;
         splatBatch.scale = scale;

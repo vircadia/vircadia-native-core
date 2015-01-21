@@ -26,6 +26,7 @@
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
+#include "EntityItemPropertiesDefaults.h" 
 #include "EntityTypes.h"
 
 class EntityTree;
@@ -35,30 +36,6 @@ class EntityTreeElementExtraEncodeData;
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
-const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f) / (float)TREE_SCALE;
-const glm::quat DEFAULT_ROTATION;
-const float DEFAULT_GLOW_LEVEL = 0.0f;
-const float DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
-const float DEFAULT_MASS = 1.0f;
-const glm::vec3 NO_VELOCITY= glm::vec3(0.0f);
-const glm::vec3 DEFAULT_VELOCITY = NO_VELOCITY;
-const float EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
-const glm::vec3 NO_GRAVITY = glm::vec3(0.0f);
-const glm::vec3 DEFAULT_GRAVITY = NO_GRAVITY;
-const glm::vec3 REGULAR_GRAVITY = glm::vec3(0, -9.8f / (float)TREE_SCALE, 0);
-const float DEFAULT_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
-const float IMMORTAL = -1.0f; /// special lifetime which means the entity lives for ever. default lifetime
-const float DEFAULT_LIFETIME = IMMORTAL;
-const QString DEFAULT_SCRIPT = QString("");
-const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
-const glm::vec3 NO_ANGULAR_VELOCITY = glm::vec3(0.0f);
-const glm::vec3 DEFAULT_ANGULAR_VELOCITY = NO_ANGULAR_VELOCITY;
-const float DEFAULT_ANGULAR_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
-const bool DEFAULT_VISIBLE = true;
-const bool DEFAULT_IGNORE_FOR_COLLISIONS = false;
-const bool DEFAULT_COLLISIONS_WILL_MOVE = false;
-const bool DEFAULT_LOCKED = false;
-const QString DEFAULT_USER_DATA = QString("");
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -151,6 +128,8 @@ public:
     
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
+
+    void simulateSimpleKinematicMotion(float timeElapsed);
     
     virtual bool needsToCallUpdate() const { return false; }
 
@@ -194,20 +173,23 @@ public:
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     void setLocalRenderAlpha(float localRenderAlpha) { _localRenderAlpha = localRenderAlpha; }
 
-    float getMass() const { return _mass; }
-    void setMass(float value) { _mass = value; }
+    void setDensity(float density);
+    float computeMass() const;
+    void setMass(float mass);
+
+    float getDensity() const { return _density; }
 
     const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
-    bool hasVelocity() const { return _velocity != NO_VELOCITY; }
+    bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
 
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
     glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
     void setGravityInMeters(const glm::vec3& value) { _gravity = value / (float) TREE_SCALE; } /// gravity in meters
-    bool hasGravity() const { return _gravity != NO_GRAVITY; }
+    bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
     
     // TODO: this should eventually be updated to support resting on collisions with other surfaces
     bool isRestingOnSurface() const;
@@ -220,10 +202,10 @@ public:
     void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
 
     /// is this entity immortal, in that it has no lifetime set, and will exist until manually deleted
-    bool isImmortal() const { return _lifetime == IMMORTAL; }
+    bool isImmortal() const { return _lifetime == ENTITY_ITEM_IMMORTAL_LIFETIME; }
 
     /// is this entity mortal, in that it has a lifetime set, and will automatically be deleted when that lifetime expires
-    bool isMortal() const { return _lifetime != IMMORTAL; }
+    bool isMortal() const { return _lifetime != ENTITY_ITEM_IMMORTAL_LIFETIME; }
     
     /// age of this entity in seconds
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
@@ -247,7 +229,7 @@ public:
 
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
-    bool hasAngularVelocity() const { return _angularVelocity != NO_ANGULAR_VELOCITY; }
+    bool hasAngularVelocity() const { return _angularVelocity != ENTITY_ITEM_ZERO_VEC3; }
 
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
@@ -283,6 +265,7 @@ public:
     void updateDimensions(const glm::vec3& value);
     void updateDimensionsInMeters(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
+    void updateDensity(float value);
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
     void updateVelocityInMeters(const glm::vec3& value);
@@ -326,7 +309,12 @@ protected:
     glm::quat _rotation;
     float _glowLevel;
     float _localRenderAlpha;
-    float _mass;
+    float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
+    // NOTE: _volumeMultiplier is used to compute volume:
+    // volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z  =  m^3
+    // DANGER: due to the size of TREE_SCALE the _volumeMultiplier is always a large number, and therefore 
+    // will tend to introduce floating point error.  We must keep this in mind when using it.
+    float _volumeMultiplier = (float)TREE_SCALE * (float)TREE_SCALE * (float)TREE_SCALE;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
     float _damping;

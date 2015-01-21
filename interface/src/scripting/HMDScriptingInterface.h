@@ -12,11 +12,17 @@
 #ifndef hifi_HMDScriptingInterface_h
 #define hifi_HMDScriptingInterface_h
 
+#include <GLMHelpers.h>
+
 #include "Application.h"
+#include "devices/OculusManager.h"
 
 class HMDScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool magnifier READ getMagnifier)
+    Q_PROPERTY(bool active READ isHMDMode)
+    Q_PROPERTY(glm::vec3 HUDLookAtPosition3D READ getHUDLookAtPosition3D)
+    Q_PROPERTY(glm::vec2 HUDLookAtPosition2D READ getHUDLookAtPosition2D)
 public:
     static HMDScriptingInterface& getInstance();
 
@@ -26,7 +32,10 @@ public slots:
 private:
     HMDScriptingInterface() {};
     bool getMagnifier() const { return Application::getInstance()->getApplicationOverlay().hasMagnifier(); };
+    bool isHMDMode() const { return Application::getInstance()->isHMDMode(); }
 
+    glm::vec3 getHUDLookAtPosition3D() const;
+    glm::vec2 getHUDLookAtPosition2D() const;
 };
 
 #endif // hifi_HMDScriptingInterface_h

@@ -35,9 +35,152 @@
 #include "directional_light_shadow_map_frag.h"
 #include "directional_light_cascaded_shadow_map_frag.h"
 
+#include "directional_ambient_light_frag.h"
+#include "directional_ambient_light_shadow_map_frag.h"
+#include "directional_ambient_light_cascaded_shadow_map_frag.h"
+
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
+class SphericalHarmonics {
+public:
+    glm::vec3 L00    ; float spare0;
+    glm::vec3 L1m1   ; float spare1;
+    glm::vec3 L10    ; float spare2;
+    glm::vec3 L11    ; float spare3;
+    glm::vec3 L2m2   ; float spare4;
+    glm::vec3 L2m1   ; float spare5;
+    glm::vec3 L20    ; float spare6;
+    glm::vec3 L21    ; float spare7;
+    glm::vec3 L22    ; float spare8;
+
+    static const int NUM_COEFFICIENTS = 9;
+
+    void assignPreset(int p) {
+        switch (p) {
+        case DeferredLightingEffect::OLD_TOWN_SQUARE: {
+                L00    = glm::vec3( 0.871297f, 0.875222f, 0.864470f);
+                L1m1   = glm::vec3( 0.175058f, 0.245335f, 0.312891f);
+                L10    = glm::vec3( 0.034675f, 0.036107f, 0.037362f);
+                L11    = glm::vec3(-0.004629f,-0.029448f,-0.048028f);
+                L2m2   = glm::vec3(-0.120535f,-0.121160f,-0.117507f);
+                L2m1   = glm::vec3( 0.003242f, 0.003624f, 0.007511f);
+                L20    = glm::vec3(-0.028667f,-0.024926f,-0.020998f);
+                L21    = glm::vec3(-0.077539f,-0.086325f,-0.091591f);
+                L22    = glm::vec3(-0.161784f,-0.191783f,-0.219152f);
+            }
+            break;
+        case DeferredLightingEffect::GRACE_CATHEDRAL: {
+                L00    = glm::vec3( 0.79f,  0.44f,  0.54f);
+                L1m1   = glm::vec3( 0.39f,  0.35f,  0.60f);
+                L10    = glm::vec3(-0.34f, -0.18f, -0.27f);
+                L11    = glm::vec3(-0.29f, -0.06f,  0.01f);
+                L2m2   = glm::vec3(-0.11f, -0.05f, -0.12f);
+                L2m1   = glm::vec3(-0.26f, -0.22f, -0.47f);
+                L20    = glm::vec3(-0.16f, -0.09f, -0.15f);
+                L21    = glm::vec3( 0.56f,  0.21f,  0.14f);
+                L22    = glm::vec3( 0.21f, -0.05f, -0.30f);
+            }
+            break;
+        case DeferredLightingEffect::EUCALYPTUS_GROVE: {
+                L00    = glm::vec3( 0.38f,  0.43f,  0.45f);
+                L1m1   = glm::vec3( 0.29f,  0.36f,  0.41f);
+                L10    = glm::vec3( 0.04f,  0.03f,  0.01f);
+                L11    = glm::vec3(-0.10f, -0.10f, -0.09f);
+                L2m2   = glm::vec3(-0.06f, -0.06f, -0.04f);
+                L2m1   = glm::vec3( 0.01f, -0.01f, -0.05f);
+                L20    = glm::vec3(-0.09f, -0.13f, -0.15f);
+                L21    = glm::vec3(-0.06f, -0.05f, -0.04f);
+                L22    = glm::vec3( 0.02f,  0.00f, -0.05f);
+            }
+            break;
+        case DeferredLightingEffect::ST_PETERS_BASILICA: {
+                L00    = glm::vec3( 0.36f,  0.26f,  0.23f);
+                L1m1   = glm::vec3( 0.18f,  0.14f,  0.13f);
+                L10    = glm::vec3(-0.02f, -0.01f,  0.00f);
+                L11    = glm::vec3( 0.03f,  0.02f, -0.00f);
+                L2m2   = glm::vec3( 0.02f,  0.01f, -0.00f);
+                L2m1   = glm::vec3(-0.05f, -0.03f, -0.01f);
+                L20    = glm::vec3(-0.09f, -0.08f, -0.07f);
+                L21    = glm::vec3( 0.01f,  0.00f,  0.00f);
+                L22    = glm::vec3(-0.08f, -0.03f, -0.00f);
+            }
+            break;
+        case DeferredLightingEffect::UFFIZI_GALLERY: {
+                L00    = glm::vec3( 0.32f,  0.31f,  0.35f);
+                L1m1   = glm::vec3( 0.37f,  0.37f,  0.43f);
+                L10    = glm::vec3( 0.00f,  0.00f,  0.00f);
+                L11    = glm::vec3(-0.01f, -0.01f, -0.01f);
+                L2m2   = glm::vec3(-0.02f, -0.02f, -0.03f);
+                L2m1   = glm::vec3(-0.01f, -0.01f, -0.01f);
+                L20    = glm::vec3(-0.28f, -0.28f, -0.32f);
+                L21    = glm::vec3( 0.00f,  0.00f,  0.00f);
+                L22    = glm::vec3(-0.24f, -0.24f, -0.28f);
+            }
+            break;
+        case DeferredLightingEffect::GALILEOS_TOMB: {
+                L00    = glm::vec3( 1.04f,  0.76f,  0.71f);
+                L1m1   = glm::vec3( 0.44f,  0.34f,  0.34f);
+                L10    = glm::vec3(-0.22f, -0.18f, -0.17f);
+                L11    = glm::vec3( 0.71f,  0.54f,  0.56f);
+                L2m2   = glm::vec3( 0.64f,  0.50f,  0.52f);
+                L2m1   = glm::vec3(-0.12f, -0.09f, -0.08f);
+                L20    = glm::vec3(-0.37f, -0.28f, -0.32f);
+                L21    = glm::vec3(-0.17f, -0.13f, -0.13f);
+                L22    = glm::vec3( 0.55f,  0.42f,  0.42f);
+            }
+            break;
+        case DeferredLightingEffect::VINE_STREET_KITCHEN: {
+                L00    = glm::vec3( 0.64f,  0.67f,  0.73f);
+                L1m1   = glm::vec3( 0.28f,  0.32f,  0.33f);
+                L10    = glm::vec3( 0.42f,  0.60f,  0.77f);
+                L11    = glm::vec3(-0.05f, -0.04f, -0.02f);
+                L2m2   = glm::vec3(-0.10f, -0.08f, -0.05f);
+                L2m1   = glm::vec3( 0.25f,  0.39f,  0.53f);
+                L20    = glm::vec3( 0.38f,  0.54f,  0.71f);
+                L21    = glm::vec3( 0.06f,  0.01f, -0.02f);
+                L22    = glm::vec3(-0.03f, -0.02f, -0.03f);
+            }
+            break;
+        case DeferredLightingEffect::BREEZEWAY: {
+                L00    = glm::vec3( 0.32f,  0.36f,  0.38f);
+                L1m1   = glm::vec3( 0.37f,  0.41f,  0.45f);
+                L10    = glm::vec3(-0.01f, -0.01f, -0.01f);
+                L11    = glm::vec3(-0.10f, -0.12f, -0.12f);
+                L2m2   = glm::vec3(-0.13f, -0.15f, -0.17f);
+                L2m1   = glm::vec3(-0.01f, -0.02f,  0.02f);
+                L20    = glm::vec3(-0.07f, -0.08f, -0.09f);
+                L21    = glm::vec3( 0.02f,  0.03f,  0.03f);
+                L22    = glm::vec3(-0.29f, -0.32f, -0.36f);
+            }
+            break;
+        case DeferredLightingEffect::CAMPUS_SUNSET: {
+                L00    = glm::vec3( 0.79f,  0.94f,  0.98f);
+                L1m1   = glm::vec3( 0.44f,  0.56f,  0.70f);
+                L10    = glm::vec3(-0.10f, -0.18f, -0.27f);
+                L11    = glm::vec3( 0.45f,  0.38f,  0.20f);
+                L2m2   = glm::vec3( 0.18f,  0.14f,  0.05f);
+                L2m1   = glm::vec3(-0.14f, -0.22f, -0.31f);
+                L20    = glm::vec3(-0.39f, -0.40f, -0.36f);
+                L21    = glm::vec3( 0.09f,  0.07f,  0.04f);
+                L22    = glm::vec3( 0.67f,  0.67f,  0.52f);
+            }
+            break;
+        case DeferredLightingEffect::FUNSTON_BEACH_SUNSET: {
+                L00    = glm::vec3( 0.68f,  0.69f,  0.70f);
+                L1m1   = glm::vec3( 0.32f,  0.37f,  0.44f);
+                L10    = glm::vec3(-0.17f, -0.17f, -0.17f);
+                L11    = glm::vec3(-0.45f, -0.42f, -0.34f);
+                L2m2   = glm::vec3(-0.17f, -0.17f, -0.15f);
+                L2m1   = glm::vec3(-0.08f, -0.09f, -0.10f);
+                L20    = glm::vec3(-0.03f, -0.02f, -0.01f);
+                L21    = glm::vec3( 0.16f,  0.14f,  0.10f);
+                L22    = glm::vec3( 0.37f,  0.31f,  0.20f);
+            }
+            break;
+        }
+    }
+};
 
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     _viewState = viewState;
@@ -54,6 +197,13 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
         _directionalLightShadowMapLocations);
     loadLightProgram(directional_light_cascaded_shadow_map_frag, false, _directionalLightCascadedShadowMap,
         _directionalLightCascadedShadowMapLocations);
+
+    loadLightProgram(directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
+    loadLightProgram(directional_ambient_light_shadow_map_frag, false, _directionalAmbientSphereLightShadowMap,
+        _directionalAmbientSphereLightShadowMapLocations);
+    loadLightProgram(directional_ambient_light_cascaded_shadow_map_frag, false, _directionalAmbientSphereLightCascadedShadowMap,
+        _directionalAmbientSphereLightCascadedShadowMapLocations);
+
     loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
 }
@@ -139,7 +289,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare() {
     // clear the normal and specular buffers
-    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
     textureCache->setPrimaryDrawBuffers(false, true, false);
     glClear(GL_COLOR_BUFFER_BIT);
     textureCache->setPrimaryDrawBuffers(false, false, true);
@@ -161,7 +311,7 @@ void DeferredLightingEffect::render() {
     glDisable(GL_COLOR_MATERIAL);
     glDepthMask(false);
 
-    TextureCache::SharedPointer textureCache = DependencyManager::get<TextureCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
     
     QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
     primaryFBO->release();
@@ -169,7 +319,8 @@ void DeferredLightingEffect::render() {
     QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT);
-    
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
     
     glActiveTexture(GL_TEXTURE1);
@@ -205,17 +356,42 @@ void DeferredLightingEffect::render() {
         if (_viewState->getCascadeShadowsEnabled()) {
             program = &_directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
-            _directionalLightCascadedShadowMap.bind();
-            _directionalLightCascadedShadowMap.setUniform(locations->shadowDistances, _viewState->getShadowDistances());
+            if (_ambientLightMode > -1) {
+                program = &_directionalAmbientSphereLightCascadedShadowMap;
+                locations = &_directionalAmbientSphereLightCascadedShadowMapLocations;
+            }
+            program->bind();
+            program->setUniform(locations->shadowDistances, _viewState->getShadowDistances());
         
         } else {
+            if (_ambientLightMode > -1) {
+                program = &_directionalAmbientSphereLightShadowMap;
+                locations = &_directionalAmbientSphereLightShadowMapLocations;
+            }
             program->bind();
         }
         program->setUniformValue(locations->shadowScale,
             1.0f / textureCache->getShadowFramebufferObject()->width());
         
     } else {
+        if (_ambientLightMode > -1) {
+            program = &_directionalAmbientSphereLight;
+            locations = &_directionalAmbientSphereLightLocations;
+        }
         program->bind();
+    }
+
+    if (locations->ambientSphere >= 0) {
+        SphericalHarmonics sh;
+        if (_ambientLightMode < NUM_PRESET) {
+            sh.assignPreset(_ambientLightMode);
+        } else {
+            sh.assignPreset(0);
+        }
+
+        for (int i =0; i <SphericalHarmonics::NUM_COEFFICIENTS; i++) {
+            program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
+        }
     }
     
     float left, right, bottom, top, nearVal, farVal;
@@ -258,7 +434,7 @@ void DeferredLightingEffect::render() {
     const glm::vec3& eyePoint = _viewState->getCurrentViewFrustum()->getPosition();
     float nearRadius = glm::distance(eyePoint, _viewState->getCurrentViewFrustum()->getNearTopLeft());
 
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
@@ -371,6 +547,7 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     freeFBO->release();
+    glDisable(GL_FRAMEBUFFER_SRGB);
     
     glDisable(GL_CULL_FACE);
     
@@ -431,5 +608,12 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     locations.depthTexCoordOffset = program.uniformLocation("depthTexCoordOffset");
     locations.depthTexCoordScale = program.uniformLocation("depthTexCoordScale");
     locations.radius = program.uniformLocation("radius");
+    locations.ambientSphere = program.uniformLocation("ambientSphere.L00");
     program.release();
+}
+
+void DeferredLightingEffect::setAmbientLightMode(int preset) {
+    if ((preset >= -1) && (preset < NUM_PRESET)) {
+        _ambientLightMode = preset;
+    }
 }

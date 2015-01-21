@@ -14,6 +14,7 @@
 
 #include <QScriptContext>
 #include <QScriptEngine>
+#include <QWebView>
 
 class ScriptEventBridge : public QObject {
     Q_OBJECT
@@ -42,9 +43,11 @@ public:
 public slots:
     void setVisible(bool visible);
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
+    void addEventBridgeToWindowObject();
 
 private:
     QDockWidget* _dockWidget;
+    QWebView* _webView;
     ScriptEventBridge* _eventBridge;
 };
 

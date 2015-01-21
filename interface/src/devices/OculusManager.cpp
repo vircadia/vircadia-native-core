@@ -13,6 +13,7 @@
 #include "InterfaceConfig.h"
 
 #include "OculusManager.h"
+#include "ui/overlays/Text3DOverlay.h"
 
 #include <QDesktopWidget>
 #include <QGuiApplication>
@@ -562,7 +563,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     }
 
     // restore our normal viewport
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 
     glMatrixMode(GL_PROJECTION);
@@ -581,7 +582,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     glLoadIdentity();
-    GLCanvas::SharedPointer glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = DependencyManager::get<GLCanvas>();
     glOrtho(0, glCanvas->getDeviceWidth(), 0, glCanvas->getDeviceHeight(), -1.0, 1.0);
 
     glDisable(GL_DEPTH_TEST);
@@ -684,7 +685,7 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
     roll = 0.0f;
 #endif
 }
-    
+
 glm::vec3 OculusManager::getRelativePosition() {
 #if (defined(__APPLE__) || defined(_WIN32)) && HAVE_LIBOVR
     ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());

@@ -80,8 +80,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
             FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            DdeFaceTracker::SharedPointer dde = DependencyManager::get<DdeFaceTracker>();
-            Faceshift::SharedPointer faceshift = DependencyManager::get<Faceshift>();
+            auto dde = DependencyManager::get<DdeFaceTracker>();
+            auto faceshift = DependencyManager::get<Faceshift>();
             
             if ((_isFaceshiftConnected = (faceshift == faceTracker))) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
@@ -339,7 +339,7 @@ void Head::addLeanDeltas(float sideways, float forward) {
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
-    GeometryCache::SharedPointer geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     DependencyManager::get<GlowEffect>()->begin();
     
     glLineWidth(2.0);

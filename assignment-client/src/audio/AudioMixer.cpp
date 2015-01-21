@@ -442,7 +442,7 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
     // loop through all other nodes that have sufficient audio to mix
     int streamsMixed = 0;
     
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& otherNode){
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& otherNode){
         if (otherNode->getLinkedData()) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
             
@@ -522,12 +522,12 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             memcpy(envDataAt, &wetLevel, sizeof(float));
             envDataAt += sizeof(float);
         }
-        NodeList::getInstance()->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
+        DependencyManager::get<NodeList>()->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
     }
 }
 
 void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         // pull any new audio data from nodes off of the network stack
@@ -608,7 +608,7 @@ void AudioMixer::sendStatsPacket() {
     somethingToSend = true;
     sizeOfStats += property.size() + value.size();
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     int clientNumber = 0;
     
     
@@ -641,7 +641,7 @@ void AudioMixer::run() {
 
     ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     // we do not want this event loop to be the handler for UDP datagrams, so disconnect
     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
@@ -894,7 +894,7 @@ void AudioMixer::perSecondActions() {
             _timeSpentPerHashMatchCallStats.getWindowSum() / WINDOW_LENGTH_USECS * 100.0,
             _timeSpentPerHashMatchCallStats.getCurrentIntervalSum() / USECS_PER_SECOND * 100.0);
 
-        NodeList::getInstance()->eachNode([](const SharedNodePointer& node) {
+        DependencyManager::get<NodeList>()->eachNode([](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 

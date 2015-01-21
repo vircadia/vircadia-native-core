@@ -84,13 +84,15 @@ public:
     virtual void writeExtra(Bitstream& out) const;
     
     /// Reads the non-property contents of this object from the specified stream.
-    virtual void readExtra(Bitstream& in);
+    /// \param reread if true, reread the contents from the stream but don't reapply them
+    virtual void readExtra(Bitstream& in, bool reread = false);
 
     /// Writes the delta-encoded non-property contents of this object to the specified stream.
     virtual void writeExtraDelta(Bitstream& out, const SharedObject* reference) const;
 
     /// Reads the delta-encoded non-property contents of this object from the specified stream.
-    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
+    /// \param reread if true, reread the contents from the stream but don't reapply them
+    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference, bool reread = false);
 
     /// Writes the subdivision of the contents of this object (preceeded by a
     /// reference to the object itself) to the specified stream if necessary.

@@ -25,6 +25,7 @@
 #include <mmdeviceapi.h>
 #include <devicetopology.h>
 #include <Functiondiscoverykeys_devpkey.h>
+#include <VersionHelpers.h>
 #endif
 
 #include <AudioConstants.h>
@@ -179,12 +180,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 #ifdef WIN32
     QString deviceName;
     //Check for Windows Vista or higher, IMMDeviceEnumerator doesn't work below that.
-    OSVERSIONINFO osvi;
-    ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    GetVersionEx(&osvi);
-    const DWORD VISTA_MAJOR_VERSION = 6;
-    if (osvi.dwMajorVersion < VISTA_MAJOR_VERSION) {// lower then vista
+    if (!IsWindowsVistaOrGreater()) { // lower then vista
         if (mode == QAudio::AudioInput) {
             WAVEINCAPS wic;
             // first use WAVE_MAPPER to get the default devices manufacturer ID
@@ -223,9 +219,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             pPropertyStore->Release();
             pPropertyStore = NULL;
             deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
-            const DWORD WINDOWS7_MAJOR_VERSION = 6;
-            const DWORD WINDOWS7_MINOR_VERSION = 1;
-            if (osvi.dwMajorVersion <= WINDOWS7_MAJOR_VERSION && osvi.dwMinorVersion <= WINDOWS7_MINOR_VERSION) {
+            if (!IsWindows8OrGreater()) {
                 // Windows 7 provides only the 31 first characters of the device name.
                 const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
                 deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);
@@ -691,7 +685,7 @@ void Audio::handleAudioInput() {
         emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL));
 
-        NodeList* nodeList = NodeList::getInstance();
+        auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
         if (_recorder && _recorder.data()->isRecording()) {
@@ -802,11 +796,12 @@ void Audio::sendMuteEnvironmentPacket() {
     mutePacketStream.writeBytes(reinterpret_cast<const char *>(&MUTE_RADIUS), sizeof(float));
     
     // grab our audio mixer from the NodeList, if it exists
-    SharedNodePointer audioMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AudioMixer);
+    auto nodelist = DependencyManager::get<NodeList>();
+    SharedNodePointer audioMixer = nodelist->soloNodeOfType(NodeType::AudioMixer);
     
     if (audioMixer) {
         // send off this mute packet
-        NodeList::getInstance()->writeDatagram(mutePacket, audioMixer);
+        nodelist->writeDatagram(mutePacket, audioMixer);
     }
 }
 
@@ -880,7 +875,7 @@ bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* inje
         localFormat.setChannelCount(isStereo ? 2 : 1);
         
         QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
-                                                     localFormat, this);
+                                                     localFormat);
         localOutput->setVolume(volume);
         
         // move the localOutput to the same thread as the local injector buffer
@@ -898,6 +893,7 @@ bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* inje
     
     return false;
 }
+
 
 void Audio::outputFormatChanged() {
     int outputFormatChannelCountTimesSampleRate = _outputFormat.channelCount() * _outputFormat.sampleRate();

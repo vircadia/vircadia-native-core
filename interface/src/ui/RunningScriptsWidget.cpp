@@ -33,7 +33,7 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
             Qt::WindowCloseButtonHint),
     ui(new Ui::RunningScriptsWidget),
     _signalMapper(this),
-    _proxyModel(this),
+    _scriptsModelFilter(this),
     _scriptsModel(this) {
     ui->setupUi(this);
 
@@ -41,46 +41,49 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
 
     ui->filterLineEdit->installEventFilter(this);
 
-    connect(&_proxyModel, &QSortFilterProxyModel::modelReset,
+    connect(&_scriptsModelFilter, &QSortFilterProxyModel::modelReset,
             this, &RunningScriptsWidget::selectFirstInList);
 
     QString shortcutText = Menu::getInstance()->getActionForOption(MenuOption::ReloadAllScripts)->shortcut().toString(QKeySequence::NativeText);
     ui->tipLabel->setText("Tip: Use " + shortcutText + " to reload all scripts.");
 
-    _proxyModel.setSourceModel(&_scriptsModel);
-    _proxyModel.sort(0, Qt::AscendingOrder);
-    _proxyModel.setDynamicSortFilter(true);
-    ui->scriptListView->setModel(&_proxyModel);
+    _scriptsModelFilter.setSourceModel(&_scriptsModel);
+    _scriptsModelFilter.sort(0, Qt::AscendingOrder);
+    _scriptsModelFilter.setDynamicSortFilter(true);
+    ui->scriptTreeView->setModel(&_scriptsModelFilter);
 
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
-    connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
+    connect(ui->scriptTreeView, &QTreeView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
 
     connect(ui->reloadAllButton, &QPushButton::clicked,
             Application::getInstance(), &Application::reloadAllScripts);
     connect(ui->stopAllButton, &QPushButton::clicked,
             this, &RunningScriptsWidget::allScriptsStopped);
-    connect(ui->loadScriptButton, &QPushButton::clicked,
+    connect(ui->loadScriptFromDiskButton, &QPushButton::clicked,
             Application::getInstance(), &Application::loadDialog);
+    connect(ui->loadScriptFromURLButton, &QPushButton::clicked,
+            Application::getInstance(), &Application::loadScriptURLDialog);
     connect(&_signalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
 }
 
 RunningScriptsWidget::~RunningScriptsWidget() {
     delete ui;
+    _scriptsModel.deleteLater();
 }
 
 void RunningScriptsWidget::updateFileFilter(const QString& filter) {
     QRegExp regex("^.*" + QRegExp::escape(filter) + ".*$", Qt::CaseInsensitive);
-    _proxyModel.setFilterRegExp(regex);
+    _scriptsModelFilter.setFilterRegExp(regex);
     selectFirstInList();
 }
 
 void RunningScriptsWidget::loadScriptFromList(const QModelIndex& index) {
-    QVariant scriptFile = _proxyModel.data(index, ScriptsModel::ScriptPath);
+    QVariant scriptFile = _scriptsModelFilter.data(index, ScriptsModel::ScriptPath);
     Application::getInstance()->loadScript(scriptFile.toString());
 }
 
 void RunningScriptsWidget::loadSelectedScript() {
-    QModelIndex selectedIndex = ui->scriptListView->currentIndex();
+    QModelIndex selectedIndex = ui->scriptTreeView->currentIndex();
     if (selectedIndex.isValid()) {
         loadScriptFromList(selectedIndex);
     }
@@ -165,8 +168,8 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
 }
 
 void RunningScriptsWidget::selectFirstInList() {
-    if (_proxyModel.rowCount() > 0) {
-        ui->scriptListView->setCurrentIndex(_proxyModel.index(0, 0));
+    if (_scriptsModelFilter.rowCount() > 0) {
+        ui->scriptTreeView->setCurrentIndex(_scriptsModelFilter.index(0, 0));
     }
 }
 
@@ -177,7 +180,7 @@ bool RunningScriptsWidget::eventFilter(QObject* sender, QEvent* event) {
         }
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
-            QModelIndex selectedIndex = ui->scriptListView->currentIndex();
+            QModelIndex selectedIndex = ui->scriptTreeView->currentIndex();
             if (selectedIndex.isValid()) {
                 loadScriptFromList(selectedIndex);
             }

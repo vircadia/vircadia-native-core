@@ -12,6 +12,7 @@
 #ifndef hifi_ApplicationOverlay_h
 #define hifi_ApplicationOverlay_h
 
+class Camera;
 class Overlays;
 class QOpenGLFramebufferObject;
 

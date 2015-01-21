@@ -27,14 +27,13 @@
 #include "SpeechRecognizer.h"
 #endif
 
-#include "ui/AddressBarDialog.h"
+#include "devices/Faceshift.h"
+#include "devices/SixenseManager.h"
 #include "ui/ChatWindow.h"
-#include "ui/DataWebDialog.h"
 #include "ui/JSConsole.h"
-#include "ui/LoginDialog.h"
-#include "ui/PreferencesDialog.h"
 #include "ui/ScriptEditorWindow.h"
 
+// Make an LOD handler class and move everything overthere
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
 const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f;
@@ -50,26 +49,37 @@ const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 
 const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
 const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
+const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
+
+const int ONE_SECOND_OF_FRAMES = 60;
+const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
+//////////////////////////////////////////////////////////
+
+const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
 const QString SETTINGS_ADDRESS_KEY = "address";
 class QSettings;
 
+class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
+class CachesSizeDialog;
 class BandwidthDialog;
+class DataWebDialog;
 class HMDToolsDialog;
 class LodToolsDialog;
+class LoginDialog;
+class OctreeStatsDialog;
+class PreferencesDialog;
 class MetavoxelEditor;
 class MetavoxelNetworkSimulator;
 class ChatWindow;
-class OctreeStatsDialog;
 class MenuItemProperties;
 
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
-    ~Menu();
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
@@ -159,6 +169,7 @@ public slots:
     void showLoginForCurrentDomain();
     void bandwidthDetails();
     void octreeStatsDetails();
+    void cachesSizeDialog();
     void lodTools();
     void hmdTools(bool showTools);
     void loadSettings(QSettings* settings = NULL);
@@ -166,6 +177,8 @@ public slots:
     void importSettings();
     void exportSettings();
     void toggleAddressBar();
+    void copyAddress();
+    void copyPath();
 
     void toggleLoginMenuItem();
     void toggleSixense(bool shouldEnable);
@@ -189,11 +202,9 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
-    void nameLocation();
-    void toggleLocationList();
-    void bandwidthDetailsClosed();
-    void octreeStatsDetailsClosed();
-    void lodToolsClosed();
+    void bookmarkLocation();
+    void teleportToBookmark();
+    void deleteBookmark();
     void hmdToolsClosed();
     void runTests();
     void showMetavoxelEditor();
@@ -206,6 +217,7 @@ private slots:
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
     void changeVSync();
+    void loadRSSDKFile();
 
 private:
     static Menu* _instance;
@@ -242,54 +254,65 @@ private:
 
     QHash<QString, QAction*> _actionHash;
     InboundAudioStream::Settings _receivedAudioStreamSettings;
-    BandwidthDialog* _bandwidthDialog;
-    float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
-    float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
-    float _faceshiftEyeDeflection;
-    QString _faceshiftHostname;
+    // in Degrees, doesn't apply to HMD like Oculus
+    float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
+    //  The actual FOV set by the user's monitor size and view distance
+    float _realWorldFieldOfView = DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES;
+    float _faceshiftEyeDeflection = DEFAULT_FACESHIFT_EYE_DEFLECTION;
+    QString _faceshiftHostname = DEFAULT_FACESHIFT_HOSTNAME;
+    
+    QDialog* _jsConsole = nullptr;
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+    SpeechRecognizer _speechRecognizer;
+#endif
+    float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
+    float _oculusUIAngularSize = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
+    float _sixenseReticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
+    bool _invertSixenseButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
+    bool _hasLoginDialogDisplayed = false;
+    
+    bool _automaticAvatarLOD = true;
+    float _avatarLODDecreaseFPS = DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS;
+    float _avatarLODIncreaseFPS = ADJUST_LOD_UP_FPS;
+    float _avatarLODDistanceMultiplier = DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER;
+    
+    int _boundaryLevelAdjust = 0;
+    int _maxOctreePacketsPerSecond = DEFAULT_MAX_OCTREE_PPS;
+    
+    quint64 _lastAdjust;
+    quint64 _lastAvatarDetailDrop;
+    
+    SimpleMovingAverage _fpsAverage = FIVE_SECONDS_OF_FRAMES;
+    SimpleMovingAverage _fastFPSAverage = ONE_SECOND_OF_FRAMES;
+    
+    QPointer<AddressBarDialog> _addressBarDialog;
+    QPointer<AnimationsDialog> _animationsDialog;
+    QPointer<AttachmentsDialog> _attachmentsDialog;
+    QPointer<BandwidthDialog> _bandwidthDialog;
+    QPointer<CachesSizeDialog> _cachesSizeDialog;
+    QPointer<HMDToolsDialog> _hmdToolsDialog;
+    QPointer<LodToolsDialog> _lodToolsDialog;
+    QPointer<LoginDialog> _loginDialog;
+    QPointer<OctreeStatsDialog> _octreeStatsDialog;
+    QPointer<PreferencesDialog> _preferencesDialog;
+
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
-    QDialog* _jsConsole;
-    OctreeStatsDialog* _octreeStatsDialog;
-    LodToolsDialog* _lodToolsDialog;
-    HMDToolsDialog* _hmdToolsDialog;
-    QPointer<DataWebDialog> _newLocationDialog;
-    QPointer<DataWebDialog> _userLocationsDialog;
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    SpeechRecognizer _speechRecognizer;
-#endif
-    float _octreeSizeScale;
-    float _oculusUIAngularSize;
-    float _sixenseReticleMoveSpeed;
-    bool _invertSixenseButtons;
-    bool _automaticAvatarLOD;
-    float _avatarLODDecreaseFPS;
-    float _avatarLODIncreaseFPS;
-    float _avatarLODDistanceMultiplier;
-    int _boundaryLevelAdjust;
-    int _maxOctreePacketsPerSecond;
-    QString replaceLastOccurrence(QChar search, QChar replace, QString string);
-    quint64 _lastAdjust;
-    quint64 _lastAvatarDetailDrop;
-    SimpleMovingAverage _fpsAverage;
-    SimpleMovingAverage _fastFPSAverage;
-    QAction* _loginAction;
-    QPointer<PreferencesDialog> _preferencesDialog;
-    QPointer<AttachmentsDialog> _attachmentsDialog;
-    QPointer<AnimationsDialog> _animationsDialog;
-    QPointer<AddressBarDialog> _addressBarDialog;
-    QPointer<LoginDialog> _loginDialog;
-    bool _hasLoginDialogDisplayed;
-    QAction* _chatAction;
+    
+    QAction* _loginAction = nullptr;
+    QAction* _chatAction = nullptr;
     QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;
     
-    bool _shouldRenderTableNeedsRebuilding;
+    bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
 
+    void loadBookmarks();
+    QMenu* _bookmarksMenu;
+    QAction* _deleteBookmarksMenu;
 };
 
 namespace MenuOption {
@@ -317,7 +340,10 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
+    const QString BookmarkLocation = "Bookmark Location";
+    const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
+    const QString CachesSize = "Caches Size";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
     const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
@@ -325,7 +351,10 @@ namespace MenuOption {
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
+    const QString CopyAddress = "Copy Address to Clipboard";
+    const QString CopyPath = "Copy Path to Clipboard";
     const QString ControlWithSpeech = "Control With Speech";
+    const QString DeleteBookmark = "Delete Bookmark...";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
@@ -369,6 +398,7 @@ namespace MenuOption {
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
+    const QString LoadRSSDKFile = "Load .rssdk file";
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
@@ -379,8 +409,6 @@ namespace MenuOption {
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
-    const QString MyLocations = "My Locations...";
-    const QString NameLocation = "Name this location";
     const QString NetworkSimulator = "Network Simulator...";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
@@ -396,9 +424,9 @@ namespace MenuOption {
     const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
+    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
-    const QString RenderSpanners = "Render Spanners";
     const QString RenderTargetFramerate = "Framerate";
     const QString RenderTargetFramerateUnlimited = "Unlimited";
     const QString RenderTargetFramerate60 = "60";
@@ -406,13 +434,24 @@ namespace MenuOption {
     const QString RenderTargetFramerate40 = "40";
     const QString RenderTargetFramerate30 = "30";
     const QString RenderTargetFramerateVSyncOn = "V-Sync On";
-
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";
     const QString RenderResolutionHalf = "1/2";
     const QString RenderResolutionThird = "1/3";
     const QString RenderResolutionQuarter = "1/4";
+    const QString RenderAmbientLight = "Ambient Light";
+    const QString RenderAmbientLightGlobal = "Global";
+    const QString RenderAmbientLight0 = "OLD_TOWN_SQUARE";
+    const QString RenderAmbientLight1 = "GRACE_CATHEDRAL";
+    const QString RenderAmbientLight2 = "EUCALYPTUS_GROVE";
+    const QString RenderAmbientLight3 = "ST_PETERS_BASILICA";
+    const QString RenderAmbientLight4 = "UFFIZI_GALLERY";
+    const QString RenderAmbientLight5 = "GALILEOS_TOMB";
+    const QString RenderAmbientLight6 = "VINE_STREET_KITCHEN";
+    const QString RenderAmbientLight7 = "BREEZEWAY";
+    const QString RenderAmbientLight8 = "CAMPUS_SUNSET";
+    const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";

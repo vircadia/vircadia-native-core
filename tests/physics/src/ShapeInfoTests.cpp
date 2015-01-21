@@ -11,10 +11,8 @@
 
 #include <iostream>
 
-#ifdef USE_BULLET_PHYSICS
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
-#endif // USE_BULLET_PHYSICS
 
 #include <DoubleHashKey.h>
 #include <ShapeInfo.h>
@@ -24,7 +22,6 @@
 #include "ShapeInfoTests.h"
 
 void ShapeInfoTests::testHashFunctions() {
-#ifdef USE_BULLET_PHYSICS
     int maxTests = 10000000;
     ShapeInfo info;
     btHashMap<btHashInt, int> hashes;
@@ -135,11 +132,9 @@ void ShapeInfoTests::testHashFunctions() {
     for (int i = 0; i < 32; ++i) {
         std::cout << "bit 0x" << std::hex << masks[i] << std::dec << " = " << bits[i] << std::endl;
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeInfoTests::testBoxShape() {
-#ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
     glm::vec3 halfExtents(1.23f, 4.56f, 7.89f);
     info.setBox(halfExtents);
@@ -165,11 +160,9 @@ void ShapeInfoTests::testBoxShape() {
     }
 
     delete shape;
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeInfoTests::testSphereShape() {
-#ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
     float radius = 1.23f;
     info.setSphere(radius);
@@ -191,11 +184,9 @@ void ShapeInfoTests::testSphereShape() {
     }
 
     delete shape;
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeInfoTests::testCylinderShape() {
-#ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
     float radius = 1.23f;
     float height = 4.56f;
@@ -218,11 +209,9 @@ void ShapeInfoTests::testCylinderShape() {
     }
 
     delete shape;
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeInfoTests::testCapsuleShape() {
-#ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
     float radius = 1.23f;
     float height = 4.56f;
@@ -245,7 +234,6 @@ void ShapeInfoTests::testCapsuleShape() {
     }
 
     delete shape;
-#endif // USE_BULLET_PHYSICS
 }
 
 void ShapeInfoTests::runAllTests() {

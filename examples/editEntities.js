@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 Script.include("libraries/stringHelpers.js");
 Script.include("libraries/dataviewHelpers.js");
 Script.include("libraries/httpMultiPart.js");
@@ -44,10 +44,16 @@ var entityListTool = EntityListTool();
 
 var hasShownPropertiesTool = false;
 
+var entityListVisible = false;
+
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     if (selectionManager.hasSelection() && !hasShownPropertiesTool) {
+        // Open properties and model list, but force selection of model list tab
+        propertiesTool.setVisible(false);
+        entityListTool.setVisible(false);
         propertiesTool.setVisible(true);
+        entityListTool.setVisible(true);
         hasShownPropertiesTool = true;
     }
 });
@@ -527,8 +533,15 @@ function mousePressEvent(event) {
 
 var highlightedEntityID = { isKnownID: false };
 var mouseCapturedByTool = false;
+var lastMousePosition = null;
+var idleMouseTimerId = null;
+var IDLE_MOUSE_TIMEOUT = 200;
 
 function mouseMoveEvent(event) {
+    if (idleMouseTimerId) {
+        Script.clearTimeout(idleMouseTimerId);
+    }
+
     mouseHasMovedSincePress = true;
     if (isActive) {
         // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
@@ -536,33 +549,45 @@ function mouseMoveEvent(event) {
             return;
         }
 
-        var pickRay = Camera.computePickRay(event.x, event.y);
-        var entityIntersection = Entities.findRayIntersection(pickRay);
-        if (entityIntersection.accurate) {
-            if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
-                selectionDisplay.unhighlightSelectable(highlightedEntityID);
-                highlightedEntityID = { id: -1, isKnownID: false };
-            }
+        lastMousePosition = { x: event.x, y: event.y };
 
-            var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
-
-            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(),
-                                            entityIntersection.properties.position)) * 180 / 3.14;
-
-            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-            if (entityIntersection.entityID.isKnownID && sizeOK) {
-                if (wantEntityGlow) {
-                    Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
-                }
-                highlightedEntityID = entityIntersection.entityID;
-                selectionDisplay.highlightSelectable(entityIntersection.entityID);
-            }
-
-        }
+        highlightEntityUnderCursor(lastMousePosition, false);
+        idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
     } else {
         cameraManager.mouseMoveEvent(event);
+    }
+}
+
+function handleIdleMouse() {
+    idleMouseTimerId = null;
+    highlightEntityUnderCursor(lastMousePosition, true);
+}
+
+function highlightEntityUnderCursor(position, accurateRay) {
+    var pickRay = Camera.computePickRay(position.x, position.y);
+    var entityIntersection = Entities.findRayIntersection(pickRay, accurateRay);
+    if (entityIntersection.accurate) {
+        if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
+            selectionDisplay.unhighlightSelectable(highlightedEntityID);
+            highlightedEntityID = { id: -1, isKnownID: false };
+        }
+
+        var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
+
+        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(),
+                                        entityIntersection.properties.position)) * 180 / 3.14;
+
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
+                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+        if (entityIntersection.entityID.isKnownID && sizeOK) {
+            if (wantEntityGlow) {
+                Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+            }
+            highlightedEntityID = entityIntersection.entityID;
+            selectionDisplay.highlightSelectable(entityIntersection.entityID);
+        }
+
     }
 }
 
@@ -662,8 +687,6 @@ function setupModelMenus() {
     print("setupModelMenus()");
     // adj our menuitems
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Edit Properties...",
-        shortcutKeyEvent: { text: "`" }, afterItem: "Models" });
     if (!Menu.menuItemExists("Edit", "Delete")) {
         print("no delete... adding ours");
         Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete",
@@ -673,8 +696,8 @@ function setupModelMenus() {
         print("delete exists... don't add ours");
     }
 
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Entity List...", shortcutKey: "CTRL+META+L", afterItem: "Models" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Entity List..." });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
                         afterItem: "Paste Models", isCheckable: true, isChecked: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
@@ -686,6 +709,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
 
+
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 
@@ -696,13 +720,12 @@ setupModelMenus(); // do this when first running our script.
 
 function cleanupModelMenus() {
     Menu.removeSeparator("Edit", "Models");
-    Menu.removeMenuItem("Edit", "Edit Properties...");
     if (modelMenuAddedDelete) {
         // delete our menuitems
         Menu.removeMenuItem("Edit", "Delete");
     }
 
-    Menu.removeMenuItem("Edit", "Model List...");
+    Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Paste Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
@@ -739,6 +762,28 @@ Script.update.connect(function (deltaTime) {
     selectionDisplay.checkMove();
 });
 
+function deleteSelectedEntities() {
+    if (SelectionManager.hasSelection()) {
+        print("  Delete Entities");
+        SelectionManager.saveProperties();
+        var savedProperties = [];
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            var initialProperties = SelectionManager.savedProperties[entityID.id];
+            SelectionManager.savedProperties[entityID.id];
+            savedProperties.push({
+                entityID: entityID,
+                properties: initialProperties
+            });
+            Entities.deleteEntity(entityID);
+        }
+        SelectionManager.clearSelections();
+        pushCommandForSelections([], savedProperties);
+    } else {
+        print("  Delete Entity.... not holding...");
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem == "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -747,73 +792,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Allow Selecting of Lights") {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem == "Delete") {
-        if (SelectionManager.hasSelection()) {
-            print("  Delete Entities");
-            SelectionManager.saveProperties();
-            var savedProperties = [];
-            for (var i = 0; i < selectionManager.selections.length; i++) {
-                var entityID = SelectionManager.selections[i];
-                var initialProperties = SelectionManager.savedProperties[entityID.id];
-                SelectionManager.savedProperties[entityID.id];
-                savedProperties.push({
-                    entityID: entityID,
-                    properties: initialProperties
-                });
-                Entities.deleteEntity(entityID);
-            }
-            SelectionManager.clearSelections();
-            pushCommandForSelections([], savedProperties);
-        } else {
-            print("  Delete Entity.... not holding...");
-        }
-    } else if (menuItem == "Model List...") {
-        var models = new Array();
-        models = Entities.findEntities(MyAvatar.position, Number.MAX_VALUE);
-        for (var i = 0; i < models.length; i++) {
-            models[i].properties = Entities.getEntityProperties(models[i]);
-            models[i].toString = function() {
-                var modelname;
-                if (this.properties.type == "Model") {
-                    modelname = decodeURIComponent(
-                                    this.properties.modelURL.indexOf("/") != -1 ?
-                                    this.properties.modelURL.substring(this.properties.modelURL.lastIndexOf("/") + 1) :
-                                    this.properties.modelURL);
-                } else {
-                    modelname = this.properties.id;
-                }
-                return "[" + this.properties.type + "] " + modelname;
-            };
-        }
-        var form = [{label: "Model: ", options: models}];
-        form.push({label: "Action: ", options: ["Properties", "Delete", "Teleport"]});
-        form.push({ button: "Cancel" });
-        if (Window.form("Model List", form)) {
-            var selectedModel = form[0].value;
-            if (form[1].value == "Properties") {
-                editModelID = selectedModel;
-                entityPropertyDialogBox.openDialog(editModelID);
-            } else if (form[1].value == "Delete") {
-                Entities.deleteEntity(selectedModel);
-            } else if (form[1].value == "Teleport") {
-                MyAvatar.position = selectedModel.properties.position;
-            }
-        }
-    } else if (menuItem == "Edit Properties...") {
-        // good place to put the properties dialog
-
-        editModelID = -1;
-        if (selectionManager.selections.length == 1) {
-            print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
-            editModelID = selectionManager.selections[0];
-        } else {
-            print("  Edit Properties.... not holding...");
-        }
-        if (editModelID != -1) {
-            print("  Edit Properties.... about to edit properties...");
-            entityPropertyDialogBox.openDialog(editModelID);
-            selectionManager._update();
-        }
-
+        deleteSelectedEntities();
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
     } else if (menuItem == "Export Models") {
@@ -826,6 +805,10 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Import Models") {
         modelImporter.doImport();
+    } else if (menuItem == "Entity List...") {
+        if (isActive) {
+            entityListTool.toggleVisible();
+        }
     }
     tooltip.show(false);
 }
@@ -841,11 +824,8 @@ Controller.keyPressEvent.connect(function(event) {
 
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.text == "`") {
-        handeMenuEvent("Edit Properties...");
-    }
     if (event.text == "BACKSPACE" || event.text == "DELETE") {
-        handeMenuEvent("Delete");
+        deleteSelectedEntities();
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {

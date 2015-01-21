@@ -18,6 +18,7 @@
 #include <QSortFilterProxyModel>
 
 #include "ScriptsModel.h"
+#include "ScriptsModelFilter.h"
 #include "ScriptsTableWidget.h"
 
 namespace Ui {
@@ -54,7 +55,7 @@ private slots:
 private:
     Ui::RunningScriptsWidget* ui;
     QSignalMapper _signalMapper;
-    QSortFilterProxyModel _proxyModel;
+    ScriptsModelFilter _scriptsModelFilter;
     ScriptsModel _scriptsModel;
     ScriptsTableWidget* _recentlyLoadedScriptsTable;
     QStringList _recentlyLoadedScripts;

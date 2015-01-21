@@ -264,14 +264,16 @@ function checkSize(){
 
 //  Triggers notification if a user logs on or off
 function onOnlineUsersChanged(users) {
-    for (user in users) {
-        if (last_users.indexOf(users[user]) == -1.0) {
-            createNotification(users[user] + " has joined");
+    if (!isStartingUp()) {  // Skip user notifications at startup.
+        for (user in users) {
+            if (last_users.indexOf(users[user]) == -1.0) {
+                createNotification(users[user] + " has joined");		
+            }
         }
-    }
-    for (user in last_users) {
-        if (users.indexOf(last_users[user]) == -1.0) {
-            createNotification(last_users[user] + " has left");
+        for (user in last_users) {
+            if (users.indexOf(last_users[user]) == -1.0) {
+                createNotification(last_users[user] + " has left");					
+            }
         }
     }
     last_users = users;
@@ -353,17 +355,38 @@ function dismiss(firstNoteOut, firstButOut, firstOut) {
     myAlpha.splice(firstOut,1);
 }
 
-//  This is meant to show users online at startup but currently shows 0 users.
-function onConnected() {
+//  This reports the number of users online at startup
+function reportUsers() {
     var numUsers = GlobalServices.onlineUsers.length;
     var welcome = "Welcome! There are " + numUsers + " users online now.";
     createNotification(welcome);
 }
 
+var STARTUP_TIMEOUT = 500,  // ms
+    startingUp = true,
+    startupTimer = null;
+
+function finishStartup() {
+    startingUp = false;
+    Script.clearTimeout(startupTimer);
+    reportUsers();
+}
+
+function isStartingUp() {
+    // Is starting up until get no checks that it is starting up for STARTUP_TIMEOUT
+    if (startingUp) {
+        if (startupTimer) {
+            Script.clearTimeout(startupTimer);
+        }
+        startupTimer = Script.setTimeout(finishStartup, STARTUP_TIMEOUT);
+    }
+    return startingUp;
+}
+
+
 AudioDevice.muteToggled.connect(onMuteStateChanged);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
-GlobalServices.connected.connect(onConnected);
 GlobalServices.onlineUsersChanged.connect(onOnlineUsersChanged);
 GlobalServices.incomingMessage.connect(onIncomingMessage);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);

@@ -1,0 +1,73 @@
+<!
+//  DeferredBuffer.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 1/12/15.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not DEFERRED_BUFFER_SLH@>
+<@def DEFERRED_BUFFER_SLH@>
+
+// the diffuse texture
+uniform sampler2D diffuseMap;
+
+// the normal texture
+uniform sampler2D normalMap;
+
+// the specular texture
+uniform sampler2D specularMap;
+
+// the depth texture
+uniform sampler2D depthMap;
+
+// the distance to the near clip plane
+uniform float near;
+
+// scale factor for depth: (far - near) / far
+uniform float depthScale;
+
+// offset for depth texture coordinates
+uniform vec2 depthTexCoordOffset;
+
+// scale for depth texture coordinates
+uniform vec2 depthTexCoordScale;
+
+struct DeferredFragment {
+    float depthVal;
+    vec4 normalVal;
+    vec4 diffuseVal;
+    vec4 specularVal;
+    vec4 position;
+    vec3 normal;
+    vec3 diffuse;
+    float opacity;
+    vec3 specular;
+    float gloss;
+};
+
+DeferredFragment unpackDeferredFragment(vec2 texcoord) {
+    DeferredFragment frag;
+    frag.depthVal = texture2D(depthMap, texcoord).r;
+    frag.normalVal = texture2D(normalMap, texcoord);
+    frag.diffuseVal = texture2D(diffuseMap, texcoord);
+    frag.specularVal = texture2D(specularMap, texcoord);
+
+    // compute the view space position using the depth
+    float z = near / (frag.depthVal * depthScale - 1.0);
+    frag.position = vec4((depthTexCoordOffset + texcoord * depthTexCoordScale) * z, z, 1.0);
+
+   // Unpack the normal from the map
+    frag.normal = normalize(frag.normalVal.xyz * 2.0 - vec3(1.0));
+
+    frag.diffuse = frag.diffuseVal.xyz;
+    frag.opacity = frag.diffuseVal.w;
+    frag.specular = frag.specularVal.xyz;
+    frag.gloss = frag.specularVal.w;
+
+    return frag;
+}
+
+<@endif@>
