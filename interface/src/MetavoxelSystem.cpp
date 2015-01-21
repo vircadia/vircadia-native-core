@@ -1490,63 +1490,12 @@ public:
     void swap(IndexVector& other) { QVector<NormalIndex>::swap(other); qSwap(position, other.position); }
     
     const NormalIndex& get(int y) const;
-    const NormalIndex& getClosest(int y) const;
 };
 
 const NormalIndex& IndexVector::get(int y) const {
     static NormalIndex invalidIndex = { { -1, -1, -1, -1 } };
     int relative = y - position;
     return (relative >= 0 && relative < size()) ? at(relative) : invalidIndex;
-}
-
-const NormalIndex& IndexVector::getClosest(int y) const {
-    static NormalIndex invalidIndex = { { -1, -1, -1, -1 } };
-    int relative = y - position;
-    if (relative < 0 || relative >= size()) {
-        return invalidIndex;
-    }
-    const NormalIndex& first = at(relative);
-    if (first.isValid()) {
-        return first;
-    }
-    for (int distance = 1; relative - distance >= 0 || relative + distance < size(); distance++) {
-        int previous = relative - distance;
-        if (previous >= 0) {
-            const NormalIndex& previousIndex = at(previous);
-            if (previousIndex.isValid()) {
-                return previousIndex;
-            }
-        }
-        int next = relative + distance;
-        if (next < size()) {
-            const NormalIndex& nextIndex = at(next);
-            if (nextIndex.isValid()) {
-                return nextIndex;
-            }
-        }
-    }
-    return invalidIndex;
-}
-
-static inline void appendIndices(QVector<int>& indices, QMultiHash<VoxelCoord, int>& quadIndices,
-        const QVector<VoxelPoint>& vertices, float step, int i0, int i1, int i2, int i3) {
-    int newIndices[] = { i0, i1, i2, i3 };
-    glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-    int indexIndex = indices.size();
-    for (unsigned int i = 0; i < sizeof(newIndices) / sizeof(newIndices[0]); i++) {
-        int index = newIndices[i];
-        indices.append(index);
-        const glm::vec3& vertex = vertices.at(index).vertex;
-        minima = glm::min(vertex, minima);
-        maxima = glm::max(vertex, maxima);
-    }
-    for (int z = (int)minima.z, endZ = (int)glm::ceil(maxima.z); z < endZ; z++) {
-        for (int y = (int)minima.x, endY = (int)glm::ceil(maxima.y); y < endY; y++) {
-            for (int x = (int)minima.x, endX = (int)glm::ceil(maxima.x); x < endX; x++) {
-                quadIndices.insert(qRgb(x, y, z), indexIndex);
-            }
-        }
-    }
 }
 
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
@@ -1941,9 +1890,6 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                         int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
                                         const quint16* height = heightLineSrc + offsetZ * width + offsetX;
                                         float heightValue = *height * voxelScale;
-                                        if (heightValue >= y && heightValue < y + 1) {
-                                            crossings[crossingCount++] = cornerCrossings[i];
-                                        }
                                         int nextIndex = NEXT_CORNERS[i];
                                         if (!(corners & (1 << nextIndex))) {
                                             continue;
