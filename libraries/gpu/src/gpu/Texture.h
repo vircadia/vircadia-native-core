@@ -29,7 +29,7 @@ public:
         Sysmem _sysmem;
         Element _format;
     };
-    typedef std::shared_ptr<Pixels> PixelsPointer;
+    typedef QSharedPointer< Pixels > PixelsPointer;
 
     enum Type {
         TEX_1D = 0,
@@ -49,7 +49,7 @@ public:
 
     const Stamp getStamp() const { return _stamp; }
     const Stamp getDataStamp(uint16 level = 0) const {
-        const Pixels* mip = accessStoredMip(level);
+        PixelsPointer mip = accessStoredMip(level);
         if (mip) {
             return mip->_sysmem.getStamp();
         }
@@ -87,8 +87,6 @@ public:
     uint16 getNumSlices() const { return _numSlices; }
     uint16 getNumSamples() const { return _numSamples; }
 
-
-    //---------------------------------------------------------------------
     // Sub Mips manipulation
 
     // The number mips that a dimension could haves
@@ -146,28 +144,20 @@ public:
     // If Bytes is NULL then simply allocate the space so mip sysmem can be accessed
     bool assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes);
 
-    template< typename T > T* editMip(uint16 level) {
-        Pixels* mip = accessStoredMip(level);
-        if (mip) {
-            return mip->sysmem.edit<T>();
-        }
-        return 0;
-    }
-
-    template< typename T > const T* readMip(uint16 level) const {
-        const Pixels* mip = accessStoredMip(level);
-        if (mip) {
-            return mip->sysmem.read<T>();
-        }
-        return 0;
-    }
-
-    bool isSysmemMipAvailable(uint16 level) const {
-        const Pixels* mip = accessStoredMip(level);
+    bool isStoredMipAvailable(uint16 level) const {
+        const PixelsPointer mip = accessStoredMip(level);
         if (mip) {
             return mip->_sysmem.isAvailable();
         }
         return false;
+    }
+       // Access the the sub mips
+    const PixelsPointer Texture::accessStoredMip(uint16 level) const {
+        if (level > _mips.size()) {
+            return 0;
+        } else {
+            return _mips[level];
+        }
     }
 
     // access sizes for the stored mips
@@ -207,25 +197,16 @@ protected:
 
     Size resize(Type type, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
 
-    // Access the the sub mips
-    const Pixels* Texture::accessStoredMip(uint16 level) const {
-        if (level > _mips.size()) {
-            return 0;
-        } else {
-            return _mips[level].get();
-        }
-    }
-
-    // Access the the sub mips
-    Pixels* Texture::accessStoredMip(uint16 level) {
-        if (level > _mips.size()) {
-            return 0;
-        } else {
-            return _mips[level].get();
-        }
-    }
-
     void allocateStoredMip(uint16 level);
+
+    // Access the the sub mips
+    PixelsPointer Texture::accessStoredMip(uint16 level) {
+        if (level > _mips.size()) {
+            return 0;
+        } else {
+            return _mips[level];
+        }
+    }
 
     mutable GPUObject* _gpuObject = NULL;
 

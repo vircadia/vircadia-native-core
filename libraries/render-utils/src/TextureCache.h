@@ -49,13 +49,13 @@ public:
     GLuint getPermutationNormalTextureID();
 
     /// Returns the ID of an opaque white texture (useful for a default).
-    GLuint getWhiteTextureID();
+  //  GLuint getWhiteTextureID();
 
     /// Returns an opaque white texture (useful for a default).
     const gpu::TexturePointer& getWhiteTexture();
 
     /// Returns the ID of a pale blue texture (useful for a normal map).
-    GLuint getBlueTextureID();
+  //  GLuint getBlueTextureID();
 
     /// Returns the ID of a pale blue texture (useful for a normal map).
     /// Returns an opaque white texture (useful for a default).

@@ -218,7 +218,7 @@ uint16 Texture::autoGenerateMips(uint16 maxMip) {
 }
 
 uint16 Texture::getStoredMipWidth(uint16 level) const {
-    const Pixels* mip = accessStoredMip(level);
+    PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipWidth(level);
     } else {
@@ -227,7 +227,7 @@ uint16 Texture::getStoredMipWidth(uint16 level) const {
 }
 
 uint16 Texture::getStoredMipHeight(uint16 level) const {
-    const Pixels* mip = accessStoredMip(level);
+    PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipHeight(level);
     } else {
@@ -236,7 +236,7 @@ uint16 Texture::getStoredMipHeight(uint16 level) const {
 }
 
 uint16 Texture::getStoredMipDepth(uint16 level) const {
-    const Pixels* mip = accessStoredMip(level);
+    PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipDepth(level);
     } else {
@@ -245,7 +245,7 @@ uint16 Texture::getStoredMipDepth(uint16 level) const {
 }
 
 uint32 Texture::getStoredMipNumTexels(uint16 level) const {
-    const Pixels* mip = accessStoredMip(level);
+    PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
     } else {
@@ -254,7 +254,7 @@ uint32 Texture::getStoredMipNumTexels(uint16 level) const {
 }
 
 uint32 Texture::getStoredMipSize(uint16 level) const {
-    const Pixels* mip = accessStoredMip(level);
+    PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
     } else {
