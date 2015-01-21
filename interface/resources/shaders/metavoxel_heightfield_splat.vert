@@ -58,7 +58,7 @@ void main(void) {
     gl_TexCoord[3] = textureSpacePosition * vec4(splatTextureScalesS[3], splatTextureScalesT[3], 0.0, 1.0);
     
     // compute the alpha values for each texture
-    float value = texture2D(textureMap, (gl_MultiTexCoord0.st - heightScale) * textureScale).r;
+    float value = texture2D(textureMap, (gl_MultiTexCoord0.st - vec2(0.5, 0.5)) * textureScale + vec2(0.5, 0.5)).r;
     vec4 valueVector = vec4(value, value, value, value);
     alphaValues = step(textureValueMinima, valueVector) * step(valueVector, textureValueMaxima);
 }

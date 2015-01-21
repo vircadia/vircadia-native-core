@@ -820,9 +820,9 @@ public:
     virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
     
     virtual void writeExtra(Bitstream& out) const;
-    virtual void readExtra(Bitstream& in);
+    virtual void readExtra(Bitstream& in, bool reread);
     virtual void writeExtraDelta(Bitstream& out, const SharedObject* reference) const;
-    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
+    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference, bool reread);
     virtual void maybeWriteSubdivision(Bitstream& out);
     virtual SharedObject* readSubdivision(Bitstream& in);
     
