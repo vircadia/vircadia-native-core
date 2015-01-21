@@ -19,8 +19,8 @@
 #include <TextRenderer.h>
 
 
-class BandwidthMeter {
-
+class BandwidthMeter : public QObject {
+    Q_OBJECT
 public:
 
     BandwidthMeter();
@@ -67,6 +67,10 @@ public:
     Stream const& outputStream(ChannelIndex i)          const   { return _streams[i * 2 + 1]; }
     ChannelInfo& channelInfo(ChannelIndex i)                    { return _channels[i]; }
     ChannelInfo const& channelInfo(ChannelIndex i)      const   { return _channels[i]; }
+    
+public slots:
+    void updateAudioInputBytes(int numBytes) { inputStream(AUDIO).updateValue(numBytes); }
+    void updateAudioOutputBytes(int numBytes) { outputStream(AUDIO).updateValue(numBytes); }
 
 private:
     static void setColorRGBA(unsigned c);
