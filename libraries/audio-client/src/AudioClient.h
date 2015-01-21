@@ -68,7 +68,7 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
-typedef const glm::vec3& (*PositionGetter)();
+typedef glm::vec3 (*PositionGetter)();
 typedef glm::quat (*OrientationGetter)();
 
 class AudioClient : public AbstractAudioInterface, public Dependency {

@@ -31,6 +31,7 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AudioClient.h>
 #include <DependencyManager.h>
 #include <MainWindow.h>
 #include <GlowEffect.h>
@@ -41,7 +42,6 @@
 
 #include "Application.h"
 #include "AccountManager.h"
-#include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "devices/RealSense.h"

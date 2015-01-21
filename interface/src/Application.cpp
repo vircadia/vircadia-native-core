@@ -279,6 +279,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     QThread* audioThread = new QThread(this);
     
     auto audioIO = DependencyManager::get<AudioClient>();
+    
+    audioIO->setPositionGetter(getPositionForAudio);
+    audioIO->setOrientationGetter(getOrientationForAudio);
+    
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
 
