@@ -69,7 +69,9 @@ var textColor =  { red: 228, green: 228, blue: 228}; // text color
 var backColor =  { red: 2, green: 2, blue: 2}; // background color was 38,38,38 
 var backgroundAlpha = 0;
 var fontSize = 12.0;
-var persistTime = 10.0; // time in seconds before notification fades
+var PERSIST_TIME_2D = 10.0;  // Time in seconds before notification fades
+var PERSIST_TIME_3D = 15.0;
+var persistTime = PERSIST_TIME_2D;
 var clickedText = false;
 var frame = 0;
 var ourWidth = Window.innerWidth;
@@ -359,6 +361,7 @@ function update() {
             deleteNotification(0);
         }
         isOnHMD = !isOnHMD;
+        persistTime = isOnHMD ? PERSIST_TIME_3D : PERSIST_TIME_2D;
         return;
     }
 
