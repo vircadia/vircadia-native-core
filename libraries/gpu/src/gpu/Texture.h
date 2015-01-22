@@ -187,8 +187,8 @@ protected:
     uint16 _height;
     uint16 _depth;
 
-    uint16 _numSlices;
     uint16 _numSamples;
+    uint16 _numSlices;
 
     uint16 _maxMip;
  

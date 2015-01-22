@@ -8,13 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackend.h"
-
-#include <QDebug>
-
-#include "Batch.h"
-
-using namespace gpu;
+#include "GLBackendShared.h"
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -85,35 +79,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glColor4f),
 };
 
-static const GLenum _primitiveToGLmode[NUM_PRIMITIVES] = {
-    GL_POINTS,
-    GL_LINES,
-    GL_LINE_STRIP,
-    GL_TRIANGLES,
-    GL_TRIANGLE_STRIP,
-    GL_QUADS,
-};
-
-static const GLenum _elementTypeToGLType[NUM_TYPES]= {
-    GL_FLOAT,
-    GL_INT,
-    GL_UNSIGNED_INT,
-    GL_HALF_FLOAT,
-    GL_SHORT,
-    GL_UNSIGNED_SHORT,
-    GL_BYTE,
-    GL_UNSIGNED_BYTE,
-    GL_FLOAT,
-    GL_INT,
-    GL_UNSIGNED_INT,
-    GL_HALF_FLOAT,
-    GL_SHORT,
-    GL_UNSIGNED_SHORT,
-    GL_BYTE,
-    GL_UNSIGNED_BYTE
-};
-
-
 GLBackend::GLBackend() :
     _input(),
     _transform()
@@ -171,9 +136,6 @@ void GLBackend::checkGLError() {
         }
     }
 }
-
-#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
-//#define CHECK_GL_ERROR()
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     updateInput();
@@ -509,13 +471,11 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
 void GLBackend::do_setUniformTexture(Batch& batch, uint32 paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     TexturePointer uniformTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
-#if defined(Q_OS_MAC)
-#elif defined(Q_OS_WIN)
+
     GLuint to = getTextureID(*uniformTexture);
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, to);
-#else
-#endif
+
     CHECK_GL_ERROR();
 }
 

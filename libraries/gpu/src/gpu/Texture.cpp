@@ -10,7 +10,7 @@
 //
 
 #include "Texture.h"
-
+#include <math.h>
 #include <QDebug>
 
 using namespace gpu;
