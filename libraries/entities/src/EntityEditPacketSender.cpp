@@ -27,7 +27,13 @@ void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type,
 
 void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemID modelID, 
                                                                 const EntityItemProperties& properties) {
+                                                                
+    qDebug() << "EntityEditPacketSender::queueEditEntityMessage()...";
+    qDebug() << "    ID:" << modelID;
+    qDebug() << "    properties:" << properties;
+    
     if (!_shouldSend) {
+        qDebug() << "    BAIL EARLY! _shouldSend:" << _shouldSend;
         return; // bail early
     }
 
@@ -36,6 +42,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemI
     int sizeOut = 0;
 
     if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
+        qDebug() << "    queueOctreeEditMessage() sizeOut:" << sizeOut;
         queueOctreeEditMessage(type, bufferOut, sizeOut);
     }
 }
