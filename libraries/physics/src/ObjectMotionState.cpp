@@ -108,6 +108,16 @@ bool ObjectMotionState::doesNotNeedToSendUpdate() const {
 
 bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     assert(_body);
+    
+    // if we've never checked before, our _sentFrame will be 0, and we need to initialize our state
+    if (_sentFrame == 0) {
+        _sentPosition = bulletToGLM(_body->getWorldTransform().getOrigin());
+        _sentVelocity = bulletToGLM(_body->getLinearVelocity());
+        _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
+        _sentFrame = simulationFrame;
+        return false;
+    }
+        
     float dt = (float)(simulationFrame - _sentFrame) * PHYSICS_ENGINE_FIXED_SUBSTEP;
     _sentFrame = simulationFrame;
     bool isActive = _body->isActive();
