@@ -1427,6 +1427,8 @@ public:
     void setColorMaterial(const StackArray::Entry& entry) { color = entry.color; material = entry.material; }
     
     void mix(const EdgeCrossing& first, const EdgeCrossing& second, float t);
+    
+    VoxelPoint createPoint(int clampedX, int clampedZ, float step) const;
 };
 
 void EdgeCrossing::mix(const EdgeCrossing& first, const EdgeCrossing& second, float t) {
@@ -1435,6 +1437,16 @@ void EdgeCrossing::mix(const EdgeCrossing& first, const EdgeCrossing& second, fl
     color = qRgb(glm::mix(qRed(first.color), qRed(second.color), t), glm::mix(qGreen(first.color), qGreen(second.color), t),
         glm::mix(qBlue(first.color), qBlue(second.color), t));
     material = (t < 0.5f) ? first.material : second.material;
+}
+
+VoxelPoint EdgeCrossing::createPoint(int clampedX, int clampedZ, float step) const {
+    VoxelPoint voxelPoint = { glm::vec3(clampedX + point.x, point.y, clampedZ + point.z) * step,
+        { (quint8)qRed(color), (quint8)qGreen(color), (quint8)qBlue(color) },
+        { (char)(normal.x * numeric_limits<qint8>::max()), (char)(normal.y * numeric_limits<qint8>::max()),
+            (char)(normal.z * numeric_limits<qint8>::max()) },
+        { (quint8)material, 0, 0, 0 },
+        { numeric_limits<quint8>::max(), 0, 0, 0 } };
+    return voxelPoint;
 }
 
 const int MAX_NORMALS_PER_VERTEX = 4;
@@ -1507,6 +1519,19 @@ static inline glm::vec3 getNormal(const QVector<VoxelPoint>& vertices, const Nor
         return normal;
     }
     return glm::cross(vertices.at(i2.indices[0]).vertex - v0, vertices.at(i3.indices[0]).vertex - v0);
+}
+
+static inline void appendTriangle(const EdgeCrossing& e0, const EdgeCrossing& e1, const EdgeCrossing& e2,
+        int clampedX, int clampedZ, float step, QVector<VoxelPoint>& vertices, QVector<int>& indices,
+        QMultiHash<VoxelCoord, int>& quadIndices) {
+    int firstIndex = vertices.size();
+    vertices.append(e0.createPoint(clampedX, clampedZ, step));
+    vertices.append(e1.createPoint(clampedX, clampedZ, step));
+    vertices.append(e2.createPoint(clampedX, clampedZ, step));
+    indices.append(firstIndex);
+    indices.append(firstIndex + 1);
+    indices.append(firstIndex + 2);
+    indices.append(firstIndex + 2);
 }
 
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
@@ -1865,7 +1890,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                             switch (crossedCorners) {
                                 case UPPER_LEFT_CORNER:
                                 case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER:
-                                case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
+                                case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER | UPPER_LEFT_CORNER:
                                 case UPPER_LEFT_CORNER | LOWER_RIGHT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[0];
                                     crossings[crossingCount - 1].point.y -= y;
@@ -1873,22 +1898,34 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     
                                 case UPPER_RIGHT_CORNER:
                                 case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
-                                case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
                                 case UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[1];
                                     crossings[crossingCount - 1].point.y -= y;
                                     break;
-                                    
+                                
+                                case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
+                                    crossings[crossingCount++] = cornerCrossings[1];
+                                    crossings[crossingCount - 1].point.y -= y;
+                                    appendTriangle(cornerCrossings[1], cornerCrossings[0], cornerCrossings[2],
+                                        clampedX, clampedZ, step, vertices, indices, quadIndices);
+                                    break;
+                                        
                                 case LOWER_LEFT_CORNER:
                                 case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
-                                case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER | UPPER_LEFT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[2];
                                     crossings[crossingCount - 1].point.y -= y;
                                     break;
-                                    
+                                
+                                case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
+                                    crossings[crossingCount++] = cornerCrossings[2];
+                                    crossings[crossingCount - 1].point.y -= y;
+                                    appendTriangle(cornerCrossings[2], cornerCrossings[3], cornerCrossings[1],
+                                        clampedX, clampedZ, step, vertices, indices, quadIndices);
+                                    break;
+                                        
                                 case LOWER_RIGHT_CORNER:
                                 case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
-                                case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
+                                case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[3];
                                     crossings[crossingCount - 1].point.y -= y;
                                     break;
