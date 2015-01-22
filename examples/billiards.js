@@ -1,6 +1,7 @@
 // Pool Table 
 var tableParts = []; 
 var balls = [];
+var cueBall;
 
 var LENGTH = 2.84; 
 var WIDTH = 1.42; 
@@ -13,6 +14,8 @@ var HOLE_SIZE = BALL_SIZE;
 var DROP_HEIGHT = BALL_SIZE * 3.0;
 var GRAVITY = -9.8;
 var BALL_GAP = 0.001;
+var tableCenter;
+var cuePosition; 
 
 var startStroke = 0;
 
@@ -23,7 +26,7 @@ var reticle = Overlays.addOverlay("image", {
                     y: screenSize.y / 2 - 16,
                     width: 32,
                     height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/reticle.png",
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/billiardsReticle.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
@@ -102,7 +105,7 @@ function makeBalls(pos) {
 					{ red: 128, green: 128, blue: 128}];		//  Gray
 
 	// Object balls 
-	var ballPosition = { x: pos.x + (LENGTH / 4.0) * SCALE, y: pos.y + DROP_HEIGHT, z: pos.z }; 
+	var ballPosition = { x: pos.x + (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
 	for (var row = 1; row <= 5; row++) {
 		ballPosition.z = pos.z - ((row - 1.0) / 2.0 * (BALL_SIZE + BALL_GAP) * SCALE); 
 		for (var spot = 0; spot < row; spot++) {
@@ -113,23 +116,26 @@ function makeBalls(pos) {
 	      	color: colors[balls.length],
 	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
 	        ignoreCollisions: false,
-	        damping: 0.40,
+	        damping: 0.50,
 	        collisionsWillMove: true }));
 	        ballPosition.z += (BALL_SIZE + BALL_GAP) * SCALE;
 		}
 		ballPosition.x += (BALL_GAP + Math.sqrt(3.0) / 2.0 * BALL_SIZE) * SCALE;
 	}
     // Cue Ball 
-    ballPosition = { x: pos.x - (LENGTH / 4.0) * SCALE, y: pos.y + DROP_HEIGHT, z: pos.z }; 
-    balls.push(Entities.addEntity(
+    cuePosition = { x: pos.x - (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
+    cueBall = Entities.addEntity(
 	    	{ type: "Sphere",
-	        position: ballPosition,   
+	        position: cuePosition,   
 			dimensions: { x: BALL_SIZE * SCALE, y: BALL_SIZE * SCALE, z: BALL_SIZE * SCALE }, 
 	      	color: { red: 255, green: 255, blue: 255 },
 	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
+	      	angularVelocity: { x: 0, y: 0, z: 0 },
+	      	velocity: {x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
-	        damping: 0.40,
-	        collisionsWillMove: true }));
+	        damping: 0.50,
+	        collisionsWillMove: true });
+	       
 }
 
 function shootCue(velocity) {
@@ -140,19 +146,23 @@ function shootCue(velocity) {
     var velocity = Vec3.multiply(forwardVector, velocity);
     var BULLET_LIFETIME = 3.0;
     var BULLET_GRAVITY = 0.0;
+    var SHOOTER_COLOR = { red: 255, green: 0, blue: 0 };
+    var SHOOTER_SIZE = BALL_SIZE / 1.5 * SCALE;
+
     bulletID = Entities.addEntity(
         { type: "Sphere",
           position: cuePosition, 
-          dimensions: { x: BALL_SIZE * SCALE, y: BALL_SIZE * SCALE, z: BALL_SIZE * SCALE }, 
-          color: {  red: 255, green: 255, blue: 255 },  
+          dimensions: { x: SHOOTER_SIZE, y: SHOOTER_SIZE, z: SHOOTER_SIZE }, 
+          color: SHOOTER_COLOR,  	
           velocity: velocity, 
           lifetime: BULLET_LIFETIME,
           gravity: {  x: 0, y: BULLET_GRAVITY, z: 0 },
           damping: 0.10,
-          density: 1000,
+          density: 8000,
           ignoreCollisions: false,
           collisionsWillMove: true
       });
+    print("Shot, velocity = " + velocity);
 }
 
 function keyReleaseEvent(event) {
@@ -185,9 +195,25 @@ function cleanup() {
 		Entities.deleteEntity(balls[i]);
 	}
 	Overlays.deleteOverlay(reticle); 
+	Entities.deleteEntity(cueBall);
 }
 
-var tableCenter = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
+function update(deltaTime) {
+	if (!cueBall.isKnownID) {
+	   cueBall = Entities.identifyEntity(cueBall);
+	} else {
+		//  Check if cue ball has fallen off table, re-drop if so 
+		var cueProperties = Entities.getEntityProperties(cueBall);
+		if (cueProperties.position.y < tableCenter.y) {
+			// Replace the cueball 
+			Entities.editEntity(cueBall, { position: cuePosition } );
+
+		}
+	}
+
+}
+
+tableCenter = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
 
 makeTable(tableCenter);
 makeBalls(tableCenter);
@@ -195,3 +221,4 @@ makeBalls(tableCenter);
 Script.scriptEnding.connect(cleanup);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
+Script.update.connect(update);
