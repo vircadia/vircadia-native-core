@@ -510,12 +510,12 @@ Cursor = (function(params) {
                 });
             }
             var editobject = {};
-            if (tthis.x !== HMD.getHUDLookAtPosition2D.x) {
-                 tthis.x = HMD.getHUDLookAtPosition2D.x;
+            if (tthis.x !== HMD.HUDLookAtPosition2D.x) {
+                 tthis.x = HMD.HUDLookAtPosition2D.x;
                  editobject.x = tthis.x - (CURSOR_WIDTH / 2);
             }
-            if (tthis.y !== HMD.getHUDLookAtPosition2D.y) {
-                 tthis.y = HMD.getHUDLookAtPosition2D.y;
+            if (tthis.y !== HMD.HUDLookAtPosition2D.y) {
+                 tthis.y = HMD.HUDLookAtPosition2D.y;
                  editobject.y = tthis.y - (CURSOR_HEIGHT / 2);
             }
             if (Object.keys(editobject).length > 0) {
