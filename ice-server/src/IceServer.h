@@ -21,12 +21,11 @@
 
 typedef QHash<QUuid, SharedNetworkPeer> NetworkPeerHash;
 
-class IceServer : public QCoreApplication, public HTTPSRequestHandler {
+class IceServer : public QCoreApplication, public HTTPRequestHandler {
     Q_OBJECT
 public:
     IceServer(int argc, char* argv[]);
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false);
 private slots:
     void processDatagrams();
     void clearInactivePeers();
@@ -39,7 +38,6 @@ private:
     NetworkPeerHash _activePeers;
     QHash<QUuid, QSet<QUuid> > _currentConnections;
     HTTPManager _httpManager;
-    HTTPSManager* _httpsManager;
 };
 
 #endif // hifi_IceServer_h

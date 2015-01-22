@@ -27,8 +27,7 @@ IceServer::IceServer(int argc, char* argv[]) :
     _id(QUuid::createUuid()),
     _serverSocket(),
     _activePeers(),
-    _httpManager(ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _httpsManager(NULL)
+    _httpManager(ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
@@ -193,9 +192,5 @@ bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, b
             }
         }
     }
-    return true;
-}
-
-bool IceServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler) {
     return true;
 }
