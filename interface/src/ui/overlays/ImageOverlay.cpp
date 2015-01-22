@@ -52,7 +52,6 @@ void ImageOverlay::render(RenderArgs* args) {
     if (!_isLoaded && !_imageURL.isEmpty()) {
         _isLoaded = true;
         _renderImage = true;
-        qDebug() << "Now loding texture for ImageOverlay";
         _texture = DependencyManager::get<TextureCache>()->getTexture(_imageURL);
     }
 
