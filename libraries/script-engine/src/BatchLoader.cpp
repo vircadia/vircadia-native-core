@@ -18,9 +18,9 @@
 
 BatchLoader::BatchLoader(const QList<QUrl>& urls) 
     : QObject(),
+      _started(false),
       _finished(false),
       _urls(urls.toSet()),
-      _started(false),
       _data() {
 }
 
@@ -39,7 +39,6 @@ void BatchLoader::start() {
 
             connect(reply, &QNetworkReply::finished, [=]() {
                 if (reply->error()) {
-                    emit errorLoadingFile(url);
                     _data.insert(url, QString());
                 } else {
                     _data.insert(url, reply->readAll());
@@ -65,7 +64,6 @@ void BatchLoader::start() {
                 QTextStream in(&scriptFile);
                 _data.insert(url, in.readAll());
             } else {
-                emit errorLoadingFile(url);
                 _data.insert(url, QString());
             }
         }

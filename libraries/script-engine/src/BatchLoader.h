@@ -29,13 +29,12 @@ public:
 
 signals:
     void finished(const QMap<QUrl, QString>& data);
-    void errorLoadingFile(QUrl url);
 
 private:
     void checkFinished();
 
-    bool _finished;
     bool _started;
+    bool _finished;
     QSet<QUrl> _urls;
     QMap<QUrl, QString> _data;
 };
