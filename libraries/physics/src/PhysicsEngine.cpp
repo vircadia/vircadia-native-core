@@ -231,7 +231,7 @@ void PhysicsEngine::stepSimulation() {
     _numSubsteps += (uint32_t)numSubsteps;
     unlock();
 
-    if (_numSubsteps > 0) {
+    if (numSubsteps > 0) {
         // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
         //
         // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
