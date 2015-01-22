@@ -186,22 +186,6 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
-        
-        // GROUND HACK: add a big planar floor (and walls for testing) to catch falling objects
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        for (int i = 0; i < 3; ++i) {
-            btVector3 normal(0.0f, 0.0f, 0.0f);
-            normal[i] = 1.0f;
-            btCollisionShape* plane = new btStaticPlaneShape(normal, 0.0f);
-
-            btCollisionObject* groundObject = new btCollisionObject();
-            groundObject->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-            groundObject->setCollisionShape(plane);
-
-            groundObject->setWorldTransform(groundTransform);
-            _dynamicsWorld->addCollisionObject(groundObject);
-        }
     }
 
     assert(packetSender);
