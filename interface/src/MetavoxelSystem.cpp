@@ -1540,6 +1540,50 @@ static inline void appendTriangle(const EdgeCrossing& e0, const EdgeCrossing& e1
     }
 }
 
+const int CORNER_COUNT = 4;
+                    
+static inline StackArray::Entry getEntry(const StackArray* lineSrc, int stackWidth, int y, float heightfieldHeight,
+        EdgeCrossing cornerCrossings[CORNER_COUNT], int cornerIndex) {
+    const EdgeCrossing& cornerCrossing = cornerCrossings[cornerIndex];
+    if (cornerCrossing.point.y == 0.0f) {
+        int offsetX = (cornerIndex & X_MAXIMUM_FLAG) ? 1 : 0;
+        int offsetZ = (cornerIndex & Y_MAXIMUM_FLAG) ? 1 : 0;
+        return lineSrc[offsetZ * stackWidth + offsetX].getEntry(y, heightfieldHeight);
+    }
+    StackArray::Entry entry;
+    bool set = false;
+    if (cornerCrossing.point.y >= y) {
+        entry.color = cornerCrossing.color;
+        entry.material = cornerCrossing.material;
+        set = true;
+        
+        if (cornerCrossing.point.y < y + 1) {
+            entry.setHermiteY(cornerCrossing.normal, cornerCrossing.point.y - y);
+        }
+    } else {
+        entry.material = entry.color = 0;
+    }
+    if (!(cornerIndex & X_MAXIMUM_FLAG)) {
+        const EdgeCrossing& nextCornerCrossingX = cornerCrossings[cornerIndex | X_MAXIMUM_FLAG];
+        if (nextCornerCrossingX.point.y != 0.0f && (nextCornerCrossingX.point.y >= y) != set) {
+            float t = (y - cornerCrossing.point.y) / (nextCornerCrossingX.point.y - cornerCrossing.point.y);
+            if (t >= 0.0f && t <= 1.0f) {
+                entry.setHermiteX(glm::normalize(glm::mix(cornerCrossing.normal, nextCornerCrossingX.normal, t)), t);
+            }
+        }
+    }
+    if (!(cornerIndex & Y_MAXIMUM_FLAG)) {
+        const EdgeCrossing& nextCornerCrossingZ = cornerCrossings[cornerIndex | Y_MAXIMUM_FLAG];
+        if (nextCornerCrossingZ.point.y != 0.0f && (nextCornerCrossingZ.point.y >= y) != set) {
+            float t = (y - cornerCrossing.point.y) / (nextCornerCrossingZ.point.y - cornerCrossing.point.y);
+            if (t >= 0.0f && t <= 1.0f) {
+                entry.setHermiteZ(glm::normalize(glm::mix(cornerCrossing.normal, nextCornerCrossingZ.normal, t)), t);
+            }
+        }
+    }
+    return entry;
+}
+
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
         const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
     if (!node->getHeight()) {
@@ -1748,7 +1792,6 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                     const int LOWER_RIGHT_CORNER = 8;
                     const int NO_CORNERS = 0;
                     const int ALL_CORNERS = UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER | LOWER_RIGHT_CORNER;
-                    const int CORNER_COUNT = 4;
                     const int NEXT_CORNERS[] = { 1, 3, 0, 2 };
                     int corners = NO_CORNERS;
                     if (heightfieldHeight != 0.0f) {
@@ -1823,7 +1866,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                     indicesZ[x].position = position;
                     indicesZ[x].resize(count);
                     for (int y = position, end = position + count; y < end; y++) {
-                        const StackArray::Entry& entry = lineSrc->getEntry(y, heightfieldHeight);
+                        StackArray::Entry entry = getEntry(lineSrc, stackWidth, y, heightfieldHeight, cornerCrossings, 0);
                         if (displayHermite && x != 0 && z != 0 && !lineSrc->isEmpty() && y >= lineSrc->getPosition()) {
                             glm::vec3 normal;
                             if (entry.hermiteX != 0) {
@@ -1969,10 +2012,13 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         // the terrifying conditional code that follows checks each cube edge for a crossing, gathering
                         // its properties (color, material, normal) if one is present; as before, boundary edges are excluded
                         if (crossingCount == 0) {
-                            const StackArray::Entry& nextEntryY = lineSrc->getEntry(y + 1, heightfieldHeight);
+                            StackArray::Entry nextEntryY = getEntry(lineSrc, stackWidth, y + 1,
+                                heightfieldHeight, cornerCrossings, 0);
                             if (middleX) {
-                                const StackArray::Entry& nextEntryX = lineSrc[1].getEntry(y, nextHeightfieldHeightX);
-                                const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1, nextHeightfieldHeightX);    
+                                StackArray::Entry nextEntryX = getEntry(lineSrc, stackWidth, y, nextHeightfieldHeightX,
+                                    cornerCrossings, 1);
+                                StackArray::Entry nextEntryXY = getEntry(lineSrc, stackWidth, y + 1, nextHeightfieldHeightX,
+                                    cornerCrossings, 1);   
                                 if (alpha0 != alpha1) {
                                     EdgeCrossing& crossing = crossings[crossingCount++];
                                     crossing.point = glm::vec3(entry.getHermiteX(crossing.normal), 0.0f, 0.0f);
@@ -1989,12 +2035,12 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     crossing.setColorMaterial(alpha2 == 0 ? nextEntryXY : nextEntryY);
                                 }
                                 if (middleZ) {
-                                    const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y,
-                                        nextHeightfieldHeightZ);
-                                    const StackArray::Entry& nextEntryXZ = lineSrc[stackWidth + 1].getEntry(
-                                        y, nextHeightfieldHeightXZ);
-                                    const StackArray::Entry& nextEntryXYZ = lineSrc[stackWidth + 1].getEntry(
-                                        y + 1, nextHeightfieldHeightXZ);
+                                    StackArray::Entry nextEntryZ = getEntry(lineSrc, stackWidth, y, nextHeightfieldHeightZ,
+                                        cornerCrossings, 2);
+                                    StackArray::Entry nextEntryXZ = getEntry(lineSrc, stackWidth, y, nextHeightfieldHeightXZ,
+                                        cornerCrossings, 3);
+                                    StackArray::Entry nextEntryXYZ = getEntry(lineSrc, stackWidth, y + 1,
+                                        nextHeightfieldHeightXZ, cornerCrossings, 3);
                                     if (alpha1 != alpha5) {
                                         EdgeCrossing& crossing = crossings[crossingCount++];
                                         crossing.point = glm::vec3(1.0f, 0.0f, nextEntryX.getHermiteZ(crossing.normal));
@@ -2002,8 +2048,8 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     }
                                     if (alpha3 != alpha7) {
                                         EdgeCrossing& crossing = crossings[crossingCount++];
-                                        const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1,
-                                            nextHeightfieldHeightX);
+                                        StackArray::Entry nextEntryXY = getEntry(lineSrc, stackWidth, y + 1,
+                                            nextHeightfieldHeightX, cornerCrossings, 1);
                                         crossing.point = glm::vec3(1.0f, 1.0f, nextEntryXY.getHermiteZ(crossing.normal));
                                         crossing.setColorMaterial(alpha3 == 0 ? nextEntryXYZ : nextEntryXY);
                                     }
@@ -2014,15 +2060,15 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     }
                                     if (alpha5 != alpha7) {
                                         EdgeCrossing& crossing = crossings[crossingCount++];
-                                        const StackArray::Entry& nextEntryXZ = lineSrc[stackWidth + 1].getEntry(
-                                            y, nextHeightfieldHeightXZ);
+                                        StackArray::Entry nextEntryXZ = getEntry(lineSrc, stackWidth, y,
+                                            nextHeightfieldHeightXZ, cornerCrossings, 3);
                                         crossing.point = glm::vec3(1.0f, nextEntryXZ.getHermiteY(crossing.normal), 1.0f);
                                         crossing.setColorMaterial(alpha5 == 0 ? nextEntryXYZ : nextEntryXZ);
                                     }
                                     if (alpha6 != alpha7) {
                                         EdgeCrossing& crossing = crossings[crossingCount++];
-                                        const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(
-                                            y + 1, nextHeightfieldHeightZ);
+                                        StackArray::Entry nextEntryYZ = getEntry(lineSrc, stackWidth, y + 1,
+                                            nextHeightfieldHeightZ, cornerCrossings, 2);
                                         crossing.point = glm::vec3(nextEntryYZ.getHermiteX(crossing.normal), 1.0f, 1.0f);
                                         crossing.setColorMaterial(alpha6 == 0 ? nextEntryXYZ : nextEntryYZ);
                                     }
@@ -2034,9 +2080,10 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 crossing.setColorMaterial(alpha0 == 0 ? nextEntryY : entry);
                             }
                             if (middleZ) {
-                                const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y, nextHeightfieldHeightZ);
-                                const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(y + 1,
-                                    nextHeightfieldHeightZ);
+                                StackArray::Entry nextEntryZ = getEntry(lineSrc, stackWidth, y,
+                                    nextHeightfieldHeightZ, cornerCrossings, 2);
+                                StackArray::Entry nextEntryYZ = getEntry(lineSrc, stackWidth, y + 1,
+                                    nextHeightfieldHeightZ, cornerCrossings, 2);
                                 if (alpha0 != alpha4) {
                                     EdgeCrossing& crossing = crossings[crossingCount++];
                                     crossing.point = glm::vec3(0.0f, 0.0f, entry.getHermiteZ(crossing.normal));
