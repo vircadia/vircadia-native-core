@@ -20,8 +20,16 @@ var PADDLE_OFFSET = { x: 0.05, y: 0.0, z: 0.0 };
 var GRAVITY = 0.0;   
 var SPRING_FORCE = 15.0; 
 var lastSoundTime = 0; 
-var controllerID = 1;
 var gameOn = false; 
+var leftHanded = false; 
+var controllerID;
+
+if (leftHanded)  {
+	controllerID = 1;
+} else {
+	controllerID = 3; 
+}
+
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 hitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
