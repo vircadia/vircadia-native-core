@@ -231,21 +231,23 @@ void PhysicsEngine::stepSimulation() {
     _numSubsteps += (uint32_t)numSubsteps;
     unlock();
 
-    // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
-    //
-    // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
-    // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
-    // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
-    // lock on the tree before we re-lock ourselves.
-    //
-    // TODO: untangle these lock sequences.
-    _entityTree->lockForWrite();
-    lock();
-    _dynamicsWorld->synchronizeMotionStates();
-    unlock();
-    _entityTree->unlock();
-
-    computeCollisionEvents();
+    if (_numSubsteps > 0) {
+        // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
+        //
+        // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
+        // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
+        // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
+        // lock on the tree before we re-lock ourselves.
+        //
+        // TODO: untangle these lock sequences.
+        _entityTree->lockForWrite();
+        lock();
+        _dynamicsWorld->synchronizeMotionStates();
+        unlock();
+        _entityTree->unlock();
+    
+        computeCollisionEvents();
+    }
 }
 
 void PhysicsEngine::computeCollisionEvents() {
