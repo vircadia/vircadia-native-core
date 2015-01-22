@@ -1532,6 +1532,12 @@ static inline void appendTriangle(const EdgeCrossing& e0, const EdgeCrossing& e1
     indices.append(firstIndex + 1);
     indices.append(firstIndex + 2);
     indices.append(firstIndex + 2);
+    
+    int minimumY = qMin((int)e0.point.y, qMin((int)e1.point.y, (int)e2.point.y));
+    int maximumY = qMax((int)e0.point.y, qMax((int)e1.point.y, (int)e2.point.y));
+    for (int y = minimumY; y <= maximumY; y++) {
+        quadIndices.insert(qRgb(clampedX, y, clampedZ), firstIndex);
+    }
 }
 
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
@@ -1895,7 +1901,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     crossings[crossingCount++] = cornerCrossings[0];
                                     crossings[crossingCount - 1].point.y -= y;
                                     break;
-                                    
+                                
                                 case UPPER_RIGHT_CORNER:
                                 case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
                                 case UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER:
@@ -1909,7 +1915,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     appendTriangle(cornerCrossings[1], cornerCrossings[0], cornerCrossings[2],
                                         clampedX, clampedZ, step, vertices, indices, quadIndices);
                                     break;
-                                        
+                                
                                 case LOWER_LEFT_CORNER:
                                 case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[2];
@@ -1922,7 +1928,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     appendTriangle(cornerCrossings[2], cornerCrossings[3], cornerCrossings[1],
                                         clampedX, clampedZ, step, vertices, indices, quadIndices);
                                     break;
-                                        
+                                
                                 case LOWER_RIGHT_CORNER:
                                 case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
                                 case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
