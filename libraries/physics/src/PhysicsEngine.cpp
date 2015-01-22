@@ -186,22 +186,6 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
-        
-        // GROUND HACK: add a big planar floor (and walls for testing) to catch falling objects
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        for (int i = 0; i < 3; ++i) {
-            btVector3 normal(0.0f, 0.0f, 0.0f);
-            normal[i] = 1.0f;
-            btCollisionShape* plane = new btStaticPlaneShape(normal, 0.0f);
-
-            btCollisionObject* groundObject = new btCollisionObject();
-            groundObject->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-            groundObject->setCollisionShape(plane);
-
-            groundObject->setWorldTransform(groundTransform);
-            _dynamicsWorld->addCollisionObject(groundObject);
-        }
     }
 
     assert(packetSender);
@@ -231,41 +215,67 @@ void PhysicsEngine::stepSimulation() {
     _numSubsteps += (uint32_t)numSubsteps;
     unlock();
 
-    // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
-    //
-    // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
-    // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
-    // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
-    // lock on the tree before we re-lock ourselves.
-    //
-    // TODO: untangle these lock sequences.
-    _entityTree->lockForWrite();
-    lock();
-    _dynamicsWorld->synchronizeMotionStates();
-    unlock();
-    _entityTree->unlock();
-
-    computeCollisionEvents();
+    if (numSubsteps > 0) {
+        // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
+        //
+        // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
+        // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
+        // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
+        // lock on the tree before we re-lock ourselves.
+        //
+        // TODO: untangle these lock sequences.
+        _entityTree->lockForWrite();
+        lock();
+        _dynamicsWorld->synchronizeMotionStates();
+        unlock();
+        _entityTree->unlock();
+    
+        computeCollisionEvents();
+    }
 }
 
 void PhysicsEngine::computeCollisionEvents() {
-    // update all contacts
+    // update all contacts every frame
     int numManifolds = _collisionDispatcher->getNumManifolds();
     for (int i = 0; i < numManifolds; ++i) {
         btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
         if (contactManifold->getNumContacts() > 0) {
+            // TODO: require scripts to register interest in callbacks for specific objects 
+            // so we can filter out most collision events right here.
             const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
             const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
+
+            if (!(objectA->isActive() || objectB->isActive())) {
+                // both objects are inactive so stop tracking this contact, 
+                // which will eventually trigger a CONTACT_EVENT_TYPE_END
+                continue;
+            }
         
             void* a = objectA->getUserPointer();
             void* b = objectB->getUserPointer();
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
-                _contactMap[ContactKey(a, b)].update(_numSubsteps, contactManifold->getContactPoint(0), _originOffset);
+                _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
             }
         }
     }
     
+    // We harvest collision callbacks every few frames, which contributes the following effects:
+    //
+    // (1) There is a maximum collision callback rate per pair:  substep_rate / SUBSTEPS_PER_COLLIION_FRAME
+    // (2) END/START cycles shorter than SUBSTEPS_PER_COLLIION_FRAME will be filtered out
+    // (3) There is variable lag between when the contact actually starts and when it is reported, 
+    //     up to SUBSTEPS_PER_COLLIION_FRAME * time_per_substep
+    //
+    const uint32_t SUBSTEPS_PER_COLLISION_FRAME = 2;
+    if (_numSubsteps - _numContactFrames * SUBSTEPS_PER_COLLISION_FRAME < SUBSTEPS_PER_COLLISION_FRAME) {
+        // we don't harvest collision callbacks every frame
+        // this sets a maximum callback-per-contact rate
+        // and also filters out END/START events that happen on shorter timescales
+        return;
+    }
+
+    ++_numContactFrames;
     // scan known contacts and trigger events
     ContactMap::iterator contactItr = _contactMap.begin();
     while (contactItr != _contactMap.end()) {
@@ -289,7 +299,7 @@ void PhysicsEngine::computeCollisionEvents() {
         }
 
         // TODO: enable scripts to filter based on contact event type
-        ContactEventType type = contactItr->second.computeType(_numSubsteps);
+        ContactEventType type = contactItr->second.computeType(_numContactFrames);
         if (type == CONTACT_EVENT_TYPE_END) {
             ContactMap::iterator iterToDelete = contactItr;
             ++contactItr;
