@@ -1610,6 +1610,9 @@ macro( ANDROID_GET_ABI_RAWNAME TOOLCHAIN_FLAG VAR )
  endif()
 endmacro()
 
+if (POLICY CMP0054)
+  cmake_policy(SET CMP0054 NEW)
+endif ()
 
 # export toolchain settings for the try_compile() command
 if( NOT PROJECT_NAME STREQUAL "CMAKE_TRY_COMPILE" )
