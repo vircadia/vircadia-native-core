@@ -29,84 +29,174 @@ public:
     GLenum format;
     GLenum type;
 
-    static GLTexelFormat evalGLTexelFormat(const Element& pixel) {
-        GLTexelFormat texel = {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE};
+    static GLTexelFormat evalGLTexelFormat(const Element& dstFormat, const Element& srcFormat) {
+        if (dstFormat != srcFormat) {
+            GLTexelFormat texel = {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE};
 
-        switch(pixel.getDimension()) {
-        case gpu::SCALAR: {
-            texel.format = GL_RED;
-            texel.type = _elementTypeToGLType[pixel.getType()];
+            switch(dstFormat.getDimension()) {
+            case gpu::SCALAR: {
+                texel.format = GL_RED;
+                texel.type = _elementTypeToGLType[dstFormat.getType()];
 
-            switch(pixel.getSemantic()) {
-            case gpu::RGB:
-            case gpu::RGBA:
-                texel.internalFormat = GL_RED;
-                break;
-            case gpu::DEPTH:
-                texel.internalFormat = GL_DEPTH_COMPONENT;
-                break;
+                switch(dstFormat.getSemantic()) {
+                case gpu::RGB:
+                case gpu::RGBA:
+                    texel.internalFormat = GL_RED;
+                    break;
+                case gpu::DEPTH:
+                    texel.internalFormat = GL_DEPTH_COMPONENT;
+                    break;
+                default:
+                    qDebug() << "Unknown combination of texel format";
+                }
+            }
+            break;
+
+            case gpu::VEC2: {
+                texel.format = GL_RG;
+                texel.type = _elementTypeToGLType[dstFormat.getType()];
+
+                switch(dstFormat.getSemantic()) {
+                case gpu::RGB:
+                case gpu::RGBA:
+                    texel.internalFormat = GL_RG;
+                    break;
+                case gpu::DEPTH_STENCIL:
+                    texel.internalFormat = GL_DEPTH_STENCIL;
+                    break;
+                default:
+                    qDebug() << "Unknown combination of texel format";
+                }
+
+            }
+            break;
+
+            case gpu::VEC3: {
+                texel.format = GL_RGB;
+
+                texel.type = _elementTypeToGLType[dstFormat.getType()];
+
+                switch(dstFormat.getSemantic()) {
+                case gpu::RGB:
+                case gpu::RGBA:
+                    texel.internalFormat = GL_RGB;
+                    break;
+                default:
+                    qDebug() << "Unknown combination of texel format";
+                }
+            }
+            break;
+
+            case gpu::VEC4: {
+                texel.format = GL_RGBA;
+                texel.type = _elementTypeToGLType[dstFormat.getType()];
+
+                switch(srcFormat.getSemantic()) {
+                case gpu::BGRA:
+                    texel.format = GL_BGRA;
+                    break; 
+                case gpu::RGB:
+                case gpu::RGBA:
+                default:
+                    break;
+                };
+
+                switch(dstFormat.getSemantic()) {
+                case gpu::RGB:
+                    texel.internalFormat = GL_RGB;
+                    break;
+                case gpu::RGBA:
+                    texel.internalFormat = GL_RGBA;
+                    break;
+                default:
+                    qDebug() << "Unknown combination of texel format";
+                }
+            }
+            break;
+
             default:
                 qDebug() << "Unknown combination of texel format";
             }
-        }
-        break;
+            return texel;
+        } else {
+            GLTexelFormat texel = {GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE};
 
-        case gpu::VEC2: {
-            texel.format = GL_RG;
-            texel.type = _elementTypeToGLType[pixel.getType()];
+            switch(dstFormat.getDimension()) {
+            case gpu::SCALAR: {
+                texel.format = GL_RED;
+                texel.type = _elementTypeToGLType[dstFormat.getType()];
 
-            switch(pixel.getSemantic()) {
-            case gpu::RGB:
-            case gpu::RGBA:
-                texel.internalFormat = GL_RG;
-                break;
-            case gpu::DEPTH_STENCIL:
-                texel.internalFormat = GL_DEPTH_STENCIL;
-                break;
+                switch(dstFormat.getSemantic()) {
+                case gpu::RGB:
+                case gpu::RGBA:
+                    texel.internalFormat = GL_RED;
+                    break;
+                case gpu::DEPTH:
+                    texel.internalFormat = GL_DEPTH_COMPONENT;
+                    break;
+                default:
+                    qDebug() << "Unknown combination of texel format";
+                }
+            }
+            break;
+
+            case gpu::VEC2: {
+                texel.format = GL_RG;
+                texel.type = _elementTypeToGLType[dstFormat.getType()];
+
+                switch(dstFormat.getSemantic()) {
+                case gpu::RGB:
+                case gpu::RGBA:
+                    texel.internalFormat = GL_RG;
+                    break;
+                case gpu::DEPTH_STENCIL:
+                    texel.internalFormat = GL_DEPTH_STENCIL;
+                    break;
+                default:
+                    qDebug() << "Unknown combination of texel format";
+                }
+
+            }
+            break;
+
+            case gpu::VEC3: {
+                texel.format = GL_RGB;
+
+                texel.type = _elementTypeToGLType[dstFormat.getType()];
+
+                switch(dstFormat.getSemantic()) {
+                case gpu::RGB:
+                case gpu::RGBA:
+                    texel.internalFormat = GL_RGB;
+                    break;
+                default:
+                    qDebug() << "Unknown combination of texel format";
+                }
+            }
+            break;
+
+            case gpu::VEC4: {
+                texel.format = GL_RGBA;
+                texel.type = _elementTypeToGLType[dstFormat.getType()];
+
+                switch(dstFormat.getSemantic()) {
+                case gpu::RGB:
+                    texel.internalFormat = GL_RGB;
+                    break;
+                case gpu::RGBA:
+                    texel.internalFormat = GL_RGBA;
+                    break;
+                default:
+                    qDebug() << "Unknown combination of texel format";
+                }
+            }
+            break;
+
             default:
                 qDebug() << "Unknown combination of texel format";
             }
-
+            return texel;
         }
-        break;
-
-        case gpu::VEC3: {
-            texel.format = GL_RGB;
-
-            texel.type = _elementTypeToGLType[pixel.getType()];
-
-            switch(pixel.getSemantic()) {
-            case gpu::RGB:
-            case gpu::RGBA:
-                texel.internalFormat = GL_RGB;
-                break;
-            default:
-                qDebug() << "Unknown combination of texel format";
-            }
-        }
-        break;
-
-        case gpu::VEC4: {
-            texel.format = GL_RGBA;
-            texel.type = _elementTypeToGLType[pixel.getType()];
-
-            switch(pixel.getSemantic()) {
-            case gpu::RGB:
-                texel.internalFormat = GL_RGB;
-                break;
-            case gpu::RGBA:
-                texel.internalFormat = GL_RGBA;
-                break;
-            default:
-                qDebug() << "Unknown combination of texel format";
-            }
-        }
-        break;
-
-        default:
-            qDebug() << "Unknown combination of texel format";
-        }
-        return texel;
     }
 };
 
@@ -125,6 +215,9 @@ void GLBackend::syncGPUObject(const Texture& texture) {
             // Need to update the content of the GPU object from the source sysmem of the texture
             needUpdate = true;
         }
+    } else if (!texture.isDefined()) {
+        // NO texture definition yet so let's avoid thinking
+        return;
     }
 
     // need to have a gpu object?
@@ -134,19 +227,25 @@ void GLBackend::syncGPUObject(const Texture& texture) {
         CHECK_GL_ERROR();
         Backend::setGPUObject(texture, object);
     }
+
     // GO through the process of allocating the correct storage and/or update the content
     switch (texture.getType()) {
     case Texture::TEX_2D: {
-        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat());
         if (needUpdate) {
-            if (texture.isSysmemMipAvailable(0)) {
+            if (texture.isStoredMipAvailable(0)) {
                 GLint boundTex = -1;
                 glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
+
+                Texture::PixelsPointer mip = texture.accessStoredMip(0);
+                const GLvoid* bytes = mip->_sysmem.read<Resource::Byte>();
+                Element srcFormat = mip->_format;
+                
+                GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
 
                 glBindTexture(GL_TEXTURE_2D, object->_texture);
                 glTexSubImage2D(GL_TEXTURE_2D, 0,
                     texelFormat.internalFormat, texture.getWidth(), texture.getHeight(), 0,
-                    texelFormat.format, texelFormat.type, texture.readMip<Resource::Byte>(0));
+                    texelFormat.format, texelFormat.type, bytes);
 
                 if (texture.isAutogenerateMips()) {
                     glGenerateMipmap(GL_TEXTURE_2D);
@@ -156,14 +255,21 @@ void GLBackend::syncGPUObject(const Texture& texture) {
             }
         } else {
             const GLvoid* bytes = 0;
-            if (texture.isSysmemMipAvailable(0)) {
-                bytes = texture.readMip<Resource::Byte>(0);
+            Element srcFormat = texture.getTexelFormat();
+            if (texture.isStoredMipAvailable(0)) {
+                Texture::PixelsPointer mip = texture.accessStoredMip(0);
+                
+                bytes = mip->_sysmem.read<Resource::Byte>();
+                srcFormat = mip->_format;
+
                 object->_contentStamp = texture.getDataStamp();
             }
 
             GLint boundTex = -1;
             glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
             glBindTexture(GL_TEXTURE_2D, object->_texture);
+
+            GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
             
             glTexImage2D(GL_TEXTURE_2D, 0,
                 texelFormat.internalFormat, texture.getWidth(), texture.getHeight(), 0,
@@ -190,5 +296,11 @@ void GLBackend::syncGPUObject(const Texture& texture) {
 
 GLuint GLBackend::getTextureID(const Texture& texture) {
     GLBackend::syncGPUObject(texture);
-    return Backend::getGPUObject<GLBackend::GLTexture>(texture)->_texture;
+    GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(texture);
+    if (object) {
+        return object->_texture;
+    } else {
+        return 0;
+    }
 }
+

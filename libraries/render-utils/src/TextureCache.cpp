@@ -26,9 +26,7 @@
 #include "TextureCache.h"
 
 TextureCache::TextureCache() :
-    _permutationNormalTextureID(0),
-    _whiteTextureID(0),
-    _blueTextureID(0),
+    _permutationNormalTexture(0),
     _whiteTexture(0),
     _blueTexture(0),
     _primaryDepthTextureID(0),
@@ -46,12 +44,7 @@ TextureCache::TextureCache() :
 }
 
 TextureCache::~TextureCache() {
-    if (_permutationNormalTextureID != 0) {
-        glDeleteTextures(1, &_permutationNormalTextureID);
-    }
-    if (_whiteTextureID != 0) {
-        glDeleteTextures(1, &_whiteTextureID);
-    }
+
     if (_primaryFramebufferObject) {
         glDeleteTextures(1, &_primaryDepthTextureID);
         glDeleteTextures(1, &_primaryNormalTextureID);
@@ -126,11 +119,9 @@ const int permutation[256] =
 
 #define USE_CHRIS_NOISE 1
 
-GLuint TextureCache::getPermutationNormalTextureID() {
-    if (_permutationNormalTextureID == 0) {
-        glGenTextures(1, &_permutationNormalTextureID);
-        glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
-        
+const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
+    if (_permutationNormalTexture.isNull()) {
+
         // the first line consists of random permutation offsets
         unsigned char data[256 * 2 * 3];
 #if (USE_CHRIS_NOISE==1)
@@ -150,12 +141,14 @@ GLuint TextureCache::getPermutationNormalTextureID() {
             data[i + 1] = ((randvec.y + 1.0f) / 2.0f) * 255.0f;
             data[i + 2] = ((randvec.z + 1.0f) / 2.0f) * 255.0f;
         }
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glBindTexture(GL_TEXTURE_2D, 0);
+
+        _permutationNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), 256, 2));
+        _permutationNormalTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(data), data);
+
+       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
-    return _permutationNormalTextureID;
+    return _permutationNormalTexture;
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
@@ -168,16 +161,6 @@ static void loadSingleColorTexture(const unsigned char* color) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
-GLuint TextureCache::getWhiteTextureID() {
-    if (_whiteTextureID == 0) {
-        glGenTextures(1, &_whiteTextureID);
-        glBindTexture(GL_TEXTURE_2D, _whiteTextureID);
-        loadSingleColorTexture(OPAQUE_WHITE);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-    return _whiteTextureID;
-}
-
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     if (_whiteTexture.isNull()) {
         _whiteTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
@@ -185,17 +168,6 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     }
     return _whiteTexture;
 }
-
-GLuint TextureCache::getBlueTextureID() {
-    if (_blueTextureID == 0) {
-        glGenTextures(1, &_blueTextureID);
-        glBindTexture(GL_TEXTURE_2D, _blueTextureID);
-        loadSingleColorTexture(OPAQUE_BLUE);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-    return _blueTextureID;
-}
-
 
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
     if (_blueTexture.isNull()) {
@@ -554,18 +526,6 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
     
     finishedLoading(true);
     imageLoaded(image);
-    glBindTexture(GL_TEXTURE_2D, getID());
-    if (image.hasAlphaChannel()) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0,
-            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-    } else {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 0,
-            GL_RGB, GL_UNSIGNED_BYTE, image.constBits());
-    }
-    // generate mipmaps
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
 
     if (image.hasAlphaChannel()) {
         _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), image.width(), image.height()));
@@ -603,19 +563,7 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
             painter.fillPath(path, Qt::black);
             painter.end();
-            
-            glBindTexture(GL_TEXTURE_2D, texture->getID());
-            if (dilatedImage.hasAlphaChannel()) {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 0,
-                    GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
-            } else {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dilatedImage.width(), dilatedImage.height(), 0,
-                    GL_RGB, GL_UNSIGNED_BYTE, dilatedImage.constBits());
-            }
-            glGenerateMipmap(GL_TEXTURE_2D);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glBindTexture(GL_TEXTURE_2D, 0);
-
+ 
             if (dilatedImage.hasAlphaChannel()) {
                 texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), dilatedImage.width(), dilatedImage.height()));
                 texture->_gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA), dilatedImage.byteCount(), dilatedImage.constBits());
