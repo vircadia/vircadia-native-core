@@ -34,6 +34,8 @@ class NetworkMesh;
 class NetworkTexture;
 
 
+typedef glm::vec3 Vec3Key;
+
 typedef QPair<glm::vec2, glm::vec2> Vec2Pair;
 typedef QPair<Vec2Pair, Vec2Pair> Vec2PairPair;
 typedef QPair<glm::vec3, glm::vec3> Vec3Pair;
@@ -60,11 +62,6 @@ inline uint qHash(const Vec2PairPair& v, uint seed) {
                  + 5011 * v.first.second.x + 5021 * v.first.second.y
                  + 5023 * v.second.first.x + 5039 * v.second.first.y
                  + 5051 * v.second.second.x + 5059 * v.second.second.y, seed);
-}
-
-inline uint qHash(const glm::vec3& v, uint seed) {
-    // multiply by prime numbers greater than the possible size
-    return qHash(v.x + 5009 * v.y + 5011 * v.z,  seed);
 }
 
 inline uint qHash(const Vec3Pair& v, uint seed) {
@@ -251,6 +248,10 @@ private:
     QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
+
+    QHash<IntPair, gpu::BufferPointer> _sphereVertices;
+    QHash<IntPair, gpu::BufferPointer> _sphereIndices;
+    QHash<Vec3Pair, gpu::BufferPointer> _sphereColors;
     
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;

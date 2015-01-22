@@ -52,10 +52,22 @@ const int NUM_BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
 const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
 void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid) {
-    VerticesIndices& vbo = _sphereVBOs[IntPair(slices, stacks)];
+
+    //Vec2Pair key(glm::vec2(radius, slices), glm::vec2(stacks, 0));
+    IntPair key(slices, stacks);
+
+//qDebug() << "    key:" << key;
+
+    Vec3Pair colorKey(glm::vec3(color.x, color.y, slices),glm::vec3(color.z, color.y, stacks));
+
+
     int vertices = slices * (stacks - 1) + 2;    
     int indices = slices * stacks * NUM_VERTICES_PER_TRIANGULATED_QUAD;
-    if (vbo.first == 0) {        
+    
+    if (!_sphereVertices.contains(key)) {
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        _sphereVertices[key] = verticesBuffer;
+
         GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX];
         GLfloat* vertex = vertexData;
 
@@ -82,12 +94,21 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         *(vertex++) = 0.0f;
         *(vertex++) = 0.0f;
         *(vertex++) = 1.0f;
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+
+        verticesBuffer->append(sizeof(GLfloat) * vertices * NUM_COORDS_PER_VERTEX, (gpu::Buffer::Byte*) vertexData);
         delete[] vertexData;
-        
+qDebug() << "GeometryCache::renderSphere()...";
+qDebug() << "    radius:" << radius;
+qDebug() << "    slices:" << slices;
+qDebug() << "    stacks:" << stacks;
+
+qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
+    }
+    
+    if (!_sphereIndices.contains(key)) {
+        gpu::BufferPointer indicesBuffer(new gpu::Buffer());
+        _sphereIndices[key] = indicesBuffer;
+
         GLushort* indexData = new GLushort[indices];
         GLushort* index = indexData;
 
@@ -125,34 +146,73 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
             *(index++) = bottom + i;
             *(index++) = top;
         }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        indicesBuffer->append(sizeof(GLushort) * indices, (gpu::Buffer::Byte*) indexData);
         delete[] indexData;
+qDebug() << "GeometryCache::renderSphere()...";
+qDebug() << "    radius:" << radius;
+qDebug() << "    slices:" << slices;
+qDebug() << "    stacks:" << stacks;
+
+qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
+    }
+
+    if (!_sphereColors.contains(colorKey)) {
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        _sphereColors[colorKey] = colorBuffer;
+
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+
+        int* colorData = new int[vertices];
+        int* colorDataAt = colorData;
+                            
+        for(int v = 0; v < vertices; v++) {
+            *(colorDataAt++) = compactColor;
+        }
+
+        colorBuffer->append(sizeof(int) * vertices, (gpu::Buffer::Byte*) colorData);
+        delete[] colorData;
+
+qDebug() << "GeometryCache::renderSphere()...";
+qDebug() << "    color:" << color;
+
+qDebug() << "    _sphereColors.size():" << _sphereColors.size();
+
+    }
+    gpu::BufferPointer verticesBuffer = _sphereVertices[key];
+    gpu::BufferPointer indicesBuffer = _sphereIndices[key];
+    gpu::BufferPointer colorBuffer = _sphereColors[colorKey];
+
     
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-    }
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
+    const int VERTICES_SLOT = 0;
+    const int COLOR_SLOT = 1;
+    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    
+    gpu::BufferView verticesView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
+    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
+    
+    gpu::Batch batch;
 
-    glVertexPointer(3, GL_FLOAT, 0, 0);
-    glNormalPointer(GL_FLOAT, 0, 0);
+    batch.setInputFormat(streamFormat);
+    batch.setInputBuffer(VERTICES_SLOT, verticesView);
+    batch.setInputBuffer(COLOR_SLOT, colorView);
+    batch.setIndexBuffer(gpu::UINT16, indicesBuffer, 0);
 
-    glPushMatrix();
-    glScalef(radius, radius, radius);
     if (solid) {
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+        batch.drawIndexed(gpu::TRIANGLES, indices);
     } else {
-        glDrawRangeElementsEXT(GL_LINES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+        batch.drawIndexed(gpu::LINES, indices);
     }
-    glPopMatrix();
+
+    gpu::GLBackend::renderBatch(batch);
 
     glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    
+    glDisableClientState(GL_COLOR_ARRAY);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
@@ -306,7 +366,6 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
 
         int* colorData = new int[vertices];
         int* colorDataAt = colorData;
-                            
                             
         for(int v = 0; v < vertices; v++) {
             *(colorDataAt++) = compactColor;
