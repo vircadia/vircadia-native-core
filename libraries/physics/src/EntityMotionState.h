@@ -60,6 +60,8 @@ public:
     uint32_t getIncomingDirtyFlags() const;
     void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
 
+    EntityItem* getEntity() const { return _entity; }
+
 protected:
     EntityItem* _entity;
 };

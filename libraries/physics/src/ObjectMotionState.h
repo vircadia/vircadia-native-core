@@ -17,12 +17,19 @@
 
 #include <EntityItem.h>
 
+#include "ContactInfo.h"
 #include "ShapeInfo.h"
 
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
     MOTION_TYPE_DYNAMIC,    // motion according to physical laws
     MOTION_TYPE_KINEMATIC   // keyframed motion
+};
+
+enum MotionStateType {
+    MOTION_STATE_TYPE_UNKNOWN,
+    MOTION_STATE_TYPE_ENTITY,
+    MOTION_STATE_TYPE_AVATAR
 };
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
@@ -58,6 +65,7 @@ public:
     virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
     virtual void updateObjectVelocities() = 0;
 
+    MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
 
     virtual void computeShapeInfo(ShapeInfo& info) = 0;
@@ -88,9 +96,15 @@ public:
     virtual void addKinematicController() = 0;
     virtual void removeKinematicController();
 
+    btRigidBody* getRigidBody() const { return _body; }
+
     friend class PhysicsEngine;
 protected:
-    // TODO: move these materials properties to EntityItem
+    void setRigidBody(btRigidBody* body);
+
+    MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN;
+
+    // TODO: move these materials properties outside of ObjectMotionState
     float _friction;
     float _restitution;
     float _linearDamping;
@@ -98,7 +112,6 @@ protected:
 
     MotionType _motionType;
 
-    // _body has NO setters -- it is only changed by PhysicsEngine
     btRigidBody* _body;
 
     bool _sentMoving;   // true if last update was moving

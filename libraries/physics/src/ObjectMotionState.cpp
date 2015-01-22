@@ -170,3 +170,16 @@ void ObjectMotionState::removeKinematicController() {
         _kinematicController = NULL;
     }
 }
+
+void ObjectMotionState::setRigidBody(btRigidBody* body) {
+    // give the body a (void*) back-pointer to this ObjectMotionState
+    if (_body != body) {
+        if (_body) {
+            _body->setUserPointer(NULL);
+        }
+        _body = body;
+        if (_body) {
+            _body->setUserPointer(this);
+        }
+    }
+}

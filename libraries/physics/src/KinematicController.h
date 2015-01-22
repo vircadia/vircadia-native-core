@@ -30,7 +30,7 @@ public:
 
 protected:
     bool _enabled = false;
-    uint32_t _lastFrame;
+    uint32_t _lastSubstep;
 };
 
 #endif // hifi_KinematicController_h

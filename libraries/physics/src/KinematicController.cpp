@@ -13,10 +13,10 @@
 #include "PhysicsEngine.h"
 
 KinematicController::KinematicController() { 
-    _lastFrame = PhysicsEngine::getFrameCount(); 
+    _lastSubstep = PhysicsEngine::getNumSubsteps(); 
 }
 
 void KinematicController::start() { 
     _enabled = true; 
-    _lastFrame = PhysicsEngine::getFrameCount(); 
+    _lastSubstep = PhysicsEngine::getNumSubsteps(); 
 }
