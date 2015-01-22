@@ -376,7 +376,9 @@ Texture::~Texture() {
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
     Resource(url, !content.isEmpty()),
     _type(type),
-    _translucent(false) {
+    _translucent(false),
+    _width(0),
+    _height(0) {
     
     if (!url.isValid()) {
         _loaded = true;
@@ -523,6 +525,8 @@ void NetworkTexture::loadContent(const QByteArray& content) {
 void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor) {
     _translucent = translucent;
     _averageColor = averageColor;
+    _width = image.width();
+    _height = image.height();
     
     finishedLoading(true);
     imageLoaded(image);
