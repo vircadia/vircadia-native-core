@@ -141,6 +141,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
 
     // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
+    
     // compute position error
     if (glm::length2(_sentVelocity) > 0.0f) {
         _sentVelocity += _sentAcceleration * dt;
