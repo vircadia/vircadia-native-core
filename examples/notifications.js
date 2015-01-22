@@ -89,8 +89,11 @@ var myAlpha = [];
 var arrays = [];
 var isOnHMD = false,
     ENABLE_VR_MODE = "Enable VR Mode",
-    NOTIFICATIONS_3D_DISTANCE = 0.6,  // Distance from avatar position.
-    NOTIFICATIONS_3D_ELEVATION = 0.0,  // Height of top middle of top notification relative to avatar eyes.
+    NOTIFICATIONS_3D_DIRECTION = 0.0,  // Degrees from avatar orientation.
+    NOTIFICATIONS_3D_DISTANCE = 0.6,  // Horizontal distance from avatar position.
+    NOTIFICATIONS_3D_ELEVATION = -0.8,  // Height of top middle of top notification relative to avatar eyes.
+    NOTIFICATIONS_3D_YAW = 0.0,  // Degrees relative to notifications direction.
+    NOTIFICATIONS_3D_PITCH = -60.0,  // Degrees from vertical.
     NOTIFICATION_3D_SCALE = 0.002,  // Multiplier that converts 2D overlay dimensions to 3D overlay dimensions.
     NOTIFICATION_3D_BUTTON_WIDTH = 40 * NOTIFICATION_3D_SCALE,  // Need a little more room for button in 3D.
     overlay3DDetails = [];
@@ -149,19 +152,33 @@ function fadeOut(noticeOut, buttonOut, arraysOut) {
 }
 
 function calculate3DOverlayPositions(noticeWidth, noticeHeight, y) {
+    // Calculates overlay positions and orientations in avatar coordinates.
     var noticeY,
+        originOffset,
+        notificationOrientation,
         notificationPosition,
         buttonPosition;
 
-    noticeY = NOTIFICATIONS_3D_ELEVATION - y * NOTIFICATION_3D_SCALE - noticeHeight / 2;
-    notificationPosition = { x: 0, y: noticeY, z: -NOTIFICATIONS_3D_DISTANCE };
-    buttonPosition = {
-        x: (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH) / 2,
-        y: noticeY,
-        z: -NOTIFICATIONS_3D_DISTANCE + 0.001
-    };
+    // Notification plane positions
+    noticeY = -y * NOTIFICATION_3D_SCALE - noticeHeight / 2;
+    notificationPosition = { x: 0, y: noticeY, z: 0 };
+    buttonPosition = { x: (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH) / 2, y: noticeY, z: 0.001 };
+
+    // Rotate plane
+    notificationOrientation = Quat.fromPitchYawRollDegrees(NOTIFICATIONS_3D_PITCH,
+        NOTIFICATIONS_3D_DIRECTION + NOTIFICATIONS_3D_YAW, 0);
+    notificationPosition = Vec3.multiplyQbyV(notificationOrientation, notificationPosition);
+    buttonPosition = Vec3.multiplyQbyV(notificationOrientation, buttonPosition);
+
+    // Translate plane
+    originOffset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, NOTIFICATIONS_3D_DIRECTION, 0),
+        { x: 0, y: 0, z: -NOTIFICATIONS_3D_DISTANCE });
+    originOffset.y += NOTIFICATIONS_3D_ELEVATION;
+    notificationPosition = Vec3.sum(originOffset, notificationPosition);
+    buttonPosition = Vec3.sum(originOffset, buttonPosition);
 
     return {
+        notificationOrientation: notificationOrientation,
         notificationPosition: notificationPosition,
         buttonPosition: buttonPosition
     };
@@ -173,15 +190,11 @@ function calculate3DOverlayPositions(noticeWidth, noticeHeight, y) {
 function notify(notice, button, height) {
     var noticeWidth,
         noticeHeight,
-        notificationPosition,
-        buttonPosition,
         positions,
-        position3D,
-        rotation3D,
         last;
 
     if (isOnHMD) {
-        // Calculate 3D values using 2D overlay properties.
+        // Calculate 3D values from 2D overlay properties.
 
         noticeWidth = notice.width * NOTIFICATION_3D_SCALE + NOTIFICATION_3D_BUTTON_WIDTH;
         noticeHeight = notice.height * NOTIFICATION_3D_SCALE;
@@ -199,26 +212,13 @@ function notify(notice, button, height) {
         button.isFacingAvatar = false;
 
         positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
-        notificationPosition = positions.notificationPosition;
-        buttonPosition = positions.buttonPosition;
-
-        rotation3D = MyAvatar.orientation;
-
-        position3D = Vec3.multiplyQbyV(rotation3D, notificationPosition);
-        position3D = Vec3.sum(MyAvatar.getDefaultEyePosition(), position3D);
-        notice.position = position3D;
-        notice.rotation = rotation3D;
-
-        position3D = Vec3.multiplyQbyV(rotation3D, buttonPosition);
-        position3D = Vec3.sum(MyAvatar.getDefaultEyePosition(), position3D);
-        button.position = position3D;
-        button.rotation = rotation3D;
 
         notifications.push((Overlays.addOverlay("text3d", notice)));
         buttons.push((Overlays.addOverlay("billboard", button)));
         overlay3DDetails.push({
-            notificationPosition: notificationPosition,
-            buttonPosition: buttonPosition,
+            notificationOrientation: positions.notificationOrientation,
+            notificationPosition: positions.notificationPosition,
+            buttonPosition: positions.buttonPosition,
             width: noticeWidth,
             height: noticeHeight
         });
@@ -350,6 +350,7 @@ function update() {
         defaultEyePosition,
         avatarOrientation,
         notificationPosition,
+        notificationOrientation,
         buttonPosition,
         positions,
         i,
@@ -375,6 +376,7 @@ function update() {
             Overlays.editOverlay(buttons[i], { x: buttonLocationX, y: locationY + 12.0 });
             if (isOnHMD) {
                 positions = calculate3DOverlayPositions(overlay3DDetails[i].width, overlay3DDetails[i].height, locationY);
+                overlay3DDetails[i].notificationOrientation = positions.notificationOrientation;
                 overlay3DDetails[i].notificationPosition = positions.notificationPosition;
                 overlay3DDetails[i].buttonPosition = positions.buttonPosition;
             }
@@ -405,10 +407,11 @@ function update() {
         for (i = 0; i < notifications.length; i += 1) {
             notificationPosition = Vec3.sum(defaultEyePosition,
                 Vec3.multiplyQbyV(avatarOrientation, overlay3DDetails[i].notificationPosition));
+            notificationOrientation = Quat.multiply(avatarOrientation, overlay3DDetails[i].notificationOrientation);
             buttonPosition = Vec3.sum(defaultEyePosition,
                 Vec3.multiplyQbyV(avatarOrientation, overlay3DDetails[i].buttonPosition));
-            Overlays.editOverlay(notifications[i], { position: notificationPosition, rotation: avatarOrientation });
-            Overlays.editOverlay(buttons[i], { position: buttonPosition, rotation: avatarOrientation });
+            Overlays.editOverlay(notifications[i], { position: notificationPosition, rotation: notificationOrientation });
+            Overlays.editOverlay(buttons[i], { position: buttonPosition, rotation: notificationOrientation });
         }
     }
 }
