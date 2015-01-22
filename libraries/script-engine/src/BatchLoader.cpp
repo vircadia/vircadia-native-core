@@ -64,7 +64,6 @@ void BatchLoader::start() {
             if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
                 QTextStream in(&scriptFile);
                 _data.insert(url, in.readAll());
-                // includeContents = in.readAll();
             } else {
                 emit errorLoadingFile(url);
                 _data.insert(url, QString());
