@@ -12,17 +12,21 @@
 #ifndef hifi_IceServer_h
 #define hifi_IceServer_h
 
-#include <qcoreapplication.h>
-#include <qsharedpointer.h>
-#include <qudpsocket.h>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QSharedPointer>
+#include <QUdpSocket>
 
 #include <NetworkPeer.h>
+#include <HTTPSConnection.h>
 
 typedef QHash<QUuid, SharedNetworkPeer> NetworkPeerHash;
 
-class IceServer : public QCoreApplication {
+class IceServer : public QCoreApplication, public HTTPSRequestHandler {
+    Q_OBJECT
 public:
     IceServer(int argc, char* argv[]);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false);
 private slots:
     void processDatagrams();
     void clearInactivePeers();
@@ -34,6 +38,8 @@ private:
     QUdpSocket _serverSocket;
     NetworkPeerHash _activePeers;
     QHash<QUuid, QSet<QUuid> > _currentConnections;
+    HTTPManager _httpManager;
+    HTTPSManager* _httpsManager;
 };
 
 #endif // hifi_IceServer_h
