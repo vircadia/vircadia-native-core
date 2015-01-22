@@ -272,7 +272,8 @@ FBXNode parseBinaryFBXNode(QDataStream& in, int& position) {
     position += nameLength;
 
     for (quint32 i = 0; i < propertyCount; i++) {
-        node.properties.append(parseBinaryFBXProperty(in, position));
+        QVariant var = parseBinaryFBXProperty(in, position);
+        node.properties.append(var);
     }
 
     while (endOffset > position) {

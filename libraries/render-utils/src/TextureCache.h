@@ -46,19 +46,12 @@ public:
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
     /// the second, a set of random unit vectors to be used as noise gradients.
-    GLuint getPermutationNormalTextureID();
-
-    /// Returns the ID of an opaque white texture (useful for a default).
-  //  GLuint getWhiteTextureID();
+    const gpu::TexturePointer& getPermutationNormalTexture();
 
     /// Returns an opaque white texture (useful for a default).
     const gpu::TexturePointer& getWhiteTexture();
 
-    /// Returns the ID of a pale blue texture (useful for a normal map).
-  //  GLuint getBlueTextureID();
-
-    /// Returns the ID of a pale blue texture (useful for a normal map).
-    /// Returns an opaque white texture (useful for a default).
+    /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
 
     /// Loads a texture from the specified URL.
@@ -108,10 +101,8 @@ private:
     friend class DilatableNetworkTexture;
     
     QOpenGLFramebufferObject* createFramebufferObject();
-    
-    GLuint _permutationNormalTextureID;
-    GLuint _whiteTextureID;
-    GLuint _blueTextureID;
+ 
+    gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
     gpu::TexturePointer _blueTexture;
     

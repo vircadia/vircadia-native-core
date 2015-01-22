@@ -31,6 +31,24 @@ public:
     };
     typedef QSharedPointer< Pixels > PixelsPointer;
 
+    class Storage {
+        Texture* _texture;
+        std::vector<PixelsPointer> _mips;
+    public:
+
+        Storage() {}
+        virtual ~Storage() {}
+        virtual void reset();
+        virtual PixelsPointer editMip(uint16 level);
+        virtual const PixelsPointer getMip(uint16 level) const;
+        virtual Stamp getStamp(uint16 level) const;
+        virtual bool allocateMip(uint16 level);
+        virtual bool assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes);
+        virtual bool isMipAvailable(uint16 level) const;
+    
+        friend class Texture;
+    };
+
     enum Type {
         TEX_1D = 0,
         TEX_2D,
@@ -43,18 +61,14 @@ public:
     static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth);
     static Texture* createCube(const Element& texelFormat, uint16 width);
 
+    static Texture* createFromStorage(Storage* storage);
+
     Texture(const Texture& buf); // deep copy of the sysmem texture
     Texture& operator=(const Texture& buf); // deep copy of the sysmem texture
     ~Texture();
 
     const Stamp getStamp() const { return _stamp; }
-    const Stamp getDataStamp(uint16 level = 0) const {
-        PixelsPointer mip = accessStoredMip(level);
-        if (mip) {
-            return mip->_sysmem.getStamp();
-        }
-        return getStamp();
-    }
+    const Stamp getDataStamp(uint16 level = 0) const { return _storage->getStamp(level); }
 
     // The size in bytes of data stored in the texture
     Size getSize() const { return _size; }
@@ -87,7 +101,10 @@ public:
     uint16 getNumSlices() const { return _numSlices; }
     uint16 getNumSamples() const { return _numSamples; }
 
-    // Sub Mips manipulation
+    // NumSamples can only have certain values based on the hw
+    static uint16 evalNumSamplesUsed(uint16 numSamplesTried);
+
+    // Mips size evaluation
 
     // The number mips that a dimension could haves
     // = 1 + log2(size)
@@ -116,7 +133,6 @@ public:
         return size * getNumSlices();
     }
 
-
     // max mip is in the range [ 1 if no sub mips, log2(max(width, height, depth))]
     // if autoGenerateMip is on => will provide the maxMIp level specified
     // else provide the deepest mip level provided through assignMip
@@ -137,6 +153,8 @@ public:
     uint16 autoGenerateMips(uint16 maxMip);
     bool isAutogenerateMips() const { return _autoGenerateMips; }
 
+    // Managing Storage and mips
+
     // Manually allocate the mips down until the specified maxMip
     // this is just allocating the sysmem version of it
     // in case autoGen is on, this doesn't allocate
@@ -144,22 +162,10 @@ public:
     // If Bytes is NULL then simply allocate the space so mip sysmem can be accessed
     bool assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes);
 
-    bool isStoredMipAvailable(uint16 level) const {
-        const PixelsPointer mip = accessStoredMip(level);
-        if (mip) {
-            return mip->_sysmem.isAvailable();
-        }
-        return false;
-    }
-       // Access the the sub mips
-    const PixelsPointer Texture::accessStoredMip(uint16 level) const {
-        if (level > _mips.size()) {
-            return 0;
-        } else {
-            return _mips[level];
-        }
-    }
-
+    // Access the the sub mips
+    bool isStoredMipAvailable(uint16 level) const { return _storage->isMipAvailable(level); }
+    const PixelsPointer accessStoredMip(uint16 level) const { return _storage->getMip(level); }
+ 
     // access sizes for the stored mips
     uint16 getStoredMipWidth(uint16 level) const;
     uint16 getStoredMipHeight(uint16 level) const;
@@ -167,12 +173,10 @@ public:
     uint32 getStoredMipNumTexels(uint16 level) const;
     uint32 getStoredMipSize(uint16 level) const;
  
-
-    static uint16 evalNumSamplesUsed(uint16 numSamplesTried);
+    bool isDefined() const { return _defined; }
 
 protected:
-
-    std::vector<PixelsPointer> _mips;
+    std::unique_ptr< Storage > _storage;
  
     Stamp _stamp;
 
@@ -190,23 +194,12 @@ protected:
  
     Type _type;
     bool _autoGenerateMips;
-
+    bool _defined;
    
     static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
     Texture();
 
-    Size resize(Type type, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
-
-    void allocateStoredMip(uint16 level);
-
-    // Access the the sub mips
-    PixelsPointer Texture::accessStoredMip(uint16 level) {
-        if (level > _mips.size()) {
-            return 0;
-        } else {
-            return _mips[level];
-        }
-    }
+    Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
 
     mutable GPUObject* _gpuObject = NULL;
 

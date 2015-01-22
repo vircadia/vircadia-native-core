@@ -215,6 +215,9 @@ void GLBackend::syncGPUObject(const Texture& texture) {
             // Need to update the content of the GPU object from the source sysmem of the texture
             needUpdate = true;
         }
+    } else if (!texture.isDefined()) {
+        // NO texture definition yet so let's avoid thinking
+        return;
     }
 
     // need to have a gpu object?
@@ -224,6 +227,7 @@ void GLBackend::syncGPUObject(const Texture& texture) {
         CHECK_GL_ERROR();
         Backend::setGPUObject(texture, object);
     }
+
     // GO through the process of allocating the correct storage and/or update the content
     switch (texture.getType()) {
     case Texture::TEX_2D: {
@@ -292,5 +296,11 @@ void GLBackend::syncGPUObject(const Texture& texture) {
 
 GLuint GLBackend::getTextureID(const Texture& texture) {
     GLBackend::syncGPUObject(texture);
-    return Backend::getGPUObject<GLBackend::GLTexture>(texture)->_texture;
+    GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(texture);
+    if (object) {
+        return object->_texture;
+    } else {
+        return 0;
+    }
 }
+
