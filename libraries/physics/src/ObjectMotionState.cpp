@@ -141,7 +141,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
 
     // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
-    
+
     // compute position error
     if (glm::length2(_sentVelocity) > 0.0f) {
         _sentVelocity += _sentAcceleration * dt;
@@ -151,7 +151,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
 
     btTransform worldTrans = _body->getWorldTransform();
     glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
-
+    
     float dx2 = glm::distance2(position, _sentPosition);
     const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
