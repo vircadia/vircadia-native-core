@@ -17,7 +17,8 @@
 #include <QUdpSocket>
 
 #include <NetworkPeer.h>
-#include <HTTPSConnection.h>
+#include <HTTPConnection.h>
+#include <HTTPManager.h>
 
 typedef QHash<QUuid, SharedNetworkPeer> NetworkPeerHash;
 
