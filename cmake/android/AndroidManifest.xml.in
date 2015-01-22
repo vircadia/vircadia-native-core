@@ -6,7 +6,7 @@
   <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="@string/AppDisplayName" android:icon="@drawable/icon">
     
     <!-- VR MODE -->
-    <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_dual"/>
+    <!-- <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_dual"/> -->
     
     <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
               android:name="org.qtproject.qt5.android.bindings.QtActivity"
@@ -47,11 +47,11 @@
       <!-- Splash screen -->
     </activity>
     
-    <activity android:name="com.oculusvr.vrlib.PlatformActivity" 
+    <!-- <activity android:name="com.oculusvr.vrlib.PlatformActivity"
               android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
               android:launchMode="singleTask"
               android:screenOrientation="landscape"
-              android:configChanges="screenSize|orientation|keyboardHidden|keyboard">
+              android:configChanges="screenSize|orientation|keyboardHidden|keyboard"> -->
     </activity>
     
   </application>

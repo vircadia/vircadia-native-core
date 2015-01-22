@@ -46,7 +46,7 @@ Note that your path to `arm-linux-androideabi-ar` will probably not be the same 
 ```
 export ANDROID_NDK_ROOT=YOUR_NDK_ROOT
 ./setenv-android.sh
-export AR=$ANDROID_NDK_ROOT_/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
+export AR=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
 ```
 
 Then, from the OpenSSL directory, run the following commands.

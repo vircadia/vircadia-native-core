@@ -65,6 +65,8 @@ endif ()
 if (ANDROID)  
   if (NOT ANDROID_QT_CMAKE_PREFIX_PATH)
     set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.3/android_armv7/lib/cmake)
+  else ()
+    set(QT_CMAKE_PREFIX_PATH ${ANDROID_QT_CMAKE_PREFIX_PATH})
   endif ()
   
   set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM BOTH)
@@ -80,6 +82,7 @@ else ()
 endif ()
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
+message(STATUS "QT_CMAKE_PREFIX_PATH is ${QT_CMAKE_PREFIX_PATH}")
 
 # set our OS X deployment target to
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
