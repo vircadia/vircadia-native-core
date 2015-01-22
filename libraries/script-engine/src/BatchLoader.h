@@ -19,8 +19,6 @@
 #include <QString>
 #include <QUrl>
 
-#include <NetworkAccessManager.h>
-
 class BatchLoader : public QObject {
     Q_OBJECT
 public:

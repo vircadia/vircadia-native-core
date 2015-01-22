@@ -607,7 +607,6 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     auto evaluateScripts = [=](const QMap<QUrl, QString>& data) {
         for (QUrl url : urls) {
             QString contents = data[url];
-            qDebug() << "About to load: " << url;
             if (contents.isNull()) {
                 qDebug() << "Error loading file: " << url;
             } else {
