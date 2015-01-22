@@ -59,7 +59,6 @@
 //    }
 
 var width = 340.0; //width of notification overlay
-var height = 40.0; // height of a single line notification overlay
 var windowDimensions = Controller.getViewportDimensions(); // get the size of the interface window
 var overlayLocationX = (windowDimensions.x - (width + 20.0)); // positions window 20px from the right of the interface window
 var buttonLocationX = overlayLocationX + (width - 28.0);
@@ -86,6 +85,12 @@ var times = [];
 var heights = [];
 var myAlpha = [];
 var arrays = [];
+var isOnHMD = false,
+    ENABLE_VR_MODE = "Enable VR Mode",
+    NOTIFICATIONS_3D_DISTANCE = 0.6,  // Distance from avatar position.
+    NOTIFICATIONS_3D_ELEVATION = 0.0,  // Height of top middle of top notification relative to avatar eyes.
+    NOTIFICATION_3D_SCALE = 0.002,  // Multiplier that converts 2D overlay dimensions to 3D overlay dimensions.
+    NOTIFICATION_3D_BUTTON_WIDTH = 40 * NOTIFICATION_3D_SCALE;  // Need a little more room for button in 3D.
 
 //  push data from above to the 2 dimensional array
 function createArrays(notice, button, createTime, height, myAlpha) {
@@ -143,13 +148,58 @@ function fadeOut(noticeOut, buttonOut, arraysOut) {
 //  to handle auxiliary data not carried by the overlay class
 //  specifically notification "heights", "times" of creation, and . 
 function notify(notice, button, height) {
-    notifications.push((Overlays.addOverlay("text", notice)));
-    buttons.push((Overlays.addOverlay("image", button)));
-    times.push(new Date().getTime() / 1000);
+    var noticeWidth,
+        noticeHeight,
+        noticeY,
+        position3D,
+        rotation3D,
+        last;
+
+    if (isOnHMD) {
+        // Calculate 3D values using 2D overlay properties.
+
+        rotation3D = MyAvatar.orientation;
+
+        noticeWidth = notice.width * NOTIFICATION_3D_SCALE + NOTIFICATION_3D_BUTTON_WIDTH;
+        noticeHeight = notice.height * NOTIFICATION_3D_SCALE;
+        noticeY = NOTIFICATIONS_3D_ELEVATION - notice.y * NOTIFICATION_3D_SCALE - noticeHeight / 2;
+
+        notice.size = { x: noticeWidth, y: noticeHeight };
+        notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE;
+        notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
+        notice.bottomMargin = 0;
+        notice.rightMargin = 0;
+        notice.lineHeight = 10.0 * (fontSize / 12.0) * NOTIFICATION_3D_SCALE;
+        notice.isFacingAvatar = false;
+
+        position3D = { x: 0, y: noticeY, z: -NOTIFICATIONS_3D_DISTANCE };
+        position3D = Vec3.multiplyQbyV(rotation3D, position3D);
+        position3D = Vec3.sum(MyAvatar.getDefaultEyePosition(), position3D);
+        notice.position = position3D;
+        notice.rotation = rotation3D;
+
+        button.url = button.imageURL;
+        button.scale = button.width * NOTIFICATION_3D_SCALE;
+        button.isFacingAvatar = false;
+
+        position3D = { x: (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH) / 2, y: noticeY, z: -NOTIFICATIONS_3D_DISTANCE + 0.001 };
+        position3D = Vec3.multiplyQbyV(rotation3D, position3D);
+        position3D = Vec3.sum(MyAvatar.getDefaultEyePosition(), position3D);
+        button.position = position3D;
+        button.rotation = rotation3D;
+
+        notifications.push((Overlays.addOverlay("text3d", notice)));
+        buttons.push((Overlays.addOverlay("billboard", button)));
+    } else {
+        notifications.push((Overlays.addOverlay("text", notice)));
+        buttons.push((Overlays.addOverlay("image", button)));
+    }
+
     height = height + 1.0;
     heights.push(height);
+    times.push(new Date().getTime() / 1000);
     myAlpha.push(0);
-    var last = notifications.length - 1;
+    last = notifications.length - 1;
     createArrays(notifications[last], buttons[last], times[last], heights[last], myAlpha[last]);
     fadeIn(notifications[last], buttons[last]);
 }
@@ -163,7 +213,7 @@ function createNotification(text) {
         height = 40.0,
         stack = 0,
         level,
-        overlayProperties,
+        noticeProperties,
         bLevel,
         buttonProperties,
         i;
@@ -178,7 +228,7 @@ function createNotification(text) {
 
     level = (stack + 20.0);
     height = height + extraLine;
-    overlayProperties = {
+    noticeProperties = {
         x: overlayLocationX,
         y: level,
         width: width,
@@ -205,7 +255,18 @@ function createNotification(text) {
         alpha: backgroundAlpha
     };
 
-    notify(overlayProperties, buttonProperties, height);
+    notify(noticeProperties, buttonProperties, height);
+}
+
+function deleteNotification(index) {
+    Overlays.deleteOverlay(notifications[index]);
+    Overlays.deleteOverlay(buttons[index]);
+    notifications.splice(index, 1);
+    buttons.splice(index, 1);
+    times.splice(index, 1);
+    heights.splice(index, 1);
+    myAlpha.splice(index, 1);
+    arrays.splice(index, 1);
 }
 
 //  wraps whole word to newline
@@ -257,15 +318,27 @@ function update() {
         j,
         k;
 
+    if (isOnHMD !== Menu.isOptionChecked(ENABLE_VR_MODE)) {
+        while (arrays.length > 0) {
+            deleteNotification(0);
+        }
+        isOnHMD = !isOnHMD;
+        return;
+    }
+
     frame += 1;
     if ((frame % 60.0) === 0) { // only update once a second
         checkSize(); // checks for size change to trigger windowResize notification
-        locationY = 20.0;
-        for (i = 0; i < arrays.length; i += 1) { //repositions overlays as others fade
-            nextOverlay = Overlays.getOverlayAtPoint({ x: overlayLocationX, y: locationY });
-            Overlays.editOverlay(notifications[i], { x: overlayLocationX, y: locationY });
-            Overlays.editOverlay(buttons[i], { x: buttonLocationX, y: locationY + 12.0 });
-            locationY = locationY + arrays[i][3];
+        if (isOnHMD) {
+            // TODO
+        } else {
+            locationY = 20.0;
+            for (i = 0; i < arrays.length; i += 1) { //repositions overlays as others fade
+                nextOverlay = Overlays.getOverlayAtPoint({ x: overlayLocationX, y: locationY });
+                Overlays.editOverlay(notifications[i], { x: overlayLocationX, y: locationY });
+                Overlays.editOverlay(buttons[i], { x: buttonLocationX, y: locationY + 12.0 });
+                locationY = locationY + arrays[i][3];
+            }
         }
     }
 
@@ -371,14 +444,7 @@ function mousePressEvent(event) {
 
     for (i = 0; i < buttons.length; i += 1) { //if user clicked a button
         if (clickedOverlay === buttons[i]) {
-            Overlays.deleteOverlay(notifications[i]);
-            Overlays.deleteOverlay(buttons[i]);
-            notifications.splice(i, 1);
-            buttons.splice(i, 1);
-            times.splice(i, 1);
-            heights.splice(i, 1);
-            myAlpha.splice(i, 1);
-            arrays.splice(i, 1);
+            deleteNotification(i);
         }
     }
 }
