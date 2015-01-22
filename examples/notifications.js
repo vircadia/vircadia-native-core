@@ -495,12 +495,18 @@ function onMuteStateChanged() {
 
 //  handles mouse clicks on buttons
 function mousePressEvent(event) {
-    var clickedOverlay,
+    var pickRay,
+        clickedOverlay,
         i;
 
-    clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y }); //identify which overlay was clicked
+    if (isOnHMD) {
+        pickRay = Camera.computePickRay(event.x, event.y);
+        clickedOverlay = Overlays.findRayIntersection(pickRay).overlayID;
+    } else {
+        clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+    }
 
-    for (i = 0; i < buttons.length; i += 1) { //if user clicked a button
+    for (i = 0; i < buttons.length; i += 1) {
         if (clickedOverlay === buttons[i]) {
             deleteNotification(i);
         }
