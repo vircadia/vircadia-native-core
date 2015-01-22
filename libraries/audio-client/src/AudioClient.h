@@ -37,8 +37,6 @@
 #include <RingBufferHistory.h>
 #include <StDev.h>
 
-#include "Recorder.h"
-
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
 
@@ -62,7 +60,7 @@ static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
 static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
 static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
 static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
-static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
+static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
 
 class QAudioInput;
 class QAudioOutput;
@@ -112,8 +110,6 @@ public:
 
     float getInputRingBufferMsecsAvailable() const;
     float getAudioOutputMsecsUnplayed() const;
-    
-    void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
 
     int getOutputBufferSize() { return _outputBufferSizeFrames; }
 
@@ -121,7 +117,7 @@ public:
     void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled = enabled; }
 
     int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec; }
-    void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec = msecs; }
+    void setOutputStarveDetectionPeriod(quint64 msecs) { _outputStarveDetectionPeriodMsec = msecs; }
 
     int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold; }
     void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold = threshold; }
@@ -178,6 +174,8 @@ public slots:
 signals:
     bool muteToggled();
     void inputReceived(const QByteArray& inputSamples);
+    void outputBytesToNetwork(int numBytes);
+    void inputBytesFromNetwork(int numBytes);
 
 protected:
     AudioClient();
@@ -211,9 +209,8 @@ private:
     bool _outputStarveDetectionEnabled;
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
-    int _outputStarveDetectionPeriodMsec;
+    quint64 _outputStarveDetectionPeriodMsec;
     int _outputStarveDetectionThreshold; // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
-
     
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
@@ -270,8 +267,6 @@ private:
     quint16 _outgoingAvatarAudioSequenceNumber;
 
     AudioOutputIODevice _audioOutputIODevice;
-    
-    WeakRecorderPointer _recorder;
     
     AudioIOStats _stats;
     

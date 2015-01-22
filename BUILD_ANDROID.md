@@ -4,8 +4,9 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 You will need the following tools to build our Android targets.
 
-* [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) ~> r10c
-* [Android SDK](http://developer.android.com/sdk/installing/index.html) = 4.4.2 (API Level 19)
+* [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
+* [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
+  * Be sure to install SDK Platform for API Level 19
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
 
@@ -23,17 +24,30 @@ If you would like to install Qt to a different location, or attempt to build wit
 
 ####OpenSSL
 
-Cross-compilation of OpenSSL has only been tested from an OS X machine running 10.10 compiling OpenSSL 1.0.1j. It is likely that the steps below will work for other OpenSSL versions than 1.0.1j.
+Cross-compilation of OpenSSL has only been tested from an OS X machine running 10.10 compiling OpenSSL 1.0.1i. It is likely that the steps below will work for other OpenSSL versions than 1.0.1i.
 
-The full instructions to compile OpenSSL for Android from your host environment can be found [here](http://wiki.openssl.org/index.php/Android).
+The original instructions to compile OpenSSL for Android from your host environment can be found [here](http://wiki.openssl.org/index.php/Android). We required some tweaks to get OpenSSL to successfully compile, those tweaks are explained below.
 
 Download the [OpenSSL source](https://www.openssl.org/source/) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `openssl`.
 
 You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki. 
 
-First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path to the root of your Android NDK install. If you've configured your machine to build the Android client using the instructions below, you can set it to the value of $ANDROID_NDK. `setenv-android.sh` needs `ANDROID_NDK_ROOT` to set the environment variables required for building OpenSSL.
+You must change two values at the top of the `setenv-android.sh` script - `_ANDROID_NDK` and `_ANDROID_EABI`.
+`_ANDROID_NDK` should be `android-ndk-r10` and `_ANDROID_EABI` should be `arm-linux-androidebi-4.6`.
+
+First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path to the root of your Android NDK install. `setenv-android.sh` needs `ANDROID_NDK_ROOT` to set the environment variables required for building OpenSSL.
 
 Execute the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling.
+
+We have had issues with `setenv-android.sh` not helping the system use the Android archive tool during compilation. You may also need to set `AR` to point to the `ar` from your NDK AFTER running ./setenv-android.sh. 
+
+Note that your path to `arm-linux-androideabi-ar` will probably not be the same as the one below if you are not on OS X or are using a different EABI.
+
+```
+export ANDROID_NDK_ROOT=YOUR_NDK_ROOT
+./setenv-android.sh
+export AR=$ANDROID_NDK_ROOT_/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
+```
 
 Then, from the OpenSSL directory, run the following commands.
 

@@ -283,6 +283,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     audioIO->setPositionGetter(getPositionForAudio);
     audioIO->setOrientationGetter(getOrientationForAudio);
     
+    connect(audioIO.data(), &AudioClient::inputBytesFromNetwork, &_bandwidthMeter, &BandwidthMeter::updateAudioInputBytes);
+    connect(audioIO.data(), &AudioClient::outputBytesToNetwork, &_bandwidthMeter, &BandwidthMeter::updateAudioOutputBytes);
+    
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
 

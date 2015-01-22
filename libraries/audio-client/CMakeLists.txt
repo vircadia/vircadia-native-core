@@ -1,9 +1,12 @@
 set(TARGET_NAME audio-client)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(Network)
+setup_hifi_library(Network Multimedia)
 
 link_hifi_libraries(audio)
+
+# append audio includes to our list of includes to bubble
+list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${HIFI_LIBRARY_DIR}/audio/src")
 
 set(GVERB_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/gverb")
 

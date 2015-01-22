@@ -490,9 +490,12 @@ void MyAvatar::startRecording() {
     if (!_recorder) {
         _recorder = RecorderPointer(new Recorder(this));
     }
-    DependencyManager::get<AudioClient>()->setRecorder(_recorder);
-    _recorder->startRecording();
+    // connect to AudioClient's signal so we get input audio
+    auto audioClient = DependencyManager::get<AudioClient>();
+    connect(audioClient.data(), &AudioClient::inputReceived, _recorder.data(),
+            &Recorder::recordAudio, Qt::BlockingQueuedConnection);
     
+    _recorder->startRecording();
 }
 
 void MyAvatar::stopRecording() {
@@ -504,6 +507,10 @@ void MyAvatar::stopRecording() {
         return;
     }
     if (_recorder) {
+        // stop grabbing audio from the AudioClient
+        auto audioClient = DependencyManager::get<AudioClient>();
+        disconnect(audioClient.data(), 0, _recorder.data(), 0);
+        
         _recorder->stopRecording();
     }
 }

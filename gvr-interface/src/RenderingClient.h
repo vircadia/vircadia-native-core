@@ -19,6 +19,9 @@ class RenderingClient : public Client {
     Q_OBJECT
 public:
     RenderingClient(QObject* parent = 0);
+    ~RenderingClient();
+private:
+    virtual void processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket);
 };
 
 #endif // hifi_RenderingClient_h

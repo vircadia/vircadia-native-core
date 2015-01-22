@@ -12,6 +12,7 @@
 #include <QtCore/QThread>
 
 #include <AddressManager.h>
+#include <HifiSockAddr.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 
@@ -47,6 +48,17 @@ void Client::setupNetworking() {
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
 }
 
+void Client::processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket) {
+    PacketType incomingType = packetTypeForPacket(incomingPacket);
+    // only process this packet if we have a match on the packet version
+    switch (incomingType) {
+        default:
+            auto nodeList = DependencyManager::get<NodeList>();
+            nodeList->processNodeData(senderSockAddr, incomingPacket);
+            break;
+    }
+}
+
 void Client::processDatagrams() {
     HifiSockAddr senderSockAddr;
     
@@ -58,16 +70,9 @@ void Client::processDatagrams() {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
         nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
-    
+        
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
-            
-            PacketType incomingType = packetTypeForPacket(incomingPacket);
-            // only process this packet if we have a match on the packet version
-            switch (incomingType) {
-                default:
-                    nodeList->processNodeData(senderSockAddr, incomingPacket);
-                    break;
-            }
+            processVerifiedPacket(senderSockAddr, incomingPacket);
         }
     }
 }

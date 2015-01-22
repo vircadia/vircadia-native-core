@@ -378,9 +378,11 @@ void AudioClient::start() {
     
     if (!inputFormatSupported) {
         qDebug() << "Unable to set up audio input because of a problem with input format.";
+        qDebug() << "The closest format available is" << inputDeviceInfo.nearestFormat(_desiredInputFormat);
     }
     if (!outputFormatSupported) {
         qDebug() << "Unable to set up audio output because of a problem with output format.";
+        qDebug() << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
     }
 
     if (_audioInput) {
@@ -685,10 +687,6 @@ void AudioClient::handleAudioInput() {
         auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
-        if (_recorder && _recorder.data()->isRecording()) {
-            _recorder.data()->record(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
-        }
-        
         if (audioMixer && audioMixer->getActiveSocket()) {
             glm::vec3 headPosition = _positionGetter();
             glm::quat headOrientation = _orientationGetter();
@@ -747,8 +745,7 @@ void AudioClient::handleAudioInput() {
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
 
-//            Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-//                .updateValue(packetBytes);
+            emit outputBytesToNetwork(packetBytes);
         }
         delete[] inputAudioSamples;
     }
@@ -807,7 +804,7 @@ void AudioClient::addReceivedAudioToStream(const QByteArray& audioByteArray) {
         _receivedAudioStream.parseData(audioByteArray);
     }
 
-//    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
+    emit inputBytesFromNetwork(audioByteArray.size());
 }
 
 void AudioClient::parseAudioEnvironmentData(const QByteArray &packet) {
