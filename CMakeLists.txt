@@ -82,6 +82,7 @@ else ()
 endif ()
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
+message(STATUS "QT_CMAKE_PREFIX_PATH is ${QT_CMAKE_PREFIX_PATH}")
 
 # set our OS X deployment target to
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
