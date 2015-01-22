@@ -35,9 +35,6 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
     // (3) synchronize outgoing motion states
     // (4) send outgoing packets
 
-
-    //qDebug() << "_numSubsteps:" << _numSubsteps;
-    
     // this is step (4)
     QSet<ObjectMotionState*>::iterator stateItr = _outgoingPackets.begin();
     while (stateItr != _outgoingPackets.end()) {

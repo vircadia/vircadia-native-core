@@ -159,23 +159,13 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         return; // never update entities that are unknown
     }
     if (_outgoingPacketFlags) {
-        qDebug() << "EntityMotionState::sendUpdate()...";
-        qDebug() << "    _outgoingPacketFlags:" << _outgoingPacketFlags;
-
         EntityItemProperties properties = _entity->getProperties();
-        qDebug() << "    _entity->getProperties():" << properties << "line:" << __LINE__;
-
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
             _sentPosition = bulletToGLM(worldTrans.getOrigin());
             properties.setPosition(_sentPosition + ObjectMotionState::getWorldOffset());
-            qDebug() << "    _sentPosition:" << _sentPosition << "line:" << __LINE__;
-            qDebug() << "    ObjectMotionState::getWorldOffset():" << ObjectMotionState::getWorldOffset() << "line:" << __LINE__;
-        
             _sentRotation = bulletToGLM(worldTrans.getRotation());
             properties.setRotation(_sentRotation);
-
-            qDebug() << "    after position properties:" << properties << "line:" << __LINE__;
         }
     
         if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
@@ -205,8 +195,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setGravity(_sentAcceleration);
             // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
             properties.setAngularVelocity(glm::degrees(_sentAngularVelocity));
-
-            qDebug() << "    after velocity properties:" << properties << "line:" << __LINE__;
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
@@ -227,9 +215,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
         EntityItemID id(_entity->getID());
         EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
-        qDebug() << "EntityMotionState::sendUpdate()... about to call queueEditEntityMessage()";
-        qDebug() << "    id:" << id;
-        qDebug() << "    properties:" << properties;
         entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
 
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them

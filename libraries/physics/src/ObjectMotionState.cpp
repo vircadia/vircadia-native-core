@@ -109,7 +109,6 @@ bool ObjectMotionState::doesNotNeedToSendUpdate() const {
 bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     assert(_body);
     
-    
     // if we've never checked before, our _sentFrame will be 0, and we need to initialize our state
     if (_sentFrame == 0) {
         _sentPosition = bulletToGLM(_body->getWorldTransform().getOrigin());
@@ -119,7 +118,6 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
         return false;
     }
         
-    uint32_t wasSentFrame = _sentFrame;
     float dt = (float)(simulationFrame - _sentFrame) * PHYSICS_ENGINE_FIXED_SUBSTEP;
     _sentFrame = simulationFrame;
     bool isActive = _body->isActive();
@@ -143,11 +141,6 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
 
     // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
-    
-    glm::vec3 wasPosition = _sentPosition;
-    glm::vec3 wasVelocity = _sentVelocity;
-    glm::vec3 wasAcceleration = _sentAcceleration;
-
     // compute position error
     if (glm::length2(_sentVelocity) > 0.0f) {
         _sentVelocity += _sentAcceleration * dt;
@@ -161,36 +154,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     float dx2 = glm::distance2(position, _sentPosition);
     const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
-qDebug() << "ObjectMotionState::shouldSendUpdate()... computing position error";
-
-    glm::vec3 bulletVelocity = bulletToGLM(_body->getLinearVelocity());
-
-qDebug() << "    was _sentFrame:" << wasSentFrame;
-qDebug() << "    now _sentFrame:" << _sentFrame;
-qDebug() << "    dt:" << dt;
-
-qDebug() << "    was _sentAcceleration:" << wasAcceleration;
-qDebug() << "    now _sentAcceleration:" << _sentAcceleration;
-
-qDebug() << "    bulletVelocity:" << bulletVelocity;
-qDebug() << "    was _sentVelocity:" << wasVelocity;
-qDebug() << "    now _sentVelocity:" << _sentVelocity;
-
-qDebug() << "    was _sentPosition:" << wasPosition;
-qDebug() << "    now _sentPosition:" << _sentPosition;
-qDebug() << "    bullet position:" << position;
-
-qDebug() << "    dx2:" << dx2;
-qDebug() << "    (dx2 > MAX_POSITION_ERROR_SQUARED)... considering";
-        if (wasSentFrame > 0) {
-qDebug() << "    (wasSentFrame > 0)... return TRUE";
-            return true;
-        } else {
-qDebug() << "    (wasSentFrame == 0)... ignore use bullet position for next _sentPosition";
-            _sentPosition = position;
-        }
-    } else {
-        //qDebug() << "    (dx2 <= MAX_POSITION_ERROR_SQUARED)... FALL THROUGH... likely return false";
+        return true;
     }
 
     if (glm::length2(_sentAngularVelocity) > 0.0f) {

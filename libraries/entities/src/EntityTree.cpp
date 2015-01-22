@@ -305,7 +305,6 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
 /// we're not changing the content of the tree, we're only changing the internal IDs that map entities from creator
 /// based to known IDs. This means we don't have to recurse the tree to mark the changed path as dirty.
 void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
-    qDebug() << "EntityTree::handleAddEntityResponse()";
 
     if (!getIsClient()) {
         qDebug() << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
@@ -329,9 +328,6 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     EntityItemID searchEntityID;
     searchEntityID.id = entityID;
     searchEntityID.creatorTokenID = creatorTokenID;
-
-    qDebug() << "    creatorTokenID:" << creatorTokenID;
-    qDebug() << "    entityID:" << entityID;
 
     lockForWrite();
 

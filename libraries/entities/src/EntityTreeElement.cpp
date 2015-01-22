@@ -795,13 +795,11 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     }
 
                 } else {
-                    qDebug() << "EntityTreeElement::readElementDataFromBuffer() about to construct entity item";
                     entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                         addEntityItem(entityItem); // add this new entity to this elements entities
                         entityItemID = entityItem->getEntityItemID();
-                        qDebug() << "    entityItemID:" << entityItemID;
                         _myTree->setContainingElement(entityItemID, this);
                         _myTree->postAddEntity(entityItem);
                     }

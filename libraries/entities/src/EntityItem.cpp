@@ -1064,9 +1064,6 @@ const float MIN_SPIN_DELTA = 0.0003f;
 
 void EntityItem::updatePosition(const glm::vec3& value) { 
     if (glm::distance(_position, value) * (float)TREE_SCALE > MIN_POSITION_DELTA) {
-        qDebug() << "EntityItem::updatePosition()... ";
-        qDebug() << "    new position:" << value;
-        qDebug() << "    in meters:" << (value * (float) TREE_SCALE);
         _position = value; 
         recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
@@ -1076,9 +1073,6 @@ void EntityItem::updatePosition(const glm::vec3& value) {
 void EntityItem::updatePositionInMeters(const glm::vec3& value) { 
     glm::vec3 position = glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f);
     if (glm::distance(_position, position) * (float)TREE_SCALE > MIN_POSITION_DELTA) {
-        qDebug() << "EntityItem::updatePositionInMeters()... ";
-        qDebug() << "    new position:" << position;
-        qDebug() << "    in meters:" << value;
         _position = position;
         recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
