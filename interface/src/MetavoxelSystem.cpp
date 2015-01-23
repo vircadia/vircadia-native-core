@@ -1556,29 +1556,25 @@ static inline StackArray::Entry getEntry(const StackArray* lineSrc, int stackWid
         entry.color = cornerCrossing.color;
         entry.material = cornerCrossing.material;
         set = true;
+        entry.setHermiteY(cornerCrossing.normal, glm::clamp(cornerCrossing.point.y - y, 0.0f, 1.0f));
         
-        if (cornerCrossing.point.y < y + 1) {
-            entry.setHermiteY(cornerCrossing.normal, cornerCrossing.point.y - y);
-        }
     } else {
         entry.material = entry.color = 0;
     }
     if (!(cornerIndex & X_MAXIMUM_FLAG)) {
         const EdgeCrossing& nextCornerCrossingX = cornerCrossings[cornerIndex | X_MAXIMUM_FLAG];
         if (nextCornerCrossingX.point.y != 0.0f && (nextCornerCrossingX.point.y >= y) != set) {
-            float t = (y - cornerCrossing.point.y) / (nextCornerCrossingX.point.y - cornerCrossing.point.y);
-            if (t >= 0.0f && t <= 1.0f) {
-                entry.setHermiteX(glm::normalize(glm::mix(cornerCrossing.normal, nextCornerCrossingX.normal, t)), t);
-            }
+            float t = glm::clamp((y - cornerCrossing.point.y) /
+                (nextCornerCrossingX.point.y - cornerCrossing.point.y), 0.0f, 1.0f);
+            entry.setHermiteX(glm::normalize(glm::mix(cornerCrossing.normal, nextCornerCrossingX.normal, t)), t);
         }
     }
     if (!(cornerIndex & Y_MAXIMUM_FLAG)) {
         const EdgeCrossing& nextCornerCrossingZ = cornerCrossings[cornerIndex | Y_MAXIMUM_FLAG];
         if (nextCornerCrossingZ.point.y != 0.0f && (nextCornerCrossingZ.point.y >= y) != set) {
-            float t = (y - cornerCrossing.point.y) / (nextCornerCrossingZ.point.y - cornerCrossing.point.y);
-            if (t >= 0.0f && t <= 1.0f) {
-                entry.setHermiteZ(glm::normalize(glm::mix(cornerCrossing.normal, nextCornerCrossingZ.normal, t)), t);
-            }
+            float t = glm::clamp((y - cornerCrossing.point.y) /
+                (nextCornerCrossingZ.point.y - cornerCrossing.point.y), 0.0f, 1.0f);
+            entry.setHermiteZ(glm::normalize(glm::mix(cornerCrossing.normal, nextCornerCrossingZ.normal, t)), t);
         }
     }
     return entry;
