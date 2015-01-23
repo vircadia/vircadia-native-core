@@ -520,7 +520,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
         recalculateCollisionShape();
-        if (overwriteLocalData && (getDirtyFlags() & EntityItem::DIRTY_POSITION)) {
+        if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
             _lastSimulated = now;
         }
     }
@@ -607,11 +607,6 @@ bool EntityItem::isRestingOnSurface() const {
 }
 
 void EntityItem::simulate(const quint64& now) {
-    if (_physicsInfo) {
-        // we rely on bullet for simulation, so bail
-        return;
-    }
-
     bool wantDebug = false;
     
     if (_lastSimulated == 0) {
@@ -661,9 +656,13 @@ void EntityItem::simulate(const quint64& now) {
         qDebug() << "     ********** EntityItem::simulate() .... SETTING _lastSimulated=" << _lastSimulated;
     }
 
-    if (hasAngularVelocity()) {
-        glm::quat rotation = getRotation();
+    simulateKinematicMotion(timeElapsed);
+    _lastSimulated = now;
+}
 
+void EntityItem::simulateKinematicMotion(float timeElapsed) {
+    bool wantDebug = false;
+    if (hasAngularVelocity()) {
         // angular damping
         glm::vec3 angularVelocity = getAngularVelocity();
         if (_angularDamping > 0.0f) {
@@ -679,6 +678,9 @@ void EntityItem::simulate(const quint64& now) {
         
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
+            if (angularSpeed > 0.0f) {
+                _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+            }
             setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
         } else {
             // NOTE: angularSpeed is currently in degrees/sec!!!
@@ -686,7 +688,7 @@ void EntityItem::simulate(const quint64& now) {
             float angle = timeElapsed * glm::radians(angularSpeed);
             glm::vec3 axis = _angularVelocity / angularSpeed;
             glm::quat  dQ = glm::angleAxis(angle, axis);
-            rotation = glm::normalize(dQ * rotation);
+            glm::quat rotation = glm::normalize(dQ * getRotation());
             setRotation(rotation);
         }
     }
@@ -722,87 +724,31 @@ void EntityItem::simulate(const quint64& now) {
         
         position = newPosition;
 
-        // handle bounces off the ground... We bounce at the distance to the bottom of our entity
-        if (position.y <= getDistanceToBottomOfEntity()) {
-            velocity = velocity * glm::vec3(1,-1,1);
-            position.y = getDistanceToBottomOfEntity();
-        }
-
-        // apply gravity
-        if (hasGravity()) { 
-            // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
-            // "ground" plane of the domain, but for now it's what we've got
-            if (isRestingOnSurface()) {
-                velocity.y = 0.0f;
-                position.y = getDistanceToBottomOfEntity();
-            } else {
-                velocity += getGravity() * timeElapsed;
-            }
-        }
-        
-        // NOTE: we don't zero out very small velocities --> we rely on a remote Bullet simulation 
-        // to tell us when the entity has stopped.
-
-        // NOTE: the simulation should NOT set any DirtyFlags on this entity
-        setPosition(position); // this will automatically recalculate our collision shape
-        setVelocity(velocity);
-        
-        if (wantDebug) {        
-            qDebug() << "    new position:" << position;
-            qDebug() << "    new velocity:" << velocity;
-            qDebug() << "    new AACube:" << getMaximumAACube();
-            qDebug() << "    old getAABox:" << getAABox();
-        }
-    }
-
-    _lastSimulated = now;
-}
-
-void EntityItem::simulateSimpleKinematicMotion(float timeElapsed) {
-    if (hasAngularVelocity()) {
-        // angular damping
-        glm::vec3 angularVelocity = getAngularVelocity();
-        if (_angularDamping > 0.0f) {
-            angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
-            setAngularVelocity(angularVelocity);
-        }
-
-        float angularSpeed = glm::length(_angularVelocity);
-        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
-        if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
-        } else {
-            // NOTE: angularSpeed is currently in degrees/sec!!!
-            // TODO: Andrew to convert to radians/sec
-            float angle = timeElapsed * glm::radians(angularSpeed);
-            glm::vec3 axis = _angularVelocity / angularSpeed;
-            glm::quat  dQ = glm::angleAxis(angle, axis);
-            glm::quat rotation = getRotation();
-            rotation = glm::normalize(dQ * rotation);
-            setRotation(rotation);
-        }
-    }
-
-    if (hasVelocity()) {
-        // linear damping
-        glm::vec3 velocity = getVelocity();
-        if (_damping > 0.0f) {
-            velocity *= powf(1.0f - _damping, timeElapsed);
-        }
-
-        // integrate position forward
-        glm::vec3 position = getPosition() + (velocity * timeElapsed);
-
         // apply gravity
         if (hasGravity()) { 
             // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
             // "ground" plane of the domain, but for now it's what we've got
             velocity += getGravity() * timeElapsed;
         }
-        
-        // NOTE: the simulation should NOT set any DirtyFlags on this entity
-        setPosition(position); // this will automatically recalculate our collision shape
-        setVelocity(velocity);
+
+        float speed = glm::length(velocity);
+        const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE; // 1mm/sec
+        if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
+            setVelocity(ENTITY_ITEM_ZERO_VEC3);
+            if (speed > 0.0f) {
+                _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+            }
+        } else {
+            setPosition(position);
+            setVelocity(velocity);
+        }
+
+        if (wantDebug) {        
+            qDebug() << "    new position:" << position;
+            qDebug() << "    new velocity:" << velocity;
+            qDebug() << "    new AACube:" << getMaximumAACube();
+            qDebug() << "    old getAABox:" << getAABox();
+        }
     }
 }
 
@@ -886,7 +832,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         if (_created != UNKNOWN_CREATED_TIME) {
             setLastEdited(now);
         }
-        if (getDirtyFlags() & EntityItem::DIRTY_POSITION) {
+        if (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
             _lastSimulated = now;
         }
     }
