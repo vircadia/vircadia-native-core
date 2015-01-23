@@ -67,6 +67,7 @@ public:
     virtual void init(EntityEditPacketSender* packetSender);
 
     void stepSimulation();
+    void stepNonPhysicalKinematics(const quint64& now);
 
     void computeCollisionEvents();
 
@@ -81,15 +82,16 @@ public:
     void addObject(const ShapeInfo& shapeInfo, btCollisionShape* shape, ObjectMotionState* motionState);
 
     /// \param motionState pointer to Object's MotionState
-    /// \return true if Object removed
-    bool removeObject(ObjectMotionState* motionState);
+    void removeObject(ObjectMotionState* motionState);
 
     /// process queue of changed from external sources
     void relayIncomingChangesToSimulation();
 
 private:
     void removeContacts(ObjectMotionState* motionState);
-    void updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
+
+    // return 'true' of update was successful
+    bool updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
 
     btClock _clock;
@@ -104,6 +106,7 @@ private:
 
     // EntitySimulation stuff
     QSet<EntityMotionState*> _entityMotionStates; // all entities that we track
+    QSet<ObjectMotionState*> _nonPhysicalKinematicObjects; // not in physics simulation, but still need kinematic simulation
     QSet<ObjectMotionState*> _incomingChanges; // entities with pending physics changes by script or packet
     QSet<ObjectMotionState*> _outgoingPackets; // MotionStates with pending changes that need to be sent over wire
 

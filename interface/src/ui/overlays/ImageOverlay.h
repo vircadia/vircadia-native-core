@@ -24,6 +24,7 @@
 
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
+#include <TextureCache.h>
 
 #include "Overlay.h"
 #include "Overlay2D.h"
@@ -49,18 +50,14 @@ public:
 
     virtual ImageOverlay* createClone() const;
 
-private slots:
-    void replyFinished(); // we actually want to hide this...
-
 private:
 
     QUrl _imageURL;
     QImage _textureImage;
 
-    GLuint _textureID;
+    NetworkTexturePointer _texture;
     QRect _fromImage; // where from in the image to sample
     bool _renderImage; // is there an image associated with this overlay, or is it just a colored rectangle
-    bool _textureBound; // has the texture been bound
     bool _wantClipFromImage;
 };
 

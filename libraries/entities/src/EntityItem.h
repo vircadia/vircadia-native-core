@@ -82,6 +82,7 @@ public:
 
     void recordCreationTime();    // set _created to 'now'
     quint64 getLastSimulated() const { return _lastSimulated; } /// Last simulated time of this entity universal usecs
+    void setLastSimulated(quint64 now) { _lastSimulated = now; }
 
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
@@ -129,9 +130,8 @@ public:
     
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
+    void simulateKinematicMotion(float timeElapsed);
 
-    void simulateSimpleKinematicMotion(float timeElapsed);
-    
     virtual bool needsToCallUpdate() const { return false; }
 
     virtual void debugDump() const;
