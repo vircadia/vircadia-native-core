@@ -251,7 +251,7 @@ private:
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
-    float calculateDeviceToNetworkInputRatio(int numBytes) const;
+    float calculateDeviceToNetworkInputRatio() const;
 
     // Input framebuffer
     AudioBufferFloat32 _inputFrameBuffer;
