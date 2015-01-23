@@ -55,7 +55,7 @@ public:
         ~GLTexture();
     };
     static void syncGPUObject(const Texture& texture);
-    static GLuint getTextureID(const Texture& texture);
+    static GLuint getTextureID(const TexturePointer& texture);
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;

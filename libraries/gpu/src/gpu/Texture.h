@@ -32,10 +32,7 @@ public:
     typedef QSharedPointer< Pixels > PixelsPointer;
 
     class Storage {
-        Texture* _texture;
-        std::vector<PixelsPointer> _mips;
     public:
-
         Storage() {}
         virtual ~Storage() {}
         virtual void reset();
@@ -45,7 +42,13 @@ public:
         virtual bool allocateMip(uint16 level);
         virtual bool assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes);
         virtual bool isMipAvailable(uint16 level) const;
-    
+ 
+    protected:
+        Texture* _texture;
+        std::vector<PixelsPointer> _mips;
+
+        virtual void assignTexture(Texture* tex);
+
         friend class Texture;
     };
 

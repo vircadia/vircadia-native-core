@@ -531,13 +531,17 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
     finishedLoading(true);
     imageLoaded(image);
 
-    if (image.hasAlphaChannel()) {
-        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), image.width(), image.height()));
-        _gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA), image.byteCount(), image.constBits());
-        _gpuTexture->autoGenerateMips(-1);
-    } else {
-        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), image.width(), image.height()));
-        _gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), image.byteCount(), image.constBits());
+    if ((_width > 0) && (_height > 0)) {
+        bool isLinearRGB = (_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        if (image.hasAlphaChannel()) {
+            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+        }
+        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height()));
+        _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         _gpuTexture->autoGenerateMips(-1);
     }
 }
@@ -567,16 +571,17 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
             painter.fillPath(path, Qt::black);
             painter.end();
- 
+
+            gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (_type == NORMAL_TEXTURE ? gpu::RGB : gpu::SRGB));
+            gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (_type == NORMAL_TEXTURE ? gpu::RGB : gpu::SRGB));
             if (dilatedImage.hasAlphaChannel()) {
-                texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), dilatedImage.width(), dilatedImage.height()));
-                texture->_gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA), dilatedImage.byteCount(), dilatedImage.constBits());
-                texture->_gpuTexture->autoGenerateMips(-1);
-            } else {
-                texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), dilatedImage.width(), dilatedImage.height()));
-                texture->_gpuTexture->assignStoredMip(0, gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), dilatedImage.byteCount(), dilatedImage.constBits());
-                texture->_gpuTexture->autoGenerateMips(-1);
+                formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (_type == NORMAL_TEXTURE ? gpu::RGBA : gpu::SRGBA));
+                formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (_type == NORMAL_TEXTURE ? gpu::BGRA : gpu::BGRA));
             }
+            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height()));
+            texture->_gpuTexture->assignStoredMip(0, formatMip, dilatedImage.byteCount(), dilatedImage.constBits());
+            texture->_gpuTexture->autoGenerateMips(-1);
+
         }
         
         _dilatedTextures.insert(dilation, texture);

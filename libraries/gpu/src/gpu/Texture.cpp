@@ -23,6 +23,10 @@ Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
 Texture::Pixels::~Pixels() {
 }
 
+void Texture::Storage::assignTexture(Texture* texture) {
+    _texture = texture;
+}
+
 Stamp Texture::Storage::getStamp(uint16 level) const {
     PixelsPointer mip = getMip(level);
     if (mip) {
@@ -111,7 +115,7 @@ Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, ui
 Texture* Texture::createFromStorage(Storage* storage) {
    Texture* tex = new Texture();
    tex->_storage.reset(storage);
-   storage->_texture = tex;
+   storage->assignTexture(tex);
    return tex;
 }
 

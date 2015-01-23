@@ -94,10 +94,13 @@ public:
 
                 switch(srcFormat.getSemantic()) {
                 case gpu::BGRA:
+                case gpu::SBGRA:
                     texel.format = GL_BGRA;
                     break; 
                 case gpu::RGB:
                 case gpu::RGBA:
+                case gpu::SRGB:
+                case gpu::SRGBA:
                 default:
                     break;
                 };
@@ -108,6 +111,12 @@ public:
                     break;
                 case gpu::RGBA:
                     texel.internalFormat = GL_RGBA;
+                    break;
+                case gpu::SRGB:
+                    texel.internalFormat = GL_SRGB;
+                    break;
+                case gpu::SRGBA:
+                    texel.internalFormat = GL_SRGB_ALPHA;
                     break;
                 default:
                     qDebug() << "Unknown combination of texel format";
@@ -170,6 +179,10 @@ public:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RGB;
                     break;
+                case gpu::SRGB:
+                case gpu::SRGBA:
+                    texel.internalFormat = GL_SRGB; // standard 2.2 gamma correction color
+                    break;
                 default:
                     qDebug() << "Unknown combination of texel format";
                 }
@@ -186,6 +199,12 @@ public:
                     break;
                 case gpu::RGBA:
                     texel.internalFormat = GL_RGBA;
+                    break;
+                case gpu::SRGB:
+                    texel.internalFormat = GL_SRGB;
+                    break;
+                case gpu::SRGBA:
+                    texel.internalFormat = GL_SRGB_ALPHA; // standard 2.2 gamma correction color
                     break;
                 default:
                     qDebug() << "Unknown combination of texel format";
@@ -295,13 +314,17 @@ void GLBackend::syncGPUObject(const Texture& texture) {
 
 
 
-GLuint GLBackend::getTextureID(const Texture& texture) {
-    GLBackend::syncGPUObject(texture);
-    GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(texture);
-    if (object) {
-        return object->_texture;
-    } else {
+GLuint GLBackend::getTextureID(const TexturePointer& texture) {
+    if (texture) {
+        GLBackend::syncGPUObject(*texture);
+        GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texture);
+        if (object) {
+            return object->_texture;
+        } else {
+            return 0;
+        }
+     } else {
         return 0;
-    }
+     }
 }
 

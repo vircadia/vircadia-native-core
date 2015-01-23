@@ -93,21 +93,23 @@ static const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
 // Provide information on how to use the element
 enum Semantic {
     RAW = 0, // used as RAW memory
+
     RGB,
     RGBA,
     BGRA,
     XYZ,
     XYZW,
-    POS_XYZ,
-    POS_XYZW,
     QUAT,
-    DIR_XYZ,
     UV,
     INDEX, //used by index buffer of a mesh
     PART, // used by part buffer of a mesh
 
     DEPTH, // Depth buffer
     DEPTH_STENCIL, // Depth Stencil buffer
+
+    SRGB,
+    SRGBA,
+    SBGRA,
 
     NUM_SEMANTICS,
 };
