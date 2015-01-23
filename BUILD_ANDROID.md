@@ -33,11 +33,11 @@ Download the [OpenSSL source](https://www.openssl.org/source/) and extract the t
 You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki. 
 
 You must change two values at the top of the `setenv-android.sh` script - `_ANDROID_NDK` and `_ANDROID_EABI`.
-`_ANDROID_NDK` should be `android-ndk-r10` and `_ANDROID_EABI` should be `arm-linux-androidebi-4.6`.
+`_ANDROID_NDK` should be `android-ndk-r10` and `_ANDROID_EABI` should be `arm-linux-androidebi-4.9`.
 
 First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path to the root of your Android NDK install. `setenv-android.sh` needs `ANDROID_NDK_ROOT` to set the environment variables required for building OpenSSL.
 
-Execute the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling.
+Source the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling.
 
 We have had issues with `setenv-android.sh` not helping the system use the Android archive tool during compilation. You may also need to set `AR` to point to the `ar` from your NDK AFTER running ./setenv-android.sh. 
 
@@ -46,7 +46,7 @@ Note that your path to `arm-linux-androideabi-ar` will probably not be the same 
 ```
 export ANDROID_NDK_ROOT=YOUR_NDK_ROOT
 ./setenv-android.sh
-export AR=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
+export AR=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
 ```
 
 Then, from the OpenSSL directory, run the following commands.
@@ -75,7 +75,7 @@ cd jni
 ndk-build target=android tbb tbbmalloc arch=arm
 cd ../
 mkdir lib
-cp -rf build/linux_arm_*/**/*.so lib/
+cp `find . -name "*.so"` lib/
 ```
 
 ####Soxr
