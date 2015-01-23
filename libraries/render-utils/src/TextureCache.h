@@ -150,6 +150,9 @@ public:
     /// Returns the lazily-computed average texture color.
     const QColor& getAverageColor() const { return _averageColor; }
 
+    int getWidth() const { return _width; }
+    int getHeight() const { return _height; }
+
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
@@ -163,6 +166,8 @@ private:
     TextureType _type;
     bool _translucent;
     QColor _averageColor;
+    int _width;
+    int _height;
 };
 
 /// Caches derived, dilated textures.
