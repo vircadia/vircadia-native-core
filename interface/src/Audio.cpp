@@ -99,6 +99,15 @@ Audio::Audio() :
     
     // Initialize GVerb
     initGverb();
+
+    const qint64 DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
+
+    _inputDevices = getDeviceNames(QAudio::AudioInput);
+    _outputDevices = getDeviceNames(QAudio::AudioOutput);
+
+    QTimer* updateTimer = new QTimer(this);
+    connect(updateTimer, &QTimer::timeout, this, &Audio::checkDevices);
+    updateTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 }
 
 void Audio::reset() {
@@ -1105,4 +1114,16 @@ qint64 Audio::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     }
 
     return bytesWritten;
+}
+
+void Audio::checkDevices() {
+    QVector<QString> inputDevices = getDeviceNames(QAudio::AudioInput);
+    QVector<QString> outputDevices = getDeviceNames(QAudio::AudioOutput);
+
+    if (inputDevices != _inputDevices || outputDevices != _outputDevices) {
+        _inputDevices = inputDevices;
+        _outputDevices = outputDevices;
+
+        emit deviceChanged();
+    }
 }
