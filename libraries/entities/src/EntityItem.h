@@ -86,7 +86,7 @@ public:
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
     void setLastEdited(quint64 lastEdited) 
-        { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
+        { _lastEdited = _lastUpdated = _lastSimulated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
 
@@ -125,6 +125,7 @@ public:
 
     // perform update
     virtual void update(const quint64& now) { _lastUpdated = now; }
+    quint64 getLastUpdated() const { return _lastUpdated; }
     
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
@@ -296,9 +297,10 @@ protected:
     QUuid _id;
     uint32_t _creatorTokenID;
     bool _newlyCreated;
-    quint64 _lastSimulated; // last time this entity called simulate() 
-    quint64 _lastUpdated; // last time this entity called update()
+    quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity, and physics changes
+    quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
     quint64 _lastEdited; // last official local or remote edit time
+
     quint64 _lastEditedFromRemote; // last time we received and edit from the server
     quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
     quint64 _created;
