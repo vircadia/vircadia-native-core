@@ -520,7 +520,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
         recalculateCollisionShape();
-        if (overwriteLocalData && (getDirtyFlags() & EntityItem::DIRTY_POSITION)) {
+        if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
             _lastSimulated = now;
         }
     }
@@ -770,6 +770,9 @@ void EntityItem::simulateSimpleKinematicMotion(float timeElapsed) {
         float angularSpeed = glm::length(_angularVelocity);
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
+            if (angularSpeed > 0.0f) {
+                _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+            }
             setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
         } else {
             // NOTE: angularSpeed is currently in degrees/sec!!!
@@ -799,10 +802,18 @@ void EntityItem::simulateSimpleKinematicMotion(float timeElapsed) {
             // "ground" plane of the domain, but for now it's what we've got
             velocity += getGravity() * timeElapsed;
         }
-        
-        // NOTE: the simulation should NOT set any DirtyFlags on this entity
-        setPosition(position); // this will automatically recalculate our collision shape
-        setVelocity(velocity);
+
+        float speed = glm::length(velocity);
+        const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
+        if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
+            setVelocity(ENTITY_ITEM_ZERO_VEC3);
+            if (speed > 0.0f) {
+                _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+            }
+        } else {
+            setPosition(position); // this will automatically recalculate our collision shape
+            setVelocity(velocity);
+        }
     }
 }
 
@@ -886,7 +897,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         if (_created != UNKNOWN_CREATED_TIME) {
             setLastEdited(now);
         }
-        if (getDirtyFlags() & EntityItem::DIRTY_POSITION) {
+        if (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
             _lastSimulated = now;
         }
     }

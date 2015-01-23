@@ -14,7 +14,6 @@
 
 #include <AACube.h>
 
-#include "KinematicController.h"
 #include "ObjectMotionState.h"
 
 class EntityItem;
@@ -39,8 +38,8 @@ public:
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
     MotionType computeMotionType() const;
 
-    // virtual override for ObjectMotionState
-    void addKinematicController();
+    void updateKinematicState(uint32_t substep);
+    void stepKinematicSimulation(uint32_t substep);
 
     // this relays incoming position/rotation to the RigidBody
     void getWorldTransform(btTransform& worldTrans) const;
