@@ -1542,13 +1542,21 @@ static inline void appendTriangle(const EdgeCrossing& e0, const EdgeCrossing& e1
 
 const int CORNER_COUNT = 4;
                     
-static inline StackArray::Entry getEntry(const StackArray* lineSrc, int stackWidth, int y, float heightfieldHeight,
+static StackArray::Entry getEntry(const StackArray* lineSrc, int stackWidth, int y, float heightfieldHeight,
         EdgeCrossing cornerCrossings[CORNER_COUNT], int cornerIndex) {
+    int offsetX = (cornerIndex & X_MAXIMUM_FLAG) ? 1 : 0;
+    int offsetZ = (cornerIndex & Y_MAXIMUM_FLAG) ? 1 : 0;
+    const StackArray& src = lineSrc[offsetZ * stackWidth + offsetX];
+    int count = src.getEntryCount();
+    if (count > 0) {
+        int relative = y - src.getPosition();
+        if (relative < count && (relative >= 0 || heightfieldHeight == 0.0f)) {
+            return src.getEntry(y, heightfieldHeight);
+        }
+    }
     const EdgeCrossing& cornerCrossing = cornerCrossings[cornerIndex];
     if (cornerCrossing.point.y == 0.0f) {
-        int offsetX = (cornerIndex & X_MAXIMUM_FLAG) ? 1 : 0;
-        int offsetZ = (cornerIndex & Y_MAXIMUM_FLAG) ? 1 : 0;
-        return lineSrc[offsetZ * stackWidth + offsetX].getEntry(y, heightfieldHeight);
+        return src.getEntry(y, heightfieldHeight);
     }
     StackArray::Entry entry;
     bool set = false;
