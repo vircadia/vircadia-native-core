@@ -10,8 +10,9 @@
 //
 
 #include <algorithm>
+
 #include <AbstractAudioInterface.h>
-#include <AvatarData.h>
+#include <AvatarHashMap.h>
 #include <CollisionInfo.h>
 #include <HeadData.h>
 #include <HandData.h>
@@ -29,16 +30,14 @@ const int MAX_COLLISIONS_PER_Entity = 16;
 EntityCollisionSystem::EntityCollisionSystem()
     :   SimpleEntitySimulation(), 
         _packetSender(NULL),
-        _avatars(NULL),
         _collisions(MAX_COLLISIONS_PER_Entity) {
 }
 
 void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
-        EntityTree* entities, AvatarHashMap* avatars) {
+        EntityTree* entities) {
     assert(entities);
     setEntityTree(entities);
     _packetSender = packetSender;
-    _avatars = avatars;
 }
 
 EntityCollisionSystem::~EntityCollisionSystem() {
@@ -202,7 +201,7 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
 void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
     
     // Entities that are in hand, don't collide with avatars
-    if (!_avatars) {
+    if (!DependencyManager::get<AvatarHashMap>()) {
         return;
     }
 
@@ -217,7 +216,7 @@ void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
     glm::vec3 penetration;
 
     _collisions.clear();
-    foreach (const AvatarSharedPointer& avatarPointer, _avatars->getAvatarHash()) {
+    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarHashMap>()->getAvatarHash()) {
         AvatarData* avatar = avatarPointer.data();
 
         float totalRadius = avatar->getBoundingRadius() + radius;

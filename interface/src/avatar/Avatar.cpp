@@ -35,6 +35,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "AvatarManager.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
@@ -376,7 +377,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             float distance = BASE_LIGHT_DISTANCE * _scale;
             glm::vec3 position = glm::mix(_skeletonModel.getTranslation(), getHead()->getFaceModel().getTranslation(), 0.9f);
             glm::quat orientation = getOrientation();
-            foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
+            foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
                 DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
                     distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,

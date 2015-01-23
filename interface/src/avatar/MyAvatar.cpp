@@ -34,6 +34,7 @@
 #include <TextRenderer.h>
 
 #include "Application.h"
+#include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
 #include "ModelReferential.h"
@@ -895,7 +896,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
     
     int howManyLookingAtMe = 0;
-    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
@@ -1612,7 +1613,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    const AvatarHash& avatars = Application::getInstance()->getAvatarManager().getAvatarHash();
+    const AvatarHash& avatars = DependencyManager::get<AvatarManager>()->getAvatarHash();
     if (avatars.size() <= 1) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
@@ -1687,7 +1688,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     
-    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         if ( ! avatar->isChatCirclingEnabled() ||
                 avatar == static_cast<Avatar*>(this)) {

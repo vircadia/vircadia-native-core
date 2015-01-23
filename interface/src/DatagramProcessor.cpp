@@ -15,6 +15,7 @@
 #include <PerfStat.h>
 
 #include "Application.h"
+#include "avatar/AvatarManager.h"
 #include "Menu.h"
 
 #include "DatagramProcessor.h"
@@ -111,7 +112,7 @@ void DatagramProcessor::processDatagrams() {
                         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
                         avatarMixer->recordBytesReceived(incomingPacket.size());
                         
-                        QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
+                        QMetaObject::invokeMethod(DependencyManager::get<AvatarManager>().data(), "processAvatarMixerDatagram",
                                                   Q_ARG(const QByteArray&, incomingPacket),
                                                   Q_ARG(const QWeakPointer<Node>&, avatarMixer));
                     }

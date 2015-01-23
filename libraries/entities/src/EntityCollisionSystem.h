@@ -18,7 +18,6 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 
-#include <AvatarHashMap.h>
 #include <CollisionInfo.h>
 #include <OctreePacketData.h>
 #include <SharedUtil.h>
@@ -36,7 +35,7 @@ Q_OBJECT
 public:
     EntityCollisionSystem();
 
-    void init(EntityEditPacketSender* packetSender, EntityTree* entities, AvatarHashMap* _avatars = NULL);
+    void init(EntityEditPacketSender* packetSender, EntityTree* entities);
                                 
     ~EntityCollisionSystem();
 
@@ -58,7 +57,6 @@ private:
 
     EntityEditPacketSender* _packetSender;
     AbstractAudioInterface* _audio;
-    AvatarHashMap* _avatars;
     CollisionList _collisions;
 };
 

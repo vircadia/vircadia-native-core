@@ -51,7 +51,6 @@
 #include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
-#include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
@@ -233,8 +232,6 @@ public:
     virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
-
-    AvatarManager& getAvatarManager() { return _avatarManager; }
     void resetProfile(const QString& username);
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
@@ -484,7 +481,6 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
     PrioVR _prioVR;

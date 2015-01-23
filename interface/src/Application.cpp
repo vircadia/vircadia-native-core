@@ -84,6 +84,8 @@
 #include "ModelUploader.h"
 #include "Util.h"
 
+#include "avatar/AvatarManager.h"
+
 #include "audio/AudioToolBox.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
@@ -154,6 +156,7 @@ bool setupEssentials(int& argc, char** argv) {
     }
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+    DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     
     // Set dependencies
     auto glCanvas = DependencyManager::set<GLCanvas>();
@@ -173,6 +176,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
+    auto avatarManager = DependencyManager::set<AvatarManager>();
     
     return true;
 }
@@ -244,7 +248,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
-    _myAvatar = _avatarManager.getMyAvatar();
+    _myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     _applicationStartupTime = startup_time;
 
@@ -1636,7 +1640,7 @@ void Application::init() {
     DependencyManager::get<AmbientOcclusionEffect>()->init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
-    _avatarManager.init();
+    DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
@@ -1698,7 +1702,7 @@ void Application::init() {
 
     EntityTree* entityTree = _entities.getTree();
     
-    _entityCollisionSystem.init(&_entityEditSender, entityTree, &_avatarManager);
+    _entityCollisionSystem.init(&_entityEditSender, entityTree);
     
     entityTree->setSimulation(&_entityCollisionSystem);
 
@@ -2037,7 +2041,7 @@ void Application::update(float deltaTime) {
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     
-    _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
+    DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
 
     updateMetavoxels(deltaTime); // update metavoxels
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
@@ -2590,7 +2594,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("avatarManager");
-            _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
+            DependencyManager::get<AvatarManager>()->renderAvatars(Avatar::SHADOW_RENDER_MODE);
         }
 
         {
@@ -2843,7 +2847,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
-        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
             false, selfAvatarOnly);   
     }
 
@@ -2858,7 +2862,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         PerformanceTimer perfTimer("avatarsPostLighting");
-        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
             true, selfAvatarOnly);   
     }
     
@@ -3303,7 +3307,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
-        _avatarManager.clearOtherAvatars();
+        DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     }
 }
 
@@ -3453,7 +3457,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // hook our avatar and avatar hash map object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
-    scriptEngine->setAvatarHashMap(&_avatarManager, "AvatarList");
+    scriptEngine->setAvatarHashMap(DependencyManager::get<AvatarManager>().data(), "AvatarList");
 
     scriptEngine->registerGlobalObject("Camera", &_myCamera);
 
@@ -3494,7 +3498,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine, DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
-    scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
+    scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
     
     scriptEngine->registerGlobalObject("Joysticks", &JoystickScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine, joystickToScriptValue, joystickFromScriptValue);
