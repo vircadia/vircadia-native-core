@@ -113,6 +113,7 @@ private:
     EntityEditPacketSender* _entityPacketSender = NULL;
 
     ContactMap _contactMap;
+    uint32_t _numContactFrames = 0;
 };
 
 #endif // hifi_PhysicsEngine_h
