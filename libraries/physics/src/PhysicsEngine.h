@@ -67,7 +67,7 @@ public:
     virtual void init(EntityEditPacketSender* packetSender);
 
     void stepSimulation();
-    void stepNonPhysicalKinematics();
+    void stepNonPhysicalKinematics(const quint64& now);
 
     void computeCollisionEvents();
 

@@ -297,7 +297,7 @@ void PhysicsEngine::stepSimulation() {
     // This is step (2).
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     _numSubsteps += (uint32_t)numSubsteps;
-    stepNonPhysicalKinematics();
+    stepNonPhysicalKinematics(usecTimestampNow());
     unlock();
 
     // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
@@ -317,12 +317,11 @@ void PhysicsEngine::stepSimulation() {
     computeCollisionEvents();
 }
 
-// TODO: need to update non-physical kinematic objects
-void PhysicsEngine::stepNonPhysicalKinematics() {
+void PhysicsEngine::stepNonPhysicalKinematics(const quint64& now) {
     QSet<ObjectMotionState*>::iterator stateItr = _nonPhysicalKinematicObjects.begin();
     while (stateItr != _nonPhysicalKinematicObjects.end()) {
         ObjectMotionState* motionState = *stateItr;
-        motionState->stepKinematicSimulation(_numSubsteps);
+        motionState->stepKinematicSimulation(now);
         ++stateItr;
     }
 }

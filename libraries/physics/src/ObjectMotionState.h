@@ -99,7 +99,7 @@ public:
     bool isKinematic() const { return _isKinematic; }
 
     void setKinematic(bool kinematic, uint32_t substep);
-    virtual void stepKinematicSimulation(uint32_t substep) = 0;
+    virtual void stepKinematicSimulation(quint64 now) = 0;
 
     friend class PhysicsEngine;
 protected:

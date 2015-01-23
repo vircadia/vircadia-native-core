@@ -54,11 +54,12 @@ void EntityMotionState::updateKinematicState(uint32_t substep) {
     setKinematic(_entity->isMoving(), substep);
 }
 
-void EntityMotionState::stepKinematicSimulation(uint32_t substep) {
+void EntityMotionState::stepKinematicSimulation(quint64 now) {
     assert(_isKinematic);
-    float dt = (substep - _lastKinematicSubstep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
-    _entity->simulateSimpleKinematicMotion(dt);
-    _lastKinematicSubstep = substep;
+    // NOTE: this is non-physical kinematic motion which steps to real run-time (now)
+    // which is different from physical kinematic motion (inside getWorldTransform())
+    // which steps in physics simulation time.
+    _entity->simulate(now);
 }
 
 // This callback is invoked by the physics simulation in two cases:
@@ -68,10 +69,15 @@ void EntityMotionState::stepKinematicSimulation(uint32_t substep) {
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     if (_isKinematic) {
+        // This is physical kinematic motion which steps strictly by the subframe count
+        // of the physics simulation.
         uint32_t substep = PhysicsEngine::getNumSubsteps();
-        // remove const-ness so we can actually update this instance
-        EntityMotionState* thisMotion = const_cast<EntityMotionState*>(this);
-        thisMotion->stepKinematicSimulation(substep);
+        float dt = (substep - _lastKinematicSubstep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+        _entity->simulateKinematicMotion(dt);
+        _entity->setLastSimulated(usecTimestampNow());
+
+        // bypass const-ness so we can remember the substep
+        const_cast<EntityMotionState*>(this)->_lastKinematicSubstep = substep;
     }
     worldTrans.setOrigin(glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));

@@ -39,7 +39,7 @@ public:
     MotionType computeMotionType() const;
 
     void updateKinematicState(uint32_t substep);
-    void stepKinematicSimulation(uint32_t substep);
+    void stepKinematicSimulation(quint64 now);
 
     // this relays incoming position/rotation to the RigidBody
     void getWorldTransform(btTransform& worldTrans) const;
