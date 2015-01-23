@@ -13,21 +13,15 @@
 #include "ShapeInfoUtil.h"
 #include "ThreadSafeDynamicsWorld.h"
 
-static uint32_t _frameCount;
+static uint32_t _numSubsteps;
 
 // static
-uint32_t PhysicsEngine::getFrameCount() {
-    return _frameCount;
+uint32_t PhysicsEngine::getNumSubsteps() {
+    return _numSubsteps;
 }
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
-    :   _collisionConfig(NULL), 
-        _collisionDispatcher(NULL), 
-        _broadphaseFilter(NULL), 
-        _constraintSolver(NULL), 
-        _dynamicsWorld(NULL),
-        _originOffset(offset),
-        _entityPacketSender(NULL) {
+    :  _originOffset(offset) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -47,8 +41,8 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
         ObjectMotionState* state = *stateItr;
         if (state->doesNotNeedToSendUpdate()) {
             stateItr = _outgoingPackets.erase(stateItr);
-        } else if (state->shouldSendUpdate(_frameCount)) {
-            state->sendUpdate(_entityPacketSender, _frameCount);
+        } else if (state->shouldSendUpdate(_numSubsteps)) {
+            state->sendUpdate(_entityPacketSender, _numSubsteps);
             ++stateItr;
         } else {
             ++stateItr;
@@ -135,7 +129,7 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
         ObjectMotionState* motionState = *stateItr;
         uint32_t flags = motionState->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
 
-        btRigidBody* body = motionState->_body;
+        btRigidBody* body = motionState->getRigidBody();
         if (body) {
             if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
                 // a HARD update requires the body be pulled out of physics engine, changed, then reinserted
@@ -144,7 +138,7 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             } else if (flags) {
                 // an EASY update does NOT require that the body be pulled out of physics engine
                 // hence the MotionState has all the knowledge and authority to perform the update.
-                motionState->updateObjectEasy(flags, _frameCount);
+                motionState->updateObjectEasy(flags, _numSubsteps);
             }
         }
 
@@ -163,6 +157,20 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
     _incomingChanges.clear();
 }
 
+void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
+    // trigger events for new/existing/old contacts
+    ContactMap::iterator contactItr = _contactMap.begin();
+    while (contactItr != _contactMap.end()) {
+        if (contactItr->first._a == motionState || contactItr->first._b == motionState) {
+            ContactMap::iterator iterToDelete = contactItr;
+            ++contactItr;
+            _contactMap.erase(iterToDelete);
+        } else {
+            ++contactItr;
+        }
+    }
+}
+
 // virtual
 void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
     // _entityTree should be set prior to the init() call
@@ -178,22 +186,6 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
-        
-        // GROUND HACK: add a big planar floor (and walls for testing) to catch falling objects
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        for (int i = 0; i < 3; ++i) {
-            btVector3 normal(0.0f, 0.0f, 0.0f);
-            normal[i] = 1.0f;
-            btCollisionShape* plane = new btStaticPlaneShape(normal, 0.0f);
-
-            btCollisionObject* groundObject = new btCollisionObject();
-            groundObject->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-            groundObject->setCollisionShape(plane);
-
-            groundObject->setWorldTransform(groundTransform);
-            _dynamicsWorld->addCollisionObject(groundObject);
-        }
     }
 
     assert(packetSender);
@@ -219,23 +211,103 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     // This is step (2).
-    int numSubSteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
-    _frameCount += (uint32_t)numSubSteps;
+    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    _numSubsteps += (uint32_t)numSubsteps;
     unlock();
 
-    // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
+    if (numSubsteps > 0) {
+        // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
+        //
+        // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
+        // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
+        // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
+        // lock on the tree before we re-lock ourselves.
+        //
+        // TODO: untangle these lock sequences.
+        _entityTree->lockForWrite();
+        lock();
+        _dynamicsWorld->synchronizeMotionStates();
+        unlock();
+        _entityTree->unlock();
+    
+        computeCollisionEvents();
+    }
+}
+
+void PhysicsEngine::computeCollisionEvents() {
+    // update all contacts every frame
+    int numManifolds = _collisionDispatcher->getNumManifolds();
+    for (int i = 0; i < numManifolds; ++i) {
+        btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
+        if (contactManifold->getNumContacts() > 0) {
+            // TODO: require scripts to register interest in callbacks for specific objects 
+            // so we can filter out most collision events right here.
+            const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
+            const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
+
+            if (!(objectA->isActive() || objectB->isActive())) {
+                // both objects are inactive so stop tracking this contact, 
+                // which will eventually trigger a CONTACT_EVENT_TYPE_END
+                continue;
+            }
+        
+            void* a = objectA->getUserPointer();
+            void* b = objectB->getUserPointer();
+            if (a || b) {
+                // the manifold has up to 4 distinct points, but only extract info from the first
+                _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
+            }
+        }
+    }
+    
+    // We harvest collision callbacks every few frames, which contributes the following effects:
     //
-    // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
-    // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
-    // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
-    // lock on the tree before we re-lock ourselves.
+    // (1) There is a maximum collision callback rate per pair:  substep_rate / SUBSTEPS_PER_COLLIION_FRAME
+    // (2) END/START cycles shorter than SUBSTEPS_PER_COLLIION_FRAME will be filtered out
+    // (3) There is variable lag between when the contact actually starts and when it is reported, 
+    //     up to SUBSTEPS_PER_COLLIION_FRAME * time_per_substep
     //
-    // TODO: untangle these lock sequences.
-    _entityTree->lockForWrite();
-    lock();
-    _dynamicsWorld->synchronizeMotionStates();
-    unlock();
-    _entityTree->unlock();
+    const uint32_t SUBSTEPS_PER_COLLISION_FRAME = 2;
+    if (_numSubsteps - _numContactFrames * SUBSTEPS_PER_COLLISION_FRAME < SUBSTEPS_PER_COLLISION_FRAME) {
+        // we don't harvest collision callbacks every frame
+        // this sets a maximum callback-per-contact rate
+        // and also filters out END/START events that happen on shorter timescales
+        return;
+    }
+
+    ++_numContactFrames;
+    // scan known contacts and trigger events
+    ContactMap::iterator contactItr = _contactMap.begin();
+    while (contactItr != _contactMap.end()) {
+        ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
+        ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
+
+        // TODO: make triggering these events clean and efficient.  The code at this context shouldn't 
+        // have to figure out what kind of object (entity, avatar, etc) these are in order to properly 
+        // emit a collision event.
+        if (A && A->getType() == MOTION_STATE_TYPE_ENTITY) {
+            EntityItemID idA = static_cast<EntityMotionState*>(A)->getEntity()->getEntityItemID();
+            EntityItemID idB;
+            if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
+                idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+            }
+            emit entityCollisionWithEntity(idA, idB, contactItr->second);
+        } else if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
+            EntityItemID idA;
+            EntityItemID idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+            emit entityCollisionWithEntity(idA, idB, contactItr->second);
+        }
+
+        // TODO: enable scripts to filter based on contact event type
+        ContactEventType type = contactItr->second.computeType(_numContactFrames);
+        if (type == CONTACT_EVENT_TYPE_END) {
+            ContactMap::iterator iterToDelete = contactItr;
+            ++contactItr;
+            _contactMap.erase(iterToDelete);
+        } else {
+            ++contactItr;
+        }
+    }
 }
 
 // Bullet collision flags are as follows:
@@ -259,7 +331,7 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
             body = new btRigidBody(mass, motionState, shape, inertia);
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
             body->updateInertiaTensor();
-            motionState->_body = body;
+            motionState->setRigidBody(body);
             motionState->addKinematicController();
             const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
             const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
@@ -271,7 +343,7 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
             shape->calculateLocalInertia(mass, inertia);
             body = new btRigidBody(mass, motionState, shape, inertia);
             body->updateInertiaTensor();
-            motionState->_body = body;
+            motionState->setRigidBody(body);
             motionState->updateObjectVelocities();
             // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
             // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
@@ -285,7 +357,7 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
             body = new btRigidBody(mass, motionState, shape, inertia);
             body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
             body->updateInertiaTensor();
-            motionState->_body = body;
+            motionState->setRigidBody(body);
             break;
         }
     }
@@ -298,7 +370,7 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
 
 bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
     assert(motionState);
-    btRigidBody* body = motionState->_body;
+    btRigidBody* body = motionState->getRigidBody();
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
         ShapeInfo shapeInfo;
@@ -306,8 +378,10 @@ bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
         _dynamicsWorld->removeRigidBody(body);
         _shapeManager.releaseShape(shapeInfo);
         delete body;
-        motionState->_body = NULL;
+        motionState->setRigidBody(NULL);
         motionState->removeKinematicController();
+
+        removeContacts(motionState);
         return true;
     }
     return false;
@@ -349,7 +423,7 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     }
     bool easyUpdate = flags & EASY_DIRTY_PHYSICS_FLAGS;
     if (easyUpdate) {
-        motionState->updateObjectEasy(flags, _frameCount);
+        motionState->updateObjectEasy(flags, _numSubsteps);
     }
 
     // update the motion parameters

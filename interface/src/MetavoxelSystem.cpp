@@ -1425,7 +1425,29 @@ public:
     char material;
     
     void setColorMaterial(const StackArray::Entry& entry) { color = entry.color; material = entry.material; }
+    
+    void mix(const EdgeCrossing& first, const EdgeCrossing& second, float t);
+    
+    VoxelPoint createPoint(int clampedX, int clampedZ, float step) const;
 };
+
+void EdgeCrossing::mix(const EdgeCrossing& first, const EdgeCrossing& second, float t) {
+    point = glm::mix(first.point, second.point, t);
+    normal = glm::normalize(glm::mix(first.normal, second.normal, t));
+    color = qRgb(glm::mix(qRed(first.color), qRed(second.color), t), glm::mix(qGreen(first.color), qGreen(second.color), t),
+        glm::mix(qBlue(first.color), qBlue(second.color), t));
+    material = (t < 0.5f) ? first.material : second.material;
+}
+
+VoxelPoint EdgeCrossing::createPoint(int clampedX, int clampedZ, float step) const {
+    VoxelPoint voxelPoint = { glm::vec3(clampedX + point.x, point.y, clampedZ + point.z) * step,
+        { (quint8)qRed(color), (quint8)qGreen(color), (quint8)qBlue(color) },
+        { (char)(normal.x * numeric_limits<qint8>::max()), (char)(normal.y * numeric_limits<qint8>::max()),
+            (char)(normal.z * numeric_limits<qint8>::max()) },
+        { (quint8)material, 0, 0, 0 },
+        { numeric_limits<quint8>::max(), 0, 0, 0 } };
+    return voxelPoint;
+}
 
 const int MAX_NORMALS_PER_VERTEX = 4;
 
@@ -1480,7 +1502,6 @@ public:
     void swap(IndexVector& other) { QVector<NormalIndex>::swap(other); qSwap(position, other.position); }
     
     const NormalIndex& get(int y) const;
-    const NormalIndex& getClosest(int y) const;
 };
 
 const NormalIndex& IndexVector::get(int y) const {
@@ -1489,54 +1510,82 @@ const NormalIndex& IndexVector::get(int y) const {
     return (relative >= 0 && relative < size()) ? at(relative) : invalidIndex;
 }
 
-const NormalIndex& IndexVector::getClosest(int y) const {
-    static NormalIndex invalidIndex = { { -1, -1, -1, -1 } };
-    int relative = y - position;
-    if (relative < 0 || relative >= size()) {
-        return invalidIndex;
+static inline glm::vec3 getNormal(const QVector<VoxelPoint>& vertices, const NormalIndex& i0,
+        const NormalIndex& i1, const NormalIndex& i2, const NormalIndex& i3) {
+    // check both triangles in case one is degenerate
+    const glm::vec3& v0 = vertices.at(i0.indices[0]).vertex;
+    glm::vec3 normal = glm::cross(vertices.at(i1.indices[0]).vertex - v0, vertices.at(i2.indices[0]).vertex - v0);
+    if (glm::length(normal) > EPSILON) {
+        return normal;
     }
-    const NormalIndex& first = at(relative);
-    if (first.isValid()) {
-        return first;
-    }
-    for (int distance = 1; relative - distance >= 0 || relative + distance < size(); distance++) {
-        int previous = relative - distance;
-        if (previous >= 0) {
-            const NormalIndex& previousIndex = at(previous);
-            if (previousIndex.isValid()) {
-                return previousIndex;
-            }
-        }
-        int next = relative + distance;
-        if (next < size()) {
-            const NormalIndex& nextIndex = at(next);
-            if (nextIndex.isValid()) {
-                return nextIndex;
-            }
-        }
-    }
-    return invalidIndex;
+    return glm::cross(vertices.at(i2.indices[0]).vertex - v0, vertices.at(i3.indices[0]).vertex - v0);
 }
 
-static inline void appendIndices(QVector<int>& indices, QMultiHash<VoxelCoord, int>& quadIndices,
-        const QVector<VoxelPoint>& vertices, float step, int i0, int i1, int i2, int i3) {
-    int newIndices[] = { i0, i1, i2, i3 };
-    glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-    int indexIndex = indices.size();
-    for (unsigned int i = 0; i < sizeof(newIndices) / sizeof(newIndices[0]); i++) {
-        int index = newIndices[i];
-        indices.append(index);
-        const glm::vec3& vertex = vertices.at(index).vertex;
-        minima = glm::min(vertex, minima);
-        maxima = glm::max(vertex, maxima);
+static inline void appendTriangle(const EdgeCrossing& e0, const EdgeCrossing& e1, const EdgeCrossing& e2,
+        int clampedX, int clampedZ, float step, QVector<VoxelPoint>& vertices, QVector<int>& indices,
+        QMultiHash<VoxelCoord, int>& quadIndices) {
+    int firstIndex = vertices.size();
+    vertices.append(e0.createPoint(clampedX, clampedZ, step));
+    vertices.append(e1.createPoint(clampedX, clampedZ, step));
+    vertices.append(e2.createPoint(clampedX, clampedZ, step));
+    indices.append(firstIndex);
+    indices.append(firstIndex + 1);
+    indices.append(firstIndex + 2);
+    indices.append(firstIndex + 2);
+    
+    int minimumY = qMin((int)e0.point.y, qMin((int)e1.point.y, (int)e2.point.y));
+    int maximumY = qMax((int)e0.point.y, qMax((int)e1.point.y, (int)e2.point.y));
+    for (int y = minimumY; y <= maximumY; y++) {
+        quadIndices.insert(qRgb(clampedX, y, clampedZ), firstIndex);
     }
-    for (int z = (int)minima.z, endZ = (int)glm::ceil(maxima.z); z < endZ; z++) {
-        for (int y = (int)minima.x, endY = (int)glm::ceil(maxima.y); y < endY; y++) {
-            for (int x = (int)minima.x, endX = (int)glm::ceil(maxima.x); x < endX; x++) {
-                quadIndices.insert(qRgb(x, y, z), indexIndex);
-            }
+}
+
+const int CORNER_COUNT = 4;
+                    
+static StackArray::Entry getEntry(const StackArray* lineSrc, int stackWidth, int y, float heightfieldHeight,
+        EdgeCrossing cornerCrossings[CORNER_COUNT], int cornerIndex) {
+    int offsetX = (cornerIndex & X_MAXIMUM_FLAG) ? 1 : 0;
+    int offsetZ = (cornerIndex & Y_MAXIMUM_FLAG) ? 1 : 0;
+    const StackArray& src = lineSrc[offsetZ * stackWidth + offsetX];
+    int count = src.getEntryCount();
+    if (count > 0) {
+        int relative = y - src.getPosition();
+        if (relative < count && (relative >= 0 || heightfieldHeight == 0.0f)) {
+            return src.getEntry(y, heightfieldHeight);
         }
     }
+    const EdgeCrossing& cornerCrossing = cornerCrossings[cornerIndex];
+    if (cornerCrossing.point.y == 0.0f) {
+        return src.getEntry(y, heightfieldHeight);
+    }
+    StackArray::Entry entry;
+    bool set = false;
+    if (cornerCrossing.point.y >= y) {
+        entry.color = cornerCrossing.color;
+        entry.material = cornerCrossing.material;
+        set = true;
+        entry.setHermiteY(cornerCrossing.normal, glm::clamp(cornerCrossing.point.y - y, 0.0f, 1.0f));
+        
+    } else {
+        entry.material = entry.color = 0;
+    }
+    if (!(cornerIndex & X_MAXIMUM_FLAG)) {
+        const EdgeCrossing& nextCornerCrossingX = cornerCrossings[cornerIndex | X_MAXIMUM_FLAG];
+        if (nextCornerCrossingX.point.y != 0.0f && (nextCornerCrossingX.point.y >= y) != set) {
+            float t = glm::clamp((y - cornerCrossing.point.y) /
+                (nextCornerCrossingX.point.y - cornerCrossing.point.y), 0.0f, 1.0f);
+            entry.setHermiteX(glm::normalize(glm::mix(cornerCrossing.normal, nextCornerCrossingX.normal, t)), t);
+        }
+    }
+    if (!(cornerIndex & Y_MAXIMUM_FLAG)) {
+        const EdgeCrossing& nextCornerCrossingZ = cornerCrossings[cornerIndex | Y_MAXIMUM_FLAG];
+        if (nextCornerCrossingZ.point.y != 0.0f && (nextCornerCrossingZ.point.y >= y) != set) {
+            float t = glm::clamp((y - cornerCrossing.point.y) /
+                (nextCornerCrossingZ.point.y - cornerCrossing.point.y), 0.0f, 1.0f);
+            entry.setHermiteZ(glm::normalize(glm::mix(cornerCrossing.normal, nextCornerCrossingZ.normal, t)), t);
+        }
+    }
+    return entry;
 }
 
 void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
@@ -1617,7 +1666,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     
         glGenTextures(1, &_colorTextureID);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         if (node->getColor()) {
@@ -1625,6 +1674,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, node->getColor()->getWidth(),
                 contents.size() / (node->getColor()->getWidth() * DataBlock::COLOR_BYTES),
                 0, GL_RGB, GL_UNSIGNED_BYTE, contents.constData());
+            glGenerateMipmap(GL_TEXTURE_2D);
             
         } else {
             const quint8 WHITE_COLOR[] = { 255, 255, 255 };
@@ -1705,7 +1755,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         }
         
         const int EDGES_PER_CUBE = 12;
-        EdgeCrossing crossings[EDGES_PER_CUBE];
+        EdgeCrossing crossings[EDGES_PER_CUBE * 2];
         
         // as we scan down the cube generating vertices between grid points, we remember the indices of the last
         // (element, line, section--x, y, z) so that we can connect generated vertices as quads
@@ -1736,13 +1786,6 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                     lineSrc[stackWidth].getExtents(minimumY, maximumY);
                 }
                 if (maximumY >= minimumY) {
-                    int position = minimumY;
-                    int count = maximumY - minimumY + 1;
-                    NormalIndex lastIndexY = { { -1, -1, -1, -1 } };
-                    indicesX.position = position;
-                    indicesX.resize(count);
-                    indicesZ[x].position = position;
-                    indicesZ[x].resize(count);
                     float heightfieldHeight = *heightLineSrc * voxelScale;
                     float nextHeightfieldHeightX = heightLineSrc[1] * voxelScale;
                     float nextHeightfieldHeightZ = heightLineSrc[width] * voxelScale;
@@ -1753,6 +1796,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                     const int LOWER_RIGHT_CORNER = 8;
                     const int NO_CORNERS = 0;
                     const int ALL_CORNERS = UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER | LOWER_RIGHT_CORNER;
+                    const int NEXT_CORNERS[] = { 1, 3, 0, 2 };
                     int corners = NO_CORNERS;
                     if (heightfieldHeight != 0.0f) {
                         corners |= UPPER_LEFT_CORNER;
@@ -1767,37 +1811,38 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         corners |= LOWER_RIGHT_CORNER;
                     }
                     bool stitchable = x != 0 && z != 0 && !(corners == NO_CORNERS || corners == ALL_CORNERS);
-                    VoxelPoint cornerPoints[4];
+                    EdgeCrossing cornerCrossings[CORNER_COUNT];
                     int clampedX = qMax(x - 1, 0), clampedZ = qMax(z - 1, 0);
+                    int cornerMinimumY = INT_MAX, cornerMaximumY = -1;
                     if (stitchable) {
-                        for (unsigned int i = 0; i < sizeof(cornerPoints) / sizeof(cornerPoints[0]); i++) {
+                        for (int i = 0; i < CORNER_COUNT; i++) {
                             if (!(corners & (1 << i))) {
                                 continue;
                             }
                             int offsetX = (i & X_MAXIMUM_FLAG) ? 1 : 0;
                             int offsetZ = (i & Y_MAXIMUM_FLAG) ? 1 : 0;
                             const quint16* height = heightLineSrc + offsetZ * width + offsetX;
-                            VoxelPoint& point = cornerPoints[i];
-                            int clampedOffsetX = clampedX + offsetX, clampedOffsetZ = clampedZ + offsetZ;
-                            point.vertex = glm::vec3(clampedOffsetX, *height * voxelScale, clampedOffsetZ) * step;
+                            float heightValue = *height * voxelScale;
+                            int y = (int)heightValue;
+                            cornerMinimumY = qMin(cornerMinimumY, y);
+                            cornerMaximumY = qMax(cornerMaximumY, y);
+                            EdgeCrossing& crossing = cornerCrossings[i];
+                            crossing.point = glm::vec3(offsetX, heightValue, offsetZ);
                             int left = height[-1];
                             int right = height[1];
                             int down = height[-width];
                             int up = height[width];
-                            glm::vec3 normal = glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f : left - right,
+                            crossing.normal = glm::normalize(glm::vec3((left == 0 || right == 0) ? 0.0f : left - right,
                                 2.0f / voxelScale, (up == 0 || down == 0) ? 0.0f : down - up));
-                            point.normal[0] = normal.x * numeric_limits<qint8>::max();
-                            point.normal[1] = normal.y * numeric_limits<qint8>::max();
-                            point.normal[2] = normal.z * numeric_limits<qint8>::max();
+                            int clampedOffsetX = clampedX + offsetX, clampedOffsetZ = clampedZ + offsetZ;
                             if (colorSrc) {
                                 const uchar* color = colorSrc + ((int)(clampedOffsetZ * colorStepZ) * colorWidth +
                                     (int)(clampedOffsetX * colorStepX)) * DataBlock::COLOR_BYTES;
-                                point.color[0] = color[0];
-                                point.color[1] = color[1];
-                                point.color[2] = color[2];
-                            
+                                crossing.color = qRgb(color[0], color[1], color[2]);
+                             
                             } else {
-                                point.color[0] = point.color[1] = point.color[2] = numeric_limits<quint8>::max();
+                                crossing.color = qRgb(numeric_limits<quint8>::max(), numeric_limits<quint8>::max(),
+                                    numeric_limits<quint8>::max());
                             }
                             int material = 0;
                             if (materialSrc) {
@@ -1812,14 +1857,29 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     material = mapping;
                                 }
                             }
-                            point.materials[0] = material;
-                            point.materials[1] = point.materials[2] = point.materials[3] = 0;
-                            point.materialWeights[0] = numeric_limits<quint8>::max();
-                            point.materialWeights[1] = point.materialWeights[2] = point.materialWeights[3] = 0;
+                            crossing.material = material;
+                        }
+                        minimumY = qMin(minimumY, cornerMinimumY);
+                        maximumY = qMax(maximumY, cornerMaximumY);
+                        
+                        if (corners == (LOWER_LEFT_CORNER | UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER)) {
+                            appendTriangle(cornerCrossings[1], cornerCrossings[0], cornerCrossings[2],
+                                clampedX, clampedZ, step, vertices, indices, quadIndices);
+                        
+                        } else if (corners == (UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER)) {
+                            appendTriangle(cornerCrossings[2], cornerCrossings[3], cornerCrossings[1],
+                                clampedX, clampedZ, step, vertices, indices, quadIndices);
                         }
                     }
+                    int position = minimumY;
+                    int count = maximumY - minimumY + 1;
+                    NormalIndex lastIndexY = { { -1, -1, -1, -1 } };
+                    indicesX.position = position;
+                    indicesX.resize(count);
+                    indicesZ[x].position = position;
+                    indicesZ[x].resize(count);
                     for (int y = position, end = position + count; y < end; y++) {
-                        const StackArray::Entry& entry = lineSrc->getEntry(y, heightfieldHeight);
+                        StackArray::Entry entry = getEntry(lineSrc, stackWidth, y, heightfieldHeight, cornerCrossings, 0);
                         if (displayHermite && x != 0 && z != 0 && !lineSrc->isEmpty() && y >= lineSrc->getPosition()) {
                             glm::vec3 normal;
                             if (entry.hermiteX != 0) {
@@ -1875,91 +1935,174 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         if (alphaTotal == 0 || alphaTotal == possibleTotal) {
                             continue; // no corners set/all corners set
                         }
+                        // we first look for crossings with the heightfield corner vertices; these take priority
+                        int crossingCount = 0;
+                        if (y >= cornerMinimumY && y <= cornerMaximumY) {
+                            // first look for set corners, which override any interpolated values
+                            int crossedCorners = NO_CORNERS;
+                            for (int i = 0; i < CORNER_COUNT; i++) {
+                                if (!(corners & (1 << i))) {
+                                    continue;
+                                }
+                                const EdgeCrossing& cornerCrossing = cornerCrossings[i];
+                                if (cornerCrossing.point.y >= y && cornerCrossing.point.y < y + 1) {
+                                    crossedCorners |= (1 << i);
+                                }
+                            }
+                            switch (crossedCorners) {
+                                case UPPER_LEFT_CORNER:
+                                case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER:
+                                case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER | UPPER_LEFT_CORNER:
+                                case UPPER_LEFT_CORNER | LOWER_RIGHT_CORNER:
+                                    crossings[crossingCount++] = cornerCrossings[0];
+                                    crossings[crossingCount - 1].point.y -= y;
+                                    break;
+                                
+                                case UPPER_RIGHT_CORNER:
+                                case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
+                                case UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER:
+                                case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
+                                    crossings[crossingCount++] = cornerCrossings[1];
+                                    crossings[crossingCount - 1].point.y -= y;
+                                    break;
+                                
+                                case LOWER_LEFT_CORNER:
+                                case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
+                                case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
+                                    crossings[crossingCount++] = cornerCrossings[2];
+                                    crossings[crossingCount - 1].point.y -= y;
+                                    break;
+                                
+                                case LOWER_RIGHT_CORNER:
+                                case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
+                                case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER:
+                                    crossings[crossingCount++] = cornerCrossings[3];
+                                    crossings[crossingCount - 1].point.y -= y;
+                                    break;
+                                
+                                case NO_CORNERS:
+                                    for (int i = 0; i < CORNER_COUNT; i++) {
+                                        if (!(corners & (1 << i))) {
+                                            continue;
+                                        }
+                                        int nextIndex = NEXT_CORNERS[i];
+                                        if (!(corners & (1 << nextIndex))) {
+                                            continue;
+                                        }
+                                        const EdgeCrossing& cornerCrossing = cornerCrossings[i];
+                                        const EdgeCrossing& nextCornerCrossing = cornerCrossings[nextIndex];
+                                        float divisor = (nextCornerCrossing.point.y - cornerCrossing.point.y);
+                                        if (divisor == 0.0f) {
+                                            continue;
+                                        }
+                                        float t1 = (y - cornerCrossing.point.y) / divisor;
+                                        float t2 = (y + 1 - cornerCrossing.point.y) / divisor;
+                                        if (t1 >= 0.0f && t1 <= 1.0f) {
+                                            crossings[crossingCount++].mix(cornerCrossing, nextCornerCrossing, t1);
+                                            crossings[crossingCount - 1].point.y -= y;
+                                        }
+                                        if (t2 >= 0.0f && t2 <= 1.0f) {
+                                            crossings[crossingCount++].mix(cornerCrossing, nextCornerCrossing, t2);
+                                            crossings[crossingCount - 1].point.y -= y;
+                                        }
+                                    }
+                                    break;
+                            }
+                        }
+                        
                         // the terrifying conditional code that follows checks each cube edge for a crossing, gathering
                         // its properties (color, material, normal) if one is present; as before, boundary edges are excluded
-                        int crossingCount = 0;
-                        const StackArray::Entry& nextEntryY = lineSrc->getEntry(y + 1, heightfieldHeight);
-                        if (middleX) {
-                            const StackArray::Entry& nextEntryX = lineSrc[1].getEntry(y, nextHeightfieldHeightX);
-                            const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1, nextHeightfieldHeightX);    
-                            if (alpha0 != alpha1) {
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.point = glm::vec3(entry.getHermiteX(crossing.normal), 0.0f, 0.0f);
-                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryX : entry);
+                        if (crossingCount == 0) {
+                            StackArray::Entry nextEntryY = getEntry(lineSrc, stackWidth, y + 1,
+                                heightfieldHeight, cornerCrossings, 0);
+                            if (middleX) {
+                                StackArray::Entry nextEntryX = getEntry(lineSrc, stackWidth, y, nextHeightfieldHeightX,
+                                    cornerCrossings, 1);
+                                StackArray::Entry nextEntryXY = getEntry(lineSrc, stackWidth, y + 1, nextHeightfieldHeightX,
+                                    cornerCrossings, 1);   
+                                if (alpha0 != alpha1) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.point = glm::vec3(entry.getHermiteX(crossing.normal), 0.0f, 0.0f);
+                                    crossing.setColorMaterial(alpha0 == 0 ? nextEntryX : entry);
+                                }
+                                if (alpha1 != alpha3) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.point = glm::vec3(1.0f, nextEntryX.getHermiteY(crossing.normal), 0.0f);
+                                    crossing.setColorMaterial(alpha1 == 0 ? nextEntryXY : nextEntryX);
+                                }
+                                if (alpha2 != alpha3) {
+                                    EdgeCrossing& crossing = crossings[crossingCount++];
+                                    crossing.point = glm::vec3(nextEntryY.getHermiteX(crossing.normal), 1.0f, 0.0f);
+                                    crossing.setColorMaterial(alpha2 == 0 ? nextEntryXY : nextEntryY);
+                                }
+                                if (middleZ) {
+                                    StackArray::Entry nextEntryZ = getEntry(lineSrc, stackWidth, y, nextHeightfieldHeightZ,
+                                        cornerCrossings, 2);
+                                    StackArray::Entry nextEntryXZ = getEntry(lineSrc, stackWidth, y, nextHeightfieldHeightXZ,
+                                        cornerCrossings, 3);
+                                    StackArray::Entry nextEntryXYZ = getEntry(lineSrc, stackWidth, y + 1,
+                                        nextHeightfieldHeightXZ, cornerCrossings, 3);
+                                    if (alpha1 != alpha5) {
+                                        EdgeCrossing& crossing = crossings[crossingCount++];
+                                        crossing.point = glm::vec3(1.0f, 0.0f, nextEntryX.getHermiteZ(crossing.normal));
+                                        crossing.setColorMaterial(alpha1 == 0 ? nextEntryXZ : nextEntryX);
+                                    }
+                                    if (alpha3 != alpha7) {
+                                        EdgeCrossing& crossing = crossings[crossingCount++];
+                                        StackArray::Entry nextEntryXY = getEntry(lineSrc, stackWidth, y + 1,
+                                            nextHeightfieldHeightX, cornerCrossings, 1);
+                                        crossing.point = glm::vec3(1.0f, 1.0f, nextEntryXY.getHermiteZ(crossing.normal));
+                                        crossing.setColorMaterial(alpha3 == 0 ? nextEntryXYZ : nextEntryXY);
+                                    }
+                                    if (alpha4 != alpha5) {
+                                        EdgeCrossing& crossing = crossings[crossingCount++];
+                                        crossing.point = glm::vec3(nextEntryZ.getHermiteX(crossing.normal), 0.0f, 1.0f);
+                                        crossing.setColorMaterial(alpha4 == 0 ? nextEntryXZ : nextEntryZ);
+                                    }
+                                    if (alpha5 != alpha7) {
+                                        EdgeCrossing& crossing = crossings[crossingCount++];
+                                        StackArray::Entry nextEntryXZ = getEntry(lineSrc, stackWidth, y,
+                                            nextHeightfieldHeightXZ, cornerCrossings, 3);
+                                        crossing.point = glm::vec3(1.0f, nextEntryXZ.getHermiteY(crossing.normal), 1.0f);
+                                        crossing.setColorMaterial(alpha5 == 0 ? nextEntryXYZ : nextEntryXZ);
+                                    }
+                                    if (alpha6 != alpha7) {
+                                        EdgeCrossing& crossing = crossings[crossingCount++];
+                                        StackArray::Entry nextEntryYZ = getEntry(lineSrc, stackWidth, y + 1,
+                                            nextHeightfieldHeightZ, cornerCrossings, 2);
+                                        crossing.point = glm::vec3(nextEntryYZ.getHermiteX(crossing.normal), 1.0f, 1.0f);
+                                        crossing.setColorMaterial(alpha6 == 0 ? nextEntryXYZ : nextEntryYZ);
+                                    }
+                                }
                             }
-                            if (alpha1 != alpha3) {
+                            if (alpha0 != alpha2) {
                                 EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.point = glm::vec3(1.0f, nextEntryX.getHermiteY(crossing.normal), 0.0f);
-                                crossing.setColorMaterial(alpha1 == 0 ? nextEntryXY : nextEntryX);
-                            }
-                            if (alpha2 != alpha3) {
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.point = glm::vec3(nextEntryY.getHermiteX(crossing.normal), 1.0f, 0.0f);
-                                crossing.setColorMaterial(alpha2 == 0 ? nextEntryXY : nextEntryY);
+                                crossing.point = glm::vec3(0.0f, entry.getHermiteY(crossing.normal), 0.0f);
+                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryY : entry);
                             }
                             if (middleZ) {
-                                const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y, nextHeightfieldHeightZ);
-                                const StackArray::Entry& nextEntryXZ = lineSrc[stackWidth + 1].getEntry(
-                                    y, nextHeightfieldHeightXZ);
-                                const StackArray::Entry& nextEntryXYZ = lineSrc[stackWidth + 1].getEntry(
-                                    y + 1, nextHeightfieldHeightXZ);
-                                if (alpha1 != alpha5) {
+                                StackArray::Entry nextEntryZ = getEntry(lineSrc, stackWidth, y,
+                                    nextHeightfieldHeightZ, cornerCrossings, 2);
+                                StackArray::Entry nextEntryYZ = getEntry(lineSrc, stackWidth, y + 1,
+                                    nextHeightfieldHeightZ, cornerCrossings, 2);
+                                if (alpha0 != alpha4) {
                                     EdgeCrossing& crossing = crossings[crossingCount++];
-                                    crossing.point = glm::vec3(1.0f, 0.0f, nextEntryX.getHermiteZ(crossing.normal));
-                                    crossing.setColorMaterial(alpha1 == 0 ? nextEntryXZ : nextEntryX);
+                                    crossing.point = glm::vec3(0.0f, 0.0f, entry.getHermiteZ(crossing.normal));
+                                    crossing.setColorMaterial(alpha0 == 0 ? nextEntryZ : entry);
                                 }
-                                if (alpha3 != alpha7) {
+                                if (alpha2 != alpha6) {
                                     EdgeCrossing& crossing = crossings[crossingCount++];
-                                    const StackArray::Entry& nextEntryXY = lineSrc[1].getEntry(y + 1, nextHeightfieldHeightX);
-                                    crossing.point = glm::vec3(1.0f, 1.0f, nextEntryXY.getHermiteZ(crossing.normal));
-                                    crossing.setColorMaterial(alpha3 == 0 ? nextEntryXYZ : nextEntryXY);
+                                    crossing.point = glm::vec3(0.0f, 1.0f, nextEntryY.getHermiteZ(crossing.normal));
+                                    crossing.setColorMaterial(alpha2 == 0 ? nextEntryYZ : nextEntryY);
                                 }
-                                if (alpha4 != alpha5) {
+                                if (alpha4 != alpha6) {
                                     EdgeCrossing& crossing = crossings[crossingCount++];
-                                    crossing.point = glm::vec3(nextEntryZ.getHermiteX(crossing.normal), 0.0f, 1.0f);
-                                    crossing.setColorMaterial(alpha4 == 0 ? nextEntryXZ : nextEntryZ);
-                                }
-                                if (alpha5 != alpha7) {
-                                    EdgeCrossing& crossing = crossings[crossingCount++];
-                                    const StackArray::Entry& nextEntryXZ = lineSrc[stackWidth + 1].getEntry(
-                                        y, nextHeightfieldHeightXZ);
-                                    crossing.point = glm::vec3(1.0f, nextEntryXZ.getHermiteY(crossing.normal), 1.0f);
-                                    crossing.setColorMaterial(alpha5 == 0 ? nextEntryXYZ : nextEntryXZ);
-                                }
-                                if (alpha6 != alpha7) {
-                                    EdgeCrossing& crossing = crossings[crossingCount++];
-                                    const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(
-                                        y + 1, nextHeightfieldHeightZ);
-                                    crossing.point = glm::vec3(nextEntryYZ.getHermiteX(crossing.normal), 1.0f, 1.0f);
-                                    crossing.setColorMaterial(alpha6 == 0 ? nextEntryXYZ : nextEntryYZ);
+                                    crossing.point = glm::vec3(0.0f, nextEntryZ.getHermiteY(crossing.normal), 1.0f);
+                                    crossing.setColorMaterial(alpha4 == 0 ? nextEntryYZ : nextEntryZ);
                                 }
                             }
                         }
-                        if (alpha0 != alpha2) {
-                            EdgeCrossing& crossing = crossings[crossingCount++];
-                            crossing.point = glm::vec3(0.0f, entry.getHermiteY(crossing.normal), 0.0f);
-                            crossing.setColorMaterial(alpha0 == 0 ? nextEntryY : entry);
-                        }
-                        if (middleZ) {
-                            const StackArray::Entry& nextEntryZ = lineSrc[stackWidth].getEntry(y, nextHeightfieldHeightZ);
-                            const StackArray::Entry& nextEntryYZ = lineSrc[stackWidth].getEntry(y + 1, nextHeightfieldHeightZ);
-                            if (alpha0 != alpha4) {
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.point = glm::vec3(0.0f, 0.0f, entry.getHermiteZ(crossing.normal));
-                                crossing.setColorMaterial(alpha0 == 0 ? nextEntryZ : entry);
-                            }
-                            if (alpha2 != alpha6) {
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.point = glm::vec3(0.0f, 1.0f, nextEntryY.getHermiteZ(crossing.normal));
-                                crossing.setColorMaterial(alpha2 == 0 ? nextEntryYZ : nextEntryY);
-                            }
-                            if (alpha4 != alpha6) {
-                                EdgeCrossing& crossing = crossings[crossingCount++];
-                                crossing.point = glm::vec3(0.0f, nextEntryZ.getHermiteY(crossing.normal), 1.0f);
-                                crossing.setColorMaterial(alpha4 == 0 ? nextEntryYZ : nextEntryZ);
-                            }
-                        }
-                        // determine whether we should ignore this vertex because it will be stitched
+                        // make sure we have valid crossings to include
                         int validCrossings = 0;
                         for (int i = 0; i < crossingCount; i++) {
                             if (qAlpha(crossings[i].color) != 0) {
@@ -2107,173 +2250,6 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 point.setNormal(normals[i]);
                                 vertices.append(point);
                             }
-                        
-                            if (stitchable) {
-                                int nextIndex = vertices.size();
-                                const NormalIndex& previousIndexX = lastIndicesX.getClosest(y);
-                                const NormalIndex& previousIndexZ = lastIndicesZ[x].getClosest(y);
-                                switch (corners) {
-                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER: {
-                                        vertices.append(cornerPoints[0]);
-                                        vertices.append(cornerPoints[3]);
-                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex - cornerPoints[1].vertex,
-                                            cornerPoints[3].vertex - cornerPoints[1].vertex);
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex + 1, nextIndex, nextIndex);
-                                        if (previousIndexX.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
-                                        }
-                                        break;
-                                    }
-                                    case UPPER_LEFT_CORNER | LOWER_LEFT_CORNER | LOWER_RIGHT_CORNER: {
-                                        vertices.append(cornerPoints[0]);
-                                        vertices.append(cornerPoints[3]);
-                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - cornerPoints[2].vertex,
-                                            cornerPoints[0].vertex - cornerPoints[2].vertex);
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex, nextIndex + 1, nextIndex + 1);
-                                        if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex);
-                                        }
-                                        break;
-                                    }
-                                    case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
-                                        vertices.append(cornerPoints[1]);
-                                        vertices.append(cornerPoints[2]);
-                                        vertices.append(cornerPoints[3]);
-                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - cornerPoints[2].vertex,
-                                            cornerPoints[1].vertex - cornerPoints[2].vertex);
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex + 2, nextIndex, nextIndex);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex + 1, nextIndex + 2, nextIndex + 2);
-                                        if (previousIndexX.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex + 1);
-                                        }
-                                        if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
-                                        }
-                                        break;
-                                    }
-                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
-                                        vertices.append(cornerPoints[0]);
-                                        vertices.append(cornerPoints[1]);
-                                        vertices.append(cornerPoints[2]);
-                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex - cornerPoints[0].vertex,
-                                            cornerPoints[1].vertex - cornerPoints[0].vertex);
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex + 1, nextIndex, nextIndex);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex, nextIndex + 2, nextIndex + 2);
-                                        break;
-                                    }
-                                    case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER: {
-                                        vertices.append(cornerPoints[0]);
-                                        vertices.append(cornerPoints[1]);
-                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                        glm::vec3 normal = glm::cross(cornerPoints[1].vertex - first,
-                                            cornerPoints[0].vertex - first);
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex + 1, nextIndex, nextIndex);
-                                        if (previousIndexX.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
-                                        }
-                                        break;
-                                    }
-                                    case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER: {
-                                        vertices.append(cornerPoints[1]);
-                                        vertices.append(cornerPoints[3]);
-                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                        glm::vec3 normal = glm::cross(cornerPoints[3].vertex - first,
-                                            cornerPoints[1].vertex - first);
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex + 1, nextIndex, nextIndex);
-                                        if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                                firstIndex, nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
-                                        }
-                                        break;
-                                    }
-                                    case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER: {
-                                        vertices.append(cornerPoints[3]);
-                                        vertices.append(cornerPoints[2]);
-                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex - first,
-                                            cornerPoints[3].vertex - first);
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex + 1, nextIndex, nextIndex);
-                                        if (previousIndexX.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex + 1);
-                                        }
-                                        break;
-                                    }
-                                    case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER: {
-                                        vertices.append(cornerPoints[2]);
-                                        vertices.append(cornerPoints[0]);
-                                        const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex - first,
-                                            cornerPoints[2].vertex - first);
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        appendIndices(indices, quadIndices, vertices, step, firstIndex,
-                                            nextIndex + 1, nextIndex, nextIndex);
-                                        if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex + 1);
-                                        }
-                                        break;
-                                    }
-                                    case UPPER_LEFT_CORNER: {
-                                        vertices.append(cornerPoints[0]);
-                                        glm::vec3 normal = glm::cross(cornerPoints[0].vertex -
-                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        if (previousIndexX.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                nextIndex, previousIndexX.getClosestIndex(normal, vertices));
-                                        }
-                                        if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                previousIndexZ.getClosestIndex(normal, vertices), nextIndex);
-                                        }
-                                        break;
-                                    }
-                                    case UPPER_RIGHT_CORNER: {
-                                        vertices.append(cornerPoints[1]);
-                                        glm::vec3 normal = glm::cross(cornerPoints[1].vertex -
-                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        if (previousIndexZ.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                nextIndex, previousIndexZ.getClosestIndex(normal, vertices));
-                                        }
-                                        break;
-                                    }
-                                    case LOWER_LEFT_CORNER: {
-                                        vertices.append(cornerPoints[2]);
-                                        glm::vec3 normal = glm::cross(cornerPoints[2].vertex -
-                                            vertices.at(index.indices[0]).vertex, glm::vec3(1.0f, 0.0f, 0.0f));
-                                        int firstIndex = index.getClosestIndex(normal, vertices);
-                                        if (previousIndexX.isValid()) {
-                                            appendIndices(indices, quadIndices, vertices, step, firstIndex, firstIndex,
-                                                previousIndexX.getClosestIndex(normal, vertices), nextIndex);
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
                         }
                         
                         // the first x, y, and z are repeated for the boundary edge; past that, we consider generating
@@ -2291,10 +2267,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                     quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ - 1), indices.size());
                                     quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
                                 }
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                    vertices.at(index3.indices[0]).vertex - first);
-                                
+                                glm::vec3 normal = getNormal(vertices, index, index1, index2, index3);
                                 if (alpha0 == 0) { // quad faces negative x
                                     indices.append(index3.getClosestIndex(normal = -normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
@@ -2323,10 +2296,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 if (reclampedZ > 0) {
                                     quadIndices.insert(qRgb(reclampedX, y, reclampedZ - 1), indices.size());
                                 }
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index3.indices[0]).vertex - first,
-                                    vertices.at(index1.indices[0]).vertex - first);
-                                
+                                glm::vec3 normal = getNormal(vertices, index, index3, index2, index1);
                                 if (alpha0 == 0) { // quad faces negative y
                                     indices.append(index3.getClosestIndex(normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
@@ -2352,10 +2322,7 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 }
                                 quadIndices.insert(qRgb(reclampedX, y - 1, reclampedZ), indices.size());
                                 
-                                const glm::vec3& first = vertices.at(index.indices[0]).vertex;
-                                glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
-                                    vertices.at(index3.indices[0]).vertex - first);
-                                
+                                glm::vec3 normal = getNormal(vertices, index, index1, index2, index3);
                                 if (alpha0 == 0) { // quad faces negative z
                                     indices.append(index1.getClosestIndex(normal, vertices));
                                     indices.append(index2.getClosestIndex(normal, vertices));
@@ -2407,7 +2374,14 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
     baseBatch.heightTextureID = _heightTextureID;
     baseBatch.heightScale = glm::vec4(1.0f / width, 1.0f / height, (innerWidth - 1) / -2.0f, (innerHeight - 1) / -2.0f);
     baseBatch.colorTextureID = _colorTextureID;
-    baseBatch.colorScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
+    float widthMultiplier = 1.0f / (0.5f - 1.5f / width);
+    float heightMultiplier = 1.0f / (0.5f - 1.5f / height);
+    if (node->getColor()) {
+        int colorWidth = node->getColor()->getWidth();
+        int colorHeight = node->getColor()->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+        baseBatch.colorScale = glm::vec2((0.5f - 0.5f / colorWidth) * widthMultiplier,
+            (0.5f - 0.5f / colorHeight) * heightMultiplier);
+    }
     Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);
     
     if (!(cursor || _networkTextures.isEmpty())) {
@@ -2422,7 +2396,12 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         splatBatch.heightTextureID = _heightTextureID;
         splatBatch.heightScale = glm::vec4(1.0f / width, 1.0f / height, 0.0f, 0.0f);
         splatBatch.materialTextureID = _materialTextureID;
-        splatBatch.textureScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
+        if (node->getMaterial()) {
+            int materialWidth = node->getMaterial()->getWidth();
+            int materialHeight = node->getMaterial()->getContents().size() / materialWidth;
+            splatBatch.textureScale = glm::vec2((0.5f - 0.5f / materialWidth) * widthMultiplier,
+                (0.5f - 0.5f / materialHeight) * heightMultiplier);
+        }
         splatBatch.splatTextureOffset = glm::vec2(
             glm::dot(translation, rotation * glm::vec3(1.0f, 0.0f, 0.0f)) / scale.x,
             glm::dot(translation, rotation * glm::vec3(0.0f, 0.0f, 1.0f)) / scale.z);

@@ -33,6 +33,7 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
 
 EntityMotionState::EntityMotionState(EntityItem* entity) 
     :   _entity(entity) {
+    _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
 }
 
