@@ -65,6 +65,7 @@ static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; /
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
+struct soxr;
 
 typedef glm::vec3 (*AudioPositionGetter)();
 typedef glm::quat (*AudioOrientationGetter)();
@@ -231,6 +232,11 @@ private:
     AudioEffectOptions* _reverbOptions;
     ty_gverb* _gverbLocal;
     ty_gverb* _gverb;
+    
+    // possible soxr streams needed for resample
+    soxr* _inputToNetworkResampler;
+    soxr* _networkToOutputResampler;
+    soxr* _loopbackResampler;
 
     // Adds Reverb
     void initGverb();
@@ -245,7 +251,7 @@ private:
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
-    float calculateDeviceToNetworkInputRatio(int numBytes) const;
+    float calculateDeviceToNetworkInputRatio() const;
 
     // Input framebuffer
     AudioBufferFloat32 _inputFrameBuffer;

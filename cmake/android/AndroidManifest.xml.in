@@ -52,7 +52,7 @@
               android:launchMode="singleTask"
               android:screenOrientation="landscape"
               android:configChanges="screenSize|orientation|keyboardHidden|keyboard"> -->
-    </activity>
+    <!-- </activity> -->
     
   </application>
   <uses-sdk android:minSdkVersion="${ANDROID_API_LEVEL}" android:targetSdkVersion="${ANDROID_API_LEVEL}"/>
@@ -61,6 +61,7 @@
     Remove the comment if you do not require these default permissions. -->
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
   
   <!-- camera permission required for GEAR VR passthrough camera -->
   <uses-permission android:name="android.permission.CAMERA" />

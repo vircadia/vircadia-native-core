@@ -12,14 +12,19 @@
 #include <QtCore/QThread>
 #include <QtWidgets/QInputDialog>
 
+#include <AddressManager.h>
 #include <AudioClient.h>
 #include <NodeList.h>
 
 #include "RenderingClient.h"
 
+RenderingClient* RenderingClient::_instance = NULL;
+
 RenderingClient::RenderingClient(QObject *parent) :
     Client(parent)
 {
+    _instance = this;
+    
     // tell the NodeList which node types all rendering clients will want to know about
     DependencyManager::get<NodeList>()->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer);
     
@@ -27,10 +32,16 @@ RenderingClient::RenderingClient(QObject *parent) :
     QThread* audioThread = new QThread(this);
     auto audioClient = DependencyManager::set<AudioClient>();
     
+    audioClient->setPositionGetter(getPositionForAudio);
+    audioClient->setOrientationGetter(getOrientationForAudio);
+    
     audioClient->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioClient.data(), &AudioClient::start);
 
     audioThread->start();
+    
+    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired, 
+            this, &RenderingClient::goToLocation);
 }
 
 RenderingClient::~RenderingClient() {
@@ -83,4 +94,35 @@ void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, 
             Client::processVerifiedPacket(senderSockAddr, incomingPacket);
             break;
     }
+}
+
+void RenderingClient::goToLocation(const glm::vec3& newPosition,
+                                   bool hasOrientationChange, const glm::quat& newOrientation,
+                                   bool shouldFaceLocation) {
+    qDebug().nospace() << "RenderingClient goToLocation - moving to " << newPosition.x << ", "
+       << newPosition.y << ", " << newPosition.z;
+
+    glm::vec3 shiftedPosition = newPosition;
+
+    if (hasOrientationChange) {
+       qDebug().nospace() << "RenderingClient goToLocation - new orientation is "
+           << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
+
+       // orient the user to face the target
+       glm::quat quatOrientation = newOrientation;
+
+       if (shouldFaceLocation) {
+
+           quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+
+           // move the user a couple units away
+           const float DISTANCE_TO_USER = 2.0f;
+           shiftedPosition = newPosition - quatOrientation * glm::vec3( 0.0f, 0.0f,-1.0f) * DISTANCE_TO_USER;
+       }
+
+       _orientation = quatOrientation;
+    }
+
+    _position = shiftedPosition;
+    
 }

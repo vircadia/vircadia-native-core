@@ -20,5 +20,10 @@ target_link_libraries(${TARGET_NAME} gverb)
 # append gverb includes to our list of includes to bubble
 list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${GVERB_INCLUDE_DIRS}")
 
+# we use libsoxr for resampling
+find_package(Soxr REQUIRED)
+target_link_libraries(${TARGET_NAME} ${SOXR_LIBRARIES})
+include_directories(SYSTEM ${SOXR_INCLUDE_DIRS})
+
 # call macro to include our dependency includes and bubble them up via a property on our target
 include_dependency_includes()

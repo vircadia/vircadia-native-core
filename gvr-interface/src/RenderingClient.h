@@ -13,6 +13,9 @@
 #ifndef hifi_RenderingClient_h
 #define hifi_RenderingClient_h
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #include "Client.h"
 
 class RenderingClient : public Client {
@@ -20,8 +23,24 @@ class RenderingClient : public Client {
 public:
     RenderingClient(QObject* parent = 0);
     ~RenderingClient();
+    
+    const glm::vec3& getPosition() const { return _position; }
+    const glm::quat& getOrientation() const { return _orientation; }
+    
+    static glm::vec3 getPositionForAudio() { return _instance->getPosition(); }
+    static glm::quat getOrientationForAudio() { return _instance->getOrientation(); }
+    
+private slots:
+    void goToLocation(const glm::vec3& newPosition,
+                      bool hasOrientationChange, const glm::quat& newOrientation,
+                      bool shouldFaceLocation);
 private:
     virtual void processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket);
+    
+    static RenderingClient* _instance;
+    
+    glm::vec3 _position;
+    glm::quat _orientation;
 };
 
 #endif // hifi_RenderingClient_h
