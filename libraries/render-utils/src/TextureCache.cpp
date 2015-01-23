@@ -532,7 +532,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
     imageLoaded(image);
 
     if ((_width > 0) && (_height > 0)) {
-        bool isLinearRGB = (_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
@@ -572,11 +572,12 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             painter.fillPath(path, Qt::black);
             painter.end();
 
-            gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (_type == NORMAL_TEXTURE ? gpu::RGB : gpu::SRGB));
-            gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (_type == NORMAL_TEXTURE ? gpu::RGB : gpu::SRGB));
+            bool isLinearRGB = true;// (_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+            gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+            gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
             if (dilatedImage.hasAlphaChannel()) {
-                formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (_type == NORMAL_TEXTURE ? gpu::RGBA : gpu::SRGBA));
-                formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (_type == NORMAL_TEXTURE ? gpu::BGRA : gpu::BGRA));
+                formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+                formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::BGRA));
             }
             texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height()));
             texture->_gpuTexture->assignStoredMip(0, formatMip, dilatedImage.byteCount(), dilatedImage.constBits());
