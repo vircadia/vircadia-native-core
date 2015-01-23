@@ -68,6 +68,7 @@ void HeadData::setBlendshape(QString name, float val) {
         for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
             blendshapeLookupMap[FACESHIFT_BLENDSHAPES[i]] = i; 
         }
+        hasInitializedLookupMap = true;
     }
 
     //Check to see if the named blendshape exists, and then set its value if it does
