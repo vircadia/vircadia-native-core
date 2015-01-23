@@ -41,18 +41,18 @@ void Texture::Storage::reset() {
 }
 
 Texture::PixelsPointer Texture::Storage::editMip(uint16 level) {
-    if (level > _mips.size()) {
-        return PixelsPointer();
-    } else {
+    if (level < _mips.size()) {
         return _mips[level];
+    } else {
+        return PixelsPointer();
     }
 }
 
 const Texture::PixelsPointer Texture::Storage::getMip(uint16 level) const {
-    if (level > _mips.size()) {
-        return PixelsPointer();
-    } else {
+    if (level < _mips.size()) {
         return _mips[level];
+    } else {
+        return PixelsPointer();
     }
 }
 
