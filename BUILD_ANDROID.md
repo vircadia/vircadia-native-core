@@ -66,19 +66,34 @@ If you have been building other components it is possible that the OpenSSL compi
 
 Download the [Intel Threading Building Blocks source](https://www.threadingbuildingblocks.org/download) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `tbb`.
 
-From the tbb directory, execute the following commands. This will set the compiler and archive tool to the correct ones from the NDK install and then build TBB using `ndk-build`. Then, the compiled libs are copied to a lib folder in the root of tbb directory.
+NOTE: BEFORE YOU ATTEMPT TO CROSS-COMPILE TBB, DISCONNECT ANY DEVICES ADB WOULD DETECT. The tbb build process asks adb for a couple of strings, and if a device is plugged in extra characters get added that will cause ndk-build to fail with an error.
 
-Note that you will need to replace the value of $HOST below with whatever is appropriate for your host OS. On OS X, for example, the full exported value for CC is `$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-gcc`.
+From the tbb directory, execute the following commands. First, we build TBB using `ndk-build`. Then, the compiled libs are copied to a lib folder in the root of tbb directory.
 
 ```
-export CC=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/$HOST/bin/arm-linux-androideabi-gcc
-export AR=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/$HOST/bin/arm-linux-androideabi-ar
 cd jni
 ndk-build target=android tbb tbbmalloc arch=arm
 cd ../
 mkdir lib
 cp -rf build/linux_arm_*/**/*.so lib/
 ```
+
+####Soxr
+
+Download the [Soxr source](http://sourceforge.net/projects/soxr/) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `soxr`.
+
+From the soxr directory, use cmake, along with the `android.toolchain.cmake` file (included in this repository under cmake/android) to cross-compile soxr for Android.
+
+The full set of commands to build soxr for Android is shown below
+
+```
+cmake -DCMAKE_TOOLCHAIN_FILE=$FULL_PATH_TO_TOOLCHAIN -DHAVE_WORDS_BIGENDIAN_EXITCODE=1 -DBUILD_TESTS=0 -DCMAKE_INSTALL_PREFIX=.
+make
+make install
+```
+
+This will create the `lib` and `include` folders inside `ANDROID_LIB_DIR/soxr` that FindSoxr will look for.
+
 
 ####GLM
 
