@@ -34,6 +34,8 @@
 
 #include <glm/glm.hpp>
 
+#include <soxr.h>
+
 #include <NodeList.h>
 #include <PacketHeaders.h>
 
@@ -82,6 +84,7 @@ AudioClient::AudioClient() :
     _reverbOptions(&_scriptReverbOptions),
     _gverbLocal(NULL),
     _gverb(NULL),
+    _inputToNetworkResampler(NULL),
     _noiseSourceEnabled(false),
     _toneSourceEnabled(true),
     _outgoingAvatarAudioSequenceNumber(0),
@@ -624,9 +627,8 @@ void AudioClient::handleAudioInput() {
     _stats.updateInputMsecsRead(audioInputMsecsRead);
 
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
-
-        int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
-        _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
+        
+        int16_t* inputAudioSamples = NULL;
 
         const int numNetworkBytes = _isStereoInput
             ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
@@ -635,20 +637,55 @@ void AudioClient::handleAudioInput() {
             ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
             : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
 
-        // zero out the monoAudioSamples array and the locally injected audio
-        memset(networkAudioSamples, 0, numNetworkBytes);
-
         if (!_muted) {
+            
+            // zero out the monoAudioSamples array and the locally injected audio
+            memset(networkAudioSamples, 0, numNetworkBytes);
             
             //  Increment the time since the last clip
             if (_timeSinceLastClip >= 0.0f) {
                 _timeSinceLastClip += (float) numNetworkSamples / (float) AudioConstants::SAMPLE_RATE;
             }
             
-            // we aren't muted, downsample the input audio
-            linearResampling((int16_t*) inputAudioSamples, networkAudioSamples,
-                             inputSamplesRequired,  numNetworkSamples,
-                             _inputFormat, _desiredInputFormat);
+            // we might need to handle the special case where input has 2 channels, whereas our desired network format,
+            // unless we specifically want stereo input, uses 1
+            // we need to handle that before the resampler since it won't do it for us
+            if (_inputFormat.channelCount() == 2 && _desiredInputFormat.channelCount() == 1) {
+                inputAudioSamples = new int16_t[inputSamplesRequired / 2];
+                
+                int16_t* stereoInputAudioSamples = new int16_t[inputSamplesRequired];
+                _inputRingBuffer.readSamples(stereoInputAudioSamples, inputSamplesRequired);
+                
+                // loop through the stereo input audio samples and take every second sample
+                for (int i = 0; i < inputSamplesRequired; i += 2) {
+                    inputAudioSamples[i / 2] = stereoInputAudioSamples[i];
+                }
+                
+                qDebug() << "changed" << inputSamplesRequired << "into" << inputSamplesRequired / 2;
+                
+            } else {
+                inputAudioSamples = new int16_t[inputSamplesRequired];
+                _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
+            }
+            
+            // we aren't muted - do we need to use a resampler?
+            if (_inputToNetworkResampler) {
+                size_t idone, odone;
+                soxr_error_t resampleError = soxr_process(_inputToNetworkResampler,
+                                                          inputAudioSamples, inputSamplesRequired, &idone,
+                                                          networkAudioSamples, numNetworkSamples, &odone);
+                if (resampleError) {
+                    qDebug() << "Error resampling from input format to network format - soxr error code" << resampleError;
+                    qDebug() << "Sending a silent audio frame.";
+                    memset(networkAudioSamples, 0, numNetworkSamples);
+                } else {
+                    qDebug() << "Resampled" << idone << "to" << odone;
+                }
+                
+            } else {
+                // we can copy the samples directly across
+                memcpy(networkAudioSamples, inputAudioSamples, numNetworkBytes);
+            }
             
             // only impose the noise gate and perform tone injection if we are sending mono audio
             if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
@@ -674,15 +711,15 @@ void AudioClient::handleAudioInput() {
                 
                 _lastInputLoudness = fabs(loudness / numNetworkSamples);
             }
+            
+            emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
+                                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL));
 
         } else {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
             _timeSinceLastClip = 0.0f;
         }
-        
-        emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
-                                      AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL));
 
         auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -747,6 +784,7 @@ void AudioClient::handleAudioInput() {
 
             emit outputBytesToNetwork(packetBytes);
         }
+        
         delete[] inputAudioSamples;
     }
 }
@@ -894,6 +932,18 @@ void AudioClient::outputFormatChanged() {
     _receivedAudioStream.outputFormatChanged(outputFormatChannelCountTimesSampleRate);
 }
 
+soxr_datatype_t soxrDataTypeFromQAudioFormat(const QAudioFormat& audioFormat) {
+    if (audioFormat.sampleType() == QAudioFormat::Float) {
+        return SOXR_FLOAT32_I;
+    } else {
+        if (audioFormat.sampleSize() == 16) {
+            return SOXR_INT16_I;
+        } else {
+            return SOXR_INT32_I;
+        }
+    }
+}
+
 bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
     bool supportedFormat = false;
     
@@ -911,6 +961,12 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
 
         _inputAudioDeviceName = "";
     }
+    
+    if (_inputToNetworkResampler) {
+        // if we were using an input to network resampler, delete it here
+        soxr_delete(_inputToNetworkResampler);
+        _inputToNetworkResampler = NULL;
+    }
 
     if (!inputDeviceInfo.isNull()) {
         qDebug() << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
@@ -918,6 +974,36 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
     
         if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
             qDebug() << "The format to be used for audio input is" << _inputFormat;
+            
+            // we've got the best we can get for input
+            // if required, setup a soxr resampler for this input to our desired network format
+            if (_inputFormat != _desiredInputFormat
+                && _inputFormat.sampleRate() != _desiredInputFormat.sampleRate()) {
+                soxr_error_t soxrError;
+                
+                // setup soxr_io_spec_t for input and output
+                soxr_io_spec_t inputToNetworkSpec = soxr_io_spec(soxrDataTypeFromQAudioFormat(_inputFormat),
+                                                                 soxrDataTypeFromQAudioFormat(_desiredInputFormat));
+                
+                // setup soxr_quality_spec_t for quality options
+                soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
+                
+                _inputToNetworkResampler = soxr_create(_inputFormat.sampleRate(),
+                                                       _desiredInputFormat.sampleRate(),
+                                                       _isStereoInput ? 2 : 1,
+                                                       &soxrError,
+                                                       &inputToNetworkSpec,
+                                                       &qualitySpec,
+                                                       0);
+                
+                if (soxrError) {
+                    qDebug() << "There was an error setting up the soxr resampler for input format to network format -"
+                        << "soxr error code - " << soxrError;
+                    return false;
+                }
+            } else {
+                qDebug() << "No resampling required for audio input to match desired network format.";
+            }
             
             // if the user wants stereo but this device can't provide then bail
             if (!_isStereoInput || _inputFormat.channelCount() == 2) {
