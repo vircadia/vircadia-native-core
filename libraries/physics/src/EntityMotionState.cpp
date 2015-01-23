@@ -14,7 +14,7 @@
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
-#include "SimpleEntityKinematicController.h"
+#include "PhysicsEngine.h"
 
 
 QSet<EntityItem*>* _outgoingEntityList;
@@ -41,8 +41,6 @@ EntityMotionState::~EntityMotionState() {
     assert(_entity);
     _entity->setPhysicsInfo(NULL);
     _entity = NULL;
-    delete _kinematicController;
-    _kinematicController = NULL;
 }
 
 MotionType EntityMotionState::computeMotionType() const {
@@ -52,13 +50,16 @@ MotionType EntityMotionState::computeMotionType() const {
     return _entity->isMoving() ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
 }
 
-void EntityMotionState::addKinematicController() {
-    if (!_kinematicController) {
-        _kinematicController = new SimpleEntityKinematicController(_entity);
-        _kinematicController->start();
-    } else {
-        _kinematicController->start();
-    }
+void EntityMotionState::updateKinematicState(uint32_t substep) {
+    setKinematic(_entity->isMoving(), substep);
+}
+
+void EntityMotionState::stepKinematicSimulation(quint64 now) {
+    assert(_isKinematic);
+    // NOTE: this is non-physical kinematic motion which steps to real run-time (now)
+    // which is different from physical kinematic motion (inside getWorldTransform())
+    // which steps in physics simulation time.
+    _entity->simulate(now);
 }
 
 // This callback is invoked by the physics simulation in two cases:
@@ -67,8 +68,16 @@ void EntityMotionState::addKinematicController() {
 // (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
-    if (_kinematicController && _kinematicController->isRunning()) {
-        _kinematicController->stepForward();
+    if (_isKinematic) {
+        // This is physical kinematic motion which steps strictly by the subframe count
+        // of the physics simulation.
+        uint32_t substep = PhysicsEngine::getNumSubsteps();
+        float dt = (substep - _lastKinematicSubstep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+        _entity->simulateKinematicMotion(dt);
+        _entity->setLastSimulated(usecTimestampNow());
+
+        // bypass const-ness so we can remember the substep
+        const_cast<EntityMotionState*>(this)->_lastKinematicSubstep = substep;
     }
     worldTrans.setOrigin(glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
@@ -229,12 +238,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 uint32_t EntityMotionState::getIncomingDirtyFlags() const { 
     uint32_t dirtyFlags = _entity->getDirtyFlags(); 
 
-    // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
-    int bodyFlags = _body->getCollisionFlags();
-    bool isMoving = _entity->isMoving();
-    if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
-            (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
-        dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE; 
+    if (_body) {
+        // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
+        int bodyFlags = _body->getCollisionFlags();
+        bool isMoving = _entity->isMoving();
+        if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
+                (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
+            dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE; 
+        }
     }
     return dirtyFlags;
 }
