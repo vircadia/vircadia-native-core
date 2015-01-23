@@ -595,17 +595,6 @@ void EntityItem::setMass(float mass) {
 
 const float ENTITY_ITEM_EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
 
-// TODO: we probably want to change this to make "down" be the direction of the entity's gravity vector
-//       for now, this is always true DOWN even if entity has non-down gravity.
-// TODO: the old code had "&& _velocity.y >= -EPSILON && _velocity.y <= EPSILON" --- what was I thinking?
-bool EntityItem::isRestingOnSurface() const { 
-    glm::vec3 downwardVelocity = glm::vec3(0.0f, _velocity.y, 0.0f);
-
-    return _position.y <= getDistanceToBottomOfEntity()
-            && (glm::length(downwardVelocity) <= ENTITY_ITEM_EPSILON_VELOCITY_LENGTH)
-            && _gravity.y < 0.0f;
-}
-
 void EntityItem::simulate(const quint64& now) {
     bool wantDebug = false;
     
@@ -623,7 +612,6 @@ void EntityItem::simulate(const quint64& now) {
         qDebug() << "    timeElapsed=" << timeElapsed;
         qDebug() << "    hasVelocity=" << hasVelocity();
         qDebug() << "    hasGravity=" << hasGravity();
-        qDebug() << "    isRestingOnSurface=" << isRestingOnSurface();
         qDebug() << "    hasAngularVelocity=" << hasAngularVelocity();
         qDebug() << "    getAngularVelocity=" << getAngularVelocity();
         qDebug() << "    isMortal=" << isMortal();
@@ -631,11 +619,10 @@ void EntityItem::simulate(const quint64& now) {
         qDebug() << "    getLifetime()=" << getLifetime();
 
 
-        if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
+        if (hasVelocity() || hasGravity()) {
             qDebug() << "    MOVING...=";
             qDebug() << "        hasVelocity=" << hasVelocity();
             qDebug() << "        hasGravity=" << hasGravity();
-            qDebug() << "        isRestingOnSurface=" << isRestingOnSurface();
             qDebug() << "        hasAngularVelocity=" << hasAngularVelocity();
             qDebug() << "        getAngularVelocity=" << getAngularVelocity();
         }
@@ -717,7 +704,6 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
             qDebug() << "    old position:" << position;
             qDebug() << "    old velocity:" << velocity;
             qDebug() << "    old getAABox:" << getAABox();
-            qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity() * (float)TREE_SCALE << " in meters";
             qDebug() << "    newPosition:" << newPosition;
             qDebug() << "    glm::distance(newPosition, position):" << glm::distance(newPosition, position);
         }
@@ -870,11 +856,6 @@ void EntityItem::recordCreationTime() {
 // TODO: is this really correct? how do we use size, does it need to handle rotation?
 float EntityItem::getSize() const { 
     return glm::length(_dimensions);
-}
-
-float EntityItem::getDistanceToBottomOfEntity() const {
-    glm::vec3 minimumPoint = getAABox().getMinimumPoint();
-    return getPosition().y - minimumPoint.y;
 }
 
 // TODO: doesn't this need to handle rotation?
