@@ -52,7 +52,7 @@
               android:launchMode="singleTask"
               android:screenOrientation="landscape"
               android:configChanges="screenSize|orientation|keyboardHidden|keyboard"> -->
-    </activity>
+    <!-- </activity> -->
     
   </application>
   <uses-sdk android:minSdkVersion="${ANDROID_API_LEVEL}" android:targetSdkVersion="${ANDROID_API_LEVEL}"/>
