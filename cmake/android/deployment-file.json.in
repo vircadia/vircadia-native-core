@@ -9,6 +9,5 @@
    "target-architecture": "@ANDROID_ABI@",
    "application-binary": "@EXECUTABLE_DESTINATION_PATH@",
    "android-extra-libs": "@_DEPS@",
-   "android-extra-plugins": "",
    "android-package-source-directory": "@ANDROID_APK_BUILD_DIR@"
 }

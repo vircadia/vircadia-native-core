@@ -67,7 +67,7 @@ AudioClient::AudioClient() :
     _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, InboundAudioStream::Settings()),
     _isStereoInput(false),
     _outputBufferSizeFrames(DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
-    _outputStarveDetectionEnabled(true),
+    _outputStarveDetectionEnabled(false),
     _outputStarveDetectionStartTimeMsec(0),
     _outputStarveDetectionCount(0),
     _outputStarveDetectionPeriodMsec(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
@@ -282,18 +282,35 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
                 adjustedAudioFormat.setChannelCount(1);
             }
         }
-
+        
+        const int FORTY_FOUR = 44100;
+        
+        adjustedAudioFormat = desiredAudioFormat;
+        
+#ifdef Q_OS_ANDROID
+        adjustedAudioFormat.setSampleRate(FORTY_FOUR);
+#else
+        const int HALF_FORTY_FOUR = FORTY_FOUR / 2;
+        
         if (audioDevice.supportedSampleRates().contains(AudioConstants::SAMPLE_RATE * 2)) {
             // use 48, which is a sample downsample, upsample
-            adjustedAudioFormat = desiredAudioFormat;
             adjustedAudioFormat.setSampleRate(AudioConstants::SAMPLE_RATE * 2);
-
+        } else if (audioDevice.supportedSampleRates().contains(HALF_FORTY_FOUR)) {
+            // use 22050, resample but closer to 24
+            adjustedAudioFormat.setSampleRate(HALF_FORTY_FOUR);
+        } else if (audioDevice.supportedSampleRates().contains(FORTY_FOUR)) {
+            // use 48000, libsoxr will resample
+            adjustedAudioFormat.setSampleRate(FORTY_FOUR);
+        }
+#endif
+        
+        if (adjustedAudioFormat != desiredAudioFormat) {
             // return the nearest in case it needs 2 channels
             adjustedAudioFormat = audioDevice.nearestFormat(adjustedAudioFormat);
             return true;
+        } else {
+            return false;
         }
-
-        return false;
     } else {
         // set the adjustedAudioFormat to the desiredAudioFormat, since it will work
         adjustedAudioFormat = desiredAudioFormat;
@@ -991,7 +1008,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
             }
             
             // if the user wants stereo but this device can't provide then bail
-            if (!_isStereoInput || _inputFormat.channelCount() == 2) {
+            if (!_isStereoInput || _inputFormat.channelCount() == 2) {                
                 _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
                 _numInputCallbackBytes = calculateNumberOfInputCallbackBytes(_inputFormat);
                 _audioInput->setBufferSize(_numInputCallbackBytes);
@@ -999,10 +1016,15 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                 // how do we want to handle input working, but output not working?
                 int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
                 _inputRingBuffer.resizeForFrameSize(numFrameSamples);
-                _inputDevice = _audioInput->start();
-                connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
                 
-                supportedFormat = true;
+                _inputDevice = _audioInput->start();
+                
+                if (_inputDevice) {
+                    connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
+                    supportedFormat = true;
+                } else {
+                    qDebug() << "Error starting audio input -" <<  _audioInput->error();
+                }
             }
         }
     }

@@ -12,6 +12,7 @@
 #include <QtCore/QThread>
 #include <QtWidgets/QInputDialog>
 
+#include <AddressManager.h>
 #include <AudioClient.h>
 #include <NodeList.h>
 
@@ -38,6 +39,9 @@ RenderingClient::RenderingClient(QObject *parent) :
     connect(audioThread, &QThread::started, audioClient.data(), &AudioClient::start);
 
     audioThread->start();
+    
+    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired, 
+            this, &RenderingClient::goToLocation);
 }
 
 RenderingClient::~RenderingClient() {
