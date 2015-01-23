@@ -732,7 +732,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         }
 
         float speed = glm::length(velocity);
-        const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
+        const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE; // 1mm/sec
         if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
             setVelocity(ENTITY_ITEM_ZERO_VEC3);
             if (speed > 0.0f) {
