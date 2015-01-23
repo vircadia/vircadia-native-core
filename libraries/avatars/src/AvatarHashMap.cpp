@@ -14,10 +14,7 @@
 
 #include "AvatarHashMap.h"
 
-AvatarHashMap::AvatarHashMap() :
-    _avatarHash(),
-    _lastOwnerSessionUUID()
-{
+AvatarHashMap::AvatarHashMap() {
     connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 

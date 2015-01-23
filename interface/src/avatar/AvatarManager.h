@@ -24,6 +24,7 @@ class MyAvatar;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
     
