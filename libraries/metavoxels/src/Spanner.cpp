@@ -111,16 +111,16 @@ bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& dire
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
-Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase) {
+Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase, float granularity) {
     return this;
 }
 
-Spanner* Spanner::fillHeight(const glm::vec3& position, float radius) {
+Spanner* Spanner::fillHeight(const glm::vec3& position, float radius, float granularity) {
     return this;
 }
 
 Spanner* Spanner::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint, bool voxelize) {
+        const QColor& color, bool paint, bool voxelize, float granularity) {
     return this;
 }
 
@@ -1786,7 +1786,7 @@ void HeightfieldNode::getRangeAfterHeightPaint(const glm::vec3& translation, con
 
 HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& position, float radius, float height, bool set, bool erase,
-        float normalizeScale, float normalizeOffset) {
+        float normalizeScale, float normalizeOffset, float granularity) {
     if (!_height) {
         return this;
     }
@@ -1813,7 +1813,7 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
             HeightfieldNode* newChild = _children[i]->paintHeight(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
-                nextScale, position, radius, height, set, erase, normalizeScale, normalizeOffset);
+                nextScale, position, radius, height, set, erase, normalizeScale, normalizeOffset, granularity);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -1885,7 +1885,7 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
 }
 
 HeightfieldNode* HeightfieldNode::fillHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const glm::vec3& position, float radius) {
+        const glm::vec3& position, float radius, float granularity) {
     if (!_height) {
         return this;
     }
@@ -1911,7 +1911,7 @@ HeightfieldNode* HeightfieldNode::fillHeight(const glm::vec3& translation, const
             HeightfieldNode* newChild = _children[i]->fillHeight(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
-                nextScale, position, radius);
+                nextScale, position, radius, granularity);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -2088,7 +2088,7 @@ void HeightfieldNode::getRangeAfterEdit(const glm::vec3& translation, const glm:
 
 HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint, bool voxelize,
-        float normalizeScale, float normalizeOffset) {
+        float normalizeScale, float normalizeOffset, float granularity) {
     if (!_height) {
         return this;
     }
@@ -2109,7 +2109,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             HeightfieldNode* newChild = _children[i]->setMaterial(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation, nextScale, spanner,
-                material, color, paint, voxelize, normalizeScale, normalizeOffset);
+                material, color, paint, voxelize, normalizeScale, normalizeOffset, granularity);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -3310,7 +3310,8 @@ bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
         getScale() * _aspectZ), origin, direction, distance);
 }
 
-Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase) {
+Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height,
+        bool set, bool erase, float granularity) {
     // first see if we're going to exceed the range limits
     float minimumValue = 1.0f, maximumValue = numeric_limits<quint16>::max();
     if (set) {
@@ -3328,19 +3329,19 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
     Heightfield* newHeightfield = prepareEdit(minimumValue, maximumValue, normalizeScale, normalizeOffset);
     newHeightfield->setRoot(HeightfieldNodePointer(_root->paintHeight(newHeightfield->getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), position, radius, height,
-        set, erase, normalizeScale, normalizeOffset)));
+        set, erase, normalizeScale, normalizeOffset, granularity)));
     return newHeightfield;
 }
 
-Spanner* Heightfield::fillHeight(const glm::vec3& position, float radius) {
+Spanner* Heightfield::fillHeight(const glm::vec3& position, float radius, float granularity) {
     Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
     newHeightfield->setRoot(HeightfieldNodePointer(_root->fillHeight(getTranslation(), getRotation(),
-        glm::vec3(getScale(), getScale() * _aspectY, getScale() * _aspectZ), position, radius)));
+        glm::vec3(getScale(), getScale() * _aspectY, getScale() * _aspectZ), position, radius, granularity)));
     return newHeightfield;
 }
 
 Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint, bool voxelize) {
+        const QColor& color, bool paint, bool voxelize, float granularity) {
     // first see if we're going to exceed the range limits, normalizing if necessary
     Spanner* spannerData = static_cast<Spanner*>(spanner.data());
     float normalizeScale = 1.0f, normalizeOffset = 0.0f;
@@ -3355,7 +3356,7 @@ Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const Shar
     }
     newHeightfield->setRoot(HeightfieldNodePointer(_root->setMaterial(newHeightfield->getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), spannerData,
-        material, color, paint, voxelize, normalizeScale, normalizeOffset)));
+        material, color, paint, voxelize, normalizeScale, normalizeOffset, granularity)));
     return newHeightfield;
 }
 

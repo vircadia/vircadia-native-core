@@ -77,16 +77,17 @@ public:
     /// \param set whether to set the height as opposed to raising/lowering it
     /// \param erase whether to erase height values
     /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase);
+    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height,
+        bool set, bool erase, float granularity);
 
     /// Attempts to fill the spanner's height (adding removing volumetric information).
     /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* fillHeight(const glm::vec3& position, float radius);
+    virtual Spanner* fillHeight(const glm::vec3& position, float radius, float granularity);
 
     /// Attempts to "sculpt" or "paint," etc., with the supplied spanner.
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint, bool voxelize);
+        const QColor& color, bool paint, bool voxelize, float granularity);
 
     /// Checks whether this spanner has its own colors.
     virtual bool hasOwnColors() const;
@@ -696,17 +697,17 @@ public:
     
     HeightfieldNode* paintHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& position, float radius, float height, bool set, bool erase,
-        float normalizeScale, float normalizeOffset);
+        float normalizeScale, float normalizeOffset, float granularity);
     
     HeightfieldNode* fillHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const glm::vec3& position, float radius);
+        const glm::vec3& position, float radius, float granularity);
     
     void getRangeAfterEdit(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const Box& editBounds, float& minimum, float& maximum) const;
     
     HeightfieldNode* setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint, bool voxelize,
-        float normalizeScale, float normalizeOffset);
+        float normalizeScale, float normalizeOffset, float granularity);
         
     void read(HeightfieldStreamState& state);
     void write(HeightfieldStreamState& state) const;
@@ -803,12 +804,13 @@ public:
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase);
+    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height,
+        bool set, bool erase, float granularity);
     
-    virtual Spanner* fillHeight(const glm::vec3& position, float radius);
+    virtual Spanner* fillHeight(const glm::vec3& position, float radius, float granularity);
     
     virtual Spanner* setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint, bool voxelize);
+        const QColor& color, bool paint, bool voxelize, float granularity);
         
     virtual bool hasOwnColors() const;
     virtual bool hasOwnMaterials() const;
