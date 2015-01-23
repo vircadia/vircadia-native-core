@@ -37,7 +37,7 @@ You must change two values at the top of the `setenv-android.sh` script - `_ANDR
 
 First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path to the root of your Android NDK install. `setenv-android.sh` needs `ANDROID_NDK_ROOT` to set the environment variables required for building OpenSSL.
 
-Source the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling.
+Source the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling. If you use zsh as your shell you may need to modify the `setenv-android.sh` for it to set the correct variables in your env.
 
 We have had issues with `setenv-android.sh` not helping the system use the Android archive tool during compilation. You may also need to set `AR` to point to the `ar` from your NDK AFTER running ./setenv-android.sh. 
 
@@ -45,7 +45,7 @@ Note that your path to `arm-linux-androideabi-ar` will probably not be the same 
 
 ```
 export ANDROID_NDK_ROOT=YOUR_NDK_ROOT
-./setenv-android.sh
+source setenv-android.sh
 export AR=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
 ```
 
