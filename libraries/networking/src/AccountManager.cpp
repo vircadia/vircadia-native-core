@@ -59,7 +59,7 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
 }
 
 AccountManager::AccountManager() :
-    _authURL(DEFAULT_NODE_AUTH_URL),
+    _authURL(),
     _pendingCallbackMap(),
     _accountInfo(),
     _shouldPersistToSettingsFile(true)
@@ -74,6 +74,8 @@ AccountManager::AccountManager() :
     qRegisterMetaType<JSONCallbackParameters>("JSONCallbackParameters");
     
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
+    
+    setAuthURL(DEFAULT_NODE_AUTH_URL);
 
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
 }
