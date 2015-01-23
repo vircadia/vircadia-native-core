@@ -14,6 +14,7 @@
 #include <gpu/GPUConfig.h>
 
 #include <DeferredLightingEffect.h>
+#include <GLMHelpers.h>
 #include <PerfStat.h>
 
 #include "RenderableLightEntityItem.h"

@@ -18,6 +18,7 @@
 #include <QtCore/QDebug>
 
 #include "GeometryUtil.h"
+#include "GLMHelpers.h"
 #include "SharedUtil.h"
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
