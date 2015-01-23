@@ -924,6 +924,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
             setLastEdited(now);
         }
         if (getDirtyFlags() & EntityItem::DIRTY_POSITION) {
+            // TODO: Andrew & Brad to discuss. Is this correct? Maybe it is. Need to think through all cases.
             _lastSimulated = now;
         }
     }
