@@ -235,6 +235,8 @@ private:
     
     // possible soxr streams needed for resample
     soxr* _inputToNetworkResampler;
+    soxr* _networkToOutputResampler;
+    soxr* _loopbackResampler;
 
     // Adds Reverb
     void initGverb();
