@@ -1857,6 +1857,15 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                         }
                         minimumY = qMin(minimumY, cornerMinimumY);
                         maximumY = qMax(maximumY, cornerMaximumY);
+                        
+                        if (corners == (LOWER_LEFT_CORNER | UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER)) {
+                            appendTriangle(cornerCrossings[1], cornerCrossings[0], cornerCrossings[2],
+                                clampedX, clampedZ, step, vertices, indices, quadIndices);
+                        
+                        } else if (corners == (UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER)) {
+                            appendTriangle(cornerCrossings[2], cornerCrossings[3], cornerCrossings[1],
+                                clampedX, clampedZ, step, vertices, indices, quadIndices);
+                        }
                     }
                     int position = minimumY;
                     int count = maximumY - minimumY + 1;
@@ -1948,28 +1957,16 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
                                 case UPPER_RIGHT_CORNER:
                                 case UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
                                 case UPPER_RIGHT_CORNER | LOWER_LEFT_CORNER:
-                                    crossings[crossingCount++] = cornerCrossings[1];
-                                    crossings[crossingCount - 1].point.y -= y;
-                                    break;
-                                
                                 case LOWER_LEFT_CORNER | UPPER_LEFT_CORNER | UPPER_RIGHT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[1];
                                     crossings[crossingCount - 1].point.y -= y;
-                                    appendTriangle(cornerCrossings[1], cornerCrossings[0], cornerCrossings[2],
-                                        clampedX, clampedZ, step, vertices, indices, quadIndices);
                                     break;
                                 
                                 case LOWER_LEFT_CORNER:
                                 case LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
-                                    crossings[crossingCount++] = cornerCrossings[2];
-                                    crossings[crossingCount - 1].point.y -= y;
-                                    break;
-                                
                                 case UPPER_RIGHT_CORNER | LOWER_RIGHT_CORNER | LOWER_LEFT_CORNER:
                                     crossings[crossingCount++] = cornerCrossings[2];
                                     crossings[crossingCount - 1].point.y -= y;
-                                    appendTriangle(cornerCrossings[2], cornerCrossings[3], cornerCrossings[1],
-                                        clampedX, clampedZ, step, vertices, indices, quadIndices);
                                     break;
                                 
                                 case LOWER_RIGHT_CORNER:
