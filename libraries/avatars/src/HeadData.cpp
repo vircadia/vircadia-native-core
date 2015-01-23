@@ -11,11 +11,16 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <FBXReader.h>
+#include <FaceshiftConstants.h>
 #include <GLMHelpers.h>
 
 #include "AvatarData.h"
 #include "HeadData.h"
+
+/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
+extern const char* FACESHIFT_BLENDSHAPES[];
+/// The size of FACESHIFT_BLENDSHAPES
+extern const int NUM_FACESHIFT_BLENDSHAPES;
 
 HeadData::HeadData(AvatarData* owningAvatar) :
     _baseYaw(0.0f),
