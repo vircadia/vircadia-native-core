@@ -812,6 +812,15 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         GLBATCH(glCullFace)(GL_BACK);
     }
 
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 1);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 2);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 3);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+
     // deactivate vertex arrays after drawing
     GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
     GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
