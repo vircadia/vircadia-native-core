@@ -25,6 +25,8 @@
 
 #include "TextureCache.h"
 
+#include "gpu/GLBackend.h"
+
 TextureCache::TextureCache() :
     _permutationNormalTexture(0),
     _whiteTexture(0),
@@ -366,11 +368,13 @@ QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
 }
 
 Texture::Texture() {
-    glGenTextures(1, &_id);
 }
 
 Texture::~Texture() {
-    glDeleteTextures(1, &_id);
+}
+
+GLuint Texture::getID() const {
+    return gpu::GLBackend::getTextureID(_gpuTexture);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
@@ -385,7 +389,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
     }
     
     // default to white/blue/black
-    glBindTexture(GL_TEXTURE_2D, getID());
+  /*  glBindTexture(GL_TEXTURE_2D, getID());
     switch (type) {
         case NORMAL_TEXTURE:
             loadSingleColorTexture(OPAQUE_BLUE);  
@@ -404,7 +408,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
             break;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+    */
     // if we have content, load it after we have our self pointer
     if (!content.isEmpty()) {
         _startedLoading = true;

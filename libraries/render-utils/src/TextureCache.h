@@ -130,7 +130,7 @@ public:
     Texture();
     ~Texture();
 
-    GLuint getID() const { return _id; }
+    GLuint getID() const;
 
     const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
 
@@ -138,7 +138,6 @@ protected:
     gpu::TexturePointer _gpuTexture;
 
 private:
-    GLuint _id;
 };
 
 /// A texture loaded from the network.
