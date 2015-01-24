@@ -72,7 +72,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_HAVE_USER_DATA;
+            return VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
