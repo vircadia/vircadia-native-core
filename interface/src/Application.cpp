@@ -3786,6 +3786,7 @@ void Application::initAvatarAndViewFrustum() {
 
 void Application::checkVersion() {
     QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
+    latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     QNetworkReply* reply = NetworkAccessManager::getInstance().get(latestVersionRequest);
     connect(reply, SIGNAL(finished()), SLOT(parseVersionXml()));

@@ -178,7 +178,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
             }
         } else {
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            QNetworkRequest networkRequest = QNetworkRequest(url);
+            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
         }
     }
@@ -601,7 +603,9 @@ void ScriptEngine::include(const QString& includeFile) {
 
     if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+        QNetworkRequest networkRequest = QNetworkRequest(url);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        QNetworkReply* reply = networkAccessManager.get(networkRequest);
         qDebug() << "Downloading included script at" << includeFile;
         QEventLoop loop;
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));

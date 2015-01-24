@@ -196,7 +196,9 @@ void BillboardOverlay::setBillboardURL(const QString& url) {
     _billboard.clear();
     _newTextureNeeded = true;
 
-    QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(actualURL));
+    QNetworkRequest request(actualURL);
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = NetworkAccessManager::getInstance().get(request);
     connect(reply, &QNetworkReply::finished, this, &BillboardOverlay::replyFinished);
 }
 
