@@ -283,7 +283,7 @@ function controller(wichSide) {
             this.glowedIntersectingModel.isKnownID = false;
         }
         if (!this.grabbing) {
-            var intersection = Entities.findRayIntersection({
+            var intersection = Entities.findRayIntersectionBlocking({
                                                           origin: this.palmPosition,
                                                           direction: this.front
                                                           });
@@ -313,7 +313,7 @@ function controller(wichSide) {
         if (this.grabbing) {
             if (!this.entityID.isKnownID) {
                 print("Unknown grabbed ID " + this.entityID.id + ", isKnown: " + this.entityID.isKnownID);
-                this.entityID =  Entities.findRayIntersection({
+                this.entityID =  Entities.findRayIntersectionBlocking({
                                                         origin: this.palmPosition,
                                                         direction: this.front
                                                            }).entityID;
@@ -484,7 +484,7 @@ function controller(wichSide) {
                 Vec3.print("Looking at: ", this.palmPosition);
                 var pickRay = { origin: this.palmPosition,
                     direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
-                var foundIntersection = Entities.findRayIntersection(pickRay);
+                var foundIntersection = Entities.findRayIntersectionBlocking(pickRay);
                 
                 if(!foundIntersection.accurate) {
                     print("No accurate intersection");
