@@ -74,6 +74,7 @@ function controller(wichSide) {
 
     this.positionAtGrab;
     this.rotationAtGrab;
+    this.gravityAtGrab;
     this.modelPositionAtGrab;
     this.rotationAtGrab;
     this.jointsIntersectingFromStart = [];
@@ -125,6 +126,7 @@ function controller(wichSide) {
         this.entityID = entityID;
         this.modelURL = properties.modelURL;
 
+
         this.oldModelPosition = properties.position;
         this.oldModelRotation = properties.rotation;
         this.oldModelHalfDiagonal = Vec3.length(properties.dimensions) / 2.0;
@@ -133,6 +135,10 @@ function controller(wichSide) {
         this.rotationAtGrab = this.rotation;
         this.modelPositionAtGrab = properties.position;
         this.rotationAtGrab = properties.rotation;
+        this.gravityAtGrab = properties.gravity;
+        
+        Entities.editEntity(entityID, { gravity: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 } });
+
         this.jointsIntersectingFromStart = [];
         for (var i = 0; i < jointList.length; i++) {
             var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
@@ -145,6 +151,9 @@ function controller(wichSide) {
 
     this.release = function () {
         if (this.grabbing) {
+
+            Entities.editEntity(entityID, { gravity: this.gravityAtGrab });
+
             jointList = MyAvatar.getJointNames();
 
             var closestJointIndex = -1;
