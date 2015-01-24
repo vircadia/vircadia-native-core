@@ -737,6 +737,8 @@ private:
     bool findHeightfieldRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         float boundsDistance, float& distance) const;
     
+    HeightfieldNode* subdivide(const QVector<quint16>& heightContents, const QVector<StackArray>& stackContents) const;
+    
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
     HeightfieldMaterialPointer _material;
