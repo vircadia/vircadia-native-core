@@ -54,8 +54,6 @@ public:
         DIRTY_UPDATEABLE = 0x0080,
     };
 
-    static quint64 lastCollisionTime;
-
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
     EntityItem(const EntityItemID& entityItemID);

@@ -106,7 +106,6 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         qDebug() << "       last edited:" << _entity->getLastEdited() << formatUsecTime(now - _entity->getLastEdited()) << "ago";
         qDebug() << "    last simulated:" << _entity->getLastSimulated() << formatUsecTime(now - _entity->getLastSimulated()) << "ago";
         qDebug() << "      last updated:" << _entity->getLastUpdated() << formatUsecTime(now - _entity->getLastUpdated()) << "ago";
-        qDebug() << "    last collision:" << EntityItem::lastCollisionTime << formatUsecTime(now - EntityItem::lastCollisionTime) << "ago";
     #endif
 }
 
