@@ -77,3 +77,7 @@ void GVRInterface::resumeOVR() {
     
     ovr_EnterVrMode(vrModeParms, &hmdInfo);
 }
+
+void GVRInterface::pauseOVR() {
+    // ovr_LeaveVrMode();
+}

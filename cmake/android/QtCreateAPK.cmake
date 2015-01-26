@@ -66,6 +66,10 @@ macro(qt_create_apk)
   # add our dependencies to the deployment file
   get_property(_DEPENDENCIES TARGET ${TARGET_NAME} PROPERTY INTERFACE_LINK_LIBRARIES)
   
+  foreach(_IGNORE_COPY IN LISTS IGNORE_COPY_LIBS)
+    list(REMOVE_ITEM _DEPENDENCIES ${_IGNORE_COPY})
+  endforeach()
+  
   foreach(_DEP IN LISTS _DEPENDENCIES)
     if (NOT TARGET ${_DEP})
       list(APPEND _DEPS_LIST ${_DEP})
