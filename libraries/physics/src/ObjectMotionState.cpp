@@ -111,6 +111,12 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
         _sentFrame = simulationFrame;
         return false;
     }
+    
+    #ifdef WANT_DEBUG
+    glm::vec3 wasPosition = _sentPosition;
+    glm::quat wasRotation = _sentRotation;
+    glm::vec3 wasAngularVelocity = _sentAngularVelocity;
+    #endif
 
     float dt = (float)(simulationFrame - _sentFrame) * PHYSICS_ENGINE_FIXED_SUBSTEP;
     _sentFrame = simulationFrame;
@@ -147,11 +153,21 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
     
     float dx2 = glm::distance2(position, _sentPosition);
+
     const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
+
+        #ifdef WANT_DEBUG
+            qDebug() << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
+            qDebug() << "wasPosition:" << wasPosition;
+            qDebug() << "bullet position:" << position;
+            qDebug() << "_sentPosition:" << _sentPosition;
+            qDebug() << "dx2:" << dx2;
+        #endif
+
         return true;
     }
-
+    
     if (glm::length2(_sentAngularVelocity) > 0.0f) {
         // compute rotation error
         _sentAngularVelocity *= powf(1.0f - _angularDamping, dt);
@@ -165,6 +181,23 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     }
     const float MIN_ROTATION_DOT = 0.98f;
     glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
+
+    #ifdef WANT_DEBUG
+        if ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) {
+            qDebug() << ".... ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) ....";
+        
+            qDebug() << "wasAngularVelocity:" << wasAngularVelocity;
+            qDebug() << "_sentAngularVelocity:" << _sentAngularVelocity;
+
+            qDebug() << "length wasAngularVelocity:" << glm::length(wasAngularVelocity);
+            qDebug() << "length _sentAngularVelocity:" << glm::length(_sentAngularVelocity);
+
+            qDebug() << "wasRotation:" << wasRotation;
+            qDebug() << "bullet actualRotation:" << actualRotation;
+            qDebug() << "_sentRotation:" << _sentRotation;
+        }
+    #endif
+
     return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
 }
 

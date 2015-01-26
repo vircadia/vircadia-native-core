@@ -227,6 +227,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
         EntityItemID id(_entity->getID());
         EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+        #ifdef WANT_DEBUG
+            qDebug() << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
+        #endif
         entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
 
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
