@@ -447,8 +447,7 @@ function isStartingUp() {
 
 //  Triggers notification if a user logs on or off
 function onOnlineUsersChanged(users) {
-    var user,
-        i;
+    var i;
 
     if (!isStartingUp()) {  // Skip user notifications at startup.
         for (i = 0; i < users.length; i += 1) {
