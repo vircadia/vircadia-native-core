@@ -14,7 +14,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-Script.include("libraries/entityPropertyDialogBox.js");
+Script.include("../../libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var LASER_WIDTH = 4;
@@ -23,8 +23,8 @@ var LASER_LENGTH_FACTOR = 500;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
-var allowLargeModels = false;
-var allowSmallModels = false;
+var allowLargeModels = true;
+var allowSmallModels = true;
 var wantEntityGlow = false;
 
 var LEFT = 0;
@@ -152,7 +152,7 @@ function controller(wichSide) {
     this.release = function () {
         if (this.grabbing) {
 
-            Entities.editEntity(entityID, { gravity: this.gravityAtGrab });
+            Entities.editEntity(this.entityID, { gravity: this.gravityAtGrab });
 
             jointList = MyAvatar.getJointNames();
 

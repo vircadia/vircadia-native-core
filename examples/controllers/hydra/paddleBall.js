@@ -16,12 +16,14 @@ var PADDLE_THICKNESS = 0.06;
 var PADDLE_COLOR = { red: 184, green: 134, blue: 11 };
 var BALL_COLOR = { red: 255, green: 0, blue: 0 };
 var LINE_COLOR = { red: 255, green: 255, blue: 0 };
-var PADDLE_OFFSET = { x: 0.05, y: 0.0, z: 0.0 };
+var PADDLE_BOX_OFFSET = { x: 0.05, y: 0.0, z: 0.0 };
+var HOLD_POSITION_OFFSET = { x: -0.2, y: 0.0, z: -0.25 }; 
+var PADDLE_ORIENTATION = Quat.fromPitchYawRollDegrees(0,0,0);
 var GRAVITY = 0.0;   
 var SPRING_FORCE = 15.0; 
 var lastSoundTime = 0; 
 var gameOn = false; 
-var leftHanded = false; 
+var leftHanded = true; 
 var controllerID;
 
 if (leftHanded)  {
@@ -73,7 +75,7 @@ function createEntities() {
 	modelURL = "http://public.highfidelity.io/models/attachments/pong_paddle.fbx";
 	paddleModel = Entities.addEntity(
 		    	{ type: "Model",
-		        position: Vec3.sum(Controller.getSpatialControlPosition(controllerID), PADDLE_OFFSET),   
+		        position: Vec3.sum(Controller.getSpatialControlPosition(controllerID), PADDLE_BOX_OFFSET),   
 				dimensions: { x: PADDLE_SIZE * 1.5, y: PADDLE_THICKNESS, z: PADDLE_SIZE * 1.25 }, 
 		      	color: PADDLE_COLOR,
 		      	gravity: {  x: 0, y: 0, z: 0 },
@@ -120,18 +122,20 @@ function update(deltaTime) {
 	if (!ball.isKnownID) {
 	   ball = Entities.identifyEntity(ball);
 	} else {
+		var paddleWorldOrientation = Quat.multiply(Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)), PADDLE_ORIENTATION);
+		var holdPosition = Vec3.sum(palmPosition, Vec3.multiplyQbyV(paddleWorldOrientation, HOLD_POSITION_OFFSET));
 		var props = Entities.getEntityProperties(ball);
-		var spring = Vec3.subtract(palmPosition, props.position);
-		var paddleWorldOrientation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID));
+		var spring = Vec3.subtract(holdPosition, props.position);
 		var springLength = Vec3.length(spring);
+
 		spring = Vec3.normalize(spring);
 		var ballVelocity = Vec3.sum(props.velocity, Vec3.multiply(springLength * SPRING_FORCE * deltaTime, spring)); 
     	Entities.editEntity(ball, { velocity: ballVelocity });
-    	Overlays.editOverlay(line, { start: props.position, end: palmPosition });
-    	Entities.editEntity(paddle, { position: palmPosition, 
+    	Overlays.editOverlay(line, { start: props.position, end: holdPosition });
+    	Entities.editEntity(paddle, { position: holdPosition, 
     								  velocity: Controller.getSpatialControlVelocity(controllerID),
     								  rotation: paddleWorldOrientation });
-    	Entities.editEntity(paddleModel, { position: Vec3.sum(palmPosition, Vec3.multiplyQbyV(paddleWorldOrientation, PADDLE_OFFSET)), 
+    	Entities.editEntity(paddleModel, { position: Vec3.sum(holdPosition, Vec3.multiplyQbyV(paddleWorldOrientation, PADDLE_BOX_OFFSET)), 
     								  velocity: Controller.getSpatialControlVelocity(controllerID),
     								  rotation: paddleWorldOrientation });
 	}
