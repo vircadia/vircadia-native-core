@@ -21,6 +21,9 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
+quint64 EntityItem::lastCollisionTime = 0;
+
+
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
     _creatorTokenID = entityItemID.creatorTokenID;

@@ -99,6 +99,13 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
+    
+    quint64 now = usecTimestampNow();
+    qDebug() << "EntityMotionState::setWorldTransform()... changed entity:" << _entity->getEntityItemID();
+    qDebug() << "       last edited:" << _entity->getLastEdited() << formatUsecTime(now - _entity->getLastEdited()) << "ago";
+    qDebug() << "    last simulated:" << _entity->getLastSimulated() << formatUsecTime(now - _entity->getLastSimulated()) << "ago";
+    qDebug() << "      last updated:" << _entity->getLastUpdated() << formatUsecTime(now - _entity->getLastUpdated()) << "ago";
+    qDebug() << "    last collision:" << EntityItem::lastCollisionTime << formatUsecTime(now - EntityItem::lastCollisionTime) << "ago";
 }
 
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {

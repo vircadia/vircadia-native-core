@@ -42,7 +42,6 @@ class EntityTreeElementExtraEncodeData;
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem  {
     friend class EntityTreeElement;
-
 public:
     enum EntityDirtyFlags {
         DIRTY_POSITION = 0x0001,
@@ -54,6 +53,8 @@ public:
         DIRTY_LIFETIME = 0x0040,
         DIRTY_UPDATEABLE = 0x0080,
     };
+
+    static quint64 lastCollisionTime;
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     

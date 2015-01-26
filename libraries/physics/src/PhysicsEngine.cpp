@@ -371,10 +371,18 @@ void PhysicsEngine::computeCollisionEvents() {
             if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
                 idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
             }
+
+qDebug() << "entityCollisionWithEntity()... idA:" << idA << "idB:" << idB << "*******************************";
+EntityItem::lastCollisionTime = usecTimestampNow();
+
             emit entityCollisionWithEntity(idA, idB, contactItr->second);
         } else if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
             EntityItemID idA;
             EntityItemID idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+
+qDebug() << "entityCollisionWithEntity()... idA:" << idA << "idB:" << idB << "*******************************";
+EntityItem::lastCollisionTime = usecTimestampNow();
+
             emit entityCollisionWithEntity(idA, idB, contactItr->second);
         }
 
