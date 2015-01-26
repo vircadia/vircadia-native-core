@@ -46,7 +46,6 @@ const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | Entit
 
 
 class OctreeEditPacketSender;
-class KinematicController;
 
 class ObjectMotionState : public btMotionState {
 public:
@@ -93,10 +92,14 @@ public:
 
     virtual MotionType computeMotionType() const = 0;
 
-    virtual void addKinematicController() = 0;
-    virtual void removeKinematicController();
+    virtual void updateKinematicState(uint32_t substep) = 0;
 
     btRigidBody* getRigidBody() const { return _body; }
+
+    bool isKinematic() const { return _isKinematic; }
+
+    void setKinematic(bool kinematic, uint32_t substep);
+    virtual void stepKinematicSimulation(quint64 now) = 0;
 
     friend class PhysicsEngine;
 protected:
@@ -114,6 +117,9 @@ protected:
 
     btRigidBody* _body;
 
+    bool _isKinematic = false;
+    uint32_t _lastKinematicSubstep = 0;
+
     bool _sentMoving;   // true if last update was moving
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
 
@@ -124,8 +130,6 @@ protected:
     glm::vec3 _sentVelocity;
     glm::vec3 _sentAngularVelocity; // radians per second
     glm::vec3 _sentAcceleration;
-
-    KinematicController* _kinematicController = NULL;
 };
 
 #endif // hifi_ObjectMotionState_h
