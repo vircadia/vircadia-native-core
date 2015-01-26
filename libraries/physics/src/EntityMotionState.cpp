@@ -232,12 +232,16 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setLastEdited(_entity->getLastEdited());
         }
 
-        EntityItemID id(_entity->getID());
-        EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
-        #ifdef WANT_DEBUG
-            qDebug() << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
-        #endif
-        entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        if (EntityItem::getSendPhysicsUpdates()) {
+            EntityItemID id(_entity->getID());
+            EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+            #ifdef WANT_DEBUG
+                qDebug() << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
+            #endif
+            entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        } else {
+            qDebug() << "EntityMotionState::sendUpdate()... NOT sending update as requested.";
+        }
 
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
         // to the full set.  These flags may be momentarily cleared by incoming external changes.  

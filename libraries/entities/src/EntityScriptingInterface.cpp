@@ -14,6 +14,7 @@
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
 
+
 EntityScriptingInterface::EntityScriptingInterface() :
     _nextCreatorTokenID(0),
     _entityTree(NULL)
@@ -232,6 +233,14 @@ void EntityScriptingInterface::setLightsArePickable(bool value) {
 
 bool EntityScriptingInterface::getLightsArePickable() const {
     return LightEntityItem::getLightsArePickable();
+}
+
+void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {
+    EntityItem::setSendPhysicsUpdates(value);
+}
+
+bool EntityScriptingInterface::getSendPhysicsUpdates() const {
+    return EntityItem::getSendPhysicsUpdates();
 }
 
 

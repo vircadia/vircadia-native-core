@@ -63,6 +63,7 @@ public:
 
 protected:
     EntityItem* _entity;
+
 };
 
 #endif // hifi_EntityMotionState_h

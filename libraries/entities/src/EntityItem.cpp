@@ -22,6 +22,8 @@
 #include "EntityTree.h"
 
 quint64 EntityItem::lastCollisionTime = 0;
+bool EntityItem::_sendPhysicsUpdates = true;
+
 
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {

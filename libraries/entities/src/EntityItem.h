@@ -289,7 +289,14 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     
     EntityTreeElement* getElement() const { return _element; }
+
+    static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
+    static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
+
+
 protected:
+
+    static bool _sendPhysicsUpdates;
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
     virtual void recalculateCollisionShape();

@@ -18,6 +18,7 @@ function setupMenus() {
     }
     if (!Menu.menuExists("Developer > Entities")) {
         Menu.addMenu("Developer > Entities");
+        /*
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Display Model Bounds", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Display Model Triangles", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Display Model Element Bounds", isCheckable: true, isChecked: false });
@@ -26,8 +27,27 @@ function setupMenus() {
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Don't Attempt Render Entities as Scene", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Don't Do Precision Picking", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Disable Light Entities", isCheckable: true, isChecked: false });
+        */
+        Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Don't send collision updates to server", isCheckable: true, isChecked: false });
     }
 }
+
+Menu.menuItemEvent.connect(function (menuItem) {
+    print("menuItemEvent() in JS... menuItem=" + menuItem);
+
+    if (menuItem == "Don't send collision updates to server") {
+        var dontSendUpdates = Menu.isOptionChecked("Don't send collision updates to server"); 
+        print("  dontSendUpdates... checked=" + dontSendUpdates);
+        Entities.setSendPhysicsUpdates(!dontSendUpdates);
+    }
+});
+
+setupMenus();
+
+// register our scriptEnding callback
+Script.scriptEnding.connect(scriptEnding);
+
+
 
 function scriptEnding() {
     Menu.removeMenu("Developer > Entities");
