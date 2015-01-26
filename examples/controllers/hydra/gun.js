@@ -307,7 +307,6 @@ function entityCollisionWithEntity(entity1, entity2, collision) {
     if (((entity1.id == bulletID.id) || (entity1.id == targetID.id)) && 
         ((entity2.id == bulletID.id) || (entity2.id == targetID.id))) {
         score++;
-        print("Hit Target!");
         if (showScore) {
             Overlays.editOverlay(text, { text: "Score: " + score } );
         }
