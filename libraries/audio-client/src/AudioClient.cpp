@@ -67,7 +67,11 @@ AudioClient::AudioClient() :
     _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, InboundAudioStream::Settings()),
     _isStereoInput(false),
     _outputBufferSizeFrames(DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
+#ifdef Q_OS_ANDROID
     _outputStarveDetectionEnabled(false),
+#else
+    _outputStarveDetectionEnabled(true),
+#endif
     _outputStarveDetectionStartTimeMsec(0),
     _outputStarveDetectionCount(0),
     _outputStarveDetectionPeriodMsec(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
