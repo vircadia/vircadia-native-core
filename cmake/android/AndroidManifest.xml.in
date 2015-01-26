@@ -6,12 +6,12 @@
   <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="@string/AppDisplayName" android:icon="@drawable/icon">
     
     <!-- VR MODE -->
-    <!-- <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_dual"/> -->
+    <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_dual"/>
     
     <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
               android:name="org.qtproject.qt5.android.bindings.QtActivity"
               android:label="@string/AppDisplayName"
-              android:screenOrientation="unspecified"
+              android:screenOrientation="landscape"
               android:launchMode="singleTop"
               ${ANDROID_APK_THEME}>
       <intent-filter>
@@ -44,15 +44,15 @@
       <!--
       <meta-data android:name="android.app.splash_screen_drawable" android:resource="@drawable/logo"/>
       -->
-      <!-- Splash screen -->
+        
     </activity>
     
-    <!-- <activity android:name="com.oculusvr.vrlib.PlatformActivity"
+    <activity android:name="com.oculusvr.vrlib.PlatformActivity"
               android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
               android:launchMode="singleTask"
               android:screenOrientation="landscape"
-              android:configChanges="screenSize|orientation|keyboardHidden|keyboard"> -->
-    <!-- </activity> -->
+              android:configChanges="screenSize|orientation|keyboardHidden|keyboard">
+    </activity>
     
   </application>
   <uses-sdk android:minSdkVersion="${ANDROID_API_LEVEL}" android:targetSdkVersion="${ANDROID_API_LEVEL}"/>

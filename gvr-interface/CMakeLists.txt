@@ -19,12 +19,17 @@ set(ANDROID_API_LEVEL 19)
 set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
 
 # we need VRLib, so add a project.properties to our apk build folder that says that
-# find_path(_OCULUS_VRLIB_DIR NAME VRLib.vcxproj HINTS "/ovr_mobile_sdk/VRLib/")
-# if (NOT _OCULUS_VRLIB_DIR)
-#   message(FATAL_ERROR "Could not find Oculus Mobile SDK VRLib.")
-# endif()
+find_path(_OCULUS_VRLIB_DIR NAME VRLib.vcxproj HINTS "/ovr_mobile_sdk/VRLib/")
+if (NOT _OCULUS_VRLIB_DIR)
+  message(FATAL_ERROR "Could not find Oculus Mobile SDK VRLib.")
+endif()
 
-# file(RELATIVE_PATH RELATIVE_VRLIB_PATH ${ANDROID_APK_OUTPUT_DIR} "${_OCULUS_VRLIB_DIR}")
-# file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.reference.1=${RELATIVE_VRLIB_PATH}")
+file(RELATIVE_PATH RELATIVE_VRLIB_PATH ${ANDROID_APK_OUTPUT_DIR} "${_OCULUS_VRLIB_DIR}")
+
+include_directories(SYSTEM "${_OCULUS_VRLIB_DIR}/jni")
+include_directories(SYSTEM "${_OCULUS_VRLIB_DIR}/jni/LibOVR/Include")
+include_directories(SYSTEM "${_OCULUS_VRLIB_DIR}/jni/LibOVR/Src")
+
+file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.reference.1=${RELATIVE_VRLIB_PATH}")
 
 qt_create_apk()

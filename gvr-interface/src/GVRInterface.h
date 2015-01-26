@@ -28,7 +28,12 @@ public:
       
     RenderingClient* getClient() { return _client; }
     
+private slots:
+    void handleApplicationStateChange(Qt::ApplicationState state); 
 private:
+    void resumeOVR();
+    void pauseOVR(); 
+    
     RenderingClient* _client;
 };
 
