@@ -18,6 +18,9 @@ function setupMenus() {
     }
     if (!Menu.menuExists("Developer > Entities")) {
         Menu.addMenu("Developer > Entities");
+        
+        // NOTE: these menu items aren't currently working. I've temporarily removed them. Will add them back once we
+        // rewire these to work
         /*
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Display Model Bounds", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Display Model Triangles", isCheckable: true, isChecked: false });
@@ -46,8 +49,6 @@ setupMenus();
 
 // register our scriptEnding callback
 Script.scriptEnding.connect(scriptEnding);
-
-
 
 function scriptEnding() {
     Menu.removeMenu("Developer > Entities");
