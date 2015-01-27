@@ -490,7 +490,7 @@ void ImageReader::run() {
             averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
         }
         QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
-            Q_ARG(const QColor&, averageColor));
+            Q_ARG(const QColor&, averageColor), Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
         return;
     }
     if (image.format() != QImage::Format_ARGB32) {
