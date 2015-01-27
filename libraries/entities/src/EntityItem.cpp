@@ -560,6 +560,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // server (clock skew adjusted). By setting it to "now" we are saying that the last position is to be
             // considered to be the correct position for "now" which is likely in the future from when it actually
             // was at that last known positition.
+            
+            float skipTimeForward = (float)(now - _lastSimulated) / (float)(USECS_PER_SECOND);
+            qDebug() << "skipTimeForward:" << skipTimeForward;
+            simulateKinematicMotion(skipTimeForward);
+            //simulate(now);
             _lastSimulated = now;
         }
     }
