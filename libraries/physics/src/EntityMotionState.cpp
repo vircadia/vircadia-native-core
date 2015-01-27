@@ -228,14 +228,16 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             // we only update lastEdited when we're sending new physics data 
             // (i.e. NOT when we just simulate the positions forward, nore when we resend non-moving data)
             // NOTE: Andrew & Brad to discuss. Let's make sure we're using lastEdited, lastSimulated, and lastUpdated correctly
-            quint64 now = usecTimestampNow();
             quint64 lastSimulated = _entity->getLastSimulated(); // or now???
             _entity->setLastEdited(lastSimulated);
             properties.setLastEdited(lastSimulated);
 
-            qDebug() << "EntityMotionState::sendUpdate()";
-            qDebug() << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
-            qDebug() << "       lastSimulated:" << debugTime(lastSimulated, now);
+            #ifdef WANT_DEBUG
+                quint64 now = usecTimestampNow();
+                qDebug() << "EntityMotionState::sendUpdate()";
+                qDebug() << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
+                qDebug() << "       lastSimulated:" << debugTime(lastSimulated, now);
+            #endif //def WANT_DEBUG
 
         } else {
             properties.setLastEdited(_entity->getLastEdited());
