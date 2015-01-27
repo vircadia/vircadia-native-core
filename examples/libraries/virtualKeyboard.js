@@ -147,9 +147,13 @@ KeyboardKey = (function(keyboard, keyProperties) {
         return true;
     };
     for (var i = 0; i < this.bounds.length; i++) {
-        var newOverlay = Overlays.cloneOverlay(this.keyboard.background);
         if (THREE_D_MODE) {
-            Overlays.editOverlay(newOverlay, {
+            this.overlays.push(Overlays.addOverlay("billboard", {
+                scale: 1,
+                rotation: MyAvatar.rotation,
+                isFacingAvatar: false,
+                url: KEYBOARD_URL,
+                alpha: 1,
                 position: {
                     x: MyAvatar.position.x,// + this.bounds[i][BOUND_X] * 0.01,// /*+ this.keyboard.getX()*/ + this.bounds[i][BOUND_X] * keyboard.scale,
                     y: MyAvatar.position.y,// - this.bounds[i][BOUND_Y] * 0.01,// /*+ this.keyboard.getY()*/ + this.bounds[i][BOUND_Y] * keyboard.scale,
@@ -160,9 +164,10 @@ KeyboardKey = (function(keyboard, keyProperties) {
                 subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
                 alpha: 1,
                 visible: tthis.keyboard.visible
-            });
+            }));
         } else {
-            Overlays.editOverlay(newOverlay, {
+            this.overlays.push(Overlays.addOverlay("image", {
+                imageURL: KEYBOARD_URL,
                 x: this.keyboard.getX() + this.bounds[i][BOUND_X] * keyboard.scale,
                 y: this.keyboard.getY() + this.bounds[i][BOUND_Y] * keyboard.scale,
                 width: this.bounds[i][BOUND_W] * keyboard.scale,
@@ -170,9 +175,8 @@ KeyboardKey = (function(keyboard, keyProperties) {
                 subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
                 alpha: 1,
                 visible: tthis.keyboard.visible
-            });
+            }));
         }
-        this.overlays.push(newOverlay);
     }
 });
 
@@ -440,13 +444,12 @@ Keyboard = (function(params) {
 
         {bounds: [[899, 355, 263, 67]], event: 'submit'}
     ];
-
+    for (var i = 0; i < keyProperties.length; i++) {
+        this.keys.push(new KeyboardKey(this, keyProperties[i]));
+    }
     this.keyboardTextureLoaded = function() {
         if (Overlays.isLoaded(tthis.background)) {
             Script.clearInterval(tthis.keyboardTextureLoaded_timer);
-            for (var i = 0; i < keyProperties.length; i++) {
-                tthis.keys.push(new KeyboardKey(tthis, keyProperties[i]));
-            }
             if (keyboard.onFullyLoaded != null) {
                 tthis.onFullyLoaded();
             }
