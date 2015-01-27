@@ -160,7 +160,8 @@ protected:
     virtual void downloadFinished(QNetworkReply* reply);
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    Q_INVOKABLE void setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth, int originalHeight);
+    Q_INVOKABLE void setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
+                              int originalHeight);
 
     virtual void imageLoaded(const QImage& image);
 

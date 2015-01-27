@@ -535,7 +535,8 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
 }
 
-void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth, int originalHeight) {
+void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
+                              int originalHeight) {
     _translucent = translucent;
     _averageColor = averageColor;
     _originalWidth = originalWidth;
