@@ -150,6 +150,8 @@ public:
     /// Returns the lazily-computed average texture color.
     const QColor& getAverageColor() const { return _averageColor; }
 
+    int getOriginalWidth() const { return _originalWidth; }
+    int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
 
@@ -158,7 +160,7 @@ protected:
     virtual void downloadFinished(QNetworkReply* reply);
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    Q_INVOKABLE void setImage(const QImage& image, bool translucent, const QColor& averageColor);
+    Q_INVOKABLE void setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth, int originalHeight);
 
     virtual void imageLoaded(const QImage& image);
 
@@ -166,6 +168,8 @@ private:
     TextureType _type;
     bool _translucent;
     QColor _averageColor;
+    int _originalWidth;
+    int _originalHeight;
     int _width;
     int _height;
 };
