@@ -114,6 +114,7 @@ private:
 
     ContactMap _contactMap;
     uint32_t _numContactFrames = 0;
+    uint32_t _lastNumSubstepsAtUpdateInternal = 0;
 };
 
 #endif // hifi_PhysicsEngine_h

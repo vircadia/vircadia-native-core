@@ -29,23 +29,27 @@ PhysicsEngine::~PhysicsEngine() {
 
 // begin EntitySimulation overrides
 void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
-    // NOTE: the grand order of operations is:
-    // (1) relay incoming changes
-    // (2) step simulation
-    // (3) synchronize outgoing motion states
-    // (4) send outgoing packets
-
-    // this is step (4)
-    QSet<ObjectMotionState*>::iterator stateItr = _outgoingPackets.begin();
-    while (stateItr != _outgoingPackets.end()) {
-        ObjectMotionState* state = *stateItr;
-        if (state->doesNotNeedToSendUpdate()) {
-            stateItr = _outgoingPackets.erase(stateItr);
-        } else if (state->shouldSendUpdate(_numSubsteps)) {
-            state->sendUpdate(_entityPacketSender, _numSubsteps);
-            ++stateItr;
-        } else {
-            ++stateItr;
+    // no need to send updates unless the physics simulation has actually stepped
+    if (_lastNumSubstepsAtUpdateInternal != _numSubsteps) {
+        _lastNumSubstepsAtUpdateInternal = _numSubsteps;
+        // NOTE: the grand order of operations is:
+        // (1) relay incoming changes
+        // (2) step simulation
+        // (3) synchronize outgoing motion states
+        // (4) send outgoing packets
+    
+        // this is step (4)
+        QSet<ObjectMotionState*>::iterator stateItr = _outgoingPackets.begin();
+        while (stateItr != _outgoingPackets.end()) {
+            ObjectMotionState* state = *stateItr;
+            if (state->doesNotNeedToSendUpdate()) {
+                stateItr = _outgoingPackets.erase(stateItr);
+            } else if (state->shouldSendUpdate(_numSubsteps)) {
+                state->sendUpdate(_entityPacketSender, _numSubsteps);
+                ++stateItr;
+            } else {
+                ++stateItr;
+            }
         }
     }
 }
