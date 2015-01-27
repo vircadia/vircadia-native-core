@@ -361,6 +361,8 @@ public slots:
 
     void resetSensors();
 
+    void notifyPacketVersionMismatch();
+
 private slots:
     void clearDomainOctreeDetails();
     void timer();
@@ -579,6 +581,8 @@ private:
     bool _aboutToQuit;
 
     Bookmarks* _bookmarks;
+
+    bool _notifiedPacketVersionMismatchThisDomain;
 };
 
 #endif // hifi_Application_h

@@ -221,7 +221,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
-        _aboutToQuit(false)
+        _aboutToQuit(false),
+        _notifiedPacketVersionMismatchThisDomain(false)
 {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     auto nodeList = DependencyManager::get<NodeList>();
@@ -305,6 +306,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
+    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -576,6 +578,7 @@ void Application::initializeGL() {
 
     // create thread for parsing of octee data independent of the main network and rendering threads
     _octreeProcessor.initialize(_enableProcessOctreeThread);
+    connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
@@ -3218,11 +3221,11 @@ void Application::connectedToDomain(const QString& hostname) {
     
     if (accountManager.isLoggedIn() && !domainID.isNull()) {
         // update our data-server with the domain-server we're logged in with
-
         QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
-
         accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), domainPutJsonString.toUtf8());
+
+        _notifiedPacketVersionMismatchThisDomain = false;
     }
 }
 
@@ -3986,5 +3989,20 @@ int Application::getRenderAmbientLight() const {
         return 9;
     } else {
         return -1;
+    }
+}
+
+void Application::notifyPacketVersionMismatch() {
+    if (!_notifiedPacketVersionMismatchThisDomain) {
+        _notifiedPacketVersionMismatchThisDomain = true;
+
+        QString message = "The location you are visiting is running an incompatible server version.\n";
+        message += "Content may not display properly.";
+
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
     }
 }
