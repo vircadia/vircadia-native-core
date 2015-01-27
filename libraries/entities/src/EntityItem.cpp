@@ -380,7 +380,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             float editedAgo = getEditedAgo();
             QString agoAsString = formatSecondsElapsed(editedAgo);
             QString ageAsString = formatSecondsElapsed(getAge());
+            qDebug() << "------------------------------------------";
             qDebug() << "Loading entity " << getEntityItemID() << " from buffer...";
+            qDebug() << "------------------------------------------";
+            debugDump();
+            qDebug() << "------------------------------------------";
             qDebug() << "    _created =" << _created;
             qDebug() << "    age=" << getAge() << "seconds - " << ageAsString;
             qDebug() << "    lastEdited =" << lastEdited;
@@ -402,19 +406,17 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         
         bool fromSameServerEdit = (lastEditedFromBuffer == _lastEditedFromRemoteInRemoteTime);
 
-        if (wantDebug) {
+        if (true || wantDebug) {
             qDebug() << "data from server **************** ";
-            qDebug() << "      entityItemID=" << getEntityItemID();
-            qDebug() << "      now=" << now;
-            qDebug() << "      getLastEdited()=" << getLastEdited();
-            qDebug() << "      lastEditedFromBuffer=" << lastEditedFromBuffer << " (BEFORE clockskew adjust)";
-            qDebug() << "      clockSkew=" << clockSkew;
-            qDebug() << "      lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted << " (AFTER clockskew adjust)";
-            qDebug() << "      _lastEditedFromRemote=" << _lastEditedFromRemote 
-                                        << " (our local time the last server edit we accepted)";
-            qDebug() << "      _lastEditedFromRemoteInRemoteTime=" << _lastEditedFromRemoteInRemoteTime 
-                                        << " (remote time the last server edit we accepted)";
-            qDebug() << "      fromSameServerEdit=" << fromSameServerEdit;
+            qDebug() << "                           entityItemID:" << getEntityItemID();
+            qDebug() << "                                    now:" << now;
+            qDebug() << "                          getLastEdited:" << debugTime(getLastEdited(), now);
+            qDebug() << "                   lastEditedFromBuffer:" << debugTime(lastEditedFromBuffer, now);
+            qDebug() << "                              clockSkew:" << debugTimeOnly(clockSkew);
+            qDebug() << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
+            qDebug() << "                  _lastEditedFromRemote:" << debugTime(_lastEditedFromRemote, now);
+            qDebug() << "      _lastEditedFromRemoteInRemoteTime:" << debugTime(_lastEditedFromRemoteInRemoteTime, now);
+            qDebug() << "                     fromSameServerEdit:" << fromSameServerEdit;
         }
 
         bool ignoreServerPacket = false; // assume we'll use this server packet
@@ -438,13 +440,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         
         if (ignoreServerPacket) {
             overwriteLocalData = false;
-            if (wantDebug) {
+            if (true || wantDebug) {
                 qDebug() << "IGNORING old data from server!!! ****************";
+                debugDump();
             }
         } else {
 
-            if (wantDebug) {
+            if (true || wantDebug) {
                 qDebug() << "USING NEW data from server!!! ****************";
+                debugDump();
             }
 
             // don't allow _lastEdited to be in the future
@@ -464,9 +468,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (overwriteLocalData) {
             _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that
             if (wantDebug) {
-                qDebug() << "_lastUpdated =" << _lastUpdated;
-                qDebug() << "_lastEdited=" << _lastEdited;
-                qDebug() << "lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted;
+                qDebug() << "                           _lastUpdated:" << debugTime(_lastUpdated, now);
+                qDebug() << "                            _lastEdited:" << debugTime(_lastEdited, now);
+                qDebug() << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
             }
         }
         encodedUpdateDelta = updateDeltaCoder; // determine true length
@@ -482,15 +486,25 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             if (overwriteLocalData) {
                 _lastSimulated = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
                 if (wantDebug) {
-                    qDebug() << "_lastSimulated =" << _lastSimulated;
-                    qDebug() << "_lastEdited=" << _lastEdited;
-                    qDebug() << "lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted;
+                    qDebug() << "                         _lastSimulated:" << debugTime(_lastSimulated, now);
+                    qDebug() << "                            _lastEdited:" << debugTime(_lastEdited, now);
+                    qDebug() << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
                 }
             }
             encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
             dataAt += encodedSimulatedDelta.size();
             bytesRead += encodedSimulatedDelta.size();
-        }        
+        }
+        
+        #if 1 //def WANT_DEBUG
+            if (overwriteLocalData) {
+                qDebug() << "EntityItem::readEntityDataFromBuffer()... changed entity:" << getEntityItemID();
+                qDebug() << "                          getLastEdited:" << debugTime(getLastEdited(), now);
+                qDebug() << "                       getLastSimulated:" << debugTime(getLastSimulated(), now);
+                qDebug() << "                         getLastUpdated:" << debugTime(getLastUpdated(), now);
+            }
+        #endif
+        
 
         // Property Flags
         QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -592,7 +606,7 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
     quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
-    const bool wantDebug = false;
+    const bool wantDebug = true;
     if (wantDebug) {
         qDebug("EntityItem::adjustEditPacketForClockSkew()...");
         qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime;
