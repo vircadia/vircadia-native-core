@@ -670,7 +670,6 @@ function mouseClickEvent(event) {
             print("Model selected: " + foundEntity.id);
             selectionDisplay.select(selectedEntityID, event);
 
-
             cameraManager.focus(selectionManager.worldPosition,
                                 selectionManager.worldDimensions,
                                 Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
