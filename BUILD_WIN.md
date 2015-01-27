@@ -1,9 +1,10 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Windows specific instructions are found in this file.
 
-###Windows Dependencies
+###Windows Specific Dependencies
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
 * [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
 * [zLib](http://www.zlib.net/) ~> 1.2.8
+* (remember that you need all other dependencies listed in BUILD.md)
 
 ###Visual Studio
 
