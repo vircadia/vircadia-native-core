@@ -38,6 +38,7 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 
 Once Qt is installed, you need to manually configure the following:
 * Make sure the Qt runtime DLLs are loadable. You must do this before you attempt to build because some tools for the build depend on Qt. E.g., add to the PATH: `Qt\5.3.2\msvc2013_opengl\bin\`. 
+* Go to Control Panel > System > Advanced System Settings > Environment Variables > New ...
 * Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.3.2\msvc2013_opengl` directory.
 
 ###External Libraries
