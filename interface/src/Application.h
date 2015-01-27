@@ -395,6 +395,8 @@ private slots:
     void manageRunningScriptsWidgetVisibility(bool shown);
     
     void runTests();
+    
+    void audioMuteToggled();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);

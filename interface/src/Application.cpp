@@ -296,6 +296,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto audioIO = DependencyManager::get<Audio>();
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &Audio::start);
+    connect(audioIO, SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
     audioThread->start();
     
@@ -691,6 +692,12 @@ void Application::paintGL() {
 
 void Application::runTests() {
     runTimingTests();
+}
+
+void Application::audioMuteToggled() {
+    QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteAudio);
+    Q_CHECK_PTR(muteAction);
+    muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
 }
 
 void Application::aboutApp() {

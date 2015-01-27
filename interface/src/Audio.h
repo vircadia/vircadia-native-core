@@ -176,9 +176,6 @@ public slots:
     void loadSettings();
     void saveSettings();
     
-private slots:
-    void audioMuteToggled();
-    
 signals:
     bool muteToggled();
     void inputReceived(const QByteArray& inputSamples);
