@@ -36,6 +36,8 @@ var DROP_DISTANCE = 5.0;
 
 var LASER_LENGTH_FACTOR = 500;
 
+var velocity = { x: 0, y: 0, z: 0 };
+
 var lastAccurateIntersection = null;
 var accurateIntersections = 0;
 var totalIntersections = 0;
@@ -350,7 +352,7 @@ function controller(wichSide) {
         Overlays.editOverlay(this.leftRight, { visible: show });
         Overlays.editOverlay(this.topDown, { visible: show });
     }
-    this.moveEntity = function () {
+    this.moveEntity = function (deltaTime) {
         if (this.grabbing) {
             if (!this.entityID.isKnownID) {
                 print("Unknown grabbed ID " + this.entityID.id + ", isKnown: " + this.entityID.isKnownID);
@@ -386,11 +388,13 @@ function controller(wichSide) {
             newRotation = Quat.multiply(newRotation, newRotation);
             newRotation = Quat.multiply(newRotation,
                                         this.modelRotationAtGrab);
-                    
 
+            velocity = Vec3.multiply(1.0 /  deltaTime, Vec3.subtract(newPosition, this.oldModelPosition));
+                    
             Entities.editEntity(this.entityID, {
                              position: newPosition,
-                             rotation: newRotation
+                             rotation: newRotation,
+                             velocity: velocity
                              });
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
@@ -543,7 +547,7 @@ function controller(wichSide) {
 var leftController = new controller(LEFT);
 var rightController = new controller(RIGHT);
 
-function moveEntities() {
+function moveEntities(deltaTime) {
     if (leftController.grabbing && rightController.grabbing && rightController.entityID.id == leftController.entityID.id) {
         var newPosition = leftController.oldModelPosition;
         var rotation = leftController.oldModelRotation;
@@ -593,8 +597,8 @@ function moveEntities() {
         rightController.oldModelHalfDiagonal *= ratio;
         return;
     }
-    leftController.moveEntity();
-    rightController.moveEntity();
+    leftController.moveEntity(deltaTime);
+    rightController.moveEntity(deltaTime);
 }
 
 var hydraConnected = false;
@@ -612,7 +616,7 @@ function checkController(deltaTime) {
 
         leftController.update();
         rightController.update();
-        moveEntities();
+        moveEntities(deltaTime);
     } else {
         if (hydraConnected) {
             hydraConnected = false;
