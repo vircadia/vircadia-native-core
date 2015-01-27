@@ -4,13 +4,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
 * [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
 * [zLib](http://www.zlib.net/) ~> 1.2.8
-* (remember that you need all other dependencies listed in BUILD.md)
-
-###Visual Studio
-
-Currently building on Windows has been tested using the following compilers:
-* Visual Studio 2013
-* Visual Studio 2013 Express
+* (remember that you need all other dependencies listed in [BUILD.md](BUILD.md))
 
 ####Visual Studio 2013
 
@@ -31,7 +25,7 @@ You can use the online installer or the offline installer. If you use the offlin
 
 NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules.
 
-* [Do load the online installer](http://qt-project.org/downloads)
+* [Download the online installer](http://qt-project.org/downloads)
     * When it asks you to select components, ONLY select the following:
         * Qt > Qt 5.3.2 > **msvc2013 32-bit OpenGL**
 
