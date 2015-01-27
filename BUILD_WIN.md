@@ -31,11 +31,11 @@ You can use the online installer or the offline installer. If you use the offlin
 
 NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit version of libraries for interface.exe to run. The 32-bit version of the static library is the one linked by our CMake find modules.
 
-* Download the online installer [here](http://qt-project.org/downloads)
+* [Do load the online installer](http://qt-project.org/downloads)
     * When it asks you to select components, ONLY select the following:
         * Qt > Qt 5.3.2 > **msvc2013 32-bit OpenGL**
 
-* Download the offline installer [here](http://download.qt-project.org/official_releases/qt/5.3/5.3.2/qt-opensource-windows-x86-msvc2013_opengl-5.3.2.exe)
+* [Download the offline installer](http://download.qt-project.org/official_releases/qt/5.3/5.3.2/qt-opensource-windows-x86-msvc2013_opengl-5.3.2.exe)
 
 Once Qt is installed, you need to manually configure the following:
 * Make sure the Qt runtime DLLs are loadable. You must do this before you attempt to build because some tools for the build depend on Qt. E.g., add to the PATH: `Qt\5.3.2\msvc2013_opengl\bin\`. 
