@@ -25,6 +25,9 @@
 #include "RenderUtil.h"
 #include "TextureCache.h"
 
+#include "gpu/Batch.h"
+#include "gpu/GLBackend.h"
+
 #include "simple_vert.h"
 #include "simple_frag.h"
 
@@ -269,7 +272,14 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         light.specular = glm::vec4(specular, 1.0f);
         light.constantAttenuation = constantAttenuation;
         light.linearAttenuation = linearAttenuation;
-        _pointLights.append(light);
+
+        model::LightPointer lp = model::LightPointer(new model::Light());
+        lp->setPosition(position);
+        lp->setAttenuationRadius(radius);
+        lp->setColor(diffuse);
+        lp->setIntensity(1.0f);
+        lp->setType(model::Light::POINT);
+        _pointLights.push_back(lp);
         
     } else {
         SpotLight light;
@@ -283,7 +293,17 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         light.direction = direction;
         light.exponent = exponent;
         light.cutoff = cutoff;
-        _spotLights.append(light);
+
+        model::LightPointer ls = model::LightPointer(new model::Light());
+        ls->setPosition(position);
+        ls->setDirection(direction);
+        ls->setAttenuationRadius(radius);
+        ls->setSpotCone(cutoff);
+        ls->setColor(diffuse);
+        ls->setIntensity(1.0f);
+        ls->setType(model::Light::SPOT);
+
+        _spotLights.push_back(ls);
     }
 }
 
@@ -436,14 +456,24 @@ void DeferredLightingEffect::render() {
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     
-    if (!_pointLights.isEmpty()) {
+    if (!_pointLights.empty()) {
         _pointLight.bind();
         _pointLight.setUniformValue(_pointLightLocations.nearLocation, nearVal);
         _pointLight.setUniformValue(_pointLightLocations.depthScale, depthScale);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
 
-        foreach (const PointLight& light, _pointLights) {
+        for (auto light : _pointLights) {
+      //  foreach (const PointLight& light, _pointLights) {
+            if (_pointLightLocations.lightBufferUnit >= 0) {
+                gpu::Batch batch;
+                batch.setUniformBuffer(_pointLightLocations.lightBufferUnit, light->getSchemaBuffer());
+                gpu::GLBackend::renderBatch(batch);
+            }
+            _spotLight.setUniformValue(_pointLightLocations.radius, light->getAttenuationRadius());
+            
+
+/*
             _pointLight.setUniformValue(_pointLightLocations.radius, light.radius);
             glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
@@ -452,11 +482,11 @@ void DeferredLightingEffect::render() {
             glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.0f ? light.constantAttenuation : 0.0f));
             glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.0f ? light.linearAttenuation : 0.0f));
             glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.0f ? light.quadraticAttenuation : 0.0f));
-         
+         */
             glPushMatrix();
             
-            float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
-            if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius + nearRadius) {
+            float expandedRadius = light->getAttenuationRadius() * (1.0f + SCALE_EXPANSION);
+            if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
                 
@@ -470,7 +500,7 @@ void DeferredLightingEffect::render() {
                 glMatrixMode(GL_MODELVIEW);
                 
             } else {
-                glTranslatef(light.position.x, light.position.y, light.position.z);   
+                glTranslatef(light->getPosition().x, light->getPosition().y, light->getPosition().z);   
                 geometryCache->renderSphere(expandedRadius, 32, 32);
             }
             
@@ -481,15 +511,24 @@ void DeferredLightingEffect::render() {
         _pointLight.release();
     }
     
-    if (!_spotLights.isEmpty()) {
+    if (!_spotLights.empty()) {
         _spotLight.bind();
         _spotLight.setUniformValue(_spotLightLocations.nearLocation, nearVal);
         _spotLight.setUniformValue(_spotLightLocations.depthScale, depthScale);
         _spotLight.setUniformValue(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         _spotLight.setUniformValue(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
         
-        foreach (const SpotLight& light, _spotLights) {
-            _spotLight.setUniformValue(_spotLightLocations.radius, light.radius);
+        for (auto light : _spotLights) {
+     //   foreach (const SpotLight& light, _spotLights) {
+            if (_spotLightLocations.lightBufferUnit >= 0) {
+                gpu::Batch batch;
+                batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
+                gpu::GLBackend::renderBatch(batch);
+            }
+            _spotLight.setUniformValue(_spotLightLocations.radius, light->getAttenuationRadius());
+            
+            /*
+                      _spotLight.setUniformValue(_spotLightLocations.radius, light.radius);
             glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
             glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
@@ -500,12 +539,13 @@ void DeferredLightingEffect::render() {
             glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (const GLfloat*)&light.direction);
             glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, light.exponent);
             glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
-            
+            */
+
             glPushMatrix();
             
-            float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
-            float edgeRadius = expandedRadius / glm::cos(light.cutoff);
-            if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius + nearRadius) {
+            float expandedRadius = light->getAttenuationRadius() * (1.0f + SCALE_EXPANSION);
+            float edgeRadius = expandedRadius / glm::cos(light->getSpotConeAngle());
+            if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < edgeRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
                 
@@ -519,12 +559,12 @@ void DeferredLightingEffect::render() {
                 glMatrixMode(GL_MODELVIEW);
                 
             } else {
-                glTranslatef(light.position.x, light.position.y, light.position.z);
-                glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light.direction);
+                glTranslatef(light->getPosition().x, light->getPosition().y, light->getPosition().z);
+                glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light->getDirection());
                 glm::vec3 axis = glm::axis(spotRotation);
                 glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
-                glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
-                geometryCache->renderCone(expandedRadius * glm::tan(light.cutoff),
+                glTranslatef(0.0f, 0.0f, -light->getAttenuationRadius() * (1.0f + SCALE_EXPANSION * 0.5f));  
+                geometryCache->renderCone(expandedRadius * glm::tan(light->getSpotConeAngle()),
                     expandedRadius, 32, 1);
             }
             
@@ -609,6 +649,31 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     locations.depthTexCoordScale = program.uniformLocation("depthTexCoordScale");
     locations.radius = program.uniformLocation("radius");
     locations.ambientSphere = program.uniformLocation("ambientSphere.L00");
+
+    GLint loc = -1;
+#if defined(Q_OS_MAC)
+    loc = program.uniformLocation("lightBuffer");
+    if (loc >= 0) {
+        locations.lightBufferUnit = loc;
+    } else {
+        locations.lightBufferUnit = -1;
+    }
+#elif defined(Q_OS_WIN)
+    loc = glGetUniformBlockIndex(program.programId(), "lightBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, 1);
+        locations.lightBufferUnit = 1;
+    } else {
+        locations.lightBufferUnit = -1;
+    }
+#else
+    loc = program.uniformLocation("lightBuffer");
+    if (loc >= 0) {
+        locations.lightBufferUnit = loc;
+    } else {
+        locations.lightBufferUnit = -1;
+    }
+#endif
     program.release();
 }
 

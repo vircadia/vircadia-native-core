@@ -15,16 +15,23 @@
 // Everything about deferred buffer
 <@include DeferredBuffer.slh@>
 
+// Everything about light
+<@include Light.slh@>
+
 // the radius (hard cutoff) of the light effect
 uniform float radius;
 
 void main(void) {
     // get the depth and exit early if it doesn't pass the test
     vec2 texCoord = gl_TexCoord[0].st / gl_TexCoord[0].q;
-    float depth = texture2D(depthMap, texCoord).r;
+
+    DeferredFragment frag = unpackDeferredFragment(texCoord);
+    
+    float depth = frag.depthVal;
     if (depth < gl_FragCoord.z) {
         discard;
     }
+
     // compute the view space position using the depth
     float z = near / (depth * depthScale - 1.0);
     vec4 position = vec4((depthTexCoordOffset + texCoord * depthTexCoordScale) * z, z, 1.0);
@@ -52,4 +59,6 @@ void main(void) {
         normalizedNormal));    
     vec4 specularColor = texture2D(specularMap, texCoord);
     gl_FragColor = vec4((baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb) * attenuation, 0.0);
+
+    gl_FragColor = vec4(frag.normal, 0.0);
 }

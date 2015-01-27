@@ -59,7 +59,7 @@ vec3 evalDirectionalColor(float shadowAttenuation, vec3 position, vec3 normal, v
     // Diffuse Lighting
     float diffuseDot = dot(normal, gl_LightSource[0].position.xyz);
     float facingLight = step(0.0, diffuseDot) * shadowAttenuation;
-    vec3 diffuseColor = diffuse * (/*gl_FrontLightModelProduct.sceneColor.rgb +*/ gl_FrontLightProduct[0].diffuse.rgb * (diffuseDot * facingLight));
+    vec3 diffuseColor = diffuse * (gl_FrontLightProduct[0].diffuse.rgb * (diffuseDot * facingLight));
         
     // compute the specular multiplier (sans exponent)
     float specularPower = facingLight * max(0.0,

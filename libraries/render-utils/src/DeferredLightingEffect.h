@@ -19,6 +19,8 @@
 
 #include "ProgramObject.h"
 
+#include "model/Light.h"
+
 class AbstractViewStateInterface;
 class PostLightingRenderable;
 
@@ -102,6 +104,7 @@ private:
         int depthTexCoordScale;
         int radius;
         int ambientSphere;
+        int lightBufferUnit;
     };
     
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
@@ -146,9 +149,13 @@ private:
         float exponent;
         float cutoff;
     };
-    
-    QVector<PointLight> _pointLights;
-    QVector<SpotLight> _spotLights;
+
+    typedef std::vector< model::LightPointer > Lights;
+
+    Lights _pointLights;
+    Lights _spotLights;
+ //   QVector<PointLight> _pointLights;
+ //   QVector<SpotLight> _spotLights;
     QVector<PostLightingRenderable*> _postLightingRenderables;
     
     AbstractViewStateInterface* _viewState;
