@@ -227,7 +227,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto nodeList = DependencyManager::get<NodeList>();
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
     
-    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 

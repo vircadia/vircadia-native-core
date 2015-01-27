@@ -11,6 +11,7 @@
 
 #include <QtCore/QThread>
 
+#include <AccountManager.h>
 #include <AddressManager.h>
 #include <HifiSockAddr.h>
 #include <NodeList.h>
@@ -28,6 +29,9 @@ Client::Client(QObject* parent) :
 }
 
 void Client::setupNetworking() {
+    // once Application order of instantiation is fixed this should be done from AccountManager
+    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
+    
     // setup the NodeList for this client
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>(); 
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, 0);

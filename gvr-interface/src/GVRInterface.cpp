@@ -79,7 +79,7 @@ void GVRInterface::idle() {
             
             auto ovrOrientation = sensor.Predicted.Pose.Orientation;
             glm::quat newOrientation(ovrOrientation.w, ovrOrientation.x, ovrOrientation.y, ovrOrientation.z);
-            // _client->setOrientation(newOrientation);
+            _client->setOrientation(newOrientation);
             
             if (counter++ % 100000 == 0) {
                 qDebug() << "GetSensorState in frame" << counter << "-" 

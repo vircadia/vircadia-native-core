@@ -9,7 +9,7 @@
     <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only"/>
     
     <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
-              android:name="org.qtproject.qt5.android.bindings.QtActivity"
+              android:name="${ANDROID_ACTIVITY_NAME}"
               android:label="@string/AppDisplayName"
               android:screenOrientation="landscape"
               android:launchMode="singleTop"
