@@ -48,6 +48,9 @@ CMake will need to know where the headers and libraries for required external de
 The recommended route for CMake to find the external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
     root_lib_dir
+        -> bullet
+            -> include
+            -> lib
         -> freeglut
             -> bin
             -> include
