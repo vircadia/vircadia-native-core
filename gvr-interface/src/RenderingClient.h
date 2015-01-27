@@ -26,6 +26,7 @@ public:
     
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
+    void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
     
     static glm::vec3 getPositionForAudio() { return _instance->getPosition(); }
     static glm::quat getOrientationForAudio() { return _instance->getOrientation(); }

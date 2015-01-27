@@ -6,8 +6,8 @@
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
-* [Bullet Physics Engine](http://bulletphysics.org) ~> 2.82
 * [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
+* [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
 
 ### OS Specific Build Guides
 * [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.

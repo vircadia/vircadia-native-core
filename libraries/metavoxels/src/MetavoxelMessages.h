@@ -205,9 +205,10 @@ public:
     STREAM float height;
     STREAM bool set;
     STREAM bool erase;
+    STREAM float granularity;
     
     PaintHeightfieldHeightEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
-        float height = 0.0f, bool set = false, bool erase = false);
+        float height = 0.0f, bool set = false, bool erase = false, float granularity = 0.0f);
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
@@ -237,10 +238,11 @@ public:
     STREAM SharedObjectPointer spanner;
     STREAM bool paint;
     STREAM bool voxelize;
+    STREAM float granularity;
     
     HeightfieldMaterialSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer(),
         const SharedObjectPointer& material = SharedObjectPointer(),
-        const QColor& averageColor = QColor(), bool paint = false, bool voxelize = false);
+        const QColor& averageColor = QColor(), bool paint = false, bool voxelize = false, float granularity = 0.0f);
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
@@ -255,8 +257,9 @@ public:
     
     STREAM glm::vec3 position;
     STREAM float radius;
+    STREAM float granularity;
 
-    FillHeightfieldHeightEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f);
+    FillHeightfieldHeightEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f, float granularity = 0.0f);
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };

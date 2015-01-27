@@ -80,7 +80,8 @@ CameraManager = function() {
     that.lastMousePosition = { x: 0, y: 0 };
 
     that.enable = function() {
-        if (that.enabled) return;
+        if (Camera.mode == "independent" || that.enabled) return;
+
         that.enabled = true;
         that.mode = MODE_INACTIVE;
 

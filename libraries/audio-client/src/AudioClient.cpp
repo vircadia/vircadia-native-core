@@ -67,7 +67,11 @@ AudioClient::AudioClient() :
     _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, InboundAudioStream::Settings()),
     _isStereoInput(false),
     _outputBufferSizeFrames(DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
+#ifdef Q_OS_ANDROID
     _outputStarveDetectionEnabled(false),
+#else
+    _outputStarveDetectionEnabled(true),
+#endif
     _outputStarveDetectionStartTimeMsec(0),
     _outputStarveDetectionCount(0),
     _outputStarveDetectionPeriodMsec(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
@@ -121,7 +125,9 @@ void AudioClient::audioMixerKilled() {
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
-#ifdef WIN32
+// Temporarily enable audio device selection in Windows again to test how it behaves now
+//#ifdef WIN32
+#if FALSE
     // NOTE
     // this is a workaround for a windows only QtBug https://bugreports.qt-project.org/browse/QTBUG-16117
     // static QAudioDeviceInfo objects get deallocated when QList<QAudioDevieInfo> objects go out of scope
