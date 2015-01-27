@@ -17,12 +17,19 @@
 
 #include <EntityItem.h>
 
+#include "ContactInfo.h"
 #include "ShapeInfo.h"
 
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
     MOTION_TYPE_DYNAMIC,    // motion according to physical laws
     MOTION_TYPE_KINEMATIC   // keyframed motion
+};
+
+enum MotionStateType {
+    MOTION_STATE_TYPE_UNKNOWN,
+    MOTION_STATE_TYPE_ENTITY,
+    MOTION_STATE_TYPE_AVATAR
 };
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
@@ -39,7 +46,6 @@ const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | Entit
 
 
 class OctreeEditPacketSender;
-class KinematicController;
 
 class ObjectMotionState : public btMotionState {
 public:
@@ -58,6 +64,7 @@ public:
     virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
     virtual void updateObjectVelocities() = 0;
 
+    MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
 
     virtual void computeShapeInfo(ShapeInfo& info) = 0;
@@ -85,12 +92,22 @@ public:
 
     virtual MotionType computeMotionType() const = 0;
 
-    virtual void addKinematicController() = 0;
-    virtual void removeKinematicController();
+    virtual void updateKinematicState(uint32_t substep) = 0;
+
+    btRigidBody* getRigidBody() const { return _body; }
+
+    bool isKinematic() const { return _isKinematic; }
+
+    void setKinematic(bool kinematic, uint32_t substep);
+    virtual void stepKinematicSimulation(quint64 now) = 0;
 
     friend class PhysicsEngine;
 protected:
-    // TODO: move these materials properties to EntityItem
+    void setRigidBody(btRigidBody* body);
+
+    MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN;
+
+    // TODO: move these materials properties outside of ObjectMotionState
     float _friction;
     float _restitution;
     float _linearDamping;
@@ -98,8 +115,10 @@ protected:
 
     MotionType _motionType;
 
-    // _body has NO setters -- it is only changed by PhysicsEngine
     btRigidBody* _body;
+
+    bool _isKinematic = false;
+    uint32_t _lastKinematicSubstep = 0;
 
     bool _sentMoving;   // true if last update was moving
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
@@ -111,8 +130,6 @@ protected:
     glm::vec3 _sentVelocity;
     glm::vec3 _sentAngularVelocity; // radians per second
     glm::vec3 _sentAcceleration;
-
-    KinematicController* _kinematicController = NULL;
 };
 
 #endif // hifi_ObjectMotionState_h

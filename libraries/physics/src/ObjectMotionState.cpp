@@ -12,7 +12,6 @@
 #include <math.h>
 
 #include "BulletUtil.h"
-#include "KinematicController.h"
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 
@@ -56,10 +55,6 @@ ObjectMotionState::ObjectMotionState() :
 ObjectMotionState::~ObjectMotionState() {
     // NOTE: you MUST remove this MotionState from the world before you call the dtor.
     assert(_body == NULL);
-    if (_kinematicController) {
-        delete _kinematicController;
-        _kinematicController = NULL;
-    }
 }
 
 void ObjectMotionState::setFriction(float friction) {
@@ -108,6 +103,15 @@ bool ObjectMotionState::doesNotNeedToSendUpdate() const {
 
 bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     assert(_body);
+    // if we've never checked before, our _sentFrame will be 0, and we need to initialize our state
+    if (_sentFrame == 0) {
+        _sentPosition = bulletToGLM(_body->getWorldTransform().getOrigin());
+        _sentVelocity = bulletToGLM(_body->getLinearVelocity());
+        _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
+        _sentFrame = simulationFrame;
+        return false;
+    }
+
     float dt = (float)(simulationFrame - _sentFrame) * PHYSICS_ENGINE_FIXED_SUBSTEP;
     _sentFrame = simulationFrame;
     bool isActive = _body->isActive();
@@ -164,9 +168,20 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
 }
 
-void ObjectMotionState::removeKinematicController() {
-    if (_kinematicController) {
-        delete _kinematicController;
-        _kinematicController = NULL;
+void ObjectMotionState::setRigidBody(btRigidBody* body) {
+    // give the body a (void*) back-pointer to this ObjectMotionState
+    if (_body != body) {
+        if (_body) {
+            _body->setUserPointer(NULL);
+        }
+        _body = body;
+        if (_body) {
+            _body->setUserPointer(this);
+        }
     }
+}
+
+void ObjectMotionState::setKinematic(bool kinematic, uint32_t substep) {
+    _isKinematic = kinematic;
+    _lastKinematicSubstep = substep;
 }
