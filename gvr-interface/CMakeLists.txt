@@ -19,7 +19,6 @@ set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
 set(ANDROID_APP_DISPLAY_NAME Interface)
 set(ANDROID_API_LEVEL 19)
 set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
-set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.GVRActivity)
 
 find_package(LibOVR REQUIRED)
 target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${LIBOVR_ANDROID_LIBRARIES})
