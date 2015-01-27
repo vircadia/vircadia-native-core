@@ -500,6 +500,7 @@ function scriptEnding() {
     Overlays.deleteOverlay(pointer[1]);
     Overlays.deleteOverlay(text);
     MyAvatar.detachOne(gunModel);
+    MyAvatar.detachOne(gunModel);
     clearPose();
 }
 
