@@ -164,6 +164,7 @@ void DialogsManager::showScriptEditor() {
 }
 
 void DialogsManager::setupChat() {
+#ifdef HAVE_QXMPP
     const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
     connect(&xmppClient, &QXmppClient::connected, this, &DialogsManager::toggleChat);
     connect(&xmppClient, &QXmppClient::disconnected, this, &DialogsManager::toggleChat);
@@ -171,6 +172,7 @@ void DialogsManager::setupChat() {
     QDir::setCurrent(PathUtils::resourcesPath());
     // init chat window to listen chat
     maybeCreateDialog(_chatWindow);
+#endif
 }
 
 void DialogsManager::showChat() {
