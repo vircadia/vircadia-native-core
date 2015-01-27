@@ -91,7 +91,7 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 * Visual C++ 2008 Redistributables
 * Win32 OpenSSL v1.0.1h
 
-Install OpenSSL into the Windows system directory, to make sure that QT uses the version that you've just installed, and not some other version.
+Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
 ###Intel Threading Building Blocks (TBB)
 
@@ -110,8 +110,10 @@ Add the following environment variables (remember to substitute your own directo
 
 Add to the PATH: `%HIFI_LIB_DIR%\zlib`
 
-Important! This should be added at the beginning of the path, not the end. That's because your 
-system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version. If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
+(The PATH environment variable is where Windows looks for its DLL's and executables. There's a great tool for editing these variables with ease, [Rapid Environment Editor](http://www.rapidee.com/en/download))
+
+Important! This should be added at the beginning of the path, not the end (your 
+system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version). If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
 
 ###freeglut
 
@@ -133,10 +135,10 @@ Be careful with glm. For the folder other libraries would normally call 'include
 
 ###Bullet
 
-Bullet 2.82 source can be downloaded [here](https://code.google.com/p/bullet/downloads/detail?name=bullet-2.82-r2704.zip). Bullet does not come with prebuilt libraries, you need to make those yourself.
+Bullet 2.82 source can be [downloaded here](https://code.google.com/p/bullet/downloads/detail?name=bullet-2.82-r2704.zip). Bullet does not come with prebuilt libraries, you need to make those yourself.
 
 * Download the zip file and extract into a temporary folder
-* Create a directory named cmakebuild. Bullet comes with a build\ directory by default, however, that directory is intended for use with premake, and considering premake doesn't support VS2013, I prefer to run the cmake build on its own directory.
+* Create a directory named cmakebuild. Bullet comes with a build\ directory by default, however, that directory is intended for use with premake, and considering premake doesn't support VS2013, we prefer to run the cmake build on its own directory.
 * Make the following modifications to Bullet's source:
    1. In file: Extras\HACD\hacdICHull.cpp --- in line: 17 --- insert: #include &lt;algorithm&gt;
    2. In file: src\MiniCL\cl_MiniCL_Defs.h --- comment lines 364 to 372
