@@ -158,6 +158,11 @@ function handleModes() {
          avatarOrientation.w != MyAvatar.orientation.w)) {
         newMode = noMode;
     }
+
+    if (mode == noMode && newMode != noMode && Camera.mode == "independent") {
+        newMode = noMode;
+    }
+
     // if leaving noMode
     if (mode == noMode && newMode != noMode) {
         saveCameraState();

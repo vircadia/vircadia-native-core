@@ -101,3 +101,12 @@ void BoxEntityItem::computeShapeInfo(ShapeInfo& info) const {
     info.setBox(halfExtents);
 }
 
+void BoxEntityItem::debugDump() const {
+    quint64 now = usecTimestampNow();
+    qDebug() << "   BOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qDebug() << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qDebug() << "            position:" << debugTreeVector(_position);
+    qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
+    qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
+}
+

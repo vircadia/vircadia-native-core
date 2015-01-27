@@ -21,6 +21,8 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
+bool EntityItem::_sendPhysicsUpdates = true;
+
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
     _creatorTokenID = entityItemID.creatorTokenID;
@@ -140,9 +142,17 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     ByteCountCoded<quint32> typeCoder = getType();
     QByteArray encodedType = typeCoder;
 
-    quint64 updateDelta = getLastSimulated() <= getLastEdited() ? 0 : getLastSimulated() - getLastEdited();
+    // last updated (animations, non-physics changes)
+    quint64 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
     ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
     QByteArray encodedUpdateDelta = updateDeltaCoder;
+
+    // last simulated (velocity, angular velocity, physics changes)
+    quint64 simulatedDelta = getLastSimulated() <= getLastEdited() ? 0 : getLastSimulated() - getLastEdited();
+    ByteCountCoded<quint64> simulatedDeltaCoder = simulatedDelta;
+    QByteArray encodedSimulatedDelta = simulatedDeltaCoder;
+
+
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
     EntityPropertyFlags propertiesDidntFit = requestedProperties;
@@ -157,19 +167,19 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     quint64 lastEdited = getLastEdited();
 
-    const bool wantDebug = false;
-    if (wantDebug) {
+    #ifdef WANT_DEBUG
         float editedAgo = getEditedAgo();
         QString agoAsString = formatSecondsElapsed(editedAgo);
         qDebug() << "Writing entity " << getEntityItemID() << " to buffer, lastEdited =" << lastEdited 
                         << " ago=" << editedAgo << "seconds - " << agoAsString;
-    }
+    #endif
 
     bool successIDFits = false;
     bool successTypeFits = false;
     bool successCreatedFits = false;
     bool successLastEditedFits = false;
     bool successLastUpdatedFits = false;
+    bool successLastSimulatedFits = false;
     bool successPropertyFlagsFits = false;
     int propertyFlagsOffset = 0;
     int oldPropertyFlagsLength = 0;
@@ -189,8 +199,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     if (successLastEditedFits) {
         successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
     }
-    
     if (successLastUpdatedFits) {
+        successLastSimulatedFits = packetData->appendValue(encodedSimulatedDelta);
+    }
+    
+    if (successLastSimulatedFits) {
         propertyFlagsOffset = packetData->getUncompressedByteOffset();
         encodedPropertyFlags = propertyFlags;
         oldPropertyFlagsLength = encodedPropertyFlags.length();
@@ -213,11 +226,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
         APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, getPosition());
         APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, getDimensions()); // NOTE: PROP_RADIUS obsolete
-
-        if (wantDebug) {
-            qDebug() << "    APPEND_ENTITY_PROPERTY() PROP_DIMENSIONS:" << getDimensions();
-        }
-
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
         APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
@@ -296,7 +304,6 @@ int EntityItem::expectedBytes() {
 
 
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-    bool wantDebug = false;
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
     
@@ -361,17 +368,21 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             _created = createdFromBuffer;
         }
 
-        if (wantDebug) {
+        #ifdef WANT_DEBUG
             quint64 lastEdited = getLastEdited();
             float editedAgo = getEditedAgo();
             QString agoAsString = formatSecondsElapsed(editedAgo);
             QString ageAsString = formatSecondsElapsed(getAge());
+            qDebug() << "------------------------------------------";
             qDebug() << "Loading entity " << getEntityItemID() << " from buffer...";
+            qDebug() << "------------------------------------------";
+            debugDump();
+            qDebug() << "------------------------------------------";
             qDebug() << "    _created =" << _created;
             qDebug() << "    age=" << getAge() << "seconds - " << ageAsString;
             qDebug() << "    lastEdited =" << lastEdited;
             qDebug() << "    ago=" << editedAgo << "seconds - " << agoAsString;
-        }
+        #endif
         
         quint64 lastEditedFromBuffer = 0;
         quint64 lastEditedFromBufferAdjusted = 0;
@@ -388,20 +399,18 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         
         bool fromSameServerEdit = (lastEditedFromBuffer == _lastEditedFromRemoteInRemoteTime);
 
-        if (wantDebug) {
+        #ifdef WANT_DEBUG
             qDebug() << "data from server **************** ";
-            qDebug() << "      entityItemID=" << getEntityItemID();
-            qDebug() << "      now=" << now;
-            qDebug() << "      getLastEdited()=" << getLastEdited();
-            qDebug() << "      lastEditedFromBuffer=" << lastEditedFromBuffer << " (BEFORE clockskew adjust)";
-            qDebug() << "      clockSkew=" << clockSkew;
-            qDebug() << "      lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted << " (AFTER clockskew adjust)";
-            qDebug() << "      _lastEditedFromRemote=" << _lastEditedFromRemote 
-                                        << " (our local time the last server edit we accepted)";
-            qDebug() << "      _lastEditedFromRemoteInRemoteTime=" << _lastEditedFromRemoteInRemoteTime 
-                                        << " (remote time the last server edit we accepted)";
-            qDebug() << "      fromSameServerEdit=" << fromSameServerEdit;
-        }
+            qDebug() << "                           entityItemID:" << getEntityItemID();
+            qDebug() << "                                    now:" << now;
+            qDebug() << "                          getLastEdited:" << debugTime(getLastEdited(), now);
+            qDebug() << "                   lastEditedFromBuffer:" << debugTime(lastEditedFromBuffer, now);
+            qDebug() << "                              clockSkew:" << debugTimeOnly(clockSkew);
+            qDebug() << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
+            qDebug() << "                  _lastEditedFromRemote:" << debugTime(_lastEditedFromRemote, now);
+            qDebug() << "      _lastEditedFromRemoteInRemoteTime:" << debugTime(_lastEditedFromRemoteInRemoteTime, now);
+            qDebug() << "                     fromSameServerEdit:" << fromSameServerEdit;
+        #endif
 
         bool ignoreServerPacket = false; // assume we'll use this server packet
         
@@ -424,14 +433,16 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         
         if (ignoreServerPacket) {
             overwriteLocalData = false;
-            if (wantDebug) {
+            #ifdef WANT_DEBUG
                 qDebug() << "IGNORING old data from server!!! ****************";
-            }
+                debugDump();
+            #endif
         } else {
 
-            if (wantDebug) {
+            #ifdef WANT_DEBUG
                 qDebug() << "USING NEW data from server!!! ****************";
-            }
+                debugDump();
+            #endif
 
             // don't allow _lastEdited to be in the future
             _lastEdited = lastEditedFromBufferAdjusted;
@@ -449,15 +460,44 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
             _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that
-            if (wantDebug) {
-                qDebug() << "_lastUpdated =" << _lastUpdated;
-                qDebug() << "_lastEdited=" << _lastEdited;
-                qDebug() << "lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted;
-            }
+            #ifdef WANT_DEBUG
+                qDebug() << "                           _lastUpdated:" << debugTime(_lastUpdated, now);
+                qDebug() << "                            _lastEdited:" << debugTime(_lastEdited, now);
+                qDebug() << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
+            #endif
         }
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
         bytesRead += encodedUpdateDelta.size();
+        
+        // Newer bitstreams will have a last simulated and a last updated value
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
+            // last simulated is stored as ByteCountCoded delta from lastEdited
+            QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+            ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
+            quint64 simulatedDelta = simulatedDeltaCoder;
+            if (overwriteLocalData) {
+                _lastSimulated = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
+                #ifdef WANT_DEBUG
+                    qDebug() << "                         _lastSimulated:" << debugTime(_lastSimulated, now);
+                    qDebug() << "                            _lastEdited:" << debugTime(_lastEdited, now);
+                    qDebug() << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
+                #endif
+            }
+            encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
+            dataAt += encodedSimulatedDelta.size();
+            bytesRead += encodedSimulatedDelta.size();
+        }
+        
+        #ifdef WANT_DEBUG
+            if (overwriteLocalData) {
+                qDebug() << "EntityItem::readEntityDataFromBuffer()... changed entity:" << getEntityItemID();
+                qDebug() << "                          getLastEdited:" << debugTime(getLastEdited(), now);
+                qDebug() << "                       getLastSimulated:" << debugTime(getLastSimulated(), now);
+                qDebug() << "                         getLastUpdated:" << debugTime(getLastUpdated(), now);
+            }
+        #endif
+        
 
         // Property Flags
         QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -477,23 +517,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 if (overwriteLocalData) {
                     setRadius(fromBuffer);
                 }
-
-                if (wantDebug) {
-                    qDebug() << "    readEntityDataFromBuffer() OLD FORMAT... found PROP_RADIUS";
-                }
-
             }
         } else {
             READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, setDimensions);
-            if (wantDebug) {
-                qDebug() << "    readEntityDataFromBuffer() NEW FORMAT... look for PROP_DIMENSIONS";
-            }
         }
         
-        if (wantDebug) {
-            qDebug() << "    readEntityDataFromBuffer() _dimensions:" << getDimensionsInMeters() << " in meters";
-        }
-                
         READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
         READ_ENTITY_PROPERTY_SETTER(PROP_DENSITY, float, updateDensity);
         READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
@@ -510,17 +538,22 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA,setUserData);
 
-        if (wantDebug) {
-            qDebug() << "    readEntityDataFromBuffer() _registrationPoint:" << _registrationPoint;
-            qDebug() << "    readEntityDataFromBuffer() _visible:" << _visible;
-            qDebug() << "    readEntityDataFromBuffer() _ignoreForCollisions:" << _ignoreForCollisions;
-            qDebug() << "    readEntityDataFromBuffer() _collisionsWillMove:" << _collisionsWillMove;
-        }
-
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
         recalculateCollisionShape();
-        if (overwriteLocalData && (getDirtyFlags() & EntityItem::DIRTY_POSITION)) {
+        if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
+            // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
+            // closely match where the entities should be if they'd stepped forward in time to "now". The server
+            // is sending us data with a known "last simulated" time. That time is likely in the past, and therefore
+            // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
+            // use our simulation helper routine to get a best estimate of where the entity should be.
+            float skipTimeForward = (float)(now - _lastSimulated) / (float)(USECS_PER_SECOND);
+            if (skipTimeForward > 0.0f) {
+                #ifdef WANT_DEBUG
+                    qDebug() << "skipTimeForward:" << skipTimeForward;
+                #endif
+                simulateKinematicMotion(skipTimeForward);
+            }
             _lastSimulated = now;
         }
     }
@@ -546,13 +579,12 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
     quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
-    const bool wantDebug = false;
-    if (wantDebug) {
+    #ifdef WANT_DEBUG
         qDebug("EntityItem::adjustEditPacketForClockSkew()...");
         qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime;
         qDebug() << "                 clockSkew: " << clockSkew;
         qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime;
-    }
+    #endif
 }
 
 float EntityItem::computeMass() const { 
@@ -607,20 +639,13 @@ bool EntityItem::isRestingOnSurface() const {
 }
 
 void EntityItem::simulate(const quint64& now) {
-    if (_physicsInfo) {
-        // we rely on bullet for simulation, so bail
-        return;
-    }
-
-    bool wantDebug = false;
-    
     if (_lastSimulated == 0) {
         _lastSimulated = now;
     }
 
     float timeElapsed = (float)(now - _lastSimulated) / (float)(USECS_PER_SECOND);
 
-    if (wantDebug) {
+    #ifdef WANT_DEBUG
         qDebug() << "********** EntityItem::simulate()";
         qDebug() << "    entity ID=" << getEntityItemID();
         qDebug() << "    now=" << now;
@@ -655,23 +680,23 @@ void EntityItem::simulate(const quint64& now) {
             qDebug() << "        getAge()=" << getAge();
             qDebug() << "        getLifetime()=" << getLifetime();
         }
-    }
-
-    if (wantDebug) {
         qDebug() << "     ********** EntityItem::simulate() .... SETTING _lastSimulated=" << _lastSimulated;
-    }
+    #endif
 
+    simulateKinematicMotion(timeElapsed);
+    _lastSimulated = now;
+}
+
+void EntityItem::simulateKinematicMotion(float timeElapsed) {
     if (hasAngularVelocity()) {
-        glm::quat rotation = getRotation();
-
         // angular damping
         glm::vec3 angularVelocity = getAngularVelocity();
         if (_angularDamping > 0.0f) {
             angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
-            if (wantDebug) {        
+            #ifdef WANT_DEBUG
                 qDebug() << "    angularDamping :" << _angularDamping;
                 qDebug() << "    newAngularVelocity:" << angularVelocity;
-            }
+            #endif
             setAngularVelocity(angularVelocity);
         }
 
@@ -679,6 +704,9 @@ void EntityItem::simulate(const quint64& now) {
         
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
+            if (angularSpeed > 0.0f) {
+                _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+            }
             setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
         } else {
             // NOTE: angularSpeed is currently in degrees/sec!!!
@@ -686,7 +714,7 @@ void EntityItem::simulate(const quint64& now) {
             float angle = timeElapsed * glm::radians(angularSpeed);
             glm::vec3 axis = _angularVelocity / angularSpeed;
             glm::quat  dQ = glm::angleAxis(angle, axis);
-            rotation = glm::normalize(dQ * rotation);
+            glm::quat rotation = glm::normalize(dQ * getRotation());
             setRotation(rotation);
         }
     }
@@ -696,19 +724,19 @@ void EntityItem::simulate(const quint64& now) {
         glm::vec3 velocity = getVelocity();
         if (_damping > 0.0f) {
             velocity *= powf(1.0f - _damping, timeElapsed);
-            if (wantDebug) {        
+            #ifdef WANT_DEBUG
                 qDebug() << "    damping:" << _damping;
                 qDebug() << "    velocity AFTER dampingResistance:" << velocity;
                 qDebug() << "    glm::length(velocity):" << glm::length(velocity);
                 qDebug() << "    velocityEspilon :" << ENTITY_ITEM_EPSILON_VELOCITY_LENGTH;
-            }
+            #endif
         }
 
         // integrate position forward
         glm::vec3 position = getPosition();
         glm::vec3 newPosition = position + (velocity * timeElapsed);
 
-        if (wantDebug) {        
+        #ifdef WANT_DEBUG
             qDebug() << "  EntityItem::simulate()....";
             qDebug() << "    timeElapsed:" << timeElapsed;
             qDebug() << "    old AACube:" << getMaximumAACube();
@@ -718,80 +746,9 @@ void EntityItem::simulate(const quint64& now) {
             qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity() * (float)TREE_SCALE << " in meters";
             qDebug() << "    newPosition:" << newPosition;
             qDebug() << "    glm::distance(newPosition, position):" << glm::distance(newPosition, position);
-        }
+        #endif
         
         position = newPosition;
-
-        // handle bounces off the ground... We bounce at the distance to the bottom of our entity
-        if (position.y <= getDistanceToBottomOfEntity()) {
-            velocity = velocity * glm::vec3(1,-1,1);
-            position.y = getDistanceToBottomOfEntity();
-        }
-
-        // apply gravity
-        if (hasGravity()) { 
-            // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
-            // "ground" plane of the domain, but for now it's what we've got
-            if (isRestingOnSurface()) {
-                velocity.y = 0.0f;
-                position.y = getDistanceToBottomOfEntity();
-            } else {
-                velocity += getGravity() * timeElapsed;
-            }
-        }
-        
-        // NOTE: we don't zero out very small velocities --> we rely on a remote Bullet simulation 
-        // to tell us when the entity has stopped.
-
-        // NOTE: the simulation should NOT set any DirtyFlags on this entity
-        setPosition(position); // this will automatically recalculate our collision shape
-        setVelocity(velocity);
-        
-        if (wantDebug) {        
-            qDebug() << "    new position:" << position;
-            qDebug() << "    new velocity:" << velocity;
-            qDebug() << "    new AACube:" << getMaximumAACube();
-            qDebug() << "    old getAABox:" << getAABox();
-        }
-    }
-
-    _lastSimulated = now;
-}
-
-void EntityItem::simulateSimpleKinematicMotion(float timeElapsed) {
-    if (hasAngularVelocity()) {
-        // angular damping
-        glm::vec3 angularVelocity = getAngularVelocity();
-        if (_angularDamping > 0.0f) {
-            angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
-            setAngularVelocity(angularVelocity);
-        }
-
-        float angularSpeed = glm::length(_angularVelocity);
-        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
-        if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
-        } else {
-            // NOTE: angularSpeed is currently in degrees/sec!!!
-            // TODO: Andrew to convert to radians/sec
-            float angle = timeElapsed * glm::radians(angularSpeed);
-            glm::vec3 axis = _angularVelocity / angularSpeed;
-            glm::quat  dQ = glm::angleAxis(angle, axis);
-            glm::quat rotation = getRotation();
-            rotation = glm::normalize(dQ * rotation);
-            setRotation(rotation);
-        }
-    }
-
-    if (hasVelocity()) {
-        // linear damping
-        glm::vec3 velocity = getVelocity();
-        if (_damping > 0.0f) {
-            velocity *= powf(1.0f - _damping, timeElapsed);
-        }
-
-        // integrate position forward
-        glm::vec3 position = getPosition() + (velocity * timeElapsed);
 
         // apply gravity
         if (hasGravity()) { 
@@ -799,10 +756,25 @@ void EntityItem::simulateSimpleKinematicMotion(float timeElapsed) {
             // "ground" plane of the domain, but for now it's what we've got
             velocity += getGravity() * timeElapsed;
         }
-        
-        // NOTE: the simulation should NOT set any DirtyFlags on this entity
-        setPosition(position); // this will automatically recalculate our collision shape
-        setVelocity(velocity);
+
+        float speed = glm::length(velocity);
+        const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE; // 1mm/sec
+        if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
+            setVelocity(ENTITY_ITEM_ZERO_VEC3);
+            if (speed > 0.0f) {
+                _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+            }
+        } else {
+            setPosition(position);
+            setVelocity(velocity);
+        }
+
+        #ifdef WANT_DEBUG
+            qDebug() << "    new position:" << position;
+            qDebug() << "    new velocity:" << velocity;
+            qDebug() << "    new AACube:" << getMaximumAACube();
+            qDebug() << "    old getAABox:" << getAABox();
+        #endif
     }
 }
 
@@ -876,17 +848,17 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed
-        bool wantDebug = false;
         uint64_t now = usecTimestampNow();
-        if (wantDebug) {
+        #ifdef WANT_DEBUG
             int elapsed = now - getLastEdited();
             qDebug() << "EntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
+        #endif
         if (_created != UNKNOWN_CREATED_TIME) {
             setLastEdited(now);
         }
-        if (getDirtyFlags() & EntityItem::DIRTY_POSITION) {
+        if (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+            // TODO: Andrew & Brad to discuss. Is this correct? Maybe it is. Need to think through all cases.
             _lastSimulated = now;
         }
     }
@@ -1023,15 +995,6 @@ void EntityItem::setRadius(float value) {
     float diameter = value * 2.0f;
     float maxDimension = sqrt((diameter * diameter) / 3.0f);
     _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension);
-
-    bool wantDebug = false;    
-    if (wantDebug) {
-        qDebug() << "EntityItem::setRadius()...";
-        qDebug() << "    radius:" << value;
-        qDebug() << "    diameter:" << diameter;
-        qDebug() << "    maxDimension:" << maxDimension;
-        qDebug() << "    _dimensions:" << _dimensions;
-    }
 }
 
 // TODO: get rid of all users of this function...

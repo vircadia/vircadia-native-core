@@ -25,7 +25,6 @@
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
-#include <EntityCollisionSystem.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
 #include <GeometryCache.h>
@@ -468,7 +467,6 @@ private:
     PhysicsEngine _physicsEngine;
 
     EntityTreeRenderer _entities;
-    EntityCollisionSystem _entityCollisionSystem;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTree _entityClipboard;
 

@@ -20,14 +20,18 @@
 const int CLEAR_INACTIVE_PEERS_INTERVAL_MSECS = 1 * 1000;
 const int PEER_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
+const quint16 ICE_SERVER_MONITORING_PORT = 40110;
+
 IceServer::IceServer(int argc, char* argv[]) :
 	QCoreApplication(argc, argv),
     _id(QUuid::createUuid()),
     _serverSocket(),
-    _activePeers()
+    _activePeers(),
+    _httpManager(ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
+    qDebug() << "monitoring http endpoint is listening on " << ICE_SERVER_MONITORING_PORT;
     _serverSocket.bind(QHostAddress::AnyIPv4, ICE_SERVER_DEFAULT_PORT);
     
     // call our process datagrams slot when the UDP socket has packets ready
@@ -164,4 +168,18 @@ void IceServer::clearInactivePeers() {
             ++peerItem;
         }
     }
+}
+
+bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+    //
+    // We need an HTTP handler in order to monitor the health of the ice server
+    // The correct functioning of the ICE server will be determined by its HTTP availability,
+    //
+    
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
+        if (url.path() == "/status") {
+            connection->respond(HTTPConnection::StatusCode200, QByteArray::number(_activePeers.size()));
+        }
+    }
+    return true;
 }
