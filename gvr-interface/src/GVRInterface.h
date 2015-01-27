@@ -29,12 +29,14 @@ public:
     RenderingClient* getClient() { return _client; }
     
 private slots:
-    void handleApplicationStateChange(Qt::ApplicationState state); 
+    void handleApplicationStateChange(Qt::ApplicationState state);
+    void idle();
 private:
     void resumeOVR();
     void pauseOVR(); 
     
     RenderingClient* _client;
+    bool _inVRMode;
 };
 
 #endif // hifi_GVRInterface_h

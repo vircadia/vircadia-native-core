@@ -11,6 +11,7 @@
 
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QAndroidJniObject>
+#include <QtCore/QTimer>
 #include <qpa/qplatformnativeinterface.h>
 #include <QtWidgets/QMenuBar>
 
@@ -22,7 +23,8 @@
 #include "GVRInterface.h"
 
 GVRInterface::GVRInterface(int argc, char* argv[]) : 
-    QApplication(argc, argv)
+    QApplication(argc, argv),
+    _inVRMode(false)
 {
     _client = new RenderingClient(this);
     
@@ -34,13 +36,24 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     jobject activity = (jobject) interface->nativeResourceForIntegration("QtActivity");
 
     ovr_RegisterHmtReceivers(&*jniEnv, activity);
+    
+    // call our idle function whenever we can
+    QTimer* idleTimer = new QTimer(this);
+    connect(idleTimer, &QTimer::timeout, this, &GVRInterface::idle);
+    idleTimer->start(0);
+}
+
+void GVRInterface::idle() {
+    if (!_inVRMode && ovr_IsHeadsetDocked()) {
+        qDebug() << "The headset just got docked - we should try and go into VR mode";
+        _inVRMode = true;
+    }
 }
 
 void GVRInterface::handleApplicationStateChange(Qt::ApplicationState state) {
     switch(state) {
         case Qt::ApplicationActive:
             qDebug() << "The application is active.";
-            resumeOVR();
             break;
         case Qt::ApplicationSuspended:
             qDebug() << "The application is being suspended.";
