@@ -15,9 +15,10 @@
 #include <qpa/qplatformnativeinterface.h>
 #include <QtWidgets/QMenuBar>
 
+#include <GlUtils.h>
+#include <VrApi/LocalPreferences.h>
 #include <VrApi/VrApi.h>
 #include <VrApi/VrApi_local.h>
-#include <VrApi/LocalPreferences.h>
 
 #include "GVRMainWindow.h"
 #include "RenderingClient.h"
@@ -43,18 +44,29 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     QTimer* idleTimer = new QTimer(this);
     connect(idleTimer, &QTimer::timeout, this, &GVRInterface::idle);
     idleTimer->start(0);
+    
+    // // setup our EGL context
+  //   const int windowDepth = 0;
+  //   const int windowSamples = 0;
+  //   const GLuint contextPriority = EGL_CONTEXT_PRIORITY_MEDIUM_IMG;
+  //   OVR::eglSetup_t egl = OVR::EglSetup(EGL_NO_CONTEXT, GL_ES_VERSION,
+  //       8, 8, 8, windowDepth, windowSamples, contextPriority);
+  //
+  //   if (egl.context == EGL_NO_CONTEXT) {
+  //       qDebug() << "WE HAD SOME DIFFICULTIES SETTING UP EGL!";
+  //   } else {
+  //       qDebug() << "EGL is good to go.";
+  //   }
 }
 
 void GVRInterface::idle() {
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
-        qDebug() << "The headset just got docked - we should try and go into VR mode";
+        qDebug() << "The headset just got docked - assume we are in VR mode.";
         _inVRMode = true;
-        enterVRMode();
     } else if (_inVRMode) {
-        if (!ovr_IsHeadsetDocked()) {
-            qDebug() << "The headset was just undocked - we should leave VR mode now";
-            leaveVRMode();
-        } else {
+        if (ovr_IsHeadsetDocked()) {
+            static int counter = 0;
+            
             // Get the latest head tracking state, predicted ahead to the midpoint of the time
             // it will be displayed.  It will always be corrected to the real values by
             // time warp, but the closer we get, the less black will be pulled in at the edges.
@@ -65,14 +77,18 @@ void GVRInterface::idle() {
             const double clampedPrediction = std::min( 0.1, rawDelta * 2);
             ovrSensorState sensor = ovrHmd_GetSensorState(OvrHmd, now + clampedPrediction, true );   
             
-            float w = sensor.Predicted.Pose.Orientation.w;
-            float x = sensor.Predicted.Pose.Orientation.x;
-            float y = sensor.Predicted.Pose.Orientation.y;
-            float z = sensor.Predicted.Pose.Orientation.z;
+            auto ovrOrientation = sensor.Predicted.Pose.Orientation;
+            glm::quat newOrientation(ovrOrientation.w, ovrOrientation.x, ovrOrientation.y, ovrOrientation.z);
+            // _client->setOrientation(newOrientation);
             
-            qDebug() << "GetSensorState: " << x << y << z << w;
+            if (counter++ % 100000 == 0) {
+                qDebug() << "GetSensorState in frame" << counter << "-" 
+                    << ovrOrientation.x <<  ovrOrientation.y <<  ovrOrientation.z <<  ovrOrientation.w;
+            }
+        } else {
+            qDebug() << "The headset was undocked - assume we are no longer in VR mode.";
+            _inVRMode = false;
         }
-       
     } 
 }
 
@@ -90,43 +106,44 @@ void GVRInterface::handleApplicationStateChange(Qt::ApplicationState state) {
 }
 
 void GVRInterface::enterVRMode() {
-    // Reload local preferences, in case we are coming back from a
-    // switch to the dashboard that changed them.
-    ovr_UpdateLocalPreferences();
-
-    // Default vrModeParms
-    ovrModeParms vrModeParms;
-    vrModeParms.AsynchronousTimeWarp = true;
-    vrModeParms.AllowPowerSave = true;
-    vrModeParms.DistortionFileName = NULL;
-    vrModeParms.EnableImageServer = false;
-    vrModeParms.CpuLevel = 2;
-    vrModeParms.GpuLevel = 2;
-    vrModeParms.GameThreadTid = 0;
-    
-    QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
-    
-    vrModeParms.ActivityObject = (jobject) interface->nativeResourceForIntegration("QtActivity");
-    
-    _hmdInfo = new ovrHmdInfo;
-
-    const char* cpuLevelStr = ovr_GetLocalPreferenceValueForKey( LOCAL_PREF_DEV_CPU_LEVEL, "-1" );
-    const int cpuLevel = atoi( cpuLevelStr );
-    if ( cpuLevel >= 0 ) {
-        vrModeParms.CpuLevel = cpuLevel;
-        qDebug() << "Local Preferences: Setting cpuLevel" << vrModeParms.CpuLevel;
-    }
-
-    const char* gpuLevelStr = ovr_GetLocalPreferenceValueForKey( LOCAL_PREF_DEV_GPU_LEVEL, "-1" );
-    const int gpuLevel = atoi( gpuLevelStr );
-    if ( gpuLevel >= 0 ) {
-        vrModeParms.GpuLevel = gpuLevel;
-        qDebug() << "Local Preferences: Setting gpuLevel" << vrModeParms.GpuLevel;
-    }
-
-    _ovr = ovr_EnterVrMode(vrModeParms, _hmdInfo);
+    // // Reload local preferences, in case we are coming back from a
+//     // switch to the dashboard that changed them.
+//     ovr_UpdateLocalPreferences();
+//
+//     // Default vrModeParms
+//     ovrModeParms vrModeParms;
+//     vrModeParms.AsynchronousTimeWarp = true;
+//     vrModeParms.AllowPowerSave = true;
+//     vrModeParms.DistortionFileName = NULL;
+//     vrModeParms.EnableImageServer = false;
+//     vrModeParms.CpuLevel = 2;
+//     vrModeParms.GpuLevel = 2;
+//     vrModeParms.GameThreadTid = 0;
+//
+//     QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
+//
+//     vrModeParms.ActivityObject = (jobject) interface->nativeResourceForIntegration("QtActivity");
+//
+//     _hmdInfo = new ovrHmdInfo;
+//
+//     const char* cpuLevelStr = ovr_GetLocalPreferenceValueForKey( LOCAL_PREF_DEV_CPU_LEVEL, "-1" );
+//     const int cpuLevel = atoi( cpuLevelStr );
+//     if ( cpuLevel >= 0 ) {
+//         vrModeParms.CpuLevel = cpuLevel;
+//         qDebug() << "Local Preferences: Setting cpuLevel" << vrModeParms.CpuLevel;
+//     }
+//
+//     const char* gpuLevelStr = ovr_GetLocalPreferenceValueForKey( LOCAL_PREF_DEV_GPU_LEVEL, "-1" );
+//     const int gpuLevel = atoi( gpuLevelStr );
+//     if ( gpuLevel >= 0 ) {
+//         vrModeParms.GpuLevel = gpuLevel;
+//         qDebug() << "Local Preferences: Setting gpuLevel" << vrModeParms.GpuLevel;
+//     }
+//
+//     _ovr = ovr_EnterVrMode(vrModeParms, _hmdInfo);
 }
 
 void GVRInterface::leaveVRMode() {
-    ovr_LeaveVrMode(_ovr);
+    
+    // ovr_LeaveVrMode(_ovr);
 }
