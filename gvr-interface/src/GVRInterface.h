@@ -15,6 +15,8 @@
 #include <QtWidgets/QApplication>
 
 class RenderingClient;
+class ovrMobile;
+class ovrHmdInfo;
 
 #if defined(qApp)
 #undef qApp
@@ -32,11 +34,14 @@ private slots:
     void handleApplicationStateChange(Qt::ApplicationState state);
     void idle();
 private:
-    void resumeOVR();
-    void pauseOVR(); 
+    void enterVRMode();
+    void leaveVRMode(); 
     
     RenderingClient* _client;
     bool _inVRMode;
+    
+    ovrMobile* _ovr;
+    ovrHmdInfo* _hmdInfo;
 };
 
 #endif // hifi_GVRInterface_h
