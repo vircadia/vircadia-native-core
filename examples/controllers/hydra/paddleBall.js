@@ -10,6 +10,12 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+hitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
+var rightHandAnimation = HIFI_PUBLIC_BUCKET + "animations/RightHandAnimPhilip.fbx";
+var leftHandAnimation = HIFI_PUBLIC_BUCKET + "animations/LeftHandAnimPhilip.fbx";
+
 var BALL_SIZE = 0.08;
 var PADDLE_SIZE = 0.20;
 var PADDLE_THICKNESS = 0.06;
@@ -17,7 +23,8 @@ var PADDLE_COLOR = { red: 184, green: 134, blue: 11 };
 var BALL_COLOR = { red: 255, green: 0, blue: 0 };
 var LINE_COLOR = { red: 255, green: 255, blue: 0 };
 var PADDLE_BOX_OFFSET = { x: 0.05, y: 0.0, z: 0.0 };
-var HOLD_POSITION_OFFSET = { x: -0.2, y: 0.0, z: -0.25 }; 
+
+var HOLD_POSITION_OFFSET = { x: -0.15, y: 0.05, z: -0.05 }; 
 var PADDLE_ORIENTATION = Quat.fromPitchYawRollDegrees(0,0,0);
 var GRAVITY = 0.0;   
 var SPRING_FORCE = 15.0; 
@@ -33,8 +40,7 @@ if (leftHanded)  {
 }
 
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-hitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
+
 
 var screenSize = Controller.getViewportDimensions();
 var offButton = Overlays.addOverlay("image", {
@@ -92,6 +98,9 @@ function createEntities() {
     			alpha: 1,
     			visible: true,
     			lineWidth: 2 });
+
+	MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
+    MyAvatar.startAnimation(leftHanded ? leftHandAnimation: rightHandAnimation, 15.0, 1.0, false, true, 0.0, 6);
 }
 
 function deleteEntities() {
@@ -99,6 +108,7 @@ function deleteEntities() {
     Entities.deleteEntity(paddle);
     Entities.deleteEntity(paddleModel);
     Overlays.deleteOverlay(line); 
+    MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
 }
 
 function update(deltaTime) {
@@ -123,7 +133,9 @@ function update(deltaTime) {
 	   ball = Entities.identifyEntity(ball);
 	} else {
 		var paddleWorldOrientation = Quat.multiply(Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)), PADDLE_ORIENTATION);
-		var holdPosition = Vec3.sum(palmPosition, Vec3.multiplyQbyV(paddleWorldOrientation, HOLD_POSITION_OFFSET));
+		var holdPosition = Vec3.sum(leftHanded ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(), 
+									Vec3.multiplyQbyV(paddleWorldOrientation, HOLD_POSITION_OFFSET));
+
 		var props = Entities.getEntityProperties(ball);
 		var spring = Vec3.subtract(holdPosition, props.position);
 		var springLength = Vec3.length(spring);
@@ -168,6 +180,7 @@ function scriptEnding() {
 		deleteEntities();
 	}
     Overlays.deleteOverlay(offButton);
+    MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
 }
 
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
