@@ -161,6 +161,14 @@ You now have Bullet libraries compiled, now you need to put them in the right pl
 
 _Note that the INSTALL target should handle the copying of files into an install directory automatically, however, without modifications to Cmake, the install target didn't work right for me, please update this instructions if you get that working right - Leo &lt;leo@highfidelity.io&gt;_
 
+###Soxr
+
+Download the zip from the [soxr sourceforge page](http://sourceforge.net/projects/soxr/). 
+
+We recommend you extract it to %HIFI_LIB_DIR%\soxr. This will help our FindSoxr cmake module find what it needs. You can place it wherever you like on your machine if you specify SOXR_ROOT_DIR as an environment variable or a variable passed when cmake is run.
+
+You will need to use cmake to build and install Soxr. If you'd like to keep everything containted in the Soxr folder, pass `-DCMAKE_INSTALL_PREFIX=.` when you run Cmake so that it will be installed to the same directory.
+
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
 

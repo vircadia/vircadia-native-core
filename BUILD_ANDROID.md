@@ -33,11 +33,11 @@ Download the [OpenSSL source](https://www.openssl.org/source/) and extract the t
 You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki. 
 
 You must change two values at the top of the `setenv-android.sh` script - `_ANDROID_NDK` and `_ANDROID_EABI`.
-`_ANDROID_NDK` should be `android-ndk-r10` and `_ANDROID_EABI` should be `arm-linux-androidebi-4.6`.
+`_ANDROID_NDK` should be `android-ndk-r10` and `_ANDROID_EABI` should be `arm-linux-androidebi-4.9`.
 
 First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path to the root of your Android NDK install. `setenv-android.sh` needs `ANDROID_NDK_ROOT` to set the environment variables required for building OpenSSL.
 
-Execute the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling.
+Source the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling. If you use zsh as your shell you may need to modify the `setenv-android.sh` for it to set the correct variables in your env.
 
 We have had issues with `setenv-android.sh` not helping the system use the Android archive tool during compilation. You may also need to set `AR` to point to the `ar` from your NDK AFTER running ./setenv-android.sh. 
 
@@ -45,8 +45,8 @@ Note that your path to `arm-linux-androideabi-ar` will probably not be the same 
 
 ```
 export ANDROID_NDK_ROOT=YOUR_NDK_ROOT
-./setenv-android.sh
-export AR=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
+source setenv-android.sh
+export AR=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
 ```
 
 Then, from the OpenSSL directory, run the following commands.
@@ -66,19 +66,34 @@ If you have been building other components it is possible that the OpenSSL compi
 
 Download the [Intel Threading Building Blocks source](https://www.threadingbuildingblocks.org/download) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `tbb`.
 
-From the tbb directory, execute the following commands. This will set the compiler and archive tool to the correct ones from the NDK install and then build TBB using `ndk-build`. Then, the compiled libs are copied to a lib folder in the root of tbb directory.
+NOTE: BEFORE YOU ATTEMPT TO CROSS-COMPILE TBB, DISCONNECT ANY DEVICES ADB WOULD DETECT. The tbb build process asks adb for a couple of strings, and if a device is plugged in extra characters get added that will cause ndk-build to fail with an error.
 
-Note that you will need to replace the value of $HOST below with whatever is appropriate for your host OS. On OS X, for example, the full exported value for CC is `$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-gcc`.
+From the tbb directory, execute the following commands. First, we build TBB using `ndk-build`. Then, the compiled libs are copied to a lib folder in the root of tbb directory.
 
 ```
-export CC=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/$HOST/bin/arm-linux-androideabi-gcc
-export AR=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/$HOST/bin/arm-linux-androideabi-ar
 cd jni
 ndk-build target=android tbb tbbmalloc arch=arm
 cd ../
 mkdir lib
-cp -rf build/linux_arm_*/**/*.so lib/
+cp `find . -name "*.so"` lib/
 ```
+
+####Soxr
+
+Download the [Soxr source](http://sourceforge.net/projects/soxr/) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `soxr`.
+
+From the soxr directory, use cmake, along with the `android.toolchain.cmake` file (included in this repository under cmake/android) to cross-compile soxr for Android.
+
+The full set of commands to build soxr for Android is shown below
+
+```
+cmake -DCMAKE_TOOLCHAIN_FILE=$FULL_PATH_TO_TOOLCHAIN -DHAVE_WORDS_BIGENDIAN_EXITCODE=1 -DBUILD_TESTS=0 -DCMAKE_INSTALL_PREFIX=.
+make
+make install
+```
+
+This will create the `lib` and `include` folders inside `ANDROID_LIB_DIR/soxr` that FindSoxr will look for.
+
 
 ####GLM
 
