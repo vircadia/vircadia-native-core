@@ -39,20 +39,6 @@ macro(qt_create_apk)
   
   # create "strings.xml"
   configure_file("${ANDROID_THIS_DIRECTORY}/strings.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/strings.xml")
-  
-  # copy the res folder from the target to the apk build dir
-  add_custom_command(
-    TARGET ${TARGET_NAME}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/res" "${ANDROID_APK_BUILD_DIR}/res"
-  )
-  
-  # copy the assets folder from the target to the apk build dir
-  add_custom_command(
-    TARGET ${TARGET_NAME}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/assets" "${ANDROID_APK_BUILD_DIR}/assets"
-  )
 
   # figure out where the qt dir is
   get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
@@ -109,9 +95,29 @@ macro(qt_create_apk)
   
   configure_file("${ANDROID_THIS_DIRECTORY}/deployment-file.json.in" "${TARGET_NAME}-deployment.json")
   
+  # copy the res folder from the target to the apk build dir
+  add_custom_target(
+    ${TARGET_NAME}-copy-res
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/res" "${ANDROID_APK_BUILD_DIR}/res"
+  )
+  
+  # copy the assets folder from the target to the apk build dir
+  add_custom_target(
+    ${TARGET_NAME}-copy-assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/assets" "${ANDROID_APK_BUILD_DIR}/assets"
+  )
+  
+  # copy the java folder from src to the apk build dir
+  add_custom_target(
+    ${TARGET_NAME}-copy-java
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/src/java" "${ANDROID_APK_BUILD_DIR}/src"
+  )
+  
   # use androiddeployqt to create the apk
   add_custom_target(${TARGET_NAME}-apk
     COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} --install --verbose --deployment bundled "\\$(ARGS)"
-    DEPENDS ${TARGET_NAME}
+    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java
   )
+  
+  
 endmacro()
