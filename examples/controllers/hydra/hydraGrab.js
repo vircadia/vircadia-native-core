@@ -14,12 +14,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-Script.include("libraries/entityPropertyDialogBox.js");
+Script.include("../../libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
-
-var LASER_WIDTH = 4;
-var LASER_COLOR = { red: 255, green: 0, blue: 0 };
-var LASER_LENGTH_FACTOR = 500;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
@@ -32,7 +28,44 @@ var RIGHT = 1;
 
 var jointList = MyAvatar.getJointNames();
 
-var mode = 0;
+var STICKS = 0;
+var MAPPED = 1;
+var mode = STICKS;
+
+var LASER_WIDTH = 4;
+var LASER_COLOR = [{ red: 200, green: 150, blue: 50 },  // STICKS
+                   { red: 50, green: 150, blue: 200 }]; // MAPPED
+var LASER_LENGTH_FACTOR = 500;
+
+var lastAccurateIntersection = null;
+var accurateIntersections = 0;
+var totalIntersections = 0;
+var inaccurateInARow = 0;
+var maxInaccurateInARow = 0;
+function getRayIntersection(pickRay) { // pickRay : { origin : {xyz}, direction : {xyz} }
+    if (lastAccurateIntersection === null) {
+        lastAccurateIntersection = Entities.findRayIntersectionBlocking(pickRay);
+    } else {
+        var intersection = Entities.findRayIntersection(pickRay);
+        if (intersection.accurate) {
+            lastAccurateIntersection = intersection;
+            accurateIntersections++;
+            maxInaccurateInARow = (maxInaccurateInARow > inaccurateInARow) ? maxInaccurateInARow : inaccurateInARow;
+            inaccurateInARow = 0;
+        } else {
+            inaccurateInARow++;
+        }
+        totalIntersections++;
+    }
+    return lastAccurateIntersection;
+}
+
+function printIntersectionsStats() {
+    var ratio = accurateIntersections / totalIntersections;
+    print("Out of " + totalIntersections + " intersections, " + accurateIntersections + " where accurate. (" + ratio * 100 +"%)");
+    print("Worst case was " + maxInaccurateInARow + " inaccurate intersections in a row.");
+}
+
 
 function controller(wichSide) {
     this.side = wichSide;
@@ -42,10 +75,10 @@ function controller(wichSide) {
     this.bumper = 6 * wichSide + 5;
 
     this.oldPalmPosition = Controller.getSpatialControlPosition(this.palm);
-    this.palmPosition = Controller.getSpatialControlPosition(this.palm);
+    this.palmPosition = this.oldPalmPosition;
 
     this.oldTipPosition = Controller.getSpatialControlPosition(this.tip);
-    this.tipPosition = Controller.getSpatialControlPosition(this.tip);
+    this.tipPosition = this.oldTipPosition;
 
     this.oldUp = Controller.getSpatialControlNormal(this.palm);
     this.up = this.oldUp;
@@ -81,7 +114,7 @@ function controller(wichSide) {
     this.laser = Overlays.addOverlay("line3d", {
         start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
-        color: LASER_COLOR,
+        color: LASER_COLOR[mode],
         alpha: 1,
         visible: false,
         lineWidth: LASER_WIDTH,
@@ -245,9 +278,9 @@ function controller(wichSide) {
 
         var inverseRotation = Quat.inverse(MyAvatar.orientation);
         var startPosition = Vec3.multiplyQbyV(inverseRotation, Vec3.subtract(this.palmPosition, MyAvatar.position));
+        startPosition = Vec3.multiply(startPosition, 1 / MyAvatar.scale);
         var direction = Vec3.multiplyQbyV(inverseRotation, Vec3.subtract(this.tipPosition, this.palmPosition));
-        var distance = Vec3.length(direction);
-        direction = Vec3.multiply(direction, LASER_LENGTH_FACTOR / distance);
+        direction = Vec3.multiply(direction, LASER_LENGTH_FACTOR / (Vec3.length(direction) * MyAvatar.scale));
         var endPosition = Vec3.sum(startPosition, direction);
 
         Overlays.editOverlay(this.laser, {
@@ -267,17 +300,16 @@ function controller(wichSide) {
             start: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
         });
-        this.showLaser(!this.grabbing || mode == 0);
+        this.showLaser(!this.grabbing || mode == STICKS);
 
         if (this.glowedIntersectingModel.isKnownID) {
             Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.0 });
             this.glowedIntersectingModel.isKnownID = false;
         }
         if (!this.grabbing) {
-            var intersection = Entities.findRayIntersectionBlocking({
-                                                          origin: this.palmPosition,
-                                                          direction: this.front
-                                                          });
+            var intersection = getRayIntersection({ origin: this.palmPosition,
+                                                    direction: this.front
+                                                   });
                                                           
             var halfDiagonal = Vec3.length(intersection.properties.dimensions) / 2.0;
                                                           
@@ -304,17 +336,16 @@ function controller(wichSide) {
         if (this.grabbing) {
             if (!this.entityID.isKnownID) {
                 print("Unknown grabbed ID " + this.entityID.id + ", isKnown: " + this.entityID.isKnownID);
-                this.entityID =  Entities.findRayIntersectionBlocking({
-                                                        origin: this.palmPosition,
-                                                        direction: this.front
-                                                           }).entityID;
+                this.entityID =  getRayIntersection({ origin: this.palmPosition,
+                                                      direction: this.front
+                                                     }).entityID;
                 print("Identified ID " + this.entityID.id + ", isKnown: " + this.entityID.isKnownID);
             }
             var newPosition;
             var newRotation;
 
             switch (mode) {
-                case 0:
+                case STICKS:
                     newPosition = Vec3.sum(this.palmPosition,
                                            Vec3.multiply(this.front, this.x));
                     newPosition = Vec3.sum(newPosition,
@@ -328,7 +359,7 @@ function controller(wichSide) {
                     newRotation = Quat.multiply(newRotation,
                                                 this.oldModelRotation);
                     break;
-                case 1:
+                case MAPPED:
                     var forward = Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1 });
                     var d = Vec3.dot(forward, MyAvatar.position);
 
@@ -397,15 +428,13 @@ function controller(wichSide) {
 
         var bumperValue = Controller.isButtonPressed(this.bumper);
         if (bumperValue && !this.bumperValue) {
-            if (mode == 0) {
-                mode = 1;
-                Overlays.editOverlay(leftController.laser, { color: { red: 0, green: 0, blue: 255 } });
-                Overlays.editOverlay(rightController.laser, { color: { red: 0, green: 0, blue: 255 } });
-            } else {
-                mode = 0;
-                Overlays.editOverlay(leftController.laser, { color: { red: 255, green: 0, blue: 0 } });
-                Overlays.editOverlay(rightController.laser, { color: { red: 255, green: 0, blue: 0 } });
+            if (mode === STICKS) {
+                mode = MAPPED;
+            } else if (mode === MAPPED) {
+                mode = STICKS;
             }
+            Overlays.editOverlay(leftController.laser, { color: LASER_COLOR[mode] });
+            Overlays.editOverlay(rightController.laser, { color: LASER_COLOR[mode] });
         }
         this.bumperValue = bumperValue;
 
@@ -475,10 +504,10 @@ function controller(wichSide) {
                 Vec3.print("Looking at: ", this.palmPosition);
                 var pickRay = { origin: this.palmPosition,
                     direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)) };
-                var foundIntersection = Entities.findRayIntersectionBlocking(pickRay);
+                var foundIntersection = getRayIntersection(pickRay);
                 
-                if(!foundIntersection.accurate) {
-                    print("No accurate intersection");
+                if(!foundIntersection.intersects) {
+                    print("No intersection");
                     return;
                 }
                 newModel = foundIntersection.entityID;
@@ -526,7 +555,7 @@ function moveEntities() {
 
 
         switch (mode) {
-            case 0:
+            case STICKS:
                 var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
                 var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
 
@@ -545,7 +574,7 @@ function moveEntities() {
                 newPosition = Vec3.sum(middle,
                                        Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
                 break;
-            case 1:
+            case MAPPED:
                 var u = Vec3.normalize(Vec3.subtract(rightController.oldPalmPosition, leftController.oldPalmPosition));
                 var v = Vec3.normalize(Vec3.subtract(rightController.palmPosition, leftController.palmPosition));
 
@@ -628,43 +657,56 @@ var glowedEntityID = { id: -1, isKnownID: false };
 // In order for editVoxels and editModels to play nice together, they each check to see if a "delete" menu item already
 // exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
 // added it.
+var ROOT_MENU = "Edit";
+var ITEM_BEFORE = "Physics";
+var MENU_SEPARATOR = "Models";
+var EDIT_PROPERTIES = "Edit Properties...";
+var INTERSECTION_STATS = "Print Intersection Stats";
+var DELETE = "Delete";
+var LARGE_MODELS = "Allow Selecting of Large Models";
+var SMALL_MODELS = "Allow Selecting of Small Models";
+ var LIGHTS = "Allow Selecting of Lights";
+
 var modelMenuAddedDelete = false;
 var originalLightsArePickable = Entities.getLightsArePickable();
 function setupModelMenus() {
     print("setupModelMenus()");
     // adj our menuitems
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Edit Properties...",
-        shortcutKeyEvent: { text: "`" }, afterItem: "Models" });
-    if (!Menu.menuItemExists("Edit", "Delete")) {
+    Menu.addMenuItem({ menuName: ROOT_MENU, menuItemName: MENU_SEPARATOR, isSeparator: true, beforeItem: ITEM_BEFORE });
+    Menu.addMenuItem({ menuName: ROOT_MENU, menuItemName: EDIT_PROPERTIES,
+        shortcutKeyEvent: { text: "`" }, afterItem: MENU_SEPARATOR });
+    Menu.addMenuItem({ menuName: ROOT_MENU, menuItemName: INTERSECTION_STATS, afterItem: MENU_SEPARATOR });
+    if (!Menu.menuItemExists(ROOT_MENU, DELETE)) {
         print("no delete... adding ours");
-        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete",
-            shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
+        Menu.addMenuItem({ menuName: ROOT_MENU, menuItemName: DELETE,
+            shortcutKeyEvent: { text: "backspace" }, afterItem: MENU_SEPARATOR });
         modelMenuAddedDelete = true;
     } else {
         print("delete exists... don't add ours");
     }
 
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
-                        afterItem: "Paste Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
-                        afterItem: "Allow Selecting of Large Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
-                        afterItem: "Allow Selecting of Small Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: ROOT_MENU, menuItemName: LARGE_MODELS, shortcutKey: "CTRL+META+L", 
+                        afterItem: DELETE, isCheckable: true });
+    Menu.addMenuItem({ menuName: ROOT_MENU, menuItemName: SMALL_MODELS, shortcutKey: "CTRL+META+S", 
+                        afterItem: LARGE_MODELS, isCheckable: true });
+    Menu.addMenuItem({ menuName: ROOT_MENU, menuItemName: LIGHTS, shortcutKey: "CTRL+SHIFT+META+L", 
+                        afterItem: SMALL_MODELS, isCheckable: true });
 
     Entities.setLightsArePickable(false);
 }
 
 function cleanupModelMenus() {
-    Menu.removeMenuItem("Edit", "Edit Properties...");
+    Menu.removeSeparator(ROOT_MENU, MENU_SEPARATOR);
+    Menu.removeMenuItem(ROOT_MENU, EDIT_PROPERTIES);
+    Menu.removeMenuItem(ROOT_MENU, INTERSECTION_STATS);
     if (modelMenuAddedDelete) {
         // delete our menuitems
-        Menu.removeMenuItem("Edit", "Delete");
+        Menu.removeMenuItem(ROOT_MENU, DELETE);
     }
 
-    Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
-    Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
-    Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
+    Menu.removeMenuItem(ROOT_MENU, LARGE_MODELS);
+    Menu.removeMenuItem(ROOT_MENU, SMALL_MODELS);
+    Menu.removeMenuItem(ROOT_MENU, LIGHTS);
 
 }
 
@@ -688,13 +730,13 @@ function showPropertiesForm(editModelID) {
 
 Menu.menuItemEvent.connect(function (menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
-    if (menuItem == "Allow Selecting of Small Models") {
-        allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
-    } else if (menuItem == "Allow Selecting of Large Models") {
-        allowLargeModels = Menu.isOptionChecked("Allow Selecting of Large Models");
-    } else if (menuItem == "Allow Selecting of Lights") {
-        Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
-    } else if (menuItem == "Delete") {
+    if (menuItem == SMALL_MODELS) {
+        allowSmallModels = Menu.isOptionChecked(SMALL_MODELS);
+    } else if (menuItem == LARGE_MODELS) {
+        allowLargeModels = Menu.isOptionChecked(LARGE_MODELS);
+    } else if (menuItem == LIGHTS) {
+        Entities.setLightsArePickable(Menu.isOptionChecked(LIGHTS));
+    } else if (menuItem == DELETE) {
         if (leftController.grabbing) {
             print("  Delete Entity.... leftController.entityID="+ leftController.entityID);
             Entities.deleteEntity(leftController.entityID);
@@ -712,7 +754,7 @@ Menu.menuItemEvent.connect(function (menuItem) {
         } else {
             print("  Delete Entity.... not holding...");
         }
-    } else if (menuItem == "Edit Properties...") {
+    } else if (menuItem == EDIT_PROPERTIES) {
         editModelID = -1;
         if (leftController.grabbing) {
             print("  Edit Properties.... leftController.entityID="+ leftController.entityID);
@@ -727,16 +769,18 @@ Menu.menuItemEvent.connect(function (menuItem) {
             print("  Edit Properties.... about to edit properties...");
             showPropertiesForm(editModelID);
         }
+    } else if (menuItem == INTERSECTION_STATS) {
+        printIntersectionsStats();
     }
 });
 
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
     if (event.text == "`") {
-        handeMenuEvent("Edit Properties...");
+        handeMenuEvent(EDIT_PROPERTIES);
     }
     if (event.text == "BACKSPACE") {
-        handeMenuEvent("Delete");
+        handeMenuEvent(DELETE);
     }
 });
 
