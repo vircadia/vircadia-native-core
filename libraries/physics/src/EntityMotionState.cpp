@@ -97,6 +97,8 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
     _entity->setAngularVelocity(glm::degrees(v));
 
+    _entity->setLastSimulated(usecTimestampNow());
+
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
 

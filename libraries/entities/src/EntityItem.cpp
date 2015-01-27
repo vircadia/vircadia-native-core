@@ -562,8 +562,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // was at that last known positition.
             
             float skipTimeForward = (float)(now - _lastSimulated) / (float)(USECS_PER_SECOND);
-            qDebug() << "skipTimeForward:" << skipTimeForward;
-            simulateKinematicMotion(skipTimeForward);
+            if (skipTimeForward > 0.0f) {
+                qDebug() << "skipTimeForward:" << skipTimeForward;
+                simulateKinematicMotion(skipTimeForward);
+            }
             //simulate(now);
             _lastSimulated = now;
         }
