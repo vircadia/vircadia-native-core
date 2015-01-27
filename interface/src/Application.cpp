@@ -153,6 +153,16 @@ bool setupEssentials(int& argc, char** argv) {
         listenPort = atoi(portStr);
     }
     
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+    QApplication::setApplicationName(applicationInfo.value("name").toString());
+    QApplication::setApplicationVersion(BUILD_VERSION);
+    QApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
+    QApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     
     // Set dependencies
@@ -223,34 +233,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false)
 {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
-    auto nodeList = DependencyManager::get<NodeList>();
+    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
+    qInstallMessageHandler(messageHandler);
+    
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
+    _window->setWindowTitle("Interface");
+    
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
     
-    
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
-
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-
-    setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(BUILD_VERSION);
-    setOrganizationName(applicationInfo.value("organizationName").toString());
-    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
-
-    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
-
-    QSettings::setDefaultFormat(QSettings::IniFormat);
+    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     _myAvatar = _avatarManager.getMyAvatar();
 
     _applicationStartupTime = startup_time;
-
-    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
-    _window->setWindowTitle("Interface");
-
-    qInstallMessageHandler(messageHandler);
 
     qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
