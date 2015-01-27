@@ -1,0 +1,88 @@
+<!
+//  Light.slh
+//  fragment shader
+//
+//  Created by Sam Gateau on 1/25/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not LIGHT_SLH@>
+<@def LIGHT_SLH@>
+
+struct Light {
+    mat4 _transform;
+
+    vec4 _color;
+    vec4 _attenuation;
+    vec4 _spot;
+
+    vec4 _shadow;
+
+    vec4 _control;
+};
+
+vec3 getLightPosition(Light l) { return l._transform[3].xyz; }
+vec3 getLightDirection(Light l) { return -l._transform[2].xyz; } // direction is -Z axis
+
+vec3 getLightColor(Light l) { return l._color.rgb; }
+float getLightIntensity(Light l) { return l._color.w; }
+
+float evalLightAttenuation(Light l, float r) {
+    return clamp(1.0/(l._attenuation.x + l._attenuation.y * r + l._attenuation.z * r * r), 0.0, 1.0);
+}
+
+float evalLightSpotAttenuation(Light l, float cosA) {
+    if (cosA > l._spot.x) {
+        return 0.0;
+    }
+    return clamp(pow(cosA / l._spot.x, l._spot.w), 0.0, 1.0);
+}
+
+
+
+<@if GLPROFILE == PC_GL@>
+uniform lightBuffer {
+    Light light;
+};
+Light getLight() {
+    return light;
+}
+<@elif GLPROFILE == MAC_GL@>
+uniform vec4 lightBuffer[9];
+Light getLight() {
+    Light light;
+    light._transform[0] = lightBuffer[0];
+    light._transform[1] = lightBuffer[1];
+    light._transform[2] = lightBuffer[2];
+    light._transform[3] = lightBuffer[3];
+    light._color = lightBuffer[4];
+    light._range = lightBuffer[5];
+    light._spot = lightBuffer[6];
+    light._shadow = lightBuffer[7];
+    light._control = lightBuffer[8];
+
+    return light;
+}
+<@else@>
+uniform vec4 lightBuffer[9];
+Light getLight() {
+    Light light;
+    light._transform[0] = lightBuffer[0];
+    light._transform[1] = lightBuffer[1];
+    light._transform[2] = lightBuffer[2];
+    light._transform[3] = lightBuffer[3];
+    light._color = lightBuffer[4];
+    light._range = lightBuffer[5];
+    light._spot = lightBuffer[6];
+    light._shadow = lightBuffer[7];
+    light._control = lightBuffer[8];
+
+    return light;
+}
+<@endif@>
+
+
+
+<@endif@>
