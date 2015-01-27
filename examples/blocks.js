@@ -9,10 +9,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var FLOOR_SIZE = 5.0;
+var FLOOR_SIZE = 7.5;
 var FLOOR_THICKNESS = 0.10;
 var EDGE_THICKESS = 0.25;
 var SCALE = 0.25; 
+
+var NUM_BLOCKS = 25; 
+var DROP_HEIGHT = SCALE * 8.0;
 
 var GRAVITY = -1.0;
 var LIFETIME = 6000;    
@@ -23,7 +26,7 @@ blockTypes.push({ x: 1, y: 1, z: 1, red: 255, green: 0, blue: 0 });
 blockTypes.push({ x: 1, y: 1, z: 2, red: 0, green: 255, blue: 0 });
 blockTypes.push({ x: 1, y: 2, z: 5, red: 0, green: 0, blue: 255 });
 blockTypes.push({ x: 1, y: 2, z: 2, red: 255, green: 255, blue: 0 });
-
+blockTypes.push({ x: 1, y: 1, z: 5, red: 0, green: 255, blue: 255 });
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(FLOOR_SIZE * 2.0, Quat.getFront(Camera.getOrientation())));
 
@@ -45,6 +48,7 @@ var edge1 = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: true,
+	        locked: true,
 	        lifetime: LIFETIME });
 
 var edge2 = Entities.addEntity(
@@ -55,6 +59,7 @@ var edge2 = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: true,
+	        locked: true,
 	        lifetime: LIFETIME });
 
 var edge3 = Entities.addEntity(
@@ -65,6 +70,7 @@ var edge3 = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: true,
+	        locked: true,
 	        lifetime: LIFETIME });
 
 var edge4 = Entities.addEntity(
@@ -75,10 +81,8 @@ var edge4 = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: true,
+	        locked: true,
 	        lifetime: LIFETIME });
-
-var NUM_BLOCKS = 20; 
-var DROP_HEIGHT = FLOOR_SIZE / 3;
 
 blocks = [];
 

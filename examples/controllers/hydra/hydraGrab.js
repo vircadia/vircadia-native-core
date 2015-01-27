@@ -363,25 +363,16 @@ function controller(wichSide) {
             }
             var newPosition;
             var newRotation;
-  
-            var forward = Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1 });
-            var d = Vec3.dot(forward, MyAvatar.position);
 
-            var factor1 = Vec3.dot(forward, this.positionAtGrab) - d;
-            var factor2 = Vec3.dot(forward, this.modelPositionAtGrab) - d;
-            var vector = Vec3.subtract(this.palmPosition, this.positionAtGrab);
-
-            if (factor2 < 0) {
-                factor2 = 0;
-            }
-            if (factor1 <= 0) {
-                factor1 = 1;
-                factor2 = 1;
+            var CONSTANT_SCALING_FACTOR = 5.0;
+            var MINIMUM_SCALING_DISTANCE = 2.0;
+            var distanceToModel = Vec3.length(Vec3.subtract(this.oldModelPosition, this.palmPosition));
+            if (distanceToModel < MINIMUM_SCALING_DISTANCE) {
+                distanceToModel = MINIMUM_SCALING_DISTANCE;
             }
 
-            newPosition = Vec3.sum(this.modelPositionAtGrab,
-                                   Vec3.multiply(vector,
-                                                 factor2 / factor1));
+            var deltaPalm = Vec3.multiply(distanceToModel * CONSTANT_SCALING_FACTOR, Vec3.subtract(this.palmPosition, this.oldPalmPosition));
+            newPosition = Vec3.sum(this.oldModelPosition, deltaPalm);
 
             newRotation = Quat.multiply(this.rotation,
                                         Quat.inverse(this.rotationAtGrab));
