@@ -30,7 +30,6 @@
 #include <DependencyManager.h>
 #include <StDev.h>
 
-#include "InterfaceConfig.h"
 #include "audio/AudioIOStats.h"
 #include "audio/AudioNoiseGate.h"
 #include "AudioStreamStats.h"
