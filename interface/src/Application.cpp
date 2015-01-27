@@ -79,6 +79,7 @@
 #include <UUID.h>
 
 #include "Application.h"
+#include "Audio.h"
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
@@ -296,7 +297,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto audioIO = DependencyManager::get<Audio>();
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &Audio::start);
-    connect(audioIO, SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
     audioThread->start();
     

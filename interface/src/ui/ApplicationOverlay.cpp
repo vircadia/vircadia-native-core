@@ -16,6 +16,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 
+#include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "audio/AudioToolBox.h"
