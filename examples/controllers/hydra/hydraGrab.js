@@ -109,7 +109,7 @@ function controller(wichSide) {
     this.rotationAtGrab;
     this.gravityAtGrab;
     this.modelPositionAtGrab;
-    this.rotationAtGrab;
+    this.modelRotationAtGrab;
     this.jointsIntersectingFromStart = [];
 
     this.laser = Overlays.addOverlay("line3d", {
@@ -167,10 +167,10 @@ function controller(wichSide) {
         this.positionAtGrab = this.palmPosition;
         this.rotationAtGrab = this.rotation;
         this.modelPositionAtGrab = properties.position;
-        this.rotationAtGrab = properties.rotation;
+        this.modelRotationAtGrab = properties.rotation;
         this.gravityAtGrab = properties.gravity;
-        
         Entities.editEntity(entityID, { gravity: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 } });
+        
 
         this.jointsIntersectingFromStart = [];
         for (var i = 0; i < jointList.length; i++) {
@@ -390,8 +390,9 @@ function controller(wichSide) {
 
                     newRotation = Quat.multiply(this.rotation,
                                                 Quat.inverse(this.rotationAtGrab));
+                    newRotation = Quat.multiply(newRotation, newRotation);
                     newRotation = Quat.multiply(newRotation,
-                                                this.rotationAtGrab);
+                                                this.modelRotationAtGrab);
                     break;
             }
             Entities.editEntity(this.entityID, {
@@ -604,11 +605,11 @@ function moveEntities() {
                 leftController.positionAtGrab = leftController.palmPosition;
                 leftController.rotationAtGrab = leftController.rotation;
                 leftController.modelPositionAtGrab = leftController.oldModelPosition;
-                leftController.rotationAtGrab = rotation;
+                leftController.modelRotationAtGrab = rotation;
                 rightController.positionAtGrab = rightController.palmPosition;
                 rightController.rotationAtGrab = rightController.rotation;
                 rightController.modelPositionAtGrab = rightController.oldModelPosition;
-                rightController.rotationAtGrab = rotation;
+                rightController.modelRotationAtGrab = rotation;
                 break;
         }
         Entities.editEntity(leftController.entityID, {

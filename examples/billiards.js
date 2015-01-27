@@ -1,4 +1,17 @@
-// Pool Table 
+// Billiards.js 
+// 
+// Created by Philip Rosedale on January 21, 2015 
+// Copyright 2014 High Fidelity, Inc.
+//
+// Creates a pool table in front of you.  Hold and release space ball to shoot a ball.  
+// Cue ball will return if falls off table.  Delete and reset to restart. 
+//
+// Distributed under the Apache License, Version 2.0.
+// See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
 var tableParts = []; 
 var balls = [];
 var cueBall;
@@ -18,6 +31,10 @@ var tableCenter;
 var cuePosition; 
 
 var startStroke = 0;
+
+// Sounds to use 
+hitSounds = [];
+hitSounds.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "Collisions-ballhitsandcatches/billiards/collision1.wav"));
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var screenSize = Controller.getViewportDimensions();
@@ -122,6 +139,9 @@ function makeBalls(pos) {
 		}
 		ballPosition.x += (BALL_GAP + Math.sqrt(3.0) / 2.0 * BALL_SIZE) * SCALE;
 	}
+	print(balls.length + " Object balls made.");
+	print(isObjectBall(balls[1].id));
+
     // Cue Ball 
     cuePosition = { x: pos.x - (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
     cueBall = Entities.addEntity(
@@ -136,6 +156,14 @@ function makeBalls(pos) {
 	        damping: 0.50,
 	        collisionsWillMove: true });
 	       
+}
+
+function isObjectBall(id) {
+	for (var i; i < balls.length; i++) {
+		if (balls[i].id == id) 
+			return true;
+	}
+	return false; 
 }
 
 function shootCue(velocity) {
@@ -213,12 +241,27 @@ function update(deltaTime) {
 
 }
 
+function entityCollisionWithEntity(entity1, entity2, collision) {
+	/*
+    if ((entity1.id == cueBall.id) || (entity2.id == cueBall.id)) {
+    	print("Cue ball collision!");
+    	//audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
+        //Audio.playSound(hitSounds[0], { position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation())) });
+    }
+
+    else if (isObjectBall(entity1.id) || isObjectBall(entity2.id)) {
+    	print("Object ball collision");
+    } */
+}
+
 tableCenter = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
 
 makeTable(tableCenter);
 makeBalls(tableCenter);
 
+Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(cleanup);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.update.connect(update);
+
