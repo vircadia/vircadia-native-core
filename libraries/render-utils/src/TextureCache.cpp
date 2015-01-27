@@ -454,6 +454,9 @@ void ImageReader::run() {
         _reply->deleteLater();
     }
     QImage image = QImage::fromData(_content);
+
+    int originalWidth = image.width();
+    int originalHeight = image.height();
     
     // enforce a fixed maximum
     const int MAXIMUM_SIZE = 1024;
@@ -482,7 +485,7 @@ void ImageReader::run() {
             averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
         }
         QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
-            Q_ARG(const QColor&, averageColor));
+            Q_ARG(const QColor&, averageColor), Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
         return;
     }
     if (image.format() != QImage::Format_ARGB32) {
@@ -514,7 +517,8 @@ void ImageReader::run() {
     }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
         Q_ARG(bool, translucentPixels >= imageArea / 2), Q_ARG(const QColor&, QColor(redTotal / imageArea,
-            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)));
+            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)),
+        Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
@@ -526,9 +530,12 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
 }
 
-void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor) {
+void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
+                              int originalHeight) {
     _translucent = translucent;
     _averageColor = averageColor;
+    _originalWidth = originalWidth;
+    _originalHeight = originalHeight;
     _width = image.width();
     _height = image.height();
     

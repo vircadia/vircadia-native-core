@@ -34,7 +34,7 @@ public:
 
     class GLBuffer {
     public:
-        Stamp  _stamp;
+        Stamp _stamp;
         GLuint _buffer;
         GLuint _size;
 
@@ -46,8 +46,8 @@ public:
 
     class GLTexture {
     public:
-        Stamp  _storageStamp;
-        Stamp  _contentStamp;
+        Stamp _storageStamp;
+        Stamp _contentStamp;
         GLuint _texture;
         GLuint _size;
 

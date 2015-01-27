@@ -111,16 +111,16 @@ bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& dire
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
-Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase) {
+Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase, float granularity) {
     return this;
 }
 
-Spanner* Spanner::fillHeight(const glm::vec3& position, float radius) {
+Spanner* Spanner::fillHeight(const glm::vec3& position, float radius, float granularity) {
     return this;
 }
 
 Spanner* Spanner::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint, bool voxelize) {
+        const QColor& color, bool paint, bool voxelize, float granularity) {
     return this;
 }
 
@@ -1786,7 +1786,7 @@ void HeightfieldNode::getRangeAfterHeightPaint(const glm::vec3& translation, con
 
 HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         const glm::vec3& position, float radius, float height, bool set, bool erase,
-        float normalizeScale, float normalizeOffset) {
+        float normalizeScale, float normalizeOffset, float granularity) {
     if (!_height) {
         return this;
     }
@@ -1813,7 +1813,7 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
             HeightfieldNode* newChild = _children[i]->paintHeight(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
-                nextScale, position, radius, height, set, erase, normalizeScale, normalizeOffset);
+                nextScale, position, radius, height, set, erase, normalizeScale, normalizeOffset, granularity);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -1844,6 +1844,13 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
         return new HeightfieldNode(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)),
             _color, _material, HeightfieldStackPointer(newStackContents.isEmpty() ? NULL :
                 new HeightfieldStack(stackWidth, newStackContents, newStackMaterials)));
+    }
+    
+    // if the granularity is insufficient, we must subdivide
+    if (scale.x / innerHeightWidth > granularity || scale.z / innerHeightHeight > granularity) {
+        HeightfieldNodePointer newNode(subdivide(newHeightContents, newStackContents));
+        return newNode->paintHeight(translation, rotation, scale, position, radius, height, set,
+            erase, 1.0f, 0.0f, granularity);
     }
     
     // now apply the actual change
@@ -1885,7 +1892,7 @@ HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& translation, cons
 }
 
 HeightfieldNode* HeightfieldNode::fillHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
-        const glm::vec3& position, float radius) {
+        const glm::vec3& position, float radius, float granularity) {
     if (!_height) {
         return this;
     }
@@ -1911,7 +1918,7 @@ HeightfieldNode* HeightfieldNode::fillHeight(const glm::vec3& translation, const
             HeightfieldNode* newChild = _children[i]->fillHeight(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation,
-                nextScale, position, radius);
+                nextScale, position, radius, granularity);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -1927,9 +1934,15 @@ HeightfieldNode* HeightfieldNode::fillHeight(const glm::vec3& translation, const
     if (!_stack) {
         return this;
     }
-    QVector<quint16> newHeightContents = _height->getContents();
     
+    // if the granularity is insufficient, we must subdivide
+    QVector<quint16> newHeightContents = _height->getContents();
     QVector<StackArray> newStackContents = _stack->getContents();
+    if (scale.x / innerHeightWidth > granularity || scale.z / innerHeightHeight > granularity) {
+        HeightfieldNodePointer newNode(subdivide(newHeightContents, newStackContents));
+        return newNode->fillHeight(translation, rotation, scale, position, radius, granularity);
+    }
+    
     int stackWidth = _stack->getWidth();
     int stackHeight = newStackContents.size() / stackWidth;
     QVector<SharedObjectPointer> newStackMaterials = _stack->getMaterials();
@@ -2088,7 +2101,7 @@ void HeightfieldNode::getRangeAfterEdit(const glm::vec3& translation, const glm:
 
 HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
         Spanner* spanner, const SharedObjectPointer& material, const QColor& color, bool paint, bool voxelize,
-        float normalizeScale, float normalizeOffset) {
+        float normalizeScale, float normalizeOffset, float granularity) {
     if (!_height) {
         return this;
     }
@@ -2109,7 +2122,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
             HeightfieldNode* newChild = _children[i]->setMaterial(translation +
                 rotation * glm::vec3(i & X_MAXIMUM_FLAG ? nextScale.x : 0.0f, 0.0f,
                     i & Y_MAXIMUM_FLAG ? nextScale.z : 0.0f), rotation, nextScale, spanner,
-                material, color, paint, voxelize, normalizeScale, normalizeOffset);
+                material, color, paint, voxelize, normalizeScale, normalizeOffset, granularity);
             if (_children[i] != newChild) {
                 if (newNode == this) {
                     newNode = new HeightfieldNode(*this);
@@ -2149,6 +2162,14 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
         return new HeightfieldNode(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)),
             _color, _material, HeightfieldStackPointer(new HeightfieldStack(stackWidth, newStackContents, newStackMaterials)));
     }
+    
+    // if the granularity is insufficient, we must subdivide
+    if (scale.x / innerHeightWidth > granularity || scale.z / innerHeightHeight > granularity) {
+        HeightfieldNodePointer newNode(subdivide(newHeightContents, newStackContents));
+        return newNode->setMaterial(translation, rotation, scale, spanner, material, color,
+            paint, voxelize, 1.0f, 0.0f, granularity);
+    }
+    
     QVector<quint16> oldHeightContents = newHeightContents;
     QVector<StackArray> oldStackContents = newStackContents;
     
@@ -3210,6 +3231,210 @@ bool HeightfieldNode::findHeightfieldRayIntersection(const glm::vec3& origin, co
     return false;   
 }
 
+static inline float mixHeights(float firstHeight, float secondHeight, float t) {
+    return (firstHeight == 0.0f) ? secondHeight : (secondHeight == 0.0f ? firstHeight :
+        glm::mix(firstHeight, secondHeight, t));
+}
+
+HeightfieldNode* HeightfieldNode::subdivide(const QVector<quint16>& heightContents,
+        const QVector<StackArray>& stackContents) const {
+    HeightfieldNode* newNode = new HeightfieldNode(*this);
+    int heightWidth = _height->getWidth();
+    int heightHeight = heightContents.size() / heightWidth;
+    newNode->setHeight(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, heightContents)));
+    int stackWidth = 0, stackHeight = 0;
+    QVector<SharedObjectPointer> stackMaterials;
+    if (_stack) {
+        stackWidth = _stack->getWidth();
+        stackHeight = stackContents.size() / stackWidth;
+        stackMaterials = _stack->getMaterials();
+        newNode->setStack(HeightfieldStackPointer(new HeightfieldStack(stackWidth, stackContents, stackMaterials)));
+    }
+    int colorWidth = 0, colorHeight = 0;
+    if (_color) {
+        colorWidth = _color->getWidth();
+        colorHeight = _color->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+    }
+    int materialWidth = 0, materialHeight = 0;
+    QVector<SharedObjectPointer> materialMaterials;
+    if (_material) {
+        materialWidth = _material->getWidth();
+        materialHeight = _material->getContents().size() / materialWidth;
+        materialMaterials = _material->getMaterials();
+    }
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        QVector<quint16> childHeightContents(heightWidth * heightHeight);
+        QByteArray childColorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFF);
+        QByteArray childMaterialContents(materialWidth * materialHeight, 0);
+        QVector<StackArray> childStackContents(stackWidth * stackHeight);
+        
+        quint16* heightDest = childHeightContents.data();
+        const quint16* heightSrc = heightContents.constData() + (i & Y_MAXIMUM_FLAG ? (heightHeight / 2) * heightWidth : 0) +
+            (i & X_MAXIMUM_FLAG ? heightWidth / 2 : 0);
+        for (int z = 0; z < heightHeight; z++) {
+            float srcZ = z * 0.5f + 0.5f;
+            float fractZ = glm::fract(srcZ);
+            const quint16* heightSrcZ = heightSrc + (int)srcZ * heightWidth;
+            for (int x = 0; x < heightWidth; x++) {
+                float srcX = x * 0.5f + 0.5f;
+                float fractX = glm::fract(srcX);
+                const quint16* heightSrcX = heightSrcZ + (int)srcX;
+                if (fractZ == 0.0f) {
+                    if (fractX == 0.0f) {
+                        *heightDest++ = heightSrcX[0];
+                    } else {
+                        *heightDest++ = mixHeights(heightSrcX[0], heightSrcX[1], fractX);
+                    }
+                } else {
+                    if (fractX == 0.0f) {
+                        *heightDest++ = mixHeights(heightSrcX[0], heightSrcX[heightWidth], fractZ);
+                    } else {
+                        *heightDest++ = mixHeights(mixHeights(heightSrcX[0], heightSrcX[1], fractX),
+                            mixHeights(heightSrcX[heightWidth], heightSrcX[heightWidth + 1], fractX), fractZ);
+                    }
+                } 
+            }
+        }
+        
+        if (colorWidth != 0) {
+            char* colorDest = childColorContents.data();
+            const uchar* colorSrc = (const uchar*)_color->getContents().constData() +
+                ((i & Y_MAXIMUM_FLAG ? (colorHeight / 2) * colorWidth : 0) +
+                (i & X_MAXIMUM_FLAG ? colorWidth / 2 : 0)) * DataBlock::COLOR_BYTES;
+            for (int z = 0; z < colorHeight; z++) {
+                float srcZ = z * 0.5f;
+                float fractZ = glm::fract(srcZ);
+                const uchar* colorSrcZ = colorSrc + (int)srcZ * colorWidth * DataBlock::COLOR_BYTES;
+                for (int x = 0; x < colorWidth; x++) {
+                    float srcX = x * 0.5f;
+                    float fractX = glm::fract(srcX);
+                    const uchar* colorSrcX = colorSrcZ + (int)srcX * DataBlock::COLOR_BYTES;
+                    const uchar* nextColorSrcX = colorSrcX + colorWidth * DataBlock::COLOR_BYTES;
+                    if (fractZ == 0.0f) {
+                        if (fractX == 0.0f) {
+                            *colorDest++ = colorSrcX[0];
+                            *colorDest++ = colorSrcX[1];
+                            *colorDest++ = colorSrcX[2];
+                        } else {
+                            *colorDest++ = glm::mix(colorSrcX[0], colorSrcX[3], fractX);
+                            *colorDest++ = glm::mix(colorSrcX[1], colorSrcX[4], fractX);
+                            *colorDest++ = glm::mix(colorSrcX[2], colorSrcX[5], fractX);
+                        }
+                    } else {
+                        if (fractX == 0.0f) {
+                            *colorDest++ = glm::mix(colorSrcX[0], nextColorSrcX[0], fractZ);
+                            *colorDest++ = glm::mix(colorSrcX[1], nextColorSrcX[1], fractZ);
+                            *colorDest++ = glm::mix(colorSrcX[2], nextColorSrcX[2], fractZ);
+                        } else {
+                            *colorDest++ = glm::mix(glm::mix(colorSrcX[0], colorSrcX[3], fractX),
+                                glm::mix(nextColorSrcX[0], nextColorSrcX[3], fractX), fractZ);
+                            *colorDest++ = glm::mix(glm::mix(colorSrcX[1], colorSrcX[4], fractX),
+                                glm::mix(nextColorSrcX[1], nextColorSrcX[4], fractX), fractZ);
+                            *colorDest++ = glm::mix(glm::mix(colorSrcX[2], colorSrcX[5], fractX),
+                                glm::mix(nextColorSrcX[2], nextColorSrcX[5], fractX), fractZ);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (materialWidth != 0) {
+            char* materialDest = childMaterialContents.data();
+            const char* materialSrc = _material->getContents().constData() +
+                (i & Y_MAXIMUM_FLAG ? (materialHeight / 2) * materialWidth : 0) +
+                (i & X_MAXIMUM_FLAG ? materialWidth / 2 : 0);
+            for (int z = 0; z < materialHeight; z++) {
+                float srcZ = z * 0.5f;
+                const char* materialSrcZ = materialSrc + (int)srcZ * materialWidth;
+                for (int x = 0; x < materialWidth; x++) {
+                    float srcX = x * 0.5f;
+                    const char* materialSrcX = materialSrcZ + (int)srcX;
+                    *materialDest++ = *materialSrcX;
+                }
+            }
+        }
+        
+        if (stackWidth != 0) {
+            StackArray* stackDest = childStackContents.data();
+            const StackArray* stackSrc = _stack->getContents().constData() +
+                (i & Y_MAXIMUM_FLAG ? (stackHeight / 2) * stackWidth : 0) +
+                (i & X_MAXIMUM_FLAG ? stackWidth / 2 : 0);
+            for (int z = 0; z < stackHeight; z++) {
+                float srcZ = z * 0.5f;
+                float fractZ = glm::fract(srcZ);
+                const StackArray* stackSrcZ = stackSrc + (int)srcZ * stackWidth;
+                for (int x = 0; x < stackWidth; x++) {
+                    float srcX = x * 0.5f;
+                    float fractX = glm::fract(srcX);
+                    const StackArray* stackSrcX = stackSrcZ + (int)srcX;
+                    if (stackSrcX->isEmpty()) {
+                        stackDest++;
+                        continue;
+                    }
+                    int minimumY = stackSrcX->getPosition() * 2;
+                    int maximumY = (stackSrcX->getPosition() + stackSrcX->getEntryCount() - 1) * 2;
+                    *stackDest = StackArray(maximumY - minimumY + 1);
+                    stackDest->setPosition(minimumY);
+                    for (int y = minimumY; y <= maximumY; y++) {
+                        float srcY = y * 0.5f;
+                        float fractY = glm::fract(srcY);
+                        const StackArray::Entry& srcEntry = stackSrcX->getEntry((int)srcY);
+                        StackArray::Entry& destEntry = stackDest->getEntry(y);
+                        destEntry.color = srcEntry.color;
+                        destEntry.material = srcEntry.material;
+                        if (srcEntry.hermiteX != 0) {
+                            glm::vec3 normal;
+                            float distance = srcEntry.getHermiteX(normal);
+                            if (distance < fractX) {
+                                const StackArray::Entry& nextSrcEntryX = stackSrcX[1].getEntry((int)srcY);
+                                destEntry.color = nextSrcEntryX.color;
+                                destEntry.material = nextSrcEntryX.material;
+                            
+                            } else {
+                                destEntry.setHermiteX(normal, (distance - fractX) / 0.5f);
+                            }
+                        }
+                        if (srcEntry.hermiteY != 0) {
+                            glm::vec3 normal;
+                            float distance = srcEntry.getHermiteY(normal);
+                            if (distance < fractY) {
+                                const StackArray::Entry& nextSrcEntryY = stackSrcX->getEntry((int)srcY + 1);
+                                destEntry.color = nextSrcEntryY.color;
+                                destEntry.material = nextSrcEntryY.material;
+                            
+                            } else {
+                                destEntry.setHermiteY(normal, (distance - fractY) / 0.5f);
+                            }
+                        }
+                        if (srcEntry.hermiteZ != 0) {
+                            glm::vec3 normal;
+                            float distance = srcEntry.getHermiteZ(normal);
+                            if (distance < fractZ) {
+                                const StackArray::Entry& nextSrcEntryZ = stackSrcX[stackWidth].getEntry((int)srcY);
+                                destEntry.color = nextSrcEntryZ.color;
+                                destEntry.material = nextSrcEntryZ.material;
+                            
+                            } else {
+                                destEntry.setHermiteZ(normal, (distance - fractZ) / 0.5f);
+                            }
+                        }
+                    }
+                    stackDest++;
+                }
+            }
+        }
+        
+        newNode->setChild(i, HeightfieldNodePointer(new HeightfieldNode(
+            HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, childHeightContents)),
+            HeightfieldColorPointer(colorWidth == 0 ? NULL : new HeightfieldColor(colorWidth, childColorContents)),
+            HeightfieldMaterialPointer(materialWidth == 0 ? NULL :
+                new HeightfieldMaterial(materialWidth, childMaterialContents, materialMaterials)),
+            HeightfieldStackPointer(stackWidth == 0 ? NULL :
+                new HeightfieldStack(stackWidth, childStackContents, stackMaterials)))));
+    }
+    return newNode;
+}
+
 AbstractHeightfieldNodeRenderer::~AbstractHeightfieldNodeRenderer() {
 }
 
@@ -3310,7 +3535,8 @@ bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
         getScale() * _aspectZ), origin, direction, distance);
 }
 
-Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height, bool set, bool erase) {
+Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height,
+        bool set, bool erase, float granularity) {
     // first see if we're going to exceed the range limits
     float minimumValue = 1.0f, maximumValue = numeric_limits<quint16>::max();
     if (set) {
@@ -3328,19 +3554,19 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
     Heightfield* newHeightfield = prepareEdit(minimumValue, maximumValue, normalizeScale, normalizeOffset);
     newHeightfield->setRoot(HeightfieldNodePointer(_root->paintHeight(newHeightfield->getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), position, radius, height,
-        set, erase, normalizeScale, normalizeOffset)));
+        set, erase, normalizeScale, normalizeOffset, granularity)));
     return newHeightfield;
 }
 
-Spanner* Heightfield::fillHeight(const glm::vec3& position, float radius) {
+Spanner* Heightfield::fillHeight(const glm::vec3& position, float radius, float granularity) {
     Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
     newHeightfield->setRoot(HeightfieldNodePointer(_root->fillHeight(getTranslation(), getRotation(),
-        glm::vec3(getScale(), getScale() * _aspectY, getScale() * _aspectZ), position, radius)));
+        glm::vec3(getScale(), getScale() * _aspectY, getScale() * _aspectZ), position, radius, granularity)));
     return newHeightfield;
 }
 
 Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
-        const QColor& color, bool paint, bool voxelize) {
+        const QColor& color, bool paint, bool voxelize, float granularity) {
     // first see if we're going to exceed the range limits, normalizing if necessary
     Spanner* spannerData = static_cast<Spanner*>(spanner.data());
     float normalizeScale = 1.0f, normalizeOffset = 0.0f;
@@ -3355,7 +3581,7 @@ Spanner* Heightfield::setMaterial(const SharedObjectPointer& spanner, const Shar
     }
     newHeightfield->setRoot(HeightfieldNodePointer(_root->setMaterial(newHeightfield->getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * newHeightfield->getAspectY(), getScale() * _aspectZ), spannerData,
-        material, color, paint, voxelize, normalizeScale, normalizeOffset)));
+        material, color, paint, voxelize, normalizeScale, normalizeOffset, granularity)));
     return newHeightfield;
 }
 
