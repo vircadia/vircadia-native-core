@@ -542,13 +542,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         recalculateCollisionShape();
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
-            // TODO: Andrew & Brad to discuss -- this probably should not be "now" but instead should be the last 
-            // simulated time from server. The logic should maybe be: the position changed from the server, so the 
-            // position we just set can be thought of as the position at the time it was last simulated by the 
-            // server (clock skew adjusted). By setting it to "now" we are saying that the last position is to be
-            // considered to be the correct position for "now" which is likely in the future from when it actually
-            // was at that last known positition.
-            
+            // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
+            // closely match where the entities should be if they'd stepped forward in time to "now". The server
+            // is sending us data with a known "last simulated" time. That time is likely in the past, and therefore
+            // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
+            // use our simulation helper routine to get a best estimate of where the entity should be.
             float skipTimeForward = (float)(now - _lastSimulated) / (float)(USECS_PER_SECOND);
             if (skipTimeForward > 0.0f) {
                 #ifdef WANT_DEBUG
