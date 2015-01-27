@@ -92,11 +92,9 @@ void ImageOverlay::render(RenderArgs* args) {
 
         QRect fromImage;
         if (_wantClipFromImage) {
-            fromImage = _fromImage;
-            float originalWidth = _texture->getOriginalWidth();
-            float originalHeight = _texture->getOriginalHeight();
-            float scaleX = imageWidth / originalWidth;
-            float scaleY = imageHeight / originalHeight;
+            float scaleX = imageWidth / _texture->getOriginalWidth();
+            float scaleY = imageHeight / _texture->getOriginalHeight();
+
             fromImage.setX(scaleX * _fromImage.x());
             fromImage.setY(scaleY * _fromImage.y());
             fromImage.setWidth(scaleX * _fromImage.width());
