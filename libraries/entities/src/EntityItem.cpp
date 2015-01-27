@@ -140,9 +140,17 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     ByteCountCoded<quint32> typeCoder = getType();
     QByteArray encodedType = typeCoder;
 
-    quint64 updateDelta = getLastSimulated() <= getLastEdited() ? 0 : getLastSimulated() - getLastEdited();
+    // last updated (animations, non-physics changes)
+    quint64 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
     ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
     QByteArray encodedUpdateDelta = updateDeltaCoder;
+
+    // last simulated (velocity, angular velocity, physics changes)
+    quint64 simulatedDelta = getLastSimulated() <= getLastEdited() ? 0 : getLastSimulated() - getLastEdited();
+    ByteCountCoded<quint64> simulatedDeltaCoder = simulatedDelta;
+    QByteArray encodedSimulatedDelta = simulatedDeltaCoder;
+
+
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
     EntityPropertyFlags propertiesDidntFit = requestedProperties;
@@ -170,6 +178,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     bool successCreatedFits = false;
     bool successLastEditedFits = false;
     bool successLastUpdatedFits = false;
+    bool successLastSimulatedFits = false;
     bool successPropertyFlagsFits = false;
     int propertyFlagsOffset = 0;
     int oldPropertyFlagsLength = 0;
@@ -189,8 +198,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     if (successLastEditedFits) {
         successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
     }
-    
     if (successLastUpdatedFits) {
+        successLastSimulatedFits = packetData->appendValue(encodedSimulatedDelta);
+    }
+    
+    if (successLastSimulatedFits) {
         propertyFlagsOffset = packetData->getUncompressedByteOffset();
         encodedPropertyFlags = propertyFlags;
         oldPropertyFlagsLength = encodedPropertyFlags.length();
@@ -458,6 +470,25 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
         bytesRead += encodedUpdateDelta.size();
+        
+        // Newer bitstreams will have a last simulated and a last updated value
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
+            // last simulated is stored as ByteCountCoded delta from lastEdited
+            QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+            ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
+            quint64 simulatedDelta = simulatedDeltaCoder;
+            if (overwriteLocalData) {
+                _lastSimulated = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
+                if (wantDebug) {
+                    qDebug() << "_lastSimulated =" << _lastSimulated;
+                    qDebug() << "_lastEdited=" << _lastEdited;
+                    qDebug() << "lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted;
+                }
+            }
+            encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
+            dataAt += encodedSimulatedDelta.size();
+            bytesRead += encodedSimulatedDelta.size();
+        }        
 
         // Property Flags
         QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -521,6 +552,12 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         recalculateCollisionShape();
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
+            // TODO: Andrew & Brad to discuss -- this probably should not be "now" but instead should be the last 
+            // simulated time from server. The logic should maybe be: the position changed from the server, so the 
+            // position we just set can be thought of as the position at the time it was last simulated by the 
+            // server (clock skew adjusted). By setting it to "now" we are saying that the last position is to be
+            // considered to be the correct position for "now" which is likely in the future from when it actually
+            // was at that last known positition.
             _lastSimulated = now;
         }
     }
@@ -833,6 +870,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
             setLastEdited(now);
         }
         if (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+            // TODO: Andrew & Brad to discuss. Is this correct? Maybe it is. Need to think through all cases.
             _lastSimulated = now;
         }
     }
