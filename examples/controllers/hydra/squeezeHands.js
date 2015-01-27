@@ -60,11 +60,9 @@ Script.update.connect(function(deltaTime) {
     }
 
     if ((leftFrame != lastLeftFrame) && leftHandAnimation.length){
-   		MyAvatar.stopAnimation(leftHandAnimation);
         MyAvatar.startAnimation(leftHandAnimation, 30.0, 1.0, false, true, leftFrame, leftFrame);
     }
     if ((rightFrame != lastRightFrame) && rightHandAnimation.length) {
-   		MyAvatar.stopAnimation(rightHandAnimation);
     	MyAvatar.startAnimation(rightHandAnimation, 30.0, 1.0, false, true, rightFrame, rightFrame);
     }
 
