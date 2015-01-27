@@ -31,9 +31,8 @@ Stamp Texture::Storage::getStamp(uint16 level) const {
     PixelsPointer mip = getMip(level);
     if (mip) {
         return mip->_sysmem.getStamp();
-    } else {
-        return 0;
     }
+    return 0;
 }
 
 void Texture::Storage::reset() {
@@ -43,17 +42,15 @@ void Texture::Storage::reset() {
 Texture::PixelsPointer Texture::Storage::editMip(uint16 level) {
     if (level < _mips.size()) {
         return _mips[level];
-    } else {
-        return PixelsPointer();
     }
+    return PixelsPointer();
 }
 
 const Texture::PixelsPointer Texture::Storage::getMip(uint16 level) const {
     if (level < _mips.size()) {
         return _mips[level];
-    } else {
-        return PixelsPointer();
     }
+    return PixelsPointer();
 }
 
 bool Texture::Storage::isMipAvailable(uint16 level) const {
@@ -277,49 +274,43 @@ uint16 Texture::getStoredMipWidth(uint16 level) const {
     PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipWidth(level);
-    } else {
-        return 0;
     }
+    return 0;
 }
 
 uint16 Texture::getStoredMipHeight(uint16 level) const {
     PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipHeight(level);
-    } else {
-        return 0;
     }
+        return 0;
 }
 
 uint16 Texture::getStoredMipDepth(uint16 level) const {
     PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipDepth(level);
-    } else {
-        return 0;
     }
+    return 0;
 }
 
 uint32 Texture::getStoredMipNumTexels(uint16 level) const {
     PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
-    } else {
-        return 0;
     }
+    return 0;
 }
 
 uint32 Texture::getStoredMipSize(uint16 level) const {
     PixelsPointer mip = accessStoredMip(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
-    } else {
-        return 0;
     }
+    return 0;
 }
 
-uint16 Texture::evalNumSamplesUsed(uint16 numSamplesTried)
-{
+uint16 Texture::evalNumSamplesUsed(uint16 numSamplesTried) {
     uint16 sample = numSamplesTried;
     if (numSamplesTried <= 1)
         sample = 1;

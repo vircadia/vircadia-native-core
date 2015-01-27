@@ -50,8 +50,8 @@ public:
                 default:
                     qDebug() << "Unknown combination of texel format";
                 }
+                break;
             }
-            break;
 
             case gpu::VEC2: {
                 texel.format = GL_RG;
@@ -69,8 +69,8 @@ public:
                     qDebug() << "Unknown combination of texel format";
                 }
 
+                break;
             }
-            break;
 
             case gpu::VEC3: {
                 texel.format = GL_RGB;
@@ -85,8 +85,9 @@ public:
                 default:
                     qDebug() << "Unknown combination of texel format";
                 }
+
+                break;
             }
-            break;
 
             case gpu::VEC4: {
                 texel.format = GL_RGBA;
@@ -121,8 +122,8 @@ public:
                 default:
                     qDebug() << "Unknown combination of texel format";
                 }
+                break;
             }
-            break;
 
             default:
                 qDebug() << "Unknown combination of texel format";
@@ -147,8 +148,9 @@ public:
                 default:
                     qDebug() << "Unknown combination of texel format";
                 }
+
+                break;
             }
-            break;
 
             case gpu::VEC2: {
                 texel.format = GL_RG;
@@ -166,8 +168,8 @@ public:
                     qDebug() << "Unknown combination of texel format";
                 }
 
+                break;
             }
-            break;
 
             case gpu::VEC3: {
                 texel.format = GL_RGB;
@@ -186,8 +188,8 @@ public:
                 default:
                     qDebug() << "Unknown combination of texel format";
                 }
+                break;
             }
-            break;
 
             case gpu::VEC4: {
                 texel.format = GL_RGBA;
@@ -209,8 +211,8 @@ public:
                 default:
                     qDebug() << "Unknown combination of texel format";
                 }
+                break;
             }
-            break;
 
             default:
                 qDebug() << "Unknown combination of texel format";
@@ -304,8 +306,8 @@ void GLBackend::syncGPUObject(const Texture& texture) {
             object->_storageStamp = texture.getStamp();
             object->_size = texture.getSize();
         }
+        break;
     }
-    break;
     default:
         qDebug() << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";	
     }
@@ -315,16 +317,15 @@ void GLBackend::syncGPUObject(const Texture& texture) {
 
 
 GLuint GLBackend::getTextureID(const TexturePointer& texture) {
-    if (texture) {
-        GLBackend::syncGPUObject(*texture);
-        GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texture);
-        if (object) {
-            return object->_texture;
-        } else {
-            return 0;
-        }
-     } else {
+    if (!texture) {
         return 0;
-     }
+    }
+    GLBackend::syncGPUObject(*texture);
+    GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texture);
+    if (object) {
+        return object->_texture;
+    } else {
+        return 0;
+    }
 }
 
