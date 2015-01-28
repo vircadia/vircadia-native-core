@@ -105,10 +105,10 @@ The Oculus Mobile SDK is optional, for Gear VR support. It is not required to co
 
 Download the [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) and extract the archive inside your `ANDROID_LIB_DIR` folder. Rename the extracted folder to `libovr`.
 
-From the VrLib directory, use ndk-build to build VrLib. 
+From the VRLib directory, use ndk-build to build VrLib. 
 
 ```
-cd VrLib
+cd VRLib
 ndk-build
 ```
 
