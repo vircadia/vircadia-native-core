@@ -24,15 +24,18 @@ set(ANDROID_APK_VERSION_NAME "0.1")
 set(ANDROID_APK_VERSION_CODE 1)
 set(ANDROID_DEPLOY_QT_INSTALL "--install")
 
-find_package(LibOVR REQUIRED)
-target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${LIBOVR_ANDROID_LIBRARIES})
-include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
+find_package(LibOVR)
+if (LIBOVR_FOUND)
+  add_definitions(-DHAVE_LIBOVR)
+  target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${LIBOVR_ANDROID_LIBRARIES})
+  include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
 
-# we need VRLib, so add a project.properties to our apk build folder that says that
-file(RELATIVE_PATH RELATIVE_VRLIB_PATH ${ANDROID_APK_OUTPUT_DIR} "${LIBOVR_VRLIB_DIR}")
-file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.reference.1=${RELATIVE_VRLIB_PATH}")
-
-list(APPEND IGNORE_COPY_LIBS ${LIBOVR_ANDROID_LIBRARIES})
+  # we need VRLib, so add a project.properties to our apk build folder that says that
+  file(RELATIVE_PATH RELATIVE_VRLIB_PATH ${ANDROID_APK_OUTPUT_DIR} "${LIBOVR_VRLIB_DIR}")
+  file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.reference.1=${RELATIVE_VRLIB_PATH}")
+  
+  list(APPEND IGNORE_COPY_LIBS ${LIBOVR_ANDROID_LIBRARIES})
+endif ()
 
 # the presence of a HOCKEY_APP_ID means we are making a beta build
 if (HOCKEY_APP_ID)

@@ -7,9 +7,12 @@ You will need the following tools to build our Android targets.
 * [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
 * [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
   * Be sure to install SDK Platform for API Level 19
-* [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) ~> 0.4.2
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
+
+####Optional Components
+
+* [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) ~> 0.4.2
 
 ####ANDROID_LIB_DIR
 
@@ -96,6 +99,8 @@ make install
 This will create the `lib` and `include` folders inside `ANDROID_LIB_DIR/soxr` that FindSoxr will look for.
 
 ####Oculus Mobile SDK
+
+The Oculus Mobile SDK is optional, for Gear VR support. It is not required to compile gvr-interface.
 
 Download the [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) and extract the archive inside your `ANDROID_LIB_DIR` folder. Rename the extracted folder to `libovr`.
 
