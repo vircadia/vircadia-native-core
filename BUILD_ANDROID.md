@@ -101,6 +101,14 @@ Download the [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mob
 
 From the VrLib directory, use ndk-build to build VrLib. This will create the liboculus.a archive that our FindLibOVR module will look for when cmake is run.
 
+#####Hybrid testing
+
+Currently the 'vr_dual' mode that would allow us to run a hybrid app has limited support in the Oculus Mobile SDK. The best way to have an application we can launch without having to connect to the GearVR is to put the Gear VR Service into developer mode. This stops Oculus Home from taking over the device when it is plugged into the Gear VR headset, and allows the application to be launched from the Applications page.
+
+To put the Gear VR Service into developer mode you need an application with an Oculus Signature File on your device. Generate an Oculus Signature File for your device on the [Oculus osig tool page](https://developer.oculus.com/tools/osig/). Place this file in the gvr-interface/assets directory. Cmake will automatically copy it into your apk in the right place when you execute `make gvr-interface-apk`.
+
+Once the application is on your device, go to `Settings->Application Manager->Gear VR Service->Manage Storage`. Tap on `VR Service Version` six times. It will scan your device to verify that you have an osig file in an application on your device, and then it will let you enable Developer mode.
+
 ####GLM
 
 Since GLM is a header only library, assuming it is installed at a system path or a path where our FindGLM module will find it you do not need to do anything specific for the Android build.
