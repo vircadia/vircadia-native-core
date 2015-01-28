@@ -15,6 +15,7 @@
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
 #include "PhysicsEngine.h"
+#include "PhysicsHelpers.h"
 
 
 QSet<EntityItem*>* _outgoingEntityList;

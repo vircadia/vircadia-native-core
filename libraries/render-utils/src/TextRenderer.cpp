@@ -167,7 +167,7 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _glyphsStream(new gpu::BufferStream()),
     _numGlyphsBatched(0)
 {
-    _glyphsStreamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+    _glyphsStreamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
     const int NUM_POS_COORDS = 2;
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
     _glyphsStreamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);

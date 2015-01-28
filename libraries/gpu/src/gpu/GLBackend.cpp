@@ -1,6 +1,6 @@
 //
 //  GLBackend.cpp
-//  interface/src/gpu
+//  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 10/27/2014.
 //  Copyright 2014 High Fidelity, Inc.
@@ -8,13 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackend.h"
-
-#include <QDebug>
-
-#include "Batch.h"
-
-using namespace gpu;
+#include "GLBackendShared.h"
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -32,6 +26,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setProjectionTransform),
 
     (&::gpu::GLBackend::do_setUniformBuffer),
+    (&::gpu::GLBackend::do_setUniformTexture),
 
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
@@ -82,39 +77,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glDisableVertexAttribArray),
 
     (&::gpu::GLBackend::do_glColor4f),
-
-    (&::gpu::GLBackend::do_glMaterialf),
-    (&::gpu::GLBackend::do_glMaterialfv),
 };
-
-static const GLenum _primitiveToGLmode[NUM_PRIMITIVES] = {
-    GL_POINTS,
-    GL_LINES,
-    GL_LINE_STRIP,
-    GL_TRIANGLES,
-    GL_TRIANGLE_STRIP,
-    GL_QUADS,
-};
-
-static const GLenum _elementTypeToGLType[NUM_TYPES]= {
-    GL_FLOAT,
-    GL_INT,
-    GL_UNSIGNED_INT,
-    GL_HALF_FLOAT,
-    GL_SHORT,
-    GL_UNSIGNED_SHORT,
-    GL_BYTE,
-    GL_UNSIGNED_BYTE,
-    GL_FLOAT,
-    GL_INT,
-    GL_UNSIGNED_INT,
-    GL_HALF_FLOAT,
-    GL_SHORT,
-    GL_UNSIGNED_SHORT,
-    GL_BYTE,
-    GL_UNSIGNED_BYTE
-};
-
 
 GLBackend::GLBackend() :
     _input(),
@@ -173,9 +136,6 @@ void GLBackend::checkGLError() {
         }
     }
 }
-
-//#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
-#define CHECK_GL_ERROR()
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     updateInput();
@@ -507,6 +467,18 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
 #endif
     CHECK_GL_ERROR();
 }
+
+void GLBackend::do_setUniformTexture(Batch& batch, uint32 paramOffset) {
+    GLuint slot = batch._params[paramOffset + 1]._uint;
+    TexturePointer uniformTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+
+    GLuint to = getTextureID(uniformTexture);
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, to);
+
+    CHECK_GL_ERROR();
+}
+
 
 // TODO: As long as we have gl calls explicitely issued from interface
 // code, we need to be able to record and batch these calls. THe long 
@@ -1077,40 +1049,6 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
     CHECK_GL_ERROR();
 }
 
-void Batch::_glMaterialf(GLenum face, GLenum pname, GLfloat param) {
-    ADD_COMMAND_GL(glMaterialf);
-
-    _params.push_back(param);
-    _params.push_back(pname);
-    _params.push_back(face);
-
-    DO_IT_NOW(_glMaterialf, 3);
-}
-void GLBackend::do_glMaterialf(Batch& batch, uint32 paramOffset) {
-    glMaterialf(
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._uint,
-        batch._params[paramOffset + 0]._float);
-    CHECK_GL_ERROR();
-}
-
-void Batch::_glMaterialfv(GLenum face, GLenum pname, const GLfloat *params) {
-    ADD_COMMAND_GL(glMaterialfv);
-
-    _params.push_back(cacheData(4 * sizeof(float), params));
-    _params.push_back(pname);
-    _params.push_back(face);
-
-    DO_IT_NOW(_glMaterialfv, 3);
-}
-void GLBackend::do_glMaterialfv(Batch& batch, uint32 paramOffset) {
-    glMaterialfv(
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._uint,
-        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
-    CHECK_GL_ERROR();
-}
-
 GLBackend::GLBuffer::GLBuffer() :
     _stamp(0),
     _buffer(0),
@@ -1156,3 +1094,4 @@ GLuint GLBackend::getBufferID(const Buffer& buffer) {
     GLBackend::syncGPUObject(buffer);
     return Backend::getGPUObject<GLBackend::GLBuffer>(buffer)->_buffer;
 }
+

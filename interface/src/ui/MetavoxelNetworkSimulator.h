@@ -23,7 +23,7 @@ class MetavoxelNetworkSimulator : public QWidget {
 
 public:
     
-    MetavoxelNetworkSimulator();
+    MetavoxelNetworkSimulator(QWidget* parent = nullptr);
 
 private slots:
 

@@ -38,6 +38,8 @@ Once Qt is installed, you need to manually configure the following:
 
 ###External Libraries
 
+As it stands, Hifi/Interface is a 32-bit application, so all libraries should also be 32-bit.
+
 CMake will need to know where the headers and libraries for required external dependencies are. 
 
 The recommended route for CMake to find the external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
@@ -75,7 +77,7 @@ As with the Qt libraries, you will need to make sure that directories containing
 
 ###OpenSSL
 
-QT will use OpenSSL if it's available, but it doesn't install it, so you must install it separately.
+Qt will use OpenSSL if it's available, but it doesn't install it, so you must install it separately.
 
 Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll, libeay32.dll) lying around, but they may be the wrong version. If these DLL's are in the PATH then QT will try to use them, and if they're the wrong version then you will see the following errors in the console:
 
@@ -89,9 +91,9 @@ Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll
 
 To prevent these problems, install OpenSSL yourself. Download the following binary packages [from this website](http://slproweb.com/products/Win32OpenSSL.html):
 * Visual C++ 2008 Redistributables
-* Win32 OpenSSL v1.0.1h
+* Win32 OpenSSL v1.0.1L
 
-Install OpenSSL into the Windows system directory, to make sure that QT uses the version that you've just installed, and not some other version.
+Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
 ###Intel Threading Building Blocks (TBB)
 
@@ -110,8 +112,10 @@ Add the following environment variables (remember to substitute your own directo
 
 Add to the PATH: `%HIFI_LIB_DIR%\zlib`
 
-Important! This should be added at the beginning of the path, not the end. That's because your 
-system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version. If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
+(The PATH environment variable is where Windows looks for its DLL's and executables. There's a great tool for editing these variables with ease, [Rapid Environment Editor](http://www.rapidee.com/en/download))
+
+Important! This should be added at the beginning of the path, not the end (your 
+system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version). If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
 
 ###freeglut
 
@@ -131,12 +135,26 @@ This package contains only headers, so there's nothing to add to the PATH.
 
 Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
 
+###Gverb
+
+1. Go to https://github.com/highfidelity/gverb
+   Or download the sources directly via this link: 
+   https://github.com/highfidelity/gverb/archive/master.zip
+
+2. Extract the archive
+
+3. Place the directories “include” and “src” in interface/external/gverb 
+   (Normally next to this readme)
+
+4. Clear your build directory, run cmake, build and you should be all set.
+
+
 ###Bullet
 
-Bullet 2.82 source can be downloaded [here](https://code.google.com/p/bullet/downloads/detail?name=bullet-2.82-r2704.zip). Bullet does not come with prebuilt libraries, you need to make those yourself.
+Bullet 2.82 source can be [downloaded here](https://code.google.com/p/bullet/downloads/detail?name=bullet-2.82-r2704.zip). Bullet does not come with prebuilt libraries, you need to make those yourself.
 
 * Download the zip file and extract into a temporary folder
-* Create a directory named cmakebuild. Bullet comes with a build\ directory by default, however, that directory is intended for use with premake, and considering premake doesn't support VS2013, I prefer to run the cmake build on its own directory.
+* Create a directory named cmakebuild. Bullet comes with a build\ directory by default, however, that directory is intended for use with premake, and considering premake doesn't support VS2013, we prefer to run the cmake build on its own directory.
 * Make the following modifications to Bullet's source:
    1. In file: Extras\HACD\hacdICHull.cpp --- in line: 17 --- insert: #include &lt;algorithm&gt;
    2. In file: src\MiniCL\cl_MiniCL_Defs.h --- comment lines 364 to 372
@@ -161,7 +179,7 @@ You now have Bullet libraries compiled, now you need to put them in the right pl
 _Note that the INSTALL target should handle the copying of files into an install directory automatically, however, without modifications to Cmake, the install target didn't work right for me, please update this instructions if you get that working right - Leo &lt;leo@highfidelity.io&gt;_
 
 ###Build High Fidelity using Visual Studio
-Follow the same build steps from the CMake section, but pass a different generator to CMake.
+Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.
 
     cmake .. -DZLIB_LIBRARY=%ZLIB_LIBRARY% -DZLIB_INCLUDE_DIR=%ZLIB_INCLUDE_DIR% -G "Visual Studio 12"
 

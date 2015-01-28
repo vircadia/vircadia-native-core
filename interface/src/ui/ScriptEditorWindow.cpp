@@ -31,7 +31,8 @@
 #include "FlowLayout.h"
 #include "JSConsole.h"
 
-ScriptEditorWindow::ScriptEditorWindow() :
+ScriptEditorWindow::ScriptEditorWindow(QWidget* parent) :
+    QWidget(parent),
     _ScriptEditorWindowUI(new Ui::ScriptEditorWindow),
     _loadMenu(new QMenu),
     _saveMenu(new QMenu)

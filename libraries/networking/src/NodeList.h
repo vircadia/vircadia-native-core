@@ -23,7 +23,6 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
 #include <QtCore/QSet>
-#include <QtCore/QSettings>
 #include <QtCore/QSharedPointer>
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QUdpSocket>
