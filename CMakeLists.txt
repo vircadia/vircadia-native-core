@@ -69,7 +69,7 @@ endif ()
 
 if (ANDROID)  
   if (NOT ANDROID_QT_CMAKE_PREFIX_PATH)
-    set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.3/android_armv7/lib/cmake)
+    set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.4/android_armv7/lib/cmake)
   else ()
     set(QT_CMAKE_PREFIX_PATH ${ANDROID_QT_CMAKE_PREFIX_PATH})
   endif ()

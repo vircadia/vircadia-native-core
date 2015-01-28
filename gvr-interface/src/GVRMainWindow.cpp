@@ -16,6 +16,7 @@
 
 #include <AddressManager.h>
 
+#include "InterfaceView.h"
 #include "RenderingClient.h"
 
 #include "GVRMainWindow.h"
@@ -48,6 +49,9 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     baseWidget->setLayout(_mainLayout);
     
     setCentralWidget(baseWidget);
+    
+    // add the interface view
+    InterfaceView* interfaceView = new InterfaceView(baseWidget);
 }
 
 void GVRMainWindow::showAddressBar() {

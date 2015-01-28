@@ -6,6 +6,8 @@ You will need the following tools to build our Android targets.
 
 * [cmake](http://www.cmake.org/download/) ~> 3.1.0
   * Note that this is a newer version required than the minimum for hifi desktop targets.
+* [Qt](http://www.qt.io/download-open-source/#) ~> 5.4.0
+  * Note that this is a newer version required than the minimum for hifi desktop targets.
 * [ant](http://ant.apache.org/bindownload.cgi) ~> 1.9.4
 * [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
 * [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
@@ -29,7 +31,7 @@ This is most easily accomplished by installing all Android dependencies in the s
 
 ####Qt
 
-Install Qt 5.3 for Android for your host environment from the [Qt downloads page](http://www.qt.io/download/). Install Qt to ``$ANDROID_LIB_DIR/Qt``. This is required so that our root CMakeLists file can help CMake find your Android Qt installation. 
+Install Qt 5.4 for Android for your host environment from the [Qt downloads page](http://www.qt.io/download/). Install Qt to ``$ANDROID_LIB_DIR/Qt``. This is required so that our root CMakeLists file can help CMake find your Android Qt installation. 
 
 The component required for the Android build is the `Android armv7` component.
 
