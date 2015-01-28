@@ -30,9 +30,9 @@ ImageOverlay::ImageOverlay() :
 
 ImageOverlay::ImageOverlay(const ImageOverlay* imageOverlay) :
     Overlay2D(imageOverlay),
-    _texture(imageOverlay->_texture),
     _imageURL(imageOverlay->_imageURL),
     _textureImage(imageOverlay->_textureImage),
+    _texture(imageOverlay->_texture),
     _fromImage(imageOverlay->_fromImage),
     _renderImage(imageOverlay->_renderImage),
     _wantClipFromImage(imageOverlay->_wantClipFromImage)
@@ -86,10 +86,11 @@ void ImageOverlay::render(RenderArgs* args) {
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
 
+    float imageWidth = _texture->getWidth();
+    float imageHeight = _texture->getHeight();
+
     // if for some reason our image is not over 0 width or height, don't attempt to render the image
     if (_renderImage && imageWidth > 0 && imageHeight > 0) {
-        float imageWidth = _texture->getWidth();
-        float imageHeight = _texture->getHeight();
 
         QRect fromImage;
         if (_wantClipFromImage) {
