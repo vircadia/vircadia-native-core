@@ -12,7 +12,7 @@ include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
 
 include_glm()
 
-link_hifi_libraries(shared networking audio-client)
+link_hifi_libraries(shared networking audio-client avatars)
 include_dependency_includes()
 
 set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
