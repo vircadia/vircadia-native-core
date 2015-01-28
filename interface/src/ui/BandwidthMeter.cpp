@@ -162,6 +162,8 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     _textRenderer->draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT, textColor);
 
     // Render vertical lines for the frame
+    // TODO: I think there may be a bug in this newest code and/or the GeometryCache code, because it seems like
+    // sometimes the bandwidth meter doesn't render the vertical lines
     renderVerticalLine(0, 0, h, COLOR_FRAME);
     renderVerticalLine(barWidth, 0, h, COLOR_FRAME);
 

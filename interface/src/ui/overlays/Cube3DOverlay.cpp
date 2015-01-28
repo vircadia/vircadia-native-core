@@ -111,20 +111,20 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
                     auto geometryCache = DependencyManager::get<GeometryCache>();
                 
-                    geometryCache->renderDashedLine(bottomLeftNear, bottomRightNear);
-                    geometryCache->renderDashedLine(bottomRightNear, bottomRightFar);
-                    geometryCache->renderDashedLine(bottomRightFar, bottomLeftFar);
-                    geometryCache->renderDashedLine(bottomLeftFar, bottomLeftNear);
+                    geometryCache->renderDashedLine(bottomLeftNear, bottomRightNear, cubeColor);
+                    geometryCache->renderDashedLine(bottomRightNear, bottomRightFar, cubeColor);
+                    geometryCache->renderDashedLine(bottomRightFar, bottomLeftFar, cubeColor);
+                    geometryCache->renderDashedLine(bottomLeftFar, bottomLeftNear, cubeColor);
 
-                    geometryCache->renderDashedLine(topLeftNear, topRightNear);
-                    geometryCache->renderDashedLine(topRightNear, topRightFar);
-                    geometryCache->renderDashedLine(topRightFar, topLeftFar);
-                    geometryCache->renderDashedLine(topLeftFar, topLeftNear);
+                    geometryCache->renderDashedLine(topLeftNear, topRightNear, cubeColor);
+                    geometryCache->renderDashedLine(topRightNear, topRightFar, cubeColor);
+                    geometryCache->renderDashedLine(topRightFar, topLeftFar, cubeColor);
+                    geometryCache->renderDashedLine(topLeftFar, topLeftNear, cubeColor);
 
-                    geometryCache->renderDashedLine(bottomLeftNear, topLeftNear);
-                    geometryCache->renderDashedLine(bottomRightNear, topRightNear);
-                    geometryCache->renderDashedLine(bottomLeftFar, topLeftFar);
-                    geometryCache->renderDashedLine(bottomRightFar, topRightFar);
+                    geometryCache->renderDashedLine(bottomLeftNear, topLeftNear, cubeColor);
+                    geometryCache->renderDashedLine(bottomRightNear, topRightNear, cubeColor);
+                    geometryCache->renderDashedLine(bottomLeftFar, topLeftFar, cubeColor);
+                    geometryCache->renderDashedLine(bottomRightFar, topRightFar, cubeColor);
 
                 } else {
                     glScalef(dimensions.x, dimensions.y, dimensions.z);

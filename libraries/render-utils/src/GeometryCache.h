@@ -134,7 +134,7 @@ public:
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
                     
-    void renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id = UNKNOWN_ID);
+    void renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
                     { renderLine(p1, p2, glm::vec4(color, 1.0f), id); }

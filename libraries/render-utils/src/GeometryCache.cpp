@@ -1366,7 +1366,8 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id) {
+// TODO: switch this over to use BatchItemDetails like the other line and vertices functions
+void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(start, end);
     BufferDetails& details = registered ? _registeredDashedLines[id] : _dashedLines[key];
@@ -1383,6 +1384,12 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
     }
 
     if (!details.buffer.isCreated()) {
+
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                           ((int(color.y * 255.0f) & 0xFF) << 8) |
+                           ((int(color.z * 255.0f) & 0xFF) << 16) |
+                           ((int(color.w * 255.0f) & 0xFF) << 24);
+    
     
         // draw each line segment with appropriate gaps
         const float DASH_LENGTH = 0.05f;

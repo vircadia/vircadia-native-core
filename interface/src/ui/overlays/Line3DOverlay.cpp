@@ -60,8 +60,7 @@ void Line3DOverlay::render(RenderArgs* args) {
 
     if (getIsDashedLine()) {
         // TODO: add support for color to renderDashedLine()
-        glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-        DependencyManager::get<GeometryCache>()->renderDashedLine(_position, _end, _geometryCacheID);
+        DependencyManager::get<GeometryCache>()->renderDashedLine(_position, _end, colorv4, _geometryCacheID);
     } else {
         DependencyManager::get<GeometryCache>()->renderLine(_start, _end, colorv4, _geometryCacheID);
     }

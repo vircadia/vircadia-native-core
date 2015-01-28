@@ -320,8 +320,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
         glDepthMask(GL_FALSE);
         glDisable(GL_ALPHA_TEST);
         
-        glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-        
         static float textureFOV = 0.0f, textureAspectRatio = 1.0f;
         if (textureFOV != _textureFov ||
             textureAspectRatio != _textureAspectRatio) {
@@ -436,8 +434,6 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_LIGHTING);
-    
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {

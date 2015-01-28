@@ -81,10 +81,10 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                     glm::vec3 point3(halfDimensions.x, 0.0f, halfDimensions.y);
                     glm::vec3 point4(-halfDimensions.x, 0.0f, halfDimensions.y);
                 
-                    geometryCache->renderDashedLine(point1, point2);
-                    geometryCache->renderDashedLine(point2, point3);
-                    geometryCache->renderDashedLine(point3, point4);
-                    geometryCache->renderDashedLine(point4, point1);
+                    geometryCache->renderDashedLine(point1, point2, rectangleColor);
+                    geometryCache->renderDashedLine(point2, point3, rectangleColor);
+                    geometryCache->renderDashedLine(point3, point4, rectangleColor);
+                    geometryCache->renderDashedLine(point4, point1, rectangleColor);
 
                 } else {
                 
