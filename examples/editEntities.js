@@ -856,23 +856,23 @@ Controller.keyReleaseEvent.connect(function (event) {
         var delta = null;
         var increment = event.isShifted ? grid.getMajorIncrement() : grid.getMinorIncrement();
 
-        if (event.text == 'UP') {
-            if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: increment, z: 0 };
-            } else {
-                delta = { x: 0, y: 0, z: -increment };
-            }
-        } else if (event.text == 'DOWN') {
-            if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: -increment, z: 0 };
-            } else {
-                delta = { x: 0, y: 0, z: increment };
-            }
-        } else if (event.text == 'LEFT') {
-            delta = { x: -increment, y: 0, z: 0 };
-        } else if (event.text == 'RIGHT') {
-            delta = { x: increment, y: 0, z: 0 };
-        }
+        // if (event.text == 'UP') {
+        //     if (event.isControl || event.isAlt) {
+        //         delta = { x: 0, y: increment, z: 0 };
+        //     } else {
+        //         delta = { x: 0, y: 0, z: -increment };
+        //     }
+        // } else if (event.text == 'DOWN') {
+        //     if (event.isControl || event.isAlt) {
+        //         delta = { x: 0, y: -increment, z: 0 };
+        //     } else {
+        //         delta = { x: 0, y: 0, z: increment };
+        //     }
+        // } else if (event.text == 'LEFT') {
+        //     delta = { x: -increment, y: 0, z: 0 };
+        // } else if (event.text == 'RIGHT') {
+        //     delta = { x: increment, y: 0, z: 0 };
+        // }
 
         if (delta != null) {
             // Adjust delta so that movements are relative to the current camera orientation
