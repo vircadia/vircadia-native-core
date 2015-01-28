@@ -4,6 +4,8 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 You will need the following tools to build our Android targets.
 
+* [cmake](http://www.cmake.org/download/) ~> 3.1.0
+  * Note that this is a newer version required than the minimum for hifi Desktop targets.
 * [ant](http://ant.apache.org/bindownload.cgi) ~> 1.9.4
 * [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
 * [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
