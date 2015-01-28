@@ -49,6 +49,7 @@ private:
 
 signals:
     void muteToggled();
+    void deviceChanged();
 };
 
 #endif // hifi_AudioDeviceScriptingInterface_h

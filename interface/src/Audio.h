@@ -178,6 +178,7 @@ public slots:
 signals:
     bool muteToggled();
     void inputReceived(const QByteArray& inputSamples);
+    void deviceChanged();
 
 protected:
     Audio();
@@ -276,6 +277,10 @@ private:
     AudioIOStats _stats;
     
     AudioNoiseGate _inputGate;
+
+    QVector<QString> _inputDevices;
+    QVector<QString> _outputDevices;
+    void checkDevices();
 };
 
 

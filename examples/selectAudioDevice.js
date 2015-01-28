@@ -98,8 +98,16 @@ function setupAudioMenus() {
     }
 }
 
+function onDevicechanged() {
+    Menu.removeMenu("Tools > Audio");
+    setupAudioMenus();
+}
+
 // Have a small delay before the menu's get setup and the audio devices can switch to the last selected ones
-Script.setTimeout(function() { setupAudioMenus(); }, 5000);
+Script.setTimeout(function () {
+    AudioDevice.deviceChanged.connect(onDevicechanged);
+    setupAudioMenus();
+}, 5000);
 
 function scriptEnding() {
     Menu.removeMenu("Tools > Audio");
