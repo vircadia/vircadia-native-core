@@ -11,7 +11,9 @@
 
 #include <QTimer>
 
+#include <GLMHelpers.h>
 #include <PerfStat.h>
+#include <Settings.h>
 #include <SharedUtil.h>
 
 #include "Faceshift.h"
@@ -26,6 +28,11 @@ using namespace std;
 
 const quint16 FACESHIFT_PORT = 33433;
 float STARTING_FACESHIFT_FRAME_TIME = 0.033f;
+
+namespace SettingHandles {
+    const SettingHandle<float> faceshiftEyeDeflection("faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
+    const SettingHandle<QString> faceshiftHostname("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME);
+}
 
 Faceshift::Faceshift() :
     _tcpEnabled(true),
@@ -66,6 +73,9 @@ Faceshift::Faceshift() :
 
     _udpSocket.bind(FACESHIFT_PORT);
 #endif
+    
+    _eyeDeflection = SettingHandles::faceshiftEyeDeflection.get();
+    _hostname = SettingHandles::faceshiftHostname.get();
 }
 
 void Faceshift::init() {
@@ -159,7 +169,7 @@ void Faceshift::connectSocket() {
             qDebug("Faceshift: Connecting...");
         }
 
-        _tcpSocket.connectToHost(Menu::getInstance()->getFaceshiftHostname(), FACESHIFT_PORT);
+        _tcpSocket.connectToHost(_hostname, FACESHIFT_PORT);
         _tracking = false;
     }
 }
@@ -308,4 +318,14 @@ void Faceshift::receive(const QByteArray& buffer) {
         }
     }
 #endif
+}
+
+void Faceshift::setEyeDeflection(float faceshiftEyeDeflection) {
+    _eyeDeflection = faceshiftEyeDeflection;
+    SettingHandles::faceshiftEyeDeflection.set(_eyeDeflection);
+}
+
+void Faceshift::setHostname(const QString& hostname) {
+    _hostname = hostname;
+    SettingHandles::faceshiftHostname.set(_hostname);
 }

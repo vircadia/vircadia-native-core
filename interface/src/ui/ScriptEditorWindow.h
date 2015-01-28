@@ -22,7 +22,7 @@ class ScriptEditorWindow : public QWidget {
     Q_OBJECT
 
 public:
-    ScriptEditorWindow();
+    ScriptEditorWindow(QWidget* parent = nullptr);
     ~ScriptEditorWindow();
 
     void terminateCurrentTab();

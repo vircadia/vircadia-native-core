@@ -9,35 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PacketHeaders.h>
-//#include <SharedUtil.h>
 #include <GLMHelpers.h>
+#include <PacketHeaders.h>
+#include <Settings.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
 
-OctreeQuery::OctreeQuery() :
-    NodeData(),
-    _cameraPosition(0,0,0),
-    _cameraOrientation(),
-    _cameraFov(0.0f),
-    _cameraAspectRatio(0.0f),
-    _cameraNearClip(0.0f),
-    _cameraFarClip(0.0f),
-    _wantColor(true),
-    _wantDelta(true),
-    _wantLowResMoving(true),
-    _wantOcclusionCulling(false), // disabled by default
-    _wantCompression(false), // disabled by default
-    _maxOctreePPS(DEFAULT_MAX_OCTREE_PPS),
-    _octreeElementSizeScale(DEFAULT_OCTREE_SIZE_SCALE)
-{
-    
+namespace SettingHandles {
+    const SettingHandle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 }
 
-OctreeQuery::~OctreeQuery() {
-    // nothing to do
+OctreeQuery::OctreeQuery() {
+    _maxOctreePPS = SettingHandles::maxOctreePacketsPerSecond.get();
 }
+
+void OctreeQuery::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
+    if (maxOctreePPS != _maxOctreePPS) {
+        _maxOctreePPS = maxOctreePPS;
+        SettingHandles::maxOctreePacketsPerSecond.set(_maxOctreePPS);
+    }
+}
+
 
 int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;

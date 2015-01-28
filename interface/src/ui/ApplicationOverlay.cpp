@@ -16,6 +16,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 
+#include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "audio/AudioToolBox.h"
@@ -164,7 +165,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     Overlays& overlays = application->getOverlays();
     auto glCanvas = DependencyManager::get<GLCanvas>();
     
-    _textureFov = glm::radians(Menu::getInstance()->getOculusUIAngularSize());
+    _textureFov = glm::radians(_oculusUIAngularSize);
     _textureAspectRatio = (float)glCanvas->getDeviceWidth() / (float)glCanvas->getDeviceHeight();
 
     //Handle fading and deactivation/activation of UI

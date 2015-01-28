@@ -47,7 +47,6 @@ var yawFromMouse = 0;
 var pitchFromMouse = 0;
 var isMouseDown = false; 
 
-var BULLET_VELOCITY = 5.0;
 var MIN_THROWER_DELAY = 1000;
 var MAX_THROWER_DELAY = 1000;
 var LEFT_BUTTON_3 = 3;
@@ -98,7 +97,7 @@ var reticle = Overlays.addOverlay("image", {
                     y: screenSize.y / 2 - 16,
                     width: 32,
                     height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/reticle.png",
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/billiardsReticle.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
@@ -109,6 +108,25 @@ var offButton = Overlays.addOverlay("image", {
                     width: 32,
                     height: 32,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1
+                });
+
+var platformButton = Overlays.addOverlay("image", {
+                    x: screenSize.x - 48,
+                    y: 130,
+                    width: 32,
+                    height: 32,
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/city.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1
+                });
+var gridButton = Overlays.addOverlay("image", {
+                    x: screenSize.x - 48,
+                    y: 164,
+                    width: 32,
+                    height: 32,
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/blocks.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
@@ -127,24 +145,30 @@ if (showScore) {
                 });
 }
 
-function printVector(string, vector) {
-    print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
-}
+var BULLET_VELOCITY = 10.0;
 
-function shootBullet(position, velocity) {
-    var BULLET_SIZE = 0.07;
+function shootBullet(position, velocity, grenade) {
+    var BULLET_SIZE = 0.10;
     var BULLET_LIFETIME = 10.0;
-    var BULLET_GRAVITY = 0.0;
+    var BULLET_GRAVITY = -0.25;
+    var GRENADE_VELOCITY = 15.0;
+    var GRENADE_SIZE = 0.35;
+    var GRENADE_GRAVITY = -9.8;
+
+    var bVelocity = grenade ? Vec3.multiply(GRENADE_VELOCITY, Vec3.normalize(velocity)) : velocity;
+    var bSize = grenade ? GRENADE_SIZE : BULLET_SIZE;
+    var bGravity = grenade ? GRENADE_GRAVITY : BULLET_GRAVITY; 
+
     bulletID = Entities.addEntity(
         { type: "Sphere",
           position: position, 
-          dimensions: { x: BULLET_SIZE, y: BULLET_SIZE, z: BULLET_SIZE }, 
+          dimensions: { x: bSize, y: bSize, z: bSize }, 
           color: {  red: 255, green: 0, blue: 0 },  
-          velocity: velocity, 
+          velocity: bVelocity, 
           lifetime: BULLET_LIFETIME,
-          gravity: {  x: 0, y: BULLET_GRAVITY, z: 0 },
+          gravity: {  x: 0, y: bGravity, z: 0 },
           damping: 0.01,
-          density: 5000,
+          density: 8000,
           ignoreCollisions: false,
           collisionsWillMove: true
       });
@@ -158,13 +182,15 @@ function shootBullet(position, velocity) {
     }
 
     // Kickback the arm 
+    if (elbowKickAngle > 0.0) {
+        MyAvatar.setJointData("LeftForeArm", rotationBeforeKickback);
+    }
     rotationBeforeKickback = MyAvatar.getJointRotation("LeftForeArm"); 
     var armRotation = MyAvatar.getJointRotation("LeftForeArm"); 
     armRotation = Quat.multiply(armRotation, Quat.fromPitchYawRollDegrees(0.0, 0.0, KICKBACK_ANGLE));
     MyAvatar.setJointData("LeftForeArm", armRotation);
     elbowKickAngle = KICKBACK_ANGLE;
 }
-
 function shootTarget() {
     var TARGET_SIZE = 0.50;
     var TARGET_GRAVITY = 0.0;
@@ -174,7 +200,7 @@ function shootTarget() {
     var DISTANCE_TO_LAUNCH_FROM = 5.0;
     var ANGLE_RANGE_FOR_LAUNCH = 20.0;
     var camera = Camera.getPosition();
-    //printVector("camera", camera);
+    
     var targetDirection = Quat.angleAxis(getRandomFloat(-ANGLE_RANGE_FOR_LAUNCH, ANGLE_RANGE_FOR_LAUNCH), { x:0, y:1, z:0 });
     targetDirection = Quat.multiply(Camera.getOrientation(), targetDirection);
     var forwardVector = Quat.getFront(targetDirection);
@@ -205,6 +231,78 @@ function shootTarget() {
     Audio.playSound(targetLaunchSound, audioOptions);
 }
 
+function makeGrid(type, scale, size) {
+    var separation = scale * 2; 
+    var pos = Vec3.sum(Camera.getPosition(), Vec3.multiply(10.0 * scale * separation, Quat.getFront(Camera.getOrientation())));
+    var x, y, z;
+    var GRID_LIFE = 60.0; 
+    var dimensions; 
+
+    for (x = 0; x < size; x++) {
+        for (y = 0; y < size; y++) {
+            for (z = 0; z < size; z++) {
+                
+                dimensions = { x: separation/2.0 * (0.5 + Math.random()), y: separation/2.0 * (0.5 + Math.random()), z: separation/2.0 * (0.5 + Math.random()) / 4.0 };
+
+                Entities.addEntity(
+                    { type: type,
+                      position: { x: pos.x + x * separation, y: pos.y + y * separation, z: pos.z + z * separation },
+                      dimensions: dimensions, 
+                      color: {  red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },  
+                      velocity: {  x: 0, y: 0, z: 0 }, 
+                      gravity: {  x: 0, y: 0, z: 0 }, 
+                      lifetime: GRID_LIFE,
+                      rotation:  Camera.getOrientation(),
+                      damping: 0.1,
+                      density: 100.0, 
+                      collisionsWillMove: true });
+            }
+        }
+    }
+}
+function makePlatform(gravity, scale, size) {
+    var separation = scale * 2; 
+    var pos = Vec3.sum(Camera.getPosition(), Vec3.multiply(10.0 * scale * separation, Quat.getFront(Camera.getOrientation())));
+    pos.y -= separation * size;
+    var x, y, z;
+    var TARGET_LIFE = 60.0; 
+    var INITIAL_GAP = 0.5;
+    var dimensions; 
+
+    for (x = 0; x < size; x++) {
+        for (y = 0; y < size; y++) {
+            for (z = 0; z < size; z++) {
+
+                dimensions = { x: separation/2.0, y: separation, z: separation/2.0 };
+
+                Entities.addEntity(
+                    { type: "Box",
+                      position: { x: pos.x - (separation * size  / 2.0) + x * separation, 
+                                  y: pos.y + y * (separation + INITIAL_GAP), 
+                                  z: pos.z - (separation * size / 2.0) + z * separation },
+                      dimensions: dimensions, 
+                      color: {  red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },  
+                      velocity: {  x: 0, y: 0, z: 0 }, 
+                      gravity: {  x: 0, y: gravity, z: 0 }, 
+                      lifetime: TARGET_LIFE,
+                      damping: 0.1,
+                      density: 100.0, 
+                      collisionsWillMove: true });
+            }
+        }
+    }
+
+    // Make a floor for this stuff to fall onto
+    Entities.addEntity({
+        type: "Box",
+        position: { x: pos.x, y: pos.y - separation / 2.0, z: pos.z }, 
+        dimensions: { x: 2.0 * separation * size, y: separation / 2.0, z: 2.0 * separation * size },
+        color: { red: 128, green: 128, blue: 128 },
+        lifetime: TARGET_LIFE
+    });
+
+}
+
 function entityCollisionWithEntity(entity1, entity2, collision) {
 
     if (((entity1.id == bulletID.id) || (entity1.id == targetID.id)) && 
@@ -233,7 +331,9 @@ function keyPressEvent(event) {
         var time = MIN_THROWER_DELAY + Math.random() * MAX_THROWER_DELAY;
         Script.setTimeout(shootTarget, time); 
     } else if ((event.text == ".") || (event.text == "SPACE")) {
-        shootFromMouse();
+        shootFromMouse(false);
+    } else if (event.text == ",") {
+        shootFromMouse(true);
     } else if (event.text == "r") {
         playLoadSound();
     } else if (event.text == "s") {
@@ -241,7 +341,6 @@ function keyPressEvent(event) {
         Quat.print("arm = ", MyAvatar.getJointRotation("LeftArm"));
         Quat.print("forearm = ", MyAvatar.getJointRotation("LeftForeArm"));
         Quat.print("hand = ", MyAvatar.getJointRotation("LeftHand"));
-
     }
 }
 
@@ -287,18 +386,7 @@ function update(deltaTime) {
     if (targetID && !targetID.isKnownID) {
         targetID = Entities.identifyEntity(targetID);
     }
-    //  Check for mouseLook movement, update rotation 
-       // rotate body yaw for yaw received from mouse
-    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Radians( { x: 0, y: yawFromMouse, z: 0 } ));
-    //MyAvatar.orientation = newOrientation;
-    yawFromMouse = 0;
 
-    // apply pitch from mouse
-    var newPitch = MyAvatar.headPitch + pitchFromMouse;
-    //MyAvatar.headPitch = newPitch;
-    pitchFromMouse = 0;
-
-    
     if (activeControllers == 0) {
         if (Controller.getNumberOfSpatialControls() > 0) { 
             activeControllers = Controller.getNumberOfSpatialControls();
@@ -372,19 +460,19 @@ function update(deltaTime) {
                    
                 var velocity = Vec3.multiply(BULLET_VELOCITY, Vec3.normalize(palmToFingerTipVector)); 
 
-                shootBullet(position, velocity);
+                shootBullet(position, velocity, false);
             }
         }
     }
 }
 
-function shootFromMouse() {
+function shootFromMouse(grenade) {
     var DISTANCE_FROM_CAMERA = 1.0;
     var camera = Camera.getPosition();
     var forwardVector = Quat.getFront(Camera.getOrientation());
     var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, DISTANCE_FROM_CAMERA));
     var velocity = Vec3.multiply(forwardVector, BULLET_VELOCITY);
-    shootBullet(newPosition, velocity);
+    shootBullet(newPosition, velocity, grenade);
 }
 
 function mouseReleaseEvent(event) { 
@@ -392,21 +480,24 @@ function mouseReleaseEvent(event) {
     isMouseDown = false;
 }
 
-function mouseMoveEvent(event) {
-    if (isMouseDown) {
-        var MOUSE_YAW_SCALE = -0.25;
-        var MOUSE_PITCH_SCALE = -12.5;
-        var FIXED_MOUSE_TIMESTEP = 0.016;
-        yawFromMouse += ((event.x - lastX) * MOUSE_YAW_SCALE * FIXED_MOUSE_TIMESTEP);
-        pitchFromMouse += ((event.y - lastY) * MOUSE_PITCH_SCALE * FIXED_MOUSE_TIMESTEP);
-        lastX = event.x;
-        lastY = event.y;
-    }
+function mousePressEvent(event) {
+    var clickedText = false;
+    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    if (clickedOverlay == offButton) {
+        Script.stop();
+    } else if (clickedOverlay == platformButton) {
+        var platformSize = 3;
+        makePlatform(-9.8, 1.0, platformSize);
+    } else if (clickedOverlay == gridButton) {
+        makeGrid("Box", 1.0, 3);
+    } 
 }
 
 function scriptEnding() {
     Overlays.deleteOverlay(reticle); 
     Overlays.deleteOverlay(offButton);
+    Overlays.deleteOverlay(platformButton);
+    Overlays.deleteOverlay(gridButton);
     Overlays.deleteOverlay(pointer[0]);
     Overlays.deleteOverlay(pointer[1]);
     Overlays.deleteOverlay(text);
@@ -418,7 +509,7 @@ Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
-Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mousePressEvent.connect(mousePressEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 
 

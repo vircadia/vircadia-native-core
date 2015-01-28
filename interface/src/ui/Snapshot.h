@@ -12,15 +12,19 @@
 #ifndef hifi_Snapshot_h
 #define hifi_Snapshot_h
 
-#include "InterfaceConfig.h"
+#include <glm/glm.hpp>
 
-#include <qimage.h>
-#include <qfile.h>
-#include <qtemporaryfile.h>
-#include <QGLWidget>
-#include <qstring.h>
+#include <QString>
 
-#include "avatar/Avatar.h"
+#include <Settings.h>
+
+class QFile;
+class QTemporaryFile;
+
+namespace SettingHandles {
+    const SettingHandle<QString> snapshotsLocation("snapshotsLocation",
+                        QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+}
 
 class SnapshotMetaData {
 public:
@@ -41,7 +45,6 @@ private:
 };
 
 class Snapshot {
-
 public:
     static QString saveSnapshot();
     static QTemporaryFile* saveTempSnapshot();

@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QBuffer>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDebug>
@@ -21,6 +22,7 @@
 #include <QHBoxLayout>
 #include <QHttpMultiPart>
 #include <QImage>
+#include <QJsonDocument>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QProgressBar>
@@ -28,12 +30,17 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QTextStream>
+#include <QThread>
 #include <QVBoxLayout>
 #include <QVariant>
 
 #include <AccountManager.h>
+#include <GeometryCache.h>
+#include <GLMHelpers.h>
+#include <ResourceCache.h>
+#include <Settings.h>
+#include <TextureCache.h>
 
-#include "Application.h"
 #include "ModelUploader.h"
 
 
@@ -53,8 +60,6 @@ static const QString BLENDSHAPE_FIELD = "bs";
 static const QString S3_URL = "http://public.highfidelity.io";
 static const QString MODEL_URL = "/api/v1/models";
 
-static const QString SETTING_NAME = "LastModelUploadLocation";
-
 static const unsigned long long MAX_SIZE = 50 * 1024 * BYTES_PER_MEGABYTES; // 50 GB (Virtually remove limit)
 static const int MAX_TEXTURE_SIZE = 1024;
 static const int TIMEOUT = 1000;
@@ -62,6 +67,11 @@ static const int MAX_CHECK = 30;
 
 static const int QCOMPRESS_HEADER_POSITION = 0;
 static const int QCOMPRESS_HEADER_SIZE = 4;
+
+namespace SettingHandles {
+    const SettingHandle<QString> lastModelUploadLocation("LastModelUploadLocation",
+                        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
+}
 
 void ModelUploader::uploadModel(ModelType modelType) {
     ModelUploader* uploader = new ModelUploader(modelType);
@@ -107,8 +117,7 @@ ModelUploader::~ModelUploader() {
 
 bool ModelUploader::zip() {
     // File Dialog
-    QSettings* settings = Application::getInstance()->lockSettings();
-    QString lastLocation = settings->value(SETTING_NAME).toString();
+    QString lastLocation = SettingHandles::lastModelUploadLocation.get();
     
     if (lastLocation.isEmpty()) {
        lastLocation  = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
@@ -123,11 +132,9 @@ bool ModelUploader::zip() {
         lastLocation, "Model files (*.fst *.fbx)");
     if (filename == "") {
         // If the user canceled we return.
-        Application::getInstance()->unlockSettings();
         return false;
     }
-    settings->setValue(SETTING_NAME, filename);
-    Application::getInstance()->unlockSettings();
+    SettingHandles::lastModelUploadLocation.set(filename);
     
     // First we check the FST file (if any)
     QFile* fst;

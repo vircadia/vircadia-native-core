@@ -225,14 +225,6 @@ void runTimingTests() {
     qDebug("vec3 assign and dot() usecs: %f, last result:%f", elapsedUsecs / (float) numTests, result);
 }
 
-float loadSetting(QSettings* settings, const char* name, float defaultValue) {
-    float value = settings->value(name, defaultValue).toFloat();
-    if (glm::isnan(value)) {
-        value = defaultValue;
-    }
-    return value;
-}
-
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
         const glm::vec3& sphereCenter, float sphereRadius, float& distance) {
     glm::vec3 relativeOrigin = rayStarting - sphereCenter;

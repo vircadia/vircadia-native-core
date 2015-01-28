@@ -21,8 +21,8 @@
 const QString ADDRESSBAR_GO_BUTTON_ICON = "images/address-bar-submit.svg";
 const QString ADDRESSBAR_GO_BUTTON_ACTIVE_ICON = "images/address-bar-submit-active.svg";
 
-AddressBarDialog::AddressBarDialog() :
-    FramelessDialog(Application::getInstance()->getWindow(), 0, FramelessDialog::POSITION_TOP)
+AddressBarDialog::AddressBarDialog(QWidget* parent) :
+    FramelessDialog(parent, 0, FramelessDialog::POSITION_TOP)
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
     setupUI();

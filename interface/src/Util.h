@@ -29,8 +29,6 @@ void renderCollisionOverlay(int width, int height, float magnitude, float red = 
 
 void runTimingTests();
 
-float loadSetting(QSettings* settings, const char* name, float defaultValue);
-
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
     const glm::vec3& sphereCenter, float sphereRadius, float& distance);
 
