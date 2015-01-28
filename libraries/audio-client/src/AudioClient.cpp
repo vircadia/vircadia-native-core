@@ -347,7 +347,7 @@ bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationS
                              const QAudioFormat& sourceAudioFormat, const QAudioFormat& destinationAudioFormat) {
     if (sourceAudioFormat.channelCount() == 2 && destinationAudioFormat.channelCount() == 1) {
         // loop through the stereo input audio samples and average every two samples
-        for (int i = 0; i < numSourceSamples; i += 2) {
+        for (uint i = 0; i < numSourceSamples; i += 2) {
             destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 1] / 2);
         }
         
@@ -355,7 +355,7 @@ bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationS
     } else if (sourceAudioFormat.channelCount() == 1 && destinationAudioFormat.channelCount() == 2) {
         
         // loop through the mono input audio and repeat each sample twice
-        for (int i = 0; i < numSourceSamples; ++i) {
+        for (uint i = 0; i < numSourceSamples; ++i) {
             destinationSamples[i * 2] = destinationSamples[(i * 2) + 1] = sourceSamples[i];
         }
         

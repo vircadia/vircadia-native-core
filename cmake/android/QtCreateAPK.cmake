@@ -123,5 +123,14 @@ macro(qt_create_apk)
   add_custom_target(${TARGET_NAME}-apk
     COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} ${ANDROID_DEPLOY_QT_INSTALL} --verbose --deployment bundled "\\$(ARGS)"
     DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs
-  ) 
+  )
+  
+  # rename the APK if the caller asked us to
+  if (ANDROID_APK_CUSTOM_NAME) 
+    add_custom_command(
+      TARGET ${TARGET_NAME}-apk
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E rename "${ANDROID_APK_OUTPUT_DIR}/bin/QtApp-debug.apk" "${ANDROID_APK_OUTPUT_DIR}/bin/${ANDROID_APK_CUSTOM_NAME}"
+    )
+  endif ()
 endmacro()

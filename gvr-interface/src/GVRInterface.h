@@ -15,8 +15,11 @@
 #include <QtWidgets/QApplication>
 
 class RenderingClient;
+
+#ifdef HAVE_LIBOVR
 class ovrMobile;
 class ovrHmdInfo;
+#endif
 
 #if defined(qApp)
 #undef qApp
@@ -37,8 +40,10 @@ private:
     RenderingClient* _client;
     bool _inVRMode;
     
+#ifdef HAVE_LIBOVR
     ovrMobile* _ovr;
     ovrHmdInfo* _hmdInfo;
+#endif
 };
 
 #endif // hifi_GVRInterface_h

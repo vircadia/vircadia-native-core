@@ -15,10 +15,14 @@
 #include <qpa/qplatformnativeinterface.h>
 #include <QtWidgets/QMenuBar>
 
+#ifdef HAVE_LIBOVR
+
 #include <GlUtils.h>
 #include <VrApi/LocalPreferences.h>
 #include <VrApi/VrApi.h>
 #include <VrApi/VrApi_local.h>
+
+#endif
 
 #include "GVRMainWindow.h"
 #include "RenderingClient.h"
@@ -32,13 +36,16 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     _client = new RenderingClient(this);
     
     connect(this, &QGuiApplication::applicationStateChanged, this, &GVRInterface::handleApplicationStateChange);
-    
+
+#ifdef HAVE_LIBOVR
     QAndroidJniEnvironment jniEnv;
     
     QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
     jobject activity = (jobject) interface->nativeResourceForIntegration("QtActivity");
 
+
     ovr_RegisterHmtReceivers(&*jniEnv, activity);
+#endif
     
     // call our idle function whenever we can
     QTimer* idleTimer = new QTimer(this);
@@ -60,10 +67,12 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
 }
 
 void GVRInterface::idle() {
+#ifdef HAVE_LIBOVR
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
         qDebug() << "The headset just got docked - assume we are in VR mode.";
         _inVRMode = true;
     } else if (_inVRMode) {
+
         if (ovr_IsHeadsetDocked()) {
             static int counter = 0;
             
@@ -90,6 +99,7 @@ void GVRInterface::idle() {
             _inVRMode = false;
         }
     } 
+#endif
 }
 
 void GVRInterface::handleApplicationStateChange(Qt::ApplicationState state) {

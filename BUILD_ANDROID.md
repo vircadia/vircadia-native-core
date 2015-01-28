@@ -6,10 +6,17 @@ You will need the following tools to build our Android targets.
 
 * [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
 * [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
-  * Be sure to install SDK Platform for API Level 19
-* [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) ~> 0.4.2
+  * Install the latest Platform-tools
+  * Install the latest Build-tools
+  * Install the SDK Platform for API Level 19
+  * Install Sources for Android SDK for API Level 19 
+  * Install the ARM EABI v7a System Image if you want to run an emulator.
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
+
+####Optional Components
+
+* [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) ~> 0.4.2
 
 ####ANDROID_LIB_DIR
 
@@ -97,9 +104,19 @@ This will create the `lib` and `include` folders inside `ANDROID_LIB_DIR/soxr` t
 
 ####Oculus Mobile SDK
 
+The Oculus Mobile SDK is optional, for Gear VR support. It is not required to compile gvr-interface.
+
 Download the [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) and extract the archive inside your `ANDROID_LIB_DIR` folder. Rename the extracted folder to `libovr`.
 
 From the VrLib directory, use ndk-build to build VrLib. This will create the liboculus.a archive that our FindLibOVR module will look for when cmake is run.
+
+#####Hybrid testing
+
+Currently the 'vr_dual' mode that would allow us to run a hybrid app has limited support in the Oculus Mobile SDK. The best way to have an application we can launch without having to connect to the GearVR is to put the Gear VR Service into developer mode. This stops Oculus Home from taking over the device when it is plugged into the Gear VR headset, and allows the application to be launched from the Applications page.
+
+To put the Gear VR Service into developer mode you need an application with an Oculus Signature File on your device. Generate an Oculus Signature File for your device on the [Oculus osig tool page](https://developer.oculus.com/tools/osig/). Place this file in the gvr-interface/assets directory. Cmake will automatically copy it into your apk in the right place when you execute `make gvr-interface-apk`.
+
+Once the application is on your device, go to `Settings->Application Manager->Gear VR Service->Manage Storage`. Tap on `VR Service Version` six times. It will scan your device to verify that you have an osig file in an application on your device, and then it will let you enable Developer mode.
 
 ####GLM
 
