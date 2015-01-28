@@ -14,12 +14,15 @@
 
 #include <QMainWindow>
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget* parent = NULL);
-
+    
+public slots:
+    void restoreGeometry();
+    void saveGeometry();
+    
 signals:
     void windowGeometryChanged(QRect geometry);
     void windowShown(bool shown);

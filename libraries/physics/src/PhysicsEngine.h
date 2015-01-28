@@ -14,8 +14,6 @@
 
 #include <stdint.h>
 
-const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
-
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
 
@@ -114,6 +112,7 @@ private:
 
     ContactMap _contactMap;
     uint32_t _numContactFrames = 0;
+    uint32_t _lastNumSubstepsAtUpdateInternal = 0;
 };
 
 #endif // hifi_PhysicsEngine_h

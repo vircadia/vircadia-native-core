@@ -1,6 +1,6 @@
 //
 //  Resource.cpp
-//  interface/src/gpu
+//  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 10/8/2014.
 //  Copyright 2014 High Fidelity, Inc.

@@ -38,6 +38,8 @@ Once Qt is installed, you need to manually configure the following:
 
 ###External Libraries
 
+As it stands, Hifi/Interface is a 32-bit application, so all libraries should also be 32-bit.
+
 CMake will need to know where the headers and libraries for required external dependencies are. 
 
 The recommended route for CMake to find the external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
@@ -75,7 +77,7 @@ As with the Qt libraries, you will need to make sure that directories containing
 
 ###OpenSSL
 
-QT will use OpenSSL if it's available, but it doesn't install it, so you must install it separately.
+Qt will use OpenSSL if it's available, but it doesn't install it, so you must install it separately.
 
 Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll, libeay32.dll) lying around, but they may be the wrong version. If these DLL's are in the PATH then QT will try to use them, and if they're the wrong version then you will see the following errors in the console:
 
@@ -89,7 +91,7 @@ Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll
 
 To prevent these problems, install OpenSSL yourself. Download the following binary packages [from this website](http://slproweb.com/products/Win32OpenSSL.html):
 * Visual C++ 2008 Redistributables
-* Win32 OpenSSL v1.0.1h
+* Win32 OpenSSL v1.0.1L
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
@@ -132,6 +134,20 @@ Add to the PATH: `%HIFI_LIB_DIR%\glew\bin\Release\Win32`
 This package contains only headers, so there's nothing to add to the PATH.
 
 Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
+
+###Gverb
+
+1. Go to https://github.com/highfidelity/gverb
+   Or download the sources directly via this link: 
+   https://github.com/highfidelity/gverb/archive/master.zip
+
+2. Extract the archive
+
+3. Place the directories “include” and “src” in interface/external/gverb 
+   (Normally next to this readme)
+
+4. Clear your build directory, run cmake, build and you should be all set.
+
 
 ###Bullet
 

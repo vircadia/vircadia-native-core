@@ -17,12 +17,12 @@
 #include <QItemEditorFactory>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QSettings>
 #include <QThread>
 
 #include <glm/gtx/transform.hpp>
 
 #include <GeometryUtil.h>
+#include <Settings.h>
 
 #include "MetavoxelData.h"
 #include "Spanner.h"
@@ -57,6 +57,10 @@ static QItemEditorCreatorBase* heightfieldColorEditorCreator = createHeightfield
 
 const float DEFAULT_PLACEMENT_GRANULARITY = 0.01f;
 const float DEFAULT_VOXELIZATION_GRANULARITY = powf(2.0f, -3.0f);
+
+namespace SettingHandles {
+    const SettingHandle<QString> heightfieldDir("heightDir", QString());
+}
 
 Spanner::Spanner() :
     _renderer(NULL),
@@ -610,13 +614,13 @@ static int getHeightfieldSize(int size) {
 }
 
 void HeightfieldHeightEditor::select() {
-    QSettings settings;
-    QString result = QFileDialog::getOpenFileName(this, "Select Height Image", settings.value("heightDir").toString(),
-        "Images (*.png *.jpg *.bmp *.raw *.mdr)");
+    QString result = QFileDialog::getOpenFileName(this, "Select Height Image",
+                                                  SettingHandles::heightfieldDir.get(),
+                                                  "Images (*.png *.jpg *.bmp *.raw *.mdr)");
     if (result.isNull()) {
         return;
     }
-    settings.setValue("heightDir", QFileInfo(result).path());
+    SettingHandles::heightfieldDir.set(QFileInfo(result).path());
     const quint16 CONVERSION_OFFSET = 1;
     QString lowerResult = result.toLower();
     bool isMDR = lowerResult.endsWith(".mdr");
@@ -880,13 +884,13 @@ void HeightfieldColorEditor::setColor(const HeightfieldColorPointer& color) {
 }
 
 void HeightfieldColorEditor::select() {
-    QSettings settings;
-    QString result = QFileDialog::getOpenFileName(this, "Select Color Image", settings.value("heightDir").toString(),
+    QString result = QFileDialog::getOpenFileName(this, "Select Color Image",
+                                                  SettingHandles::heightfieldDir.get(),
         "Images (*.png *.jpg *.bmp)");
     if (result.isNull()) {
         return;
     }
-    settings.setValue("heightDir", QFileInfo(result).path());
+    SettingHandles::heightfieldDir.get(QFileInfo(result).path());
     QImage image;
     if (!image.load(result)) {
         QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");

@@ -20,6 +20,8 @@ const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
 const float MAGNIFY_MULT = 2.0f;
 
+const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
+
 // Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
 public:
@@ -34,6 +36,9 @@ public:
     void computeOculusPickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
+    
+    float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
+    void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; }
     
     // Converter from one frame of reference to another.
     // Frame of reference:
@@ -79,6 +84,8 @@ private:
         QOpenGLFramebufferObject* _framebufferObject;
         VerticesIndices _vbo;
     };
+    
+    float _oculusUIAngularSize = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
     
     void renderReticle(glm::quat orientation, float alpha);
     void renderPointers();;

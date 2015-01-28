@@ -19,7 +19,6 @@
 #include <QImage>
 #include <QPointer>
 #include <QSet>
-#include <QSettings>
 #include <QStringList>
 #include <QUndoStack>
 
@@ -34,10 +33,10 @@
 #include <PacketHeaders.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
+#include <StDev.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
 
-#include "Audio.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
@@ -80,7 +79,6 @@
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
-class QSettings;
 class QSystemTrayIcon;
 class QTouchEvent;
 class QWheelEvent;
@@ -121,6 +119,12 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
 
+class Application;
+#if defined(qApp)
+#undef qApp
+#endif
+#define qApp (static_cast<Application*>(QCoreApplication::instance()))
+
 class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
 
@@ -128,18 +132,16 @@ class Application : public QApplication, public AbstractViewStateInterface, Abst
     friend class DatagramProcessor;
 
 public:
-    static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
+    static Application* getInstance() { return qApp; } // TODO: replace fully by qApp
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
 
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
 
-    void restoreSizeAndPosition();
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
-    void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
     void initializeGL();
     void paintGL();
@@ -180,6 +182,7 @@ public:
     PrioVR* getPrioVR() { return &_prioVR; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
+    OctreeQuery& getOctreeQuery() { return _octreeQuery; }
     
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
@@ -214,12 +217,6 @@ public:
 
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
-
-    /// if you need to access the application settings, use lockSettings()/unlockSettings()
-    QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
-    void unlockSettings() { _settingsMutex.unlock(); }
-
-    void saveSettings();
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -303,6 +300,9 @@ public:
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
     Bookmarks* getBookmarks() const { return _bookmarks; }
+    
+    QString getScriptsLocation() const;
+    void setScriptsLocation(const QString& scriptsLocation);
 
 signals:
 
@@ -317,6 +317,8 @@ signals:
 
     /// Fired when the import window is closed
     void importDone();
+    
+    void scriptLocationChanged(const QString& newPath);
 
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -353,13 +355,17 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
-    void bumpSettings() { ++_numChangedSettings; }
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
-    void setVSyncEnabled(bool vsyncOn);
+    void setVSyncEnabled();
 
     void resetSensors();
+    void aboutApp();
+    void showEditEntitiesHelp();
+    
+    void loadSettings();
+    void saveSettings();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -387,6 +393,10 @@ private slots:
     void parseVersionXml();
 
     void manageRunningScriptsWidgetVisibility(bool shown);
+    
+    void runTests();
+    
+    void audioMuteToggled();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -442,10 +452,6 @@ private:
 
     QThread* _nodeThread;
     DatagramProcessor _datagramProcessor;
-
-    QMutex _settingsMutex;
-    QSettings* _settings;
-    int _numChangedSettings;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -566,6 +572,7 @@ private:
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
+    QString _scriptsLocation;
 
     QSystemTrayIcon* _trayIcon;
 
@@ -579,6 +586,9 @@ private:
     bool _aboutToQuit;
 
     Bookmarks* _bookmarks;
+    
+    QThread _settingsThread;
+    QTimer _settingsTimer;
 };
 
 #endif // hifi_Application_h

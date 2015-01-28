@@ -126,6 +126,8 @@ public:
     void setWindowSecondsForDesiredReduction(int windowSecondsForDesiredReduction);
     void setRepetitionWithFade(bool repetitionWithFade) { _repetitionWithFade = repetitionWithFade; }
 
+    void loadSettings();
+    void saveSettings();
 
     virtual AudioStreamStats getAudioStreamStats() const;
 
@@ -138,7 +140,15 @@ public:
 
     /// returns the desired number of jitter buffer frames using Freddy's method
     int getCalculatedJitterBufferFramesUsingMaxGap() const { return _calculatedJitterBufferFramesUsingMaxGap; }
-
+    
+    int getWindowSecondsForDesiredReduction() const {
+        return _timeGapStatsForDesiredReduction.getWindowIntervals(); }
+    int getWindowSecondsForDesiredCalcOnTooManyStarves() const {
+        return _timeGapStatsForDesiredCalcOnTooManyStarves.getWindowIntervals(); }
+    bool getDynamicJitterBuffers() const { return _dynamicJitterBuffers; }
+    bool getRepetitionWithFade() const { return _repetitionWithFade;}
+    int getWindowStarveThreshold() const { return _starveThreshold;}
+    bool getUseStDevForJitterCalc() const { return _useStDevForJitterCalc; }
     int getDesiredJitterBufferFrames() const { return _desiredJitterBufferFrames; }
     int getMaxFramesOverDesired() const { return _maxFramesOverDesired; }
     int getNumFrameSamples() const { return _ringBuffer.getNumFrameSamples(); }
@@ -204,7 +214,7 @@ protected:
 
     bool _lastPopSucceeded;
     AudioRingBuffer::ConstIterator _lastPopOutput;
-
+    
     bool _dynamicJitterBuffers;         // if false, _desiredJitterBufferFrames is locked at 1 (old behavior)
     int _staticDesiredJitterBufferFrames;
 
