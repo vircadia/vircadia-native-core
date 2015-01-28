@@ -10,7 +10,7 @@ You will need the following tools to build our Android targets.
   * Install the latest Build-tools
   * Install the SDK Platform for API Level 19
   * Install Sources for Android SDK for API Level 19 
-  * If you want to run on an emulator you will also need the ARM EABI v7a System Image.
+  * Install the ARM EABI v7a System Image if you want to run an emulator.
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
 
