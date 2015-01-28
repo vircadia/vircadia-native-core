@@ -9,12 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QDebug>
-
 #include "InterfaceView.h"
 
 InterfaceView::InterfaceView(QWidget* parent,  Qt::WindowFlags flags) :
     QOpenGLWidget(parent, flags)
 {
-    qDebug() << "The interface view is alive!";
+    
 }
