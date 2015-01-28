@@ -22,9 +22,20 @@ include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("soxr")
 
 find_path(SOXR_INCLUDE_DIRS soxr.h PATH_SUFFIXES include HINTS ${SOXR_SEARCH_DIRS})
-find_library(SOXR_LIBRARIES NAMES soxr PATH_SUFFIXES lib HINTS ${SOXR_SEARCH_DIRS})
+
+if (ANDROID)
+  set(SOXR_NAMES "libsoxr.a")
+elseif ()
+  set(SOXR_NAMES "soxr")
+endif ()
+
+find_library(SOXR_LIBRARIES NAMES ${SOXR_NAMES} PATH_SUFFIXES lib HINTS ${SOXR_SEARCH_DIRS})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(soxr DEFAULT_MSG SOXR_INCLUDE_DIRS SOXR_LIBRARIES)
+find_package_handle_standard_args(SOXR DEFAULT_MSG SOXR_INCLUDE_DIRS SOXR_LIBRARIES)
+
+if (ANDROID)
+  set(SOXR_LIBRARIES ${SOXR_LIBRARIES} "-fopenmp")
+endif ()
 
 mark_as_advanced(SOXR_INCLUDE_DIRS SOXR_LIBRARIES SOXR_SEARCH_DIRS)
