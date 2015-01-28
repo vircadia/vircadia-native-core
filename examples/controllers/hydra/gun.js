@@ -485,7 +485,8 @@ function mousePressEvent(event) {
     if (clickedOverlay == offButton) {
         Script.stop();
     } else if (clickedOverlay == platformButton) {
-        makePlatform(-9.8, 1.0, 5);
+        var platformSize = 3;
+        makePlatform(-9.8, 1.0, platformSize);
     } else if (clickedOverlay == gridButton) {
         makeGrid("Box", 1.0, 3);
     } 

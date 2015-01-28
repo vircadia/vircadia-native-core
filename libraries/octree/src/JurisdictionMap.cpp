@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QSettings>
-#include <QtCore/QString>
-#include <QtCore/QStringList>
+#include <QSettings>
+#include <QString>
+#include <QStringList>
 #include <QDebug>
 
 #include <PacketHeaders.h>
@@ -209,9 +209,9 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(const unsigned char* nod
 
 
 bool JurisdictionMap::readFromFile(const char* filename) {
-    QString     settingsFile(filename);
-    QSettings   settings(settingsFile, QSettings::IniFormat);
-    QString     rootCode = settings.value("root","00").toString();
+    QString settingsFile(filename);
+    QSettings settings(settingsFile, QSettings::IniFormat);
+    QString rootCode = settings.value("root","00").toString();
     qDebug() << "rootCode=" << rootCode;
 
     _rootOctalCode = hexStringToOctalCode(rootCode);

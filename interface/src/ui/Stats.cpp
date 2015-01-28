@@ -18,6 +18,10 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <Application.h>
+#include <GeometryCache.h>
+#include <GLCanvas.h>
+#include <LODManager.h>
 #include <PerfStat.h>
 
 #include "Stats.h"
@@ -623,7 +627,7 @@ void Stats::display(
     // LOD Details
     if (_expanded) {
         octreeStats.str("");
-        QString displayLODDetails = Menu::getInstance()->getLODFeedbackText();
+        QString displayLODDetails = DependencyManager::get<LODManager>()->getLODFeedbackText();
         octreeStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);

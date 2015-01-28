@@ -14,6 +14,7 @@
 #include <assert.h>
 
 #include "Resource.h"
+#include "Texture.h"
 
 namespace gpu {
 
@@ -38,6 +39,17 @@ public:
     }
 
     void syncGPUObject(const Buffer& buffer);
+
+    template< typename T >
+    static void setGPUObject(const Texture& texture, T* to) {
+        texture.setGPUObject(reinterpret_cast<GPUObject*>(to));
+    }
+    template< typename T >
+    static T* getGPUObject(const Texture& texture) {
+        return reinterpret_cast<T*>(texture.getGPUObject());
+    }
+
+    void syncGPUObject(const Texture& texture);
 
 protected:
 

@@ -15,6 +15,7 @@
 #include <PerfStat.h>
 
 #include "Application.h"
+#include "Audio.h"
 #include "Menu.h"
 
 #include "DatagramProcessor.h"

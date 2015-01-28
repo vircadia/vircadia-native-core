@@ -50,8 +50,8 @@ enum GridPlane {
 
 const glm::vec2 INVALID_VECTOR(FLT_MAX, FLT_MAX);
 
-MetavoxelEditor::MetavoxelEditor() :
-    QWidget(Application::getInstance()->getWindow(), Qt::Tool) {
+MetavoxelEditor::MetavoxelEditor(QWidget* parent) :
+    QWidget(parent, Qt::Tool) {
     
     setWindowTitle("Metavoxel Editor");
     setAttribute(Qt::WA_DeleteOnClose);
@@ -822,6 +822,12 @@ HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QStrin
     _radius->setSingleStep(0.01);
     _radius->setMaximum(FLT_MAX);
     _radius->setValue(5.0);
+    
+    _form->addRow("Granularity:", _granularity = new QDoubleSpinBox());
+    _granularity->setMinimum(-FLT_MAX);
+    _granularity->setMaximum(FLT_MAX);
+    _granularity->setPrefix("2^");
+    _granularity->setValue(8.0);
 }
 
 bool HeightfieldBrushTool::appliesTo(const AttributePointer& attribute) const {
@@ -851,7 +857,7 @@ bool HeightfieldBrushTool::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::Wheel) {
         float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
         const float ANGLE_SCALE = 1.0f / 1000.0f;
-        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
+        _radius->setValue(_radius->value() * pow(2.0f, angle * ANGLE_SCALE));
         return true;
     
     } else if (event->type() == QEvent::MouseButtonPress && _positionValid) {
@@ -881,7 +887,7 @@ QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
     const int ERASE_MODE_INDEX = 2;
     return QVariant::fromValue(PaintHeightfieldHeightEdit(_position, _radius->value(),
         alternate ? -_height->value() : _height->value(), _mode->currentIndex() == SET_MODE_INDEX,
-            _mode->currentIndex() == ERASE_MODE_INDEX));
+            _mode->currentIndex() == ERASE_MODE_INDEX, pow(2.0f, _granularity->value())));
 }
 
 MaterialControl::MaterialControl(QWidget* widget, QFormLayout* form, bool clearable) :
@@ -956,10 +962,11 @@ QVariant HeightfieldMaterialBrushTool::createEdit(bool alternate) {
     sphere->setScale(_radius->value());
     if (alternate) {
         return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
-            SharedObjectPointer(), QColor(0, 0, 0, 0), true));
+            SharedObjectPointer(), QColor(0, 0, 0, 0), true, false, pow(2.0f, _granularity->value())));
     } else {
         return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
-            _materialControl->getMaterial(), _materialControl->getColor(), true));
+            _materialControl->getMaterial(), _materialControl->getColor(),
+            true, false, pow(2.0f, _granularity->value())));
     }
 }
 
@@ -974,10 +981,11 @@ QVariant HeightfieldSculptBrushTool::createEdit(bool alternate) {
     sphere->setScale(_radius->value());
     if (alternate) {
         return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
-            SharedObjectPointer(), QColor(0, 0, 0, 0)));
+            SharedObjectPointer(), QColor(0, 0, 0, 0), false, false, pow(2.0f, _granularity->value())));
     } else {
         return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
-            _materialControl->getMaterial(), _materialControl->getColor()));
+            _materialControl->getMaterial(), _materialControl->getColor(),
+            false, false, pow(2.0f, _granularity->value())));
     }
 }
 
@@ -992,13 +1000,14 @@ HeightfieldFillBrushTool::HeightfieldFillBrushTool(MetavoxelEditor* editor) :
 QVariant HeightfieldFillBrushTool::createEdit(bool alternate) {
     const int FILL_MODE_INDEX = 0;
     if (_mode->currentIndex() == FILL_MODE_INDEX) {
-        return QVariant::fromValue(FillHeightfieldHeightEdit(_position, _radius->value()));
+        return QVariant::fromValue(FillHeightfieldHeightEdit(_position, _radius->value(),
+            pow(2.0f, _granularity->value())));
     }
     Sphere* sphere = new Sphere();
     sphere->setTranslation(_position);
     sphere->setScale(_radius->value());
     return QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(sphere),
-        SharedObjectPointer(), QColor(), false, true));
+        SharedObjectPointer(), QColor(), false, true, pow(2.0f, _granularity->value())));
 }
 
 HeightfieldMaterialBoxTool::HeightfieldMaterialBoxTool(MetavoxelEditor* editor) :
@@ -1017,6 +1026,12 @@ HeightfieldMaterialBoxTool::HeightfieldMaterialBoxTool(MetavoxelEditor* editor) 
     _snapToGrid->setChecked(true);
     
     _materialControl = new MaterialControl(this, form, true);
+    
+    form->addRow("Granularity:", _granularity = new QDoubleSpinBox());
+    _granularity->setMinimum(-FLT_MAX);
+    _granularity->setMaximum(FLT_MAX);
+    _granularity->setPrefix("2^");
+    _granularity->setValue(8.0);
 }
 
 bool HeightfieldMaterialBoxTool::appliesTo(const AttributePointer& attribute) const {
@@ -1039,7 +1054,7 @@ void HeightfieldMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm:
     cuboid->setAspectY(vector.y / vector.x);
     cuboid->setAspectZ(vector.z / vector.x);
     MetavoxelEditMessage message = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(SharedObjectPointer(cuboid),
-        _materialControl->getMaterial(), _materialControl->getColor())) };
+        _materialControl->getMaterial(), _materialControl->getColor(), false, false, pow(2.0f, _granularity->value()))) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
@@ -1055,6 +1070,12 @@ HeightfieldMaterialSpannerTool::HeightfieldMaterialSpannerTool(MetavoxelEditor* 
     _spannerEditor->setObject(new Sphere());
     
     _materialControl = new MaterialControl(this, form, true);
+    
+    form->addRow("Granularity:", _granularity = new QDoubleSpinBox());
+    _granularity->setMinimum(-FLT_MAX);
+    _granularity->setMaximum(FLT_MAX);
+    _granularity->setPrefix("2^");
+    _granularity->setValue(8.0);
     
     QPushButton* place = new QPushButton("Set");
     layout()->addWidget(place);
@@ -1076,7 +1097,7 @@ QColor HeightfieldMaterialSpannerTool::getColor() {
 void HeightfieldMaterialSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
     static_cast<Spanner*>(spanner.data())->setWillBeVoxelized(true);
     MetavoxelEditMessage message = { QVariant::fromValue(HeightfieldMaterialSpannerEdit(spanner,
-        _materialControl->getMaterial(), _materialControl->getColor())) };
+        _materialControl->getMaterial(), _materialControl->getColor(), false, false, pow(2.0f, _granularity->value()))) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
