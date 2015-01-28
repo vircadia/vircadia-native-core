@@ -31,13 +31,17 @@ file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.refere
 
 list(APPEND IGNORE_COPY_LIBS ${LIBOVR_ANDROID_LIBRARIES})
 
-if (HOCKEY_APP_APP_ID)
+# the presence of a HOCKEY_APP_ID means we are making a beta build
+if (HOCKEY_APP_ID)
   set(HOCKEY_APP_ENABLED true)
   set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />")
+  set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceBetaActivity)
+  
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/InterfaceBetaActivity.java.in" "${ANDROID_APK_BUILD_DIR}/src/io/highfidelity/gvrinterface/InterfaceBetaActivity.java")
 else ()
   set(HOCKEY_APP_ENABLED false)
 endif ()
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/res/values/hockeyapp.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/hockeyapp.xml")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/hockeyapp.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/hockeyapp.xml")
 
 qt_create_apk()
