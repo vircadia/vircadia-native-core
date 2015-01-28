@@ -14,6 +14,7 @@
 
 #include <AddressManager.h>
 #include <AudioClient.h>
+#include <AvatarHashMap.h>
 #include <NodeList.h>
 
 #include "RenderingClient.h"
@@ -26,7 +27,9 @@ RenderingClient::RenderingClient(QObject *parent) :
     _instance = this;
     
     // tell the NodeList which node types all rendering clients will want to know about
-    DependencyManager::get<NodeList>()->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer);
+    DependencyManager::get<NodeList>()->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
+
+    DependencyManager::set<AvatarHashMap>();
     
     // get our audio client setup on its own thread
     QThread* audioThread = new QThread(this);
@@ -56,6 +59,7 @@ RenderingClient::~RenderingClient() {
 }
 
 void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket) {
+    auto nodeList = DependencyManager::get<NodeList>();
     PacketType incomingType = packetTypeForPacket(incomingPacket);
     // only process this packet if we have a match on the packet version
     switch (incomingType) {
@@ -63,8 +67,7 @@ void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, 
         case PacketTypeAudioStreamStats:
         case PacketTypeMixedAudio:
         case PacketTypeSilentAudioFrame: {
-            auto nodeList = DependencyManager::get<NodeList>();
-             
+            
             if (incomingType == PacketTypeAudioStreamStats) {
                 QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioStreamStatsPacket",
                                           Qt::QueuedConnection,
@@ -87,6 +90,24 @@ void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, 
                 audioMixer->recordBytesReceived(incomingPacket.size());
             }
             
+            break;
+        }
+        case PacketTypeBulkAvatarData:
+        case PacketTypeKillAvatar:
+        case PacketTypeAvatarIdentity:
+        case PacketTypeAvatarBillboard: {
+            // update having heard from the avatar-mixer and record the bytes received
+            SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
+            
+            if (avatarMixer) {
+                avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
+                avatarMixer->recordBytesReceived(incomingPacket.size());
+                
+                QMetaObject::invokeMethod(DependencyManager::get<AvatarHashMap>().data(),
+                                          "processAvatarMixerDatagram",
+                                          Q_ARG(const QByteArray&, incomingPacket),
+                                          Q_ARG(const QWeakPointer<Node>&, avatarMixer));
+            }
             break;
         }
         default:
