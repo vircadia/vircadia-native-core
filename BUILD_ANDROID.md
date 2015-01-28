@@ -94,6 +94,11 @@ make install
 
 This will create the `lib` and `include` folders inside `ANDROID_LIB_DIR/soxr` that FindSoxr will look for.
 
+####Oculus Mobile SDK
+
+Download the [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) and extract the archive inside your `ANDROID_LIB_DIR` folder. Rename the extracted folder to `libovr`.
+
+From the VrLib directory, use ndk-build to build VrLib. This will create the liboculus.a archive that our FindLibOVR module will look for when cmake is run.
 
 ####GLM
 
