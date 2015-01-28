@@ -20,6 +20,7 @@ set(ANDROID_APP_DISPLAY_NAME Interface)
 set(ANDROID_API_LEVEL 19)
 set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
 set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceActivity)
+set(ANDROID_DEPLOY_QT_INSTALL "--install")
 
 find_package(LibOVR REQUIRED)
 target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${LIBOVR_ANDROID_LIBRARIES})
@@ -30,5 +31,19 @@ file(RELATIVE_PATH RELATIVE_VRLIB_PATH ${ANDROID_APK_OUTPUT_DIR} "${LIBOVR_VRLIB
 file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.reference.1=${RELATIVE_VRLIB_PATH}")
 
 list(APPEND IGNORE_COPY_LIBS ${LIBOVR_ANDROID_LIBRARIES})
+
+# the presence of a HOCKEY_APP_ID means we are making a beta build
+if (HOCKEY_APP_ID)
+  set(HOCKEY_APP_ENABLED true)
+  set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />")
+  set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceBetaActivity)
+  set(ANDROID_DEPLOY_QT_INSTALL "")
+  
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/InterfaceBetaActivity.java.in" "${ANDROID_APK_BUILD_DIR}/src/io/highfidelity/gvrinterface/InterfaceBetaActivity.java")
+else ()
+  set(HOCKEY_APP_ENABLED false)
+endif ()
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/hockeyapp.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/hockeyapp.xml")
 
 qt_create_apk()

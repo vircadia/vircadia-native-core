@@ -40,3 +40,4 @@ interface/resources/visage/*
 interface/interfaceCache/
 
 gvr-interface/assets/oculussig*
+gvr-interface/libs/*
