@@ -6,12 +6,12 @@
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
-* [Bullet Physics Engine](http://bulletphysics.org) ~> 2.82
+* [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
 
 ### OS Specific Build Guides
+* [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
 * [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
 * [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
-* [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
 
 ###CMake
 Hifi uses CMake to generate build files and project files for your platform.

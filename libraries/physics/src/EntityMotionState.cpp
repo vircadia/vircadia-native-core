@@ -97,8 +97,18 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
     _entity->setAngularVelocity(glm::degrees(v));
 
+    _entity->setLastSimulated(usecTimestampNow());
+
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
+
+    #ifdef WANT_DEBUG
+        quint64 now = usecTimestampNow();
+        qDebug() << "EntityMotionState::setWorldTransform()... changed entity:" << _entity->getEntityItemID();
+        qDebug() << "       last edited:" << _entity->getLastEdited() << formatUsecTime(now - _entity->getLastEdited()) << "ago";
+        qDebug() << "    last simulated:" << _entity->getLastSimulated() << formatUsecTime(now - _entity->getLastSimulated()) << "ago";
+        qDebug() << "      last updated:" << _entity->getLastUpdated() << formatUsecTime(now - _entity->getLastUpdated()) << "ago";
+    #endif
 }
 
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
@@ -217,16 +227,34 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         if (_numNonMovingUpdates <= 1) {
             // we only update lastEdited when we're sending new physics data 
             // (i.e. NOT when we just simulate the positions forward, nore when we resend non-moving data)
+            // NOTE: Andrew & Brad to discuss. Let's make sure we're using lastEdited, lastSimulated, and lastUpdated correctly
             quint64 lastSimulated = _entity->getLastSimulated();
             _entity->setLastEdited(lastSimulated);
             properties.setLastEdited(lastSimulated);
+
+            #ifdef WANT_DEBUG
+                quint64 now = usecTimestampNow();
+                qDebug() << "EntityMotionState::sendUpdate()";
+                qDebug() << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
+                qDebug() << "       lastSimulated:" << debugTime(lastSimulated, now);
+            #endif //def WANT_DEBUG
+
         } else {
             properties.setLastEdited(_entity->getLastEdited());
         }
 
-        EntityItemID id(_entity->getID());
-        EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
-        entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        if (EntityItem::getSendPhysicsUpdates()) {
+            EntityItemID id(_entity->getID());
+            EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+            #ifdef WANT_DEBUG
+                qDebug() << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
+            #endif
+            entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        } else {
+            #ifdef WANT_DEBUG
+                qDebug() << "EntityMotionState::sendUpdate()... NOT sending update as requested.";
+            #endif
+        }
 
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
         // to the full set.  These flags may be momentarily cleared by incoming external changes.  

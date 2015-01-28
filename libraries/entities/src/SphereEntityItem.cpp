@@ -132,3 +132,14 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
     }
     return false;                
 }
+
+
+void SphereEntityItem::debugDump() const {
+    quint64 now = usecTimestampNow();
+    qDebug() << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qDebug() << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qDebug() << "            position:" << debugTreeVector(_position);
+    qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
+    qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
+}
+
