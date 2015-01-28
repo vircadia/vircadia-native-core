@@ -33,6 +33,7 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkReply>
+#include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
 #include <QObject>
 #include <QWheelEvent>
@@ -134,6 +135,9 @@ static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
+
+
+const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
 
@@ -383,7 +387,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(billboardPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendBillboardPacket);
     billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
 
+    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkDiskCache* cache = new QNetworkDiskCache();
+    cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
+    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
+    networkAccessManager.setCache(cache);
 
     ResourceCache::setRequestLimit(3);
 

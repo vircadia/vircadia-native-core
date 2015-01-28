@@ -211,7 +211,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
     const int NORMALS_SLOT = 1;
     const int COLOR_SLOT = 2;
     gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
@@ -404,7 +404,7 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
     const int COLOR_SLOT = 1;
     gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
     
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
     gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
@@ -515,7 +515,7 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
     const int COLOR_SLOT = 1;
     gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
     
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
     gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
@@ -561,7 +561,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     details.streamFormat = streamFormat;
     details.stream = stream;
 
-    details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+    details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
     details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -623,7 +623,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     details.streamFormat = streamFormat;
     details.stream = stream;
 
-    details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -777,7 +777,7 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
     const int COLOR_SLOT = 2;
     gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
     
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
@@ -867,7 +867,7 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
     const int VERTICES_SLOT = 0;
     const int COLOR_SLOT = 1;
     gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
     
     gpu::BufferView verticesView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
@@ -930,7 +930,7 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
         details.streamFormat = streamFormat;
         details.stream = stream;
     
-        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -1038,7 +1038,7 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
         details.streamFormat = streamFormat;
         details.stream = stream;
     
-        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -1123,7 +1123,7 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
         details.streamFormat = streamFormat;
         details.stream = stream;
     
-        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
@@ -1211,7 +1211,7 @@ void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxC
         details.streamFormat = streamFormat;
         details.stream = stream;
     
-        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -1548,7 +1548,7 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2,
         details.streamFormat = streamFormat;
         details.stream = stream;
     
-        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -1640,7 +1640,7 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,
         details.streamFormat = streamFormat;
         details.stream = stream;
     
-        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -2179,7 +2179,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
 
                 int channelNum = 0;
                 networkMesh._vertexFormat = gpu::Stream::FormatPointer(new gpu::Stream::Format());
-                networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+                networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
                 if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
@@ -2213,7 +2213,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
 
                 int channelNum = 0;
                 networkMesh._vertexFormat = gpu::Stream::FormatPointer(new gpu::Stream::Format());
-                networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ));
+                networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
