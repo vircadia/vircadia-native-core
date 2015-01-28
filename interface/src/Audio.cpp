@@ -127,7 +127,9 @@ void Audio::audioMixerKilled() {
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
-#ifdef WIN32
+// Temporarily enable audio device selection in Windows again to test how it behaves now
+//#ifdef WIN32
+#if FALSE
     // NOTE
     // this is a workaround for a windows only QtBug https://bugreports.qt-project.org/browse/QTBUG-16117
     // static QAudioDeviceInfo objects get deallocated when QList<QAudioDevieInfo> objects go out of scope

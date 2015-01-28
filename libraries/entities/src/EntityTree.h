@@ -60,7 +60,8 @@ public:
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return true; }
     virtual PacketType expectedDataPacketType() const { return PacketTypeEntityData; }
-    virtual bool canProcessVersion(PacketVersion thisVersion) const { return true; } // we support all versions
+    virtual bool canProcessVersion(PacketVersion thisVersion) const 
+                    { return thisVersion >= VERSION_ENTITIES_SUPPORT_SPLIT_MTU; }  // we support all versions with split mtu
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);

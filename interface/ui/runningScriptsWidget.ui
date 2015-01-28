@@ -70,7 +70,7 @@
            <property name="font">
             <font>
              <family>Helvetica,Arial,sans-serif</family>
-             <pointsize>-1</pointsize>
+             <pointsize>16</pointsize>
              <weight>75</weight>
              <italic>false</italic>
              <bold>true</bold>
@@ -78,7 +78,7 @@
            </property>
            <property name="styleSheet">
             <string notr="true">color: #0e7077;
-font: bold 16px;
+font: bold 16pt;
 </string>
            </property>
            <property name="text">
@@ -192,7 +192,7 @@ font: bold 16px;
             </sizepolicy>
            </property>
            <property name="styleSheet">
-            <string notr="true">font: 14px; color: #5f5f5f; margin: 2px;</string>
+            <string notr="true">font: 14pt; color: #5f5f5f; margin: 2px;</string>
            </property>
            <property name="text">
             <string>There are no scripts running.</string>
@@ -245,8 +245,8 @@ font: bold 16px;
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>334</width>
-              <height>20</height>
+              <width>328</width>
+              <height>18</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -259,7 +259,7 @@ font: bold 16px;
              <enum>Qt::LeftToRight</enum>
             </property>
             <property name="styleSheet">
-             <string notr="true">font-size: 14px;</string>
+             <string notr="true">font-size: 14pt;</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_3">
              <property name="spacing">
@@ -301,7 +301,7 @@ font: bold 16px;
              <item>
               <widget class="QLabel" name="tipLabel">
                <property name="styleSheet">
-                <string notr="true">font: 14px; color: #5f5f5f; margin: 2px;</string>
+                <string notr="true">font: 14pt; color: #5f5f5f; margin: 2px;</string>
                </property>
                <property name="text">
                 <string>Tip</string>
@@ -370,7 +370,7 @@ font: bold 16px;
           <widget class="QLabel" name="label">
            <property name="styleSheet">
             <string notr="true">color: #0e7077;
-font: bold 16px;</string>
+font: bold 16pt;</string>
            </property>
            <property name="text">
             <string>Load Scripts</string>

@@ -53,6 +53,8 @@ public:
     
     void computeShapeInfo(ShapeInfo& info) const;
 
+    virtual void debugDump() const;
+
 protected:
     rgbColor _color;
 };

@@ -92,6 +92,7 @@ private:
     void simulate(float deltaTime);
     void applyFrame(float frameIndex);
     void replaceMatchingPriorities(float newPriority);
+    void restoreJoints();
     
     Model* _model;
     WeakAnimationHandlePointer _self;

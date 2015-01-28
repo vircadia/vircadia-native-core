@@ -63,6 +63,8 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
 
+    virtual void debugDump() const;
+
 protected:
     virtual void recalculateCollisionShape();
 
