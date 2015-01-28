@@ -14,8 +14,6 @@
 
 #include <stdint.h>
 
-const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
-
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
 

@@ -14,6 +14,7 @@
 #include "BulletUtil.h"
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
+#include "PhysicsHelpers.h"
 
 const float DEFAULT_FRICTION = 0.5f;
 const float MAX_FRICTION = 10.0f;
