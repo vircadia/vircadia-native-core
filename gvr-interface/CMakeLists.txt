@@ -20,6 +20,8 @@ set(ANDROID_APP_DISPLAY_NAME Interface)
 set(ANDROID_API_LEVEL 19)
 set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
 set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceActivity)
+set(ANDROID_APK_VERSION_NAME "0.1")
+set(ANDROID_APK_VERSION_CODE 1)
 set(ANDROID_DEPLOY_QT_INSTALL "--install")
 
 find_package(LibOVR REQUIRED)
@@ -38,6 +40,16 @@ if (HOCKEY_APP_ID)
   set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />")
   set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceBetaActivity)
   set(ANDROID_DEPLOY_QT_INSTALL "")
+  
+  # set the ANDROID_APK_VERSION_CODE to the number of git commits
+  execute_process(
+    COMMAND  git rev-list --first-parent --count HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_COUNT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  
+  set(ANDROID_APK_VERSION_CODE ${GIT_COMMIT_COUNT})
   
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/InterfaceBetaActivity.java.in" "${ANDROID_APK_BUILD_DIR}/src/io/highfidelity/gvrinterface/InterfaceBetaActivity.java")
 else ()
