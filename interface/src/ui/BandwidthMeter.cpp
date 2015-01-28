@@ -170,7 +170,6 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     _textRenderer->draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT);
 
     // Render vertical lines for the frame
-    //setColorRGBA(COLOR_FRAME);
     renderVerticalLine(0, 0, h, COLOR_FRAME);
     renderVerticalLine(barWidth, 0, h, COLOR_FRAME);
 

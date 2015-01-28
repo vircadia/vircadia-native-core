@@ -38,10 +38,12 @@ GeometryCache::GeometryCache() :
 }
 
 GeometryCache::~GeometryCache() {
-    qDebug() << "GeometryCache::~GeometryCache()... ";
-    qDebug() << "    _registeredLine3DVBOs.size():" << _registeredLine3DVBOs.size();
-    qDebug() << "    _line3DVBOs.size():" << _line3DVBOs.size();
-    qDebug() << "    BatchItemDetails... population:" << GeometryCache::BatchItemDetails::population;
+    #ifdef WANT_DEBUG
+        qDebug() << "GeometryCache::~GeometryCache()... ";
+        qDebug() << "    _registeredLine3DVBOs.size():" << _registeredLine3DVBOs.size();
+        qDebug() << "    _line3DVBOs.size():" << _line3DVBOs.size();
+        qDebug() << "    BatchItemDetails... population:" << GeometryCache::BatchItemDetails::population;
+    #endif //def WANT_DEBUG
 }
 
 const int NUM_VERTICES_PER_TRIANGLE = 3;
@@ -53,21 +55,16 @@ const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
 void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid) {
 
-    Vec2Pair keyRadius(glm::vec2(radius, slices), glm::vec2(stacks, 0));
-    IntPair keySlicesStacks(slices, stacks);
-
-//qDebug() << "    key:" << key;
-//qDebug() << "renderSphere() radius:" << radius << "slices:" << slices << "stacks:" << stacks;
-
+    Vec2Pair radiusKey(glm::vec2(radius, slices), glm::vec2(stacks, 0));
+    IntPair slicesStacksKey(slices, stacks);
     Vec3Pair colorKey(glm::vec3(color.x, color.y, slices),glm::vec3(color.z, color.y, stacks));
-
 
     int vertices = slices * (stacks - 1) + 2;    
     int indices = slices * (stacks - 1) * NUM_VERTICES_PER_TRIANGULATED_QUAD;
     
-    if (!_sphereVertices.contains(keyRadius)) {
+    if (!_sphereVertices.contains(radiusKey)) {
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        _sphereVertices[keyRadius] = verticesBuffer;
+        _sphereVertices[radiusKey] = verticesBuffer;
 
         GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX];
         GLfloat* vertex = vertexData;
@@ -99,17 +96,20 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
 
         verticesBuffer->append(sizeof(GLfloat) * vertices * NUM_COORDS_PER_VERTEX, (gpu::Buffer::Byte*) vertexData);
         delete[] vertexData;
-qDebug() << "GeometryCache::renderSphere()... --- CREATING VERTICES BUFFER";
-qDebug() << "    radius:" << radius;
-qDebug() << "    slices:" << slices;
-qDebug() << "    stacks:" << stacks;
 
-qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
+        #ifdef WANT_DEBUG
+            qDebug() << "GeometryCache::renderSphere()... --- CREATING VERTICES BUFFER";
+            qDebug() << "    radius:" << radius;
+            qDebug() << "    slices:" << slices;
+            qDebug() << "    stacks:" << stacks;
+
+            qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
+        #endif
     }
     
-    if (!_sphereIndices.contains(keySlicesStacks)) {
+    if (!_sphereIndices.contains(slicesStacksKey)) {
         gpu::BufferPointer indicesBuffer(new gpu::Buffer());
-        _sphereIndices[keySlicesStacks] = indicesBuffer;
+        _sphereIndices[slicesStacksKey] = indicesBuffer;
 
         GLushort* indexData = new GLushort[indices];
         GLushort* index = indexData;
@@ -162,14 +162,16 @@ qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
         }
         indicesBuffer->append(sizeof(GLushort) * indices, (gpu::Buffer::Byte*) indexData);
         delete[] indexData;
-qDebug() << "GeometryCache::renderSphere()... --- CREATING INDEX BUFFER";
-qDebug() << "    radius:" << radius;
-qDebug() << "    slices:" << slices;
-qDebug() << "    stacks:" << stacks;
-qDebug() << "indexCount:" << indexCount;
-qDebug() << "   indices:" << indices;
-
-qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
+        
+        #ifdef WANT_DEBUG
+            qDebug() << "GeometryCache::renderSphere()... --- CREATING INDEX BUFFER";
+            qDebug() << "    radius:" << radius;
+            qDebug() << "    slices:" << slices;
+            qDebug() << "    stacks:" << stacks;
+            qDebug() << "indexCount:" << indexCount;
+            qDebug() << "   indices:" << indices;
+            qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
+        #endif
     }
 
     if (!_sphereColors.contains(colorKey)) {
@@ -191,26 +193,19 @@ qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
         colorBuffer->append(sizeof(int) * vertices, (gpu::Buffer::Byte*) colorData);
         delete[] colorData;
 
-qDebug() << "GeometryCache::renderSphere()... --- CREATING COLORS BUFFER";
-qDebug() << "    vertices:" << vertices;
-qDebug() << "    color:" << color;
-qDebug() << "    slices:" << slices;
-qDebug() << "    stacks:" << stacks;
-
-qDebug() << "    _sphereColors.size():" << _sphereColors.size();
+        #ifdef WANT_DEBUG
+            qDebug() << "GeometryCache::renderSphere()... --- CREATING COLORS BUFFER";
+            qDebug() << "    vertices:" << vertices;
+            qDebug() << "    color:" << color;
+            qDebug() << "    slices:" << slices;
+            qDebug() << "    stacks:" << stacks;
+            qDebug() << "    _sphereColors.size():" << _sphereColors.size();
+        #endif
 
     }
-    gpu::BufferPointer verticesBuffer = _sphereVertices[keyRadius];
-    gpu::BufferPointer indicesBuffer = _sphereIndices[keySlicesStacks];
+    gpu::BufferPointer verticesBuffer = _sphereVertices[radiusKey];
+    gpu::BufferPointer indicesBuffer = _sphereIndices[slicesStacksKey];
     gpu::BufferPointer colorBuffer = _sphereColors[colorKey];
-    
-    #ifdef WANT_DEBUG
-    qDebug() << "renderSphere() radius:" << radius << "slices:" << slices << "stacks:" << stacks;
-    qDebug() << "    vertices:" << vertices;
-    qDebug() << "    indices:" << indices;
-    qDebug() << "    colorBuffer->getSize():" << colorBuffer->getSize();
-    #endif //def WANT_DEBUG
-
     
     const int VERTICES_SLOT = 0;
     const int NORMALS_SLOT = 1;
@@ -348,8 +343,6 @@ void GeometryCache::renderCone(float base, float height, int slices, int stacks)
 }
 
 void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& color) {
-    //qDebug() << "GeometryCache::renderGrid(xDivisions["<<xDivisions<<"], yDivisions["<<yDivisions<<"])";
-
     IntPair key(xDivisions, yDivisions);
     Vec3Pair colorKey(glm::vec3(color.x, color.y, yDivisions),glm::vec3(color.z, color.y, xDivisions));
 
@@ -436,13 +429,15 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
 // TODO: properly handle the x,y,w,h changing for an ID
 // TODO: why do we seem to create extra BatchItemDetails when we resize the window?? what's that??
 void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
-    qDebug() << "GeometryCache::renderGrid(x["<<x<<"], "
+    #ifdef WANT_DEBUG
+        qDebug() << "GeometryCache::renderGrid(x["<<x<<"], "
             "y["<<y<<"],"
             "w["<<width<<"],"
             "h["<<height<<"],"
             "rows["<<rows<<"],"
             "cols["<<cols<<"],"
             " id:"<<id<<")...";
+    #endif
             
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(glm::vec3(x, y, width), glm::vec3(height, rows, cols));
@@ -542,7 +537,6 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {
-    //qDebug() << "GeometryCache::updateVertices(vec2.... id=" << id <<")...";
     BatchItemDetails& details = _registeredVertices[id];
 
     if (details.isCreated) {
@@ -605,7 +599,6 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color) {
-    //qDebug() << "GeometryCache::updateVertices(id=" << id <<")...";
     BatchItemDetails& details = _registeredVertices[id];
 
     if (details.isCreated) {
@@ -669,8 +662,6 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
 }
 
 void GeometryCache::renderVertices(gpu::Primitive primitiveType, int id) {
-    //qDebug() << "GeometryCache::renderVertices(id=" << id <<")...";
-
     BatchItemDetails& details = _registeredVertices[id];
     if (details.isCreated) {
         gpu::Batch batch;
@@ -900,7 +891,6 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
 }
 
 void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id) {
-    //qDebug() << "GeometryCache::renderBevelCornersRect(id=" << id <<")...";
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(glm::vec3(x, y, 0.0f), glm::vec3(width, height, bevelDistance));
     BatchItemDetails& details = registered ? _registeredBevelRects[id] : _bevelRects[key];
@@ -1008,7 +998,6 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
 }
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
-    //qDebug() << "GeometryCache::renderQuad(vec2,id=" << id <<")...";
     bool registered = (id != UNKNOWN_ID);
     Vec2Pair key(minCorner, maxCorner);
     BatchItemDetails& details = registered ? _registeredQuad2D[id] : _quad2D[key];
@@ -1092,7 +1081,6 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
                     const glm::vec4& color, int id) {
 
-    //qDebug() << "GeometryCache::renderQuad(vec2/texture,id=" << id <<")...";
     bool registered = (id != UNKNOWN_ID);
     Vec2PairPair key(Vec2Pair(minCorner, maxCorner), Vec2Pair(texCoordMinCorner, texCoordMaxCorner));
     BatchItemDetails& details = registered ? _registeredQuad2DTextures[id] : _quad2DTextures[key];
@@ -1183,7 +1171,6 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
 }
 
 void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
-    //qDebug() << "GeometryCache::renderQuad(vec3,id=" << id <<")...";
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(minCorner, maxCorner);
     BatchItemDetails& details = registered ? _registeredQuad3D[id] : _quad3D[key];
@@ -1471,7 +1458,9 @@ GeometryCache::BatchItemDetails::BatchItemDetails() :
     isCreated(false)
 {
     population++;
-    qDebug() << "BatchItemDetails()... population:" << population << "**********************************";
+    #ifdef WANT_DEBUG
+        qDebug() << "BatchItemDetails()... population:" << population << "**********************************";
+    #endif
 }
 
 GeometryCache::BatchItemDetails::BatchItemDetails(const GeometryCache::BatchItemDetails& other) :
@@ -1484,13 +1473,17 @@ GeometryCache::BatchItemDetails::BatchItemDetails(const GeometryCache::BatchItem
     isCreated(other.isCreated)
 {
     population++;
-    qDebug() << "BatchItemDetails()... population:" << population << "**********************************";
+    #ifdef WANT_DEBUG
+        qDebug() << "BatchItemDetails()... population:" << population << "**********************************";
+    #endif
 }
 
 GeometryCache::BatchItemDetails::~BatchItemDetails() {
     population--;
     clear(); 
-    qDebug() << "~BatchItemDetails()... population:" << population << "**********************************";
+    #ifdef WANT_DEBUG
+        qDebug() << "~BatchItemDetails()... population:" << population << "**********************************";
+    #endif
 }
 
 void GeometryCache::BatchItemDetails::clear() {
@@ -1504,7 +1497,6 @@ void GeometryCache::BatchItemDetails::clear() {
 void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, 
                                const glm::vec4& color1, const glm::vec4& color2, int id) {
                                
-    //qDebug() << "GeometryCache::renderLine(vec3)...";
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(p1, p2);
 
@@ -1597,7 +1589,6 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2,
 void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
                                 const glm::vec4& color1, const glm::vec4& color2, int id) {
                                
-    //qDebug() << "GeometryCache::renderLine(vec2)...";
     bool registered = (id != UNKNOWN_ID);
     Vec2Pair key(p1, p2);
 
