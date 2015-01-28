@@ -139,8 +139,6 @@ function makeBalls(pos) {
 		}
 		ballPosition.x += (BALL_GAP + Math.sqrt(3.0) / 2.0 * BALL_SIZE) * SCALE;
 	}
-	print(balls.length + " Object balls made.");
-	print(isObjectBall(balls[1].id));
 
     // Cue Ball 
     cuePosition = { x: pos.x - (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
@@ -160,8 +158,9 @@ function makeBalls(pos) {
 
 function isObjectBall(id) {
 	for (var i; i < balls.length; i++) {
-		if (balls[i].id == id) 
+		if (balls[i].id == id) {
 			return true;
+		}		
 	}
 	return false; 
 }
@@ -243,6 +242,7 @@ function update(deltaTime) {
 
 function entityCollisionWithEntity(entity1, entity2, collision) {
 	/*
+	NOT WORKING YET
     if ((entity1.id == cueBall.id) || (entity2.id == cueBall.id)) {
     	print("Cue ball collision!");
     	//audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
