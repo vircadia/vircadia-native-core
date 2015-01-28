@@ -40,6 +40,7 @@ if (HOCKEY_APP_ID)
   set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />")
   set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceBetaActivity)
   set(ANDROID_DEPLOY_QT_INSTALL "")
+  set(ANDROID_APK_CUSTOM_NAME "Interface-beta.apk")
   
   # set the ANDROID_APK_VERSION_CODE to the number of git commits
   execute_process(
