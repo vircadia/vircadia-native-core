@@ -31,8 +31,6 @@ void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistan
 
 void runTimingTests();
 
-float loadSetting(QSettings* settings, const char* name, float defaultValue);
-
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
     const glm::vec3& sphereCenter, float sphereRadius, float& distance);
 

@@ -10,13 +10,17 @@
 //
 
 #include <QDateTime>
+#include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QImage>
+#include <QTemporaryFile>
 
 #include <AccountManager.h>
+#include <Application.h>
 #include <FileUtils.h>
 
 #include "Snapshot.h"
-#include "Menu.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -86,7 +90,7 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     QImage shot = glCanvas->grabFrameBuffer();
     
-    Avatar* avatar = Application::getInstance()->getAvatar();
+    Avatar* avatar = qApp->getAvatar();
     
     glm::vec3 location = avatar->getPosition();
     glm::quat orientation = avatar->getHead()->getOrientation();
@@ -118,7 +122,7 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
     const int IMAGE_QUALITY = 100;
     
     if (!isTemporary) {
-        QString snapshotFullPath = Menu::getInstance()->getSnapshotsLocation();
+        QString snapshotFullPath = SettingHandles::snapshotsLocation.get();
         
         if (!snapshotFullPath.endsWith(QDir::separator())) {
             snapshotFullPath.append(QDir::separator());

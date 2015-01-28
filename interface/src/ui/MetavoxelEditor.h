@@ -12,6 +12,7 @@
 #ifndef hifi_MetavoxelEditor_h
 #define hifi_MetavoxelEditor_h
 
+#include <QFormLayout>
 #include <QList>
 #include <QWidget>
 
@@ -38,7 +39,7 @@ class MetavoxelEditor : public QWidget {
 
 public:
     
-    MetavoxelEditor();
+    MetavoxelEditor(QWidget* parent = nullptr);
 
     QString getSelectedAttribute() const;
     
