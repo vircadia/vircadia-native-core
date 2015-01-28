@@ -410,8 +410,8 @@ CameraManager = function() {
         that.targetYaw += (actions.orbitRight - actions.orbitLeft) * dt * KEY_ORBIT_SENSITIVITY;
         that.targetPitch += (actions.orbitUp - actions.orbitDown) * dt * KEY_ORBIT_SENSITIVITY;
         that.targetPitch = clamp(that.targetPitch, -90, 90);
-        var addZoom = (actions.orbitBackward - actions.orbitForward) * dt * KEY_ZOOM_SENSITIVITY;
-        that.targetZoomDistance = clamp(that.targetZoomDistance + addZoom, MIN_ZOOM_DISTANCE, MAX_ZOOM_DISTANCE);
+        that.targetZoomDistance += (actions.orbitBackward - actions.orbitForward) * dt * KEY_ZOOM_SENSITIVITY;
+        that.targetZoomDistance = clamp(that.targetZoomDistance, MIN_ZOOM_DISTANCE, MAX_ZOOM_DISTANCE);
 
 
         if (easing) {
