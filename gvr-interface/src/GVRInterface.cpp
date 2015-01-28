@@ -79,7 +79,7 @@ void GVRInterface::idle() {
             
             auto ovrOrientation = sensor.Predicted.Pose.Orientation;
             glm::quat newOrientation(ovrOrientation.w, ovrOrientation.x, ovrOrientation.y, ovrOrientation.z);
-            // _client->setOrientation(newOrientation);
+            _client->setOrientation(newOrientation);
             
             if (counter++ % 100000 == 0) {
                 qDebug() << "GetSensorState in frame" << counter << "-" 
@@ -103,47 +103,4 @@ void GVRInterface::handleApplicationStateChange(Qt::ApplicationState state) {
         default:
             break;
     }
-}
-
-void GVRInterface::enterVRMode() {
-    // // Reload local preferences, in case we are coming back from a
-//     // switch to the dashboard that changed them.
-//     ovr_UpdateLocalPreferences();
-//
-//     // Default vrModeParms
-//     ovrModeParms vrModeParms;
-//     vrModeParms.AsynchronousTimeWarp = true;
-//     vrModeParms.AllowPowerSave = true;
-//     vrModeParms.DistortionFileName = NULL;
-//     vrModeParms.EnableImageServer = false;
-//     vrModeParms.CpuLevel = 2;
-//     vrModeParms.GpuLevel = 2;
-//     vrModeParms.GameThreadTid = 0;
-//
-//     QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
-//
-//     vrModeParms.ActivityObject = (jobject) interface->nativeResourceForIntegration("QtActivity");
-//
-//     _hmdInfo = new ovrHmdInfo;
-//
-//     const char* cpuLevelStr = ovr_GetLocalPreferenceValueForKey( LOCAL_PREF_DEV_CPU_LEVEL, "-1" );
-//     const int cpuLevel = atoi( cpuLevelStr );
-//     if ( cpuLevel >= 0 ) {
-//         vrModeParms.CpuLevel = cpuLevel;
-//         qDebug() << "Local Preferences: Setting cpuLevel" << vrModeParms.CpuLevel;
-//     }
-//
-//     const char* gpuLevelStr = ovr_GetLocalPreferenceValueForKey( LOCAL_PREF_DEV_GPU_LEVEL, "-1" );
-//     const int gpuLevel = atoi( gpuLevelStr );
-//     if ( gpuLevel >= 0 ) {
-//         vrModeParms.GpuLevel = gpuLevel;
-//         qDebug() << "Local Preferences: Setting gpuLevel" << vrModeParms.GpuLevel;
-//     }
-//
-//     _ovr = ovr_EnterVrMode(vrModeParms, _hmdInfo);
-}
-
-void GVRInterface::leaveVRMode() {
-    
-    // ovr_LeaveVrMode(_ovr);
 }

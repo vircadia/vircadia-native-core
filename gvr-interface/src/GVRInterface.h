@@ -34,9 +34,6 @@ private slots:
     void handleApplicationStateChange(Qt::ApplicationState state);
     void idle();
 private:
-    void enterVRMode();
-    void leaveVRMode(); 
-    
     RenderingClient* _client;
     bool _inVRMode;
     

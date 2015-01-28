@@ -74,7 +74,6 @@ void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, 
                                           Qt::QueuedConnection,
                                           Q_ARG(QByteArray, incomingPacket));
             } else {
-                qDebug() << "Processing received audio of" << incomingPacket.size();
                 QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "addReceivedAudioToStream",
                                           Qt::QueuedConnection,
                                           Q_ARG(QByteArray, incomingPacket));
