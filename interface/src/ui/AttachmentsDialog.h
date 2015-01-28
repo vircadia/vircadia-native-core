@@ -27,8 +27,7 @@ class AttachmentsDialog : public QDialog {
     Q_OBJECT
 
 public:
-    
-    AttachmentsDialog();
+    AttachmentsDialog(QWidget* parent = nullptr);
 
     virtual void setVisible(bool visible);
 

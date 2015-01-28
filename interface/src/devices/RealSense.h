@@ -40,6 +40,7 @@ public:
 
     virtual void update();
 
+public slots:
     void loadRSSDKFile();
 
 protected:

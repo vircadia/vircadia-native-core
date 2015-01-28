@@ -61,6 +61,9 @@ public slots:
     
     void storeCurrentAddress();
     
+    void copyAddress();
+    void copyPath();
+    
 signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
