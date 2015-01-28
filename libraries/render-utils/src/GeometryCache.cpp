@@ -63,7 +63,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
 
 
     int vertices = slices * (stacks - 1) + 2;    
-    int indices = slices * stacks * NUM_VERTICES_PER_TRIANGULATED_QUAD;
+    int indices = slices * (stacks - 1) * NUM_VERTICES_PER_TRIANGULATED_QUAD;
     
     if (!_sphereVertices.contains(keyRadius)) {
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
@@ -113,6 +113,8 @@ qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
 
         GLushort* indexData = new GLushort[indices];
         GLushort* index = indexData;
+        
+        int indexCount = 0;
 
         // South cap
         GLushort bottom = 0;
@@ -121,6 +123,8 @@ qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
             *(index++) = bottom;
             *(index++) = top + i;
             *(index++) = top + (i + 1) % slices;
+            
+            indexCount += 3;
         }
 
         // (stacks - 2) ribbons
@@ -133,10 +137,15 @@ qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
                 *(index++) = top + next;
                 *(index++) = bottom + j;
                 *(index++) = top + j;
+
+                indexCount += 3;
                 
                 *(index++) = bottom + next;
                 *(index++) = bottom + j;
                 *(index++) = top + next;
+
+                indexCount += 3;
+
             }
         }
         
@@ -147,6 +156,9 @@ qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
             *(index++) = bottom + (i + 1) % slices;
             *(index++) = bottom + i;
             *(index++) = top;
+    
+            indexCount += 3;
+
         }
         indicesBuffer->append(sizeof(GLushort) * indices, (gpu::Buffer::Byte*) indexData);
         delete[] indexData;
@@ -154,6 +166,8 @@ qDebug() << "GeometryCache::renderSphere()... --- CREATING INDEX BUFFER";
 qDebug() << "    radius:" << radius;
 qDebug() << "    slices:" << slices;
 qDebug() << "    stacks:" << stacks;
+qDebug() << "indexCount:" << indexCount;
+qDebug() << "   indices:" << indices;
 
 qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
     }
@@ -169,7 +183,7 @@ qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
 
         int* colorData = new int[vertices];
         int* colorDataAt = colorData;
-                            
+
         for(int v = 0; v < vertices; v++) {
             *(colorDataAt++) = compactColor;
         }
@@ -178,6 +192,7 @@ qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
         delete[] colorData;
 
 qDebug() << "GeometryCache::renderSphere()... --- CREATING COLORS BUFFER";
+qDebug() << "    vertices:" << vertices;
 qDebug() << "    color:" << color;
 qDebug() << "    slices:" << slices;
 qDebug() << "    stacks:" << stacks;
@@ -188,21 +203,32 @@ qDebug() << "    _sphereColors.size():" << _sphereColors.size();
     gpu::BufferPointer verticesBuffer = _sphereVertices[keyRadius];
     gpu::BufferPointer indicesBuffer = _sphereIndices[keySlicesStacks];
     gpu::BufferPointer colorBuffer = _sphereColors[colorKey];
+    
+    #ifdef WANT_DEBUG
+    qDebug() << "renderSphere() radius:" << radius << "slices:" << slices << "stacks:" << stacks;
+    qDebug() << "    vertices:" << vertices;
+    qDebug() << "    indices:" << indices;
+    qDebug() << "    colorBuffer->getSize():" << colorBuffer->getSize();
+    #endif //def WANT_DEBUG
 
     
     const int VERTICES_SLOT = 0;
-    const int COLOR_SLOT = 1;
+    const int NORMALS_SLOT = 1;
+    const int COLOR_SLOT = 2;
     gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
-    
+
     gpu::BufferView verticesView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
+    gpu::BufferView normalsView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
     
     gpu::Batch batch;
 
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, verticesView);
+    batch.setInputBuffer(NORMALS_SLOT, normalsView);
     batch.setInputBuffer(COLOR_SLOT, colorView);
     batch.setIndexBuffer(gpu::UINT16, indicesBuffer, 0);
 

@@ -46,8 +46,8 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            const int SLICES = 40;
-            const int STACKS = 40;
+            const int SLICES = 10; //40;
+            const int STACKS = 10;
             DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, SLICES, STACKS, sphereColor);
         glPopMatrix();
     glPopMatrix();
