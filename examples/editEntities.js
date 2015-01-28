@@ -820,9 +820,8 @@ function handeMenuEvent(menuItem) {
 Menu.menuItemEvent.connect(handeMenuEvent);
 
 Controller.keyPressEvent.connect(function(event) {
-    if (event.text == 'w' || event.text == 'a' || event.text == 's' || event.text == 'd'
-        || event.text == 'UP' || event.text == 'DOWN' || event.text == 'LEFT' || event.text == 'RIGHT') {
-       toolBar.setActive(false);
+    if (isActive) {
+        cameraManager.keyPressEvent(event);
     }
 });
 
