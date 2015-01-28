@@ -42,8 +42,8 @@ Download the [OpenSSL source](https://www.openssl.org/source/) and extract the t
 
 You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki. 
 
-You must change two values at the top of the `setenv-android.sh` script - `_ANDROID_NDK` and `_ANDROID_EABI`.
-`_ANDROID_NDK` should be `android-ndk-r10` and `_ANDROID_EABI` should be `arm-linux-androidebi-4.9`.
+You must change three values at the top of the `setenv-android.sh` script - `_ANDROID_NDK`, `_ANDROID_EABI` and `_ANDROID_API`.
+`_ANDROID_NDK` should be `android-ndk-r10`, `_ANDROID_EABI` should be `arm-linux-androidebi-4.9` and `_ANDROID_API` should be `19`.
 
 First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path to the root of your Android NDK install. `setenv-android.sh` needs `ANDROID_NDK_ROOT` to set the environment variables required for building OpenSSL.
 
