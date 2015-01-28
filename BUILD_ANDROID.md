@@ -87,7 +87,7 @@ cp `find . -name "*.so"` lib/
 
 Download the [Soxr source](http://sourceforge.net/projects/soxr/) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `soxr`.
 
-From the soxr directory, use cmake, along with the `android.toolchain.cmake` file (included in this repository under cmake/android) to cross-compile soxr for Android.
+From the soxr directory, use cmake, along with the `android.toolchain.cmake` file (included in this repository under cmake/android) to cross-compile soxr for Android. Note that you will need ANDROID_NDK set in your environment before using the toolchain file.
 
 The full set of commands to build soxr for Android is shown below
 
