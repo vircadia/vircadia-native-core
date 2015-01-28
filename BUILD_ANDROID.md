@@ -49,14 +49,9 @@ First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path 
 
 Source the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling. If you use zsh as your shell you may need to modify the `setenv-android.sh` for it to set the correct variables in your env.
 
-We have had issues with `setenv-android.sh` not helping the system use the Android archive tool during compilation. You may also need to set `AR` to point to the `ar` from your NDK AFTER running ./setenv-android.sh. 
-
-Note that your path to `arm-linux-androideabi-ar` will probably not be the same as the one below if you are not on OS X or are using a different EABI.
-
 ```
 export ANDROID_NDK_ROOT=YOUR_NDK_ROOT
 source setenv-android.sh
-export AR=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
 ```
 
 Then, from the OpenSSL directory, run the following commands.
