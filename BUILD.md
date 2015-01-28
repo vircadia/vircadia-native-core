@@ -7,6 +7,7 @@
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
 * [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
+* [Gverb](https://github.com/highfidelity/gverb/archive/master.zip) (direct download to latest version)
 
 ### OS Specific Build Guides
 * [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
