@@ -852,55 +852,6 @@ Controller.keyReleaseEvent.connect(function (event) {
             newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
             grid.setPosition(newPosition);
         }
-    } else if (isActive) {
-        var delta = null;
-        var increment = event.isShifted ? grid.getMajorIncrement() : grid.getMinorIncrement();
-
-        // if (event.text == 'UP') {
-        //     if (event.isControl || event.isAlt) {
-        //         delta = { x: 0, y: increment, z: 0 };
-        //     } else {
-        //         delta = { x: 0, y: 0, z: -increment };
-        //     }
-        // } else if (event.text == 'DOWN') {
-        //     if (event.isControl || event.isAlt) {
-        //         delta = { x: 0, y: -increment, z: 0 };
-        //     } else {
-        //         delta = { x: 0, y: 0, z: increment };
-        //     }
-        // } else if (event.text == 'LEFT') {
-        //     delta = { x: -increment, y: 0, z: 0 };
-        // } else if (event.text == 'RIGHT') {
-        //     delta = { x: increment, y: 0, z: 0 };
-        // }
-
-        if (delta != null) {
-            // Adjust delta so that movements are relative to the current camera orientation
-            var lookDirection = Quat.getFront(Camera.getOrientation());
-            lookDirection.z *= -1;
-
-            var angle = Math.atan2(lookDirection.z, lookDirection.x);
-            angle -= (Math.PI / 4);
-
-            var rotation = Math.floor(angle / (Math.PI / 2)) * (Math.PI / 2);
-            var rotator = Quat.fromPitchYawRollRadians(0, rotation, 0);
-
-            delta = Vec3.multiplyQbyV(rotator, delta);
-
-            SelectionManager.saveProperties();
-
-            for (var i = 0; i < selectionManager.selections.length; i++) {
-                var entityID = selectionManager.selections[i];
-                var properties = Entities.getEntityProperties(entityID);
-                Entities.editEntity(entityID, {
-                    position: Vec3.sum(properties.position, delta)
-                });
-            }
-
-            pushCommandForSelections();
-
-            selectionManager._update();
-        }
     }
 });
 
