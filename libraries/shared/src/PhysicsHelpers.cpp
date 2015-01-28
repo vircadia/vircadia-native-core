@@ -31,7 +31,7 @@
  *
  * Copied and modified from LinearMath/btTransformUtil.h by AndrewMeadows on 2015.01.27.
  * */
-glm::quat bulletRotationStep(const glm::vec3& angularVelocity, float timeStep) {
+glm::quat computeBulletRotationStep(const glm::vec3& angularVelocity, float timeStep) {
     // Bullet uses an exponential map approximation technique to integrate rotation.
     // The reason for this is to make it easy to compute the derivative of angular motion for various consraints.
     // Here we reproduce the same approximation so that our extrapolations agree well with Bullet's integration.

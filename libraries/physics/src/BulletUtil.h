@@ -32,6 +32,4 @@ inline btQuaternion glmToBullet(const glm::quat& g) {
     return btQuaternion(g.x, g.y, g.z, g.w);
 }
 
-glm::quat bulletRotationStep(const glm::vec3& angularVelocity, float deltaTime);
-
 #endif // hifi_BulletUtil_h

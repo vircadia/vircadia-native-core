@@ -18,6 +18,6 @@
 const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
 
 // return incremental rotation (Bullet-style) caused by angularVelocity over timeStep
-glm::quat bulletRotationStep(const glm::vec3& angularVelocity, float timeStep);
+glm::quat computeBulletRotationStep(const glm::vec3& angularVelocity, float timeStep);
 
 #endif // hifi_PhysicsHelpers_h

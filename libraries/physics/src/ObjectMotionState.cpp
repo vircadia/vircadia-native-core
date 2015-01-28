@@ -179,7 +179,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
         // Bullet caps the effective rotation velocity inside its rotation integration step, therefore 
         // we must integrate with the same algorithm and timestep in order achieve similar results.
         for (int i = 0; i < numFrames; ++i) {
-            _sentRotation = glm::normalize(bulletRotationStep(_sentAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _sentRotation);
+            _sentRotation = glm::normalize(computeBulletRotationStep(_sentAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _sentRotation);
         }
     }
     const float MIN_ROTATION_DOT = 0.99f; // 0.99 dot threshold coresponds to about 16 degrees of slop

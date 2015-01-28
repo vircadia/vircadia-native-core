@@ -718,14 +718,14 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
             glm::quat rotation = getRotation();
             float dt = timeElapsed;
             while (dt > PHYSICS_ENGINE_FIXED_SUBSTEP) {
-                glm::quat  dQ = bulletRotationStep(angularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
+                glm::quat  dQ = computeBulletRotationStep(angularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
                 rotation = glm::normalize(dQ * rotation);
                 dt -= PHYSICS_ENGINE_FIXED_SUBSTEP;
             }
             // NOTE: this final partial substep can drift away from a real Bullet simulation however 
             // it only becomes significant for rapidly rotating objects
             // (e.g. around PI/4 radians per substep, or 7.5 rotations/sec at 60 substeps/sec).
-            glm::quat  dQ = bulletRotationStep(angularVelocity, dt);
+            glm::quat  dQ = computeBulletRotationStep(angularVelocity, dt);
             rotation = glm::normalize(dQ * rotation);
 
             setRotation(rotation);
