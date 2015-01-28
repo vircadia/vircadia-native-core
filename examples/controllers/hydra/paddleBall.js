@@ -39,9 +39,6 @@ if (leftHanded)  {
 	controllerID = 3; 
 }
 
-
-
-
 var screenSize = Controller.getViewportDimensions();
 var offButton = Overlays.addOverlay("image", {
                     x: screenSize.x - 48,
@@ -98,8 +95,8 @@ function createEntities() {
     			alpha: 1,
     			visible: true,
     			lineWidth: 2 });
-
-	MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
+    
+    MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
     MyAvatar.startAnimation(leftHanded ? leftHandAnimation: rightHandAnimation, 15.0, 1.0, false, true, 0.0, 6);
 }
 
