@@ -133,7 +133,6 @@ CameraManager = function() {
         if (Camera.mode == "independent" || that.enabled) return;
 
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
-            print("capturing: " + CAPTURED_KEYS[i]);
             Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
         }
 
