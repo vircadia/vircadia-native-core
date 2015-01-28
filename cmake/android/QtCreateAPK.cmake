@@ -125,6 +125,7 @@ macro(qt_create_apk)
     DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs
   )
   
+  # rename the APK if the caller asked us to
   if (ANDROID_APK_CUSTOM_NAME) 
     add_custom_command(
       TARGET ${TARGET_NAME}-apk
