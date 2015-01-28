@@ -7,6 +7,7 @@ You will need the following tools to build our Android targets.
 * [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
 * [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
   * Be sure to install SDK Platform for API Level 19
+* [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) ~> 0.4.2
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
 
