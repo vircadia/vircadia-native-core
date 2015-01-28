@@ -90,16 +90,15 @@ void TextOverlay::render(RenderArgs* args) {
     int x = _bounds.left() + _leftMargin + leftAdjust;
     int y = _bounds.top() + _topMargin + topAdjust;
     
-    // TODO: add support for color to rendering text
-    glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
     float alpha = getAlpha();
+    glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, alpha };
     QStringList lines = _text.split("\n");
     int lineOffset = 0;
     foreach(QString thisLine, lines) {
         if (lineOffset == 0) {
             lineOffset = textRenderer->calculateHeight(qPrintable(thisLine));
         }
-        lineOffset += textRenderer->draw(x, y + lineOffset, qPrintable(thisLine), alpha);
+        lineOffset += textRenderer->draw(x, y + lineOffset, qPrintable(thisLine), textColor);
 
         const int lineGap = 2;
         lineOffset += lineGap;

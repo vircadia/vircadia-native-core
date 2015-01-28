@@ -124,13 +124,11 @@ void Text3DOverlay::render(RenderArgs* args) {
         enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
-        // TODO: add support for color to rendering text
-        glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
-        float alpha = getAlpha();
+        glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
         foreach(QString thisLine, lines) {
-            textRenderer->draw(0, lineOffset, qPrintable(thisLine), alpha);
+            textRenderer->draw(0, lineOffset, qPrintable(thisLine), textColor);
             lineOffset += maxHeight;
         }
 

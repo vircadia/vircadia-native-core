@@ -86,15 +86,6 @@ void BandwidthMeter::Stream::updateValue(double amount) {
                       glm::clamp(dt / _msToAverage, 0.0, 1.0));
 }
 
-void BandwidthMeter::setColorRGBA(unsigned c) {
-
-    // TODO: add support for color to rendering text, since that's why this method is used
-    glColor4ub(GLubyte( c >> 24), 
-               GLubyte((c >> 16) & 0xff),
-               GLubyte((c >>  8) & 0xff),
-               GLubyte( c        & 0xff));
-}
-
 glm::vec4 BandwidthMeter::getColorRGBA(unsigned c) {
 
     float r = (c >> 24) / 255.0f;
@@ -165,10 +156,10 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     glTranslatef((float)barX, (float)y, 0.0f);
 
     // Render captions
-    setColorRGBA(COLOR_TEXT);
-    _textRenderer->draw(barWidth + SPACING_LEFT_CAPTION_UNIT, textYcenteredLine, CAPTION_UNIT);
-    _textRenderer->draw(-labelWidthIn - SPACING_RIGHT_CAPTION_IN_OUT, textYupperLine, CAPTION_IN);
-    _textRenderer->draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT);
+    glm::vec4 textColor = getColorRGBA(COLOR_TEXT);
+    _textRenderer->draw(barWidth + SPACING_LEFT_CAPTION_UNIT, textYcenteredLine, CAPTION_UNIT, textColor);
+    _textRenderer->draw(-labelWidthIn - SPACING_RIGHT_CAPTION_IN_OUT, textYupperLine, CAPTION_IN, textColor);
+    _textRenderer->draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT, textColor);
 
     // Render vertical lines for the frame
     renderVerticalLine(0, 0, h, COLOR_FRAME);
@@ -226,15 +217,14 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
 
     // Render numbers
     char fmtBuf[8];
-    setColorRGBA(COLOR_TEXT);
     sprintf(fmtBuf, "%0.1f", totalIn);
     _textRenderer->draw(glm::max(xIn - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
                                 PADDING_HORIZ_VALUE),
-                       textYupperLine, fmtBuf);
+                       textYupperLine, fmtBuf, textColor);
     sprintf(fmtBuf, "%0.1f", totalOut);
     _textRenderer->draw(glm::max(xOut - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
                                 PADDING_HORIZ_VALUE),
-                       textYlowerLine, fmtBuf);
+                       textYlowerLine, fmtBuf, textColor);
 
     glPopMatrix();
 

@@ -78,13 +78,11 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
         xColor textColor = getTextColorX();
-        // TODO: add support for color to rendering text
-        glColor3f(textColor.red / MAX_COLOR, textColor.green / MAX_COLOR, textColor.blue / MAX_COLOR);
+        glm::vec4 textColorV4(textColor.red / MAX_COLOR, textColor.green / MAX_COLOR, textColor.blue / MAX_COLOR, 1.0f);
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
-        float textAlpha = 1.0f; // getTextAlpha()
         foreach(QString thisLine, lines) {
-            textRenderer->draw(0, lineOffset, qPrintable(thisLine), textAlpha);
+            textRenderer->draw(0, lineOffset, qPrintable(thisLine), textColorV4);
             lineOffset += maxHeight;
         }
 
