@@ -53,10 +53,11 @@ const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
 void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid) {
 
-    //Vec2Pair key(glm::vec2(radius, slices), glm::vec2(stacks, 0));
-    IntPair key(slices, stacks);
+    Vec2Pair keyRadius(glm::vec2(radius, slices), glm::vec2(stacks, 0));
+    IntPair keySlicesStacks(slices, stacks);
 
 //qDebug() << "    key:" << key;
+//qDebug() << "renderSphere() radius:" << radius << "slices:" << slices << "stacks:" << stacks;
 
     Vec3Pair colorKey(glm::vec3(color.x, color.y, slices),glm::vec3(color.z, color.y, stacks));
 
@@ -64,9 +65,9 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
     int vertices = slices * (stacks - 1) + 2;    
     int indices = slices * stacks * NUM_VERTICES_PER_TRIANGULATED_QUAD;
     
-    if (!_sphereVertices.contains(key)) {
+    if (!_sphereVertices.contains(keyRadius)) {
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        _sphereVertices[key] = verticesBuffer;
+        _sphereVertices[keyRadius] = verticesBuffer;
 
         GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX];
         GLfloat* vertex = vertexData;
@@ -74,18 +75,19 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         // south pole
         *(vertex++) = 0.0f;
         *(vertex++) = 0.0f;
-        *(vertex++) = -1.0f;
+        *(vertex++) = -1.0f * radius;
 
         //add stacks vertices climbing up Y axis
         for (int i = 1; i < stacks; i++) {
             float phi = PI * (float)i / (float)(stacks) - PI_OVER_TWO;
-            float z = sinf(phi), radius = cosf(phi);
+            float z = sinf(phi) * radius;
+            float stackRadius = cosf(phi) * radius;
             
             for (int j = 0; j < slices; j++) {
                 float theta = TWO_PI * (float)j / (float)slices;
 
-                *(vertex++) = sinf(theta) * radius;
-                *(vertex++) = cosf(theta) * radius;
+                *(vertex++) = sinf(theta) * stackRadius;
+                *(vertex++) = cosf(theta) * stackRadius;
                 *(vertex++) = z;
             }
         }
@@ -93,11 +95,11 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         // north pole
         *(vertex++) = 0.0f;
         *(vertex++) = 0.0f;
-        *(vertex++) = 1.0f;
+        *(vertex++) = 1.0f * radius;
 
         verticesBuffer->append(sizeof(GLfloat) * vertices * NUM_COORDS_PER_VERTEX, (gpu::Buffer::Byte*) vertexData);
         delete[] vertexData;
-qDebug() << "GeometryCache::renderSphere()...";
+qDebug() << "GeometryCache::renderSphere()... --- CREATING VERTICES BUFFER";
 qDebug() << "    radius:" << radius;
 qDebug() << "    slices:" << slices;
 qDebug() << "    stacks:" << stacks;
@@ -105,9 +107,9 @@ qDebug() << "    stacks:" << stacks;
 qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
     }
     
-    if (!_sphereIndices.contains(key)) {
+    if (!_sphereIndices.contains(keySlicesStacks)) {
         gpu::BufferPointer indicesBuffer(new gpu::Buffer());
-        _sphereIndices[key] = indicesBuffer;
+        _sphereIndices[keySlicesStacks] = indicesBuffer;
 
         GLushort* indexData = new GLushort[indices];
         GLushort* index = indexData;
@@ -148,7 +150,7 @@ qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
         }
         indicesBuffer->append(sizeof(GLushort) * indices, (gpu::Buffer::Byte*) indexData);
         delete[] indexData;
-qDebug() << "GeometryCache::renderSphere()...";
+qDebug() << "GeometryCache::renderSphere()... --- CREATING INDEX BUFFER";
 qDebug() << "    radius:" << radius;
 qDebug() << "    slices:" << slices;
 qDebug() << "    stacks:" << stacks;
@@ -175,14 +177,16 @@ qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
         colorBuffer->append(sizeof(int) * vertices, (gpu::Buffer::Byte*) colorData);
         delete[] colorData;
 
-qDebug() << "GeometryCache::renderSphere()...";
+qDebug() << "GeometryCache::renderSphere()... --- CREATING COLORS BUFFER";
 qDebug() << "    color:" << color;
+qDebug() << "    slices:" << slices;
+qDebug() << "    stacks:" << stacks;
 
 qDebug() << "    _sphereColors.size():" << _sphereColors.size();
 
     }
-    gpu::BufferPointer verticesBuffer = _sphereVertices[key];
-    gpu::BufferPointer indicesBuffer = _sphereIndices[key];
+    gpu::BufferPointer verticesBuffer = _sphereVertices[keyRadius];
+    gpu::BufferPointer indicesBuffer = _sphereIndices[keySlicesStacks];
     gpu::BufferPointer colorBuffer = _sphereColors[colorKey];
 
     

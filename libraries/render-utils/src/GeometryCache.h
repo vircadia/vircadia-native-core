@@ -249,7 +249,7 @@ private:
     QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
 
-    QHash<IntPair, gpu::BufferPointer> _sphereVertices;
+    QHash<Vec2Pair, gpu::BufferPointer> _sphereVertices;
     QHash<IntPair, gpu::BufferPointer> _sphereIndices;
     QHash<Vec3Pair, gpu::BufferPointer> _sphereColors;
     
