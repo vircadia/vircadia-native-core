@@ -92,7 +92,7 @@ From the soxr directory, use cmake, along with the `android.toolchain.cmake` fil
 The full set of commands to build soxr for Android is shown below
 
 ```
-cmake -DCMAKE_TOOLCHAIN_FILE=$FULL_PATH_TO_TOOLCHAIN -DHAVE_WORDS_BIGENDIAN_EXITCODE=1 -DBUILD_TESTS=0 -DCMAKE_INSTALL_PREFIX=.
+cmake -DCMAKE_TOOLCHAIN_FILE=$FULL_PATH_TO_TOOLCHAIN -DCMAKE_INSTALL_PREFIX=. -DHAVE_WORDS_BIGENDIAN_EXITCODE=1 -DBUILD_TESTS=0
 make
 make install
 ```
