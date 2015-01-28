@@ -12,18 +12,21 @@
 #include <QFileDialog>
 
 #include <AudioClient.h>
+#include <devices/Faceshift.h>
+#include <devices/SixenseManager.h>
 
 #include "Application.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
 #include "PreferencesDialog.h"
+#include "Snapshot.h"
 #include "UserActivityLogger.h"
 
 const int PREFERENCES_HEIGHT_PADDING = 20;
 
-PreferencesDialog::PreferencesDialog() :
-    QDialog(Application::getInstance()->getWindow()) {
+PreferencesDialog::PreferencesDialog(QWidget* parent) :
+    QDialog(parent) {
         
     setAttribute(Qt::WA_DeleteOnClose);
 
@@ -118,51 +121,53 @@ void PreferencesDialog::loadPreferences() {
     
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
-    ui.snapshotLocationEdit->setText(menuInstance->getSnapshotsLocation());
+    ui.snapshotLocationEdit->setText(SettingHandles::snapshotsLocation.get());
 
-    ui.scriptsLocationEdit->setText(menuInstance->getScriptsLocation());
+    ui.scriptsLocationEdit->setText(qApp->getScriptsLocation());
 
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
     
-    ui.faceshiftEyeDeflectionSider->setValue(menuInstance->getFaceshiftEyeDeflection() *
+    auto faceshift = DependencyManager::get<Faceshift>();
+    ui.faceshiftEyeDeflectionSider->setValue(faceshift->getEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
-    ui.faceshiftHostnameEdit->setText(menuInstance->getFaceshiftHostname());
-    
-    const InboundAudioStream::Settings& streamSettings = menuInstance->getReceivedAudioStreamSettings();
-
-    ui.dynamicJitterBuffersCheckBox->setChecked(streamSettings._dynamicJitterBuffers);
-    ui.staticDesiredJitterBufferFramesSpin->setValue(streamSettings._staticDesiredJitterBufferFrames);
-    ui.maxFramesOverDesiredSpin->setValue(streamSettings._maxFramesOverDesired);
-    ui.useStdevForJitterCalcCheckBox->setChecked(streamSettings._useStDevForJitterCalc);
-    ui.windowStarveThresholdSpin->setValue(streamSettings._windowStarveThreshold);
-    ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->setValue(streamSettings._windowSecondsForDesiredCalcOnTooManyStarves);
-    ui.windowSecondsForDesiredReductionSpin->setValue(streamSettings._windowSecondsForDesiredReduction);
-    ui.repetitionWithFadeCheckBox->setChecked(streamSettings._repetitionWithFade);
+    ui.faceshiftHostnameEdit->setText(faceshift->getHostname());
 
     auto audio = DependencyManager::get<AudioClient>();
+    MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
+
+    ui.dynamicJitterBuffersCheckBox->setChecked(stream.getDynamicJitterBuffers());
+    ui.staticDesiredJitterBufferFramesSpin->setValue(stream.getDesiredJitterBufferFrames());
+    ui.maxFramesOverDesiredSpin->setValue(stream.getMaxFramesOverDesired());
+    ui.useStdevForJitterCalcCheckBox->setChecked(stream.getUseStDevForJitterCalc());
+    ui.windowStarveThresholdSpin->setValue(stream.getWindowStarveThreshold());
+    ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->setValue(
+            stream.getWindowSecondsForDesiredCalcOnTooManyStarves());
+    ui.windowSecondsForDesiredReductionSpin->setValue(stream.getWindowSecondsForDesiredReduction());
+    ui.repetitionWithFadeCheckBox->setChecked(stream.getRepetitionWithFade());
+
     ui.outputBufferSizeSpinner->setValue(audio->getOutputBufferSize());
 
     ui.outputStarveDetectionCheckBox->setChecked(audio->getOutputStarveDetectionEnabled());
     ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
     ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
-    ui.realWorldFieldOfViewSpin->setValue(menuInstance->getRealWorldFieldOfView());
+    ui.realWorldFieldOfViewSpin->setValue(qApp->getViewFrustum()->getRealWorldFieldOfView());
 
-    ui.fieldOfViewSpin->setValue(menuInstance->getFieldOfView());
+    ui.fieldOfViewSpin->setValue(qApp->getViewFrustum()->getFieldOfView());
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
     
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
-    ui.maxOctreePPSSpin->setValue(menuInstance->getMaxOctreePacketsPerSecond());
+    ui.maxOctreePPSSpin->setValue(qApp->getOctreeQuery().getMaxOctreePacketsPerSecond());
 
-    ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
+    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getOculusUIAngularSize());
 
-    ui.sixenseReticleMoveSpeedSpin->setValue(menuInstance->getSixenseReticleMoveSpeed());
-
-    ui.invertSixenseButtonsCheckBox->setChecked(menuInstance->getInvertSixenseButtons());
+    SixenseManager& sixense = SixenseManager::getInstance();
+    ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
+    ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
 }
 
@@ -214,11 +219,11 @@ void PreferencesDialog::savePreferences() {
     }
 
     if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
-        Menu::getInstance()->setSnapshotsLocation(ui.snapshotLocationEdit->text());
+        SettingHandles::snapshotsLocation.set(ui.snapshotLocationEdit->text());
     }
 
     if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
-        Menu::getInstance()->setScriptsLocation(ui.scriptsLocationEdit->text());
+        qApp->setScriptsLocation(ui.scriptsLocationEdit->text());
     }
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());
@@ -228,36 +233,35 @@ void PreferencesDialog::savePreferences() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
-    Menu::getInstance()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    qApp->getViewFrustum()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
-    Menu::getInstance()->setFieldOfView(ui.fieldOfViewSpin->value());
-
-    Menu::getInstance()->setFaceshiftEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
-                                                     (float)ui.faceshiftEyeDeflectionSider->maximum());
+    qApp->getViewFrustum()->setFieldOfView(ui.fieldOfViewSpin->value());
     
-    Menu::getInstance()->setFaceshiftHostname(ui.faceshiftHostnameEdit->text());    
+    auto faceshift = DependencyManager::get<Faceshift>();
+    faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
+                                (float)ui.faceshiftEyeDeflectionSider->maximum());
     
-    Menu::getInstance()->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
+    faceshift->setHostname(ui.faceshiftHostnameEdit->text());
+    
+    qApp->getOctreeQuery().setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
-    Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
-
-    Menu::getInstance()->setSixenseReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
-
-    Menu::getInstance()->setInvertSixenseButtons(ui.invertSixenseButtonsCheckBox->isChecked());
-
-    InboundAudioStream::Settings streamSettings;
-    streamSettings._dynamicJitterBuffers = ui.dynamicJitterBuffersCheckBox->isChecked();
-    streamSettings._staticDesiredJitterBufferFrames = ui.staticDesiredJitterBufferFramesSpin->value();
-    streamSettings._maxFramesOverDesired = ui.maxFramesOverDesiredSpin->value();
-    streamSettings._useStDevForJitterCalc = ui.useStdevForJitterCalcCheckBox->isChecked();
-    streamSettings._windowStarveThreshold = ui.windowStarveThresholdSpin->value();
-    streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value();
-    streamSettings._windowSecondsForDesiredReduction = ui.windowSecondsForDesiredReductionSpin->value();
-    streamSettings._repetitionWithFade = ui.repetitionWithFadeCheckBox->isChecked();
-
-    Menu::getInstance()->setReceivedAudioStreamSettings(streamSettings);
+    qApp->getApplicationOverlay().setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+    
+    SixenseManager& sixense = SixenseManager::getInstance();
+    sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
+    sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
     auto audio = DependencyManager::get<AudioClient>();
+    MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
+    
+    stream.setDynamicJitterBuffers(ui.dynamicJitterBuffersCheckBox->isChecked());
+    stream.setStaticDesiredJitterBufferFrames(ui.staticDesiredJitterBufferFramesSpin->value());
+    stream.setMaxFramesOverDesired(ui.maxFramesOverDesiredSpin->value());
+    stream.setUseStDevForJitterCalc(ui.useStdevForJitterCalcCheckBox->isChecked());
+    stream.setWindowStarveThreshold(ui.windowStarveThresholdSpin->value());
+    stream.setWindowSecondsForDesiredCalcOnTooManyStarves(ui.windowSecondsForDesiredCalcOnTooManyStarvesSpin->value());
+    stream.setWindowSecondsForDesiredReduction(ui.windowSecondsForDesiredReductionSpin->value());
+    stream.setRepetitionWithFade(ui.repetitionWithFadeCheckBox->isChecked());
 
     QMetaObject::invokeMethod(audio.data(), "setOutputBufferSize", Q_ARG(int, ui.outputBufferSizeSpinner->value()));
 
@@ -266,6 +270,4 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
-
-    Application::getInstance()->bumpSettings();
 }

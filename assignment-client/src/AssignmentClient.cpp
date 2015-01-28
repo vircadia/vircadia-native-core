@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QProcess>
-#include <QtCore/qsharedmemory.h>
-#include <QtCore/QThread>
-#include <QtCore/QTimer>
+#include <QProcess>
+#include <QSettings>
+#include <QSharedMemory>
+#include <QThread>
+#include <QTimer>
 
 #include <AccountManager.h>
 #include <AddressManager.h>

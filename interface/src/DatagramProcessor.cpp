@@ -16,6 +16,7 @@
 
 #include "Application.h"
 #include "avatar/AvatarManager.h"
+#include "AudioClient.h"
 #include "Menu.h"
 
 #include "DatagramProcessor.h"

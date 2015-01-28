@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
+#include "AudioClient.h"
 #include "AudioDeviceScriptingInterface.h"
 
 
@@ -21,6 +21,8 @@ AudioDeviceScriptingInterface* AudioDeviceScriptingInterface::getInstance() {
 AudioDeviceScriptingInterface::AudioDeviceScriptingInterface() {
     connect(DependencyManager::get<AudioClient>().data(), &AudioClient::muteToggled,
             this, &AudioDeviceScriptingInterface::muteToggled);
+    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::deviceChanged,
+        this, &AudioDeviceScriptingInterface::deviceChanged);
 }
 
 bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {

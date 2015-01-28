@@ -78,8 +78,8 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     
     // get/set avatar data
-    void saveData(QSettings* settings);
-    void loadData(QSettings* settings);
+    void saveData();
+    void loadData();
 
     void saveAttachmentData(const AttachmentData& attachment) const;
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;

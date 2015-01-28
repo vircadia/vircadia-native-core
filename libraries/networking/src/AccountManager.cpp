@@ -21,6 +21,8 @@
 #include <QtNetwork/QNetworkRequest>
 #include <qthread.h>
 
+#include <Settings.h>
+
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "RSAKeypairGenerator.h"
@@ -88,11 +90,9 @@ void AccountManager::logout() {
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
     
     if (_shouldPersistToSettingsFile) {
-        QSettings settings;
-        settings.beginGroup(ACCOUNTS_GROUP);
-        
         QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
-        settings.remove(keyURLString);
+        QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
+        SettingHandles::SettingHandle<DataServerAccountInfo>(path).remove();
         
         qDebug() << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
     } else {
@@ -127,13 +127,13 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         
         if (_shouldPersistToSettingsFile) {
             // check if there are existing access tokens to load from settings
-            QSettings settings;
+            Settings settings;
             settings.beginGroup(ACCOUNTS_GROUP);
             
             foreach(const QString& key, settings.allKeys()) {
                 // take a key copy to perform the double slash replacement
                 QString keyCopy(key);
-                QUrl keyURL(keyCopy.replace("slashslash", "//"));
+                QUrl keyURL(keyCopy.replace(DOUBLE_SLASH_SUBSTITUTE, "//"));
                 
                 if (keyURL == _authURL) {
                     // pull out the stored access token and store it in memory
@@ -337,10 +337,9 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
 void AccountManager::persistAccountToSettings() {
     if (_shouldPersistToSettingsFile) {
         // store this access token into the local settings
-        QSettings localSettings;
-        localSettings.beginGroup(ACCOUNTS_GROUP);
-        localSettings.setValue(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                               QVariant::fromValue(_accountInfo));
+        QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
+        QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
+        SettingHandles::SettingHandle<QVariant>(path).set(QVariant::fromValue(_accountInfo));
     }
 }
 

@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "Stream.h"
+#include "Texture.h"
 
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"
@@ -92,6 +93,10 @@ public:
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
+    void setUniformTexture(uint32 slot, const TexturePointer& view);
+    void setUniformTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
+
+
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -148,10 +153,6 @@ public:
 
     void _glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 
-    void _glMaterialf(GLenum face, GLenum pname, GLfloat param);
-    void _glMaterialfv(GLenum face, GLenum pname, const GLfloat *params);
-
-
     enum Command {
         COMMAND_draw = 0,
         COMMAND_drawIndexed,
@@ -167,6 +168,7 @@ public:
         COMMAND_setProjectionTransform,
 
         COMMAND_setUniformBuffer,
+        COMMAND_setUniformTexture,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -220,9 +222,6 @@ public:
         COMMAND_glDisableVertexAttribArray,
 
         COMMAND_glColor4f,
-
-        COMMAND_glMaterialf,
-        COMMAND_glMaterialfv,
 
         NUM_COMMANDS,
     };
@@ -292,6 +291,7 @@ public:
     };
 
     typedef Cache<BufferPointer>::Vector BufferCaches;
+    typedef Cache<TexturePointer>::Vector TextureCaches;
     typedef Cache<Stream::FormatPointer>::Vector StreamFormatCaches;
     typedef Cache<Transform>::Vector TransformCaches;
 
@@ -330,6 +330,7 @@ public:
     Bytes _data;
 
     BufferCaches _buffers;
+    TextureCaches _textures;
     StreamFormatCaches _streamFormats;
     TransformCaches _transforms;
 
