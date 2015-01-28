@@ -12,11 +12,11 @@
 #ifndef hifi_AudioDeviceScriptingInterface_h
 #define hifi_AudioDeviceScriptingInterface_h
 
-#include <QDebug>
 #include <QObject>
 #include <QString>
+#include <QVector>
 
-#include "Application.h"
+class AudioEffectOptions;
 
 class AudioDeviceScriptingInterface : public QObject {
     Q_OBJECT

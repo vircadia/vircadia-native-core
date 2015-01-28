@@ -12,10 +12,13 @@
 #ifndef hifi_Bookmarks_h
 #define hifi_Bookmarks_h
 
-#include <QJsonObject>
-#include <QDebug>
 #include <QMap>
 #include <QObject>
+#include <QPointer>
+
+class QAction;
+class QMenu;
+class Menu;
 
 class Bookmarks: public QObject {
     Q_OBJECT
@@ -23,19 +26,32 @@ class Bookmarks: public QObject {
 public:
     Bookmarks();
 
+    void setupMenus(Menu* menubar, QMenu* menu);
+
+private slots:
+    void bookmarkLocation();
+    void teleportToBookmark();
+    void deleteBookmark();
+    
+private:
+    QVariantMap _bookmarks;  // { name: address, ... }
+    
+    QPointer<QMenu> _bookmarksMenu;
+    QPointer<QAction> _deleteBookmarksAction;
+
+    const QString BOOKMARKS_FILENAME = "bookmarks.json";
+    QString _bookmarksFilename;
+    
     void insert(const QString& name, const QString& address);  // Overwrites any existing entry with same name.
     void remove(const QString& name);
     bool contains(const QString& name) const;
 
-    QVariantMap* getBookmarks() { return &_bookmarks; };
-
-private:
-    QVariantMap _bookmarks;  // { name: address, ... }
-
-    const QString BOOKMARKS_FILENAME = "bookmarks.json";
-    QString _bookmarksFilename;
     void readFromFile();
     void persistToFile();
+
+    void enableMenuItems(bool enabled);
+    void addLocationToMenu(Menu* menubar, QString& name, QString& address);
+    void removeLocationFromMenu(Menu* menubar, QString& name);
 };
 
 #endif // hifi_Bookmarks_h

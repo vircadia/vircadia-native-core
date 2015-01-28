@@ -55,8 +55,13 @@ public:
     void update(float deltaTime);
     float getCursorPixelRangeMult() const;
     
-public slots:
+    float getReticleMoveSpeed() const { return _reticleMoveSpeed; }
+    void setReticleMoveSpeed(float sixenseReticleMoveSpeed) { _reticleMoveSpeed = sixenseReticleMoveSpeed; }
+    bool getInvertButtons() const { return _invertButtons; }
+    void setInvertButtons(bool invertSixenseButtons) { _invertButtons = invertSixenseButtons; }
     
+public slots:
+    void toggleSixense(bool shouldEnable);
     void setFilter(bool filter);
     void setLowVelocityFilter(bool lowVelocityFilter) { _lowVelocityFilter = lowVelocityFilter; };
 
@@ -102,6 +107,9 @@ private:
     
     bool _lowVelocityFilter;
     bool _controllersAtBase;
+    
+    float _reticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
+    bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
 };
 
 #endif // hifi_SixenseManager_h

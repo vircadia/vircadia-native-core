@@ -20,12 +20,18 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
+#include <Settings.h>
+
 #include "AnimationsDialog.h"
 #include "Application.h"
 #include "MainWindow.h"
 
-AnimationsDialog::AnimationsDialog() :
-    QDialog(Application::getInstance()->getWindow()) {
+namespace SettingHandles {
+    const SettingHandle<QString> animationDirectory("animation_directory", QString());
+}
+
+AnimationsDialog::AnimationsDialog(QWidget* parent) :
+    QDialog(parent) {
     
     setWindowTitle("Edit Animations");
     setAttribute(Qt::WA_DeleteOnClose);
@@ -157,14 +163,12 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
 }
 
 void AnimationPanel::chooseURL() {
-    QString directory = Application::getInstance()->lockSettings()->value("animation_directory").toString();
-    Application::getInstance()->unlockSettings();
+    QString directory = SettingHandles::animationDirectory.get();
     QString filename = QFileDialog::getOpenFileName(this, "Choose Animation", directory, "Animation files (*.fbx)");
     if (filename.isEmpty()) {
         return;
     }
-    Application::getInstance()->lockSettings()->setValue("animation_directory", QFileInfo(filename).path());
-    Application::getInstance()->unlockSettings();
+    SettingHandles::animationDirectory.set(QFileInfo(filename).path());
     _url->setText(QUrl::fromLocalFile(filename).toString());
     emit _url->returnPressed();
 }

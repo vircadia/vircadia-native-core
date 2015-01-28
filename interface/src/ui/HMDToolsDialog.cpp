@@ -19,11 +19,13 @@
 #include <QScreen>
 #include <QWindow>
 
+
 #include "MainWindow.h"
 #include "Menu.h"
-#include "devices/OculusManager.h"
+#include "ui/DialogsManager.h"
 #include "ui/HMDToolsDialog.h"
 
+#include "devices/OculusManager.h"
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) ,
@@ -67,20 +69,21 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     // watch for our dialog window moving screens. If it does we want to enforce our rules about
     // what screens we're allowed on
     watchWindow(windowHandle());
+    auto dialogsManager = DependencyManager::get<DialogsManager>();
     if (Application::getInstance()->getRunningScriptsWidget()) {
         watchWindow(Application::getInstance()->getRunningScriptsWidget()->windowHandle());
     }
     if (Application::getInstance()->getToolWindow()) {
         watchWindow(Application::getInstance()->getToolWindow()->windowHandle());
     }
-    if (Menu::getInstance()->getBandwidthDialog()) {
-        watchWindow(Menu::getInstance()->getBandwidthDialog()->windowHandle());
+    if (dialogsManager->getBandwidthDialog()) {
+        watchWindow(dialogsManager->getBandwidthDialog()->windowHandle());
     }
-    if (Menu::getInstance()->getOctreeStatsDialog()) {
-        watchWindow(Menu::getInstance()->getOctreeStatsDialog()->windowHandle());
+    if (dialogsManager->getOctreeStatsDialog()) {
+        watchWindow(dialogsManager->getOctreeStatsDialog()->windowHandle());
     }
-    if (Menu::getInstance()->getLodToolsDialog()) {
-        watchWindow(Menu::getInstance()->getLodToolsDialog()->windowHandle());
+    if (dialogsManager->getLodToolsDialog()) {
+        watchWindow(dialogsManager->getLodToolsDialog()->windowHandle());
     }
     
     // when the application is about to quit, leave HDM mode
