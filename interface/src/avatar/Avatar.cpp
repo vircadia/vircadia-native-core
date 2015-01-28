@@ -703,7 +703,7 @@ void Avatar::renderDisplayName() {
     DependencyManager::get<GeometryCache>()->renderBevelCornersRect(left, bottom, right - left, top - bottom, 3,
             glm::vec4(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA));
    
-    glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+    glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);  // TODO: change text rendering to use collor as parameter
     QByteArray ba = _displayName.toLocal8Bit();
     const char* text = ba.data();
     

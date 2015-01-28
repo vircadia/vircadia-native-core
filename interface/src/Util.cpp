@@ -106,7 +106,10 @@ void drawText(int x, int y, float scale, float radians, int mono,
     //
     glPushMatrix();
     glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
+
+    // TODO: add support for color to rendering text
     glColor3fv(color);
+
     glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
     glScalef(scale / 0.1f, scale / 0.1f, 1.0f);
     textRenderer(mono)->draw(0, 0, string);

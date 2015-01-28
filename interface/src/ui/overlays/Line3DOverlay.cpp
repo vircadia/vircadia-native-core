@@ -49,7 +49,6 @@ void Line3DOverlay::render(RenderArgs* args) {
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
     glm::vec4 colorv4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     glm::vec3 position = getPosition();
@@ -60,6 +59,8 @@ void Line3DOverlay::render(RenderArgs* args) {
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
     if (getIsDashedLine()) {
+        // TODO: add support for color to renderDashedLine()
+        glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
         DependencyManager::get<GeometryCache>()->renderDashedLine(_position, _end, _geometryCacheID);
     } else {
         DependencyManager::get<GeometryCache>()->renderLine(_start, _end, colorv4, _geometryCacheID);

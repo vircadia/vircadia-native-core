@@ -56,7 +56,8 @@ void AudioIOStatsRenderer::render(const float* color, int width, int height) {
     int w = STATS_WIDTH;
     int h = statsHeight;
     DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h, backgroundColor);
-    glColor4f(1, 1, 1, 1); 
+    
+    glColor4f(1, 1, 1, 1); // TODO: change text rendering to use collor as parameter
     
     int horizontalOffset = x + 5;
     int verticalOffset = y;

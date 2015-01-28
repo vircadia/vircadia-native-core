@@ -88,6 +88,7 @@ void BandwidthMeter::Stream::updateValue(double amount) {
 
 void BandwidthMeter::setColorRGBA(unsigned c) {
 
+    // TODO: add support for color to rendering text, since that's why this method is used
     glColor4ub(GLubyte( c >> 24), 
                GLubyte((c >> 16) & 0xff),
                GLubyte((c >>  8) & 0xff),
