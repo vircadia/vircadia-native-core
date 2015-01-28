@@ -102,6 +102,9 @@ public:
     void renderQuad(int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
             { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
             
+    // TODO: I think there's a bug in this version of the renderQuad() that's not correctly rebuilding the vbos
+    // if the color changes by the corners are the same, as evidenced by the audio meter which should turn white
+    // when it's clipping
     void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
@@ -114,7 +117,7 @@ public:
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
-                    int id = UNKNOWN_ID);
+                    const glm::vec4& quadColor, int id = UNKNOWN_ID);
 
 
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 

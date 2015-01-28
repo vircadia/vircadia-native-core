@@ -1253,7 +1253,8 @@ void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxC
 void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
-                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int id) {
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
+                    const glm::vec4& quadColor, int id) {
 
     #ifdef WANT_DEBUG
         qDebug() << "renderQuad() vec3 + texture VBO...";
