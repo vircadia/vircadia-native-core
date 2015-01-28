@@ -4,6 +4,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 You will need the following tools to build our Android targets.
 
+* [ant](http://ant.apache.org/bindownload.cgi) ~> 1.9.4
 * [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
 * [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
   * Install the latest Platform-tools
