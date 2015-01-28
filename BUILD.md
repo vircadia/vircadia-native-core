@@ -54,11 +54,11 @@ In the examples below the variable $NAME would be replaced by the name of the de
 
 ####QXmpp
 
-You can find QXmpp [here](https://github.com/qxmpp-project/qxmpp). The inclusion of the QXmpp enables text chat in the Interface client.
+You can [find QXmpp here](https://github.com/qxmpp-project/qxmpp), 0.7.6 is the version you want. The inclusion of the QXmpp enables text chat in the Interface client.
 
 OS X users who tap our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) can install QXmpp via homebrew - `brew install highfidelity/formulas/qxmpp`.
 
 ####Devices
 
-You can support external input/output devices such as Leap Motion, Faceshift, PrioVR, MIDI, Razr Hydra and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
+You can support external input/output devices such as Oculus Rift, Leap Motion, Faceshift, PrioVR, MIDI, Razr Hydra and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
 
