@@ -31,4 +31,13 @@ file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.refere
 
 list(APPEND IGNORE_COPY_LIBS ${LIBOVR_ANDROID_LIBRARIES})
 
+if (HOCKEY_APP_APP_ID)
+  set(HOCKEY_APP_ENABLED true)
+  set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />")
+else ()
+  set(HOCKEY_APP_ENABLED false)
+endif ()
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/res/values/hockeyapp.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/hockeyapp.xml")
+
 qt_create_apk()

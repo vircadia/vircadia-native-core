@@ -41,10 +41,7 @@
       <!--  Messages maps -->
 
       <!-- Splash screen -->
-      <!--
-      <meta-data android:name="android.app.splash_screen_drawable" android:resource="@drawable/logo"/>
-      -->
-        
+      <!-- <meta-data android:name="android.app.splash_screen_drawable" android:resource="@drawable/logo"/> -->
     </activity>
     
     <activity android:name="com.oculusvr.vrlib.PlatformActivity"
@@ -71,4 +68,6 @@
   
   <!-- Tell the system this app requires OpenGL ES 3.0. -->
   <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+  
+  ${HOCKEY_APP_ACTIVITY}
 </manifest>

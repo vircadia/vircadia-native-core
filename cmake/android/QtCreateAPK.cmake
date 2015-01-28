@@ -113,11 +113,15 @@ macro(qt_create_apk)
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/src/java" "${ANDROID_APK_BUILD_DIR}/src"
   )
   
+  # copy the libs folder from src to the apk build dir
+  add_custom_target(
+    ${TARGET_NAME}-copy-libs
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/libs" "${ANDROID_APK_BUILD_DIR}/libs"
+  )
+  
   # use androiddeployqt to create the apk
   add_custom_target(${TARGET_NAME}-apk
     COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} --install --verbose --deployment bundled "\\$(ARGS)"
-    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java
-  )
-  
-  
+    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs
+  ) 
 endmacro()
