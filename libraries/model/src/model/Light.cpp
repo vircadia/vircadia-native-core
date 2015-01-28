@@ -40,25 +40,19 @@ Light::~Light() {
 
 void Light::setPosition(const Vec3& position) {
     _transform.setTranslation(position);
-    _transform.getMatrix(editSchema()._transform);
+    editSchema()._position = Vec4(position, 1.f);
 }
 
 void Light::setOrientation(const glm::quat& orientation) {
     _transform.setRotation(orientation);
-    _transform.getMatrix(editSchema()._transform);
 }
 
 void Light::setDirection(const Vec3& direction) {
-    glm::mat3 rotation(
-        Vec3(1.0f, 0.0f, 0.0f),
-        Vec3(0.0f, 1.0f, 0.0f),
-        -direction);
-
-    setOrientation(glm::quat(rotation));
+    editSchema()._direction = Vec4(direction, 0.f);
 }
 
 const Vec3& Light::getDirection() const {
-    return Vec3(_transform.transform(Vec4(0.0f, 0.0f, 1.0f, 0.0f)));
+    return Vec3(getSchema()._direction);
 }
 
 void Light::setColor(const Color& color) {
@@ -69,11 +63,13 @@ void Light::setIntensity(float intensity) {
     editSchema()._intensity = intensity;
 }
 
-void Light::setAttenuationRadius(float radius) {
+void Light::setMaximumRadius(float radius) {
     if (radius <= 0.f) {
         radius = 1.0f;
     }
-    editSchema()._attenuation = Vec4(1.0f, 2.0f/radius, 1.0f/(radius*radius), radius);
+    float CutOffIntensityRatio = 0.01f;
+    float surfaceRadius = radius / (sqrt(1.0f / CutOffIntensityRatio) - 1.f);
+    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, radius);
 }
 
 void Light::setSpotCone(float angle) {

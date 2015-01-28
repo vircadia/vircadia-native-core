@@ -21,29 +21,38 @@
 // the radius (hard cutoff) of the light effect
 uniform float radius;
 
+uniform mat4 invViewMat;
+
 void main(void) {
     // get the depth and exit early if it doesn't pass the test
     vec2 texCoord = gl_TexCoord[0].st / gl_TexCoord[0].q;
 
     DeferredFragment frag = unpackDeferredFragment(texCoord);
-    
+      
     float depth = frag.depthVal;
     if (depth < gl_FragCoord.z) {
         discard;
     }
 
-    // compute the view space position using the depth
-    float z = near / (depth * depthScale - 1.0);
-    vec4 position = vec4((depthTexCoordOffset + texCoord * depthTexCoordScale) * z, z, 1.0);
-    
-    // get the normal from the map
-    vec4 normal = texture2D(normalMap, texCoord);
-    vec4 normalizedNormal = normalize(normal * 2.0 - vec4(1.0, 1.0, 1.0, 2.0));
-    
-    // compute the base color based on OpenGL lighting model
-    vec4 lightVector = gl_LightSource[1].position - position;
+    vec4 wPos;
+    wPos = invViewMat * frag.position;
+    Light light = getLight();
+    gl_FragColor = vec4(frag.normal, 0.0);
+
+    vec3 lightVector = getLightPosition(light) - wPos.xyz;
+    if (dot(lightVector, lightVector) > getLightSquareRadius(light)) {
+        discard;
+    }
+
     float lightDistance = length(lightVector);
     lightVector = lightVector / lightDistance;
+
+    float lightAttenuation = evalLightAttenuation(light, lightDistance);
+    gl_FragColor.xyz *= lightAttenuation;
+/*
+    float diffuse = dot(frag.normal, lightVector);
+
+ 
     float diffuse = dot(normalizedNormal, lightVector);
     float facingLight = step(0.0, diffuse);
     vec4 baseColor = texture2D(diffuseMap, texCoord) * (gl_FrontLightProduct[1].ambient +
@@ -59,6 +68,6 @@ void main(void) {
         normalizedNormal));    
     vec4 specularColor = texture2D(specularMap, texCoord);
     gl_FragColor = vec4((baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb) * attenuation, 0.0);
-
-    gl_FragColor = vec4(frag.normal, 0.0);
+    */
+  //  gl_FragColor = vec4(frag.normal, 0.0);
 }

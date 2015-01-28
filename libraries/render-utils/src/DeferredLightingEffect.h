@@ -105,6 +105,7 @@ private:
         int radius;
         int ambientSphere;
         int lightBufferUnit;
+        int invViewMat;
     };
     
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);

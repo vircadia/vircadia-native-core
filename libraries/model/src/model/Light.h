@@ -73,9 +73,9 @@ public:
     void setIntensity(float intensity);
 
     bool isRanged() const { return (getType() == POINT) || (getType() == SPOT ); }
-
-    void setAttenuationRadius(float radius);
-    float getAttenuationRadius() const { return getSchema()._attenuation.w; }
+ 
+    void setMaximumRadius(float radius);
+    float getMaximumRadius() const { return getSchema()._attenuation.w; }
 
     // Spot properties
     bool isSpot() const { return getType() == SPOT; }
@@ -87,7 +87,8 @@ public:
     // Schema to access the attribute values of the light
     class Schema {
     public:
-        glm::mat4 _transform; 
+        Vec4 _position; 
+        Vec4 _direction;
         Color _color;
         float _intensity;
         Vec4 _attenuation;
@@ -97,10 +98,11 @@ public:
         Vec4 _control;
 
         Schema() :
-            _transform(),
+            _position(0.0f, 0.0f, 0.0f, 1.0f), 
+            _direction(0.0f, 0.0f, -1.0f, 0.f), 
             _color(1.0f),
             _intensity(1.0f),
-            _attenuation(1.0f, 2.0f, 1.0f, 1.0f),
+            _attenuation(1.0f, 1.0f, 1.0f, 1.0f),
             _spot(0.0f, 0.0f, 0.0f, 0.0f),
             _control(0.0f)
             {}
