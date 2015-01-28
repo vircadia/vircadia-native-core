@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 2.8.12.2)
 
+if (USE_ANDROID_TOOLCHAIN)
+  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
+  set(ANDROID_NATIVE_API_LEVEL 19)
+endif ()
+
 if (WIN32)
   cmake_policy(SET CMP0020 NEW)
 endif (WIN32)

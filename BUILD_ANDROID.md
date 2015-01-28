@@ -138,5 +138,4 @@ The following must be set in your environment:
 
 The following must be passed to CMake when it is run:
 
-* CMAKE_TOOLCHAIN_FILE - full path to the android.toolchain.cmake file that is included in this repository (/cmake/android/android.toolchain.cmake)
-* ANDROID_NATIVE_API_LEVEL - the API level you want to use (this should be 19 for GearVR)
+* USE_ANDROID_TOOLCHAIN - set to true to build for Android
