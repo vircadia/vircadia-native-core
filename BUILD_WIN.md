@@ -135,6 +135,20 @@ This package contains only headers, so there's nothing to add to the PATH.
 
 Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
 
+###Gverb
+
+1. Go to https://github.com/highfidelity/gverb
+   Or download the sources directly via this link: 
+   https://github.com/highfidelity/gverb/archive/master.zip
+
+2. Extract the archive
+
+3. Place the directories “include” and “src” in interface/external/gverb 
+   (Normally next to this readme)
+
+4. Clear your build directory, run cmake, build and you should be all set.
+
+
 ###Bullet
 
 Bullet 2.82 source can be [downloaded here](https://code.google.com/p/bullet/downloads/detail?name=bullet-2.82-r2704.zip). Bullet does not come with prebuilt libraries, you need to make those yourself.
