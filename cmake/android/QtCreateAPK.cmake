@@ -121,7 +121,7 @@ macro(qt_create_apk)
   
   # use androiddeployqt to create the apk
   add_custom_target(${TARGET_NAME}-apk
-    COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} --install --verbose --deployment bundled "\\$(ARGS)"
+    COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} ${ANDROID_DEPLOY_QT_INSTALL} --verbose --deployment bundled "\\$(ARGS)"
     DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs
   ) 
 endmacro()
