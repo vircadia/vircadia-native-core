@@ -826,6 +826,9 @@ Controller.keyPressEvent.connect(function(event) {
 });
 
 Controller.keyReleaseEvent.connect(function (event) {
+    if (isActive) {
+        cameraManager.keyReleaseEvent(event);
+    }
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
     if (event.text == "BACKSPACE" || event.text == "DELETE") {
         deleteSelectedEntities();
