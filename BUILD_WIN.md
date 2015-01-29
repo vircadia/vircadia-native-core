@@ -27,7 +27,7 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 
 * [Download the online installer](http://qt-project.org/downloads)
     * When it asks you to select components, ONLY select the following:
-        * Qt > Qt 5.3.2 > **msvc2013 32-bit OpenGL**
+        * Qt > Qt 5.4.0 > **msvc2013 32-bit OpenGL**
 
 * [Download the offline installer](http://download.qt-project.org/official_releases/qt/5.3/5.3.2/qt-opensource-windows-x86-msvc2013_opengl-5.3.2.exe)
 
