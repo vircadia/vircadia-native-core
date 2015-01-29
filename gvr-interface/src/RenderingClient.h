@@ -21,7 +21,7 @@
 class RenderingClient : public Client {
     Q_OBJECT
 public:
-    RenderingClient(QObject* parent = 0);
+    RenderingClient(QObject* parent = 0, const QString& launchURLString = QString());
     ~RenderingClient();
     
     const glm::vec3& getPosition() const { return _position; }

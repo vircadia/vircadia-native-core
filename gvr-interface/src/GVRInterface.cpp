@@ -9,7 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef Q_WS_ANDROID
+#ifdef ANDROID
+
+#include <jni.h>
 
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QAndroidJniObject>
@@ -34,11 +36,20 @@
 
 #include "GVRInterface.h"
 
+static QString launchURLString = QString();
+
 GVRInterface::GVRInterface(int argc, char* argv[]) : 
     QApplication(argc, argv),
     _inVRMode(false)
 {
-    _client = new RenderingClient(this);
+    if (!launchURLString.isEmpty()) {
+        // did we get launched with a lookup URL? If so it is time to give that to the AddressManager
+        qDebug() << "We were opened via a hifi URL -" << launchURLString;
+    }
+    
+    _client = new RenderingClient(this, launchURLString);
+    
+    launchURLString = QString();
     
     connect(this, &QGuiApplication::applicationStateChanged, this, &GVRInterface::handleApplicationStateChange);
 
@@ -58,8 +69,20 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     idleTimer->start(0);
 }
 
+#ifdef ANDROID
+
+extern "C" {
+    
+JNIEXPORT void Java_io_highfidelity_gvrinterface_InterfaceActivity_handleHifiURL(JNIEnv *jni, jclass clazz, jstring hifiURLString) {
+    launchURLString = QAndroidJniObject(hifiURLString).toString();
+}
+
+}
+
+#endif
+
 void GVRInterface::idle() {
-#if defined(Q_WS_ANDROID) && defined(HAVE_LIBOVR)
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
         qDebug() << "The headset just got docked - assume we are in VR mode.";
         _inVRMode = true;

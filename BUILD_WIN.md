@@ -182,9 +182,15 @@ _Note that the INSTALL target should handle the copying of files into an install
 
 Download the zip from the [soxr sourceforge page](http://sourceforge.net/projects/soxr/). 
 
-We recommend you extract it to %HIFI_LIB_DIR%\soxr. This will help our FindSoxr cmake module find what it needs. You can place it wherever you like on your machine if you specify SOXR_ROOT_DIR as an environment variable or a variable passed when cmake is run.
+We recommend you install it to %HIFI_LIB_DIR%\soxr. This will help our FindSoxr cmake module find what it needs. You can place it wherever you like on your machine if you specify SOXR_ROOT_DIR as an environment variable or a variable passed when cmake is run.
 
-You will need to use cmake to build and install Soxr. If you'd like to keep everything containted in the Soxr folder, pass `-DCMAKE_INSTALL_PREFIX=.` when you run Cmake so that it will be installed to the same directory.
+Extract the soxr archive wherever you like. Then, inside the extracted folder, create a directory called `build`. From that build directory, the following commands will build and then install soxr to `%HIFI_LIB_DIR%`.
+
+```
+cmake .. -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=%HIFI_LIB_DIR%/soxr
+nmake
+nmake install
+```
 
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.

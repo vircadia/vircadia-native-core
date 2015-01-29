@@ -21,10 +21,15 @@
 
 RenderingClient* RenderingClient::_instance = NULL;
 
-RenderingClient::RenderingClient(QObject *parent) :
+RenderingClient::RenderingClient(QObject *parent, const QString& launchURLString) :
     Client(parent)
 {
     _instance = this;
+    
+    // connect to AddressManager and pass it the launch URL, if we have one
+    auto addressManager = DependencyManager::get<AddressManager>();
+    connect(addressManager.data(), &AddressManager::locationChangeRequired, this, &RenderingClient::goToLocation);
+    addressManager->loadSettings(launchURLString);
     
     // tell the NodeList which node types all rendering clients will want to know about
     DependencyManager::get<NodeList>()->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
@@ -42,9 +47,6 @@ RenderingClient::RenderingClient(QObject *parent) :
     connect(audioThread, &QThread::started, audioClient.data(), &AudioClient::start);
 
     audioThread->start();
-    
-    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired, 
-            this, &RenderingClient::goToLocation);
 }
 
 RenderingClient::~RenderingClient() {
