@@ -131,7 +131,6 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
 void Hand::renderHandTargets(bool isMine) {
     glPushMatrix();
 
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     const float avatarScale = Application::getInstance()->getAvatar()->getScale();
 
     const float alpha = 1.0f;
