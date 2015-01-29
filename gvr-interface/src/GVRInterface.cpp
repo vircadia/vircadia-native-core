@@ -36,17 +36,20 @@
 
 #include "GVRInterface.h"
 
-static QString launchURLString = "";
+static QString launchURLString = QString();
 
 GVRInterface::GVRInterface(int argc, char* argv[]) : 
     QApplication(argc, argv),
     _inVRMode(false)
 {
-    // did we get launched with a lookup URL? If so it is time to give that to the AddressManager
-    qDebug() << "We were opened via a hifi URL -" << launchURLString;
-    launchURLString = "";
+    if (!launchURLString.isEmpty()) {
+        // did we get launched with a lookup URL? If so it is time to give that to the AddressManager
+        qDebug() << "We were opened via a hifi URL -" << launchURLString;
+    }
     
-    _client = new RenderingClient(this);
+    _client = new RenderingClient(this, launchURLString);
+    
+    launchURLString = QString();
     
     connect(this, &QGuiApplication::applicationStateChanged, this, &GVRInterface::handleApplicationStateChange);
 
