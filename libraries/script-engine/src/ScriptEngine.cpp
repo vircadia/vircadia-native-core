@@ -112,7 +112,7 @@ void ScriptEngine::setIsAvatar(bool isAvatar) {
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
         _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
     }
-    
+
     if (!_isAvatar) {
         delete _avatarIdentityTimer;
         _avatarIdentityTimer = NULL;
@@ -596,6 +596,12 @@ void ScriptEngine::print(const QString& message) {
     emit printedMessage(message);
 }
 
+/**
+ * If a callback is specified, the included files will be loaded asynchronously and the callback will be called
+ * when all of the files have finished loading.
+ * If no callback is specified, the included files will be loaded synchronously and will block execution until
+ * all of the files have finished loading.
+ */
 void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callback) {
     QList<QUrl> urls;
     for (QString file : includeFiles) {
