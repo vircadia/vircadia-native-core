@@ -257,8 +257,7 @@ void ApplicationOverlay::displayOverlayTexture() {
         glm::vec2 texCoordTopLeft(0.0f, 1.0f);
         glm::vec2 texCoordBottomRight(1.0f, 0.0f);
 
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, 
-                                                                glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
         
     } glPopMatrix();
     
