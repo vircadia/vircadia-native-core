@@ -1366,7 +1366,6 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-// TODO: switch this over to use BatchItemDetails like the other line and vertices functions
 void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3PairVec2Pair key(Vec3Pair(start, end), Vec2Pair(glm::vec2(color.x, color.y), glm::vec2(color.z, color.w)));
