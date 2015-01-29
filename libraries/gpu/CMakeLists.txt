@@ -31,6 +31,8 @@ elseif (WIN32)
     add_definitions(-DNSIGHT_FOUND)
     target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
   endif ()
+elseif (ANDROID)
+  target_link_libraries(${TARGET_NAME} "-lGLESv3" "-lEGL")
 else ()
   find_package(OpenGL REQUIRED)
   
