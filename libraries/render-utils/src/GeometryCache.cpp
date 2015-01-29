@@ -1256,7 +1256,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
                     const glm::vec4& color, int id) {
 
-    #if 1 // def WANT_DEBUG
+    #ifdef WANT_DEBUG
         qDebug() << "renderQuad() vec3 + texture VBO...";
         qDebug() << "    topLeft:" << topLeft;
         qDebug() << "    bottomLeft:" << bottomLeft;
@@ -1312,7 +1312,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         details.streamFormat = streamFormat;
         details.stream = stream;
     
-        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
@@ -1334,7 +1334,6 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
-
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
     }
@@ -1355,8 +1354,12 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
     glDisableClientState(GL_COLOR_ARRAY);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
+    
+    // TODO: The callers of this method (renderMagnifier and renderReticle) assume that we won't disable an unbind
+    // the texture after rendering. I'm not sure if this is correct in general but it's currently required for the
+    // oculus overlay to work.
+    //glBindTexture(GL_TEXTURE_2D, 0);
+    //glDisable(GL_TEXTURE_2D);
 }
 
 void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
