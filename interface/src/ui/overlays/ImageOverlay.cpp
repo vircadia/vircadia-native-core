@@ -45,7 +45,6 @@ ImageOverlay::~ImageOverlay() {
 // TODO: handle setting image multiple times, how do we manage releasing the bound texture?
 void ImageOverlay::setImageURL(const QUrl& url) {
     _imageURL = url;
-
     if (url.isEmpty()) {
         _isLoaded = true;
         _renderImage = false;
@@ -57,6 +56,8 @@ void ImageOverlay::setImageURL(const QUrl& url) {
 }
 
 void ImageOverlay::render(RenderArgs* args) {
+    QString problem("http://s3.amazonaws.com/hifi-public/images/tools/grid-toolbar.svg");
+    bool theONE = (_imageURL == problem);
     if (!_isLoaded && _renderImage) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_imageURL);
@@ -69,8 +70,17 @@ void ImageOverlay::render(RenderArgs* args) {
     }
 
     if (_renderImage) {
+
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, _texture->getID());
+        if (theONE) {
+            std::string name = _imageURL.toString().toStdString();
+        }
+        GLuint texID = _texture->getID();
+        if (texID == 27) {
+            std::string name = _imageURL.toString().toStdString();
+            glBindTexture(GL_TEXTURE_2D, texID);
+        } else
+            glBindTexture(GL_TEXTURE_2D, _texture->getID());
     }
 
     const float MAX_COLOR = 255.0f;
