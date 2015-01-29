@@ -202,12 +202,7 @@ private:
         void clear();
     };
     
-    QHash<IntPair, VerticesIndices> _sphereVBOs;
     QHash<IntPair, VerticesIndices> _coneVBOs;
-    QHash<float, VerticesIndices> _wireCubeVBOs;
-    QHash<float, VerticesIndices> _solidCubeVBOs;
-    QHash<Vec2Pair, VerticesIndices> _quad2DVBOs;
-    QHash<Vec2PairPair, BatchItemDetails> _quad2DTextureVBOs;
     QHash<Vec3PairVec2Pair, VerticesIndices> _quad3DTextureVBOs;
     QHash<int, VerticesIndices> _registeredQuadVBOs;
     int _nextID;
@@ -241,11 +236,9 @@ private:
     
     QHash<int, BatchItemDetails> _registeredVertices;
 
-    QHash<int, Vec3Pair> _lastRegisteredDashedLines;
-    QHash<Vec3Pair, BufferDetails> _dashedLines;
-    QHash<int, BufferDetails> _registeredDashedLines;
-
-    QHash<IntPair, BufferDetails> _colors;
+    QHash<int, Vec3PairVec2Pair> _lastRegisteredDashedLines;
+    QHash<Vec3PairVec2Pair, BatchItemDetails> _dashedLines;
+    QHash<int, BatchItemDetails> _registeredDashedLines;
 
     QHash<IntPair, gpu::BufferPointer> _gridBuffers;
     QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
@@ -281,7 +274,7 @@ public:
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
-
+//
     QVector<int> getJointMappings(const AnimationPointer& animation);
 
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);

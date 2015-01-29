@@ -1369,13 +1369,13 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
 // TODO: switch this over to use BatchItemDetails like the other line and vertices functions
 void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
-    Vec3Pair key(start, end);
-    BufferDetails& details = registered ? _registeredDashedLines[id] : _dashedLines[key];
+    Vec3PairVec2Pair key(Vec3Pair(start, end), Vec2Pair(glm::vec2(color.x, color.y), glm::vec2(color.z, color.w)));
+    BatchItemDetails& details = registered ? _registeredDashedLines[id] : _dashedLines[key];
 
     // if this is a registered , and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registered && details.buffer.isCreated()) {
+    if (registered && details.isCreated) {
         if (_lastRegisteredDashedLines[id] != key) {
-            details.buffer.destroy();
+            details.clear();
             _lastRegisteredDashedLines[id] = key;
             #ifdef WANT_DEBUG
                 qDebug() << "renderDashedLine()... RELEASING REGISTERED";
@@ -1383,14 +1383,13 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
         }
     }
 
-    if (!details.buffer.isCreated()) {
+    if (!details.isCreated) {
 
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
                            ((int(color.y * 255.0f) & 0xFF) << 8) |
                            ((int(color.z * 255.0f) & 0xFF) << 16) |
                            ((int(color.w * 255.0f) & 0xFF) << 24);
-    
-    
+
         // draw each line segment with appropriate gaps
         const float DASH_LENGTH = 0.05f;
         const float GAP_LENGTH = 0.025f;
@@ -1406,6 +1405,26 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
         const int FLOATS_PER_VERTEX = 3;
         details.vertices = (segmentCountFloor + 1) * 2;
         details.vertexSize = FLOATS_PER_VERTEX;
+        details.isCreated = true;
+
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
+        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+
+        details.verticesBuffer = verticesBuffer;
+        details.colorBuffer = colorBuffer;
+        details.streamFormat = streamFormat;
+        details.stream = stream;
+
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+        details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
+        details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
+
+        int* colorData = new int[details.vertices];
+        int* colorDataAt = colorData;
 
         GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
         GLfloat* vertex = vertexData;
@@ -1414,27 +1433,30 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
         *(vertex++) = point.x;
         *(vertex++) = point.y;
         *(vertex++) = point.z;
+        *(colorDataAt++) = compactColor;
         
         for (int i = 0; i < segmentCountFloor; i++) {
             point += dashVector;
             *(vertex++) = point.x;
             *(vertex++) = point.y;
             *(vertex++) = point.z;
+            *(colorDataAt++) = compactColor;
 
             point += gapVector;
             *(vertex++) = point.x;
             *(vertex++) = point.y;
             *(vertex++) = point.z;
+            *(colorDataAt++) = compactColor;
         }
         *(vertex++) = end.x;
         *(vertex++) = end.y;
         *(vertex++) = end.z;
+        *(colorDataAt++) = compactColor;
 
-        details.buffer.create();
-        details.buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-        details.buffer.bind();
-        details.buffer.allocate(vertexData, details.vertices * FLOATS_PER_VERTEX * sizeof(GLfloat));
+        details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Buffer::Byte*) vertexData);
+        details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Buffer::Byte*) colorData);
         delete[] vertexData;
+        delete[] colorData;
 
         #ifdef WANT_DEBUG
         if (registered) {
@@ -1443,15 +1465,20 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
             qDebug() << "new dashed lines buffer made -- _dashedLines:" << _dashedLines.size();
         }
         #endif
-    } else {
-        details.buffer.bind();
     }
 
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(details.vertexSize, GL_FLOAT, 0, 0);
-    glDrawArrays(GL_LINES, 0, details.vertices);
+    gpu::Batch batch;
+
+    batch.setInputFormat(details.streamFormat);
+    batch.setInputStream(0, *details.stream);
+    batch.draw(gpu::LINES, details.vertices, 0);
+
+    gpu::GLBackend::renderBatch(batch);
+
     glDisableClientState(GL_VERTEX_ARRAY);
-    details.buffer.release();
+    glDisableClientState(GL_COLOR_ARRAY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 
