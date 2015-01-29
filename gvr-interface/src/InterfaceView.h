@@ -17,7 +17,7 @@
 class InterfaceView : public QOpenGLWidget {
     Q_OBJECT
 public:
-    InterfaceView(QWidget* parent = 0,  Qt::WindowFlags flags = 0);
+    InterfaceView(QWidget* parent = 0, Qt::WindowFlags flags = 0);
 };
 
 #endif // hifi_InterfaceView_h
