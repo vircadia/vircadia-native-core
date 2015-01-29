@@ -37,7 +37,7 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     
     connect(this, &QGuiApplication::applicationStateChanged, this, &GVRInterface::handleApplicationStateChange);
 
-#ifdef HAVE_LIBOVR
+#ifdef Q_OS_ANDROID && HAVE_LIBOVR
     QAndroidJniEnvironment jniEnv;
     
     QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
@@ -54,7 +54,7 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
 }
 
 void GVRInterface::idle() {
-#ifdef HAVE_LIBOVR
+#ifdef Q_OS_ANDROID && HAVE_LIBOVR
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
         qDebug() << "The headset just got docked - assume we are in VR mode.";
         _inVRMode = true;

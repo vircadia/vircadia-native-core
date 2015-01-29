@@ -123,6 +123,6 @@ if (NOT ANDROID)
   add_subdirectory(interface)
   add_subdirectory(tests)
   add_subdirectory(tools)
-else ()
-  add_subdirectory(gvr-interface)
 endif()
+
+add_subdirectory(gvr-interface)
