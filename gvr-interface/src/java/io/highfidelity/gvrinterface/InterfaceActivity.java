@@ -11,8 +11,11 @@
 
 package io.highfidelity.gvrinterface;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.WindowManager;
+import android.util.Log;
 import org.qtproject.qt5.android.bindings.QtActivity;
 
 public class InterfaceActivity extends QtActivity {
@@ -21,5 +24,16 @@ public class InterfaceActivity extends QtActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        
+        // Get the intent that started this activity in case we have a hifi:// URL to parse
+        Intent intent = getIntent();
+        if (intent.getAction() == Intent.ACTION_VIEW) {
+            Uri data = intent.getData();
+        
+            if (data.getScheme().equals("hifi")) {
+                
+            }
+        }
+        
     }
 }
