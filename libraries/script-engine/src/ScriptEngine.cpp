@@ -635,10 +635,10 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
 }
 
-void ScriptEngine::include(const QString& includeFile) {
+void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
     QStringList urls;
     urls.append(includeFile);
-    include(urls);
+    include(urls, callback);
 }
 
 void ScriptEngine::load(const QString& loadFile) {
