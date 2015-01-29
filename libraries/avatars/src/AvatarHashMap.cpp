@@ -51,26 +51,26 @@ void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const
 }
 
 bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
-    return avatarWithDisplayName(displayName) == NULL ? false : true;
+    return !avatarWithDisplayName(displayName).isNull();
 }
 
-AvatarData* AvatarHashMap::avatarWithDisplayName(const QString& displayName) {
+AvatarWeakPointer AvatarHashMap::avatarWithDisplayName(const QString& displayName) {
     foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
         if (sharedAvatar->getDisplayName() == displayName) {
             // this is a match
             // check if this avatar should still be around
             if (!shouldKillAvatar(sharedAvatar)) {
                 // we have a match, return the AvatarData
-                return sharedAvatar.data();
+                return sharedAvatar;
             } else {
                 // we should remove this avatar, but we might not be on a thread that is allowed
                 // so we just return NULL to the caller
-                return NULL;
+                return AvatarWeakPointer();
             }
         }
     }
         
-    return NULL;
+    return AvatarWeakPointer();
 }
 
 AvatarSharedPointer AvatarHashMap::newSharedAvatar() {

@@ -30,20 +30,18 @@ class AvatarHashMap : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    AvatarHashMap();
-    
     const AvatarHash& getAvatarHash() { return _avatarHash; }
-    int size() const { return _avatarHash.size(); }
     
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     bool containsAvatarWithDisplayName(const QString& displayName);
-    AvatarData* avatarWithDisplayName(const QString& displayname);
+    AvatarWeakPointer avatarWithDisplayName(const QString& displayname);
     
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
     
 protected:
+    AvatarHashMap();
     virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
     
     bool shouldKillAvatar(const AvatarSharedPointer& sharedAvatar);
