@@ -129,7 +129,9 @@ Once the application is on your device, go to `Settings->Application Manager->Ge
 
 ####GLM
 
-Since GLM is a header only library, assuming it is installed at a system path or a path where our FindGLM module will find it you do not need to do anything specific for the Android build.
+GLM is a header only library and technically the same GLM used for desktop builds of hifi could be used for the Android build. However, to avoid conflicts with system installations of Android dependencies, CMake will only look for Android headers and libraries in `ANDROID_LIB_DIR` or in your android-ndk install. 
+
+Download the [glm headers](http://sourceforge.net/projects/ogl-math/files/) from their sourceforge page. The version you download should match the requirement shown in the [general build guide](BUILD.md). Extract the archive into your `ANDROID_LIB_DIR` and rename the extracted folder to `glm`.
 
 ###CMake
 
