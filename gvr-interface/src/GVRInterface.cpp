@@ -9,8 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifdef Q_OS_ANDROID
+
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QAndroidJniObject>
+
+#endif
+
 #include <QtCore/QTimer>
 #include <qpa/qplatformnativeinterface.h>
 #include <QtWidgets/QMenuBar>
@@ -37,7 +42,7 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     
     connect(this, &QGuiApplication::applicationStateChanged, this, &GVRInterface::handleApplicationStateChange);
 
-#ifdef Q_OS_ANDROID && HAVE_LIBOVR
+#if defined(Q_OS_ANDROID) && defined(HAVE_LIBOVR)
     QAndroidJniEnvironment jniEnv;
     
     QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
@@ -54,7 +59,7 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
 }
 
 void GVRInterface::idle() {
-#ifdef Q_OS_ANDROID && HAVE_LIBOVR
+#if defined(Q_OS_ANDROID) && defined(HAVE_LIBOVR)
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
         qDebug() << "The headset just got docked - assume we are in VR mode.";
         _inVRMode = true;

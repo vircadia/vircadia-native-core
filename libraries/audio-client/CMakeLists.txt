@@ -25,5 +25,11 @@ find_package(Soxr REQUIRED)
 target_link_libraries(${TARGET_NAME} ${SOXR_LIBRARIES})
 include_directories(SYSTEM ${SOXR_INCLUDE_DIRS})
 
+if (APPLE)
+  find_library(CoreAudio CoreAudio)
+  find_library(CoreFoundation CoreFoundation)
+  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation})
+endif ()
+
 # call macro to include our dependency includes and bubble them up via a property on our target
 include_dependency_includes()
