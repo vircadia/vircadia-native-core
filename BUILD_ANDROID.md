@@ -4,6 +4,11 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 You will need the following tools to build our Android targets.
 
+* [cmake](http://www.cmake.org/download/) ~> 3.1.0
+  * Note that this is a newer version required than the minimum for hifi desktop targets.
+* [Qt](http://www.qt.io/download-open-source/#) ~> 5.4.0
+  * Note that this is a newer version required than the minimum for hifi desktop targets.
+* [ant](http://ant.apache.org/bindownload.cgi) ~> 1.9.4
 * [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) = r10c
 * [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.0.2
   * Install the latest Platform-tools
@@ -26,13 +31,15 @@ This is most easily accomplished by installing all Android dependencies in the s
 
 ####Qt
 
-Install Qt 5.3 for Android for your host environment from the [Qt downloads page](http://www.qt.io/download/). Install Qt to ``$ANDROID_LIB_DIR/Qt``. This is required so that our root CMakeLists file can help CMake find your Android Qt installation.
+Install Qt 5.4 for Android for your host environment from the [Qt downloads page](http://www.qt.io/download/). Install Qt to ``$ANDROID_LIB_DIR/Qt``. This is required so that our root CMakeLists file can help CMake find your Android Qt installation. 
+
+The component required for the Android build is the `Android armv7` component.
 
 If you would like to install Qt to a different location, or attempt to build with a different Qt version, you can pass `ANDROID_QT_CMAKE_PREFIX_PATH` to CMake. Point to the `cmake` folder inside `$VERSION_NUMBER/android_armv7/lib`. Otherwise, our root CMakeLists will set it to `$ANDROID_LIB_DIR/Qt/5.3/android_armv7/lib/cmake`.
 
 ####OpenSSL
 
-Cross-compilation of OpenSSL has only been tested from an OS X machine running 10.10 compiling OpenSSL 1.0.1i. It is likely that the steps below will work for other OpenSSL versions than 1.0.1i.
+Cross-compilation of OpenSSL has been tested from an OS X machine running 10.10 compiling OpenSSL 1.0.2. It is likely that the steps below will work for other OpenSSL versions than 1.0.2.
 
 The original instructions to compile OpenSSL for Android from your host environment can be found [here](http://wiki.openssl.org/index.php/Android). We required some tweaks to get OpenSSL to successfully compile, those tweaks are explained below.
 
@@ -40,21 +47,16 @@ Download the [OpenSSL source](https://www.openssl.org/source/) and extract the t
 
 You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki. 
 
-You must change two values at the top of the `setenv-android.sh` script - `_ANDROID_NDK` and `_ANDROID_EABI`.
-`_ANDROID_NDK` should be `android-ndk-r10` and `_ANDROID_EABI` should be `arm-linux-androidebi-4.9`.
+You must change three values at the top of the `setenv-android.sh` script - `_ANDROID_NDK`, `_ANDROID_EABI` and `_ANDROID_API`.
+`_ANDROID_NDK` should be `android-ndk-r10`, `_ANDROID_EABI` should be `arm-linux-androidebi-4.9` and `_ANDROID_API` should be `19`.
 
 First, make sure `ANDROID_NDK_ROOT` is set in your env. This should be the path to the root of your Android NDK install. `setenv-android.sh` needs `ANDROID_NDK_ROOT` to set the environment variables required for building OpenSSL.
 
 Source the `setenv-android.sh` script so it can set environment variables that OpenSSL will use while compiling. If you use zsh as your shell you may need to modify the `setenv-android.sh` for it to set the correct variables in your env.
 
-We have had issues with `setenv-android.sh` not helping the system use the Android archive tool during compilation. You may also need to set `AR` to point to the `ar` from your NDK AFTER running ./setenv-android.sh. 
-
-Note that your path to `arm-linux-androideabi-ar` will probably not be the same as the one below if you are not on OS X or are using a different EABI.
-
 ```
 export ANDROID_NDK_ROOT=YOUR_NDK_ROOT
 source setenv-android.sh
-export AR=$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ar
 ```
 
 Then, from the OpenSSL directory, run the following commands.
@@ -90,12 +92,12 @@ cp `find . -name "*.so"` lib/
 
 Download the [Soxr source](http://sourceforge.net/projects/soxr/) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `soxr`.
 
-From the soxr directory, use cmake, along with the `android.toolchain.cmake` file (included in this repository under cmake/android) to cross-compile soxr for Android.
+From the soxr directory, use cmake, along with the `android.toolchain.cmake` file (included in this repository under cmake/android) to cross-compile soxr for Android. Note that you will need ANDROID_NDK set in your environment before using the toolchain file.
 
-The full set of commands to build soxr for Android is shown below
+The full set of commands to build soxr for Android is shown below. It is a long command, make sure you copy the entire command (up to `-DBUILD_TESTS=0`).
 
 ```
-cmake -DCMAKE_TOOLCHAIN_FILE=$FULL_PATH_TO_TOOLCHAIN -DHAVE_WORDS_BIGENDIAN_EXITCODE=1 -DBUILD_TESTS=0 -DCMAKE_INSTALL_PREFIX=.
+cmake -DCMAKE_TOOLCHAIN_FILE=$FULL_PATH_TO_TOOLCHAIN -DCMAKE_INSTALL_PREFIX=. -DHAVE_WORDS_BIGENDIAN_EXITCODE=1 -DBUILD_TESTS=0
 make
 make install
 ```
@@ -108,7 +110,14 @@ The Oculus Mobile SDK is optional, for Gear VR support. It is not required to co
 
 Download the [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) and extract the archive inside your `ANDROID_LIB_DIR` folder. Rename the extracted folder to `libovr`.
 
-From the VrLib directory, use ndk-build to build VrLib. This will create the liboculus.a archive that our FindLibOVR module will look for when cmake is run.
+From the VRLib directory, use ndk-build to build VrLib. 
+
+```
+cd VRLib
+ndk-build
+```
+
+This will create the liboculus.a archive that our FindLibOVR module will look for when cmake is run.
 
 #####Hybrid testing
 
@@ -120,7 +129,9 @@ Once the application is on your device, go to `Settings->Application Manager->Ge
 
 ####GLM
 
-Since GLM is a header only library, assuming it is installed at a system path or a path where our FindGLM module will find it you do not need to do anything specific for the Android build.
+GLM is a header only library and technically the same GLM used for desktop builds of hifi could be used for the Android build. However, to avoid conflicts with system installations of Android dependencies, CMake will only look for Android headers and libraries in `ANDROID_LIB_DIR` or in your android-ndk install. 
+
+Download the [glm headers](http://sourceforge.net/projects/ogl-math/files/) from their sourceforge page. The version you download should match the requirement shown in the [general build guide](BUILD.md). Extract the archive into your `ANDROID_LIB_DIR` and rename the extracted folder to `glm`.
 
 ###CMake
 
@@ -134,5 +145,4 @@ The following must be set in your environment:
 
 The following must be passed to CMake when it is run:
 
-* CMAKE_TOOLCHAIN_FILE - full path to the android.toolchain.cmake file that is included in this repository (/cmake/android/android.toolchain.cmake)
-* ANDROID_NATIVE_API_LEVEL - the API level you want to use (this should be 19 for GearVR)
+* USE_ANDROID_TOOLCHAIN - set to true to build for Android

@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 2.8.12.2)
 
+if (USE_ANDROID_TOOLCHAIN)
+  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
+  set(ANDROID_NATIVE_API_LEVEL 19)
+endif ()
+
 if (WIN32)
   cmake_policy(SET CMP0020 NEW)
 endif (WIN32)
@@ -64,12 +69,12 @@ endif ()
 
 if (ANDROID)  
   if (NOT ANDROID_QT_CMAKE_PREFIX_PATH)
-    set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.3/android_armv7/lib/cmake)
+    set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.4/android_armv7/lib/cmake)
   else ()
     set(QT_CMAKE_PREFIX_PATH ${ANDROID_QT_CMAKE_PREFIX_PATH})
   endif ()
   
-  set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM BOTH)
+  set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
   
   if (ANDROID_LIB_DIR)
@@ -118,6 +123,6 @@ if (NOT ANDROID)
   add_subdirectory(interface)
   add_subdirectory(tests)
   add_subdirectory(tools)
-else ()
-  add_subdirectory(gvr-interface)
 endif()
+
+add_subdirectory(gvr-interface)

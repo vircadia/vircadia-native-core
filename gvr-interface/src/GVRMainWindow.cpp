@@ -14,8 +14,13 @@
 #include <QtWidgets/QInputDialog>
 #include <QtWidgets/QMenuBar>
 
+#ifndef Q_OS_ANDROID
+#include <QtWidgets/QDesktopWidget>
+#endif
+
 #include <AddressManager.h>
 
+#include "InterfaceView.h"
 #include "RenderingClient.h"
 
 #include "GVRMainWindow.h"
@@ -23,6 +28,13 @@
 GVRMainWindow::GVRMainWindow(QWidget* parent) :
     QMainWindow(parent)
 {
+    
+#ifndef Q_OS_ANDROID
+    const int NOTE_4_WIDTH = 2560;
+    const int NOTE_4_HEIGHT = 1440;
+    setFixedSize(NOTE_4_WIDTH / 2, NOTE_4_HEIGHT / 2);
+#endif
+    
     QMenu* fileMenu = new QMenu("File");
     QMenu* helpMenu = new QMenu("Help");
     
@@ -48,6 +60,9 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     baseWidget->setLayout(_mainLayout);
     
     setCentralWidget(baseWidget);
+    
+    // add the interface view
+    InterfaceView* interfaceView = new InterfaceView(baseWidget);
 }
 
 void GVRMainWindow::showAddressBar() {

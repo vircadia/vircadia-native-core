@@ -9,8 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifdef Q_OS_ANDROID
+
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QAndroidJniObject>
+
+#endif
+
 #include <QtCore/QTimer>
 #include <qpa/qplatformnativeinterface.h>
 #include <QtWidgets/QMenuBar>
@@ -37,7 +42,7 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     
     connect(this, &QGuiApplication::applicationStateChanged, this, &GVRInterface::handleApplicationStateChange);
 
-#ifdef HAVE_LIBOVR
+#if defined(Q_OS_ANDROID) && defined(HAVE_LIBOVR)
     QAndroidJniEnvironment jniEnv;
     
     QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
@@ -51,23 +56,10 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     QTimer* idleTimer = new QTimer(this);
     connect(idleTimer, &QTimer::timeout, this, &GVRInterface::idle);
     idleTimer->start(0);
-    
-    // // setup our EGL context
-  //   const int windowDepth = 0;
-  //   const int windowSamples = 0;
-  //   const GLuint contextPriority = EGL_CONTEXT_PRIORITY_MEDIUM_IMG;
-  //   OVR::eglSetup_t egl = OVR::EglSetup(EGL_NO_CONTEXT, GL_ES_VERSION,
-  //       8, 8, 8, windowDepth, windowSamples, contextPriority);
-  //
-  //   if (egl.context == EGL_NO_CONTEXT) {
-  //       qDebug() << "WE HAD SOME DIFFICULTIES SETTING UP EGL!";
-  //   } else {
-  //       qDebug() << "EGL is good to go.";
-  //   }
 }
 
 void GVRInterface::idle() {
-#ifdef HAVE_LIBOVR
+#if defined(Q_OS_ANDROID) && defined(HAVE_LIBOVR)
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
         qDebug() << "The headset just got docked - assume we are in VR mode.";
         _inVRMode = true;

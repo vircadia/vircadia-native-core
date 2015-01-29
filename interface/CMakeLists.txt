@@ -183,12 +183,10 @@ add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
-  find_library(CoreAudio CoreAudio)
-  find_library(CoreFoundation CoreFoundation)
   find_library(OpenGL OpenGL)
   find_library(AppKit AppKit)
 
-  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${OpenGL} ${AppKit})
+  target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
     
   # install command for OS X bundle
   INSTALL(TARGETS ${TARGET_NAME}
