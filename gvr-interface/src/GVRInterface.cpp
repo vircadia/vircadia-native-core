@@ -36,10 +36,16 @@
 
 #include "GVRInterface.h"
 
+static QString launchURLString = "";
+
 GVRInterface::GVRInterface(int argc, char* argv[]) : 
     QApplication(argc, argv),
     _inVRMode(false)
 {
+    // did we get launched with a lookup URL? If so it is time to give that to the AddressManager
+    qDebug() << "We were opened via a hifi URL -" << launchURLString;
+    launchURLString = "";
+    
     _client = new RenderingClient(this);
     
     connect(this, &QGuiApplication::applicationStateChanged, this, &GVRInterface::handleApplicationStateChange);
@@ -65,7 +71,7 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
 extern "C" {
     
 JNIEXPORT void Java_io_highfidelity_gvrinterface_InterfaceActivity_handleHifiURL(JNIEnv *jni, jclass clazz, jstring hifiURLString) {
-    qDebug() << "The lookup string in c++ is" << QAndroidJniObject(hifiURLString).toString();
+    launchURLString = QAndroidJniObject(hifiURLString).toString();
 }
 
 }
