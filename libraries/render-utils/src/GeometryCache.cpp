@@ -1254,9 +1254,9 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
-                    const glm::vec4& quadColor, int id) {
+                    const glm::vec4& color, int id) {
 
-    #ifdef WANT_DEBUG
+    #if 1 // def WANT_DEBUG
         qDebug() << "renderQuad() vec3 + texture VBO...";
         qDebug() << "    topLeft:" << topLeft;
         qDebug() << "    bottomLeft:" << bottomLeft;
@@ -1264,106 +1264,99 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
         qDebug() << "    topRight:" << topRight;
         qDebug() << "    texCoordTopLeft:" << texCoordTopLeft;
         qDebug() << "    texCoordBottomRight:" << texCoordBottomRight;
+        qDebug() << "    color:" << color;
     #endif //def WANT_DEBUG
     
-    bool registeredQuad = (id != UNKNOWN_ID);
-    Vec3PairVec2Pair key(Vec3Pair(topLeft, bottomRight), Vec2Pair(texCoordTopLeft, texCoordBottomRight));
-    VerticesIndices& vbo = registeredQuad ? _registeredQuadVBOs[id] : _quad3DTextureVBOs[key];
-    
+    bool registered = (id != UNKNOWN_ID);
+    Vec3PairVec4Pair key(Vec3Pair(topLeft, bottomRight),
+                            Vec4Pair(glm::vec4(texCoordTopLeft.x,texCoordTopLeft.y,texCoordBottomRight.x,texCoordBottomRight.y),
+                                    color));
+                                    
+    BatchItemDetails& details = registered ? _registeredQuad3DTextures[id] : _quad3DTextures[key];
+
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registeredQuad && vbo.first != 0) {
-        Vec3PairVec2Pair& lastKey = _lastRegisteredQuad3DTexture[id];
+    if (registered && details.isCreated) {
+        Vec3PairVec4Pair& lastKey = _lastRegisteredQuad3DTexture[id];
         if (lastKey != key) {
-            glDeleteBuffers(1, &vbo.first);
-            glDeleteBuffers(1, &vbo.second);
-            vbo.first = vbo.second = 0;
+            details.clear();
+            _lastRegisteredQuad3DTexture[id] = key;
             #ifdef WANT_DEBUG
-                qDebug() << "renderQuad() vec3 + texture VBO... RELEASING REGISTERED QUAD";
+                qDebug() << "renderQuad() 3D+texture ... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderQuad()  vec3 + texture... REUSING PREVIOUSLY REGISTERED QUAD";
+            qDebug() << "renderQuad() 3D+texture ... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
-    
-    const int FLOATS_PER_VERTEX = 5; // text coords & vertices
-    const int NUM_BYTES_PER_VERTEX = FLOATS_PER_VERTEX * sizeof(GLfloat);
+
+    const int FLOATS_PER_VERTEX = 3 + 2; // 3d vertices + text coords
     const int vertices = 4;
-    const int indices = 4;
-    if (vbo.first == 0) {
-        _lastRegisteredQuad3DTexture[id] = key;
-        int vertexPoints = vertices * FLOATS_PER_VERTEX;
-        GLfloat* vertexData = new GLfloat[vertexPoints]; // text coords & vertices
-        GLfloat* vertex = vertexData;
-        static GLubyte cannonicalIndices[indices] = {0, 1, 2, 3};
-        int v = 0;
+    const int NUM_POS_COORDS = 3;
+    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
 
-        vertex[v++] = topLeft.x;
-        vertex[v++] = topLeft.y;
-        vertex[v++] = topLeft.z;
-        vertex[v++] = texCoordTopLeft.x;
-        vertex[v++] = texCoordTopLeft.y;
-        
-        vertex[v++] = bottomLeft.x;
-        vertex[v++] = bottomLeft.y;
-        vertex[v++] = bottomLeft.z;
-        vertex[v++] = texCoordBottomLeft.x;
-        vertex[v++] = texCoordBottomLeft.y;
-        
-        vertex[v++] = bottomRight.x;
-        vertex[v++] = bottomRight.y;
-        vertex[v++] = bottomRight.z;
-        vertex[v++] = texCoordBottomRight.x;
-        vertex[v++] = texCoordBottomRight.y;
-        
-        vertex[v++] = topRight.x;
-        vertex[v++] = topRight.y;
-        vertex[v++] = topRight.z;
-        vertex[v++] = texCoordTopRight.x;
-        vertex[v++] = texCoordTopRight.y;
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-        
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < indices; i++) {
-            index[i] = cannonicalIndices[i];
-        }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
+    if (!details.isCreated) {
 
-        #ifdef WANT_DEBUG
-            if (id == UNKNOWN_ID) {
-                qDebug() << "    _quad3DTextureVBOs.size():" << _quad3DTextureVBOs.size();
-            } else {
-                qDebug() << "new registered quad VBO made -- _registeredQuadVBOs.size():" << _registeredQuadVBOs.size();
-            }
-        #endif
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        details.isCreated = true;
+        details.vertices = vertices;
+        details.vertexSize = FLOATS_PER_VERTEX; // NOTE: this isn't used for BatchItemDetails maybe we can get rid of it
+
+        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
+        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+
+        details.verticesBuffer = verticesBuffer;
+        details.colorBuffer = colorBuffer;
+        details.streamFormat = streamFormat;
+        details.stream = stream;
+    
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
+        details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+        details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
+        details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
+
+
+        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {
+                                topLeft.x, topLeft.y, topLeft.z, texCoordTopLeft.x, texCoordTopLeft.y,
+                                bottomLeft.x, bottomLeft.y, bottomLeft.z, texCoordBottomLeft.x, texCoordBottomLeft.y,
+                                bottomRight.x, bottomRight.y, bottomRight.z, texCoordBottomRight.x, texCoordBottomRight.y,
+                                topRight.x, topRight.y, topRight.z, texCoordTopRight.x, texCoordTopRight.y,
+                            };
+
+        const int NUM_COLOR_SCALARS_PER_QUAD = 4;
+        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                            ((int(color.y * 255.0f) & 0xFF) << 8) |
+                            ((int(color.z * 255.0f) & 0xFF) << 16) |
+                            ((int(color.w * 255.0f) & 0xFF) << 24);
+        int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
+
+
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
     }
 
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glVertexPointer(3, GL_FLOAT, NUM_BYTES_PER_VERTEX, 0);
-    glTexCoordPointer(2, GL_FLOAT, NUM_BYTES_PER_VERTEX, (const void *)(3 * sizeof(float)));
+    gpu::Batch batch;
 
-    glDrawRangeElementsEXT(GL_QUADS, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    glEnable(GL_TEXTURE_2D);
+    //glBindTexture(GL_TEXTURE_2D, _currentTextureID); // this is quad specific...
+
+    batch.setInputFormat(details.streamFormat);
+    batch.setInputStream(0, *details.stream);
+    batch.draw(gpu::QUADS, 4, 0);
+
+    gpu::GLBackend::renderBatch(batch);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    
+    glDisableClientState(GL_COLOR_ARRAY);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
 }
 
 void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
