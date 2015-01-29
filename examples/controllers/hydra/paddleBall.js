@@ -24,7 +24,8 @@ var BALL_COLOR = { red: 255, green: 0, blue: 0 };
 var LINE_COLOR = { red: 255, green: 255, blue: 0 };
 var PADDLE_BOX_OFFSET = { x: 0.05, y: 0.0, z: 0.0 };
 
-var HOLD_POSITION_OFFSET = { x: -0.15, y: 0.05, z: -0.05 }; 
+var HOLD_POSITION_LEFT_OFFSET = { x: -0.15, y: 0.05, z: -0.05 }; 
+var HOLD_POSITION_RIGHT_OFFSET = { x: -0.15, y: 0.05, z: 0.05 }; 
 var PADDLE_ORIENTATION = Quat.fromPitchYawRollDegrees(0,0,0);
 var GRAVITY = 0.0;   
 var SPRING_FORCE = 15.0; 
@@ -33,11 +34,18 @@ var gameOn = false;
 var leftHanded = true; 
 var controllerID;
 
-if (leftHanded)  {
-	controllerID = 1;
-} else {
-	controllerID = 3; 
+
+function setControllerID() {
+    if (leftHanded)  {
+        controllerID = 1;
+    } else {
+        controllerID = 3; 
+    }
 }
+
+setControllerID(); 
+Menu.addMenu("PaddleBall");
+Menu.addMenuItem({ menuName: "PaddleBall", menuItemName: "Left-Handed", isCheckable: true, isChecked: true });
 
 var screenSize = Controller.getViewportDimensions();
 var offButton = Overlays.addOverlay("image", {
@@ -96,7 +104,8 @@ function createEntities() {
     			visible: true,
     			lineWidth: 2 });
     
-    MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
+    MyAvatar.stopAnimation(leftHandAnimation);
+    MyAvatar.stopAnimation(rightHandAnimation);
     MyAvatar.startAnimation(leftHanded ? leftHandAnimation: rightHandAnimation, 15.0, 1.0, false, true, 0.0, 6);
 }
 
@@ -129,9 +138,10 @@ function update(deltaTime) {
 	if (!ball.isKnownID) {
 	   ball = Entities.identifyEntity(ball);
 	} else {
-		var paddleWorldOrientation = Quat.multiply(Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)), PADDLE_ORIENTATION);
+        var paddleOrientation = leftHanded ? PADDLE_ORIENTATION : Quat.multiply(PADDLE_ORIENTATION, Quat.fromPitchYawRollDegrees(0, 180, 0));
+		var paddleWorldOrientation = Quat.multiply(Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)), paddleOrientation);
 		var holdPosition = Vec3.sum(leftHanded ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(), 
-									Vec3.multiplyQbyV(paddleWorldOrientation, HOLD_POSITION_OFFSET));
+									Vec3.multiplyQbyV(paddleWorldOrientation, leftHanded ? HOLD_POSITION_LEFT_OFFSET : HOLD_POSITION_RIGHT_OFFSET ));
 
 		var props = Entities.getEntityProperties(ball);
 		var spring = Vec3.subtract(holdPosition, props.position);
@@ -172,15 +182,30 @@ function mousePressEvent(event) {
     }
 }
 
+function menuItemEvent(menuItem) {
+    oldHanded = leftHanded; 
+    if (menuItem == "Left-Handed") {
+        leftHanded = Menu.isOptionChecked("Left-Handed");
+    }
+    if ((leftHanded != oldHanded) && gameOn) {
+        setControllerID();
+        deleteEntities(); 
+        createEntities();
+    }
+}
+
 function scriptEnding() {
 	if (gameOn) {
 		deleteEntities();
 	}
     Overlays.deleteOverlay(offButton);
-    MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
+    MyAvatar.stopAnimation(leftHandAnimation);
+    MyAvatar.stopAnimation(rightHandAnimation);
+    Menu.removeMenu("PaddleBall");
 }
 
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
+Menu.menuItemEvent.connect(menuItemEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
