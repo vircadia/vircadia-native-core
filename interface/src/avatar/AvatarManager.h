@@ -31,8 +31,6 @@ public:
     /// Registers the script types associated with the avatar manager.
     static void registerMetaTypes(QScriptEngine* engine);
 
-    AvatarManager(QObject* parent = 0);
-
     void init();
 
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
@@ -52,6 +50,7 @@ public:
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
     
 private:
+    AvatarManager(QObject* parent = 0);
     AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
