@@ -10,18 +10,27 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+hitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
+var rightHandAnimation = HIFI_PUBLIC_BUCKET + "animations/RightHandAnimPhilip.fbx";
+var leftHandAnimation = HIFI_PUBLIC_BUCKET + "animations/LeftHandAnimPhilip.fbx";
+
 var BALL_SIZE = 0.08;
 var PADDLE_SIZE = 0.20;
 var PADDLE_THICKNESS = 0.06;
 var PADDLE_COLOR = { red: 184, green: 134, blue: 11 };
 var BALL_COLOR = { red: 255, green: 0, blue: 0 };
 var LINE_COLOR = { red: 255, green: 255, blue: 0 };
-var PADDLE_OFFSET = { x: 0.05, y: 0.0, z: 0.0 };
+var PADDLE_BOX_OFFSET = { x: 0.05, y: 0.0, z: 0.0 };
+
+var HOLD_POSITION_OFFSET = { x: -0.15, y: 0.05, z: -0.05 }; 
+var PADDLE_ORIENTATION = Quat.fromPitchYawRollDegrees(0,0,0);
 var GRAVITY = 0.0;   
 var SPRING_FORCE = 15.0; 
 var lastSoundTime = 0; 
 var gameOn = false; 
-var leftHanded = false; 
+var leftHanded = true; 
 var controllerID;
 
 if (leftHanded)  {
@@ -29,10 +38,6 @@ if (leftHanded)  {
 } else {
 	controllerID = 3; 
 }
-
-
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-hitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav");
 
 var screenSize = Controller.getViewportDimensions();
 var offButton = Overlays.addOverlay("image", {
@@ -73,7 +78,7 @@ function createEntities() {
 	modelURL = "http://public.highfidelity.io/models/attachments/pong_paddle.fbx";
 	paddleModel = Entities.addEntity(
 		    	{ type: "Model",
-		        position: Vec3.sum(Controller.getSpatialControlPosition(controllerID), PADDLE_OFFSET),   
+		        position: Vec3.sum(Controller.getSpatialControlPosition(controllerID), PADDLE_BOX_OFFSET),   
 				dimensions: { x: PADDLE_SIZE * 1.5, y: PADDLE_THICKNESS, z: PADDLE_SIZE * 1.25 }, 
 		      	color: PADDLE_COLOR,
 		      	gravity: {  x: 0, y: 0, z: 0 },
@@ -90,6 +95,9 @@ function createEntities() {
     			alpha: 1,
     			visible: true,
     			lineWidth: 2 });
+    
+    MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
+    MyAvatar.startAnimation(leftHanded ? leftHandAnimation: rightHandAnimation, 15.0, 1.0, false, true, 0.0, 6);
 }
 
 function deleteEntities() {
@@ -97,6 +105,7 @@ function deleteEntities() {
     Entities.deleteEntity(paddle);
     Entities.deleteEntity(paddleModel);
     Overlays.deleteOverlay(line); 
+    MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
 }
 
 function update(deltaTime) {
@@ -120,18 +129,22 @@ function update(deltaTime) {
 	if (!ball.isKnownID) {
 	   ball = Entities.identifyEntity(ball);
 	} else {
+		var paddleWorldOrientation = Quat.multiply(Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)), PADDLE_ORIENTATION);
+		var holdPosition = Vec3.sum(leftHanded ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(), 
+									Vec3.multiplyQbyV(paddleWorldOrientation, HOLD_POSITION_OFFSET));
+
 		var props = Entities.getEntityProperties(ball);
-		var spring = Vec3.subtract(palmPosition, props.position);
-		var paddleWorldOrientation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID));
+		var spring = Vec3.subtract(holdPosition, props.position);
 		var springLength = Vec3.length(spring);
+
 		spring = Vec3.normalize(spring);
 		var ballVelocity = Vec3.sum(props.velocity, Vec3.multiply(springLength * SPRING_FORCE * deltaTime, spring)); 
     	Entities.editEntity(ball, { velocity: ballVelocity });
-    	Overlays.editOverlay(line, { start: props.position, end: palmPosition });
-    	Entities.editEntity(paddle, { position: palmPosition, 
+    	Overlays.editOverlay(line, { start: props.position, end: holdPosition });
+    	Entities.editEntity(paddle, { position: holdPosition, 
     								  velocity: Controller.getSpatialControlVelocity(controllerID),
     								  rotation: paddleWorldOrientation });
-    	Entities.editEntity(paddleModel, { position: Vec3.sum(palmPosition, Vec3.multiplyQbyV(paddleWorldOrientation, PADDLE_OFFSET)), 
+    	Entities.editEntity(paddleModel, { position: Vec3.sum(holdPosition, Vec3.multiplyQbyV(paddleWorldOrientation, PADDLE_BOX_OFFSET)), 
     								  velocity: Controller.getSpatialControlVelocity(controllerID),
     								  rotation: paddleWorldOrientation });
 	}
@@ -164,6 +177,7 @@ function scriptEnding() {
 		deleteEntities();
 	}
     Overlays.deleteOverlay(offButton);
+    MyAvatar.stopAnimation(leftHanded ? leftHandAnimation: rightHandAnimation);
 }
 
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
