@@ -50,7 +50,7 @@ endif ()
 # the presence of a HOCKEY_APP_ID means we are making a beta build
 if (ANDROID AND HOCKEY_APP_ID)
   set(HOCKEY_APP_ENABLED true)
-  set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />")
+  set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />\n")
   set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceBetaActivity)
   set(ANDROID_DEPLOY_QT_INSTALL "")
   set(ANDROID_APK_CUSTOM_NAME "Interface-beta.apk")
@@ -71,9 +71,18 @@ elseif (ANDROID)
 endif ()
 
 if (ANDROID)
+  
+  set(HIFI_URL_INTENT "<intent-filter>\
+    \n        <action android:name='android.intent.action.VIEW' />\
+    \n        <category android:name='android.intent.category.DEFAULT' />\
+    \n        <category android:name='android.intent.category.BROWSABLE' />\
+    \n        <data android:scheme='hifi' />\
+    \n    </intent-filter>"
+  )
+  
+  set(ANDROID_EXTRA_APPLICATION_XML "${HOCKEY_APP_ACTIVITY}${HIFI_URL_INTENT}")
 
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/hockeyapp.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/hockeyapp.xml")
-
   qt_create_apk()
   
 endif (ANDROID)
