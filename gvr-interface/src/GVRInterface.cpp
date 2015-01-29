@@ -9,7 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef Q_WS_ANDROID
+#ifdef ANDROID
+
+#include <jni.h>
 
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QAndroidJniObject>
@@ -58,8 +60,20 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     idleTimer->start(0);
 }
 
+#ifdef ANDROID
+
+extern "C" {
+    
+JNIEXPORT void Java_io_highfidelity_gvrinterface_InterfaceActivity_handleHifiURL(JNIEnv *jni, jclass clazz, jstring hifiURLString) {
+    qDebug() << "The lookup string in c++ is" << QAndroidJniObject(hifiURLString).toString();
+}
+
+}
+
+#endif
+
 void GVRInterface::idle() {
-#if defined(Q_WS_ANDROID) && defined(HAVE_LIBOVR)
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
         qDebug() << "The headset just got docked - assume we are in VR mode.";
         _inVRMode = true;

@@ -20,6 +20,8 @@ import org.qtproject.qt5.android.bindings.QtActivity;
 
 public class InterfaceActivity extends QtActivity {
     
+    public static native void handleHifiURL(String hifiURLString);
+    
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,7 +33,7 @@ public class InterfaceActivity extends QtActivity {
             Uri data = intent.getData();
         
             if (data.getScheme().equals("hifi")) {
-                
+                handleHifiURL(data.toString());
             }
         }
         

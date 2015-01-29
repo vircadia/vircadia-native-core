@@ -29,7 +29,7 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     QMainWindow(parent)
 {
     
-#ifndef Q_OS_ANDROID
+#ifndef ANDROID
     const int NOTE_4_WIDTH = 2560;
     const int NOTE_4_HEIGHT = 1440;
     setFixedSize(NOTE_4_WIDTH / 2, NOTE_4_HEIGHT / 2);
