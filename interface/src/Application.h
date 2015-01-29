@@ -171,8 +171,6 @@ public:
 
     bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
 
-    MyAvatar* getAvatar() { return _myAvatar; }
-    const MyAvatar* getAvatar() const { return _myAvatar; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
@@ -266,7 +264,7 @@ public:
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y);
-    virtual const glm::vec3& getAvatarPosition() const { return getAvatar()->getPosition(); }
+    virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 

@@ -140,7 +140,8 @@ void DatagramProcessor::processDatagrams() {
                         int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
                         memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
                         memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
-                        distance = glm::distance(Application::getInstance()->getAvatar()->getPosition(), position);
+                        distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
+                                                 position);
                         
                         mute = mute && (distance < radius);
                     }

@@ -12,6 +12,7 @@
 #include <QFileDialog>
 
 #include <AudioClient.h>
+#include <avatar/AvatarManager.h>
 #include <devices/Faceshift.h>
 #include <devices/SixenseManager.h>
 
@@ -107,7 +108,7 @@ void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
 
 void PreferencesDialog::loadPreferences() {
     
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     Menu* menuInstance = Menu::getInstance();
 
     _displayNameString = myAvatar->getDisplayName();
@@ -173,7 +174,7 @@ void PreferencesDialog::loadPreferences() {
 
 void PreferencesDialog::savePreferences() {
     
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     bool shouldDispatchIdentityPacket = false;
     
     QString displayNameStr(ui.displayNameEdit->text());

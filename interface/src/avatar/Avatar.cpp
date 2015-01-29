@@ -273,7 +273,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         _referential->update();
     }
     
-    if (postLighting && glm::distance(Application::getInstance()->getAvatar()->getPosition(), _position) < 10.0f) {
+    if (postLighting &&
+        glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         // render pointing lasers
@@ -354,7 +355,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         const float GLOW_MAX_LOUDNESS = 2500.0f;
         const float MAX_GLOW = 0.5f;
      
-        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
+        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == DependencyManager::get<AvatarManager>()->getMyAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
         if (!Menu::getInstance()->isOptionChecked(MenuOption::GlowWhenSpeaking)) {
@@ -1054,7 +1055,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
     
     // For myAvatar, the alpha update is not done (called in simulate for other avatars)
-    if (Application::getInstance()->getAvatar() == this) {
+    if (DependencyManager::get<AvatarManager>()->getMyAvatar() == this) {
         if (showDisplayName) {
             _displayNameAlpha = DISPLAYNAME_ALPHA;
         } else {

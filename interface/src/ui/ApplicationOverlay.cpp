@@ -13,6 +13,7 @@
 
 #include <QOpenGLFramebufferObject>
 
+#include <avatar/AvatarManager.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 
@@ -161,8 +162,7 @@ ApplicationOverlay::~ApplicationOverlay() {
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
-    Application* application = Application::getInstance();
-    Overlays& overlays = application->getOverlays();
+    Overlays& overlays = qApp->getOverlays();
     auto glCanvas = DependencyManager::get<GLCanvas>();
     
     _textureFov = glm::radians(_oculusUIAngularSize);
@@ -206,7 +206,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         renderStatsAndLogs();
 
         // give external parties a change to hook in
-        emit application->renderingOverlay();
+        emit qApp->renderingOverlay();
 
         overlays.renderHUD();
 
@@ -278,7 +278,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     
     
     //Update and draw the magnifiers
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const glm::quat& orientation = myAvatar->getOrientation();
     const glm::vec3& position = myAvatar->getDefaultEyePosition();
     const float scale = myAvatar->getScale() * _oculusUIRadius;
@@ -343,10 +343,8 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
         return;
     }
     
-    Application* application = Application::getInstance();
-    
-    MyAvatar* myAvatar = application->getAvatar();
-    const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    const glm::vec3& viewMatrixTranslation = qApp->getViewMatrixTranslation();
     
     glActiveTexture(GL_TEXTURE0);
     
@@ -407,8 +405,8 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     const float reticleSize = 40.0f / glCanvas->width() * quadWidth;
     x -= reticleSize / 2.0f;
     y += reticleSize / 2.0f;
-    const float mouseX = (application->getMouseX() / (float)glCanvas->width()) * quadWidth;
-    const float mouseY = (1.0 - (application->getMouseY() / (float)glCanvas->height())) * quadHeight;
+    const float mouseX = (qApp->getMouseX() / (float)glCanvas->width()) * quadWidth;
+    const float mouseY = (1.0 - (qApp->getMouseY() / (float)glCanvas->height())) * quadHeight;
     
     glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
 
@@ -441,22 +439,21 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origi
     const glm::vec3 localDirection = orientation * IDENTITY_FRONT;
 
     //Rotate the UI pick ray by the avatar orientation
-    const MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    const MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     origin = myAvatar->getDefaultEyePosition();
     direction = myAvatar->getOrientation() * localDirection;
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
-    Application* application = Application::getInstance();
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    MyAvatar* myAvatar = application->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
     glm::vec3 eyePos = myAvatar->getHead()->getEyePosition();
     glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
     //direction of ray goes towards camera
-    glm::vec3 dir = invOrientation * glm::normalize(application->getCamera()->getPosition() - tip);
+    glm::vec3 dir = invOrientation * glm::normalize(qApp->getCamera()->getPosition() - tip);
     glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
     QPoint rv;
@@ -490,7 +487,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
         }
     } else {
         glm::dmat4 projection;
-        application->getProjectionMatrix(&projection);
+        qApp->getProjectionMatrix(&projection);
 
         glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
         glm::vec3 ndcSpacePos;
@@ -506,8 +503,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
 
 //Finds the collision point of a world space ray
 bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
-    Application* application = Application::getInstance();
-    MyAvatar* myAvatar = application->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     
     glm::quat orientation = myAvatar->getOrientation();
 
@@ -527,7 +523,6 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
-    Application* application = Application::getInstance();
     auto glCanvas = DependencyManager::get<GLCanvas>();
 
     //lazily load crosshair texture
@@ -539,12 +534,12 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-    if (OculusManager::isConnected() && !application->getLastMouseMoveWasSimulated()) {
+    if (OculusManager::isConnected() && !qApp->getLastMouseMoveWasSimulated()) {
         //If we are in oculus, render reticle later
         if (_lastMouseMove == 0) {
             _lastMouseMove = usecTimestampNow();
         }
-        QPoint position = QPoint(application->getTrueMouseX(), application->getTrueMouseY());
+        QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
         
         static const int MAX_IDLE_TIME = 3;
         if (_reticlePosition[MOUSE] != position) {
@@ -563,7 +558,7 @@ void ApplicationOverlay::renderPointers() {
         _magActive[MOUSE] = true;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (application->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         _lastMouseMove = 0;
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
@@ -575,16 +570,15 @@ void ApplicationOverlay::renderPointers() {
 }
 
 void ApplicationOverlay::renderControllerPointers() {
-    Application* application = Application::getInstance();
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    MyAvatar* myAvatar = application->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     //Static variables used for storing controller state
     static quint64 pressedTime[NUMBER_OF_RETICLES] = { 0ULL, 0ULL, 0ULL };
     static bool isPressed[NUMBER_OF_RETICLES] = { false, false, false };
     static bool stateWhenPressed[NUMBER_OF_RETICLES] = { false, false, false };
 
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
 
     for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
         const int index = palmIndex - 1;
@@ -692,7 +686,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
     glMatrixMode(GL_MODELVIEW);
     
     //Controller Pointers
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
 
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
@@ -904,13 +898,10 @@ void ApplicationOverlay::renderAudioMeter() {
 }
 
 void ApplicationOverlay::renderStatsAndLogs() {
-
-    Application* application = Application::getInstance();
-    
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
-    BandwidthMeter* bandwidthMeter = application->getBandwidthMeter();
-    NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
+    const OctreePacketProcessor& octreePacketProcessor = qApp->getOctreePacketProcessor();
+    BandwidthMeter* bandwidthMeter = qApp->getBandwidthMeter();
+    NodeBounds& nodeBoundsDisplay = qApp->getNodeBoundsDisplay();
 
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
@@ -921,8 +912,8 @@ void ApplicationOverlay::renderStatsAndLogs() {
         int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
         int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
-        Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, application->getFps(),
-            application->getPacketsPerSecond(), application->getBytesPerSecond(), voxelPacketsToProcess);
+        Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, qApp->getFps(),
+            qApp->getPacketsPerSecond(), qApp->getBytesPerSecond(), voxelPacketsToProcess);
         //  Bandwidth meter
         if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
             Stats::drawBackground(0x33333399, glCanvas->width() - 296, glCanvas->height() - 68, 296, 68);

@@ -399,7 +399,7 @@ void Stats::display(
         horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + 2;
     }
     
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
     lines = _expanded ? 8 : 3;

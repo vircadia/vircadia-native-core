@@ -16,23 +16,24 @@
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QLineEdit>
+#include <QMenu>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
 
+#include <avatar/AvatarManager.h>
+#include <DependencyManager.h>
 #include <Settings.h>
 
 #include "AnimationsDialog.h"
-#include "Application.h"
-#include "MainWindow.h"
 
 namespace SettingHandles {
     const SettingHandle<QString> animationDirectory("animation_directory", QString());
 }
 
 AnimationsDialog::AnimationsDialog(QWidget* parent) :
-    QDialog(parent) {
-    
+    QDialog(parent)
+{
     setWindowTitle("Edit Animations");
     setAttribute(Qt::WA_DeleteOnClose);
     
@@ -48,7 +49,8 @@ AnimationsDialog::AnimationsDialog(QWidget* parent) :
     area->setWidget(container);
     _animations->addStretch(1);
     
-    foreach (const AnimationHandlePointer& handle, Application::getInstance()->getAvatar()->getAnimationHandles()) {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    foreach (const AnimationHandlePointer& handle, myAvatar->getAnimationHandles()) {
         _animations->insertWidget(_animations->count() - 1, new AnimationPanel(this, handle));
     }
     
@@ -74,8 +76,8 @@ void AnimationsDialog::setVisible(bool visible) {
 }
 
 void AnimationsDialog::addAnimation() {
-    _animations->insertWidget(_animations->count() - 1, new AnimationPanel(
-        this, Application::getInstance()->getAvatar()->addAnimationHandle()));
+    _animations->insertWidget(_animations->count() - 1, new AnimationPanel(this,
+                    DependencyManager::get<AvatarManager>()->getMyAvatar()->addAnimationHandle()));
 }
 
 AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePointer& handle) :
@@ -176,7 +178,7 @@ void AnimationPanel::chooseURL() {
 void AnimationPanel::chooseMaskedJoints() {
     QMenu menu;
     QStringList maskedJoints = _handle->getMaskedJoints();
-    foreach (const QString& jointName, Application::getInstance()->getAvatar()->getJointNames()) {
+    foreach (const QString& jointName, DependencyManager::get<AvatarManager>()->getMyAvatar()->getJointNames()) {
         QAction* action = menu.addAction(jointName);
         action->setCheckable(true);
         action->setChecked(maskedJoints.contains(jointName));
@@ -207,6 +209,6 @@ void AnimationPanel::updateHandle() {
 }
 
 void AnimationPanel::removeHandle() {
-    Application::getInstance()->getAvatar()->removeAnimationHandle(_handle);
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->removeAnimationHandle(_handle);
     deleteLater();
 }

@@ -22,6 +22,8 @@
 
 #include <glm/glm.hpp>
 
+#include <avatar/AvatarManager.h>
+#include <avatar/MyAvatar.h>
 #include <GlowEffect.h>
 #include <PathUtils.h>
 #include <SharedUtil.h>
@@ -198,11 +200,12 @@ void OculusManager::disconnect() {
 
 #ifdef HAVE_LIBOVR
 void OculusManager::positionCalibrationBillboard(Text3DOverlay* billboard) {
-    glm::quat headOrientation = Application::getInstance()->getAvatar()->getHeadOrientation();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    glm::quat headOrientation = myAvatar->getHeadOrientation();
     headOrientation.x = 0;
     headOrientation.z = 0;
     glm::normalize(headOrientation);
-    billboard->setPosition(Application::getInstance()->getAvatar()->getHeadPosition()
+    billboard->setPosition(myAvatar->getHeadPosition()
         + headOrientation * glm::vec3(0.0f, 0.0f, -CALIBRATION_MESSAGE_DISTANCE));
     billboard->setRotation(headOrientation);
 }
