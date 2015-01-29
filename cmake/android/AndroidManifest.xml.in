@@ -8,12 +8,14 @@
     <!-- VR MODE -->
     <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only"/>
     
-    <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
-              android:name="${ANDROID_ACTIVITY_NAME}"
-              android:label="@string/AppDisplayName"
-              android:screenOrientation="landscape"
-              android:launchMode="singleTop"
-              ${ANDROID_APK_THEME}>
+    <activity 
+      android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
+      android:name="${ANDROID_ACTIVITY_NAME}"
+      android:label="@string/AppDisplayName"
+      android:screenOrientation="landscape"
+      android:launchMode="singleTop"
+      ${ANDROID_APK_THEME}>
+      
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
@@ -42,17 +44,19 @@
 
       <!-- Splash screen -->
       <!-- <meta-data android:name="android.app.splash_screen_drawable" android:resource="@drawable/logo"/> -->
+      
+      ${ANDROID_EXTRA_ACTIVITY_XML}
     </activity>
     
-    <activity android:name="com.oculusvr.vrlib.PlatformActivity"
-              android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-              android:launchMode="singleTask"
-              android:screenOrientation="landscape"
-              android:configChanges="screenSize|orientation|keyboardHidden|keyboard">
+    <activity 
+      android:name="com.oculusvr.vrlib.PlatformActivity"
+      android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+      android:launchMode="singleTask"
+      android:screenOrientation="landscape"
+      android:configChanges="screenSize|orientation|keyboardHidden|keyboard">
     </activity>
     
-    ${HOCKEY_APP_ACTIVITY}
-    
+    ${ANDROID_EXTRA_APPLICATION_XML}
   </application>
   <uses-sdk android:minSdkVersion="${ANDROID_API_LEVEL}" android:targetSdkVersion="${ANDROID_API_LEVEL}"/>
 

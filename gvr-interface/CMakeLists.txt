@@ -1,6 +1,21 @@
 set(TARGET_NAME gvr-interface)
 
 if (ANDROID)
+  set(ANDROID_APK_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk-build")
+  set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
+  
+  set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
+  set(ANDROID_APP_DISPLAY_NAME Interface)
+  set(ANDROID_API_LEVEL 19)
+  set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
+  set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceActivity)
+  set(ANDROID_APK_VERSION_NAME "0.1")
+  set(ANDROID_APK_VERSION_CODE 1)
+  set(ANDROID_DEPLOY_QT_INSTALL "--install")
+  
+  set(BUILD_SHARED_LIBS ON)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
+  
   setup_hifi_library(Gui Widgets AndroidExtras)
 else ()
   setup_hifi_project(Gui Widgets)
@@ -12,25 +27,6 @@ include_glm()
 
 link_hifi_libraries(shared networking audio-client avatars)
 include_dependency_includes()
-
-if (ANDROID)
-
-  set(ANDROID_APK_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk-build")
-  set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
-
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
-  set(BUILD_SHARED_LIBS ON)
-  
-  set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
-  set(ANDROID_APP_DISPLAY_NAME Interface)
-  set(ANDROID_API_LEVEL 19)
-  set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
-  set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceActivity)
-  set(ANDROID_APK_VERSION_NAME "0.1")
-  set(ANDROID_APK_VERSION_CODE 1)
-  set(ANDROID_DEPLOY_QT_INSTALL "--install")
-
-endif ()
 
 find_package(LibOVR)
 if (LIBOVR_FOUND)
@@ -50,7 +46,7 @@ endif ()
 # the presence of a HOCKEY_APP_ID means we are making a beta build
 if (ANDROID AND HOCKEY_APP_ID)
   set(HOCKEY_APP_ENABLED true)
-  set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />")
+  set(HOCKEY_APP_ACTIVITY "<activity android:name='net.hockeyapp.android.UpdateActivity' />\n")
   set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceBetaActivity)
   set(ANDROID_DEPLOY_QT_INSTALL "")
   set(ANDROID_APK_CUSTOM_NAME "Interface-beta.apk")
@@ -71,9 +67,19 @@ elseif (ANDROID)
 endif ()
 
 if (ANDROID)
+  
+  set(HIFI_URL_INTENT "<intent-filter>\
+    \n        <action android:name='android.intent.action.VIEW' />\
+    \n        <category android:name='android.intent.category.DEFAULT' />\
+    \n        <category android:name='android.intent.category.BROWSABLE' />\
+    \n        <data android:scheme='hifi' />\
+    \n      </intent-filter>"
+  )
+  
+  set(ANDROID_EXTRA_APPLICATION_XML "${HOCKEY_APP_ACTIVITY}")
+  set(ANDROID_EXTRA_ACTIVITY_XML "${HIFI_URL_INTENT}")
 
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/hockeyapp.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/hockeyapp.xml")
-
   qt_create_apk()
   
 endif (ANDROID)

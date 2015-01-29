@@ -1,4 +1,4 @@
-Instructions for adding the Gverb library to Interface
+Instructions for adding the Gverb library to audio-client
 (This is a required library)
 Clément Brisset, October 22nd, 2014
 
