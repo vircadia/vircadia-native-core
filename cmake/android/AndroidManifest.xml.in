@@ -51,7 +51,7 @@
               android:configChanges="screenSize|orientation|keyboardHidden|keyboard">
     </activity>
     
-    ${HOCKEY_APP_ACTIVITY}
+    ${ANDROID_EXTRA_APPLICATION_XML}
     
   </application>
   <uses-sdk android:minSdkVersion="${ANDROID_API_LEVEL}" android:targetSdkVersion="${ANDROID_API_LEVEL}"/>
