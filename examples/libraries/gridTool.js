@@ -292,7 +292,6 @@ GridTool = function(opts) {
     ];
 
     // Add all overlays from spritesheet
-    var baseOverlay = null;
     var x = 0;
     for (var i = 0; i < UI_SPRITE_LIST.length; i++) {
         var info = UI_SPRITE_LIST[i];
@@ -306,17 +305,7 @@ GridTool = function(opts) {
             visible: false,
         };
 
-        var overlay;
-        if (baseOverlay == null) {
-            overlay = Overlays.addOverlay("image", {
-                imageURL: UI_URL,
-            });
-            baseOverlay = overlay;
-        } else {
-            overlay = Overlays.cloneOverlay(baseOverlay);
-        }
-
-        Overlays.editOverlay(overlay, props);
+        var overlay = Overlays.addOverlay("image", props);
 
         addUIOverlay(info.name, overlay, x, 0, info.width, UI_HEIGHT);
 
