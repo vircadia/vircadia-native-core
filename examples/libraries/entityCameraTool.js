@@ -267,6 +267,11 @@ CameraManager = function() {
         if (that.enabled && that.mode != MODE_INACTIVE) {
             var x = Window.getCursorPositionX();
             var y = Window.getCursorPositionY();
+            if (!hasDragged) {
+                that.lastMousePosition.x = x;
+                that.lastMousePosition.y = y;
+                hasDragged = true;
+            }
             if (that.mode == MODE_ORBIT) {
                 var diffX = x - that.lastMousePosition.x;
                 var diffY = y - that.lastMousePosition.y;
@@ -294,9 +299,31 @@ CameraManager = function() {
 
                 that.moveFocalPoint(dPosition);
             }
-            var newX = Window.x + Window.innerWidth / 2;
-            var newY = Window.y + Window.innerHeight / 2;
-            Window.setCursorPosition(newX, newY);
+
+            var newX = x;
+            var newY = y;
+            var updatePosition = false;
+
+            if (x <= Window.x) {
+                newX = Window.x + Window.innerWidth;
+                updatePosition = true;
+            } else if (x >= (Window.x + Window.innerWidth)) {
+                newX = Window.x;
+                updatePosition = true;
+            }
+
+            if (y <= Window.y) {
+                newY = Window.y + Window.innerHeight;
+                updatePosition = true;
+            } else if (y >= (Window.y + Window.innerHeight)) {
+                newY = Window.y;
+                updatePosition = true;
+            }
+
+            if (updatePosition) {
+                Window.setCursorPosition(newX, newY);
+            }
+
             that.lastMousePosition.x = newX;
             that.lastMousePosition.y = newY;
 
@@ -305,6 +332,7 @@ CameraManager = function() {
         return false;
     }
 
+    var hasDragged = false;
     that.mousePressEvent = function(event) {
         if (cameraTool.mousePressEvent(event)) {
             return true;
@@ -319,12 +347,7 @@ CameraManager = function() {
         }
 
         if (that.mode != MODE_INACTIVE) {
-            var newX = Window.x + Window.innerWidth / 2;
-            var newY = Window.y + Window.innerHeight / 2;
-            Window.setCursorPosition(newX, newY);
-            that.lastMousePosition.x = newX;
-            that.lastMousePosition.y = newY;
-            Window.setCursorVisible(false);
+            hasDragged = false;
 
             return true;
         }
