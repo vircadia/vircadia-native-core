@@ -36,22 +36,18 @@ void renderWorldBox() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     //  Show edge of world
-    float red[] = {1, 0, 0};
-    float green[] = {0, 1, 0};
-    float blue[] = {0, 0, 1};
-    float gray[] = {0.5, 0.5, 0.5};
+    glm::vec3 red(1.0f, 0.0f, 0.0f);
+    glm::vec3 green(0.0f, 1.0f, 0.0f);
+    glm::vec3 blue(0.0f, 0.0f, 1.0f);
+    glm::vec3 grey(0.5f, 0.5f, 0.5f);
 
     glDisable(GL_LIGHTING);
     glLineWidth(1.0);
-    glColor3fv(red);
-    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(TREE_SCALE, 0, 0));
-    glColor3fv(green);
-    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, TREE_SCALE, 0));
-    glColor3fv(blue);
-    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, TREE_SCALE));
-    glColor3fv(gray);
-    geometryCache->renderLine(glm::vec3(0, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, TREE_SCALE));
-    geometryCache->renderLine(glm::vec3(TREE_SCALE, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, 0));
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(TREE_SCALE, 0, 0), red);
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, TREE_SCALE, 0), green);
+    geometryCache->renderLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, TREE_SCALE), blue);
+    geometryCache->renderLine(glm::vec3(0, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, TREE_SCALE), grey);
+    geometryCache->renderLine(glm::vec3(TREE_SCALE, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, 0), grey);
     
     
     //  Draw meter markers along the 3 axis to help with measuring things
@@ -60,23 +56,19 @@ void renderWorldBox() {
     glEnable(GL_LIGHTING);
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
-    glColor3fv(red);
-    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10, red);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, MARKER_DISTANCE, 0);
-    glColor3fv(green);
-    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10, green);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, 0, MARKER_DISTANCE);
-    glColor3fv(blue);
-    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10, blue);
     glPopMatrix();
     glPushMatrix();
-    glColor3fv(gray);
     glTranslatef(MARKER_DISTANCE, 0, MARKER_DISTANCE);
-    geometryCache->renderSphere(MARKER_RADIUS, 10, 10);
+    geometryCache->renderSphere(MARKER_RADIUS, 10, 10, grey);
     glPopMatrix();
 
 }
@@ -114,23 +106,21 @@ void drawText(int x, int y, float scale, float radians, int mono,
     //
     glPushMatrix();
     glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
-    glColor3fv(color);
+
+
     glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
     glScalef(scale / 0.1f, scale / 0.1f, 1.0f);
-    textRenderer(mono)->draw(0, 0, string);
+
+    glm::vec4 colorV4 = {color[0], color[1], color[3], 1.0f };
+    textRenderer(mono)->draw(0, 0, string, colorV4);
     glPopMatrix();
 }
 
 void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {
-        glColor4f(red, blue, green, magnitude);
-        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height);
+        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height, glm::vec4(red, blue, green, magnitude));
     }
-}
-
-void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
-    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(x, y, width, height, bevelDistance);
 }
 
 //  Do some basic timing tests and report the results
