@@ -17,6 +17,8 @@ if (ANDROID)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
   
   setup_hifi_library(Gui Widgets AndroidExtras)
+  
+  add_definitions(-DANDROID)
 else ()
   setup_hifi_project(Gui Widgets)
 endif ()

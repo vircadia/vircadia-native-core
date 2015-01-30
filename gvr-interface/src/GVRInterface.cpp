@@ -13,13 +13,13 @@
 
 #include <jni.h>
 
+#include <qpa/qplatformnativeinterface.h>
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QAndroidJniObject>
 
 #endif
 
 #include <QtCore/QTimer>
-#include <qpa/qplatformnativeinterface.h>
 #include <QtWidgets/QMenuBar>
 
 #ifdef HAVE_LIBOVR
@@ -53,12 +53,11 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     
     connect(this, &QGuiApplication::applicationStateChanged, this, &GVRInterface::handleApplicationStateChange);
 
-#if defined(Q_WS_ANDROID) && defined(HAVE_LIBOVR)
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
     QAndroidJniEnvironment jniEnv;
     
     QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
     jobject activity = (jobject) interface->nativeResourceForIntegration("QtActivity");
-
 
     ovr_RegisterHmtReceivers(&*jniEnv, activity);
 #endif

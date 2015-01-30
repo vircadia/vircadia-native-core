@@ -14,7 +14,7 @@
 #include <QtWidgets/QInputDialog>
 #include <QtWidgets/QMenuBar>
 
-#ifndef Q_OS_ANDROID
+#ifndef ANDROID
 #include <QtWidgets/QDesktopWidget>
 #endif
 
@@ -42,13 +42,18 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     menuBar()->addMenu(helpMenu);
     
     QAction* goToAddress = new QAction("Go to Address", fileMenu);
-    QAction* aboutQt = new QAction("About Qt", helpMenu);
-    
-    fileMenu->addAction(goToAddress);
-    helpMenu->addAction(aboutQt);
-
     connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
+    fileMenu->addAction(goToAddress);
+    
+#ifdef ANDROID
+    QAction* goFullScreen = new QAction("Enter Full Screen", fileMenu);
+    connect(goFullScreen, &QAction::triggered, this, &GVRMainWindow::goFullScreen);
+    fileMenu->addAction(goFullScreen);
+#endif
+    
+    QAction* aboutQt = new QAction("About Qt", helpMenu);
     connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
+    helpMenu->addAction(aboutQt);
     
     QWidget* baseWidget = new QWidget(this);
     
@@ -63,6 +68,14 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     
     // add the interface view
     new InterfaceView(baseWidget);
+}
+
+void GVRMainWindow::goFullScreen() {
+#ifdef ANDROID
+    menuBar()->hide();
+#else
+    showFullScreen();
+#endif
 }
 
 void GVRMainWindow::showAddressBar() {
