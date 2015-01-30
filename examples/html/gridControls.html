@@ -11,6 +11,7 @@
                 { red: 0, green: 255, blue: 0},
                 { red: 0, green: 0, blue: 255 },
             ];
+            var gridColorIndex = 0;
 
             elPosY = document.getElementById("horiz-y");
             elMinorSpacing = document.getElementById("minor-spacing");
@@ -59,6 +60,7 @@
                         minorGridSpacing: elMinorSpacing.value,
                         majorGridEvery: elMajorSpacing.value,
                         gridColor: gridColor,
+                        colorIndex: gridColorIndex,
                         snapToGrid: elSnapToGrid.checked,
                         visible: elHorizontalGridVisible.checked,
                     }));
@@ -93,12 +95,13 @@
                 box.setAttribute('class', 'color-box');
                 box.style.background = 'rgb(' + colors.red + ', ' + colors.green + ', ' + colors.blue + ')';
                 document.getElementById("grid-colors").appendChild(box);
-                box.addEventListener("click", function(color) { 
+                box.addEventListener("click", function(color, index) {
                     return function() {
                         gridColor = color;
+                        gridColorIndex = index;
                         emitUpdate();
                     }
-                }({ red: colors.red, green: colors.green, blue: colors.blue }));
+                }({ red: colors.red, green: colors.green, blue: colors.blue }, i));
             }
 
             EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
