@@ -55,7 +55,6 @@
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/BandwidthMeter.h"
 #include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
@@ -183,6 +182,7 @@ public:
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
+    BandwidthRecorder* getBandwidthRecorder() { return &_bandwidthRecorder; }
     
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
@@ -204,7 +204,6 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
-    BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
@@ -435,7 +434,6 @@ private:
 
     void updateShadowMap();
     void renderRearViewMirror(const QRect& region, bool billboard = false);
-    void checkBandwidthMeterClick();
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
@@ -448,7 +446,6 @@ private:
 
     ToolWindow* _toolWindow;
 
-    BandwidthMeter _bandwidthMeter;
 
     QThread* _nodeThread;
     DatagramProcessor _datagramProcessor;
@@ -485,6 +482,9 @@ private:
     float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
+
+    BandwidthRecorder _bandwidthRecorder;
+
 
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)

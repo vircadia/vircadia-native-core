@@ -44,6 +44,7 @@ private:
     bool _resetRecentMaxPacketsSoon;
 
     int _generalStatsWidth;
+    int _bandwidthStatsWidth;
     int _pingStatsWidth;
     int _geoStatsWidth;
     int _octreeStatsWidth;

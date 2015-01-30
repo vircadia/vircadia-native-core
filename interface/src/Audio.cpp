@@ -769,8 +769,9 @@ void Audio::handleAudioInput() {
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
 
-            Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                .updateValue(packetBytes);
+            // Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(packetBytes);
+            Application::getInstance()->
+              getBandwidthRecorder()->audioChannel->output.updateValue(packetBytes);
         }
         delete[] inputAudioSamples;
     }
@@ -829,7 +830,10 @@ void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
         _receivedAudioStream.parseData(audioByteArray);
     }
 
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
+    // Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
+    Application::getInstance()->
+      getBandwidthRecorder()->audioChannel->input.updateValue(audioByteArray.size());
+
 }
 
 void Audio::parseAudioEnvironmentData(const QByteArray &packet) {

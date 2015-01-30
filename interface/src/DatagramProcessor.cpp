@@ -117,7 +117,7 @@ void DatagramProcessor::processDatagrams() {
                                                   Q_ARG(const QWeakPointer<Node>&, avatarMixer));
                     }
                     
-                    application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
+                    application->_bandwidthRecorder.avatarsChannel->input.updateValue(incomingPacket.size());
                     break;
                 }
                 case PacketTypeDomainConnectionDenied: {

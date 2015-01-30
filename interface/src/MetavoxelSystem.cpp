@@ -899,7 +899,7 @@ int MetavoxelSystemClient::parseData(const QByteArray& packet) {
         } else {
             QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
         }
-        Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::METAVOXELS).updateValue(packet.size());
+        Application::getInstance()->getBandwidthRecorder()->metavoxelsChannel->input.updateValue (packet.size());
     }
     return packet.size();
 }
@@ -1015,7 +1015,7 @@ void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
         } else {
             DependencyManager::get<NodeList>()->writeDatagram(data, _node);
         }
-        Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
+        Application::getInstance()->getBandwidthRecorder()->metavoxelsChannel->output.updateValue (data.size());
     }
 }
 
