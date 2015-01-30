@@ -42,8 +42,8 @@ void DatagramProcessor::processDatagrams() {
         nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        _packetCount++;
-        _byteCount += incomingPacket.size();
+        _inPacketCount++;
+        _inByteCount += incomingPacket.size();
         
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
             
@@ -82,6 +82,8 @@ void DatagramProcessor::processDatagrams() {
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     EntityItemID::handleAddEntityResponse(incomingPacket);
                     application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
+                    application->_bandwidthRecorder.octreeChannel->input.updateValue(incomingPacket.size());
+                    application->_bandwidthRecorder.totalChannel->input.updateValue(incomingPacket.size());
                     break;
                 case PacketTypeEntityData:
                 case PacketTypeEntityErase:
@@ -95,7 +97,8 @@ void DatagramProcessor::processDatagrams() {
                         // add this packet to our list of octree packets and process them on the octree data processing
                         application->_octreeProcessor.queueReceivedPacket(matchedNode, incomingPacket);
                     }
-                    
+                    application->_bandwidthRecorder.octreeChannel->input.updateValue(incomingPacket.size());
+                    application->_bandwidthRecorder.totalChannel->input.updateValue(incomingPacket.size());
                     break;
                 }
                 case PacketTypeMetavoxelData:
@@ -118,6 +121,7 @@ void DatagramProcessor::processDatagrams() {
                     }
                     
                     application->_bandwidthRecorder.avatarsChannel->input.updateValue(incomingPacket.size());
+                    application->_bandwidthRecorder.totalChannel->input.updateValue(incomingPacket.size());
                     break;
                 }
                 case PacketTypeDomainConnectionDenied: {

@@ -241,8 +241,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
-        _packetsPerSecond(0),
-        _bytesPerSecond(0),
+        _inPacketsPerSecond(0),
+        _outPacketsPerSecond(0),
+        _inBytesPerSecond(0),
+        _outBytesPerSecond(0),
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
@@ -779,9 +781,11 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
             case NodeType::Agent:
             case NodeType::AvatarMixer:
                 _bandwidthRecorder.avatarsChannel->output.updateValue(bandwidth_amount);
+                _bandwidthRecorder.totalChannel->input.updateValue(bandwidth_amount);
                 break;
             case NodeType::EntityServer:
                 _bandwidthRecorder.octreeChannel->output.updateValue(bandwidth_amount);
+                _bandwidthRecorder.totalChannel->output.updateValue(bandwidth_amount);
                 break;
             default:
                 continue;
@@ -1387,8 +1391,10 @@ void Application::timer() {
 
     _fps = (float)_frameCount / diffTime;
 
-    _packetsPerSecond = (float) _datagramProcessor.getPacketCount() / diffTime;
-    _bytesPerSecond = (float) _datagramProcessor.getByteCount() / diffTime;
+    _inPacketsPerSecond = (float) _datagramProcessor.getInPacketCount() / diffTime;
+    _outPacketsPerSecond = (float) _datagramProcessor.getOutPacketCount() / diffTime;
+    _inBytesPerSecond = (float) _datagramProcessor.getInByteCount() / diffTime;
+    _outBytesPerSecond = (float) _datagramProcessor.getOutByteCount() / diffTime;
     _frameCount = 0;
 
     _datagramProcessor.resetCounters();
@@ -2380,6 +2386,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthRecorder.octreeChannel->output.updateValue(packetLength);
+            _bandwidthRecorder.totalChannel->output.updateValue(packetLength);
         }
     });
 }
@@ -3368,6 +3375,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 
 void Application::packetSent(quint64 length) {
     _bandwidthRecorder.octreeChannel->output.updateValue(length);
+    _bandwidthRecorder.totalChannel->output.updateValue(length);
 }
 
 const QString SETTINGS_KEY = "Settings";

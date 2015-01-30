@@ -37,6 +37,7 @@ BandwidthRecorder::~BandwidthRecorder() {
     delete avatarsChannel;
     delete octreeChannel;
     delete metavoxelsChannel;
+    delete totalChannel;
 }
 
 

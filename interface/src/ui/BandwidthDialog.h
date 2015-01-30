@@ -29,20 +29,22 @@ public:
     class ChannelDisplay {
     public:
       ChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form);
-      QLabel* setupLabel(QFormLayout* form, std::string i_or_o);
+      QLabel* setupLabel(QFormLayout* form);
       void setLabelText();
 
     private:
       BandwidthRecorder::Channel *ch;
 
-      QLabel* input_label;
-      QLabel* output_label;
+      QLabel* label;
     };
 
     ChannelDisplay* audioChannelDisplay;
     ChannelDisplay* avatarsChannelDisplay;
     ChannelDisplay* octreeChannelDisplay;
     ChannelDisplay* metavoxelsChannelDisplay;
+
+    // sums of all the other channels
+    ChannelDisplay* totalChannelDisplay;
 
 signals:
 

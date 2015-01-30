@@ -29,7 +29,8 @@ public:
     void toggleExpanded();
     void checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset);
     void resetWidth(int width, int horizontalOffset);
-    void display(const float* color, int horizontalOffset, float fps, int packetsPerSecond, int bytesPerSecond, int voxelPacketsToProcess);
+    void display(const float* color, int horizontalOffset, float fps, int inPacketsPerSecond, int outPacketsPerSecond,
+                 int inBytesPerSecond, int outBytesPerSecond, int voxelPacketsToProcess);
     bool includeTimingRecord(const QString& name);
     
     Q_INVOKABLE void setMetavoxelStats(int internal, int leaves, int sendProgress,

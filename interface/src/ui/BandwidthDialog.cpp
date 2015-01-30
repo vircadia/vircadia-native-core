@@ -23,12 +23,11 @@
 
 BandwidthDialog::ChannelDisplay::ChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form) {
     this->ch = ch;
-    this->input_label = setupLabel(form, "input");
-    this->output_label = setupLabel(form, "output");
+    this->label = setupLabel(form);
 }
 
 
-QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form, std::string i_or_o) {
+QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form) {
     QLabel* label = new QLabel();
     char strBuf[64];
 
@@ -38,10 +37,9 @@ QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form, std::stri
     unsigned rgb = ch->colorRGBA >> 8;
     rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
     palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
-
     label->setPalette(palette);
 
-    snprintf(strBuf, sizeof(strBuf), " %s %s Bandwidth:", i_or_o.c_str(), ch->caption);
+    snprintf(strBuf, sizeof(strBuf), " %s Bandwidth In/Out:", ch->caption);
     form->addRow(strBuf, label);
 
     return label;
@@ -51,10 +49,11 @@ QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form, std::stri
 
 void BandwidthDialog::ChannelDisplay::setLabelText() {
     char strBuf[64];
-    snprintf(strBuf, sizeof(strBuf), "%0.0f %s", ch->input.getValue() * ch->unitScale, ch->unitCaption);
-    input_label->setText(strBuf);
-    snprintf(strBuf, sizeof(strBuf), "%0.0f %s", ch->output.getValue() * ch->unitScale, ch->unitCaption);
-    output_label->setText(strBuf);
+    snprintf(strBuf, sizeof(strBuf), "%0.0f/%0.0f %s",
+             ch->input.getValue() * ch->unitScale,
+             ch->output.getValue() * ch->unitScale,
+             ch->unitCaption);
+    label->setText(strBuf);
 }
 
 
@@ -73,6 +72,7 @@ BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthRecorder* model) :
     avatarsChannelDisplay = new ChannelDisplay(_model->avatarsChannel, form);
     octreeChannelDisplay = new ChannelDisplay(_model->octreeChannel, form);
     metavoxelsChannelDisplay = new ChannelDisplay(_model->metavoxelsChannel, form);
+    totalChannelDisplay = new ChannelDisplay(_model->totalChannel, form);
 }
 
 
@@ -81,6 +81,7 @@ BandwidthDialog::~BandwidthDialog() {
     delete avatarsChannelDisplay;
     delete octreeChannelDisplay;
     delete metavoxelsChannelDisplay;
+    delete totalChannelDisplay;
 }
 
 
@@ -89,6 +90,7 @@ void BandwidthDialog::paintEvent(QPaintEvent* event) {
     avatarsChannelDisplay->setLabelText();
     octreeChannelDisplay->setLabelText();
     metavoxelsChannelDisplay->setLabelText();
+    totalChannelDisplay->setLabelText();
 
     this->QDialog::paintEvent(event);
     this->setFixedSize(this->width(), this->height());

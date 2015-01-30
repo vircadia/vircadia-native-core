@@ -35,7 +35,7 @@ using namespace std;
 const int STATS_PELS_PER_LINE = 20;
 
 const int STATS_GENERAL_MIN_WIDTH = 165; 
-const int STATS_BANDWIDTH_MIN_WIDTH = 150;
+const int STATS_BANDWIDTH_MIN_WIDTH = 250;
 const int STATS_PING_MIN_WIDTH = 190;
 const int STATS_GEO_MIN_WIDTH = 240;
 const int STATS_OCTREE_MIN_WIDTH = 410;
@@ -199,8 +199,10 @@ void Stats::display(
         const float* color, 
         int horizontalOffset, 
         float fps, 
-        int packetsPerSecond, 
-        int bytesPerSecond, 
+        int inPacketsPerSecond,
+        int outPacketsPerSecond,
+        int inBytesPerSecond,
+        int outBytesPerSecond,
         int voxelPacketsToProcess) 
 {
     auto glCanvas = DependencyManager::get<GLCanvas>();
@@ -264,18 +266,6 @@ void Stats::display(
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarNodes, color);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, framesPerSecond, color);
-
-    if (_expanded) {
-        char packetsPerSecondString[30];
-        sprintf(packetsPerSecondString, "Pkts/sec: %d", packetsPerSecond);
-        char averageMegabitsPerSecond[30];
-        sprintf(averageMegabitsPerSecond, "Mbps: %3.2f", (float)bytesPerSecond * 8.0f / 1000000.0f);
-
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString, color);
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond, color);
-    }
     
     // TODO: the display of these timing details should all be moved to JavaScript
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
@@ -317,8 +307,27 @@ void Stats::display(
         }
     }
 
+
+
     verticalOffset = 0;
-    horizontalOffset = _lastHorizontalOffset + _generalStatsWidth +1;
+    horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + 1;
+
+    char packetsPerSecondString[30];
+    sprintf(packetsPerSecondString, "Packets In/Out: %d/%d", inPacketsPerSecond, outPacketsPerSecond);
+    char averageMegabitsPerSecond[30];
+    sprintf(averageMegabitsPerSecond, "Mbps In/Out: %3.2f/%3.2f",
+            (float)inBytesPerSecond * 8.0f / 1000000.0f,
+            (float)outBytesPerSecond * 8.0f / 1000000.0f);
+
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString, color);
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond, color);
+
+
+
+    verticalOffset = 0;
+    horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _bandwidthStatsWidth +1;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingOctreeMax = -1;

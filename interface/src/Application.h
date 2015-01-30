@@ -209,8 +209,10 @@ public:
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    float getPacketsPerSecond() const { return _packetsPerSecond; }
-    float getBytesPerSecond() const { return _bytesPerSecond; }
+    float getInPacketsPerSecond() const { return _inPacketsPerSecond; }
+    float getOutPacketsPerSecond() const { return _outPacketsPerSecond; }
+    float getInBytesPerSecond() const { return _inBytesPerSecond; }
+    float getOutBytesPerSecond() const { return _outBytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
@@ -534,8 +536,10 @@ private:
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;
 
-    int _packetsPerSecond;
-    int _bytesPerSecond;
+    int _inPacketsPerSecond;
+    int _outPacketsPerSecond;
+    int _inBytesPerSecond;
+    int _outBytesPerSecond;
 
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;

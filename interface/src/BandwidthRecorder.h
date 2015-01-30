@@ -50,6 +50,7 @@ class BandwidthRecorder {
     Channel* avatarsChannel = new Channel("Avatars", "Kbps", 8000.0 / 1024.0, 0xffef40c0);
     Channel* octreeChannel = new Channel("Octree", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0);
     Channel* metavoxelsChannel = new Channel("Metavoxels", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0);
+    Channel* totalChannel = new Channel("Total", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0);
 };
 
 #endif

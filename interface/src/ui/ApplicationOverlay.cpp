@@ -919,7 +919,11 @@ void ApplicationOverlay::renderStatsAndLogs() {
         int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
         Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, application->getFps(),
-            application->getPacketsPerSecond(), application->getBytesPerSecond(), voxelPacketsToProcess);
+                                      application->getInPacketsPerSecond(),
+                                      application->getOutPacketsPerSecond(),
+                                      application->getInBytesPerSecond(),
+                                      application->getOutBytesPerSecond(),
+                                      voxelPacketsToProcess);
     }
 
     //  Show on-screen msec timer
