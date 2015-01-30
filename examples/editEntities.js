@@ -14,23 +14,23 @@
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 Script.include([
-    "http://public.highfidelity.io/scripts/libraries/stringHelpers.js",
-    "http://public.highfidelity.io/scripts/libraries/dataviewHelpers.js",
-    "http://public.highfidelity.io/scripts/libraries/httpMultiPart.js",
-    "http://public.highfidelity.io/scripts/libraries/modelUploader.js",
-    "http://public.highfidelity.io/scripts/libraries/toolBars.js",
-    "http://public.highfidelity.io/scripts/libraries/progressDialog.js",
+    "libraries/stringHelpers.js",
+    "libraries/dataviewHelpers.js",
+    "libraries/httpMultiPart.js",
+    "libraries/modelUploader.js",
+    "libraries/toolBars.js",
+    "libraries/progressDialog.js",
 
-    "http://public.highfidelity.io/scripts/libraries/entitySelectionTool.js",
-    "http://public.highfidelity.io/scripts/libraries/ModelImporter.js",
+    "libraries/entitySelectionTool.js",
+    "libraries/ModelImporter.js",
 
-    "http://public.highfidelity.io/scripts/libraries/ExportMenu.js",
-    "http://public.highfidelity.io/scripts/libraries/ToolTip.js",
+    "libraries/ExportMenu.js",
+    "libraries/ToolTip.js",
 
-    "http://public.highfidelity.io/scripts/libraries/entityPropertyDialogBox.js",
-    "http://public.highfidelity.io/scripts/libraries/entityCameraTool.js",
-    "http://public.highfidelity.io/scripts/libraries/gridTool.js",
-    "http://public.highfidelity.io/scripts/libraries/entityList.js",
+    "libraries/entityPropertyDialogBox.js",
+    "libraries/entityCameraTool.js",
+    "libraries/gridTool.js",
+    "libraries/entityList.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
