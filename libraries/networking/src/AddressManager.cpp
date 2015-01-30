@@ -57,7 +57,11 @@ const QUrl AddressManager::currentAddress() const {
 
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        handleLookupString(SettingHandles::currentAddress.get().toString());
+        const QString& lastAddress = SettingHandles::currentAddress.get().toString();
+        
+        if (lastAddress.isEmpty()) {
+            handleLookupString(lastAddress);
+        }
     } else {
         handleLookupString(lookupString);
     }

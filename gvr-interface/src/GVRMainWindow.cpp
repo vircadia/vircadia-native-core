@@ -62,7 +62,7 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     setCentralWidget(baseWidget);
     
     // add the interface view
-    InterfaceView* interfaceView = new InterfaceView(baseWidget);
+    new InterfaceView(baseWidget);
 }
 
 void GVRMainWindow::showAddressBar() {
