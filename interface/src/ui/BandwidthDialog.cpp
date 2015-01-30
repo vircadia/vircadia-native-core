@@ -29,7 +29,6 @@ BandwidthDialog::ChannelDisplay::ChannelDisplay(BandwidthRecorder::Channel *ch, 
 
 QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form) {
     QLabel* label = new QLabel();
-    char strBuf[64];
 
     label->setAlignment(Qt::AlignRight);
 
@@ -39,8 +38,7 @@ QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form) {
     palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
     label->setPalette(palette);
 
-    snprintf(strBuf, sizeof(strBuf), " %s Bandwidth In/Out:", ch->caption);
-    form->addRow(strBuf, label);
+    form->addRow((std::string(" ") + ch->caption + " Bandwidth In/Out:").c_str(), label);
 
     return label;
 }
@@ -48,12 +46,10 @@ QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form) {
 
 
 void BandwidthDialog::ChannelDisplay::setLabelText() {
-    char strBuf[64];
-    snprintf(strBuf, sizeof(strBuf), "%0.0f/%0.0f %s",
-             ch->input.getValue() * ch->unitScale,
-             ch->output.getValue() * ch->unitScale,
-             ch->unitCaption);
-    label->setText(strBuf);
+    std::string strBuf =
+        std::to_string ((int) (ch->input.getValue() * ch->unitScale)) + "/" +
+        std::to_string ((int) (ch->output.getValue() * ch->unitScale)) + " " + ch->unitCaption;
+    label->setText(strBuf.c_str());
 }
 
 
