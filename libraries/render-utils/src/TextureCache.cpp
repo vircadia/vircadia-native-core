@@ -387,7 +387,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
     if (!url.isValid()) {
         _loaded = true;
     }
-    
+
     // default to white/blue/black
   /*  glBindTexture(GL_TEXTURE_2D, getID());
     switch (type) {
