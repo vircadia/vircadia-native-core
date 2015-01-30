@@ -56,6 +56,11 @@ selectionManager.addEventListener(function() {
         entityListTool.setVisible(true);
         hasShownPropertiesTool = true;
     }
+    if (!selectionManager.hasSelection()) {
+        toolBar.setActive(false);
+    } else {
+        toolBar.setActive(true);
+    }
 });
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -123,11 +128,13 @@ var toolBar = (function () {
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
 
+        // Hide active button for now - this may come back, so not deleting yet.
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "models-tool.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-            width: toolWidth,
-            height: toolHeight,
+            // subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: 0, height: 0 },
+            width: 0,//toolWidth,
+            height: 0,//toolHeight,
             alpha: 0.9,
             visible: true
         }, true, false);
@@ -543,19 +550,16 @@ function mouseMoveEvent(event) {
     }
 
     mouseHasMovedSincePress = true;
-    if (isActive) {
-        // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
-        if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
-            return;
-        }
 
-        lastMousePosition = { x: event.x, y: event.y };
-
-        highlightEntityUnderCursor(lastMousePosition, false);
-        idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
-    } else {
-        cameraManager.mouseMoveEvent(event);
+    // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
+    if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
+        return;
     }
+
+    lastMousePosition = { x: event.x, y: event.y };
+
+    highlightEntityUnderCursor(lastMousePosition, false);
+    idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
 }
 
 function handleIdleMouse() {
@@ -608,7 +612,7 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
-    if (!isActive) {
+    if (!event.isRightButton) {
         return;
     }
 
@@ -619,6 +623,7 @@ function mouseClickEvent(event) {
         }
         return;
     }
+    toolBar.setActive(true);
     var pickRay = result.pickRay;
     var foundEntity = result.entityID;
 
@@ -830,6 +835,8 @@ Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
     if (event.text == "BACKSPACE" || event.text == "DELETE") {
         deleteSelectedEntities();
+    } else if (event.text == "ESC") {
+        selectionManager.clearSelections();
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
@@ -1082,4 +1089,4 @@ PropertiesTool = function(opts) {
 };
 
 propertiesTool = PropertiesTool();
-
+toolBar.setActive(true);
