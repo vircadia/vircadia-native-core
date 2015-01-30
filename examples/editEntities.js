@@ -12,34 +12,37 @@
 //
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-Script.include("libraries/stringHelpers.js");
-Script.include("libraries/dataviewHelpers.js");
-Script.include("libraries/httpMultiPart.js");
-Script.include("libraries/modelUploader.js");
-Script.include("libraries/toolBars.js");
-Script.include("libraries/progressDialog.js");
 
-Script.include("libraries/entitySelectionTool.js");
+Script.include([
+    "http://public.highfidelity.io/scripts/libraries/stringHelpers.js",
+    "http://public.highfidelity.io/scripts/libraries/dataviewHelpers.js",
+    "http://public.highfidelity.io/scripts/libraries/httpMultiPart.js",
+    "http://public.highfidelity.io/scripts/libraries/modelUploader.js",
+    "http://public.highfidelity.io/scripts/libraries/toolBars.js",
+    "http://public.highfidelity.io/scripts/libraries/progressDialog.js",
+
+    "http://public.highfidelity.io/scripts/libraries/entitySelectionTool.js",
+    "http://public.highfidelity.io/scripts/libraries/ModelImporter.js",
+
+    "http://public.highfidelity.io/scripts/libraries/ExportMenu.js",
+    "http://public.highfidelity.io/scripts/libraries/ToolTip.js",
+
+    "http://public.highfidelity.io/scripts/libraries/entityPropertyDialogBox.js",
+    "http://public.highfidelity.io/scripts/libraries/entityCameraTool.js",
+    "http://public.highfidelity.io/scripts/libraries/gridTool.js",
+    "http://public.highfidelity.io/scripts/libraries/entityList.js",
+]);
+
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
-
-Script.include("libraries/ModelImporter.js");
 var modelImporter = new ModelImporter();
-
-Script.include("libraries/ExportMenu.js");
-Script.include("libraries/ToolTip.js");
-
-Script.include("libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
-Script.include("libraries/entityCameraTool.js");
 var cameraManager = new CameraManager();
 
-Script.include("libraries/gridTool.js");
 var grid = Grid();
 gridTool = GridTool({ horizontalGrid: grid });
 
-Script.include("libraries/entityList.js");
 var entityListTool = EntityListTool();
 
 var hasShownPropertiesTool = false;
