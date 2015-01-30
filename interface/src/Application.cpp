@@ -3413,15 +3413,12 @@ void Application::clearScriptsBeforeRunning() {
 }
 
 void Application::saveScripts() {
-    QStringList runningScripts = getRunningScripts();
-    if (runningScripts.isEmpty()) {
-        return;
-    }
-    
     // Saves all currently running user-loaded scripts
     Settings settings;
     settings.beginWriteArray(SETTINGS_KEY);
     settings.remove("");
+    
+    QStringList runningScripts = getRunningScripts();
     int i = 0;
     for (auto it = runningScripts.begin(); it != runningScripts.end(); ++it) {
         if (getScriptEngine(*it)->isUserLoaded()) {
