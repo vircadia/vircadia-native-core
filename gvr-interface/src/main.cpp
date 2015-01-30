@@ -16,7 +16,11 @@ int main(int argc, char* argv[]) {
     GVRInterface app(argc, argv);
     
     GVRMainWindow mainWindow;
+#ifdef ANDROID
+    mainWindow.showFullScreen();
+#else
     mainWindow.showMaximized();
+#endif
     
     return app.exec();
 }

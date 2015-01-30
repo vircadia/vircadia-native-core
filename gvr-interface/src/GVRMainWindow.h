@@ -22,6 +22,7 @@ public:
     GVRMainWindow(QWidget* parent = 0);
 public slots:
     void showAddressBar();
+    void goFullScreen();
 private:
     QVBoxLayout* _mainLayout;
 };

@@ -30,7 +30,7 @@ class GVRInterface : public QApplication {
     Q_OBJECT
 public:
     GVRInterface(int argc, char* argv[]);
-      
+    
     RenderingClient* getClient() { return _client; }
     
 private slots:

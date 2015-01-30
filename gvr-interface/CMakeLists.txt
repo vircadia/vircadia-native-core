@@ -17,6 +17,8 @@ if (ANDROID)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
   
   setup_hifi_library(Gui Widgets AndroidExtras)
+  
+  add_definitions(-DANDROID)
 else ()
   setup_hifi_project(Gui Widgets)
 endif ()
@@ -28,19 +30,21 @@ include_glm()
 link_hifi_libraries(shared networking audio-client avatars)
 include_dependency_includes()
 
-find_package(LibOVR)
-if (LIBOVR_FOUND)
-  add_definitions(-DHAVE_LIBOVR)
-  target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${LIBOVR_ANDROID_LIBRARIES})
-  include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
+if (ANDROID)
+  find_package(LibOVR)
   
-  if (ANDROID)
+  if (LIBOVR_FOUND)
+    add_definitions(-DHAVE_LIBOVR)
+    target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${LIBOVR_ANDROID_LIBRARIES})
+    include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
+  
     # we need VRLib, so add a project.properties to our apk build folder that says that
     file(RELATIVE_PATH RELATIVE_VRLIB_PATH ${ANDROID_APK_OUTPUT_DIR} "${LIBOVR_VRLIB_DIR}")
     file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.reference.1=${RELATIVE_VRLIB_PATH}")
-  
+
     list(APPEND IGNORE_COPY_LIBS ${LIBOVR_ANDROID_LIBRARIES})
-  endif (ANDROID)
+  endif ()
+
 endif ()
 
 # the presence of a HOCKEY_APP_ID means we are making a beta build
