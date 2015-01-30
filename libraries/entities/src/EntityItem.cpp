@@ -1022,6 +1022,25 @@ float EntityItem::getRadius() const {
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) const {
     info.clear();
+    if (_type == EntityTypes::Sphere) {
+        glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
+        // TODO: support ellipsoid shapes
+        info.setSphere(halfExtents.x);
+    } else if (_type == EntityTypes::Box) {
+        glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
+        info.setBox(halfExtents);
+    } else if (_type == EntityTypes::Model) {
+        // For first approximation we just boxify all models... but only if they are small enough.
+        // The limit here is chosen to something that most avatars could not comfortably fit inside
+        // to prevent houses from getting boxified... we don't want the things inside houses to 
+        // collide with a house as if it were a giant solid block.
+        const float MAX_SIZE_FOR_BOXIFICATION_HACK = 3.0f;
+        float diagonal = glm::length(getDimensionsInMeters());
+        if (diagonal < MAX_SIZE_FOR_BOXIFICATION_HACK) {
+            glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
+            info.setBox(halfExtents);
+        }
+    }
 }
 
 void EntityItem::recalculateCollisionShape() {

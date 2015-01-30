@@ -51,8 +51,6 @@ public:
         _color[BLUE_INDEX] = value.blue;
     }
     
-    void computeShapeInfo(ShapeInfo& info) const;
-
     virtual void debugDump() const;
 
 protected:
