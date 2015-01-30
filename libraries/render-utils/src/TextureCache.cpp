@@ -459,14 +459,14 @@ void ImageReader::run() {
     int originalHeight = image.height();
     
     // enforce a fixed maximum area (1024 * 2048)
-    const float MAXIMUM_AREA_SIZE = 2097152.0f;
+    const int MAXIMUM_AREA_SIZE = 2097152;
     int imageArea = image.width() * image.height();
     if (imageArea > MAXIMUM_AREA_SIZE) {
-        float scaleRatio = sqrtf(MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
+        float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
         int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
         int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
         qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height() <<
-            " scaled to :" << resizeWidth << resizeHeight;
+            " scaled to:" << resizeWidth << resizeHeight;
         image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
         imageArea = image.width() * image.height();
     }
