@@ -37,6 +37,10 @@ float evalLightAttenuation(Light l, float r) {
   //  return clamp(1.0/(l._attenuation.x + l._attenuation.y * r + l._attenuation.z * r * r), 0.0, 1.0);
 }
 
+float getLightSpotAngleCos(Light l) {
+    return l._spot.x;
+}
+
 float evalLightSpotAttenuation(Light l, float cosA) {
     if (cosA > l._spot.x) {
         return 0.0;

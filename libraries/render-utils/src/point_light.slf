@@ -18,8 +18,6 @@
 // Everything about light
 <@include Light.slh@>
 
-// the radius (hard cutoff) of the light effect
-uniform float radius;
 
 uniform mat4 invViewMat;
 

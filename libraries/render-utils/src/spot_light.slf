@@ -18,6 +18,69 @@
 // Everything about light
 <@include Light.slh@>
 
+uniform mat4 invViewMat;
+
+void main(void) {
+    // get the depth and exit early if it doesn't pass the test
+    vec2 texCoord = gl_TexCoord[0].st / gl_TexCoord[0].q;
+
+    DeferredFragment frag = unpackDeferredFragment(texCoord);
+      
+    float depth = frag.depthVal;
+    if (depth < gl_FragCoord.z) {
+        discard;
+    }
+
+    vec4 wPos;
+    wPos = invViewMat * frag.position;
+    Light light = getLight();
+
+    vec3 lightVector = getLightPosition(light) - wPos.xyz;
+    if (dot(lightVector, lightVector) > getLightSquareRadius(light)) {
+        discard;
+    }
+
+    float lightDistance = length(lightVector);
+    vec3 lightDir = lightVector / lightDistance;
+
+    vec3 lightSpotDir = getLightDirection(light);
+
+    // compute attenuation based on spot angle, distance, etc.
+    float cosSpotAngle = max(-dot(lightDir, lightSpotDir), 0.0);
+    if (cosSpotAngle < getLightSpotAngleCos(light)) {
+        discard;
+    }
+/*
+    float attenuation = step(lightDistance, radius) * step(gl_LightSource[1].spotCosCutoff, cosSpotAngle) *
+        pow(cosSpotAngle, gl_LightSource[1].spotExponent) / dot(vec3(gl_LightSource[1].constantAttenuation,
+            gl_LightSource[1].linearAttenuation, gl_LightSource[1].quadraticAttenuation),
+                vec3(1.0, lightDistance, lightDistance * lightDistance));
+
+
+
+    float lightAttenuation = evalLightAttenuation(light, lightDistance);
+
+    vec4 wNor = invViewMat * vec4(frag.normal, 0.0);
+    vec4 wEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
+    vec3 eyeDir = normalize(wEyeVector.xyz);
+    vec3 wHalfDir = normalize(eyeDir + lightDir);
+    // Diffuse Lighting
+    float diffuseDot = dot(wNor.xyz, lightDir);
+    float facingLight = step(0.0, diffuseDot);
+    vec3 diffuseColor = frag.diffuse * diffuseDot * facingLight;
+        
+    // compute the specular multiplier (sans exponent)
+    float specularPower = facingLight * max(0.0,
+                         dot(eyeDir, wHalfDir));    
+    vec3 specularColor = pow(specularPower, frag.gloss * 128.0) * frag.specular;
+
+    // add specular contribution
+    gl_FragColor = vec4((diffuseColor + specularColor) * lightAttenuation * getLightColor(light) * getLightIntensity(light), 0.0);
+    */
+    gl_FragColor = vec4(frag.normal, 0.0);
+
+}
+/*
 // the radius (hard cutoff) of the light effect
 uniform float radius;
 
@@ -67,3 +130,4 @@ void main(void) {
 
     gl_FragColor = vec4(frag.normal, 0.0);
 }
+*/

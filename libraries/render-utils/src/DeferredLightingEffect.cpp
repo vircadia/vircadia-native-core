@@ -529,6 +529,8 @@ void DeferredLightingEffect::render() {
                 batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
                 gpu::GLBackend::renderBatch(batch);
             }
+            glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+
      //       _spotLight.setUniformValue(_spotLightLocations.radius, light->getAttenuationRadius());
             
             /*
