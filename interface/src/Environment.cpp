@@ -263,7 +263,7 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
     
     glDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
-    DependencyManager::get<GeometryCache>()->renderSphere(1.0f, 100, 50); //Draw a unit sphere
+    DependencyManager::get<GeometryCache>()->renderSphere(1.0f, 100, 50, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); //Draw a unit sphere
     glDepthMask(GL_TRUE);
     
     program->release();

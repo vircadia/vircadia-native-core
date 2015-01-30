@@ -95,10 +95,9 @@ void Circle3DOverlay::render(RenderArgs* args) {
     const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
 
     //const int slices = 15;
-    xColor color = getColor();
+    xColor colorX = getColor();
     const float MAX_COLOR = 255.0f;
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-
+    glm::vec4 color(colorX.red / MAX_COLOR, colorX.green / MAX_COLOR, colorX.blue / MAX_COLOR, alpha);
 
     glDisable(GL_LIGHTING);
     
@@ -162,10 +161,10 @@ void Circle3DOverlay::render(RenderArgs* args) {
             
                     points << lastOuterPoint << lastInnerPoint;
 
-                    geometryCache->updateVertices(_quadVerticesID, points);
+                    geometryCache->updateVertices(_quadVerticesID, points, color);
                 }
                 
-                geometryCache->renderVertices(GL_QUAD_STRIP, _quadVerticesID);
+                geometryCache->renderVertices(gpu::QUAD_STRIP, _quadVerticesID);
 
             } else {
                 if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
@@ -200,13 +199,13 @@ void Circle3DOverlay::render(RenderArgs* args) {
                     glm::vec2 lastPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
                     points << lastPoint;
 
-                    geometryCache->updateVertices(_lineVerticesID, points);
+                    geometryCache->updateVertices(_lineVerticesID, points, color);
                 }
 
                 if (getIsDashedLine()) {
-                    geometryCache->renderVertices(GL_LINES, _lineVerticesID);
+                    geometryCache->renderVertices(gpu::LINES, _lineVerticesID);
                 } else {
-                    geometryCache->renderVertices(GL_LINE_STRIP, _lineVerticesID);
+                    geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
                 }
             }
             
@@ -270,17 +269,20 @@ void Circle3DOverlay::render(RenderArgs* args) {
                         }
                     }
 
-                    geometryCache->updateVertices(_majorTicksVerticesID, majorPoints);
-                    geometryCache->updateVertices(_minorTicksVerticesID, minorPoints);
+                    xColor majorColorX = getMajorTickMarksColor();
+                    glm::vec4 majorColor(majorColorX.red / MAX_COLOR, majorColorX.green / MAX_COLOR, majorColorX.blue / MAX_COLOR, alpha);
+
+                    geometryCache->updateVertices(_majorTicksVerticesID, majorPoints, majorColor);
+
+                    xColor minorColorX = getMinorTickMarksColor();
+                    glm::vec4 minorColor(minorColorX.red / MAX_COLOR, minorColorX.green / MAX_COLOR, minorColorX.blue / MAX_COLOR, alpha);
+
+                    geometryCache->updateVertices(_minorTicksVerticesID, minorPoints, minorColor);
                 }
 
-                xColor majorColor = getMajorTickMarksColor();
-                glColor4f(majorColor.red / MAX_COLOR, majorColor.green / MAX_COLOR, majorColor.blue / MAX_COLOR, alpha);
-                geometryCache->renderVertices(GL_LINES, _majorTicksVerticesID);
+                geometryCache->renderVertices(gpu::LINES, _majorTicksVerticesID);
 
-                xColor minorColor = getMinorTickMarksColor();
-                glColor4f(minorColor.red / MAX_COLOR, minorColor.green / MAX_COLOR, minorColor.blue / MAX_COLOR, alpha);
-                geometryCache->renderVertices(GL_LINES, _minorTicksVerticesID);
+                geometryCache->renderVertices(gpu::LINES, _minorTicksVerticesID);
             }
             
  

@@ -42,16 +42,16 @@ public:
     void releaseSimpleProgram();
 
     //// Renders a solid sphere with the simple program.
-    void renderSolidSphere(float radius, int slices, int stacks);
+    void renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color);
 
     //// Renders a wireframe sphere with the simple program.
-    void renderWireSphere(float radius, int slices, int stacks);
+    void renderWireSphere(float radius, int slices, int stacks, const glm::vec4& color);
     
     //// Renders a solid cube with the simple program.
-    void renderSolidCube(float size);
+    void renderSolidCube(float size, const glm::vec4& color);
 
     //// Renders a wireframe cube with the simple program.
-    void renderWireCube(float size);
+    void renderWireCube(float size, const glm::vec4& color);
 
     //// Renders a solid cone with the simple program.
     void renderSolidCone(float base, float height, int slices, int stacks);
