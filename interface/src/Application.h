@@ -182,8 +182,6 @@ public:
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
-    BandwidthRecorder* getBandwidthRecorder() { return &_bandwidthRecorder; }
-    
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     
@@ -204,6 +202,7 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
+    BandwidthRecorder* getBandwidthRecorder() { return &_bandwidthRecorder; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
