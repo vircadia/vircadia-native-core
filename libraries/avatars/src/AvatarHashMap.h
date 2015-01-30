@@ -31,6 +31,7 @@ class AvatarHashMap : public QObject, public Dependency {
     
 public:
     const AvatarHash& getAvatarHash() { return _avatarHash; }
+    int size() { return _avatarHash.size(); }
     
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
