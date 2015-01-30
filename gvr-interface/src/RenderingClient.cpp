@@ -47,6 +47,25 @@ RenderingClient::RenderingClient(QObject *parent, const QString& launchURLString
     connect(audioThread, &QThread::started, audioClient.data(), &AudioClient::start);
 
     audioThread->start();
+    
+    
+    connect(&_avatarTimer, &QTimer::timeout, this, &RenderingClient::sendAvatarPacket);
+    _avatarTimer.setInterval(16); // 60 FPS
+    _avatarTimer.start();
+    _fakeAvatar.setDisplayName("GearVR");
+    _fakeAvatar.setFaceModelURL(QUrl(DEFAULT_HEAD_MODEL_URL));
+    _fakeAvatar.setSkeletonModelURL(QUrl(DEFAULT_BODY_MODEL_URL));
+    _fakeAvatar.toByteArray(); // Creates HeadData
+}
+
+void RenderingClient::sendAvatarPacket() {
+    _fakeAvatar.setPosition(_position);
+    _fakeAvatar.setHeadOrientation(_orientation);
+
+    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+    packet.append(_fakeAvatar.toByteArray());
+    DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
+    _fakeAvatar.sendIdentityPacket();
 }
 
 RenderingClient::~RenderingClient() {

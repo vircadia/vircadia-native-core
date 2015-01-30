@@ -16,6 +16,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QTimer>
+
+#include <AvatarData.h>
+
 #include "Client.h"
 
 class RenderingClient : public Client {
@@ -35,6 +39,8 @@ private slots:
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientationChange, const glm::quat& newOrientation,
                       bool shouldFaceLocation);
+    void sendAvatarPacket();
+    
 private:
     virtual void processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket);
     
@@ -42,6 +48,9 @@ private:
     
     glm::vec3 _position;
     glm::quat _orientation;
+
+    QTimer _avatarTimer;
+    AvatarData _fakeAvatar;
 };
 
 #endif // hifi_RenderingClient_h
