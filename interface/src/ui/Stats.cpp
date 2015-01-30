@@ -159,14 +159,12 @@ void Stats::resetWidth(int width, int horizontalOffset) {
 
 // translucent background box that makes stats more readable
 void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int height) {
-    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
-              ((rgba >> 16) & 0xff) / 255.0f, 
-              ((rgba >> 8) & 0xff)  / 255.0f,
-              (rgba & 0xff) / 255.0f);
+    glm::vec4 color(((rgba >> 24) & 0xff) / 255.0f,
+                      ((rgba >> 16) & 0xff) / 255.0f,
+                      ((rgba >> 8) & 0xff)  / 255.0f,
+                      (rgba & 0xff) / 255.0f);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height);
-
-    glColor4f(1, 1, 1, 1); 
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height, color);
 }
 
 bool Stats::includeTimingRecord(const QString& name) {

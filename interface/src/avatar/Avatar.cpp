@@ -304,8 +304,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
                     
-                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
                     
                 } glPopMatrix();
             }
@@ -330,8 +329,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     float angle = glm::degrees(glm::angle(rotation));
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
-                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
                     
                 } glPopMatrix();
             }
@@ -407,15 +405,14 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
                 const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
-                const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };
+                const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
                 glPushMatrix();
-                glColor4fv(LOOK_AT_INDICATOR_COLOR);
                 if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
                     glTranslatef(_position.x, getDisplayNamePosition().y, _position.z);
                 } else {
                     glTranslatef(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
                 }
-                DependencyManager::get<GeometryCache>()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15); 
+                DependencyManager::get<GeometryCache>()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15, LOOK_AT_INDICATOR_COLOR);
                 glPopMatrix();
             }
         }
@@ -439,11 +436,11 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             
             if (renderMode == NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
-                glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE);
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
-                DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15); 
+                DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15,
+                                        glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE));
 
                 glPopMatrix();
             }
@@ -574,15 +571,12 @@ void Avatar::renderBillboard() {
     float size = getBillboardSize();
     glScalef(size, size, size);
     
-    glColor3f(1.0f, 1.0f, 1.0f);
-
     glm::vec2 topLeft(-1.0f, -1.0f);
     glm::vec2 bottomRight(1.0f, 1.0f);
     glm::vec2 texCoordTopLeft(0.0f, 0.0f);
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
-
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     
     glPopMatrix();
     
@@ -708,15 +702,15 @@ void Avatar::renderDisplayName() {
     glEnable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(1.0f, 1.0f);
 
-    glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
-    renderBevelCornersRect(left, bottom, right - left, top - bottom, 3);
+    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(left, bottom, right - left, top - bottom, 3,
+            glm::vec4(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA));
    
-    glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+    glm::vec4 color(0.93f, 0.93f, 0.93f, _displayNameAlpha);
     QByteArray ba = _displayName.toLocal8Bit();
     const char* text = ba.data();
     
     glDisable(GL_POLYGON_OFFSET_FILL);
-    textRenderer(DISPLAYNAME)->draw(text_x, text_y, text); 
+    textRenderer(DISPLAYNAME)->draw(text_x, text_y, text, color);
 
     glPopMatrix();
 
@@ -951,7 +945,8 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
 
 // render a makeshift cone section that serves as a body part connecting joint spheres
-void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
+void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, 
+                                            float radius1, float radius2, const glm::vec4& color) {
    
     auto geometryCache = DependencyManager::get<GeometryCache>();
     
@@ -996,8 +991,8 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         
         // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
         // better if the avatars cached these buffers for each of the joints they are rendering
-        geometryCache->updateVertices(_jointConesID, points);
-        geometryCache->renderVertices(GL_TRIANGLES, _jointConesID);
+        geometryCache->updateVertices(_jointConesID, points, color);
+        geometryCache->renderVertices(gpu::TRIANGLES, _jointConesID);
     }
 }
 

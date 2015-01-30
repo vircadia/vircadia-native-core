@@ -154,14 +154,16 @@ const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
-const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
+//const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
+//const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
 const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
 
+/*
 static void loadSingleColorTexture(const unsigned char* color) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
+*/
 
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     if (_whiteTexture.isNull()) {
@@ -387,7 +389,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
     if (!url.isValid()) {
         _loaded = true;
     }
-    
+
     // default to white/blue/black
   /*  glBindTexture(GL_TEXTURE_2D, getID());
     switch (type) {
@@ -458,13 +460,18 @@ void ImageReader::run() {
     int originalWidth = image.width();
     int originalHeight = image.height();
     
-    // enforce a fixed maximum
-    const int MAXIMUM_SIZE = 1024;
-    if (image.width() > MAXIMUM_SIZE || image.height() > MAXIMUM_SIZE) {
-        qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height();
-        image = image.scaled(MAXIMUM_SIZE, MAXIMUM_SIZE, Qt::KeepAspectRatio);
-    }
+    // enforce a fixed maximum area (1024 * 2048)
+    const int MAXIMUM_AREA_SIZE = 2097152;
     int imageArea = image.width() * image.height();
+    if (imageArea > MAXIMUM_AREA_SIZE) {
+        float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
+        int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
+        int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
+        qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height() <<
+            " scaled to:" << resizeWidth << resizeHeight;
+        image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
+        imageArea = image.width() * image.height();
+    }
     
     const int EIGHT_BIT_MAXIMUM = 255;
     if (!image.hasAlphaChannel()) {

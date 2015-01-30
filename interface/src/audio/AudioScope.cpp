@@ -110,11 +110,11 @@ void AudioScope::render(int width, int height) {
         return;
     }
     
-    static const float backgroundColor[4] = { 0.4f, 0.4f, 0.4f, 0.6f };
-    static const float gridColor[4] = { 0.7f, 0.7f, 0.7f, 1.0f };
-    static const float inputColor[4] = { 0.3f, 1.0f, 0.3f, 1.0f };
-    static const float outputLeftColor[4] = { 1.0f, 0.3f, 0.3f, 1.0f };
-    static const float outputRightColor[4] = { 0.3f, 0.3f, 1.0f, 1.0f };
+    static const glm::vec4 backgroundColor = { 0.4f, 0.4f, 0.4f, 0.6f };
+    static const glm::vec4 gridColor = { 0.7f, 0.7f, 0.7f, 1.0f };
+    static const glm::vec4 inputColor = { 0.3f, 1.0f, 0.3f, 1.0f };
+    static const glm::vec4 outputLeftColor = { 1.0f, 0.3f, 0.3f, 1.0f };
+    static const glm::vec4 outputRightColor = { 0.3f, 0.3f, 1.0f, 1.0f };
     static const int gridRows = 2;
     int gridCols = _framesPerScope;
     
@@ -131,21 +131,15 @@ void AudioScope::render(int width, int height) {
     renderLineStrip(_outputRightD, outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
 }
 
-void AudioScope::renderBackground(const float* color, int x, int y, int width, int height) {
-    glColor4fv(color);
-    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height);
-    glColor4f(1, 1, 1, 1); 
+void AudioScope::renderBackground(const glm::vec4& color, int x, int y, int width, int height) {
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height, color);
 }
 
-void AudioScope::renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols) {
-    glColor4fv(color);
-    DependencyManager::get<GeometryCache>()->renderGrid(x, y, width, height, rows, cols, _audioScopeGrid);
-    glColor4f(1, 1, 1, 1); 
+void AudioScope::renderGrid(const glm::vec4& color, int x, int y, int width, int height, int rows, int cols) {
+    DependencyManager::get<GeometryCache>()->renderGrid(x, y, width, height, rows, cols, color, _audioScopeGrid);
 }
 
-void AudioScope::renderLineStrip(int id, const float* color, int x, int y, int n, int offset, const QByteArray* byteArray) {
-
-    glColor4fv(color);
+void AudioScope::renderLineStrip(int id, const glm::vec4& color, int x, int y, int n, int offset, const QByteArray* byteArray) {
 
     int16_t sample;
     int16_t* samples = ((int16_t*) byteArray->data()) + offset;
@@ -199,10 +193,8 @@ void AudioScope::renderLineStrip(int id, const float* color, int x, int y, int n
     }
     
     
-    geometryCache->updateVertices(id, points);
-    geometryCache->renderVertices(GL_LINE_STRIP, id);
-    
-    glColor4f(1, 1, 1, 1); 
+    geometryCache->updateVertices(id, points, color);
+    geometryCache->renderVertices(gpu::LINE_STRIP, id);
 }
 
 int AudioScope::addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamplesPerChannel,

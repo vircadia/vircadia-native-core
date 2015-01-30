@@ -49,14 +49,12 @@ void AudioIOStatsRenderer::render(const float* color, int width, int height) {
     int statsHeight = STATS_HEIGHT_PER_LINE * lines;
     
     
-    static const float backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 0.6f };
+    static const glm::vec4 backgroundColor = { 0.2f, 0.2f, 0.2f, 0.6f };
     int x = std::max((width - (int)STATS_WIDTH) / 2, 0);
     int y = std::max((height - CENTERED_BACKGROUND_HEIGHT) / 2, 0);
     int w = STATS_WIDTH;
     int h = statsHeight;
-    glColor4fv(backgroundColor);
-    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h);
-    glColor4f(1, 1, 1, 1); 
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h, backgroundColor);
     
     int horizontalOffset = x + 5;
     int verticalOffset = y;

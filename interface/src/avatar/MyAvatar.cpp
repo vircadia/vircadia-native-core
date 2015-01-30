@@ -384,17 +384,15 @@ void MyAvatar::renderDebugBodyPoints() {
     //  Torso Sphere
     position = torsoPosition;
     glPushMatrix();
-    glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.2f, 10.0f, 10.0f);
+    DependencyManager::get<GeometryCache>()->renderSphere(0.2f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
     glPopMatrix();
 
     //  Head Sphere
     position = headPosition;
     glPushMatrix();
-    glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.15f, 10.0f, 10.0f);
+    DependencyManager::get<GeometryCache>()->renderSphere(0.15f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
     glPopMatrix();
 }
 
@@ -1958,14 +1956,13 @@ void MyAvatar::renderLaserPointers() {
     for (size_t i = 0; i < getHand()->getNumPalms(); ++i) {
         PalmData& palm = getHand()->getPalms()[i];
         if (palm.isActive()) {
-            glColor4f(0, 1, 1, 1);
             glm::vec3 tip = getLaserPointerTipPosition(&palm);
             glm::vec3 root = palm.getPosition();
 
             //Scale the root vector with the avatar scale
             scaleVectorRelativeToPosition(root);
 
-            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS);
+            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
         }
     }
 }

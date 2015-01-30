@@ -64,7 +64,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     }
 
 #ifdef WANT_DEBUG
-    glColor4f(diffuseR, diffuseG, diffuseB, 1.0f);
+    glm::vec4 color(diffuseR, diffuseG, diffuseB, 1.0f);
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
@@ -74,7 +74,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireSphere(0.5f, 15, 15);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireSphere(0.5f, 15, 15, color);
         glPopMatrix();
     glPopMatrix();
 #endif

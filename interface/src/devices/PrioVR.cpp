@@ -219,6 +219,6 @@ void PrioVR::renderCalibrationCountdown() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     textRenderer->draw((glCanvas->width() - textRenderer->computeWidth(text.constData())) / 2,
                        glCanvas->height() / 2,
-                       text);
+                       text, glm::vec4(1,1,1,1));
 #endif  
 }
