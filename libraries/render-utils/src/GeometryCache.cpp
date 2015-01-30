@@ -57,7 +57,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
 
     Vec2Pair radiusKey(glm::vec2(radius, slices), glm::vec2(stacks, 0));
     IntPair slicesStacksKey(slices, stacks);
-    Vec3Pair colorKey(glm::vec3(color.x, color.y, slices),glm::vec3(color.z, color.y, stacks));
+    Vec3Pair colorKey(glm::vec3(color.x, color.y, slices), glm::vec3(color.z, color.y, stacks));
 
     int vertices = slices * (stacks - 1) + 2;    
     int indices = slices * (stacks - 1) * NUM_VERTICES_PER_TRIANGULATED_QUAD;
@@ -1478,6 +1478,7 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
 
 
 int GeometryCache::BatchItemDetails::population = 0;
+
 GeometryCache::BatchItemDetails::BatchItemDetails() :
     verticesBuffer(NULL),
     colorBuffer(NULL),
