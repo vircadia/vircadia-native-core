@@ -14,17 +14,21 @@
 
 #include <QtWidgets/QMainWindow>
 
+class QMenuBar;
 class QVBoxLayout;
 
 class GVRMainWindow : public QMainWindow {
     Q_OBJECT
 public:
     GVRMainWindow(QWidget* parent = 0);
+    ~GVRMainWindow();
 public slots:
     void showAddressBar();
-    void goFullScreen();
 private:
+    void setupMenuBar();
+    
     QVBoxLayout* _mainLayout;
+    QMenuBar* _menuBar;
 };
 
 #endif // hifi_GVRMainWindow_h

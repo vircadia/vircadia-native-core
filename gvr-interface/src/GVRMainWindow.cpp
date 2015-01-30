@@ -26,7 +26,8 @@
 #include "GVRMainWindow.h"
 
 GVRMainWindow::GVRMainWindow(QWidget* parent) :
-    QMainWindow(parent)
+    QMainWindow(parent),
+    _menuBar(NULL)
 {
     
 #ifndef ANDROID
@@ -35,25 +36,7 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     setFixedSize(NOTE_4_WIDTH / 2, NOTE_4_HEIGHT / 2);
 #endif
     
-    QMenu* fileMenu = new QMenu("File");
-    QMenu* helpMenu = new QMenu("Help");
-    
-    menuBar()->addMenu(fileMenu);
-    menuBar()->addMenu(helpMenu);
-    
-    QAction* goToAddress = new QAction("Go to Address", fileMenu);
-    connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
-    fileMenu->addAction(goToAddress);
-    
-#ifdef ANDROID
-    QAction* goFullScreen = new QAction("Enter Full Screen", fileMenu);
-    connect(goFullScreen, &QAction::triggered, this, &GVRMainWindow::goFullScreen);
-    fileMenu->addAction(goFullScreen);
-#endif
-    
-    QAction* aboutQt = new QAction("About Qt", helpMenu);
-    connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
-    helpMenu->addAction(aboutQt);
+    setupMenuBar();
     
     QWidget* baseWidget = new QWidget(this);
     
@@ -70,12 +53,28 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     new InterfaceView(baseWidget);
 }
 
-void GVRMainWindow::goFullScreen() {
-#ifdef ANDROID
-    menuBar()->hide();
-#else
-    showFullScreen();
-#endif
+GVRMainWindow::~GVRMainWindow() {
+    delete _menuBar;
+}
+
+void GVRMainWindow::setupMenuBar() {
+    QMenu* fileMenu = new QMenu("File");
+    QMenu* helpMenu = new QMenu("Help");
+    
+    _menuBar = new QMenuBar(0);
+    
+    _menuBar->addMenu(fileMenu);
+    _menuBar->addMenu(helpMenu);
+    
+    QAction* goToAddress = new QAction("Go to Address", fileMenu);
+    connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
+    fileMenu->addAction(goToAddress);
+    
+    QAction* aboutQt = new QAction("About Qt", helpMenu);
+    connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
+    helpMenu->addAction(aboutQt);
+    
+    setMenuBar(_menuBar);
 }
 
 void GVRMainWindow::showAddressBar() {

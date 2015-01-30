@@ -11,14 +11,13 @@ if (ANDROID)
   set(ANDROID_ACTIVITY_NAME io.highfidelity.gvrinterface.InterfaceActivity)
   set(ANDROID_APK_VERSION_NAME "0.1")
   set(ANDROID_APK_VERSION_CODE 1)
+  set(ANDROID_APK_FULLSCREEN TRUE)
   set(ANDROID_DEPLOY_QT_INSTALL "--install")
   
   set(BUILD_SHARED_LIBS ON)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
   
   setup_hifi_library(Gui Widgets AndroidExtras)
-  
-  add_definitions(-DANDROID)
 else ()
   setup_hifi_project(Gui Widgets)
 endif ()
