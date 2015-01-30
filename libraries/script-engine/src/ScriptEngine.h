@@ -96,7 +96,8 @@ public slots:
     QObject* setTimeout(const QScriptValue& function, int timeoutMS);
     void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
-    void include(const QString& includeFile);
+    void include(const QStringList& includeFiles, QScriptValue callback = QScriptValue());
+    void include(const QString& includeFile, QScriptValue callback = QScriptValue());
     void load(const QString& loadfile);
     void print(const QString& message);
     QUrl resolvePath(const QString& path) const;
