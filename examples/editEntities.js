@@ -512,7 +512,7 @@ function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event) || gridTool.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         mouseCapturedByTool = true;
         return;
     }
