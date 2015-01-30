@@ -13,6 +13,7 @@
 #define hifi_AnimationsDialog_h
 
 #include <QDialog>
+#include <QDoubleSpinBox>
 #include <QFrame>
 
 #include "avatar/MyAvatar.h"
@@ -30,7 +31,7 @@ class AnimationsDialog : public QDialog {
 
 public:
     
-    AnimationsDialog();
+    AnimationsDialog(QWidget* parent = nullptr);
 
     virtual void setVisible(bool visible);
 

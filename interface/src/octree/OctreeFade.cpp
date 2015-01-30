@@ -43,12 +43,11 @@ void OctreeFade::render() {
     glDisable(GL_LIGHTING);
     glPushMatrix();
     glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    glColor4f(red, green, blue, opacity);
     glTranslatef(voxelDetails.x + voxelDetails.s * 0.5f,
                  voxelDetails.y + voxelDetails.s * 0.5f,
                  voxelDetails.z + voxelDetails.s * 0.5f);
     glLineWidth(1.0f);
-    DependencyManager::get<GeometryCache>()->renderSolidCube(voxelDetails.s);
+    DependencyManager::get<GeometryCache>()->renderSolidCube(voxelDetails.s, glm::vec4(red, green, blue, opacity));
     glLineWidth(1.0f);
     glPopMatrix();
     glEnable(GL_LIGHTING);

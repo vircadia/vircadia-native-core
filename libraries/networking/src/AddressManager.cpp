@@ -9,17 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qdebug.h>
-#include <qjsondocument.h>
-#include <qregexp.h>
-#include <qstringlist.h>
+#include <QApplication>
+#include <QClipboard>
+#include <QDebug>
+#include <QJsonDocument>
+#include <QRegExp>
+#include <QStringList>
 
 #include <GLMHelpers.h>
+#include <Settings.h>
 #include <UUID.h>
 
 #include "NodeList.h"
 
 #include "AddressManager.h"
+
+const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
+const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
+namespace SettingHandles {
+    const SettingHandle<QUrl> currentAddress(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP
+                                             << "address",
+                                             QUrl());
+}
 
 AddressManager::AddressManager() :
     _rootPlaceName(),
@@ -27,7 +38,7 @@ AddressManager::AddressManager() :
     _positionGetter(NULL),
     _orientationGetter(NULL)
 {
-    
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &AddressManager::storeCurrentAddress);
 }
 
 bool AddressManager::isConnected() {
@@ -44,25 +55,16 @@ const QUrl AddressManager::currentAddress() const {
     return hifiURL;
 }
 
-const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
-const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
-
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        QSettings settings;
-        settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
-        handleLookupString(settings.value(SETTINGS_CURRENT_ADDRESS_KEY).toString());
+        handleLookupString(SettingHandles::currentAddress.get().toString());
     } else {
         handleLookupString(lookupString);
     }
 }
 
 void AddressManager::storeCurrentAddress() {
-    QSettings settings;
-
-    settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
-    settings.setValue(SETTINGS_CURRENT_ADDRESS_KEY, currentAddress());
-    settings.endGroup();
+    SettingHandles::currentAddress.set(currentAddress());
 }
 
 const QString AddressManager::currentPath(bool withOrientation) const {
@@ -429,4 +431,12 @@ void AddressManager::goToUser(const QString& username) {
     AccountManager::getInstance().unauthenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
                                                          QNetworkAccessManager::GetOperation,
                                                          apiCallbackParameters());
+}
+
+void AddressManager::copyAddress() {
+    QApplication::clipboard()->setText(currentAddress().toString());
+}
+
+void AddressManager::copyPath() {
+    QApplication::clipboard()->setText(currentPath());
 }

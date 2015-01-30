@@ -115,6 +115,16 @@ QDebug& operator<<(QDebug& dbg, const glm::vec3& v) {
     return dbg;
 }
 
+QDebug& operator<<(QDebug& dbg, const glm::vec4& v) {
+    dbg.nospace() << "{type='glm::vec4'"
+        ", x=" << v.x <<
+        ", y=" << v.y <<
+        ", z=" << v.z <<
+        ", w=" << v.w <<
+        "}";
+    return dbg;
+}
+
 QDebug& operator<<(QDebug& dbg, const glm::quat& q) {
     dbg.nospace() << "{type='glm::quat'"
         ", x=" << q.x <<

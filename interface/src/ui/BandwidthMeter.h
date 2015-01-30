@@ -69,9 +69,9 @@ public:
     ChannelInfo const& channelInfo(ChannelIndex i)      const   { return _channels[i]; }
 
 private:
-    static void setColorRGBA(unsigned c);
-    static void renderBox(int x, int y, int w, int h);
-    static void renderVerticalLine(int x, int y, int h);
+    static glm::vec4 getColorRGBA(unsigned c);
+    static void renderBox(int x, int y, int w, int h, unsigned c);
+    static void renderVerticalLine(int x, int y, int h, unsigned c);
 
     static inline int centered(int subject, int object);
 

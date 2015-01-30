@@ -21,7 +21,7 @@ class PreferencesDialog : public QDialog {
     Q_OBJECT
     
 public:
-    PreferencesDialog();
+    PreferencesDialog(QWidget* parent = nullptr);
 
 protected:
     void resizeEvent(QResizeEvent* resizeEvent);

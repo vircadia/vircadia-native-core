@@ -173,23 +173,12 @@ void IceServer::clearInactivePeers() {
 bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     //
     // We need an HTTP handler in order to monitor the health of the ice server
-    // The correct functioning of the ICE server will first be determined by its HTTP availability,
-    // and then by the existence of a minimum number of peers in the list, matching the minimum number of
-    // domains in production by High Fidelity.
+    // The correct functioning of the ICE server will be determined by its HTTP availability,
     //
-    
-    int MINIMUM_PEERS = 3;
-    bool IS_HEALTHY = false;
-    
-    IS_HEALTHY = _activePeers.size() >= MINIMUM_PEERS ? true : false;
     
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/status") {
-            if (IS_HEALTHY) {
-                connection->respond(HTTPConnection::StatusCode200, QByteArray::number(_activePeers.size()));
-            } else {
-                connection->respond(HTTPConnection::StatusCode404, QByteArray::number(_activePeers.size()));
-            }
+            connection->respond(HTTPConnection::StatusCode200, QByteArray::number(_activePeers.size()));
         }
     }
     return true;

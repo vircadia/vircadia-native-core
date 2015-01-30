@@ -11,6 +11,7 @@
 
 #include "ui_scriptEditorWidget.h"
 #include "ScriptEditorWidget.h"
+#include "ScriptEditorWindow.h"
 
 #include <QGridLayout>
 #include <QFileDialog>

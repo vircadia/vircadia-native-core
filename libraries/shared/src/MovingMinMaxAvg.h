@@ -168,6 +168,7 @@ public:
     int getWindowSamples() const { return _windowStats.getSamples(); }
     double getWindowSum() const { return _windowStats.getSum(); }
 
+    int getWindowIntervals() const { return _windowIntervals; }
     T getCurrentIntervalMin() const { return _currentIntervalStats.getMin(); }
     T getCurrentIntervalMax() const { return _currentIntervalStats.getMax(); }
     double getCurrentIntervalAverage() const { return _currentIntervalStats.getAverage(); }

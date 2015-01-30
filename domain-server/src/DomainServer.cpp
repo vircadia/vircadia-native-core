@@ -13,21 +13,22 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include <QtCore/QDir>
-#include <QtCore/QJsonDocument>
-#include <QtCore/QJsonObject>
-#include <QtCore/QJsonArray>
-#include <QtCore/QProcess>
-#include <QtCore/qsharedmemory.h>
-#include <QtCore/QStandardPaths>
-#include <QtCore/QTimer>
-#include <QtCore/QUrlQuery>
+#include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QProcess>
+#include <QSharedMemory>
+#include <QStandardPaths>
+#include <QTimer>
+#include <QUrlQuery>
 
 #include <AccountManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <LogUtils.h>
 #include <PacketHeaders.h>
+#include <Settings.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <UUID.h>
@@ -1923,10 +1924,8 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     _cookieSessionHash.insert(cookieUUID, sessionData);
     
     // persist the cookie to settings file so we can get it back on DS relaunch
-    QSettings localSettings;
-    localSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
-    QVariant sessionVariant = QVariant::fromValue(sessionData);
-    localSettings.setValue(cookieUUID.toString(), QVariant::fromValue(sessionData));
+    QStringList path = QStringList() << DS_SETTINGS_SESSIONS_GROUP << cookieUUID.toString();
+    SettingHandles::SettingHandle<QVariant>(path).set(QVariant::fromValue(sessionData));
     
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);
@@ -1946,11 +1945,12 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
 
 void DomainServer::loadExistingSessionsFromSettings() {
     // read data for existing web sessions into memory so existing sessions can be leveraged
-    QSettings domainServerSettings;
+    Settings domainServerSettings;
     domainServerSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
     
     foreach(const QString& uuidKey, domainServerSettings.childKeys()) {
-        _cookieSessionHash.insert(QUuid(uuidKey), domainServerSettings.value(uuidKey).value<DomainServerWebSessionData>());
+        _cookieSessionHash.insert(QUuid(uuidKey),
+                                  domainServerSettings.value(uuidKey).value<DomainServerWebSessionData>());
         qDebug() << "Pulled web session from settings - cookie UUID is" << uuidKey;
     }
 }

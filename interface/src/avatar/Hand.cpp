@@ -115,8 +115,7 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
             glm::vec3 position = palm.getPosition();
             glPushMatrix();
             glTranslatef(position.x, position.y, position.z);
-            glColor3f(0.0f, 1.0f, 0.0f);
-            DependencyManager::get<GeometryCache>()->renderSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
+            DependencyManager::get<GeometryCache>()->renderSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10, glm::vec3(0.0f, 1.0f, 0.0f));
             glPopMatrix();
         }
     }
@@ -132,7 +131,6 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
 void Hand::renderHandTargets(bool isMine) {
     glPushMatrix();
 
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     const float avatarScale = Application::getInstance()->getAvatar()->getScale();
 
     const float alpha = 1.0f;
@@ -152,8 +150,7 @@ void Hand::renderHandTargets(bool isMine) {
             glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
         
             const float collisionRadius = 0.05f;
-            glColor4f(0.5f,0.5f,0.5f, alpha);
-            DependencyManager::get<GeometryCache>()->renderSphere(collisionRadius, 10, 10, false); 
+            DependencyManager::get<GeometryCache>()->renderSphere(collisionRadius, 10, 10, glm::vec4(0.5f,0.5f,0.5f, alpha), false);
             glPopMatrix();
         }
     }
@@ -167,21 +164,17 @@ void Hand::renderHandTargets(bool isMine) {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
-            glColor4f(handColor.r, handColor.g, handColor.b, alpha);
             glm::vec3 tip = palm.getTipPosition();
             glm::vec3 root = palm.getPosition();
 
-            //Scale the positions based on avatar scale
-            myAvatar->scaleVectorRelativeToPosition(tip);
-            myAvatar->scaleVectorRelativeToPosition(root);
+            Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS, glm::vec4(handColor.r, handColor.g, handColor.b, alpha));
 
-            Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS);
             //  Render sphere at palm/finger root
             glm::vec3 offsetFromPalm = root + palm.getNormal() * PALM_DISK_THICKNESS;
-            Avatar::renderJointConnectingCone(root, offsetFromPalm, PALM_DISK_RADIUS, 0.0f);
+            Avatar::renderJointConnectingCone(root, offsetFromPalm, PALM_DISK_RADIUS, 0.0f, glm::vec4(handColor.r, handColor.g, handColor.b, alpha));
             glPushMatrix();
             glTranslatef(root.x, root.y, root.z);
-            DependencyManager::get<GeometryCache>()->renderSphere(PALM_BALL_RADIUS, 20.0f, 20.0f);
+            DependencyManager::get<GeometryCache>()->renderSphere(PALM_BALL_RADIUS, 20.0f, 20.0f, glm::vec4(handColor.r, handColor.g, handColor.b, alpha));
             glPopMatrix();
         }
     }

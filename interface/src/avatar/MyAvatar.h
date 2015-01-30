@@ -51,7 +51,7 @@ public:
     // getters
     float getLeanScale() const { return _leanScale; }
     glm::vec3 getGravity() const { return _gravity; }
-    glm::vec3 getDefaultEyePosition() const;
+    Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
     
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
@@ -78,8 +78,8 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     
     // get/set avatar data
-    void saveData(QSettings* settings);
-    void loadData(QSettings* settings);
+    void saveData();
+    void loadData();
 
     void saveAttachmentData(const AttachmentData& attachment) const;
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;

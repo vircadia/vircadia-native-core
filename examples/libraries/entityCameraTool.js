@@ -15,6 +15,9 @@ var MOUSE_SENSITIVITY = 0.9;
 var SCROLL_SENSITIVITY = 0.05;
 var PAN_ZOOM_SCALE_RATIO = 0.4;
 
+var KEY_ORBIT_SENSITIVITY = 40;
+var KEY_ZOOM_SENSITIVITY = 10;
+
 // Scaling applied based on the size of the object being focused
 var FOCUS_ZOOM_SCALE = 1.3;
 
@@ -43,6 +46,10 @@ var easeOutCubic = function(t) {
 
 EASE_TIME = 0.5;
 
+function clamp(value, minimum, maximum) {
+    return Math.min(Math.max(value, minimum), maximum);
+}
+
 function mergeObjects(obj1, obj2) {
     var newObj = {};
     for (key in obj1) {
@@ -59,6 +66,49 @@ CameraManager = function() {
 
     that.enabled = false;
     that.mode = MODE_INACTIVE;
+
+    var actions = {
+        orbitLeft: 0,
+        orbitRight: 0,
+        orbitUp: 0,
+        orbitDown: 0,
+        orbitForward: 0,
+        orbitBackward: 0,
+    }
+
+    var keyToActionMapping = {
+        "a": "orbitLeft",
+        "d": "orbitRight",
+        "w": "orbitForward",
+        "s": "orbitBackward",
+        "e": "orbitUp",
+        "c": "orbitDown",
+
+        "LEFT": "orbitLeft",
+        "RIGHT": "orbitRight",
+        "UP": "orbitForward",
+        "DOWN": "orbitBackward",
+    }
+
+    var CAPTURED_KEYS = [];
+    for (key in keyToActionMapping) {
+        CAPTURED_KEYS.push(key);
+    }
+
+    function getActionForKeyEvent(event) {
+        var action = keyToActionMapping[event.text];
+        if (action !== undefined) {
+            if (event.isShifted) {
+                if (action == "orbitForward") {
+                    action = "orbitUp";
+                } else if (action == "orbitBackward") {
+                    action = "orbitDown";
+                }
+            }
+            return action;
+        }
+        return null;
+    }
 
     that.zoomDistance = INITIAL_ZOOM_DISTANCE;
     that.targetZoomDistance = INITIAL_ZOOM_DISTANCE;
@@ -80,7 +130,12 @@ CameraManager = function() {
     that.lastMousePosition = { x: 0, y: 0 };
 
     that.enable = function() {
-        if (that.enabled) return;
+        if (Camera.mode == "independent" || that.enabled) return;
+
+        for (var i = 0; i < CAPTURED_KEYS.length; i++) {
+            Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
+        }
+
         that.enabled = true;
         that.mode = MODE_INACTIVE;
 
@@ -111,6 +166,11 @@ CameraManager = function() {
 
     that.disable = function(ignoreCamera) {
         if (!that.enabled) return;
+
+        for (var i = 0; i < CAPTURED_KEYS.length; i++) {
+            Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
+        }
+
         that.enabled = false;
         that.mode = MODE_INACTIVE;
 
@@ -207,6 +267,11 @@ CameraManager = function() {
         if (that.enabled && that.mode != MODE_INACTIVE) {
             var x = Window.getCursorPositionX();
             var y = Window.getCursorPositionY();
+            if (!hasDragged) {
+                that.lastMousePosition.x = x;
+                that.lastMousePosition.y = y;
+                hasDragged = true;
+            }
             if (that.mode == MODE_ORBIT) {
                 var diffX = x - that.lastMousePosition.x;
                 var diffY = y - that.lastMousePosition.y;
@@ -234,9 +299,31 @@ CameraManager = function() {
 
                 that.moveFocalPoint(dPosition);
             }
-            var newX = Window.x + Window.innerWidth / 2;
-            var newY = Window.y + Window.innerHeight / 2;
-            Window.setCursorPosition(newX, newY);
+
+            var newX = x;
+            var newY = y;
+            var updatePosition = false;
+
+            if (x <= Window.x) {
+                newX = Window.x + Window.innerWidth;
+                updatePosition = true;
+            } else if (x >= (Window.x + Window.innerWidth)) {
+                newX = Window.x;
+                updatePosition = true;
+            }
+
+            if (y <= Window.y) {
+                newY = Window.y + Window.innerHeight;
+                updatePosition = true;
+            } else if (y >= (Window.y + Window.innerHeight)) {
+                newY = Window.y;
+                updatePosition = true;
+            }
+
+            if (updatePosition) {
+                Window.setCursorPosition(newX, newY);
+            }
+
             that.lastMousePosition.x = newX;
             that.lastMousePosition.y = newY;
 
@@ -245,6 +332,7 @@ CameraManager = function() {
         return false;
     }
 
+    var hasDragged = false;
     that.mousePressEvent = function(event) {
         if (cameraTool.mousePressEvent(event)) {
             return true;
@@ -259,12 +347,7 @@ CameraManager = function() {
         }
 
         if (that.mode != MODE_INACTIVE) {
-            var newX = Window.x + Window.innerWidth / 2;
-            var newY = Window.y + Window.innerHeight / 2;
-            Window.setCursorPosition(newX, newY);
-            that.lastMousePosition.x = newX;
-            that.lastMousePosition.y = newY;
-            Window.setCursorVisible(false);
+            hasDragged = false;
 
             return true;
         }
@@ -278,6 +361,20 @@ CameraManager = function() {
         Window.setCursorVisible(true);
         that.mode = MODE_INACTIVE;
     }
+
+    that.keyPressEvent = function(event) {
+        var action = getActionForKeyEvent(event);
+        if (action) {
+            actions[action] = 1;
+        }
+    };
+
+    that.keyReleaseEvent = function(event) {
+        var action = getActionForKeyEvent(event);
+        if (action) {
+            actions[action] = 0;
+        }
+    };
 
     that.wheelEvent = function(event) {
         if (!that.enabled) return;
@@ -332,6 +429,14 @@ CameraManager = function() {
             return;
         }
 
+        // Update based on current actions
+        that.targetYaw += (actions.orbitRight - actions.orbitLeft) * dt * KEY_ORBIT_SENSITIVITY;
+        that.targetPitch += (actions.orbitUp - actions.orbitDown) * dt * KEY_ORBIT_SENSITIVITY;
+        that.targetPitch = clamp(that.targetPitch, -90, 90);
+        that.targetZoomDistance += (actions.orbitBackward - actions.orbitForward) * dt * KEY_ZOOM_SENSITIVITY;
+        that.targetZoomDistance = clamp(that.targetZoomDistance, MIN_ZOOM_DISTANCE, MAX_ZOOM_DISTANCE);
+
+
         if (easing) {
             easingTime = Math.min(EASE_TIME, easingTime + dt);
         }
@@ -383,6 +488,7 @@ CameraManager = function() {
     });
 
     Script.update.connect(that.update);
+    Script.scriptEnding.connect(that.disable);
 
     Controller.wheelEvent.connect(that.wheelEvent);
 

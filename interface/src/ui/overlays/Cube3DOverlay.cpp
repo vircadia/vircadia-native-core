@@ -47,7 +47,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::vec4 cubeColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     //glDisable(GL_LIGHTING);
 
@@ -74,13 +74,12 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     // enough for the use-case.
                     glDepthMask(GL_FALSE);
                     glPushMatrix();
-                        glColor4f(1.0f, 1.0f, 1.0f, alpha);
                         glScalef(dimensions.x * _borderSize, dimensions.y * _borderSize, dimensions.z * _borderSize);
 
                         if (_drawOnHUD) {
-                            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
+                            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
                         } else {
-                            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+                            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
                         }
 
                     glPopMatrix();
@@ -88,12 +87,11 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 }
 
                 glPushMatrix();
-                    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
                     if (_drawOnHUD) {
-                        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
+                        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, cubeColor);
                     } else {
-                        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+                        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
                     }
                 glPopMatrix();
             } else {
@@ -113,24 +111,24 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
                     auto geometryCache = DependencyManager::get<GeometryCache>();
                 
-                    geometryCache->renderDashedLine(bottomLeftNear, bottomRightNear);
-                    geometryCache->renderDashedLine(bottomRightNear, bottomRightFar);
-                    geometryCache->renderDashedLine(bottomRightFar, bottomLeftFar);
-                    geometryCache->renderDashedLine(bottomLeftFar, bottomLeftNear);
+                    geometryCache->renderDashedLine(bottomLeftNear, bottomRightNear, cubeColor);
+                    geometryCache->renderDashedLine(bottomRightNear, bottomRightFar, cubeColor);
+                    geometryCache->renderDashedLine(bottomRightFar, bottomLeftFar, cubeColor);
+                    geometryCache->renderDashedLine(bottomLeftFar, bottomLeftNear, cubeColor);
 
-                    geometryCache->renderDashedLine(topLeftNear, topRightNear);
-                    geometryCache->renderDashedLine(topRightNear, topRightFar);
-                    geometryCache->renderDashedLine(topRightFar, topLeftFar);
-                    geometryCache->renderDashedLine(topLeftFar, topLeftNear);
+                    geometryCache->renderDashedLine(topLeftNear, topRightNear, cubeColor);
+                    geometryCache->renderDashedLine(topRightNear, topRightFar, cubeColor);
+                    geometryCache->renderDashedLine(topRightFar, topLeftFar, cubeColor);
+                    geometryCache->renderDashedLine(topLeftFar, topLeftNear, cubeColor);
 
-                    geometryCache->renderDashedLine(bottomLeftNear, topLeftNear);
-                    geometryCache->renderDashedLine(bottomRightNear, topRightNear);
-                    geometryCache->renderDashedLine(bottomLeftFar, topLeftFar);
-                    geometryCache->renderDashedLine(bottomRightFar, topRightFar);
+                    geometryCache->renderDashedLine(bottomLeftNear, topLeftNear, cubeColor);
+                    geometryCache->renderDashedLine(bottomRightNear, topRightNear, cubeColor);
+                    geometryCache->renderDashedLine(bottomLeftFar, topLeftFar, cubeColor);
+                    geometryCache->renderDashedLine(bottomRightFar, topRightFar, cubeColor);
 
                 } else {
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
-                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f);
+                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
                 }
             }
         glPopMatrix();

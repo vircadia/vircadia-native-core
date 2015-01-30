@@ -10,9 +10,10 @@
 //
 
 #include <cstring>
+#include <math.h>
 #include <sys/stat.h>
 
-#include <math.h>
+#include <glm/glm.hpp>
 
 #ifdef __APPLE__
 #include <CoreAudio/AudioHardware.h>
@@ -28,28 +29,34 @@
 #include <VersionHelpers.h>
 #endif
 
-#include <AudioConstants.h>
-
 #include <QtCore/QBuffer>
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
-#include <glm/glm.hpp>
-
+#include <AudioConstants.h>
 #include <AudioInjector.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-
 #include <PositionalAudioStream.h>
-
+#include <Settings.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 
 #include "Application.h"
-
 #include "Audio.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
+
+namespace SettingHandles {
+    const SettingHandle<bool> audioOutputStarveDetectionEnabled("audioOutputStarveDetectionEnabled",
+                                                                DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED);
+    const SettingHandle<int> audioOutputStarveDetectionThreshold("audioOutputStarveDetectionThreshold",
+                                                                 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD);
+    const SettingHandle<int> audioOutputStarveDetectionPeriod("audioOutputStarveDetectionPeriod",
+                                                              DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD);
+    const SettingHandle<int> audioOutputBufferSize("audioOutputBufferSize",
+                                                   DEFAULT_MAX_FRAMES_OVER_DESIRED);
+}
 
 Audio::Audio() :
     AbstractAudioInterface(),
@@ -99,6 +106,15 @@ Audio::Audio() :
     
     // Initialize GVerb
     initGverb();
+
+    const qint64 DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
+
+    _inputDevices = getDeviceNames(QAudio::AudioInput);
+    _outputDevices = getDeviceNames(QAudio::AudioOutput);
+
+    QTimer* updateTimer = new QTimer(this);
+    connect(updateTimer, &QTimer::timeout, this, &Audio::checkDevices);
+    updateTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 }
 
 void Audio::reset() {
@@ -118,7 +134,9 @@ void Audio::audioMixerKilled() {
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
-#ifdef WIN32
+// Temporarily enable audio device selection in Windows again to test how it behaves now
+//#ifdef WIN32
+#if FALSE
     // NOTE
     // this is a workaround for a windows only QtBug https://bugreports.qt-project.org/browse/QTBUG-16117
     // static QAudioDeviceInfo objects get deallocated when QList<QAudioDevieInfo> objects go out of scope
@@ -1106,3 +1124,40 @@ qint64 Audio::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
     return bytesWritten;
 }
+
+void Audio::checkDevices() {
+    QVector<QString> inputDevices = getDeviceNames(QAudio::AudioInput);
+    QVector<QString> outputDevices = getDeviceNames(QAudio::AudioOutput);
+
+    if (inputDevices != _inputDevices || outputDevices != _outputDevices) {
+        _inputDevices = inputDevices;
+        _outputDevices = outputDevices;
+
+        emit deviceChanged();
+    }
+}
+
+void Audio::loadSettings() {
+    _receivedAudioStream.loadSettings();
+    
+    setOutputStarveDetectionEnabled(SettingHandles::audioOutputStarveDetectionEnabled.get());
+    setOutputStarveDetectionThreshold(SettingHandles::audioOutputStarveDetectionThreshold.get());
+    setOutputStarveDetectionPeriod(SettingHandles::audioOutputStarveDetectionPeriod.get());
+    
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setOutputBufferSize",
+                                  Q_ARG(int, SettingHandles::audioOutputBufferSize.get()));
+    } else {
+        setOutputBufferSize(SettingHandles::audioOutputBufferSize.get());
+    }
+}
+
+void Audio::saveSettings() {
+    _receivedAudioStream.saveSettings();
+    
+    SettingHandles::audioOutputStarveDetectionEnabled.set(getOutputStarveDetectionEnabled());
+    SettingHandles::audioOutputStarveDetectionThreshold.set(getOutputStarveDetectionThreshold());
+    SettingHandles::audioOutputStarveDetectionPeriod.set(getOutputStarveDetectionPeriod());
+    SettingHandles::audioOutputBufferSize.set(getOutputBufferSize());
+}
+

@@ -149,12 +149,13 @@ void SetDataEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects
 }
 
 PaintHeightfieldHeightEdit::PaintHeightfieldHeightEdit(const glm::vec3& position, float radius,
-        float height, bool set, bool erase) :
+        float height, bool set, bool erase, float granularity) :
     position(position),
     radius(radius),
     height(height),
     set(set),
-    erase(erase) {
+    erase(erase),
+    granularity(granularity) {
 }
 
 void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
@@ -166,7 +167,8 @@ void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObje
         Box(position - extents, position + extents), results);
     
     foreach (const SharedObjectPointer& spanner, results) {
-        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintHeight(position, radius, height, set, erase);
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintHeight(position, radius,
+            height, set, erase, granularity);
         if (newSpanner != spanner) {
             data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
         }
@@ -179,11 +181,12 @@ MaterialEdit::MaterialEdit(const SharedObjectPointer& material, const QColor& av
 }
 
 HeightfieldMaterialSpannerEdit::HeightfieldMaterialSpannerEdit(const SharedObjectPointer& spanner,
-        const SharedObjectPointer& material, const QColor& averageColor, bool paint, bool voxelize) :
+        const SharedObjectPointer& material, const QColor& averageColor, bool paint, bool voxelize, float granularity) :
     MaterialEdit(material, averageColor),
     spanner(spanner),
     paint(paint),
-    voxelize(voxelize) {
+    voxelize(voxelize),
+    granularity(granularity) {
 }
 
 class SpannerProjectionFetchVisitor : public SpannerVisitor {
@@ -250,16 +253,18 @@ void HeightfieldMaterialSpannerEdit::apply(MetavoxelData& data, const WeakShared
     }
     
     foreach (const SharedObjectPointer& result, results) {
-        Spanner* newResult = static_cast<Spanner*>(result.data())->setMaterial(spanner, material, color, paint, voxelize);
+        Spanner* newResult = static_cast<Spanner*>(result.data())->setMaterial(spanner, material, 
+            color, paint, voxelize, granularity);
         if (newResult != result) {
             data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), result, newResult);
         }
     }
 }
 
-FillHeightfieldHeightEdit::FillHeightfieldHeightEdit(const glm::vec3& position, float radius) :
+FillHeightfieldHeightEdit::FillHeightfieldHeightEdit(const glm::vec3& position, float radius, float granularity) :
     position(position),
-    radius(radius) {
+    radius(radius),
+    granularity(granularity) {
 }
 
 void FillHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
@@ -269,7 +274,7 @@ void FillHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObjec
         Box(position - extents, position + extents), results);
     
     foreach (const SharedObjectPointer& spanner, results) {
-        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->fillHeight(position, radius);
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->fillHeight(position, radius, granularity);
         if (newSpanner != spanner) {
             data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
         }

@@ -6,12 +6,13 @@
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
-* [Bullet Physics Engine](http://bulletphysics.org) ~> 2.82
+* [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
+* [Gverb](https://github.com/highfidelity/gverb/archive/master.zip) (direct download to latest version)
 
 ### OS Specific Build Guides
+* [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
 * [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
 * [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
-* [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
 
 ###CMake
 Hifi uses CMake to generate build files and project files for your platform.
@@ -54,11 +55,11 @@ In the examples below the variable $NAME would be replaced by the name of the de
 
 ####QXmpp
 
-You can find QXmpp [here](https://github.com/qxmpp-project/qxmpp). The inclusion of the QXmpp enables text chat in the Interface client.
+You can [find QXmpp here](https://github.com/qxmpp-project/qxmpp), 0.7.6 is the version you want. The inclusion of the QXmpp enables text chat in the Interface client.
 
 OS X users who tap our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) can install QXmpp via homebrew - `brew install highfidelity/formulas/qxmpp`.
 
 ####Devices
 
-You can support external input/output devices such as Leap Motion, Faceshift, PrioVR, MIDI, Razr Hydra and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
+You can support external input/output devices such as Oculus Rift, Leap Motion, Faceshift, PrioVR, MIDI, Razr Hydra and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
 

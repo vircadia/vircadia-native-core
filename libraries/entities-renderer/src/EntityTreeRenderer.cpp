@@ -396,62 +396,53 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
 void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement) {
     glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float) TREE_SCALE;
     float elementSize = entityTreeElement->getScale() * (float) TREE_SCALE;
-    glColor3f(1.0f, 0.0f, 0.0f);
     glPushMatrix();
         glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(elementSize);
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
     glPopMatrix();
 
     if (_displayElementChildProxies) {
         // draw the children
         float halfSize = elementSize / 2.0f;
         float quarterSize = elementSize / 4.0f;
-        glColor3f(1.0f, 1.0f, 0.0f);
         glPushMatrix();
             glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
         glPopMatrix();
 
-        glColor3f(1.0f, 0.0f, 1.0f);
         glPushMatrix();
             glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
         glPopMatrix();
 
-        glColor3f(0.0f, 1.0f, 0.0f);
         glPushMatrix();
             glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         glPopMatrix();
 
-        glColor3f(0.0f, 0.0f, 1.0f);
         glPushMatrix();
             glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
         glPopMatrix();
 
-        glColor3f(1.0f, 1.0f, 1.0f);
         glPushMatrix();
             glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
         glPopMatrix();
 
-        glColor3f(0.0f, 0.5f, 0.5f);
         glPushMatrix();
             glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.5f, 0.5f, 1.0f));
         glPopMatrix();
 
-        glColor3f(0.5f, 0.0f, 0.0f);
         glPushMatrix();
             glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
         glPopMatrix();
 
-        glColor3f(0.0f, 0.5f, 0.0f);
         glPushMatrix();
             glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
         glPopMatrix();
     }
 }
@@ -475,25 +466,22 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glm::vec3 entityBoxScale = entityBox.getScale();
 
         // draw the max bounding cube
-        glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
         glPushMatrix();
             glTranslatef(maxCenter.x, maxCenter.y, maxCenter.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(maxCube.getScale());
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(maxCube.getScale(), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
         glPopMatrix();
 
         // draw the min bounding cube
-        glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
         glPushMatrix();
             glTranslatef(minCenter.x, minCenter.y, minCenter.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(minCube.getScale());
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(minCube.getScale(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         glPopMatrix();
         
         // draw the entityBox bounding box
-        glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
         glPushMatrix();
             glTranslatef(entityBoxCenter.x, entityBoxCenter.y, entityBoxCenter.z);
             glScalef(entityBoxScale.x, entityBoxScale.y, entityBoxScale.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f);
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
         glPopMatrix();
 
 
@@ -502,7 +490,6 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glm::vec3 dimensions = entity->getDimensions() * (float) TREE_SCALE;
         glm::quat rotation = entity->getRotation();
 
-        glColor4f(1.0f, 0.0f, 1.0f, 1.0f);
         glPushMatrix();
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
@@ -511,7 +498,7 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
                 glm::vec3 positionToCenter = center - position;
                 glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
                 glScalef(dimensions.x, dimensions.y, dimensions.z);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f);
+                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
             glPopMatrix();
         glPopMatrix();
     }

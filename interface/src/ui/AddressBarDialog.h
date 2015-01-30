@@ -23,7 +23,7 @@ class AddressBarDialog : public FramelessDialog {
     Q_OBJECT
 
 public:
-    AddressBarDialog();
+    AddressBarDialog(QWidget* parent);
     
 private:
     void setupUI();

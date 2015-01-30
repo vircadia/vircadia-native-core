@@ -12,6 +12,7 @@
 #ifndef hifi_MetavoxelEditor_h
 #define hifi_MetavoxelEditor_h
 
+#include <QFormLayout>
 #include <QList>
 #include <QWidget>
 
@@ -38,7 +39,7 @@ class MetavoxelEditor : public QWidget {
 
 public:
     
-    MetavoxelEditor();
+    MetavoxelEditor(QWidget* parent = nullptr);
 
     QString getSelectedAttribute() const;
     
@@ -326,6 +327,7 @@ protected:
     
     QFormLayout* _form;
     QDoubleSpinBox* _radius;
+    QDoubleSpinBox* _granularity;
     
     glm::vec3 _position;
     bool _positionValid;
@@ -448,6 +450,7 @@ private:
     
     QCheckBox* _snapToGrid;
     MaterialControl* _materialControl;
+    QDoubleSpinBox* _granularity;
 };
 
 /// Allows setting heightfield materials by placing a spanner.
@@ -470,6 +473,7 @@ private:
     
     SharedObjectEditor* _spannerEditor;
     MaterialControl* _materialControl;
+    QDoubleSpinBox* _granularity;
 };
 
 #endif // hifi_MetavoxelEditor_h

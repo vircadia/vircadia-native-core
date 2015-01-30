@@ -25,10 +25,12 @@
 
 #include "TextureCache.h"
 
+#include "gpu/GLBackend.h"
+
 TextureCache::TextureCache() :
-    _permutationNormalTextureID(0),
-    _whiteTextureID(0),
-    _blueTextureID(0),
+    _permutationNormalTexture(0),
+    _whiteTexture(0),
+    _blueTexture(0),
     _primaryDepthTextureID(0),
     _primaryNormalTextureID(0),
     _primarySpecularTextureID(0),
@@ -44,12 +46,7 @@ TextureCache::TextureCache() :
 }
 
 TextureCache::~TextureCache() {
-    if (_permutationNormalTextureID != 0) {
-        glDeleteTextures(1, &_permutationNormalTextureID);
-    }
-    if (_whiteTextureID != 0) {
-        glDeleteTextures(1, &_whiteTextureID);
-    }
+
     if (_primaryFramebufferObject) {
         glDeleteTextures(1, &_primaryDepthTextureID);
         glDeleteTextures(1, &_primaryNormalTextureID);
@@ -124,11 +121,9 @@ const int permutation[256] =
 
 #define USE_CHRIS_NOISE 1
 
-GLuint TextureCache::getPermutationNormalTextureID() {
-    if (_permutationNormalTextureID == 0) {
-        glGenTextures(1, &_permutationNormalTextureID);
-        glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
-        
+const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
+    if (_permutationNormalTexture.isNull()) {
+
         // the first line consists of random permutation offsets
         unsigned char data[256 * 2 * 3];
 #if (USE_CHRIS_NOISE==1)
@@ -148,42 +143,42 @@ GLuint TextureCache::getPermutationNormalTextureID() {
             data[i + 1] = ((randvec.y + 1.0f) / 2.0f) * 255.0f;
             data[i + 2] = ((randvec.z + 1.0f) / 2.0f) * 255.0f;
         }
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glBindTexture(GL_TEXTURE_2D, 0);
+
+        _permutationNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), 256, 2));
+        _permutationNormalTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(data), data);
+
+       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
-    return _permutationNormalTextureID;
+    return _permutationNormalTexture;
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
-const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
+//const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
+//const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
 const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
 
+/*
 static void loadSingleColorTexture(const unsigned char* color) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
+*/
 
-GLuint TextureCache::getWhiteTextureID() {
-    if (_whiteTextureID == 0) {
-        glGenTextures(1, &_whiteTextureID);
-        glBindTexture(GL_TEXTURE_2D, _whiteTextureID);
-        loadSingleColorTexture(OPAQUE_WHITE);
-        glBindTexture(GL_TEXTURE_2D, 0);
+const gpu::TexturePointer& TextureCache::getWhiteTexture() {
+    if (_whiteTexture.isNull()) {
+        _whiteTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _whiteTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
     }
-    return _whiteTextureID;
+    return _whiteTexture;
 }
 
-GLuint TextureCache::getBlueTextureID() {
-    if (_blueTextureID == 0) {
-        glGenTextures(1, &_blueTextureID);
-        glBindTexture(GL_TEXTURE_2D, _blueTextureID);
-        loadSingleColorTexture(OPAQUE_BLUE);
-        glBindTexture(GL_TEXTURE_2D, 0);
+const gpu::TexturePointer& TextureCache::getBlueTexture() {
+    if (_blueTexture.isNull()) {
+        _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }
-    return _blueTextureID;
+    return _blueTexture;
 }
 
 /// Extra data for creating textures.
@@ -375,11 +370,13 @@ QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
 }
 
 Texture::Texture() {
-    glGenTextures(1, &_id);
 }
 
 Texture::~Texture() {
-    glDeleteTextures(1, &_id);
+}
+
+GLuint Texture::getID() const {
+    return gpu::GLBackend::getTextureID(_gpuTexture);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
@@ -392,9 +389,9 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
     if (!url.isValid()) {
         _loaded = true;
     }
-    
+
     // default to white/blue/black
-    glBindTexture(GL_TEXTURE_2D, getID());
+  /*  glBindTexture(GL_TEXTURE_2D, getID());
     switch (type) {
         case NORMAL_TEXTURE:
             loadSingleColorTexture(OPAQUE_BLUE);  
@@ -413,7 +410,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
             break;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+    */
     // if we have content, load it after we have our self pointer
     if (!content.isEmpty()) {
         _startedLoading = true;
@@ -459,14 +456,22 @@ void ImageReader::run() {
         _reply->deleteLater();
     }
     QImage image = QImage::fromData(_content);
+
+    int originalWidth = image.width();
+    int originalHeight = image.height();
     
-    // enforce a fixed maximum
-    const int MAXIMUM_SIZE = 1024;
-    if (image.width() > MAXIMUM_SIZE || image.height() > MAXIMUM_SIZE) {
-        qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height();
-        image = image.scaled(MAXIMUM_SIZE, MAXIMUM_SIZE, Qt::KeepAspectRatio);
-    }
+    // enforce a fixed maximum area (1024 * 2048)
+    const int MAXIMUM_AREA_SIZE = 2097152;
     int imageArea = image.width() * image.height();
+    if (imageArea > MAXIMUM_AREA_SIZE) {
+        float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
+        int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
+        int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
+        qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height() <<
+            " scaled to:" << resizeWidth << resizeHeight;
+        image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
+        imageArea = image.width() * image.height();
+    }
     
     const int EIGHT_BIT_MAXIMUM = 255;
     if (!image.hasAlphaChannel()) {
@@ -487,7 +492,7 @@ void ImageReader::run() {
             averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
         }
         QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
-            Q_ARG(const QColor&, averageColor));
+            Q_ARG(const QColor&, averageColor), Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
         return;
     }
     if (image.format() != QImage::Format_ARGB32) {
@@ -519,7 +524,8 @@ void ImageReader::run() {
     }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
         Q_ARG(bool, translucentPixels >= imageArea / 2), Q_ARG(const QColor&, QColor(redTotal / imageArea,
-            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)));
+            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)),
+        Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
@@ -531,26 +537,31 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
 }
 
-void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor) {
+void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
+                              int originalHeight) {
     _translucent = translucent;
     _averageColor = averageColor;
+    _originalWidth = originalWidth;
+    _originalHeight = originalHeight;
     _width = image.width();
     _height = image.height();
     
     finishedLoading(true);
     imageLoaded(image);
-    glBindTexture(GL_TEXTURE_2D, getID());
-    if (image.hasAlphaChannel()) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0,
-            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-    } else {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 0,
-            GL_RGB, GL_UNSIGNED_BYTE, image.constBits());
+
+    if ((_width > 0) && (_height > 0)) {
+        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        if (image.hasAlphaChannel()) {
+            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+        }
+        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height()));
+        _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+        _gpuTexture->autoGenerateMips(-1);
     }
-    // generate mipmaps
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void NetworkTexture::imageLoaded(const QImage& image) {
@@ -578,18 +589,18 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
             painter.fillPath(path, Qt::black);
             painter.end();
-            
-            glBindTexture(GL_TEXTURE_2D, texture->getID());
+
+            bool isLinearRGB = true;// (_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+            gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+            gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
             if (dilatedImage.hasAlphaChannel()) {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 0,
-                    GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
-            } else {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dilatedImage.width(), dilatedImage.height(), 0,
-                    GL_RGB, GL_UNSIGNED_BYTE, dilatedImage.constBits());
+                formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+                formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::BGRA));
             }
-            glGenerateMipmap(GL_TEXTURE_2D);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glBindTexture(GL_TEXTURE_2D, 0);
+            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height()));
+            texture->_gpuTexture->assignStoredMip(0, formatMip, dilatedImage.byteCount(), dilatedImage.constBits());
+            texture->_gpuTexture->autoGenerateMips(-1);
+
         }
         
         _dilatedTextures.insert(dilation, texture);

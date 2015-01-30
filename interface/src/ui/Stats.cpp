@@ -18,6 +18,10 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <Application.h>
+#include <GeometryCache.h>
+#include <GLCanvas.h>
+#include <LODManager.h>
 #include <PerfStat.h>
 
 #include "Stats.h"
@@ -154,14 +158,12 @@ void Stats::resetWidth(int width, int horizontalOffset) {
 
 // translucent background box that makes stats more readable
 void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int height) {
-    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
-              ((rgba >> 16) & 0xff) / 255.0f, 
-              ((rgba >> 8) & 0xff)  / 255.0f,
-              (rgba & 0xff) / 255.0f);
+    glm::vec4 color(((rgba >> 24) & 0xff) / 255.0f,
+                      ((rgba >> 16) & 0xff) / 255.0f,
+                      ((rgba >> 8) & 0xff)  / 255.0f,
+                      (rgba & 0xff) / 255.0f);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height);
-
-    glColor4f(1, 1, 1, 1); 
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height, color);
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
@@ -623,7 +625,7 @@ void Stats::display(
     // LOD Details
     if (_expanded) {
         octreeStats.str("");
-        QString displayLODDetails = Menu::getInstance()->getLODFeedbackText();
+        QString displayLODDetails = DependencyManager::get<LODManager>()->getLODFeedbackText();
         octreeStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
