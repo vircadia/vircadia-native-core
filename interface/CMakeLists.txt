@@ -83,12 +83,18 @@ if (APPLE)
 
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
-
+  
+  if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
+    set(ICON_FILENAME "Interface.icns")
+  else ()
+    set(ICON_FILENAME "Interface-beta.icns")
+  endif ()
+  
   # set how the icon shows up in the Info.plist file
-  SET(MACOSX_BUNDLE_ICON_FILE interface.icns)
+  SET(MACOSX_BUNDLE_ICON_FILE "${ICON_FILENAME}")
 
   # set where in the bundle to put the resources file
-  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/interface.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   
   # grab the directories in resources and put them in the right spot in Resources
   file(GLOB RESOURCE_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
@@ -101,7 +107,7 @@ if (APPLE)
     endif()
   endforeach()
 
-  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/interface.icns")
+  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
 endif()
 
 # create the executable, make it a bundle on OS X
