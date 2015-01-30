@@ -42,6 +42,7 @@ var cameraManager = new CameraManager();
 
 var grid = Grid();
 gridTool = GridTool({ horizontalGrid: grid });
+gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
 
@@ -55,8 +56,10 @@ selectionManager.addEventListener(function() {
         // Open properties and model list, but force selection of model list tab
         propertiesTool.setVisible(false);
         entityListTool.setVisible(false);
+        gridTool.setVisible(false);
         propertiesTool.setVisible(true);
         entityListTool.setVisible(true);
+        gridTool.setVisible(true);
         hasShownPropertiesTool = true;
     }
 });
@@ -242,7 +245,6 @@ var toolBar = (function () {
             } else {
                 hasShownPropertiesTool = false;
                 cameraManager.enable();
-                gridTool.setVisible(true);
                 grid.setEnabled(true);
             }
         }
@@ -510,7 +512,7 @@ function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event) || gridTool.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         mouseCapturedByTool = true;
         return;
     }
