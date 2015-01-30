@@ -56,8 +56,6 @@ AvatarManager::AvatarManager(QObject* parent) :
 
 void AvatarManager::init() {
     _myAvatar->init();
-    _myAvatar->setPosition(START_LOCATION);
-    _myAvatar->setDisplayingLookatVectors(false);
     _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
 }
 

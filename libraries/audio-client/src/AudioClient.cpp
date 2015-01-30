@@ -923,7 +923,7 @@ void AudioClient::parseAudioEnvironmentData(const QByteArray &packet) {
 
 void AudioClient::toggleMute() {
     _muted = !_muted;
-    muteToggled();
+    emit muteToggled();
 }
 
 void AudioClient::setIsStereoInput(bool isStereoInput) {
