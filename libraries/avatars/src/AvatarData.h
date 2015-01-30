@@ -112,7 +112,7 @@ const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/s
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
-const glm::vec3 START_LOCATION(0.38269043f * TREE_SCALE, 0.01287842f * TREE_SCALE, 0.36621094f * TREE_SCALE);
+const glm::vec3 START_LOCATION(6270, 211, 6000);
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -301,8 +301,10 @@ public:
     const Referential* getReferential() const { return _referential; }
 
 public slots:
+    void sendAvatarDataPacket();
     void sendIdentityPacket();
     void sendBillboardPacket();
+    
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }

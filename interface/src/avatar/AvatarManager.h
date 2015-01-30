@@ -35,6 +35,7 @@ public:
 
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
+    void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
     void renderAvatars(Avatar::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
     
@@ -63,6 +64,7 @@ private:
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;
+    quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
     
     QVector<AvatarManager::LocalLight> _localLights;
 };

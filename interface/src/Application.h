@@ -110,10 +110,6 @@ static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
 static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
-// 70 times per second - target is 60hz, but this helps account for any small deviations
-// in the update loop
-static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = (1000 * 1000) / 70;
-
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
@@ -334,7 +330,6 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
-    void initAvatarAndViewFrustum();
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
         bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
@@ -425,7 +420,6 @@ private:
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 
-    void updateMyAvatar(float deltaTime);
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
@@ -575,8 +569,6 @@ private:
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
-
-    quint64 _lastSendAvatarDataTime;
 
     bool _isVSyncOn;
     

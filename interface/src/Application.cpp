@@ -2072,7 +2072,7 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("myAvatar");
         updateMyAvatarLookAtPosition();
-        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+        DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
 
     {
@@ -2131,26 +2131,6 @@ void Application::update(float deltaTime) {
 
             QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
-    }
-}
-
-void Application::updateMyAvatar(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
-
-    _myAvatar->update(deltaTime);
-
-    quint64 now = usecTimestampNow();
-    quint64 dt = now - _lastSendAvatarDataTime;
-
-    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
-        // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");
-        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-        packet.append(_myAvatar->toByteArray());
-        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
-
-        _lastSendAvatarDataTime = now;
     }
 }
 
@@ -3800,10 +3780,6 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->show();
     }
-}
-
-void Application::initAvatarAndViewFrustum() {
-    updateMyAvatar(0.0f);
 }
 
 void Application::checkVersion() {
