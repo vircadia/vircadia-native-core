@@ -3407,8 +3407,10 @@ void Application::loadScripts() {
 }
 
 void Application::clearScriptsBeforeRunning() {
-    // clears all scripts from the settings
-    SettingHandles::SettingHandle<QVariant>(SETTINGS_KEY).remove();
+    // clears all scripts from the settingsSettings settings;
+    Settings settings;
+    settings.beginWriteArray(SETTINGS_KEY);
+    settings.remove("");
 }
 
 void Application::saveScripts() {
@@ -3420,6 +3422,7 @@ void Application::saveScripts() {
     // Saves all currently running user-loaded scripts
     Settings settings;
     settings.beginWriteArray(SETTINGS_KEY);
+    settings.remove("");
     int i = 0;
     for (auto it = runningScripts.begin(); it != runningScripts.end(); ++it) {
         if (getScriptEngine(*it)->isUserLoaded()) {
