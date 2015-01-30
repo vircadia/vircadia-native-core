@@ -186,9 +186,6 @@ void BillboardOverlay::setBillboardURL(const QString& url) {
     _isLoaded = false;
 }
 
-void BillboardOverlay::replyFinished() {
-}
-
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
 

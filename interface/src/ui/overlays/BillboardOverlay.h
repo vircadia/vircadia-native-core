@@ -40,9 +40,6 @@ public:
     
     virtual BillboardOverlay* createClone() const;
 
-private slots:
-    void replyFinished();
-
 private:
     void setBillboardURL(const QString& url);
     
