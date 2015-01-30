@@ -45,7 +45,6 @@ ImageOverlay::~ImageOverlay() {
 // TODO: handle setting image multiple times, how do we manage releasing the bound texture?
 void ImageOverlay::setImageURL(const QUrl& url) {
     _imageURL = url;
-
     if (url.isEmpty()) {
         _isLoaded = true;
         _renderImage = false;
