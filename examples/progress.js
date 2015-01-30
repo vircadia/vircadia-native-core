@@ -14,8 +14,17 @@
 (function () {
 
     var progress = 100,  // %
+        alpha = 0.0,
+        alphaDelta = 0.0,  // > 0 if fading in; < 0 if fading out
+        ALPHA_DELTA_IN = 0.15,
+        ALPHA_DELTA_OUT = -0.02,
+        fadeTimer = null,
+        FADE_INTERVAL = 30,  // ms between changes in alpha
+        fadeWaitTimer = null,
+        FADE_OUT_WAIT = 1000,  // Wait before starting to fade out after progress 100%
+        visible = false,
         BAR_COLOR = { red: 0, green: 128, blue: 0 },
-        BAR_WIDTH = 320,  // Raw dimension in pixels of SVG
+        BAR_WIDTH = 320,  // Nominal dimension of SVG in pixels
         BAR_HEIGHT = 20,
         BAR_URL = "http://ctrlaltstudio.com/hifi/progress-bar.svg",
         BACKGROUND_WIDTH = 360,
@@ -27,9 +36,41 @@
         windowWidth = 0,
         windowHeight = 0;
 
-    function updateInfo(info) {
+    function fade() {
+
+        alpha = alpha + alphaDelta;
+
+        if (alpha < 0) {
+            alpha = 0;
+        }
+
+        if (alpha > 1) {
+            alpha = 1;
+        }
+
+        if (alpha === 0 || alpha === 1) {  // Finished fading in or out
+            alphaDelta = 0;
+            Script.clearInterval(fadeTimer);
+        }
+
+        if (alpha === 0) {  // Finished fading out
+            visible = false;
+        }
+
+        Overlays.editOverlay(background2D.overlay, {
+            alpha: alpha,
+            visible: visible
+        });
+        Overlays.editOverlay(bar2D.overlay, {
+            alpha: alpha,
+            visible: visible
+        });
+    }
+
+    function onDownloadInfoChanged(info) {
         var i;
 
+        // Calculate progress
         if (info.downloading.length + info.pending === 0) {
             progress = 100;
         } else {
@@ -40,9 +81,46 @@
             progress = progress / (info.downloading.length + info.pending);
         }
 
-        Overlays.editOverlay(bar2D.overlay, {
-            width: progress / 100 * bar2D.width
-        });
+        // Update state
+        if (!visible) {  // Not visible because no recent downloads
+            if (progress < 100) {  // Have started downloading so fade in
+                visible = true;
+                alphaDelta = ALPHA_DELTA_IN;
+                fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
+            }
+        } else if (alphaDelta !== 0.0) {  // Fading in or out
+            if (alphaDelta > 0) {
+                if (progress === 100) {  // Was donloading but now have finished so fade out
+                    alphaDelta = ALPHA_DELTA_OUT;
+                }
+            } else {
+                if (progress < 100) {  // Was finished downloading but have resumed so fade in
+                    alphaDelta = ALPHA_DELTA_IN;
+                }
+            }
+        } else {  // Fully visible because downloading or recently so
+            if (fadeWaitTimer === null) {
+                if (progress === 100) {  // Was downloading but have finished so fade out soon
+                    fadeWaitTimer = Script.setTimeout(function () {
+                        alphaDelta = ALPHA_DELTA_OUT;
+                        fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
+                        fadeWaitTimer = null;
+                    }, FADE_OUT_WAIT);
+                }
+            } else {
+                if (progress < 100) {  // Was finished and waiting to fade out but have resumed downloading so don't fade out
+                    Script.clearInterval(fadeWaitTimer);
+                    fadeWaitTimer = null;
+                }
+            }
+        }
+
+        // Update progress bar
+        if (visible) {
+            Overlays.editOverlay(bar2D.overlay, {
+                width: progress / 100 * bar2D.width
+            });
+        }
     }
 
     function update() {
@@ -73,8 +151,8 @@
             width: background2D.width,
             height: background2D.height,
             imageURL: BACKGROUND_URL,
-            visible: true,
-            alpha: 1.0
+            visible: false,
+            alpha: 0.0
         });
 
         bar2D.width = SCALE_2D * BAR_WIDTH;
@@ -84,8 +162,8 @@
             height: bar2D.height,
             imageURL: BAR_URL,
             color: BAR_COLOR,
-            visible: true,
-            alpha: 1.0
+            visible: false,
+            alpha: 0.0
         });
     }
 
@@ -95,7 +173,7 @@
     }
 
     setUp();
-    GlobalServices.downloadInfoChanged.connect(updateInfo);
+    GlobalServices.downloadInfoChanged.connect(onDownloadInfoChanged);
     GlobalServices.updateDownloadInfo();
     Script.update.connect(update);
     Script.scriptEnding.connect(tearDown);
