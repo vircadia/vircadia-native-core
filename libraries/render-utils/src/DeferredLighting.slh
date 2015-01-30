@@ -92,5 +92,4 @@ vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, ve
     return diffuse * (ambientLight +  diffuseLight);
 }
 
-
 <@endif@>
