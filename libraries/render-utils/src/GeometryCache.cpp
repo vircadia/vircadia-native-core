@@ -344,7 +344,7 @@ void GeometryCache::renderCone(float base, float height, int slices, int stacks)
 
 void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& color) {
     IntPair key(xDivisions, yDivisions);
-    Vec3Pair colorKey(glm::vec3(color.x, color.y, yDivisions),glm::vec3(color.z, color.y, xDivisions));
+    Vec3Pair colorKey(glm::vec3(color.x, color.y, yDivisions), glm::vec3(color.z, color.y, xDivisions));
 
     int vertices = (xDivisions + 1 + yDivisions + 1) * 2;
     if (!_gridBuffers.contains(key)) {
@@ -441,7 +441,7 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
             
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(glm::vec3(x, y, width), glm::vec3(height, rows, cols));
-    Vec3Pair colorKey(glm::vec3(color.x, color.y, rows),glm::vec3(color.z, color.y, cols));
+    Vec3Pair colorKey(glm::vec3(color.x, color.y, rows), glm::vec3(color.z, color.y, cols));
 
     int vertices = (cols + 1 + rows + 1) * 2;
     if ((registered && !_registeredAlternateGridBuffers.contains(id)) || (!registered && !_alternateGridBuffers.contains(key))) {
@@ -680,7 +680,7 @@ void GeometryCache::renderVertices(gpu::Primitive primitiveType, int id) {
 }
 
 void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
-    Vec2Pair colorKey(glm::vec2(color.x, color.y),glm::vec2(color.z, color.y));
+    Vec2Pair colorKey(glm::vec2(color.x, color.y), glm::vec2(color.z, color.y));
     const int FLOATS_PER_VERTEX = 3;
     const int VERTICES_PER_FACE = 4;
     const int NUMBER_OF_FACES = 6;
