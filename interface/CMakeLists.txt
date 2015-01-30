@@ -85,9 +85,9 @@ if (APPLE)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
   
   if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
-    set(ICON_FILENAME "Interface.icns")
+    set(ICON_FILENAME "interface.icns")
   else ()
-    set(ICON_FILENAME "Interface-beta.icns")
+    set(ICON_FILENAME "interface-beta.icns")
   endif ()
   
   # set how the icon shows up in the Info.plist file
