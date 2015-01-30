@@ -356,11 +356,9 @@ void MetavoxelEditor::render() {
     float scale = GRID_DIVISIONS * spacing;
     glScalef(scale, scale, scale);
     
-    glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
-    
     _gridProgram.bind();
     
-    DependencyManager::get<GeometryCache>()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
+    DependencyManager::get<GeometryCache>()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS, glm::vec4(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS, 1.0f));
     
     _gridProgram.release();
     
@@ -492,17 +490,17 @@ void BoxTool::render() {
         if (_state != HOVERING_STATE) {
             const float BOX_ALPHA = 0.25f;
             QColor color = getColor();
+            glm::vec4 cubeColor;
             if (color.isValid()) {
-                glColor4f(color.redF(), color.greenF(), color.blueF(), BOX_ALPHA);
+                cubeColor = glm::vec4(color.redF(), color.greenF(), color.blueF(), BOX_ALPHA);
             } else {
-                glColor4f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS, BOX_ALPHA);
+                cubeColor = glm::vec4(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS, BOX_ALPHA);
             }
             glEnable(GL_CULL_FACE);
-            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f);
+            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, cubeColor);
             glDisable(GL_CULL_FACE);
         }
-        glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
-        DependencyManager::get<GeometryCache>()->renderWireCube(1.0f);
+        DependencyManager::get<GeometryCache>()->renderWireCube(1.0f, glm::vec4(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS, 1.0f));
         glPopMatrix();   
     }
     

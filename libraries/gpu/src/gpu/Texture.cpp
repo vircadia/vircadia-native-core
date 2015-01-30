@@ -254,7 +254,16 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
     }
 
     // THen check that the mem buffer passed make sense with its format
-    if (size == evalStoredMipSize(level, format)) {
+    Size expectedSize = evalStoredMipSize(level, format);
+    if (size == expectedSize) {
+        _storage->assignMipData(level, format, size, bytes);
+        _stamp++;
+        return true;
+    } else if (size > expectedSize) {
+        // NOTE: We are facing this case sometime because apparently QImage (from where we get the bits) is generating images
+        // and alligning the line of pixels to 32 bits.
+        // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
+        // it seems to work...
         _storage->assignMipData(level, format, size, bytes);
         _stamp++;
         return true;

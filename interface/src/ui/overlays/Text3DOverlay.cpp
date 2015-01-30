@@ -92,7 +92,7 @@ void Text3DOverlay::render(RenderArgs* args) {
 
         const float MAX_COLOR = 255.0f;
         xColor backgroundColor = getBackgroundColor();
-        glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
+        glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR,
             getBackgroundAlpha());
 
         glm::vec2 dimensions = getDimensions();
@@ -102,7 +102,7 @@ void Text3DOverlay::render(RenderArgs* args) {
 
         glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
         glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
         
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
@@ -124,12 +124,11 @@ void Text3DOverlay::render(RenderArgs* args) {
         enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
-        glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
-        float alpha = getAlpha();
+        glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
         foreach(QString thisLine, lines) {
-            textRenderer->draw(0, lineOffset, qPrintable(thisLine), alpha);
+            textRenderer->draw(0, lineOffset, qPrintable(thisLine), textColor);
             lineOffset += maxHeight;
         }
 

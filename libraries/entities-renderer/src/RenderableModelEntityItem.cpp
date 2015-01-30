@@ -176,27 +176,27 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 } else {
                     // if we couldn't get a model, then just draw a cube
-                    glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
+                    glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
                     glPushMatrix();
                         glTranslatef(position.x, position.y, position.z);
-                        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size);
+                        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
                     glPopMatrix();
                 }
             } else {
                 // if we couldn't get a model, then just draw a cube
-                glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
+                glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
                 glPushMatrix();
                     glTranslatef(position.x, position.y, position.z);
-                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size);
+                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
                 glPopMatrix();
             }
         }
         glPopMatrix();
     } else {
-        glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
+        glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size);
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
         glPopMatrix();
     }
 }

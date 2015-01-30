@@ -2,11 +2,11 @@ Grid = function(opts) {
     var that = {};
 
     var colors = [
-        { red: 0, green: 255, blue: 0 },
-        { red: 255, green: 255, blue: 255 },
         { red: 0, green: 0, blue: 0 },
-        { red: 0, green: 0, blue: 255 },
+        { red: 255, green: 255, blue: 255 },
         { red: 255, green: 0, blue: 0 },
+        { red: 0, green: 255, blue: 0 },
+        { red: 0, green: 0, blue: 255 },
     ];
     var colorIndex = 0;
     var gridAlpha = 0.6;
@@ -224,262 +224,50 @@ Grid = function(opts) {
 GridTool = function(opts) {
     var that = {};
 
-    var UI_URL = HIFI_PUBLIC_BUCKET + "images/tools/grid-toolbar.svg";
-    var UI_WIDTH = 854;
-    var UI_HEIGHT = 37;
-
     var horizontalGrid = opts.horizontalGrid;
+    var verticalGrid = opts.verticalGrid;
+    var listeners = [];
 
-    var uiOverlays = {};
-    var allOverlays = [];
+    var url = Script.resolvePath('html/gridControls.html');
+    var webView = new WebWindow('Grid', url, 200, 280);
 
-    function addUIOverlay(key, overlay, x, y, width, height) {
-        uiOverlays[key] = {
-            overlay: overlay,
-            x: x,
-            y: y,
-            width: width,
-            height: height,
-        };
-        allOverlays.push(overlay);
-    }
+    horizontalGrid.addListener(function(data) {
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+        selectionDisplay.updateHandles();
+    });
 
-    var lastKnownWindowWidth = null;
-    function repositionUI() {
-        if (lastKnownWindowWidth == Window.innerWidth) {
-            return;
-        }
-
-        lastKnownWindowWidth = Window.innerWidth;
-        var x =  Window.innerWidth / 2 - UI_WIDTH / 2;
-        var y = 10;
-
-        for (var key in uiOverlays) {
-            info = uiOverlays[key];
-            Overlays.editOverlay(info.overlay, {
-                x: x + info.x,
-                y: y + info.y,
-            });
-        }
-    }
-
-    // "Spritesheet" is laid out horizontally in this order
-    var UI_SPRITE_LIST = [
-        { name: "gridText", width: 54 },
-        { name: "visibleCheckbox", width: 60 },
-        { name: "snapToGridCheckbox", width: 105 },
-
-        { name: "color0", width: 27 },
-        { name: "color1", width: 27 },
-        { name: "color2", width: 27 },
-        { name: "color3", width: 27 },
-        { name: "color4", width: 27 },
-
-        { name: "minorGridIcon", width: 34 },
-        { name: "minorGridDecrease", width: 25 },
-        { name: "minorGridInput", width: 26 },
-        { name: "minorGridIncrease", width: 25 },
-
-        { name: "majorGridIcon", width: 40 },
-        { name: "majorGridDecrease", width: 25 },
-        { name: "majorGridInput", width: 26 },
-        { name: "majorGridIncrease", width: 25 },
-
-        { name: "yPositionLabel", width: 160 },
-        { name: "moveToLabel", width: 54 },
-        { name: "moveToAvatar", width: 26 },
-        { name: "moveToSelection", width: 34 },
-    ];
-
-    // Add all overlays from spritesheet
-    var x = 0;
-    for (var i = 0; i < UI_SPRITE_LIST.length; i++) {
-        var info = UI_SPRITE_LIST[i];
-
-        var props = {
-            imageURL: UI_URL,
-            subImage: { x: x, y: 0, width: info.width, height: UI_HEIGHT },
-            width: info.width,
-            height: UI_HEIGHT,
-            alpha: 1.0,
-            visible: false,
-        };
-
-        var overlay = Overlays.addOverlay("image", props);
-
-        addUIOverlay(info.name, overlay, x, 0, info.width, UI_HEIGHT);
-
-        x += info.width;
-    }
-
-    // Add Text overlays
-    var textProperties = {
-        color: { red: 255, green: 255, blue: 255 },
-        topMargin: 6,
-        leftMargin: 4,
-        alpha: 1,
-        backgroundAlpha: 0,
-        text: "",
-        font: { size: 12 },
-        visible: false,
-    };
-    var minorGridWidthText = Overlays.addOverlay("text", textProperties);
-    var majorGridEveryText = Overlays.addOverlay("text", textProperties);
-    var yPositionText = Overlays.addOverlay("text", textProperties);
-
-    addUIOverlay('minorGridWidthText', minorGridWidthText, 414, 8, 24, 24);
-    addUIOverlay('majorGridEveryText', majorGridEveryText, 530, 8, 24, 24);
-    addUIOverlay('yPositionText', yPositionText, 660, 8, 24, 24);
-
-    var NUM_COLORS = 5;
-    function updateColorIndex(index) {
-        if (index < 0 || index >= NUM_COLORS) {
-            return;
-        }
-
-        for (var i = 0 ; i < NUM_COLORS; i++) {
-            var info = uiOverlays['color' + i];
-            Overlays.editOverlay(info.overlay, {
-                subImage: {
-                    x: info.x,
-                    y: i == index ? UI_HEIGHT : 0,
-                    width: info.width,
-                    height: info.height,
-                }
-            });
-        }
-    }
-
-    function updateGridVisible(value) {
-        var info = uiOverlays.visibleCheckbox;
-        Overlays.editOverlay(info.overlay, {
-            subImage: {
-                x: info.x,
-                y: value ? UI_HEIGHT : 0,
-                width: info.width,
-                height: info.height,
+    webView.eventBridge.webEventReceived.connect(function(data) {
+        data = JSON.parse(data);
+        if (data.type == "init") {
+            horizontalGrid.emitUpdate();
+        } else if (data.type == "update") {
+            horizontalGrid.update(data);
+            for (var i = 0; i < listeners.length; i++) {
+                listeners[i](data);
             }
-        });
-    }
-
-    function updateSnapToGrid(value) {
-        var info = uiOverlays.snapToGridCheckbox;
-        Overlays.editOverlay(info.overlay, {
-            subImage: {
-                x: info.x,
-                y: value ? UI_HEIGHT : 0,
-                width: info.width,
-                height: info.height,
-            }
-        });
-    }
-
-    function updateMinorGridWidth(value) {
-        Overlays.editOverlay(minorGridWidthText, {
-            text: value.toFixed(1),
-        });
-    }
-
-    function updateMajorGridEvery(value) {
-        Overlays.editOverlay(majorGridEveryText, {
-            text: value,
-        });
-    }
-
-    function updateYPosition(value) {
-        Overlays.editOverlay(yPositionText, {
-            text: value.toFixed(2),
-        });
-    }
-
-    function updateOverlays() {
-        updateGridVisible(horizontalGrid.getVisible());
-        updateSnapToGrid(horizontalGrid.getSnapToGrid());
-        updateColorIndex(horizontalGrid.getColorIndex());
-
-        updateMinorGridWidth(horizontalGrid.getMinorGridWidth());
-        updateMajorGridEvery(horizontalGrid.getMajorGridEvery());
-
-        updateYPosition(horizontalGrid.getOrigin().y);
-    }
-
-    that.setVisible = function(visible) {
-        for (var i = 0; i < allOverlays.length; i++) {
-            Overlays.editOverlay(allOverlays[i], { visible: visible });
-        }
-    }
-
-    that.mousePressEvent = function(event) {
-        var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-
-        if (allOverlays.indexOf(overlay) >= 0) {
-            if (overlay == uiOverlays.color0.overlay) {
-                horizontalGrid.setColorIndex(0);
-            } else if (overlay == uiOverlays.color1.overlay) {
-                horizontalGrid.setColorIndex(1);
-            } else if (overlay == uiOverlays.color2.overlay) {
-                horizontalGrid.setColorIndex(2);
-            } else if (overlay == uiOverlays.color3.overlay) {
-                horizontalGrid.setColorIndex(3);
-            } else if (overlay == uiOverlays.color4.overlay) {
-                horizontalGrid.setColorIndex(4);
-            } else if (overlay == uiOverlays.visibleCheckbox.overlay) {
-                horizontalGrid.setVisible(!horizontalGrid.getVisible());
-            } else if (overlay == uiOverlays.snapToGridCheckbox.overlay) {
-                horizontalGrid.setSnapToGrid(!horizontalGrid.getSnapToGrid());
-            } else if (overlay == uiOverlays.moveToAvatar.overlay) {
+        } else if (data.type == "action") {
+            var action = data.action;
+            if (action == "moveToAvatar") {
                 var position = MyAvatar.getJointPosition("LeftFoot");
                 if (position.x == 0 && position.y == 0 && position.z == 0) {
                     position = MyAvatar.position;
                 }
                 horizontalGrid.setPosition(position);
-            } else if (overlay == uiOverlays.moveToSelection.overlay) {
+            } else if (action == "moveToSelection") {
                 var newPosition = selectionManager.worldPosition;
                 newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
-                horizontalGrid.setPosition(newPosition);
-            } else if (overlay == uiOverlays.minorGridDecrease.overlay) {
-                var newValue = Math.max(0.1, horizontalGrid.getMinorGridWidth() - 0.1);
-                horizontalGrid.setMinorGridWidth(newValue);
-            } else if (overlay == uiOverlays.minorGridIncrease.overlay) {
-                horizontalGrid.setMinorGridWidth(horizontalGrid.getMinorGridWidth() + 0.1);
-            } else if (overlay == uiOverlays.majorGridDecrease.overlay) {
-                var newValue = Math.max(2, horizontalGrid.getMajorGridEvery() - 1);
-                horizontalGrid.setMajorGridEvery(newValue);
-            } else if (overlay == uiOverlays.majorGridIncrease.overlay) {
-                horizontalGrid.setMajorGridEvery(horizontalGrid.getMajorGridEvery() + 1);
-            } else if (overlay == uiOverlays.yPositionLabel.overlay) {
-                var newValue = Window.prompt("Y Position:", horizontalGrid.getOrigin().y.toFixed(4));
-                if (newValue !== null) {
-                    var y = parseFloat(newValue)
-                    if (isNaN(y)) {
-                        Window.alert("Invalid position");
-                    } else {
-                        horizontalGrid.setPosition({ x: 0, y: y, z: 0 });
-                    }
-                }
+                grid.setPosition(newPosition);
             }
-
-            // Clicking anywhere within the toolbar will "consume" this press event
-            return true;
-        }
-
-        return false;
-    };
-
-    Script.scriptEnding.connect(function() {
-        for (var i = 0; i < allOverlays.length; i++) {
-            Overlays.deleteOverlay(allOverlays[i]);
         }
     });
-    Script.update.connect(repositionUI);
 
-    horizontalGrid.addListener(function() {
-        selectionDisplay.updateHandles();
-        updateOverlays();
-    });
+    that.addListener = function(callback) {
+        listeners.push(callback);
+    }
 
-    updateOverlays();
-    repositionUI();
+    that.setVisible = function(visible) {
+        webView.setVisible(visible);
+    }
 
     return that;
 };

@@ -32,7 +32,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
 
     const float MAX_COLOR = 255.0f;
 
-    glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
+    glm::vec4 cubeColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
 
     glPushMatrix();
@@ -43,7 +43,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
         glPopMatrix();
     glPopMatrix();
 
