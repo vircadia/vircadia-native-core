@@ -149,7 +149,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
                 glm::quat rotation = getRotation();
                 bool movingOrAnimating = isMoving() || isAnimatingSomething();
-                if (movingOrAnimating && _model->isActive()) {
+                if ((movingOrAnimating || _needsInitialSimulation) && _model->isActive()) {
                     _model->setScaleToFit(true, dimensions);
                     _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
                     _model->setRotation(rotation);
