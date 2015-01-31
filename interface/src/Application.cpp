@@ -281,6 +281,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
     // start the nodeThread so its event loop is running
+    _nodeThread->setObjectName("Datagram Processor Thread");
     _nodeThread->start();
 
     // make sure the node thread is given highest priority
@@ -295,6 +296,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
+    audioThread->setObjectName("Audio Thread");
     
     auto audioIO = DependencyManager::get<Audio>();
     audioIO->moveToThread(audioThread);
@@ -452,7 +454,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     loadSettings();
     int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
     connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
-    connect(&_settingsThread, SIGNAL(started), &_settingsTimer, SLOT(start));
+    connect(&_settingsThread, SIGNAL(started()), &_settingsTimer, SLOT(start()));
     connect(&_settingsThread, &QThread::finished, &_settingsTimer, &QTimer::deleteLater);
     _settingsTimer.moveToThread(&_settingsThread);
     _settingsTimer.setSingleShot(false);
@@ -3491,6 +3493,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 #endif
 
     QThread* workerThread = new QThread(this);
+    workerThread->setObjectName("Script Engine Thread");
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);

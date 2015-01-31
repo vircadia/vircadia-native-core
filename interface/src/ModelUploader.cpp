@@ -76,6 +76,7 @@ namespace SettingHandles {
 void ModelUploader::uploadModel(ModelType modelType) {
     ModelUploader* uploader = new ModelUploader(modelType);
     QThread* thread = new QThread();
+    thread->setObjectName("Model Uploader");
     thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
     thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
     uploader->connect(thread, SIGNAL(started()), SLOT(send()));
