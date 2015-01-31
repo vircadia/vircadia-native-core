@@ -64,15 +64,13 @@ Light getLight() {
 uniform vec4 lightBuffer[9];
 Light getLight() {
     Light light;
-    light._transform[0] = lightBuffer[0];
-    light._transform[1] = lightBuffer[1];
-    light._transform[2] = lightBuffer[2];
-    light._transform[3] = lightBuffer[3];
-    light._color = lightBuffer[4];
-    light._range = lightBuffer[5];
-    light._spot = lightBuffer[6];
-    light._shadow = lightBuffer[7];
-    light._control = lightBuffer[8];
+    light._position = lightBuffer[0];
+    light._direction = lightBuffer[1];
+    light._color = lightBuffer[2];
+    light._attenuation = lightBuffer[3];
+    light._spot = lightBuffer[4];
+    light._shadow = lightBuffer[5];
+    light._control = lightBuffer[6];
 
     return light;
 }
@@ -80,15 +78,13 @@ Light getLight() {
 uniform vec4 lightBuffer[9];
 Light getLight() {
     Light light;
-    light._transform[0] = lightBuffer[0];
-    light._transform[1] = lightBuffer[1];
-    light._transform[2] = lightBuffer[2];
-    light._transform[3] = lightBuffer[3];
-    light._color = lightBuffer[4];
-    light._range = lightBuffer[5];
-    light._spot = lightBuffer[6];
-    light._shadow = lightBuffer[7];
-    light._control = lightBuffer[8];
+    light._position = lightBuffer[0];
+    light._direction = lightBuffer[1];
+    light._color = lightBuffer[2];
+    light._attenuation = lightBuffer[3];
+    light._spot = lightBuffer[4];
+    light._shadow = lightBuffer[5];
+    light._control = lightBuffer[6];
 
     return light;
 }
