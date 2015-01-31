@@ -153,7 +153,9 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         }
     } else {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+        QNetworkRequest networkRequest = QNetworkRequest(url);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        QNetworkReply* reply = networkAccessManager.get(networkRequest);
         qDebug() << "Downloading included script at" << scriptPath;
         QEventLoop loop;
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);

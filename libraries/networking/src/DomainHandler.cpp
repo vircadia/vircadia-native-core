@@ -17,6 +17,7 @@
 #include "HifiSockAddr.h"
 #include "NodeList.h"
 #include "PacketHeaders.h"
+#include "SharedUtil.h"
 #include "UserActivityLogger.h"
 
 #include "DomainHandler.h"
@@ -203,7 +204,9 @@ void DomainHandler::requestDomainSettings() {
             
             qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();
             
-            QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
+            QNetworkRequest settingsRequest(settingsJSONURL);
+            settingsRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            QNetworkReply* reply = NetworkAccessManager::getInstance().get(settingsRequest);
             connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
         }
     }

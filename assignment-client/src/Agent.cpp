@@ -169,7 +169,9 @@ void Agent::run() {
     }
    
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
+    QNetworkRequest networkRequest = QNetworkRequest(scriptURL);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(networkRequest);
     
     QNetworkDiskCache* cache = new QNetworkDiskCache();
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
