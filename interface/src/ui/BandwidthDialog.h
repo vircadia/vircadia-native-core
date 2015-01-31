@@ -14,16 +14,37 @@
 
 #include <QDialog>
 #include <QLabel>
+#include <QFormLayout>
 
-#include "BandwidthMeter.h"
+#include "BandwidthRecorder.h"
 
 
 class BandwidthDialog : public QDialog {
     Q_OBJECT
 public:
-    // Sets up the UI based on the configuration of the BandwidthMeter
-    BandwidthDialog(QWidget* parent, BandwidthMeter* model);
+    // Sets up the UI based on the configuration of the BandwidthRecorder
+    BandwidthDialog(QWidget* parent, BandwidthRecorder* model);
     ~BandwidthDialog();
+
+    class ChannelDisplay {
+    public:
+      ChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form);
+      QLabel* setupLabel(QFormLayout* form);
+      void setLabelText();
+
+    private:
+      BandwidthRecorder::Channel *ch;
+
+      QLabel* label;
+    };
+
+    ChannelDisplay* audioChannelDisplay;
+    ChannelDisplay* avatarsChannelDisplay;
+    ChannelDisplay* octreeChannelDisplay;
+    ChannelDisplay* metavoxelsChannelDisplay;
+
+    // sums of all the other channels
+    ChannelDisplay* totalChannelDisplay;
 
 signals:
 
@@ -34,16 +55,13 @@ public slots:
     void reject();
 
 protected:
-
-    // State <- data model held by BandwidthMeter
     void paintEvent(QPaintEvent*);
 
     // Emits a 'closed' signal when this dialog is closed.
     void closeEvent(QCloseEvent*);
 
 private:
-    BandwidthMeter* _model;
-    QLabel*         _labels[BandwidthMeter::N_STREAMS];
+    BandwidthRecorder* _model;
 };
 
 #endif // hifi_BandwidthDialog_h
