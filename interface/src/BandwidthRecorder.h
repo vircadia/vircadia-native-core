@@ -16,6 +16,13 @@
 
 #include <QElapsedTimer>
 
+const double DEFAULT_UNIT_SCALE = 8000.0 / 1024.0;
+
+const unsigned int COLOR0 = 0x33cc99ff;
+const unsigned int COLOR1 = 0xffef40c0;
+const unsigned int COLOR2 = 0xd0d0d0a0;
+
+
 class BandwidthRecorder {
  public:
     BandwidthRecorder();
@@ -46,11 +53,11 @@ class BandwidthRecorder {
     };
 
     // create the channels we keep track of
-    Channel* audioChannel = new Channel("Audio", "Kbps", 8000.0 / 1024.0, 0x33cc99ff);
-    Channel* avatarsChannel = new Channel("Avatars", "Kbps", 8000.0 / 1024.0, 0xffef40c0);
-    Channel* octreeChannel = new Channel("Octree", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0);
-    Channel* metavoxelsChannel = new Channel("Metavoxels", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0);
-    Channel* totalChannel = new Channel("Total", "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0);
+    Channel* audioChannel = new Channel("Audio", "Kbps", DEFAULT_UNIT_SCALE, COLOR0);
+    Channel* avatarsChannel = new Channel("Avatars", "Kbps", DEFAULT_UNIT_SCALE, COLOR1);
+    Channel* octreeChannel = new Channel("Octree", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
+    Channel* metavoxelsChannel = new Channel("Metavoxels", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
+    Channel* totalChannel = new Channel("Total", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
 };
 
 #endif
