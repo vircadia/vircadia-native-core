@@ -95,7 +95,6 @@ void BillboardOverlay::render(RenderArgs* args) {
             const float MAX_COLOR = 255.0f;
             xColor color = getColor();
             float alpha = getAlpha();
-            glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
             
             glm::vec2 topLeft(-x, -y);
             glm::vec2 bottomRight(x, y);
@@ -104,7 +103,8 @@ void BillboardOverlay::render(RenderArgs* args) {
             glm::vec2 texCoordBottomRight(((float)_fromImage.x() + (float)_fromImage.width()) / (float)_size.width(),
                                           ((float)_fromImage.y() + (float)_fromImage.height()) / _size.height());
 
-            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+                                                                glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
             
         }
     } glPopMatrix();
@@ -196,7 +196,9 @@ void BillboardOverlay::setBillboardURL(const QString& url) {
     _billboard.clear();
     _newTextureNeeded = true;
 
-    QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(actualURL));
+    QNetworkRequest request(actualURL);
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = NetworkAccessManager::getInstance().get(request);
     connect(reply, &QNetworkReply::finished, this, &BillboardOverlay::replyFinished);
 }
 

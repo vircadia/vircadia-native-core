@@ -32,7 +32,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
 
     const float MAX_COLOR = 255.0f;
-    glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
+    glm::vec4 sphereColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
                     
     glPushMatrix();
@@ -46,7 +46,14 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, 15, 15);
+            
+            // TODO: it would be cool to select different slices/stacks geometry based on the size of the sphere
+            // and the distance to the viewer. This would allow us to reduce the triangle count for smaller spheres
+            // that aren't close enough to see the tessellation and use larger triangle count for spheres that would
+            // expose that effect
+            const int SLICES = 15;
+            const int STACKS = 15;
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, SLICES, STACKS, sphereColor);
         glPopMatrix();
     glPopMatrix();
 };

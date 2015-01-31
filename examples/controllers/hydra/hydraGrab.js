@@ -19,8 +19,8 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
-var allowLargeModels = false;
-var allowSmallModels = false;
+var allowLargeModels = true;
+var allowSmallModels = true;
 var wantEntityGlow = false;
 
 var LEFT = 0;
@@ -28,14 +28,15 @@ var RIGHT = 1;
 
 var jointList = MyAvatar.getJointNames();
 
-var STICKS = 0;
-var MAPPED = 1;
-var mode = STICKS;
+var LASER_WIDTH = 3;
+var LASER_COLOR = { red: 50, green: 150, blue: 200 };
+var DROP_COLOR = { red: 200, green: 200, blue: 200 };
+var DROP_WIDTH = 4;
+var DROP_DISTANCE = 5.0;
 
-var LASER_WIDTH = 4;
-var LASER_COLOR = [{ red: 200, green: 150, blue: 50 },  // STICKS
-                   { red: 50, green: 150, blue: 200 }]; // MAPPED
 var LASER_LENGTH_FACTOR = 500;
+
+var velocity = { x: 0, y: 0, z: 0 };
 
 var lastAccurateIntersection = null;
 var accurateIntersections = 0;
@@ -107,6 +108,7 @@ function controller(wichSide) {
 
     this.positionAtGrab;
     this.rotationAtGrab;
+    this.gravityAtGrab;
     this.modelPositionAtGrab;
     this.modelRotationAtGrab;
     this.jointsIntersectingFromStart = [];
@@ -114,12 +116,20 @@ function controller(wichSide) {
     this.laser = Overlays.addOverlay("line3d", {
         start: { x: 0, y: 0, z: 0 },
         end: { x: 0, y: 0, z: 0 },
-        color: LASER_COLOR[mode],
+        color: LASER_COLOR,
         alpha: 1,
         visible: false,
         lineWidth: LASER_WIDTH,
         anchor: "MyAvatar"
     });
+
+    this.dropLine = Overlays.addOverlay("line3d", {
+        start: { x: 0, y: 0, z: 0 },
+        end: { x: 0, y: 0, z: 0 },
+        color: DROP_COLOR,
+        alpha: 1,
+        visible: false,
+        lineWidth: DROP_WIDTH });
 
     this.guideScale = 0.02;
     this.ball = Overlays.addOverlay("sphere", {
@@ -158,6 +168,7 @@ function controller(wichSide) {
         this.entityID = entityID;
         this.modelURL = properties.modelURL;
 
+
         this.oldModelPosition = properties.position;
         this.oldModelRotation = properties.rotation;
         this.oldModelHalfDiagonal = Vec3.length(properties.dimensions) / 2.0;
@@ -166,6 +177,10 @@ function controller(wichSide) {
         this.rotationAtGrab = this.rotation;
         this.modelPositionAtGrab = properties.position;
         this.modelRotationAtGrab = properties.rotation;
+        this.gravityAtGrab = properties.gravity;
+        Entities.editEntity(entityID, { gravity: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 } });
+        
+
         this.jointsIntersectingFromStart = [];
         for (var i = 0; i < jointList.length; i++) {
             var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
@@ -174,10 +189,14 @@ function controller(wichSide) {
             }
         }
         this.showLaser(false);
+        Overlays.editOverlay(this.dropLine, { visible: true });
     }
 
     this.release = function () {
         if (this.grabbing) {
+
+            Entities.editEntity(this.entityID, { gravity: this.gravityAtGrab });
+
             jointList = MyAvatar.getJointNames();
 
             var closestJointIndex = -1;
@@ -216,6 +235,8 @@ function controller(wichSide) {
                     Entities.deleteEntity(this.entityID);
                 }
             }
+
+            Overlays.editOverlay(this.dropLine, { visible: false });
         }
 
         this.grabbing = false;
@@ -288,7 +309,6 @@ function controller(wichSide) {
             end: endPosition
         });
 
-
         Overlays.editOverlay(this.ball, {
             position: endPosition
         });
@@ -300,7 +320,7 @@ function controller(wichSide) {
             start: Vec3.sum(endPosition, Vec3.multiply(this.up, 2 * this.guideScale)),
             end: Vec3.sum(endPosition, Vec3.multiply(this.up, -2 * this.guideScale))
         });
-        this.showLaser(!this.grabbing || mode == STICKS);
+        this.showLaser(!this.grabbing);
 
         if (this.glowedIntersectingModel.isKnownID) {
             Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.0 });
@@ -332,7 +352,7 @@ function controller(wichSide) {
         Overlays.editOverlay(this.leftRight, { visible: show });
         Overlays.editOverlay(this.topDown, { visible: show });
     }
-    this.moveEntity = function () {
+    this.moveEntity = function (deltaTime) {
         if (this.grabbing) {
             if (!this.entityID.isKnownID) {
                 print("Unknown grabbed ID " + this.entityID.id + ", isKnown: " + this.entityID.isKnownID);
@@ -344,54 +364,33 @@ function controller(wichSide) {
             var newPosition;
             var newRotation;
 
-            switch (mode) {
-                case STICKS:
-                    newPosition = Vec3.sum(this.palmPosition,
-                                           Vec3.multiply(this.front, this.x));
-                    newPosition = Vec3.sum(newPosition,
-                                           Vec3.multiply(this.up, this.y));
-                    newPosition = Vec3.sum(newPosition,
-                                           Vec3.multiply(this.right, this.z));
-
-
-                    newRotation = Quat.multiply(this.rotation,
-                                                Quat.inverse(this.oldRotation));
-                    newRotation = Quat.multiply(newRotation,
-                                                this.oldModelRotation);
-                    break;
-                case MAPPED:
-                    var forward = Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -1 });
-                    var d = Vec3.dot(forward, MyAvatar.position);
-
-                    var factor1 = Vec3.dot(forward, this.positionAtGrab) - d;
-                    var factor2 = Vec3.dot(forward, this.modelPositionAtGrab) - d;
-                    var vector = Vec3.subtract(this.palmPosition, this.positionAtGrab);
-
-                    if (factor2 < 0) {
-                        factor2 = 0;
-                    }
-                    if (factor1 <= 0) {
-                        factor1 = 1;
-                        factor2 = 1;
-                    }
-
-                    newPosition = Vec3.sum(this.modelPositionAtGrab,
-                                           Vec3.multiply(vector,
-                                                         factor2 / factor1));
-
-                    newRotation = Quat.multiply(this.rotation,
-                                                Quat.inverse(this.rotationAtGrab));
-                    newRotation = Quat.multiply(newRotation, newRotation);
-                    newRotation = Quat.multiply(newRotation,
-                                                this.modelRotationAtGrab);
-                    break;
+            var CONSTANT_SCALING_FACTOR = 5.0;
+            var MINIMUM_SCALING_DISTANCE = 2.0;
+            var distanceToModel = Vec3.length(Vec3.subtract(this.oldModelPosition, this.palmPosition));
+            if (distanceToModel < MINIMUM_SCALING_DISTANCE) {
+                distanceToModel = MINIMUM_SCALING_DISTANCE;
             }
+
+            var deltaPalm = Vec3.multiply(distanceToModel * CONSTANT_SCALING_FACTOR, Vec3.subtract(this.palmPosition, this.oldPalmPosition));
+            newPosition = Vec3.sum(this.oldModelPosition, deltaPalm);
+
+            newRotation = Quat.multiply(this.rotation,
+                                        Quat.inverse(this.rotationAtGrab));
+            newRotation = Quat.multiply(newRotation, newRotation);
+            newRotation = Quat.multiply(newRotation,
+                                        this.modelRotationAtGrab);
+
+            velocity = Vec3.multiply(1.0 /  deltaTime, Vec3.subtract(newPosition, this.oldModelPosition));
+                    
             Entities.editEntity(this.entityID, {
                              position: newPosition,
-                             rotation: newRotation
+                             rotation: newRotation,
+                             velocity: velocity
                              });
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
+
+            Overlays.editOverlay(this.dropLine, { start: newPosition, end: Vec3.sum(newPosition, { x: 0, y: -DROP_DISTANCE, z: 0 }) });
 
             var indicesToRemove = [];
             for (var i = 0; i < this.jointsIntersectingFromStart.length; ++i) {
@@ -428,15 +427,6 @@ function controller(wichSide) {
         this.triggerValue = Controller.getTriggerValue(this.trigger);
 
         var bumperValue = Controller.isButtonPressed(this.bumper);
-        if (bumperValue && !this.bumperValue) {
-            if (mode === STICKS) {
-                mode = MAPPED;
-            } else if (mode === MAPPED) {
-                mode = STICKS;
-            }
-            Overlays.editOverlay(leftController.laser, { color: LASER_COLOR[mode] });
-            Overlays.editOverlay(rightController.laser, { color: LASER_COLOR[mode] });
-        }
         this.bumperValue = bumperValue;
 
 
@@ -548,61 +538,37 @@ function controller(wichSide) {
 var leftController = new controller(LEFT);
 var rightController = new controller(RIGHT);
 
-function moveEntities() {
+function moveEntities(deltaTime) {
     if (leftController.grabbing && rightController.grabbing && rightController.entityID.id == leftController.entityID.id) {
         var newPosition = leftController.oldModelPosition;
         var rotation = leftController.oldModelRotation;
         var ratio = 1;
 
+        var u = Vec3.normalize(Vec3.subtract(rightController.oldPalmPosition, leftController.oldPalmPosition));
+        var v = Vec3.normalize(Vec3.subtract(rightController.palmPosition, leftController.palmPosition));
 
-        switch (mode) {
-            case STICKS:
-                var oldLeftPoint = Vec3.sum(leftController.oldPalmPosition, Vec3.multiply(leftController.oldFront, leftController.x));
-                var oldRightPoint = Vec3.sum(rightController.oldPalmPosition, Vec3.multiply(rightController.oldFront, rightController.x));
-
-                var oldMiddle = Vec3.multiply(Vec3.sum(oldLeftPoint, oldRightPoint), 0.5);
-                var oldLength = Vec3.length(Vec3.subtract(oldLeftPoint, oldRightPoint));
-
-
-                var leftPoint = Vec3.sum(leftController.palmPosition, Vec3.multiply(leftController.front, leftController.x));
-                var rightPoint = Vec3.sum(rightController.palmPosition, Vec3.multiply(rightController.front, rightController.x));
-
-                var middle = Vec3.multiply(Vec3.sum(leftPoint, rightPoint), 0.5);
-                var length = Vec3.length(Vec3.subtract(leftPoint, rightPoint));
-
-
-                ratio = length / oldLength;
-                newPosition = Vec3.sum(middle,
-                                       Vec3.multiply(Vec3.subtract(leftController.oldModelPosition, oldMiddle), ratio));
-                break;
-            case MAPPED:
-                var u = Vec3.normalize(Vec3.subtract(rightController.oldPalmPosition, leftController.oldPalmPosition));
-                var v = Vec3.normalize(Vec3.subtract(rightController.palmPosition, leftController.palmPosition));
-
-                var cos_theta = Vec3.dot(u, v);
-                if (cos_theta > 1) {
-                    cos_theta = 1;
-                }
-                var angle = Math.acos(cos_theta) / Math.PI * 180;
-                if (angle < 0.1) {
-                    return;
-
-                }
-                var w = Vec3.normalize(Vec3.cross(u, v));
-
-                rotation = Quat.multiply(Quat.angleAxis(angle, w), leftController.oldModelRotation);
-
-
-                leftController.positionAtGrab = leftController.palmPosition;
-                leftController.rotationAtGrab = leftController.rotation;
-                leftController.modelPositionAtGrab = leftController.oldModelPosition;
-                leftController.modelRotationAtGrab = rotation;
-                rightController.positionAtGrab = rightController.palmPosition;
-                rightController.rotationAtGrab = rightController.rotation;
-                rightController.modelPositionAtGrab = rightController.oldModelPosition;
-                rightController.modelRotationAtGrab = rotation;
-                break;
+        var cos_theta = Vec3.dot(u, v);
+        if (cos_theta > 1) {
+            cos_theta = 1;
         }
+        var angle = Math.acos(cos_theta) / Math.PI * 180;
+        if (angle < 0.1) {
+            return;
+        }
+        var w = Vec3.normalize(Vec3.cross(u, v));
+
+        rotation = Quat.multiply(Quat.angleAxis(angle, w), leftController.oldModelRotation);
+
+
+        leftController.positionAtGrab = leftController.palmPosition;
+        leftController.rotationAtGrab = leftController.rotation;
+        leftController.modelPositionAtGrab = leftController.oldModelPosition;
+        leftController.modelRotationAtGrab = rotation;
+        rightController.positionAtGrab = rightController.palmPosition;
+        rightController.rotationAtGrab = rightController.rotation;
+        rightController.modelPositionAtGrab = rightController.oldModelPosition;
+        rightController.modelRotationAtGrab = rotation;
+
         Entities.editEntity(leftController.entityID, {
                          position: newPosition,
                          rotation: rotation,
@@ -611,7 +577,6 @@ function moveEntities() {
                          dimensions: { x: leftController.oldModelHalfDiagonal * ratio,
                                        y: leftController.oldModelHalfDiagonal * ratio,
                                        z: leftController.oldModelHalfDiagonal * ratio }
-
 
                          });
         leftController.oldModelPosition = newPosition;
@@ -623,8 +588,8 @@ function moveEntities() {
         rightController.oldModelHalfDiagonal *= ratio;
         return;
     }
-    leftController.moveEntity();
-    rightController.moveEntity();
+    leftController.moveEntity(deltaTime);
+    rightController.moveEntity(deltaTime);
 }
 
 var hydraConnected = false;
@@ -642,7 +607,7 @@ function checkController(deltaTime) {
 
         leftController.update();
         rightController.update();
-        moveEntities();
+        moveEntities(deltaTime);
     } else {
         if (hydraConnected) {
             hydraConnected = false;

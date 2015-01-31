@@ -17,6 +17,7 @@
 
 #include <NetworkAccessManager.h>
 
+#include "Application.h"
 #include "Menu.h"
 
 #include "ScriptsModel.h"
@@ -33,8 +34,8 @@ static const QString KEY_NAME = "Key";
 
 TreeNodeBase::TreeNodeBase(TreeNodeFolder* parent, const QString& name, TreeNodeType type) :
     _parent(parent),
-    _name(name),
-    _type(type) {
+    _type(type),
+    _name(name) {
 };
 
 TreeNodeScript::TreeNodeScript(const QString& localPath, const QString& fullPath, ScriptOrigin origin) :
@@ -58,10 +59,10 @@ ScriptsModel::ScriptsModel(QObject* parent) :
     _localDirectory.setFilter(QDir::Files | QDir::Readable);
     _localDirectory.setNameFilters(QStringList("*.js"));
 
-    updateScriptsLocation(Menu::getInstance()->getScriptsLocation());
+    updateScriptsLocation(qApp->getScriptsLocation());
     
     connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &ScriptsModel::reloadLocalFiles);
-    connect(Menu::getInstance(), &Menu::scriptLocationChanged, this, &ScriptsModel::updateScriptsLocation);
+    connect(qApp, &Application::scriptLocationChanged, this, &ScriptsModel::updateScriptsLocation);
 
     reloadLocalFiles();
     reloadRemoteFiles();
@@ -165,6 +166,7 @@ void ScriptsModel::requestRemoteFiles(QString marker) {
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(request);
     connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
 }

@@ -70,16 +70,11 @@ int TextRenderer::calculateHeight(const char* str) {
     return maxHeight;
 }
 
-int TextRenderer::draw(int x, int y, const char* str, float alpha) {
-    // Grab the current color
-    float currentColor[4];
-    glGetFloatv(GL_CURRENT_COLOR, currentColor);
-    alpha = std::max(0.0f, std::min(alpha, 1.0f));
-    currentColor[3] *= alpha;
-    int compactColor = ((int(currentColor[0] * 255.0f) & 0xFF)) |
-                       ((int(currentColor[1] * 255.0f) & 0xFF) << 8) |
-                       ((int(currentColor[2] * 255.0f) & 0xFF) << 16) |
-                       ((int(currentColor[3] * 255.0f) & 0xFF) << 24);
+int TextRenderer::draw(int x, int y, const char* str, const glm::vec4& color) {
+    int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                       ((int(color.y * 255.0f) & 0xFF) << 8) |
+                       ((int(color.z * 255.0f) & 0xFF) << 16) |
+                       ((int(color.w * 255.0f) & 0xFF) << 24);
 
     int maxHeight = 0;
     for (const char* ch = str; *ch != 0; ch++) {
@@ -167,7 +162,7 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _glyphsStream(new gpu::BufferStream()),
     _numGlyphsBatched(0)
 {
-    _glyphsStreamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+    _glyphsStreamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
     const int NUM_POS_COORDS = 2;
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
     _glyphsStreamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);

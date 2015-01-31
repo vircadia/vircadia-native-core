@@ -30,7 +30,6 @@
 #include <DependencyManager.h>
 #include <StDev.h>
 
-#include "InterfaceConfig.h"
 #include "audio/AudioIOStats.h"
 #include "audio/AudioNoiseGate.h"
 #include "AudioStreamStats.h"
@@ -96,13 +95,12 @@ public:
     };
     
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
+    MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
 
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _inputGate.getMeasuredFloor(), 0.0f); }
 
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
-
-    void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& settings) { _receivedAudioStream.setSettings(settings); }
 
     int getDesiredJitterBufferFrames() const { return _receivedAudioStream.getDesiredJitterBufferFrames(); }
     
@@ -174,9 +172,13 @@ public slots:
 
     void outputNotify();
     
+    void loadSettings();
+    void saveSettings();
+    
 signals:
     bool muteToggled();
     void inputReceived(const QByteArray& inputSamples);
+    void deviceChanged();
 
 protected:
     Audio();
@@ -275,6 +277,10 @@ private:
     AudioIOStats _stats;
     
     AudioNoiseGate _inputGate;
+
+    QVector<QString> _inputDevices;
+    QVector<QString> _outputDevices;
+    void checkDevices();
 };
 
 

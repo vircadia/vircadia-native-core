@@ -79,7 +79,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
 
 
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::vec4 gridColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     _gridProgram.bind();
 
@@ -92,7 +92,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         float scale = MINOR_GRID_DIVISIONS * spacing;
         glScalef(scale, scale, scale);
 
-        DependencyManager::get<GeometryCache>()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS);
+        DependencyManager::get<GeometryCache>()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS, gridColor);
     }
     glPopMatrix();
 
@@ -107,7 +107,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         float scale = MAJOR_GRID_DIVISIONS * spacing;
         glScalef(scale, scale, scale);
 
-        DependencyManager::get<GeometryCache>()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS);
+        DependencyManager::get<GeometryCache>()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS, gridColor);
     }
     glPopMatrix();
 

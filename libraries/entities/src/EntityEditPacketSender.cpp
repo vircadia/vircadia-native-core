@@ -36,6 +36,11 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemI
     int sizeOut = 0;
 
     if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
+        #ifdef WANT_DEBUG
+            qDebug() << "calling queueOctreeEditMessage()...";
+            qDebug() << "    id:" << modelID;
+            qDebug() << "    properties:" << properties;
+        #endif
         queueOctreeEditMessage(type, bufferOut, sizeOut);
     }
 }

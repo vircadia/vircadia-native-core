@@ -19,7 +19,6 @@
 #include <QImage>
 #include <QPointer>
 #include <QSet>
-#include <QSettings>
 #include <QStringList>
 #include <QUndoStack>
 
@@ -34,10 +33,10 @@
 #include <PacketHeaders.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
+#include <StDev.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
 
-#include "Audio.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
@@ -56,7 +55,6 @@
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/BandwidthMeter.h"
 #include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
@@ -80,7 +78,6 @@
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
-class QSettings;
 class QSystemTrayIcon;
 class QTouchEvent;
 class QWheelEvent;
@@ -121,6 +118,12 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
 
+class Application;
+#if defined(qApp)
+#undef qApp
+#endif
+#define qApp (static_cast<Application*>(QCoreApplication::instance()))
+
 class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
 
@@ -128,18 +131,16 @@ class Application : public QApplication, public AbstractViewStateInterface, Abst
     friend class DatagramProcessor;
 
 public:
-    static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
+    static Application* getInstance() { return qApp; } // TODO: replace fully by qApp
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
 
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
 
-    void restoreSizeAndPosition();
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
-    void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
     void initializeGL();
     void paintGL();
@@ -180,7 +181,7 @@ public:
     PrioVR* getPrioVR() { return &_prioVR; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
-    
+    OctreeQuery& getOctreeQuery() { return _octreeQuery; }
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     
@@ -201,25 +202,21 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
-    BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
+    BandwidthRecorder* getBandwidthRecorder() { return &_bandwidthRecorder; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    float getPacketsPerSecond() const { return _packetsPerSecond; }
-    float getBytesPerSecond() const { return _bytesPerSecond; }
+    float getInPacketsPerSecond() const { return _inPacketsPerSecond; }
+    float getOutPacketsPerSecond() const { return _outPacketsPerSecond; }
+    float getInBytesPerSecond() const { return _inBytesPerSecond; }
+    float getOutBytesPerSecond() const { return _outBytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
-
-    /// if you need to access the application settings, use lockSettings()/unlockSettings()
-    QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
-    void unlockSettings() { _settingsMutex.unlock(); }
-
-    void saveSettings();
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -303,6 +300,9 @@ public:
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
     Bookmarks* getBookmarks() const { return _bookmarks; }
+    
+    QString getScriptsLocation() const;
+    void setScriptsLocation(const QString& scriptsLocation);
 
 signals:
 
@@ -317,6 +317,8 @@ signals:
 
     /// Fired when the import window is closed
     void importDone();
+    
+    void scriptLocationChanged(const QString& newPath);
 
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -353,13 +355,17 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
-    void bumpSettings() { ++_numChangedSettings; }
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
-    void setVSyncEnabled(bool vsyncOn);
+    void setVSyncEnabled();
 
     void resetSensors();
+    void aboutApp();
+    void showEditEntitiesHelp();
+    
+    void loadSettings();
+    void saveSettings();
 
     void notifyPacketVersionMismatch();
 
@@ -389,6 +395,10 @@ private slots:
     void parseVersionXml();
 
     void manageRunningScriptsWidgetVisibility(bool shown);
+    
+    void runTests();
+    
+    void audioMuteToggled();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -427,7 +437,6 @@ private:
 
     void updateShadowMap();
     void renderRearViewMirror(const QRect& region, bool billboard = false);
-    void checkBandwidthMeterClick();
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
@@ -440,14 +449,9 @@ private:
 
     ToolWindow* _toolWindow;
 
-    BandwidthMeter _bandwidthMeter;
 
     QThread* _nodeThread;
     DatagramProcessor _datagramProcessor;
-
-    QMutex _settingsMutex;
-    QSettings* _settings;
-    int _numChangedSettings;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -481,6 +485,9 @@ private:
     float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
+
+    BandwidthRecorder _bandwidthRecorder;
+
 
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
@@ -530,8 +537,10 @@ private:
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;
 
-    int _packetsPerSecond;
-    int _bytesPerSecond;
+    int _inPacketsPerSecond;
+    int _outPacketsPerSecond;
+    int _inBytesPerSecond;
+    int _outBytesPerSecond;
 
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
@@ -568,6 +577,7 @@ private:
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
+    QString _scriptsLocation;
 
     QSystemTrayIcon* _trayIcon;
 
@@ -583,6 +593,9 @@ private:
     Bookmarks* _bookmarks;
 
     bool _notifiedPacketVersionMismatchThisDomain;
+    
+    QThread _settingsThread;
+    QTimer _settingsTimer;
 };
 
 #endif // hifi_Application_h

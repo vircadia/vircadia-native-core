@@ -13,6 +13,7 @@
 #define hifi_TextRenderer_h
 
 #include <gpu/GPUConfig.h>
+#include <glm/glm.hpp>
 
 #include <QColor>
 #include <QFont>
@@ -70,7 +71,7 @@ public:
     int calculateHeight(const char* str);
 
     // also returns the height of the tallest character
-    int draw(int x, int y, const char* str, float alpha = 1.0f);
+    int draw(int x, int y, const char* str, const glm::vec4& color);
     
     int computeWidth(char ch);
     int computeWidth(const char* str);

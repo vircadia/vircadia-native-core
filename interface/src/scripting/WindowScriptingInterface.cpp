@@ -15,6 +15,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QScriptValue>
+#include <QScrollArea>
 
 #include "Application.h"
 #include "MainWindow.h"
