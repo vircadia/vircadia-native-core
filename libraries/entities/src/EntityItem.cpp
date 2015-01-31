@@ -1021,18 +1021,7 @@ float EntityItem::getRadius() const {
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) const {
-    // HACK: Default first first approximation is to boxify the entity... but only if it is small enough.
-    // The limit here is chosen to something that most avatars could not comfortably fit inside
-    // to prevent houses from getting boxified... we don't want the things inside houses to 
-    // collide with a house as if it were a giant solid block.
-    const float MAX_SIZE_FOR_BOXIFICATION_HACK = 3.0f;
-    float diagonal = glm::length(getDimensionsInMeters());
-    if (diagonal < MAX_SIZE_FOR_BOXIFICATION_HACK) {
-        glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
-        info.setBox(halfExtents);
-    } else {
-        info.clear();
-    }
+    info.clear();
 }
 
 void EntityItem::recalculateCollisionShape() {
