@@ -148,7 +148,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 }
 
                 glm::quat rotation = getRotation();
-                if (needsToCallUpdate() && _model->isActive()) {
+                bool movingOrAnimating = isMoving() || isAnimatingSomething();
+                if ((movingOrAnimating || _needsInitialSimulation) && _model->isActive()) {
                     _model->setScaleToFit(true, dimensions);
                     _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
                     _model->setRotation(rotation);
@@ -168,7 +169,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     PerformanceTimer perfTimer("model->render");
                     // filter out if not needed to render
                     if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
-                        if (isMoving() || isAnimatingSomething()) {
+                        if (movingOrAnimating) {
                             _model->renderInScene(alpha, args);
                         }
                     } else {
