@@ -166,6 +166,7 @@ void ScriptsModel::requestRemoteFiles(QString marker) {
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(request);
     connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
 }

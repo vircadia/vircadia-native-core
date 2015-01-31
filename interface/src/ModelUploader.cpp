@@ -494,6 +494,7 @@ void ModelUploader::uploadFailed(QNetworkReply& errorReply) {
 void ModelUploader::checkS3() {
     qDebug() << "Checking S3 for " << _url;
     QNetworkRequest request(_url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = NetworkAccessManager::getInstance().head(request);
     connect(reply, SIGNAL(finished()), SLOT(processCheck()));
 }
