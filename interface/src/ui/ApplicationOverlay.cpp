@@ -907,7 +907,6 @@ void ApplicationOverlay::renderStatsAndLogs() {
     
     auto glCanvas = DependencyManager::get<GLCanvas>();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
-    BandwidthMeter* bandwidthMeter = application->getBandwidthMeter();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
 
     //  Display stats and log text onscreen
@@ -920,12 +919,11 @@ void ApplicationOverlay::renderStatsAndLogs() {
         int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
         Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, application->getFps(),
-            application->getPacketsPerSecond(), application->getBytesPerSecond(), voxelPacketsToProcess);
-        //  Bandwidth meter
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
-            Stats::drawBackground(0x33333399, glCanvas->width() - 296, glCanvas->height() - 68, 296, 68);
-            bandwidthMeter->render(glCanvas->width(), glCanvas->height());
-        }
+                                      application->getInPacketsPerSecond(),
+                                      application->getOutPacketsPerSecond(),
+                                      application->getInBytesPerSecond(),
+                                      application->getOutBytesPerSecond(),
+                                      voxelPacketsToProcess);
     }
 
     //  Show on-screen msec timer
@@ -934,8 +932,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
         quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
         int timerBottom =
-            (Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
-            Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
+            (Menu::getInstance()->isOptionChecked(MenuOption::Stats))
             ? 80 : 20;
         drawText(glCanvas->width() - 100, glCanvas->height() - timerBottom,
             0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);

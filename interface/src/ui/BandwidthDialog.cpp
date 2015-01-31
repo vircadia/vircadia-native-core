@@ -11,6 +11,7 @@
 
 #include <cstdio>
 
+#include "BandwidthRecorder.h"
 #include "ui/BandwidthDialog.h"
 
 #include <QFormLayout>
@@ -19,11 +20,43 @@
 #include <QPalette>
 #include <QColor>
 
-BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthMeter* model) :
+
+BandwidthDialog::ChannelDisplay::ChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form) {
+    this->ch = ch;
+    this->label = setupLabel(form);
+}
+
+
+QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form) {
+    QLabel* label = new QLabel();
+
+    label->setAlignment(Qt::AlignRight);
+
+    QPalette palette = label->palette();
+    unsigned rgb = ch->colorRGBA >> 8;
+    rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
+    palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
+    label->setPalette(palette);
+
+    form->addRow((std::string(" ") + ch->caption + " Bandwidth In/Out:").c_str(), label);
+
+    return label;
+}
+
+
+
+void BandwidthDialog::ChannelDisplay::setLabelText() {
+    std::string strBuf =
+        std::to_string ((int) (ch->input.getValue() * ch->unitScale)) + "/" +
+        std::to_string ((int) (ch->output.getValue() * ch->unitScale)) + " " + ch->unitCaption;
+    label->setText(strBuf.c_str());
+}
+
+
+
+BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthRecorder* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
     _model(model) {
-
-    char strBuf[64];
 
     this->setWindowTitle("Bandwidth Details");
 
@@ -31,44 +64,29 @@ BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthMeter* model) :
     QFormLayout* form = new QFormLayout();
     this->QDialog::setLayout(form);
 
-    // Setup labels
-    for (size_t i = 0; i < BandwidthMeter::N_STREAMS; ++i) {
-        bool input = i % 2 == 0;
-        BandwidthMeter::ChannelInfo& ch = _model->channelInfo(BandwidthMeter::ChannelIndex(i / 2));
-        QLabel* label = _labels[i] = new QLabel();  
-        label->setAlignment(Qt::AlignRight);
-
-        // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
-        QPalette palette = label->palette();
-        unsigned rgb = ch.colorRGBA >> 8;
-        rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
-        palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
-        label->setPalette(palette);
-
-        snprintf(strBuf, sizeof(strBuf), " %s %s Bandwidth:", input ? "Input" : "Output", ch.caption);
-        form->addRow(strBuf, label);
-    }
+    audioChannelDisplay = new ChannelDisplay(_model->audioChannel, form);
+    avatarsChannelDisplay = new ChannelDisplay(_model->avatarsChannel, form);
+    octreeChannelDisplay = new ChannelDisplay(_model->octreeChannel, form);
+    metavoxelsChannelDisplay = new ChannelDisplay(_model->metavoxelsChannel, form);
+    totalChannelDisplay = new ChannelDisplay(_model->totalChannel, form);
 }
+
 
 BandwidthDialog::~BandwidthDialog() {
-    for (size_t i = 0; i < BandwidthMeter::N_STREAMS; ++i) {
-        delete _labels[i];
-    }
+    delete audioChannelDisplay;
+    delete avatarsChannelDisplay;
+    delete octreeChannelDisplay;
+    delete metavoxelsChannelDisplay;
+    delete totalChannelDisplay;
 }
 
-void BandwidthDialog::paintEvent(QPaintEvent* event) {
 
-    // Update labels
-    char strBuf[64];
-    for (size_t i = 0; i < BandwidthMeter::N_STREAMS; ++i) {
-        BandwidthMeter::ChannelIndex chIdx = BandwidthMeter::ChannelIndex(i / 2);
-        bool input = i % 2 == 0;
-        BandwidthMeter::ChannelInfo& ch = _model->channelInfo(chIdx);
-        BandwidthMeter::Stream& s = input ? _model->inputStream(chIdx) : _model->outputStream(chIdx);
-        QLabel* label = _labels[i];
-        snprintf(strBuf, sizeof(strBuf), "%0.2f %s", s.getValue() * ch.unitScale, ch.unitCaption);
-        label->setText(strBuf);
-    }
+void BandwidthDialog::paintEvent(QPaintEvent* event) {
+    audioChannelDisplay->setLabelText();
+    avatarsChannelDisplay->setLabelText();
+    octreeChannelDisplay->setLabelText();
+    metavoxelsChannelDisplay->setLabelText();
+    totalChannelDisplay->setLabelText();
 
     this->QDialog::paintEvent(event);
     this->setFixedSize(this->width(), this->height());
