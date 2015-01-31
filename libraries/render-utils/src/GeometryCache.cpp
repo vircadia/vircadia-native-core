@@ -1152,7 +1152,7 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
 
     gpu::Batch batch;
 
-    glEnable(GL_TEXTURE_2D);
+//    glEnable(GL_TEXTURE_2D);
     //glBindTexture(GL_TEXTURE_2D, _currentTextureID); // this is quad specific...
 
     batch.setInputFormat(details.streamFormat);
@@ -1166,8 +1166,8 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
     glDisableClientState(GL_COLOR_ARRAY);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
+  //  glBindTexture(GL_TEXTURE_2D, 0);
+  //  glDisable(GL_TEXTURE_2D);
 }
 
 void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {

@@ -263,6 +263,13 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& ambient,
         const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation, float linearAttenuation,
         float quadraticAttenuation, const glm::vec3& direction, float exponent, float cutoff) {
+    
+    int lightID = _pointLights.size() + _spotLights.size();
+    if (lightID >= _allocatedLights.size()) {
+        _allocatedLights.push_back(model::LightPointer(new model::Light()));
+    }
+    model::LightPointer lp = _allocatedLights[lightID];
+
     if (exponent == 0.0f && cutoff == PI) {
         PointLight light;
         light.position = glm::vec4(position, 1.0f);
@@ -273,13 +280,12 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         light.constantAttenuation = constantAttenuation;
         light.linearAttenuation = linearAttenuation;
 
-        model::LightPointer lp = model::LightPointer(new model::Light());
         lp->setPosition(position);
         lp->setMaximumRadius(radius);
         lp->setColor(diffuse);
         lp->setIntensity(1.0f);
         lp->setType(model::Light::POINT);
-        _pointLights.push_back(lp);
+        _pointLights.push_back(lightID);
         
     } else {
         SpotLight light;
@@ -294,16 +300,15 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         light.exponent = exponent;
         light.cutoff = cutoff;
 
-        model::LightPointer ls = model::LightPointer(new model::Light());
-        ls->setPosition(position);
-        ls->setDirection(direction);
-        ls->setMaximumRadius(radius);
-        ls->setSpotCone(cutoff);
-        ls->setColor(diffuse);
-        ls->setIntensity(1.0f);
-        ls->setType(model::Light::SPOT);
+        lp->setPosition(position);
+        lp->setDirection(direction);
+        lp->setMaximumRadius(radius);
+        lp->setSpotCone(cutoff);
+        lp->setColor(diffuse);
+        lp->setIntensity(1.0f);
+        lp->setType(model::Light::SPOT);
 
-        _spotLights.push_back(ls);
+        _spotLights.push_back(lightID);
     }
 }
 
@@ -337,7 +342,7 @@ void DeferredLightingEffect::render() {
     QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT);
-    glEnable(GL_FRAMEBUFFER_SRGB);
+   // glEnable(GL_FRAMEBUFFER_SRGB);
 
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
     
@@ -463,7 +468,8 @@ void DeferredLightingEffect::render() {
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
 
-        for (auto light : _pointLights) {
+        for (auto lightID : _pointLights) {
+            auto light = _allocatedLights[lightID];
       //  foreach (const PointLight& light, _pointLights) {
             if (_pointLightLocations.lightBufferUnit >= 0) {
                 gpu::Batch batch;
@@ -471,8 +477,6 @@ void DeferredLightingEffect::render() {
                 gpu::GLBackend::renderBatch(batch);
             }
             glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
-           // _pointLight.setUniformValue(_pointLightLocations.viewMat, reinterpret_cast< const GLfloat* >(&viewMat));
-         //   _spotLight.setUniformValue(_pointLightLocations.radius, light->getAttenuationRadius());
             
 
 /*
@@ -520,7 +524,9 @@ void DeferredLightingEffect::render() {
         _spotLight.setUniformValue(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         _spotLight.setUniformValue(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
         
-        for (auto light : _spotLights) {
+        for (auto lightID : _spotLights) {
+            auto light = _allocatedLights[lightID];
+
      //   foreach (const SpotLight& light, _spotLights) {
             if (_spotLightLocations.lightBufferUnit >= 0) {
                 gpu::Batch batch;
@@ -591,7 +597,7 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     freeFBO->release();
-    glDisable(GL_FRAMEBUFFER_SRGB);
+ //   glDisable(GL_FRAMEBUFFER_SRGB);
     
     glDisable(GL_CULL_FACE);
     

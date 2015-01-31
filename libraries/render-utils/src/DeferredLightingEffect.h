@@ -153,8 +153,9 @@ private:
 
     typedef std::vector< model::LightPointer > Lights;
 
-    Lights _pointLights;
-    Lights _spotLights;
+    Lights _allocatedLights;
+    std::vector<int> _pointLights;
+    std::vector<int> _spotLights;
  //   QVector<PointLight> _pointLights;
  //   QVector<SpotLight> _spotLights;
     QVector<PostLightingRenderable*> _postLightingRenderables;
