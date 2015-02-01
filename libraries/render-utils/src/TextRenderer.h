@@ -14,7 +14,7 @@
 
 #include <gpu/GPUConfig.h>
 #include <glm/glm.hpp>
-
+#include <unordered_map>
 #include <QColor>
 #include <QFont>
 #include <QFontMetrics>
@@ -22,10 +22,14 @@
 #include <QImage>
 #include <QVector>
 
+// FIXME, decouple from the GL headers
+#include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QOpenGLBuffer>
+
 #include <gpu/Resource.h>
 #include <gpu/Stream.h>
-
-
 
 // a special "character" that renders as a solid block
 const char SOLID_BLOCK_CHAR = 127;
@@ -45,19 +49,17 @@ const char SOLID_BLOCK_CHAR = 127;
 #define INCONSOLATA_FONT_WEIGHT QFont::Bold
 #endif
 
-class Glyph;
 
 class TextRenderer {
 public:
-
     enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
 
     class Properties {
     public:
-        QFont font;
-        EffectType effect;
-        int effectThickness;
-        QColor color;
+      QString font;
+      EffectType effect;
+      int effectThickness;
+      QColor color;
     };
 
     static TextRenderer* getInstance(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
@@ -65,30 +67,72 @@ public:
 
     ~TextRenderer();
 
-    const QFontMetrics& metrics() const { return _metrics; }
-
     // returns the height of the tallest character
-    int calculateHeight(const char* str);
+    int calculateHeight(const char * str) const;
+    int calculateHeight(const QString & str) const;
+
+    int computeWidth(char ch) const;
+    int computeWidth(const QChar & ch) const;
+
+    int computeWidth(const QString & str) const;
+    int computeWidth(const char * str) const;
 
     // also returns the height of the tallest character
-    int draw(int x, int y, const char* str, const glm::vec4& color);
-    
-    int computeWidth(char ch);
-    int computeWidth(const char* str);
-    
+    inline int draw(int x, int y, const char* str,
+      const glm::vec4& color = glm::vec4(-1),
+      float fontSize = -1,
+      float maxWidth = -1
+    ) {
+      return drawString(x, y, QString(str), color, fontSize, maxWidth);
+    }
+
+    float drawString(
+      float x, float y,
+      const QString & str,
+      const glm::vec4& color = glm::vec4(-1),
+      float fontSize = -1,
+      float maxWidth = -1);
+
     void drawBatch();
     void clearBatch();
 private:
 
+    static QHash<Properties, TextRenderer*> _instances;
+
+    // Allow fonts to scale appropriately when rendered in a 
+    // scene where units are meters
+    static const float DTP_TO_METERS; // = 0.003528f;
+    static const float METERS_TO_DTP; // = 1.0 / DTP_TO_METERS;
+    static const char SHADER_TEXT_FS[];
+    static const char SHADER_TEXT_VS[];
+  
     TextRenderer(const Properties& properties);
 
-    const Glyph& getGlyph(char c);
+    // stores the font metrics for a single character
+    struct Glyph {
+      QChar c;
+      glm::vec2 ul;
+      glm::vec2 lr;
+      glm::vec2 size;
+      glm::vec2 offset;
+      float d;  // xadvance - adjusts character positioning
+      size_t indexOffset;
 
-    // the font to render
-    QFont _font;
-    
-    // the font metrics
-    QFontMetrics _metrics;
+      int width() const {
+        return size.x;
+      }
+      QRectF bounds() const;
+      QRectF textureBounds(const glm::vec2 & textureSize) const;
+
+      void read(QIODevice & in);
+    };
+
+    using TexturePtr = QSharedPointer < QOpenGLTexture >;
+    using VertexArrayPtr = QSharedPointer< QOpenGLVertexArrayObject >;
+    using ProgramPtr = QSharedPointer < QOpenGLShaderProgram >;
+    using BufferPtr = QSharedPointer < QOpenGLBuffer >;
+
+    const Glyph& getGlyph(const QChar & c) const;
 
     // the type of effect to apply
     EffectType _effectType;
@@ -97,58 +141,40 @@ private:
     int _effectThickness;
     
     // maps characters to cached glyph info
-    QHash<char, Glyph> _glyphs;
+    QHash<QChar, Glyph> _glyphs;
     
     // the id of the glyph texture to which we're currently writing
     GLuint _currentTextureID;
     
-    // the position within the current glyph texture
-    int _x, _y;
+    int _pointSize;
     
     // the height of the current row of characters
     int _rowHeight;
     
-    // the list of all texture ids for which we're responsible
-    QVector<GLuint> _allTextureIDs;
-    
     // text color
     QColor _color;
-    
-    // Graphics Buffer containing the current accumulated glyphs to render
-    gpu::BufferPointer _glyphsBuffer;
-    gpu::BufferPointer _glyphsColorBuffer;
-    gpu::Stream::FormatPointer _glyphsStreamFormat;
-    gpu::BufferStreamPointer _glyphsStream;
-    int _numGlyphsBatched;
 
-    static QHash<Properties, TextRenderer*> _instances;
+    QString _family;
+    float _fontSize{ 12 };
+    float _leading{ 0 };
+    float _ascent{ 0 };
+    float _descent{ 0 };
+    float _spaceWidth{ 0 };
+
+    BufferPtr _vertices;
+    BufferPtr _indices;
+    TexturePtr _texture;
+    VertexArrayPtr _vao;
+    QImage _image;
+    ProgramPtr _program;
+
+    // Parse the signed distance field font file
+    void read(const QString & path);
+    void read(QIODevice & path);
+
+    // Initialize the OpenGL structures
+    void setupGL();
 };
 
-class Glyph {
-public:
-    
-    Glyph(int textureID = 0, const QPoint& location = QPoint(), const QRect& bounds = QRect(), int width = 0);
-    
-    GLuint textureID() const { return _textureID; }
-    const QPoint& location () const { return _location; }
-    const QRect& bounds() const { return _bounds; }
-    int width () const { return _width; }
-    
-    bool isValid() { return _width != 0; }
-    
-private:
-    
-    // the id of the OpenGL texture containing the glyph
-    GLuint _textureID;
-    
-    // the location of the character within the texture
-    QPoint _location;
-    
-    // the bounds of the character
-    QRect _bounds;
-    
-    // the width of the character (distance to next, as opposed to bounds width)
-    int _width;
-};
 
 #endif // hifi_TextRenderer_h

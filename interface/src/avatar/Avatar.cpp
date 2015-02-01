@@ -913,7 +913,8 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
-    _displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
+    // FIXME need to find an alternate mechanism for this.
+    //_displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
 }
 
 void Avatar::setBillboard(const QByteArray& billboard) {
