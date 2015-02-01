@@ -50,6 +50,7 @@ ovrHmd OculusManager::_ovrHmd;
 ovrHmdDesc OculusManager::_ovrHmdDesc;
 ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
 ovrEyeRenderDesc OculusManager::_eyeRenderDesc[ovrEye_Count];
+ovrVector3f OculusManager::_eyeOffset[ovrEye_Count];
 ovrSizei OculusManager::_renderTargetSize;
 ovrVector2f OculusManager::_UVScaleOffset[ovrEye_Count][2];
 GLuint OculusManager::_vertices[ovrEye_Count] = { 0, 0 };
@@ -114,6 +115,8 @@ void OculusManager::connect() {
 
         _eyeRenderDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
         _eyeRenderDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
+        _eyeOffset[0] = _eyeRenderDesc[0].HmdToEyeViewOffset;
+        _eyeOffset[1] = _eyeRenderDesc[1].HmdToEyeViewOffset;
 
 #if defined(__APPLE__) || defined(_WIN32)
         ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence);
@@ -433,6 +436,12 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
 #endif    
 }
 
+#ifdef HAVE_LIBOVR
+glm::vec3 toGlm(const ovrVector3f & v) {
+  return std::move(glm::vec3(v.x, v.y, v.z));
+}
+#endif    
+
 //Displays everything for the oculus, frame timing must be active
 void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
 #ifdef HAVE_LIBOVR
@@ -481,8 +490,12 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
     trackerPosition = bodyOrientation * trackerPosition;
 #endif
-    
+
+    // void ovrHmd_GetEyePoses(ovrHmd hmd, unsigned int frameIndex, ovrVector3f hmdToEyeViewOffset[2],
+    //   ovrPosef outEyePoses[2], ovrTrackingState* outHmdTrackingState);
+
     //Render each eye into an fbo
+    ovrHmd_GetEyePoses(_ovrHmd, 0, _eyeOffset, eyeRenderPose, nullptr);
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
         _activeEyeIndex = eyeIndex;
         
@@ -492,7 +505,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         ovrEyeType eye = _ovrHmdDesc.EyeRenderOrder[eyeIndex];
 #endif
         // Set the camera rotation for this eye
-        eyeRenderPose[eye] = ovrHmd_GetEyePose(_ovrHmd, eye);
         orientation.x = eyeRenderPose[eye].Orientation.x;
         orientation.y = eyeRenderPose[eye].Orientation.y;
         orientation.z = eyeRenderPose[eye].Orientation.z;
@@ -507,9 +519,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         _camera->setPosition(whichCamera.getPosition());
         
         //  Store the latest left and right eye render locations for things that need to know
-        glm::vec3 thisEyePosition = position + trackerPosition +
-            (bodyOrientation * glm::quat(orientation.x, orientation.y, orientation.z, orientation.w) *
-             glm::vec3(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z));
+        glm::vec3 thisEyePosition = position + trackerPosition + toGlm(eyeRenderPose[eye].Position);
         
         RenderArgs::RenderSide renderSide = RenderArgs::STEREO_LEFT;
         if (eyeIndex == 0) {
@@ -538,7 +548,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         // HACK: instead of passing the stereo eye offset directly in the matrix, pass it in the camera offset
         //glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
         
-        _camera->setEyeOffsetPosition(glm::vec3(-_eyeRenderDesc[eye].ViewAdjust.x, -_eyeRenderDesc[eye].ViewAdjust.y, -_eyeRenderDesc[eye].ViewAdjust.z));
+        //_camera->setEyeOffsetPosition(glm::vec3(-_eyeRenderDesc[eye].ViewAdjust.x, -_eyeRenderDesc[eye].ViewAdjust.y, -_eyeRenderDesc[eye].ViewAdjust.z));
         Application::getInstance()->displaySide(*_camera, false, RenderArgs::MONO);
 
         applicationOverlay.displayOverlayTextureOculus(*_camera);

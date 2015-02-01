@@ -92,6 +92,7 @@ private:
     static ovrHmdDesc _ovrHmdDesc;
     static ovrFovPort _eyeFov[ovrEye_Count];
     static ovrEyeRenderDesc _eyeRenderDesc[ovrEye_Count];
+    static ovrVector3f _eyeOffset[ovrEye_Count];
     static ovrSizei _renderTargetSize;
     static ovrVector2f _UVScaleOffset[ovrEye_Count][2];
     static GLuint _vertices[ovrEye_Count];
