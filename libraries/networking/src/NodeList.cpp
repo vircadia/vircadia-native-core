@@ -108,6 +108,9 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 }
 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
+
+    emit dataReceived(NodeType::AudioMixer, packet.size()); // XXX
+
     switch (packetTypeForPacket(packet)) {
         case PacketTypeDomainList: {
             processDomainServerList(packet);
@@ -157,6 +160,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             break;
         }
         case PacketTypeUnverifiedPing: {
+
             // send back a reply
             QByteArray replyPacket = constructPingReplyPacket(packet, _domainHandler.getICEClientID());
             writeUnverifiedDatagram(replyPacket, senderSockAddr);

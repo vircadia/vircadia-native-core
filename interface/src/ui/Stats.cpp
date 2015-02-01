@@ -216,6 +216,8 @@ void Stats::display(
     QLocale locale(QLocale::English);
     std::stringstream octreeStats;
 
+    BandwidthRecorder* bandwidthRecorder = Application::getInstance()->getBandwidthRecorder();
+
     if (_lastHorizontalOffset != horizontalOffset) {
         resetWidth(glCanvas->width(), horizontalOffset);
         _lastHorizontalOffset = horizontalOffset;
@@ -440,8 +442,12 @@ void Stats::display(
         SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
-                    roundf(avatarMixer->getAverageKilobitsPerSecond()),
-                    roundf(avatarMixer->getAveragePacketsPerSecond()));
+                    // roundf(avatarMixer->getAverageKilobitsPerSecond()),
+                    // roundf(avatarMixer->getAveragePacketsPerSecond())
+                    roundf(bandwidthRecorder->audioChannel->getAverageInputKilobitsPerSecond() +
+                           bandwidthRecorder->audioChannel->getAverageOutputKilobitsPerSecond()),
+                    roundf(bandwidthRecorder->audioChannel->getAverageInputPacketsPerSecond() +
+                           bandwidthRecorder->audioChannel->getAverageOutputPacketsPerSecond()));
         } else {
             sprintf(avatarMixerStats, "No Avatar Mixer");
         }

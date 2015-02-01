@@ -42,6 +42,7 @@ public:
     ChannelDisplay* avatarsChannelDisplay;
     ChannelDisplay* octreeChannelDisplay;
     ChannelDisplay* metavoxelsChannelDisplay;
+    ChannelDisplay* otherChannelDisplay;
 
     // sums of all the other channels
     ChannelDisplay* totalChannelDisplay;

@@ -63,9 +63,9 @@ public:
     bool isAlive() const { return _isAlive; }
     void setAlive(bool isAlive) { _isAlive = isAlive; }
 
-    void  recordBytesReceived(int bytesReceived);
-    float getAverageKilobitsPerSecond();
-    float getAveragePacketsPerSecond();
+    // void  recordBytesReceived(int bytesReceived);
+    // float getAverageKilobitsPerSecond();
+    // float getAveragePacketsPerSecond();
 
     int getPingMs() const { return _pingMs; }
     void setPingMs(int pingMs) { _pingMs = pingMs; }
@@ -99,7 +99,7 @@ private:
     HifiSockAddr _symmetricSocket;
     
     QUuid _connectionSecret;
-    SimpleMovingAverage* _bytesReceivedMovingAverage;
+    // SimpleMovingAverage* _bytesReceivedMovingAverage;
     NodeData* _linkedData;
     bool _isAlive;
     int _pingMs;
