@@ -179,7 +179,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
             }
         } else {
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            QNetworkRequest networkRequest = QNetworkRequest(url);
+            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
         }
     }

@@ -27,8 +27,6 @@ void drawText(int x, int y, float scale, float radians, int mono,
 
 void renderCollisionOverlay(int width, int height, float magnitude, float red = 0, float blue = 0, float green = 0);
 
-void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance);
-
 void runTimingTests();
 
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,

@@ -70,16 +70,11 @@ int TextRenderer::calculateHeight(const char* str) {
     return maxHeight;
 }
 
-int TextRenderer::draw(int x, int y, const char* str, float alpha) {
-    // Grab the current color
-    float currentColor[4];
-    glGetFloatv(GL_CURRENT_COLOR, currentColor);
-    alpha = std::max(0.0f, std::min(alpha, 1.0f));
-    currentColor[3] *= alpha;
-    int compactColor = ((int(currentColor[0] * 255.0f) & 0xFF)) |
-                       ((int(currentColor[1] * 255.0f) & 0xFF) << 8) |
-                       ((int(currentColor[2] * 255.0f) & 0xFF) << 16) |
-                       ((int(currentColor[3] * 255.0f) & 0xFF) << 24);
+int TextRenderer::draw(int x, int y, const char* str, const glm::vec4& color) {
+    int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                       ((int(color.y * 255.0f) & 0xFF) << 8) |
+                       ((int(color.z * 255.0f) & 0xFF) << 16) |
+                       ((int(color.w * 255.0f) & 0xFF) << 24);
 
     int maxHeight = 0;
     for (const char* ch = str; *ch != 0; ch++) {

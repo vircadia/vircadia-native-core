@@ -12,6 +12,8 @@
 #ifndef hifi_AudioScope_h
 #define hifi_AudioScope_h
 
+#include <glm/glm.hpp>
+
 #include <DependencyManager.h>
 
 #include <QByteArray>
@@ -46,9 +48,9 @@ private slots:
     
 private:
     // Audio scope methods for rendering
-    static void renderBackground(const float* color, int x, int y, int width, int height);
-    void renderGrid(const float* color, int x, int y, int width, int height, int rows, int cols);
-    void renderLineStrip(int id, const float* color, int x, int  y, int n, int offset, const QByteArray* byteArray);
+    static void renderBackground(const glm::vec4& color, int x, int y, int width, int height);
+    void renderGrid(const glm::vec4& color, int x, int y, int width, int height, int rows, int cols);
+    void renderLineStrip(int id, const glm::vec4& color, int x, int  y, int n, int offset, const QByteArray* byteArray);
     
     // Audio scope methods for data acquisition
     int addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamples,

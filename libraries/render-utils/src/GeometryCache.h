@@ -25,17 +25,24 @@
 
 #include <AnimationCache.h>
 
-#include "gpu/Stream.h"
+#include <gpu/Batch.h>
+#include <gpu/Stream.h>
+
 
 class NetworkGeometry;
 class NetworkMesh;
 class NetworkTexture;
 
 
+typedef glm::vec3 Vec3Key;
+
 typedef QPair<glm::vec2, glm::vec2> Vec2Pair;
 typedef QPair<Vec2Pair, Vec2Pair> Vec2PairPair;
 typedef QPair<glm::vec3, glm::vec3> Vec3Pair;
+typedef QPair<glm::vec4, glm::vec4> Vec4Pair;
 typedef QPair<Vec3Pair, Vec2Pair> Vec3PairVec2Pair;
+typedef QPair<Vec3Pair, Vec4Pair> Vec3PairVec4Pair;
+typedef QPair<Vec4Pair, Vec4Pair> Vec4PairVec4Pair;
 
 inline uint qHash(const glm::vec2& v, uint seed) {
     // multiply by prime numbers greater than the possible size
@@ -47,6 +54,11 @@ inline uint qHash(const Vec2Pair& v, uint seed) {
     return qHash(v.first.x + 5009 * v.first.y + 5011 * v.second.x + 5021 * v.second.y, seed);
 }
 
+inline uint qHash(const glm::vec4& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.x + 5009 * v.y + 5011 * v.z + 5021 * v.w, seed);
+}
+
 inline uint qHash(const Vec2PairPair& v, uint seed) {
     // multiply by prime numbers greater than the possible size
     return qHash(v.first.first.x + 5009 * v.first.first.y 
@@ -55,15 +67,16 @@ inline uint qHash(const Vec2PairPair& v, uint seed) {
                  + 5051 * v.second.second.x + 5059 * v.second.second.y, seed);
 }
 
-inline uint qHash(const glm::vec3& v, uint seed) {
-    // multiply by prime numbers greater than the possible size
-    return qHash(v.x + 5009 * v.y + 5011 * v.z,  seed);
-}
-
 inline uint qHash(const Vec3Pair& v, uint seed) {
     // multiply by prime numbers greater than the possible size
     return qHash(v.first.x + 5009 * v.first.y + 5011 * v.first.z 
                  + 5021 * v.second.x + 5023 * v.second.y + 5039 * v.second.z, seed);
+}
+
+inline uint qHash(const Vec4Pair& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.x + 5009 * v.first.y + 5011 * v.first.z + 5021 * v.first.w 
+                    + 5023 * v.second.x + 5039 * v.second.y + 5051 * v.second.z + 5059 * v.second.w , seed);
 }
 
 inline uint qHash(const Vec3PairVec2Pair& v, uint seed) {
@@ -74,6 +87,23 @@ inline uint qHash(const Vec3PairVec2Pair& v, uint seed) {
                  5077 * v.second.second.x + 5081 * v.second.second.y, seed);
 }
 
+inline uint qHash(const Vec3PairVec4Pair& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.first.x + 5009 * v.first.first.y + 5011 * v.first.first.z 
+                + 5023 * v.first.second.x + 5039 * v.first.second.y + 5051 * v.first.second.z 
+                + 5077 * v.second.first.x + 5081 * v.second.first.y + 5087 * v.second.first.z + 5099 * v.second.first.w 
+                + 5101 * v.second.second.x + 5107 * v.second.second.y + 5113 * v.second.second.z + 5119 * v.second.second.w, 
+                seed);
+}
+
+inline uint qHash(const Vec4PairVec4Pair& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.first.x + 5009 * v.first.first.y + 5011 * v.first.first.z + 5021 * v.first.first.w 
+                + 5023 * v.first.second.x + 5039 * v.first.second.y + 5051 * v.first.second.z + 5059 * v.first.second.w 
+                + 5077 * v.second.first.x + 5081 * v.second.first.y + 5087 * v.second.first.z + 5099 * v.second.first.w 
+                + 5101 * v.second.second.x + 5107 * v.second.second.y + 5113 * v.second.second.z + 5119 * v.second.second.w, 
+                seed);
+}
 
 /// Stores cached geometry.
 class GeometryCache : public ResourceCache, public Dependency {
@@ -84,40 +114,72 @@ public:
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
 
-    void renderHemisphere(int slices, int stacks);
-    void renderSphere(float radius, int slices, int stacks, bool solid = true);
-    void renderSquare(int xDivisions, int yDivisions);
-    void renderHalfCylinder(int slices, int stacks);
     void renderCone(float base, float height, int slices, int stacks);
-    void renderGrid(int xDivisions, int yDivisions);
-    void renderGrid(int x, int y, int width, int height, int rows, int cols, int id = UNKNOWN_ID);
-    void renderSolidCube(float size);
-    void renderWireCube(float size);
-    void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, int id = UNKNOWN_ID);
 
-    void renderQuad(int x, int y, int width, int height, int id = UNKNOWN_ID)
-            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), id); }
+    void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true) 
+                { renderSphere(radius, slices, stacks, glm::vec4(color, 1.0f), solid); }
+                
+    void renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid = true);
+    void renderGrid(int xDivisions, int yDivisions, const glm::vec4& color);
+    void renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderSolidCube(float size, const glm::vec4& color);
+    void renderWireCube(float size, const glm::vec4& color);
+    void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
+
+    void renderQuad(int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
+            { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
             
-    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, int id = UNKNOWN_ID);
+    // TODO: I think there's a bug in this version of the renderQuad() that's not correctly rebuilding the vbos
+    // if the color changes by the corners are the same, as evidenced by the audio meter which should turn white
+    // when it's clipping
+    void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
-                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, int id = UNKNOWN_ID);
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
+                    const glm::vec4& color, int id = UNKNOWN_ID);
 
-    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, int id = UNKNOWN_ID);
+    void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
-                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, int id = UNKNOWN_ID);
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
+                    const glm::vec4& color, int id = UNKNOWN_ID);
 
 
-    void renderLine(const glm::vec3& p1, const glm::vec3& p2, int id = UNKNOWN_ID);
-    void renderDashedLine(const glm::vec3& start, const glm::vec3& end, int id = UNKNOWN_ID);
-    void renderLine(const glm::vec2& p1, const glm::vec2& p2, int id = UNKNOWN_ID);
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 
+                    { renderLine(p1, p2, color, color, id); }
+    
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
 
-    void updateVertices(int id, const QVector<glm::vec2>& points);
-    void updateVertices(int id, const QVector<glm::vec3>& points);
-    void renderVertices(GLenum mode, int id);
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, color, color, id); }
+
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
+                    
+    void renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id = UNKNOWN_ID);
+
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, glm::vec4(color, 1.0f), id); }
+
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, color, color, id); }
+
+
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
+                                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    { renderLine(p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
+                
+    void renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
+                                    const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
+
+    void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
+    void renderVertices(gpu::Primitive primitiveType, int id);
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -128,64 +190,91 @@ protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
-        
+
 private:
     GeometryCache();
     virtual ~GeometryCache();
     
     typedef QPair<int, int> IntPair;
     typedef QPair<GLuint, GLuint> VerticesIndices;
-    
-    QHash<IntPair, VerticesIndices> _hemisphereVBOs;
-    QHash<IntPair, VerticesIndices> _sphereVBOs;
-    QHash<IntPair, VerticesIndices> _squareVBOs;
-    QHash<IntPair, VerticesIndices> _halfCylinderVBOs;
-    QHash<IntPair, VerticesIndices> _coneVBOs;
-    QHash<float, VerticesIndices> _wireCubeVBOs;
-    QHash<float, VerticesIndices> _solidCubeVBOs;
-    QHash<Vec2Pair, VerticesIndices> _quad2DVBOs;
-    QHash<Vec2PairPair, VerticesIndices> _quad2DTextureVBOs;
-    QHash<Vec3Pair, VerticesIndices> _quad3DVBOs;
-    QHash<Vec3PairVec2Pair, VerticesIndices> _quad3DTextureVBOs;
-    QHash<int, VerticesIndices> _registeredQuadVBOs;
-    int _nextID;
-
-    QHash<int, Vec2Pair> _lastRegisteredQuad2D;
-    QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
-    QHash<int, Vec3Pair> _lastRegisteredQuad3D;
-    QHash<int, Vec3PairVec2Pair> _lastRegisteredQuad3DTexture;
-
-    QHash<int, Vec3Pair> _lastRegisteredRect;
-    QHash<Vec3Pair, VerticesIndices> _rectVBOs;
-    QHash<int, VerticesIndices> _registeredRectVBOs;
-
-    QHash<int, Vec3Pair> _lastRegisteredLine3D;
-    QHash<Vec3Pair, VerticesIndices> _line3DVBOs;
-    QHash<int, VerticesIndices> _registeredLine3DVBOs;
-
-    QHash<int, Vec2Pair> _lastRegisteredLine2D;
-    QHash<Vec2Pair, VerticesIndices> _line2DVBOs;
-    QHash<int, VerticesIndices> _registeredLine2DVBOs;
-    
     struct BufferDetails {
         QOpenGLBuffer buffer;
         int vertices;
         int vertexSize;
     };
 
-    QHash<int, BufferDetails> _registeredVertices;
+    QHash<float, gpu::BufferPointer> _cubeVerticies;
+    QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
+    gpu::BufferPointer _wireCubeIndexBuffer;
 
-    QHash<int, Vec3Pair> _lastRegisteredDashedLines;
-    QHash<Vec3Pair, BufferDetails> _dashedLines;
-    QHash<int, BufferDetails> _registeredDashedLines;
+    QHash<float, gpu::BufferPointer> _solidCubeVerticies;
+    QHash<Vec2Pair, gpu::BufferPointer> _solidCubeColors;
+    gpu::BufferPointer _solidCubeIndexBuffer;
+    
+    class BatchItemDetails {
+    public:
+        static int population;
+        gpu::BufferPointer verticesBuffer;
+        gpu::BufferPointer colorBuffer;
+        gpu::Stream::FormatPointer streamFormat;
+        gpu::BufferStreamPointer stream;
 
+        int vertices;
+        int vertexSize;
+        bool isCreated;
+        
+        BatchItemDetails();
+        BatchItemDetails(const GeometryCache::BatchItemDetails& other);
+        ~BatchItemDetails();
+        void clear();
+    };
+    
+    QHash<IntPair, VerticesIndices> _coneVBOs;
+    int _nextID;
 
+    QHash<int, Vec3PairVec4Pair> _lastRegisteredQuad3DTexture;
+    QHash<Vec3PairVec4Pair, BatchItemDetails> _quad3DTextures;
+    QHash<int, BatchItemDetails> _registeredQuad3DTextures;
 
+    QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
+    QHash<Vec2PairPair, BatchItemDetails> _quad2DTextures;
+    QHash<int, BatchItemDetails> _registeredQuad2DTextures;
 
-    QHash<IntPair, QOpenGLBuffer> _gridBuffers;
-    QHash<int, QOpenGLBuffer> _registeredAlternateGridBuffers;
-    QHash<Vec3Pair, QOpenGLBuffer> _alternateGridBuffers;
-    QHash<int, Vec3Pair> _lastRegisteredGrid;
+    QHash<int, Vec3Pair> _lastRegisteredQuad3D;
+    QHash<Vec3Pair, BatchItemDetails> _quad3D;
+    QHash<int, BatchItemDetails> _registeredQuad3D;
+
+    QHash<int, Vec2Pair> _lastRegisteredQuad2D;
+    QHash<Vec2Pair, BatchItemDetails> _quad2D;
+    QHash<int, BatchItemDetails> _registeredQuad2D;
+
+    QHash<int, Vec3Pair> _lastRegisteredBevelRects;
+    QHash<Vec3Pair, BatchItemDetails> _bevelRects;
+    QHash<int, BatchItemDetails> _registeredBevelRects;
+
+    QHash<int, Vec3Pair> _lastRegisteredLine3D;
+    QHash<Vec3Pair, BatchItemDetails> _line3DVBOs;
+    QHash<int, BatchItemDetails> _registeredLine3DVBOs;
+
+    QHash<int, Vec2Pair> _lastRegisteredLine2D;
+    QHash<Vec2Pair, BatchItemDetails> _line2DVBOs;
+    QHash<int, BatchItemDetails> _registeredLine2DVBOs;
+    
+    QHash<int, BatchItemDetails> _registeredVertices;
+
+    QHash<int, Vec3PairVec2Pair> _lastRegisteredDashedLines;
+    QHash<Vec3PairVec2Pair, BatchItemDetails> _dashedLines;
+    QHash<int, BatchItemDetails> _registeredDashedLines;
+
+    QHash<IntPair, gpu::BufferPointer> _gridBuffers;
+    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
+    QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
+    QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
+
+    QHash<Vec2Pair, gpu::BufferPointer> _sphereVertices;
+    QHash<IntPair, gpu::BufferPointer> _sphereIndices;
+    QHash<Vec3Pair, gpu::BufferPointer> _sphereColors;
+    
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
 };
@@ -211,7 +300,7 @@ public:
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
-
+//
     QVector<int> getJointMappings(const AnimationPointer& animation);
 
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);

@@ -30,9 +30,9 @@ ImageOverlay::ImageOverlay() :
 
 ImageOverlay::ImageOverlay(const ImageOverlay* imageOverlay) :
     Overlay2D(imageOverlay),
-    _texture(imageOverlay->_texture),
     _imageURL(imageOverlay->_imageURL),
     _textureImage(imageOverlay->_textureImage),
+    _texture(imageOverlay->_texture),
     _fromImage(imageOverlay->_fromImage),
     _renderImage(imageOverlay->_renderImage),
     _wantClipFromImage(imageOverlay->_wantClipFromImage)
@@ -75,7 +75,7 @@ void ImageOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     xColor color = getColor();
     float alpha = getAlpha();
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::vec4 quadColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     int left = _bounds.left();
     int right = _bounds.right() + 1;
@@ -85,9 +85,11 @@ void ImageOverlay::render(RenderArgs* args) {
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
 
-    if (_renderImage) {
-        float imageWidth = _texture->getWidth();
-        float imageHeight = _texture->getHeight();
+    float imageWidth = _texture->getWidth();
+    float imageHeight = _texture->getHeight();
+
+    // if for some reason our image is not over 0 width or height, don't attempt to render the image
+    if (_renderImage && imageWidth > 0 && imageHeight > 0) {
 
         QRect fromImage;
         if (_wantClipFromImage) {
@@ -113,9 +115,9 @@ void ImageOverlay::render(RenderArgs* args) {
         glm::vec2 texCoordTopLeft(x, y);
         glm::vec2 texCoordBottomRight(x + w, y + h);
 
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
     } else {
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
     }
 
     if (_renderImage) {
