@@ -201,8 +201,8 @@ void Stats::display(
         float fps, 
         int inPacketsPerSecond,
         int outPacketsPerSecond,
-        int inBytesPerSecond,
-        int outBytesPerSecond,
+        int inKbitsPerSecond,
+        int outKbitsPerSecond,
         int voxelPacketsToProcess) 
 {
     auto glCanvas = DependencyManager::get<GLCanvas>();
@@ -318,8 +318,8 @@ void Stats::display(
     sprintf(packetsPerSecondString, "Packets In/Out: %d/%d", inPacketsPerSecond, outPacketsPerSecond);
     char averageMegabitsPerSecond[30];
     sprintf(averageMegabitsPerSecond, "Mbps In/Out: %3.2f/%3.2f",
-            (float)inBytesPerSecond * 8.0f / 1000000.0f,
-            (float)outBytesPerSecond * 8.0f / 1000000.0f);
+            (float)inKbitsPerSecond * 1.0f / 1000.0f,
+            (float)outKbitsPerSecond * 1.0f / 1000.0f);
 
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString, color);

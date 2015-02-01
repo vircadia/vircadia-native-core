@@ -52,8 +52,8 @@ class BandwidthRecorder : public QObject {
         unsigned colorRGBA;
 
     private:
-        SimpleMovingAverage _input;
-        SimpleMovingAverage _output;
+        SimpleMovingAverage _input = SimpleMovingAverage(1000);
+        SimpleMovingAverage _output = SimpleMovingAverage(1000);
     };
 
     // create the channels we keep track of

@@ -47,8 +47,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _localSockAddr(),
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
-    _numCollectedPackets(0),
-    _numCollectedBytes(0),
+    // _numCollectedPackets(0),
+    // _numCollectedBytes(0),
     _packetStatTimer()
 {
     static bool firstCall = true;
@@ -234,8 +234,8 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
     }
     
     // stat collection for packets
-    ++_numCollectedPackets;
-    _numCollectedBytes += datagram.size();
+    // ++_numCollectedPackets;
+    // _numCollectedBytes += datagram.size();
     
     qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy,
                                                     destinationSockAddr.getAddress(), destinationSockAddr.getPort());
