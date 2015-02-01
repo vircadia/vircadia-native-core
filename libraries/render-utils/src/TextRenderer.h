@@ -22,12 +22,6 @@
 #include <QImage>
 #include <QVector>
 
-// FIXME, decouple from the GL headers
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-
 #include <gpu/Resource.h>
 #include <gpu/Stream.h>
 
@@ -36,6 +30,9 @@ const char SOLID_BLOCK_CHAR = 127;
 
 // the standard sans serif font family
 #define SANS_FONT_FAMILY "Helvetica"
+
+// the standard sans serif font family
+#define SERIF_FONT_FAMILY "Timeless"
 
 // the standard mono font family
 #define MONO_FONT_FAMILY "Courier"
@@ -57,12 +54,13 @@ public:
     class Properties {
     public:
       QString font;
+      float pointSize;
       EffectType effect;
       int effectThickness;
       QColor color;
     };
 
-    static TextRenderer* getInstance(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
+    static TextRenderer* getInstance(const char* family, float pointSize = -1, int weight = -1, bool italic = false,
         EffectType effect = NO_EFFECT, int effectThickness = 1, const QColor& color = QColor(255, 255, 255));
 
     ~TextRenderer();
@@ -80,100 +78,33 @@ public:
     // also returns the height of the tallest character
     inline int draw(int x, int y, const char* str,
       const glm::vec4& color = glm::vec4(-1),
-      float fontSize = -1,
       float maxWidth = -1
     ) {
-      return drawString(x, y, QString(str), color, fontSize, maxWidth);
+      return drawString(x, y, QString(str), color, maxWidth);
     }
 
     float drawString(
       float x, float y,
       const QString & str,
       const glm::vec4& color = glm::vec4(-1),
-      float fontSize = -1,
       float maxWidth = -1);
 
-    void drawBatch();
-    void clearBatch();
 private:
-
-    static QHash<Properties, TextRenderer*> _instances;
-
-    // Allow fonts to scale appropriately when rendered in a 
-    // scene where units are meters
-    static const float DTP_TO_METERS; // = 0.003528f;
-    static const float METERS_TO_DTP; // = 1.0 / DTP_TO_METERS;
-    static const char SHADER_TEXT_FS[];
-    static const char SHADER_TEXT_VS[];
-  
     TextRenderer(const Properties& properties);
 
-    // stores the font metrics for a single character
-    struct Glyph {
-      QChar c;
-      glm::vec2 ul;
-      glm::vec2 lr;
-      glm::vec2 size;
-      glm::vec2 offset;
-      float d;  // xadvance - adjusts character positioning
-      size_t indexOffset;
-
-      int width() const {
-        return size.x;
-      }
-      QRectF bounds() const;
-      QRectF textureBounds(const glm::vec2 & textureSize) const;
-
-      void read(QIODevice & in);
-    };
-
-    using TexturePtr = QSharedPointer < QOpenGLTexture >;
-    using VertexArrayPtr = QSharedPointer< QOpenGLVertexArrayObject >;
-    using ProgramPtr = QSharedPointer < QOpenGLShaderProgram >;
-    using BufferPtr = QSharedPointer < QOpenGLBuffer >;
-
-    const Glyph& getGlyph(const QChar & c) const;
-
     // the type of effect to apply
-    EffectType _effectType;
+    const EffectType _effectType;
 
     // the thickness of the effect
-    int _effectThickness;
-    
-    // maps characters to cached glyph info
-    QHash<QChar, Glyph> _glyphs;
-    
-    // the id of the glyph texture to which we're currently writing
-    GLuint _currentTextureID;
-    
-    int _pointSize;
-    
-    // the height of the current row of characters
-    int _rowHeight;
-    
+    const int _effectThickness;
+
+    const float _pointSize;
+
     // text color
-    QColor _color;
+    const QColor _color;
 
-    QString _family;
-    float _fontSize{ 12 };
-    float _leading{ 0 };
-    float _ascent{ 0 };
-    float _descent{ 0 };
-    float _spaceWidth{ 0 };
-
-    BufferPtr _vertices;
-    BufferPtr _indices;
-    TexturePtr _texture;
-    VertexArrayPtr _vao;
-    QImage _image;
-    ProgramPtr _program;
-
-    // Parse the signed distance field font file
-    void read(const QString & path);
-    void read(QIODevice & path);
-
-    // Initialize the OpenGL structures
-    void setupGL();
+    friend class Font;
+    Font * _font;
 };
 
 

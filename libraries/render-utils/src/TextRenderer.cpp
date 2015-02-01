@@ -20,6 +20,12 @@
 #include <QBuffer>
 #include <QFile>
 
+// FIXME, decouple from the GL headers
+#include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QOpenGLBuffer>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -29,6 +35,7 @@
 #include "FontRoboto.h"
 #include "FontJackInput.h"
 #include "FontTimeless.h"
+
 
 namespace Shaders {
   // Normally we could use 'enum class' to avoid namespace pollution,
@@ -41,7 +48,22 @@ namespace Shaders {
   };
 }
 
-const char TextRenderer::SHADER_TEXT_VS[] = R"XXXX(#version 330
+// Helper functions for reading binary data from an IO device
+template <class T>
+void readStream(QIODevice & in, T & t) {
+  in.read((char*)&t, sizeof(t));
+}
+
+template <typename T, size_t N>
+void readStream(T(&t)[N]) {
+  in.read((char*)t, N);
+}
+
+glm::uvec2 toGlm(const QSize & size) {
+  return glm::uvec2(size.width(), size.height());
+}
+
+const char SHADER_TEXT_VS[] = R"XXXX(#version 330
 
 uniform mat4 Projection = mat4(1);
 uniform mat4 ModelView = mat4(1);
@@ -56,10 +78,11 @@ void main() {
   gl_Position = Projection * ModelView * vec4(Position, 1);
 })XXXX";
 
-const char TextRenderer::SHADER_TEXT_FS[] = R"XXXX(#version 330
+const char SHADER_TEXT_FS[] = R"XXXX(#version 330
 
 uniform sampler2D Font;
-uniform vec4 Color;
+uniform vec4 Color = vec4(1);
+uniform bool Outline = false;
 
 in vec2 vTexCoord;
 out vec4 FragColor;
@@ -72,7 +95,9 @@ void main() {
  
   // retrieve signed distance
   float sdf = texture(Font, vTexCoord).r;
-
+  if (Outline && (sdf > 0.6)) {
+    sdf = 1.0 - sdf;
+  }
   // perform adaptive anti-aliasing of the edges
   // The larger we're rendering, the less anti-aliasing we need
   float s = smoothing * length(fwidth(vTexCoord));
@@ -82,7 +107,7 @@ void main() {
   // gamma correction for linear attenuation
   a = pow(a, 1.0 / gamma);
 
-  if (a < 0.001) {
+  if (a < 0.01) {
     discard;
   }
 
@@ -90,101 +115,96 @@ void main() {
   FragColor = vec4(Color.rgb, a);
 })XXXX";
 
-const float TextRenderer::DTP_TO_METERS = 0.003528f;
-const float TextRenderer::METERS_TO_DTP = 1.0f / TextRenderer::DTP_TO_METERS;
 
-static uint qHash(const TextRenderer::Properties& key, uint seed = 0) {
-    // can be switched to qHash(key.font, seed) when we require Qt 5.3+
-    return qHash(key.font);
-}
+// stores the font metrics for a single character
+struct Glyph {
+  QChar c;
+  glm::vec2 texOffset;
+  glm::vec2 texSize;
+  glm::vec2 size;
+  glm::vec2 offset;
+  float d;  // xadvance - adjusts character positioning
+  size_t indexOffset;
 
-static bool operator==(const TextRenderer::Properties& p1, const TextRenderer::Properties& p2) {
-    return p1.font == p2.font && p1.effect == p2.effect && p1.effectThickness == p2.effectThickness && p1.color == p2.color;
-}
-
-TextRenderer* TextRenderer::getInstance(const char* family, int pointSize, int weight, bool italic,
-        EffectType effect, int effectThickness, const QColor& color) {
-    Properties properties = { QString(family), effect, effectThickness, color };
-    TextRenderer*& instance = _instances[properties];
-    if (!instance) {
-        instance = new TextRenderer(properties);
-    }
-    return instance;
-}
-
-
-
-TextRenderer::TextRenderer(const Properties& properties) :
-  _effectType(properties.effect),
-  _effectThickness(properties.effectThickness),
-  _rowHeight(0),
-  _color(properties.color) {
-
-  QBuffer buffer;
-  if (properties.font == MONO_FONT_FAMILY) {
-    buffer.setData((const char*)SDFF_JACKINPUT, sizeof(SDFF_JACKINPUT));
-  } else if (properties.font == INCONSOLATA_FONT_FAMILY) {
-    buffer.setData((const char*)SDFF_INCONSOLATA_MEDIUM, sizeof(SDFF_INCONSOLATA_MEDIUM));
-  } else if (properties.font == SANS_FONT_FAMILY) {
-    buffer.setData((const char*)SDFF_ROBOTO, sizeof(SDFF_ROBOTO));
-  } else {
-    buffer.setData((const char*)SDFF_TIMELESS, sizeof(SDFF_TIMELESS));
+  int width() const {
+    return size.x;
   }
-  buffer.open(QIODevice::ReadOnly);
-  read(buffer);
+  QRectF bounds() const;
+  QRectF textureBounds(const glm::vec2 & textureSize) const;
+
+  void read(QIODevice & in);
+};
+
+
+void Glyph::read(QIODevice & in) {
+  uint16_t charcode;
+  readStream(in, charcode);
+  c = charcode;
+  readStream(in, texOffset);
+  readStream(in, size);
+  readStream(in, offset);
+  readStream(in, d);
+  texSize = size;
 }
 
+const float DEFAULT_POINT_SIZE = 12;
 
-TextRenderer::~TextRenderer() {
-}
+class Font {
+public:
+  using TexturePtr = QSharedPointer < QOpenGLTexture >;
+  using VertexArrayPtr = QSharedPointer< QOpenGLVertexArrayObject >;
+  using ProgramPtr = QSharedPointer < QOpenGLShaderProgram >;
+  using BufferPtr = QSharedPointer < QOpenGLBuffer >;
 
-const TextRenderer::Glyph & TextRenderer::getGlyph(const QChar & c) const {
+  // maps characters to cached glyph info
+  QHash<QChar, Glyph> _glyphs;
+  
+
+  // the id of the glyph texture to which we're currently writing
+  GLuint _currentTextureID;
+
+  int _pointSize;
+
+  // the height of the current row of characters
+  int _rowHeight;
+
+  QString _family;
+  float _fontSize{ 0 };
+  float _leading{ 0 };
+  float _ascent{ 0 };
+  float _descent{ 0 };
+  float _spaceWidth{ 0 };
+
+  BufferPtr _vertices;
+  BufferPtr _indices;
+  TexturePtr _texture;
+  VertexArrayPtr _vao;
+  QImage _image;
+  ProgramPtr _program;
+
+  const Glyph & Font::getGlyph(const QChar & c) const;
+  void read(QIODevice & path);
+  // Initialize the OpenGL structures
+  void setupGL();
+
+  glm::vec2 drawString(
+    float x, float y,
+    const QString & str,
+    const glm::vec4& color,
+    float scale,
+    TextRenderer::EffectType effectType,
+    float maxWidth);
+};
+
+
+const Glyph & Font::getGlyph(const QChar & c) const {
   if (!_glyphs.contains(c)) {
     return _glyphs[QChar('?')];
   }
   return _glyphs[c];
 };
 
-int TextRenderer::calculateHeight(const char* str) const {
-    int maxHeight = 0;
-    for (const char* ch = str; *ch != 0; ch++) {
-        const Glyph& glyph = getGlyph(*ch);
-        if (glyph.bounds().height() > maxHeight) {
-            maxHeight = glyph.bounds().height();
-        }
-    }
-    return maxHeight;
-}
-
-
-template <class T>
-void readStream(QIODevice & in, T & t) {
-  in.read((char*)&t, sizeof(t));
-}
-
-template <typename T, size_t N>
-void readStream(T(&t)[N]) {
-  in.read((char*)t, N);
-}
-
-void TextRenderer::read(const QString & path) {
-  QFile file(path);
-  file.open(QFile::ReadOnly);
-  read(file);
-}
-
-void TextRenderer::Glyph::read(QIODevice & in) {
-  uint16_t charcode;
-  readStream(in, charcode);
-  c = charcode;
-  readStream(in, ul);
-  readStream(in, size);
-  readStream(in, offset);
-  readStream(in, d);
-  lr = ul + size;
-}
-
-void TextRenderer::read(QIODevice & in) {
+void Font::read(QIODevice & in) {
   uint8_t header[4];
   readStream(in, header);
   if (memcmp(header, "SDFF", 4)) {
@@ -211,23 +231,33 @@ void TextRenderer::read(QIODevice & in) {
   readStream(in, _descent);
   readStream(in, _spaceWidth);
   _fontSize = _ascent + _descent;
+  _rowHeight = _fontSize + _descent / 2;
 
-  // read metrics data
-  _glyphs.clear();
-
+  // Read character count
   uint16_t count;
   readStream(in, count);
-
-  for (int i = 0; i < count; ++i) {
-    Glyph g;
+  // read metrics data for each character
+  QVector<Glyph> glyphs(count);
+  // std::for_each instead of Qt foreach because we need non-const references
+  std::for_each(glyphs.begin(), glyphs.end(), [&](Glyph & g){
     g.read(in);
-    _glyphs[g.c] = g;
-  }
+  });
 
   // read image data
   if (!_image.loadFromData(in.readAll(), "PNG")) {
     qFatal("Failed to read SDFF image");
   }
+
+  _glyphs.clear();
+  foreach(Glyph g, glyphs) {
+    // Adjust the pixel texture coordinates into UV coordinates, 
+    glm::vec2 imageSize = toGlm(_image.size());
+    g.texSize /= imageSize;
+    g.texOffset /= imageSize;
+    // store in the character to glyph hash
+    _glyphs[g.c] = g;
+  };
+
   setupGL();
 }
 
@@ -259,23 +289,16 @@ QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
   return result;
 }
 
-glm::uvec2 toGlm(const QSize & size) {
-  return glm::uvec2(size.width(), size.height());
-}
 
-QRectF TextRenderer::Glyph::bounds() const {
+QRectF Glyph::bounds() const {
   return glmToRect(offset, size);
 }
 
-QRectF TextRenderer::Glyph::textureBounds(const glm::vec2 & textureSize) const {
-  glm::vec2 pos = ul;
-  glm::vec2 size = lr - ul;
-  pos /= textureSize;
-  size /= textureSize;
-  return glmToRect(pos, size);
+QRectF Glyph::textureBounds(const glm::vec2 & textureSize) const {
+  return glmToRect(texOffset, texSize);
 }
 
-void TextRenderer::setupGL() {
+void Font::setupGL() {
   _texture = TexturePtr(new QOpenGLTexture(_image, QOpenGLTexture::DontGenerateMipMaps));
   _program = ProgramPtr(new QOpenGLShaderProgram()); 
   if (!_program->create()) {
@@ -337,46 +360,19 @@ void TextRenderer::setupGL() {
   _vao->release();
 }
 
-int TextRenderer::computeWidth(const QChar & ch) const
-{
-    return getGlyph(ch).width();
-}
-
-int TextRenderer::computeWidth(const QString & str) const
-{
-    int width = 0;
-    foreach(QChar c, str) {
-        width += computeWidth(c);
-    }
-    return width;
-}
-
-int TextRenderer::computeWidth(const char * str) const {
-  int width = 0;
-  while (*str) {
-    width += computeWidth(*str++);
-  }
-  return width;
-}
-
-int TextRenderer::computeWidth(char ch) const {
-  return computeWidth(QChar(ch));
-}
-
-QHash<TextRenderer::Properties, TextRenderer*> TextRenderer::_instances;
-
-float TextRenderer::drawString(
+glm::vec2 Font::drawString(
   float x, float y,
   const QString & str,
   const glm::vec4& color,
-  float fontSize,
+  float scale,
+  TextRenderer::EffectType effectType,
   float maxWidth) {
 
   // This is a hand made scale intended to match the previous scale of text in the application
-  float scale = 0.25f; //  DTP_TO_METERS;
-  if (fontSize > 0.0) {
-    scale *= fontSize / _fontSize;
-  }
+  //float scale = 0.25f; //  DTP_TO_METERS;
+  //if (fontSize > 0.0) {
+  //  scale *= fontSize / _fontSize;
+  //}
   
   //bool wrap = false; // (maxWidth == maxWidth);
   //if (wrap) {
@@ -385,32 +381,35 @@ float TextRenderer::drawString(
 
   // Stores how far we've moved from the start of the string, in DTP units
   static const float SPACE_ADVANCE = getGlyph(' ').d;
-  glm::vec2 advance;
+  glm::vec2 advance(0, -_ascent);
   MatrixStack::withGlMatrices([&] {
     // Fetch the matrices out of GL
     _program->bind();
     _program->setUniformValue("Color", color.r, color.g, color.b, color.a);
     _program->setUniformValue("Projection", fromGlm(MatrixStack::projection().top()));
+    if (effectType == TextRenderer::OUTLINE_EFFECT) {
+      _program->setUniformValue("Outline", true);
+    }
     _texture->bind();
     _vao->bind();
 
     MatrixStack & mv = MatrixStack::modelview();
     MatrixStack & pr = MatrixStack::projection();
     // scale the modelview into font units
-    mv.translate(glm::vec2(x, y)).translate(glm::vec2(0, scale * -_ascent)).scale(glm::vec3(scale, -scale, scale));
+    mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
 
     foreach(QString token, str.split(" ")) {
       // float tokenWidth = measureWidth(token, fontSize);
       // if (wrap && 0 != advance.x && (advance.x + tokenWidth) > maxWidth) {
       //  advance.x = 0;
-      //  advance.y -= (_ascent + _descent);
+      //  advance.y -= _rowHeight;
       // }
 
       foreach(QChar c, token) {
         if (QChar('\n') == c) {
           advance.x = 0;
-          advance.y -= (_ascent + _descent);
-          return;
+          advance.y -= _rowHeight;
+          continue;
         }
 
         if (!_glyphs.contains(c)) {
@@ -421,7 +420,7 @@ float TextRenderer::drawString(
         const Glyph & m = _glyphs[c];
         //if (wrap && ((advance.x + m.d) > maxWidth)) {
         //  advance.x = 0;
-        //  advance.y -= (_ascent + _descent);
+        //  advance.y -= _rowHeight;
         //}
 
         // We create an offset vec2 to hold the local offset of this character
@@ -444,83 +443,106 @@ float TextRenderer::drawString(
     _program->release();
   });
 
-  return advance.x * scale;
+  return advance;
+}
+
+TextRenderer* TextRenderer::getInstance(const char* family, float pointSize, int weight, bool italic,
+  EffectType effect, int effectThickness, const QColor& color) {
+  if (pointSize < 0) {
+    pointSize = DEFAULT_POINT_SIZE;
+  }
+  return new TextRenderer(Properties{ QString(family), pointSize, effect, effectThickness, color });
+}
+
+template <class T, size_t N >
+Font * loadFont(T (&t)[N]) {
+  Font * result = new Font();
+  QBuffer buffer;
+  buffer.setData((const char*)t, N);
+  buffer.open(QBuffer::ReadOnly);
+  result->read(buffer);
+  return result;
+}
+
+static QHash<QString, Font*> LOADED_FONTS;
+
+Font * loadFont(const QString & family) {
+  if (!LOADED_FONTS.contains(family)) {
+    if (family == MONO_FONT_FAMILY) {
+      LOADED_FONTS[family] = loadFont(SDFF_JACKINPUT);
+    } else if (family == INCONSOLATA_FONT_FAMILY) {
+      LOADED_FONTS[family] = loadFont(SDFF_INCONSOLATA_MEDIUM);
+    } else if (family == SANS_FONT_FAMILY) {
+      LOADED_FONTS[family] = loadFont(SDFF_ROBOTO);
+    } else {
+      if (!LOADED_FONTS.contains(SERIF_FONT_FAMILY)) {
+        LOADED_FONTS[SERIF_FONT_FAMILY] = loadFont(SDFF_TIMELESS);
+      }
+      LOADED_FONTS[family] = LOADED_FONTS[SERIF_FONT_FAMILY];
+    }
+  }
+  return LOADED_FONTS[family];
+}
+
+TextRenderer::TextRenderer(const Properties& properties) :
+  _effectType(properties.effect),
+  _pointSize(properties.pointSize),
+  _effectThickness(properties.effectThickness),
+  _color(properties.color),
+  _font(loadFont(properties.font))
+{
+  
+}
+
+TextRenderer::~TextRenderer() {
 }
 
 
-#if 0
+int TextRenderer::computeWidth(const QChar & ch) const {
+  //return getGlyph(ch).width();
+  return 0;
+}
 
-int TextRenderer::draw(int x, int y, const char* str, const glm::vec4& color) {
-  int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
-    ((int(color.y * 255.0f) & 0xFF) << 8) |
-    ((int(color.z * 255.0f) & 0xFF) << 16) |
-    ((int(color.w * 255.0f) & 0xFF) << 24);
-
-  int maxHeight = 0;
-  for (const char* ch = str; *ch != 0; ch++) {
-    const Glyph& glyph = getGlyph(*ch);
-    if (glyph.textureID() == 0) {
-      x += glyph.width();
-      continue;
-    }
-
-    if (glyph.bounds().height() > maxHeight) {
-      maxHeight = glyph.bounds().height();
-    }
-    //glBindTexture(GL_TEXTURE_2D, glyph.textureID());
-
-    int left = x + glyph.bounds().x();
-    int right = x + glyph.bounds().x() + glyph.bounds().width();
-    int bottom = y + glyph.bounds().y();
-    int top = y + glyph.bounds().y() + glyph.bounds().height();
-
-    glm::vec2  leftBottom = glm::vec2(float(left), float(bottom));
-    glm::vec2  rightTop = glm::vec2(float(right), float(top));
-
-    float scale = QApplication::desktop()->windowHandle()->devicePixelRatio() / IMAGE_SIZE;
-    float ls = glyph.location().x() * scale;
-    float rs = (glyph.location().x() + glyph.bounds().width()) * scale;
-    float bt = glyph.location().y() * scale;
-    float tt = (glyph.location().y() + glyph.bounds().height()) * scale;
-
-    const int NUM_COORDS_SCALARS_PER_GLYPH = 16;
-    float vertexBuffer[NUM_COORDS_SCALARS_PER_GLYPH] = { leftBottom.x, leftBottom.y, ls, bt,
-      rightTop.x, leftBottom.y, rs, bt,
-      rightTop.x, rightTop.y, rs, tt,
-      leftBottom.x, rightTop.y, ls, tt, };
-
-    const int NUM_COLOR_SCALARS_PER_GLYPH = 4;
-    int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
-
-    gpu::Buffer::Size offset = sizeof(vertexBuffer) * _numGlyphsBatched;
-    gpu::Buffer::Size colorOffset = sizeof(colorBuffer) * _numGlyphsBatched;
-    if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer->getSize()) {
-      _glyphsBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-      _glyphsColorBuffer->append(sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
-    } else {
-      _glyphsBuffer->setSubData(offset, sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-      _glyphsColorBuffer->setSubData(colorOffset, sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
-    }
-    _numGlyphsBatched++;
-
-    x += glyph.width();
+int TextRenderer::computeWidth(const QString & str) const {
+  int width = 0;
+  foreach(QChar c, str) {
+    width += computeWidth(c);
   }
+  return width;
+}
 
-  // TODO: remove these calls once we move to a full batched rendering of the text, for now, one draw call per draw() function call
-  drawBatch();
-  clearBatch();
+int TextRenderer::computeWidth(const char * str) const {
+  int width = 0;
+  while (*str) {
+    width += computeWidth(*str++);
+  }
+  return width;
+}
 
+int TextRenderer::computeWidth(char ch) const {
+  return computeWidth(QChar(ch));
+}
+
+int TextRenderer::calculateHeight(const char* str) const {
+  int maxHeight = 0;
+  //for (const char* ch = str; *ch != 0; ch++) {
+  //  const Glyph& glyph = getGlyph(*ch);
+  //  if (glyph.bounds().height() > maxHeight) {
+  //    maxHeight = glyph.bounds().height();
+  //  }
+  //}
   return maxHeight;
 }
-//_glyphsStreamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-//const int NUM_POS_COORDS = 2;
-//const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
-//_glyphsStreamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
 
-//_glyphsStreamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+float TextRenderer::drawString(
+  float x, float y,
+  const QString & str,
+  const glm::vec4& color,
+  float maxWidth) {
+  glm::vec4 actualColor(color);
+  if (actualColor.r < 0) {
+    actualColor = glm::vec4(_color.redF(), _color.greenF(), _color.blueF(), 1.0);
+  }
+  return _font->drawString(x, y, str, actualColor, (_pointSize / DEFAULT_POINT_SIZE) * 0.25f, _effectType, maxWidth).x;
+}
 
-//_glyphsStream->addBuffer(_glyphsBuffer, 0, _glyphsStreamFormat->getChannels().at(0)._stride);
-//_glyphsStream->addBuffer(_glyphsColorBuffer, 0, _glyphsStreamFormat->getChannels().at(1)._stride);
-
-//_font.setKerning(false);
-#endif
