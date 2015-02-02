@@ -21,101 +21,62 @@ class Settings : public QSettings {
     
 };
 
-namespace SettingHandles {
-    
-template <typename T>
-class SettingHandle {
-public:
-    SettingHandle(const QString& key);
-    SettingHandle(const QStringList& path);
-    SettingHandle(const QString& key, const T& defaultValue);
-    SettingHandle(const QStringList& path, const T& defaultValue);
-    
-    T get() const; // Returns setting value, returns its default value if not found
-    T get(const T& other) const; // Returns setting value, returns other if not found
-    T getDefault() const;
-    
-    void set(const T& value) const;
-    void reset() const;
-    
-    void remove() const;
-    
-private:
-    const QString _key;
-    const QVariant _defaultValue;
-};
-
-class SettingsBridge {
-private:
-    static QVariant getFromSettings(const QString& key, const QVariant& defaultValue);
-    static void setInSettings(const QString& key, const QVariant& value);
-    static void removeFromSettings(const QString& key);
-    
-    template<typename T>
-    friend class SettingHandle;
-};
-    
-template <typename T>
-SettingHandle<T>::SettingHandle(const QString& key) : _key(key) {
-}
-
-template <typename T>
-SettingHandle<T>::SettingHandle(const QStringList& path) : _key(path.join("/")) {
-}
-    
-template <typename T>
-SettingHandle<T>::SettingHandle(const QString& key, const T& defaultValue) :
-    _key(key),
-    _defaultValue(defaultValue) {
-}
-
-template <typename T>
-SettingHandle<T>::SettingHandle(const QStringList& path, const T& defaultValue) :
-    _key(path.join("/")),
-    _defaultValue(defaultValue) {
+namespace Setting {
+    class Interface {
+    protected:
+        Interface(const QString& key) : _key(key) {}
+        virtual ~Interface();
+        void init();
+        void maybeInit();
         
-}
-
-template <typename T>
-T SettingHandle<T>::get() const {
-    QVariant variant = SettingsBridge::getFromSettings(_key, _defaultValue);
-    if (variant.canConvert<T>()) {
-        return variant.value<T>();
-    }
-    return _defaultValue.value<T>();
-}
-
-template <typename T>
-T SettingHandle<T>::get(const T& other) const {
-    QVariant variant = SettingsBridge::getFromSettings(_key, QVariant(other));
-    if (variant.canConvert<T>()) {
-        return variant.value<T>();
-    }
-    return other;
-}
-
-template <typename T> inline
-T SettingHandle<T>::getDefault() const {
-    return _defaultValue.value<T>();
-}
-
-template <typename T> inline
-void SettingHandle<T>::set(const T& value) const {
-    if (value != get()) {
-        SettingsBridge::setInSettings(_key, QVariant(value));
-    }
-}
-
-template <typename T> inline
-void SettingHandle<T>::reset() const {
-    SettingsBridge::setInSettings(_key, _defaultValue);
-}
+        QString getKey() const { return _key; }
+        bool isSet() const { return _isSet; }
+        
+        virtual void setVariant(const QVariant& variant) = 0;
+        virtual QVariant getVariant() = 0;
+        
+        bool _isInitialized = false;
+        bool _isSet = false;
+        const QString _key;
+        
+        friend class Manager;
+    };
     
-template <typename T> inline
-void SettingHandle<T>::remove() const {
-    SettingsBridge::removeFromSettings(_key);
-}
+    template <typename T>
+    class Handle : public Interface {
+    public:
+        Handle(const QString& key) : Interface(key) {}
+        Handle(const QStringList& path) : Interface(path.join("/")) {}
+        
+        Handle(const QString& key, const T& defaultValue) : Interface(key), _defaultValue(defaultValue) {}
+        Handle(const QStringList& path, const T& defaultValue) : Handle(path.join("/"), defaultValue) {}
+        
+        // Returns setting value, returns its default value if not found
+        T get() { return get(_defaultValue); }
+        // Returns setting value, returns other if not found
+        T get(const T& other) { maybeInit(); return (_isSet) ? _value : other; }
+        T getDefault() const { return _defaultValue; }
+        
+        void set(const T& value) { maybeInit(); _value = value; _isSet = true; }
+        void reset() { set(_defaultValue); }
+        
+        void remove() { maybeInit(); _isSet = false; }
+        
+    protected:
+        virtual void setVariant(const QVariant& variant);
+        virtual QVariant getVariant() { return QVariant::fromValue(get()); }
+        
+    private:
+        T _value;
+        const T _defaultValue;
+    };
     
+    template <typename T>
+    void Handle<T>::setVariant(const QVariant& variant) {
+        if (variant.canConvert<T>()) {
+            set(variant.value<T>());
+        }
+    }
 }
 
 #endif // hifi_Settings_h
