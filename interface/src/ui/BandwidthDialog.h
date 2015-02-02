@@ -87,7 +87,7 @@ protected:
     void closeEvent(QCloseEvent*);
 
 private:
-    QTimer *averageUpdateTimer = new QTimer(this);
+    QTimer* averageUpdateTimer = new QTimer(this);
 
 };
 
