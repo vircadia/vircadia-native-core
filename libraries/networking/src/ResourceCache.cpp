@@ -16,8 +16,9 @@
 #include <QTimer>
 #include <QtDebug>
 
-#include "NetworkAccessManager.h"
+#include <SharedUtil.h>
 
+#include "NetworkAccessManager.h"
 #include "ResourceCache.h"
 
 #define clamp(x, min, max) (((x) < (min)) ? (min) :\
@@ -158,6 +159,7 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     
     init();
     
+    _request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     
     // start loading immediately unless instructed otherwise
