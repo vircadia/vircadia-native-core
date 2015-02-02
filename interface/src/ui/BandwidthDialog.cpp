@@ -25,22 +25,22 @@ BandwidthChannelDisplay::BandwidthChannelDisplay(QVector<NodeType_t> nodeTypesTo
                                                  QFormLayout* form,
                                                  char const* const caption, char const* unitCaption,
                                                  const float unitScale, unsigned colorRGBA) :
-    nodeTypesToFollow(nodeTypesToFollow),
-    caption(caption),
-    unitCaption(unitCaption),
-    unitScale(unitScale),
-    colorRGBA(colorRGBA)
+    _nodeTypesToFollow(nodeTypesToFollow),
+    _caption(caption),
+    _unitCaption(unitCaption),
+    _unitScale(unitScale),
+    _colorRGBA(colorRGBA)
 {
-    label = new QLabel();
-    label->setAlignment(Qt::AlignRight);
+    _label = new QLabel();
+    _label->setAlignment(Qt::AlignRight);
 
-    QPalette palette = label->palette();
+    QPalette palette = _label->palette();
     unsigned rgb = colorRGBA >> 8;
     rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
     palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
-    label->setPalette(palette);
+    _label->setPalette(palette);
 
-    form->addRow(QString(" ") + caption + " Bandwidth In/Out:", label);
+    form->addRow(QString(" ") + _caption + " Bandwidth In/Out:", _label);
 }
 
 
@@ -51,19 +51,19 @@ void BandwidthChannelDisplay::bandwidthAverageUpdated() {
 
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
 
-    for (int i = 0; i < nodeTypesToFollow.size(); ++i) {
-        inTotal += bandwidthRecorder->getAverageInputKilobitsPerSecond(nodeTypesToFollow.at(i));
-        outTotal += bandwidthRecorder->getAverageOutputKilobitsPerSecond(nodeTypesToFollow.at(i));
+    for (int i = 0; i < _nodeTypesToFollow.size(); ++i) {
+        inTotal += bandwidthRecorder->getAverageInputKilobitsPerSecond(_nodeTypesToFollow.at(i));
+        outTotal += bandwidthRecorder->getAverageOutputKilobitsPerSecond(_nodeTypesToFollow.at(i));
     }
 
-    strBuf =
-        QString("").setNum((int) (inTotal * unitScale)) + "/" +
-        QString("").setNum((int) (outTotal * unitScale)) + " " + unitCaption;
+    _strBuf =
+        QString("").setNum((int) (inTotal * _unitScale)) + "/" +
+        QString("").setNum((int) (outTotal * _unitScale)) + " " + _unitCaption;
 }
 
 
-void BandwidthChannelDisplay::Paint() {
-    label->setText(strBuf);
+void BandwidthChannelDisplay::paint() {
+    _label->setText(_strBuf);
 }
 
 
@@ -83,12 +83,14 @@ BandwidthDialog::BandwidthDialog(QWidget* parent) :
     _allChannelDisplays[1] = _avatarsChannelDisplay =
         new BandwidthChannelDisplay({NodeType::Agent, NodeType::AvatarMixer}, form, "Avatars", "Kbps", 1.0, COLOR1);
     _allChannelDisplays[2] = _octreeChannelDisplay =
-        new BandwidthChannelDisplay({NodeType::DomainServer, NodeType::EntityServer}, form, "Octree", "Kbps", 1.0, COLOR2);
-    _allChannelDisplays[3] = _metavoxelsChannelDisplay =
+        new BandwidthChannelDisplay({NodeType::EntityServer}, form, "Octree", "Kbps", 1.0, COLOR2);
+    _allChannelDisplays[3] = _octreeChannelDisplay =
+        new BandwidthChannelDisplay({NodeType::DomainServer}, form, "Domain", "Kbps", 1.0, COLOR2);
+    _allChannelDisplays[4] = _metavoxelsChannelDisplay =
         new BandwidthChannelDisplay({NodeType::MetavoxelServer, NodeType::EnvironmentServer}, form, "Metavoxels", "Kbps", 1.0, COLOR2);
-    _allChannelDisplays[4] = _otherChannelDisplay =
+    _allChannelDisplays[5] = _otherChannelDisplay =
         new BandwidthChannelDisplay({NodeType::Unassigned}, form, "Other", "Kbps", 1.0, COLOR2);
-    _allChannelDisplays[5] = _totalChannelDisplay =
+    _allChannelDisplays[6] = _totalChannelDisplay =
         new BandwidthChannelDisplay({NodeType::DomainServer, NodeType::EntityServer, NodeType::MetavoxelServer,
                                          NodeType::EnvironmentServer, NodeType::AudioMixer, NodeType::Agent,
                                          NodeType::AvatarMixer, NodeType::Unassigned},
@@ -100,20 +102,22 @@ BandwidthDialog::BandwidthDialog(QWidget* parent) :
 
 
 BandwidthDialog::~BandwidthDialog() {
-    for (unsigned int i=0; i<_CHANNELCOUNT; i++)
+    for (unsigned int i = 0; i < _CHANNELCOUNT; i++) {
         delete _allChannelDisplays[i];
+    }
 }
 
 
 void BandwidthDialog::updateTimerTimeout() {
-    for (unsigned int i=0; i<_CHANNELCOUNT; i++)
+    for (unsigned int i = 0; i < _CHANNELCOUNT; i++) {
         _allChannelDisplays[i]->bandwidthAverageUpdated();
+    }
 }
 
 
 void BandwidthDialog::paintEvent(QPaintEvent* event) {
     for (unsigned int i=0; i<_CHANNELCOUNT; i++)
-        _allChannelDisplays[i]->Paint();
+        _allChannelDisplays[i]->paint();
     this->QDialog::paintEvent(event);
     this->setFixedSize(this->width(), this->height());
 }

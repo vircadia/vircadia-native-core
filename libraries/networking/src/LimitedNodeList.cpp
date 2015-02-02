@@ -214,8 +214,7 @@ qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* a
     SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
     if (sendingNode) {
         emit dataReceived(sendingNode->getType(), incomingPacket.size());
-    }
-    else {
+    } else {
         emit dataReceived(NodeType::Unassigned, incomingPacket.size());
     }
         

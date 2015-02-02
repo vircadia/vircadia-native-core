@@ -33,16 +33,16 @@ class BandwidthChannelDisplay : public QObject {
     BandwidthChannelDisplay(QVector<NodeType_t> nodeTypesToFollow,
                             QFormLayout* form,
                             char const* const caption, char const* unitCaption, float unitScale, unsigned colorRGBA);
-    void Paint();
+    void paint();
 
  private:
-    QVector<NodeType_t> nodeTypesToFollow;
-    QLabel* label;
-    QString strBuf;
-    char const* const caption;
-    char const* unitCaption;
-    float const unitScale;
-    unsigned colorRGBA;
+    QVector<NodeType_t> _nodeTypesToFollow;
+    QLabel* _label;
+    QString _strBuf;
+    char const* const _caption;
+    char const* _unitCaption;
+    float const _unitScale;
+    unsigned _colorRGBA;
 
 
  public slots:
@@ -62,12 +62,13 @@ private:
     BandwidthChannelDisplay* _audioChannelDisplay;
     BandwidthChannelDisplay* _avatarsChannelDisplay;
     BandwidthChannelDisplay* _octreeChannelDisplay;
+    BandwidthChannelDisplay* _domainChannelDisplay;
     BandwidthChannelDisplay* _metavoxelsChannelDisplay;
     BandwidthChannelDisplay* _otherChannelDisplay;
     BandwidthChannelDisplay* _totalChannelDisplay; // sums of all the other channels
 
-    static const unsigned int _CHANNELCOUNT = 6;
-    BandwidthChannelDisplay *_allChannelDisplays[_CHANNELCOUNT];
+    static const unsigned int _CHANNELCOUNT = 7;
+    BandwidthChannelDisplay* _allChannelDisplays[_CHANNELCOUNT];
 
 
 signals:

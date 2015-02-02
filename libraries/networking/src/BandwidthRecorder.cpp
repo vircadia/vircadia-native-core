@@ -21,16 +21,18 @@ BandwidthRecorder::Channel::Channel() {
 
 float BandwidthRecorder::Channel::getAverageInputPacketsPerSecond() {
     float delt = _input.getEventDeltaAverage();
-    if (delt > 0.)
+    if (delt > 0.) {
         return (1.0 / delt);
-    return 0.;
+    }
+    return 0.0f;
 }
 
 float BandwidthRecorder::Channel::getAverageOutputPacketsPerSecond() {
     float delt = _input.getEventDeltaAverage();
-    if (delt > 0.)
+    if (delt > 0.) {
         return (1.0 / _output.getEventDeltaAverage());
-    return 0.;
+    }
+    return 0.0f;
 }
 
 float BandwidthRecorder::Channel::getAverageInputKilobitsPerSecond() {
@@ -62,87 +64,97 @@ BandwidthRecorder::~BandwidthRecorder() {
 
 void BandwidthRecorder::updateInboundData(const quint8 channelType, const int sample) {
     Q_ASSERT(channelType < CHANNEL_COUNT);
-    if (! _channels[channelType])
+    if (! _channels[channelType]) {
         _channels[channelType] = new Channel();
+    }
     _channels[channelType]->updateInputAverage(sample);
 }
 
 void BandwidthRecorder::updateOutboundData(const quint8 channelType, const int sample) {
     Q_ASSERT(channelType < CHANNEL_COUNT);
-    if (! _channels[channelType])
+    if (! _channels[channelType]) {
         _channels[channelType] = new Channel();
+    }
     _channels[channelType]->updateOutputAverage(sample);
 }
 
 float BandwidthRecorder::getAverageInputPacketsPerSecond(const quint8 channelType) {
     Q_ASSERT(channelType < CHANNEL_COUNT);
-    if (! _channels[channelType])
-        return 0.;
+    if (! _channels[channelType]) {
+        return 0.0f;
+    }
     return _channels[channelType]->getAverageInputPacketsPerSecond();
 }
 
 float BandwidthRecorder::getAverageOutputPacketsPerSecond(const quint8 channelType) {
     Q_ASSERT(channelType < CHANNEL_COUNT);
-    if (! _channels[channelType])
-        return 0.;
+    if (! _channels[channelType]) {
+        return 0.0f;
+    }
     return _channels[channelType]->getAverageOutputPacketsPerSecond();
 }
 
 float BandwidthRecorder::getAverageInputKilobitsPerSecond(const quint8 channelType) {
     Q_ASSERT(channelType < CHANNEL_COUNT);
-    if (! _channels[channelType])
-        return 0.;
+    if (! _channels[channelType]) {
+        return 0.0f;
+    }
     return _channels[channelType]->getAverageInputKilobitsPerSecond();
 }
 
 float BandwidthRecorder::getAverageOutputKilobitsPerSecond(const quint8 channelType) {
     Q_ASSERT(channelType < CHANNEL_COUNT);
-    if (! _channels[channelType])
-        return 0.;
+    if (! _channels[channelType]) {
+        return 0.0f;
+    }
     return _channels[channelType]->getAverageOutputKilobitsPerSecond();
 }
 
 float BandwidthRecorder::getTotalAverageInputPacketsPerSecond() {
-    float result = 0.;
+    float result = 0.0f;
     for (uint i=0; i<CHANNEL_COUNT; i++) {
-        if (_channels[i])
+        if (_channels[i]) {
             result += _channels[i]->getAverageInputPacketsPerSecond();
+        }
     }
     return result;
 }
 
 float BandwidthRecorder::getTotalAverageOutputPacketsPerSecond() {
-    float result = 0.;
+    float result = 0.0f;
     for (uint i=0; i<CHANNEL_COUNT; i++) {
-        if (_channels[i])
+        if (_channels[i]) {
             result += _channels[i]->getAverageOutputPacketsPerSecond();
+        }
     }
     return result;
 }
 
 float BandwidthRecorder::getTotalAverageInputKilobitsPerSecond(){
-    float result = 0.;
+    float result = 0.0f;
     for (uint i=0; i<CHANNEL_COUNT; i++) {
-        if (_channels[i])
+        if (_channels[i]) {
             result += _channels[i]->getAverageInputKilobitsPerSecond();
+        }
     }
     return result;
 }
 
 float BandwidthRecorder::getTotalAverageOutputKilobitsPerSecond(){
-    float result = 0.;
+    float result = 0.0f;
     for (uint i=0; i<CHANNEL_COUNT; i++) {
-        if (_channels[i])
+        if (_channels[i]) {
             result += _channels[i]->getAverageOutputKilobitsPerSecond();
+        }
     }
     return result;
 }
 
 float BandwidthRecorder::getCachedTotalAverageInputPacketsPerSecond() {
     static qint64 lastCalculated = 0;
-    static float cachedValue = 0.;
+    static float cachedValue = 0.0f;
     qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (now - lastCalculated > 1000.) {
+    if (now - lastCalculated > 1000.0f) {
         lastCalculated = now;
         cachedValue = getTotalAverageInputPacketsPerSecond();
     }
@@ -151,9 +163,9 @@ float BandwidthRecorder::getCachedTotalAverageInputPacketsPerSecond() {
 
 float BandwidthRecorder::getCachedTotalAverageOutputPacketsPerSecond() {
     static qint64 lastCalculated = 0;
-    static float cachedValue = 0.;
+    static float cachedValue = 0.0f;
     qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (now - lastCalculated > 1000.) {
+    if (now - lastCalculated > 1000.0f) {
         lastCalculated = now;
         cachedValue = getTotalAverageOutputPacketsPerSecond();
     }
@@ -162,9 +174,9 @@ float BandwidthRecorder::getCachedTotalAverageOutputPacketsPerSecond() {
 
 float BandwidthRecorder::getCachedTotalAverageInputKilobitsPerSecond() {
     static qint64 lastCalculated = 0;
-    static float cachedValue = 0.;
+    static float cachedValue = 0.0f;
     qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (now - lastCalculated > 1000.) {
+    if (now - lastCalculated > 1000.0f) {
         lastCalculated = now;
         cachedValue = getTotalAverageInputKilobitsPerSecond();
     }
@@ -173,9 +185,9 @@ float BandwidthRecorder::getCachedTotalAverageInputKilobitsPerSecond() {
 
 float BandwidthRecorder::getCachedTotalAverageOutputKilobitsPerSecond() {
     static qint64 lastCalculated = 0;
-    static float cachedValue = 0.;
+    static float cachedValue = 0.0f;
     qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (now - lastCalculated > 1000.) {
+    if (now - lastCalculated > 1000.0f) {
         lastCalculated = now;
         cachedValue = getTotalAverageOutputKilobitsPerSecond();
     }
