@@ -380,7 +380,7 @@ glm::vec2 Font::drawString(
   //}
 
   // Stores how far we've moved from the start of the string, in DTP units
-  static const float SPACE_ADVANCE = getGlyph(' ').d;
+  static const float SPACE_ADVANCE = getGlyph('J').d;
   glm::vec2 advance(0, -_ascent);
   MatrixStack::withGlMatrices([&] {
     // Fetch the matrices out of GL
@@ -397,7 +397,7 @@ glm::vec2 Font::drawString(
     MatrixStack & pr = MatrixStack::projection();
     // scale the modelview into font units
     mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
-
+    //mv.translate(glm::vec3(0, _ascent, 0));
     foreach(QString token, str.split(" ")) {
       // float tokenWidth = measureWidth(token, fontSize);
       // if (wrap && 0 != advance.x && (advance.x + tokenWidth) > maxWidth) {
