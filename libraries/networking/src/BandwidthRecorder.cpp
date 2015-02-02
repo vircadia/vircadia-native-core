@@ -14,15 +14,7 @@
 #include "BandwidthRecorder.h"
 
 
-BandwidthRecorder::Channel::Channel(char const* const caption,
-                                    char const* unitCaption,
-                                    double unitScale,
-                                    unsigned colorRGBA) :
-    caption(caption),
-    unitCaption(unitCaption),
-    unitScale(unitScale),
-    colorRGBA(colorRGBA)
-{
+BandwidthRecorder::Channel::Channel() {
 }
 
 float BandwidthRecorder::Channel::getAverageInputPacketsPerSecond() {

@@ -19,17 +19,28 @@
 #include "BandwidthRecorder.h"
 
 
+const unsigned int COLOR0 = 0x33cc99ff;
+const unsigned int COLOR1 = 0xffef40c0;
+const unsigned int COLOR2 = 0xd0d0d0a0;
+
+
 class BandwidthChannelDisplay : public QObject {
     Q_OBJECT
 
  public:
-    BandwidthChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form);
+    BandwidthChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form,
+                            char const* const caption, char const* unitCaption, float unitScale, unsigned colorRGBA);
     void Paint();
 
  private:
     BandwidthRecorder::Channel *ch;
     QLabel* label;
     QString strBuf;
+    char const* const caption;
+    char const* unitCaption;
+    float const unitScale;
+    unsigned colorRGBA;
+
 
  public slots:
      void bandwidthAverageUpdated();

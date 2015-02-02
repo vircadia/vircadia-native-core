@@ -22,27 +22,34 @@
 #include <QColor>
 
 
-BandwidthChannelDisplay::BandwidthChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form) {
+BandwidthChannelDisplay::BandwidthChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form,
+                                                 char const* const caption, char const* unitCaption,
+                                                 const float unitScale, unsigned colorRGBA) :
+    caption(caption),
+    unitCaption(unitCaption),
+    unitScale(unitScale),
+    colorRGBA(colorRGBA)
+{
     this->ch = ch;
 
     label = new QLabel();
     label->setAlignment(Qt::AlignRight);
 
     QPalette palette = label->palette();
-    unsigned rgb = ch->colorRGBA >> 8;
+    unsigned rgb = colorRGBA >> 8;
     rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
     palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
     label->setPalette(palette);
 
-    form->addRow(QString(" ") + ch->caption + " Bandwidth In/Out:", label);
+    form->addRow(QString(" ") + caption + " Bandwidth In/Out:", label);
 }
 
 
 
 void BandwidthChannelDisplay::bandwidthAverageUpdated() {
     strBuf =
-        QString("").setNum((int) (ch->getAverageInputKilobitsPerSecond() * ch->unitScale)) + "/" +
-        QString("").setNum((int) (ch->getAverageOutputKilobitsPerSecond() * ch->unitScale)) + " " + ch->unitCaption;
+        QString("").setNum((int) (ch->getAverageInputKilobitsPerSecond() * unitScale)) + "/" +
+        QString("").setNum((int) (ch->getAverageOutputKilobitsPerSecond() * unitScale)) + " " + unitCaption;
 }
 
 
@@ -63,12 +70,18 @@ BandwidthDialog::BandwidthDialog(QWidget* parent) :
 
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
 
-    _allChannelDisplays[0] = _audioChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->audioChannel, form);
-    _allChannelDisplays[1] = _avatarsChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->avatarsChannel, form);
-    _allChannelDisplays[2] = _octreeChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->octreeChannel, form);
-    _allChannelDisplays[3] = _metavoxelsChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->metavoxelsChannel,form);
-    _allChannelDisplays[4] = _otherChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->otherChannel, form);
-    _allChannelDisplays[5] = _totalChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->totalChannel, form);
+    _allChannelDisplays[0] = _audioChannelDisplay =
+        new BandwidthChannelDisplay(&bandwidthRecorder->audioChannel, form, "Audio", "Kbps", 1.0, COLOR0);
+    _allChannelDisplays[1] = _avatarsChannelDisplay =
+        new BandwidthChannelDisplay(&bandwidthRecorder->avatarsChannel, form, "Avatars", "Kbps", 1.0, COLOR1);
+    _allChannelDisplays[2] = _octreeChannelDisplay =
+        new BandwidthChannelDisplay(&bandwidthRecorder->octreeChannel, form, "Octree", "Kbps", 1.0, COLOR2);
+    _allChannelDisplays[3] = _metavoxelsChannelDisplay =
+        new BandwidthChannelDisplay(&bandwidthRecorder->metavoxelsChannel, form, "Metavoxels", "Kbps", 1.0, COLOR2);
+    _allChannelDisplays[4] = _otherChannelDisplay =
+        new BandwidthChannelDisplay(&bandwidthRecorder->otherChannel, form, "Other", "Kbps", 1.0, COLOR2);
+    _allChannelDisplays[5] = _totalChannelDisplay =
+        new BandwidthChannelDisplay(&bandwidthRecorder->totalChannel, form, "Total", "Kbps", 1.0, COLOR2);
                           
     connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
     averageUpdateTimer->start(1000);

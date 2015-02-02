@@ -21,12 +21,6 @@
 #include "Node.h"
 #include "SimpleMovingAverage.h"
 
-const double DEFAULT_UNIT_SCALE = 1.0;
-
-const unsigned int COLOR0 = 0x33cc99ff;
-const unsigned int COLOR1 = 0xffef40c0;
-const unsigned int COLOR2 = 0xd0d0d0a0;
-
 
 class BandwidthRecorder : public QObject, public Dependency {
     Q_OBJECT
@@ -39,7 +33,7 @@ public:
     // keep track of data rate in two directions as well as units and style to use during display
     class Channel {
     public:
-        Channel(char const* const caption, char const* unitCaption, double unitScale, unsigned colorRGBA);
+        Channel();
         float getAverageInputPacketsPerSecond();
         float getAverageOutputPacketsPerSecond();
         float getAverageInputKilobitsPerSecond();
@@ -48,24 +42,20 @@ public:
         void updateInputAverage(const float sample);
         void updateOutputAverage(const float sample);
 
-        // XXX make these private
-        char const* const caption;
-        char const* unitCaption;
-        double unitScale;
-        unsigned colorRGBA;
-
     private:
         SimpleMovingAverage _input = SimpleMovingAverage();
         SimpleMovingAverage _output = SimpleMovingAverage();
     };
 
+
+
     // create the channels we keep track of
-    Channel audioChannel = Channel("Audio", "Kbps", DEFAULT_UNIT_SCALE, COLOR0);
-    Channel avatarsChannel = Channel("Avatars", "Kbps", DEFAULT_UNIT_SCALE, COLOR1);
-    Channel octreeChannel = Channel("Octree", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
-    Channel metavoxelsChannel = Channel("Metavoxels", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
-    Channel otherChannel = Channel("Other", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
-    Channel totalChannel = Channel("Total", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
+    Channel audioChannel = Channel();
+    Channel avatarsChannel = Channel();
+    Channel octreeChannel = Channel();
+    Channel metavoxelsChannel = Channel();
+    Channel otherChannel = Channel();
+    Channel totalChannel = Channel();
 
 public slots:
     void updateInboundData(const quint8 channelType, const int bytes);
