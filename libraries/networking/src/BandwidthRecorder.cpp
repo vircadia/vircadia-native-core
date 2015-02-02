@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDebug>
+#include <QDateTime>
 #include "BandwidthRecorder.h"
 
 
@@ -48,69 +50,134 @@ void BandwidthRecorder::Channel::updateOutputAverage(const float sample) {
     _output.updateAverage(sample);
 }
 
-
-
 BandwidthRecorder::BandwidthRecorder() {
+    for (uint i=0; i<CHANNEL_COUNT; i++)
+        _channels[ i ] = NULL;
 }
-
 
 BandwidthRecorder::~BandwidthRecorder() {
+    for (uint i=0; i<CHANNEL_COUNT; i++)
+        delete _channels[ i ];
 }
 
-
-
 void BandwidthRecorder::updateInboundData(const quint8 channelType, const int sample) {
-
-    totalChannel.updateInputAverage(sample);
-
-    // see Node.h NodeType
-    switch (channelType) {
-    case NodeType::DomainServer:
-    case NodeType::EntityServer:
-        octreeChannel.updateInputAverage(sample);
-        break;
-    case NodeType::MetavoxelServer:
-    case NodeType::EnvironmentServer:
-        metavoxelsChannel.updateInputAverage(sample);
-        break;
-    case NodeType::AudioMixer:
-        audioChannel.updateInputAverage(sample);
-        break;
-    case NodeType::Agent:
-    case NodeType::AvatarMixer:
-        avatarsChannel.updateInputAverage(sample);
-        break;
-    case NodeType::Unassigned:
-    default:
-        otherChannel.updateInputAverage(sample);
-        break;
-    }
+    Q_ASSERT(channelType < CHANNEL_COUNT);
+    if (! _channels[channelType])
+        _channels[channelType] = new Channel();
+    _channels[channelType]->updateInputAverage(sample);
 }
 
 void BandwidthRecorder::updateOutboundData(const quint8 channelType, const int sample) {
+    Q_ASSERT(channelType < CHANNEL_COUNT);
+    if (! _channels[channelType])
+        _channels[channelType] = new Channel();
+    _channels[channelType]->updateOutputAverage(sample);
+}
 
-    totalChannel.updateOutputAverage(sample);
+float BandwidthRecorder::getAverageInputPacketsPerSecond(const quint8 channelType) {
+    Q_ASSERT(channelType < CHANNEL_COUNT);
+    if (! _channels[channelType])
+        return 0.;
+    return _channels[channelType]->getAverageInputPacketsPerSecond();
+}
 
-    // see Node.h NodeType
-    switch (channelType) {
-    case NodeType::DomainServer:
-    case NodeType::EntityServer:
-        octreeChannel.updateOutputAverage(sample);
-        break;
-    case NodeType::MetavoxelServer:
-    case NodeType::EnvironmentServer:
-        metavoxelsChannel.updateOutputAverage(sample);
-        break;
-    case NodeType::AudioMixer:
-        audioChannel.updateOutputAverage(sample);
-        break;
-    case NodeType::Agent:
-    case NodeType::AvatarMixer:
-        avatarsChannel.updateOutputAverage(sample);
-        break;
-    case NodeType::Unassigned:
-    default:
-        otherChannel.updateOutputAverage(sample);
-        break;
+float BandwidthRecorder::getAverageOutputPacketsPerSecond(const quint8 channelType) {
+    Q_ASSERT(channelType < CHANNEL_COUNT);
+    if (! _channels[channelType])
+        return 0.;
+    return _channels[channelType]->getAverageOutputPacketsPerSecond();
+}
+
+float BandwidthRecorder::getAverageInputKilobitsPerSecond(const quint8 channelType) {
+    Q_ASSERT(channelType < CHANNEL_COUNT);
+    if (! _channels[channelType])
+        return 0.;
+    return _channels[channelType]->getAverageInputKilobitsPerSecond();
+}
+
+float BandwidthRecorder::getAverageOutputKilobitsPerSecond(const quint8 channelType) {
+    Q_ASSERT(channelType < CHANNEL_COUNT);
+    if (! _channels[channelType])
+        return 0.;
+    return _channels[channelType]->getAverageOutputKilobitsPerSecond();
+}
+
+float BandwidthRecorder::getTotalAverageInputPacketsPerSecond() {
+    float result = 0.;
+    for (uint i=0; i<CHANNEL_COUNT; i++) {
+        if (_channels[i])
+            result += _channels[i]->getAverageInputPacketsPerSecond();
     }
+    return result;
+}
+
+float BandwidthRecorder::getTotalAverageOutputPacketsPerSecond() {
+    float result = 0.;
+    for (uint i=0; i<CHANNEL_COUNT; i++) {
+        if (_channels[i])
+            result += _channels[i]->getAverageOutputPacketsPerSecond();
+    }
+    return result;
+}
+
+float BandwidthRecorder::getTotalAverageInputKilobitsPerSecond(){
+    float result = 0.;
+    for (uint i=0; i<CHANNEL_COUNT; i++) {
+        if (_channels[i])
+            result += _channels[i]->getAverageInputKilobitsPerSecond();
+    }
+    return result;
+}
+
+float BandwidthRecorder::getTotalAverageOutputKilobitsPerSecond(){
+    float result = 0.;
+    for (uint i=0; i<CHANNEL_COUNT; i++) {
+        if (_channels[i])
+            result += _channels[i]->getAverageOutputKilobitsPerSecond();
+    }
+    return result;
+}
+
+float BandwidthRecorder::getCachedTotalAverageInputPacketsPerSecond() {
+    static qint64 lastCalculated = 0;
+    static float cachedValue = 0.;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - lastCalculated > 1000.) {
+        lastCalculated = now;
+        cachedValue = getTotalAverageInputPacketsPerSecond();
+    }
+    return cachedValue;
+}
+
+float BandwidthRecorder::getCachedTotalAverageOutputPacketsPerSecond() {
+    static qint64 lastCalculated = 0;
+    static float cachedValue = 0.;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - lastCalculated > 1000.) {
+        lastCalculated = now;
+        cachedValue = getTotalAverageOutputPacketsPerSecond();
+    }
+    return cachedValue;
+}
+
+float BandwidthRecorder::getCachedTotalAverageInputKilobitsPerSecond() {
+    static qint64 lastCalculated = 0;
+    static float cachedValue = 0.;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - lastCalculated > 1000.) {
+        lastCalculated = now;
+        cachedValue = getTotalAverageInputKilobitsPerSecond();
+    }
+    return cachedValue;
+}
+
+float BandwidthRecorder::getCachedTotalAverageOutputKilobitsPerSecond() {
+    static qint64 lastCalculated = 0;
+    static float cachedValue = 0.;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - lastCalculated > 1000.) {
+        lastCalculated = now;
+        cachedValue = getTotalAverageOutputKilobitsPerSecond();
+    }
+    return cachedValue;
 }

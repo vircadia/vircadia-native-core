@@ -443,12 +443,10 @@ void Stats::display(
         SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
-                    // roundf(avatarMixer->getAverageKilobitsPerSecond()),
-                    // roundf(avatarMixer->getAveragePacketsPerSecond())
-                    roundf(bandwidthRecorder->audioChannel.getAverageInputKilobitsPerSecond() +
-                           bandwidthRecorder->audioChannel.getAverageOutputKilobitsPerSecond()),
-                    roundf(bandwidthRecorder->audioChannel.getAverageInputPacketsPerSecond() +
-                           bandwidthRecorder->audioChannel.getAverageOutputPacketsPerSecond()));
+                    roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
+                           bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)),
+                    roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
+                           bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
         } else {
             sprintf(avatarMixerStats, "No Avatar Mixer");
         }

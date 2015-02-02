@@ -920,10 +920,10 @@ void ApplicationOverlay::renderStatsAndLogs() {
         int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
         Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, application->getFps(),
-                                      bandwidthRecorder->totalChannel.getAverageInputPacketsPerSecond(),
-                                      bandwidthRecorder->totalChannel.getAverageOutputPacketsPerSecond(),
-                                      bandwidthRecorder->totalChannel.getAverageInputKilobitsPerSecond(),
-                                      bandwidthRecorder->totalChannel.getAverageOutputKilobitsPerSecond(),
+                                      bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond(),
+                                      bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond(),
+                                      bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond(),
+                                      bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond(),
                                       voxelPacketsToProcess);
     }
 

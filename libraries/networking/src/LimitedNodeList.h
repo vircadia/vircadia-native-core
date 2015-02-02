@@ -206,8 +206,11 @@ protected:
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
+
+    // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;
     int _numCollectedBytes;
+
     QElapsedTimer _packetStatTimer;
     
     template<typename IteratorLambda>

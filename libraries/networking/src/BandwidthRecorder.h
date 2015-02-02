@@ -47,15 +47,27 @@ public:
         SimpleMovingAverage _output = SimpleMovingAverage();
     };
 
+    float getAverageInputPacketsPerSecond(const quint8 channelType);
+    float getAverageOutputPacketsPerSecond(const quint8 channelType);
+    float getAverageInputKilobitsPerSecond(const quint8 channelType);
+    float getAverageOutputKilobitsPerSecond(const quint8 channelType);
+
+    float getTotalAverageInputPacketsPerSecond();
+    float getTotalAverageOutputPacketsPerSecond();
+    float getTotalAverageInputKilobitsPerSecond();
+    float getTotalAverageOutputKilobitsPerSecond();
+
+    float getCachedTotalAverageInputPacketsPerSecond();
+    float getCachedTotalAverageOutputPacketsPerSecond();
+    float getCachedTotalAverageInputKilobitsPerSecond();
+    float getCachedTotalAverageOutputKilobitsPerSecond();
 
 
-    // create the channels we keep track of
-    Channel audioChannel = Channel();
-    Channel avatarsChannel = Channel();
-    Channel octreeChannel = Channel();
-    Channel metavoxelsChannel = Channel();
-    Channel otherChannel = Channel();
-    Channel totalChannel = Channel();
+private:
+    // one for each possible Node type
+    static const unsigned int CHANNEL_COUNT = 256;
+    Channel* _channels[CHANNEL_COUNT];
+
 
 public slots:
     void updateInboundData(const quint8 channelType, const int bytes);

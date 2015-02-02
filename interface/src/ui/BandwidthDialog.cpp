@@ -22,16 +22,16 @@
 #include <QColor>
 
 
-BandwidthChannelDisplay::BandwidthChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form,
+BandwidthChannelDisplay::BandwidthChannelDisplay(QVector<NodeType_t> nodeTypesToFollow,
+                                                 QFormLayout* form,
                                                  char const* const caption, char const* unitCaption,
                                                  const float unitScale, unsigned colorRGBA) :
+    nodeTypesToFollow(nodeTypesToFollow),
     caption(caption),
     unitCaption(unitCaption),
     unitScale(unitScale),
     colorRGBA(colorRGBA)
 {
-    this->ch = ch;
-
     label = new QLabel();
     label->setAlignment(Qt::AlignRight);
 
@@ -47,16 +47,25 @@ BandwidthChannelDisplay::BandwidthChannelDisplay(BandwidthRecorder::Channel *ch,
 
 
 void BandwidthChannelDisplay::bandwidthAverageUpdated() {
+    float inTotal = 0.;
+    float outTotal = 0.;
+
+    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
+
+    for (int i = 0; i < nodeTypesToFollow.size(); ++i) {
+        inTotal += bandwidthRecorder->getAverageInputKilobitsPerSecond(nodeTypesToFollow.at(i));
+        outTotal += bandwidthRecorder->getAverageOutputKilobitsPerSecond(nodeTypesToFollow.at(i));
+    }
+
     strBuf =
-        QString("").setNum((int) (ch->getAverageInputKilobitsPerSecond() * unitScale)) + "/" +
-        QString("").setNum((int) (ch->getAverageOutputKilobitsPerSecond() * unitScale)) + " " + unitCaption;
+        QString("").setNum((int) (inTotal * unitScale)) + "/" +
+        QString("").setNum((int) (outTotal * unitScale)) + " " + unitCaption;
 }
 
 
 void BandwidthChannelDisplay::Paint() {
     label->setText(strBuf);
 }
-
 
 
 BandwidthDialog::BandwidthDialog(QWidget* parent) :
@@ -71,18 +80,21 @@ BandwidthDialog::BandwidthDialog(QWidget* parent) :
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
 
     _allChannelDisplays[0] = _audioChannelDisplay =
-        new BandwidthChannelDisplay(&bandwidthRecorder->audioChannel, form, "Audio", "Kbps", 1.0, COLOR0);
+        new BandwidthChannelDisplay({NodeType::AudioMixer}, form, "Audio", "Kbps", 1.0, COLOR0);
     _allChannelDisplays[1] = _avatarsChannelDisplay =
-        new BandwidthChannelDisplay(&bandwidthRecorder->avatarsChannel, form, "Avatars", "Kbps", 1.0, COLOR1);
+        new BandwidthChannelDisplay({NodeType::Agent, NodeType::AvatarMixer}, form, "Avatars", "Kbps", 1.0, COLOR1);
     _allChannelDisplays[2] = _octreeChannelDisplay =
-        new BandwidthChannelDisplay(&bandwidthRecorder->octreeChannel, form, "Octree", "Kbps", 1.0, COLOR2);
+        new BandwidthChannelDisplay({NodeType::DomainServer, NodeType::EntityServer}, form, "Octree", "Kbps", 1.0, COLOR2);
     _allChannelDisplays[3] = _metavoxelsChannelDisplay =
-        new BandwidthChannelDisplay(&bandwidthRecorder->metavoxelsChannel, form, "Metavoxels", "Kbps", 1.0, COLOR2);
+        new BandwidthChannelDisplay({NodeType::MetavoxelServer, NodeType::EnvironmentServer}, form, "Metavoxels", "Kbps", 1.0, COLOR2);
     _allChannelDisplays[4] = _otherChannelDisplay =
-        new BandwidthChannelDisplay(&bandwidthRecorder->otherChannel, form, "Other", "Kbps", 1.0, COLOR2);
+        new BandwidthChannelDisplay({NodeType::Unassigned}, form, "Other", "Kbps", 1.0, COLOR2);
     _allChannelDisplays[5] = _totalChannelDisplay =
-        new BandwidthChannelDisplay(&bandwidthRecorder->totalChannel, form, "Total", "Kbps", 1.0, COLOR2);
-                          
+        new BandwidthChannelDisplay({NodeType::DomainServer, NodeType::EntityServer, NodeType::MetavoxelServer,
+                                         NodeType::EnvironmentServer, NodeType::AudioMixer, NodeType::Agent,
+                                         NodeType::AvatarMixer, NodeType::Unassigned},
+                                    form, "Total", "Kbps", 1.0, COLOR2);
+
     connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
     averageUpdateTimer->start(1000);
 }

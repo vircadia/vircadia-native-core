@@ -15,7 +15,9 @@
 #include <QDialog>
 #include <QLabel>
 #include <QFormLayout>
+#include <QVector>
 
+#include "Node.h"
 #include "BandwidthRecorder.h"
 
 
@@ -28,12 +30,13 @@ class BandwidthChannelDisplay : public QObject {
     Q_OBJECT
 
  public:
-    BandwidthChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form,
+    BandwidthChannelDisplay(QVector<NodeType_t> nodeTypesToFollow,
+                            QFormLayout* form,
                             char const* const caption, char const* unitCaption, float unitScale, unsigned colorRGBA);
     void Paint();
 
  private:
-    BandwidthRecorder::Channel *ch;
+    QVector<NodeType_t> nodeTypesToFollow;
     QLabel* label;
     QString strBuf;
     char const* const caption;

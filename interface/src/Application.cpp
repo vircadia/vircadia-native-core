@@ -437,9 +437,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // hook up bandwidth estimator
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     connect(nodeList.data(), SIGNAL(dataSent(const quint8, const int)),
-            &*bandwidthRecorder, SLOT(updateOutboundData(const quint8, const int)));
+            bandwidthRecorder.data(), SLOT(updateOutboundData(const quint8, const int)));
     connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
-            &*bandwidthRecorder, SLOT(updateInboundData(const quint8, const int)));
+            bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
 
     // check first run...
     bool firstRun = SettingHandles::firstRun.get();

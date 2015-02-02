@@ -233,9 +233,10 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
         replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
     }
     
+    // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
-    // ++_numCollectedPackets;
-    // _numCollectedBytes += datagram.size();
+    ++_numCollectedPackets;
+    _numCollectedBytes += datagram.size();
     
     qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy,
                                                     destinationSockAddr.getAddress(), destinationSockAddr.getPort());
