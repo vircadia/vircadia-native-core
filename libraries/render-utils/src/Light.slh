@@ -52,6 +52,9 @@ float getLightSquareRadius(Light l) {
     return l._attenuation.w * l._attenuation.w;
 }
 
+float getLightAttenuationCutoff(Light l) {
+    return l._attenuation.z;
+}
 
 <@if GLPROFILE == PC_GL@>
 uniform lightBuffer {
