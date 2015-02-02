@@ -19,6 +19,25 @@
 #include "BandwidthRecorder.h"
 
 
+class BandwidthChannelDisplay : public QObject {
+    Q_OBJECT
+
+ public:
+    BandwidthChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form);
+    void Paint();
+
+ private:
+
+    BandwidthRecorder::Channel *ch;
+    QLabel* label;
+    // std::string strBuf;
+    QString strBuf;
+
+ public slots:
+     void bandwidthAverageUpdated();
+};
+
+
 class BandwidthDialog : public QDialog {
     Q_OBJECT
 public:
@@ -26,26 +45,19 @@ public:
     BandwidthDialog(QWidget* parent, BandwidthRecorder* model);
     ~BandwidthDialog();
 
-    class ChannelDisplay {
-    public:
-      ChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form);
-      QLabel* setupLabel(QFormLayout* form);
-      void setLabelText();
+    void paintEvent(QPaintEvent*);
 
-    private:
-      BandwidthRecorder::Channel *ch;
+private:
+    BandwidthChannelDisplay* _audioChannelDisplay;
+    BandwidthChannelDisplay* _avatarsChannelDisplay;
+    BandwidthChannelDisplay* _octreeChannelDisplay;
+    BandwidthChannelDisplay* _metavoxelsChannelDisplay;
+    BandwidthChannelDisplay* _otherChannelDisplay;
+    BandwidthChannelDisplay* _totalChannelDisplay; // sums of all the other channels
 
-      QLabel* label;
-    };
+    static const unsigned int _CHANNELCOUNT = 6;
+    BandwidthChannelDisplay *_allChannelDisplays[_CHANNELCOUNT];
 
-    ChannelDisplay* audioChannelDisplay;
-    ChannelDisplay* avatarsChannelDisplay;
-    ChannelDisplay* octreeChannelDisplay;
-    ChannelDisplay* metavoxelsChannelDisplay;
-    ChannelDisplay* otherChannelDisplay;
-
-    // sums of all the other channels
-    ChannelDisplay* totalChannelDisplay;
 
 signals:
 
@@ -54,15 +66,18 @@ signals:
 public slots:
 
     void reject();
+    void updateTimerTimeout();
+
 
 protected:
-    void paintEvent(QPaintEvent*);
 
     // Emits a 'closed' signal when this dialog is closed.
     void closeEvent(QCloseEvent*);
 
 private:
     BandwidthRecorder* _model;
+    QTimer *averageUpdateTimer = new QTimer(this);
+
 };
 
 #endif // hifi_BandwidthDialog_h

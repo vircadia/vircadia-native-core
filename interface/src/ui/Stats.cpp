@@ -444,10 +444,10 @@ void Stats::display(
             sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
                     // roundf(avatarMixer->getAverageKilobitsPerSecond()),
                     // roundf(avatarMixer->getAveragePacketsPerSecond())
-                    roundf(bandwidthRecorder->audioChannel->getAverageInputKilobitsPerSecond() +
-                           bandwidthRecorder->audioChannel->getAverageOutputKilobitsPerSecond()),
-                    roundf(bandwidthRecorder->audioChannel->getAverageInputPacketsPerSecond() +
-                           bandwidthRecorder->audioChannel->getAverageOutputPacketsPerSecond()));
+                    roundf(bandwidthRecorder->audioChannel.getAverageInputKilobitsPerSecond() +
+                           bandwidthRecorder->audioChannel.getAverageOutputKilobitsPerSecond()),
+                    roundf(bandwidthRecorder->audioChannel.getAverageInputPacketsPerSecond() +
+                           bandwidthRecorder->audioChannel.getAverageOutputPacketsPerSecond()));
         } else {
             sprintf(avatarMixerStats, "No Avatar Mixer");
         }

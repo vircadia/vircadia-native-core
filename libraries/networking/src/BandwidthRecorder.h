@@ -16,6 +16,7 @@
 
 #include <QObject>
 #include <QElapsedTimer>
+#include <QTimer>
 #include "Node.h"
 #include "SimpleMovingAverage.h"
 
@@ -29,7 +30,7 @@ const unsigned int COLOR2 = 0xd0d0d0a0;
 class BandwidthRecorder : public QObject {
     Q_OBJECT
 
- public:
+public:
     BandwidthRecorder();
     ~BandwidthRecorder();
 
@@ -52,21 +53,21 @@ class BandwidthRecorder : public QObject {
         unsigned colorRGBA;
 
     private:
-        SimpleMovingAverage _input = SimpleMovingAverage(1000);
-        SimpleMovingAverage _output = SimpleMovingAverage(1000);
+        SimpleMovingAverage _input = SimpleMovingAverage();
+        SimpleMovingAverage _output = SimpleMovingAverage();
     };
 
     // create the channels we keep track of
-    Channel* audioChannel = new Channel("Audio", "Kbps", DEFAULT_UNIT_SCALE, COLOR0);
-    Channel* avatarsChannel = new Channel("Avatars", "Kbps", DEFAULT_UNIT_SCALE, COLOR1);
-    Channel* octreeChannel = new Channel("Octree", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
-    Channel* metavoxelsChannel = new Channel("Metavoxels", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
-    Channel* otherChannel = new Channel("Other", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
-    Channel* totalChannel = new Channel("Total", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
+    Channel audioChannel = Channel("Audio", "Kbps", DEFAULT_UNIT_SCALE, COLOR0);
+    Channel avatarsChannel = Channel("Avatars", "Kbps", DEFAULT_UNIT_SCALE, COLOR1);
+    Channel octreeChannel = Channel("Octree", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
+    Channel metavoxelsChannel = Channel("Metavoxels", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
+    Channel otherChannel = Channel("Other", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
+    Channel totalChannel = Channel("Total", "Kbps", DEFAULT_UNIT_SCALE, COLOR2);
 
-    public slots:
-        void updateInboundData(const quint8 channelType, const int bytes);
-        void updateOutboundData(const quint8 channelType, const int bytes);
+public slots:
+    void updateInboundData(const quint8 channelType, const int bytes);
+    void updateOutboundData(const quint8 channelType, const int bytes);
 };
 
 #endif

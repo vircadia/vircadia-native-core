@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <iostream>
 #include <cstdio>
 
 #include "BandwidthRecorder.h"
@@ -21,15 +22,10 @@
 #include <QColor>
 
 
-BandwidthDialog::ChannelDisplay::ChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form) {
+BandwidthChannelDisplay::BandwidthChannelDisplay(BandwidthRecorder::Channel *ch, QFormLayout* form) {
     this->ch = ch;
-    this->label = setupLabel(form);
-}
 
-
-QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form) {
-    QLabel* label = new QLabel();
-
+    label = new QLabel();
     label->setAlignment(Qt::AlignRight);
 
     QPalette palette = label->palette();
@@ -38,18 +34,20 @@ QLabel* BandwidthDialog::ChannelDisplay::setupLabel(QFormLayout* form) {
     palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
     label->setPalette(palette);
 
-    form->addRow((std::string(" ") + ch->caption + " Bandwidth In/Out:").c_str(), label);
-
-    return label;
+    form->addRow(QString(" ") + ch->caption + " Bandwidth In/Out:", label);
 }
 
 
 
-void BandwidthDialog::ChannelDisplay::setLabelText() {
-    std::string strBuf =
-        std::to_string ((int) (ch->getAverageInputKilobitsPerSecond() * ch->unitScale)) + "/" +
-        std::to_string ((int) (ch->getAverageOutputKilobitsPerSecond() * ch->unitScale)) + " " + ch->unitCaption;
-    label->setText(strBuf.c_str());
+void BandwidthChannelDisplay::bandwidthAverageUpdated() {
+    strBuf =
+        QString("").setNum((int) (ch->getAverageInputKilobitsPerSecond() * ch->unitScale)) + "/" +
+        QString("").setNum((int) (ch->getAverageOutputKilobitsPerSecond() * ch->unitScale)) + " " + ch->unitCaption;
+}
+
+
+void BandwidthChannelDisplay::Paint() {
+    label->setText(strBuf);
 }
 
 
@@ -64,42 +62,44 @@ BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthRecorder* model) :
     QFormLayout* form = new QFormLayout();
     this->QDialog::setLayout(form);
 
-    audioChannelDisplay = new ChannelDisplay(_model->audioChannel, form);
-    avatarsChannelDisplay = new ChannelDisplay(_model->avatarsChannel, form);
-    octreeChannelDisplay = new ChannelDisplay(_model->octreeChannel, form);
-    metavoxelsChannelDisplay = new ChannelDisplay(_model->metavoxelsChannel, form);
-    otherChannelDisplay = new ChannelDisplay(_model->otherChannel, form);
-    totalChannelDisplay = new ChannelDisplay(_model->totalChannel, form);
+    _allChannelDisplays[0] = _audioChannelDisplay = new BandwidthChannelDisplay(&_model->audioChannel, form);
+    _allChannelDisplays[1] = _avatarsChannelDisplay = new BandwidthChannelDisplay(&_model->avatarsChannel, form);
+    _allChannelDisplays[2] = _octreeChannelDisplay = new BandwidthChannelDisplay(&_model->octreeChannel, form);
+    _allChannelDisplays[3] = _metavoxelsChannelDisplay = new BandwidthChannelDisplay(&_model->metavoxelsChannel, form);
+    _allChannelDisplays[4] = _otherChannelDisplay = new BandwidthChannelDisplay(&_model->otherChannel, form);
+    _allChannelDisplays[5] = _totalChannelDisplay = new BandwidthChannelDisplay(&_model->totalChannel, form);
+                          
+    connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
+    averageUpdateTimer->start(1000);
 }
 
 
 BandwidthDialog::~BandwidthDialog() {
-    delete audioChannelDisplay;
-    delete avatarsChannelDisplay;
-    delete octreeChannelDisplay;
-    delete metavoxelsChannelDisplay;
-    delete otherChannelDisplay;
-    delete totalChannelDisplay;
+    for (unsigned int i=0; i<_CHANNELCOUNT; i++)
+        delete _allChannelDisplays[i];
+}
+
+
+void BandwidthDialog::updateTimerTimeout() {
+    for (unsigned int i=0; i<_CHANNELCOUNT; i++)
+        _allChannelDisplays[i]->bandwidthAverageUpdated();
 }
 
 
 void BandwidthDialog::paintEvent(QPaintEvent* event) {
-    audioChannelDisplay->setLabelText();
-    avatarsChannelDisplay->setLabelText();
-    octreeChannelDisplay->setLabelText();
-    metavoxelsChannelDisplay->setLabelText();
-    otherChannelDisplay->setLabelText();
-    totalChannelDisplay->setLabelText();
-
+    for (unsigned int i=0; i<_CHANNELCOUNT; i++)
+        _allChannelDisplays[i]->Paint();
     this->QDialog::paintEvent(event);
     this->setFixedSize(this->width(), this->height());
 }
+
 
 void BandwidthDialog::reject() {
 
     // Just regularly close upon ESC
     this->QDialog::close();
 }
+
 
 void BandwidthDialog::closeEvent(QCloseEvent* event) {
 

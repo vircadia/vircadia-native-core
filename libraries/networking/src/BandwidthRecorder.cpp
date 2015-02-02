@@ -11,7 +11,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// #include <GeometryCache.h>
 #include "BandwidthRecorder.h"
 
 
@@ -27,11 +26,17 @@ BandwidthRecorder::Channel::Channel(char const* const caption,
 }
 
 float BandwidthRecorder::Channel::getAverageInputPacketsPerSecond() {
-    return (1 / _input.getEventDeltaAverage());
+    float delt = _input.getEventDeltaAverage();
+    if (delt > 0.)
+        return (1.0 / delt);
+    return 0.;
 }
 
 float BandwidthRecorder::Channel::getAverageOutputPacketsPerSecond() {
-    return (1 / _output.getEventDeltaAverage());
+    float delt = _input.getEventDeltaAverage();
+    if (delt > 0.)
+        return (1.0 / _output.getEventDeltaAverage());
+    return 0.;
 }
 
 float BandwidthRecorder::Channel::getAverageInputKilobitsPerSecond() {
@@ -58,66 +63,62 @@ BandwidthRecorder::BandwidthRecorder() {
 
 
 BandwidthRecorder::~BandwidthRecorder() {
-    delete audioChannel;
-    delete avatarsChannel;
-    delete octreeChannel;
-    delete metavoxelsChannel;
-    delete totalChannel;
 }
+
 
 
 void BandwidthRecorder::updateInboundData(const quint8 channelType, const int sample) {
 
-    totalChannel->updateInputAverage(sample);
+    totalChannel.updateInputAverage(sample);
 
     // see Node.h NodeType
     switch (channelType) {
     case NodeType::DomainServer:
     case NodeType::EntityServer:
-        octreeChannel->updateInputAverage(sample);
+        octreeChannel.updateInputAverage(sample);
         break;
     case NodeType::MetavoxelServer:
     case NodeType::EnvironmentServer:
-        metavoxelsChannel->updateInputAverage(sample);
+        metavoxelsChannel.updateInputAverage(sample);
         break;
     case NodeType::AudioMixer:
-        audioChannel->updateInputAverage(sample);
+        audioChannel.updateInputAverage(sample);
         break;
     case NodeType::Agent:
     case NodeType::AvatarMixer:
-        avatarsChannel->updateInputAverage(sample);
+        avatarsChannel.updateInputAverage(sample);
         break;
     case NodeType::Unassigned:
     default:
-        otherChannel->updateInputAverage(sample);
+        otherChannel.updateInputAverage(sample);
         break;
     }
 }
 
 void BandwidthRecorder::updateOutboundData(const quint8 channelType, const int sample) {
 
-    totalChannel->updateOutputAverage(sample);
+    totalChannel.updateOutputAverage(sample);
 
     // see Node.h NodeType
     switch (channelType) {
     case NodeType::DomainServer:
     case NodeType::EntityServer:
-        octreeChannel->updateOutputAverage(sample);
+        octreeChannel.updateOutputAverage(sample);
         break;
     case NodeType::MetavoxelServer:
     case NodeType::EnvironmentServer:
-        metavoxelsChannel->updateOutputAverage(sample);
+        metavoxelsChannel.updateOutputAverage(sample);
         break;
     case NodeType::AudioMixer:
-        audioChannel->updateOutputAverage(sample);
+        audioChannel.updateOutputAverage(sample);
         break;
     case NodeType::Agent:
     case NodeType::AvatarMixer:
-        avatarsChannel->updateOutputAverage(sample);
+        avatarsChannel.updateOutputAverage(sample);
         break;
     case NodeType::Unassigned:
     default:
-        otherChannel->updateOutputAverage(sample);
+        otherChannel.updateOutputAverage(sample);
         break;
     }
 }
