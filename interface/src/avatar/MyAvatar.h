@@ -51,7 +51,7 @@ public:
     // getters
     float getLeanScale() const { return _leanScale; }
     glm::vec3 getGravity() const { return _gravity; }
-    glm::vec3 getDefaultEyePosition() const;
+    Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
     
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }

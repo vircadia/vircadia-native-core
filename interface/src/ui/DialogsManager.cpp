@@ -102,7 +102,7 @@ void DialogsManager::editAnimations() {
 
 void DialogsManager::bandwidthDetails() {
     if (! _bandwidthDialog) {
-        _bandwidthDialog = new BandwidthDialog(qApp->getWindow(), qApp->getBandwidthMeter());
+        _bandwidthDialog = new BandwidthDialog(qApp->getWindow(), qApp->getBandwidthRecorder());
         connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
         
         if (_hmdToolsDialog) {
