@@ -3,7 +3,12 @@
 <!-- IMPORTANT: Do not manually manipulate this automatically generated file, changes will be gone after the next build! -->
 
 <manifest package="${ANDROID_APK_PACKAGE}" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="${ANDROID_APK_VERSION_NAME}" android:versionCode="${ANDROID_APK_VERSION_CODE}" android:installLocation="auto">
-  <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="@string/AppDisplayName" android:icon="@drawable/icon">
+  <application 
+    android:hardwareAccelerated="true" 
+    android:name="org.qtproject.qt5.android.bindings.QtApplication" 
+    android:label="@string/AppDisplayName" 
+    android:icon="@drawable/icon"
+    android:debuggable="${ANDROID_APK_DEBUGGABLE}">
     
     <!-- VR MODE -->
     <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only"/>

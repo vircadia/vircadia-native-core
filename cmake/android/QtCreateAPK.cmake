@@ -26,12 +26,12 @@ macro(qt_create_apk)
 		set(ANDROID_APK_THEME "")
 	endif()
   
-	if (CMAKE_BUILD_TYPE MATCHES Debug)
-		set(ANDROID_APK_DEBUGGABLE "true")
-		set(ANDROID_APK_RELEASE_LOCAL "0")
-	else ()
+	if (CMAKE_BUILD_TYPE MATCHES RELEASE)
 		set(ANDROID_APK_DEBUGGABLE "false")
 		set(ANDROID_APK_RELEASE_LOCAL ${ANDROID_APK_RELEASE})
+	else ()
+		set(ANDROID_APK_DEBUGGABLE "true")
+		set(ANDROID_APK_RELEASE_LOCAL "0")
 	endif ()
   
 	# Create "AndroidManifest.xml"
@@ -119,10 +119,36 @@ macro(qt_create_apk)
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/libs" "${ANDROID_APK_BUILD_DIR}/libs"
   )
   
+  # handle setup for ndk-gdb
+  add_custom_target(${TARGET_NAME}-gdb DEPENDS ${TARGET_NAME})
+  
+  if (ANDROID_APK_DEBUGGABLE)
+    get_property(TARGET_LOCATION TARGET ${TARGET_NAME} PROPERTY LOCATION)
+  
+    set(GDB_SOLIB_PATH ${ANDROID_APK_BUILD_DIR}/obj/local/${ANDROID_NDK_ABI_NAME}/)
+
+    # generate essential Android Makefiles
+    file(WRITE ${ANDROID_APK_BUILD_DIR}/jni/Android.mk "APP_ABI := ${ANDROID_NDK_ABI_NAME}\n")
+    file(WRITE ${ANDROID_APK_BUILD_DIR}/jni/Application.mk "APP_ABI := ${ANDROID_NDK_ABI_NAME}\n")
+  
+    # create gdb.setup
+    get_directory_property(PROJECT_INCLUDES DIRECTORY ${PROJECT_SOURCE_DIR} INCLUDE_DIRECTORIES)
+    string(REGEX REPLACE ";" " " PROJECT_INCLUDES "${PROJECT_INCLUDES}")
+    file(WRITE ${ANDROID_APK_BUILD_DIR}/libs/${ANDROID_NDK_ABI_NAME}/gdb.setup "set solib-search-path ${GDB_SOLIB_PATH}\n")
+    file(APPEND ${ANDROID_APK_BUILD_DIR}/libs/${ANDROID_NDK_ABI_NAME}/gdb.setup "directory ${PROJECT_INCLUDES}\n")
+  
+    # copy lib to obj
+    add_custom_command(TARGET ${TARGET_NAME}-gdb PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${GDB_SOLIB_PATH})
+    add_custom_command(TARGET ${TARGET_NAME}-gdb PRE_BUILD COMMAND cp ${TARGET_LOCATION} ${GDB_SOLIB_PATH})
+  
+    # strip symbols
+    add_custom_command(TARGET ${TARGET_NAME}-gdb PRE_BUILD COMMAND ${CMAKE_STRIP} ${TARGET_LOCATION})
+  endif () 
+  
   # use androiddeployqt to create the apk
   add_custom_target(${TARGET_NAME}-apk
     COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} ${ANDROID_DEPLOY_QT_INSTALL} --verbose --deployment bundled "\\$(ARGS)"
-    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs
+    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs ${TARGET_NAME}-gdb
   )
   
   # rename the APK if the caller asked us to
