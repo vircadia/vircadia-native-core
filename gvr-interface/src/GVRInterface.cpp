@@ -83,8 +83,8 @@ JNIEXPORT void Java_io_highfidelity_gvrinterface_InterfaceActivity_handleHifiURL
 void GVRInterface::idle() {
 #if defined(ANDROID) && defined(HAVE_LIBOVR)
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
-        qDebug() << "The headset just got docked - assume we are in VR mode.";
-        _inVRMode = true;
+        qDebug() << "The headset just got docked - enter VR mode.";
+        enterVRMode();
     } else if (_inVRMode) {
 
         if (ovr_IsHeadsetDocked()) {
@@ -109,8 +109,9 @@ void GVRInterface::idle() {
                     << ovrOrientation.x <<  ovrOrientation.y <<  ovrOrientation.z <<  ovrOrientation.w;
             }
         } else {
-            qDebug() << "The headset was undocked - assume we are no longer in VR mode.";
-            _inVRMode = false;
+            qDebug() << "The headset was undocked - leaving VR mode.";
+            
+            leaveVRMode();
         }
     } 
 #endif
@@ -127,4 +128,37 @@ void GVRInterface::handleApplicationStateChange(Qt::ApplicationState state) {
         default:
             break;
     }
+}
+
+void GVRInterface::enterVRMode() {
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
+    // Default vrModeParms
+    ovrModeParms vrModeParms;
+    vrModeParms.AsynchronousTimeWarp = true;
+    vrModeParms.AllowPowerSave = true;
+    vrModeParms.DistortionFileName = NULL;
+    vrModeParms.EnableImageServer = false;
+    vrModeParms.CpuLevel = 2;
+    vrModeParms.GpuLevel = 2;
+    vrModeParms.GameThreadTid = 0;
+    
+    QAndroidJniEnvironment jniEnv;
+    
+    QPlatformNativeInterface* interface = QApplication::platformNativeInterface();
+    jobject activity = (jobject) interface->nativeResourceForIntegration("QtActivity");
+    
+    vrModeParms.ActivityObject = activity;
+    
+    ovrHmdInfo hmdInfo;
+    _ovr = ovr_EnterVrMode(vrModeParms, &hmdInfo);
+    
+    _inVRMode = true;
+#endif
+}
+
+void GVRInterface::leaveVRMode() {
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
+    ovr_LeaveVrMode(_ovr);
+    _inVRMode = false;
+#endif
 }
