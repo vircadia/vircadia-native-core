@@ -107,8 +107,6 @@ void DatagramProcessor::processDatagrams() {
                     
                     if (avatarMixer) {
                         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-                        // avatarMixer->recordBytesReceived(incomingPacket.size());
-                        
                         QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
                                                   Q_ARG(const QByteArray&, incomingPacket),
                                                   Q_ARG(const QWeakPointer<Node>&, avatarMixer));
