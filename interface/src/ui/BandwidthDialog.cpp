@@ -52,9 +52,8 @@ void BandwidthChannelDisplay::Paint() {
 
 
 
-BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthRecorder* model) :
-    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
-    _model(model) {
+BandwidthDialog::BandwidthDialog(QWidget* parent) :
+    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) {
 
     this->setWindowTitle("Bandwidth Details");
 
@@ -62,12 +61,14 @@ BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthRecorder* model) :
     QFormLayout* form = new QFormLayout();
     this->QDialog::setLayout(form);
 
-    _allChannelDisplays[0] = _audioChannelDisplay = new BandwidthChannelDisplay(&_model->audioChannel, form);
-    _allChannelDisplays[1] = _avatarsChannelDisplay = new BandwidthChannelDisplay(&_model->avatarsChannel, form);
-    _allChannelDisplays[2] = _octreeChannelDisplay = new BandwidthChannelDisplay(&_model->octreeChannel, form);
-    _allChannelDisplays[3] = _metavoxelsChannelDisplay = new BandwidthChannelDisplay(&_model->metavoxelsChannel, form);
-    _allChannelDisplays[4] = _otherChannelDisplay = new BandwidthChannelDisplay(&_model->otherChannel, form);
-    _allChannelDisplays[5] = _totalChannelDisplay = new BandwidthChannelDisplay(&_model->totalChannel, form);
+    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
+
+    _allChannelDisplays[0] = _audioChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->audioChannel, form);
+    _allChannelDisplays[1] = _avatarsChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->avatarsChannel, form);
+    _allChannelDisplays[2] = _octreeChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->octreeChannel, form);
+    _allChannelDisplays[3] = _metavoxelsChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->metavoxelsChannel,form);
+    _allChannelDisplays[4] = _otherChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->otherChannel, form);
+    _allChannelDisplays[5] = _totalChannelDisplay = new BandwidthChannelDisplay(&bandwidthRecorder->totalChannel, form);
                           
     connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
     averageUpdateTimer->start(1000);

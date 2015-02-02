@@ -201,6 +201,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto lodManager = DependencyManager::set<LODManager>();
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     auto dialogsManager = DependencyManager::set<DialogsManager>();
+    auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -434,10 +435,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // hook up bandwidth estimator
+    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     connect(nodeList.data(), SIGNAL(dataSent(const quint8, const int)),
-            &_bandwidthRecorder, SLOT(updateOutboundData(const quint8, const int)));
+            &*bandwidthRecorder, SLOT(updateOutboundData(const quint8, const int)));
     connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
-            &_bandwidthRecorder, SLOT(updateInboundData(const quint8, const int)));
+            &*bandwidthRecorder, SLOT(updateInboundData(const quint8, const int)));
 
     // check first run...
     bool firstRun = SettingHandles::firstRun.get();

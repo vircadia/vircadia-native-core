@@ -904,7 +904,7 @@ void ApplicationOverlay::renderAudioMeter() {
 void ApplicationOverlay::renderStatsAndLogs() {
 
     Application* application = Application::getInstance();
-    BandwidthRecorder* bandwidthRecorder = Application::getInstance()->getBandwidthRecorder();
+    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     
     auto glCanvas = DependencyManager::get<GLCanvas>();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();

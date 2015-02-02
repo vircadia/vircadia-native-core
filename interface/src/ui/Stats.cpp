@@ -25,6 +25,7 @@
 #include <PerfStat.h>
 
 #include "Stats.h"
+#include "BandwidthRecorder.h"
 #include "InterfaceConfig.h"
 #include "Menu.h"
 #include "Util.h"
@@ -216,7 +217,7 @@ void Stats::display(
     QLocale locale(QLocale::English);
     std::stringstream octreeStats;
 
-    BandwidthRecorder* bandwidthRecorder = Application::getInstance()->getBandwidthRecorder();
+    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
 
     if (_lastHorizontalOffset != horizontalOffset) {
         resetWidth(glCanvas->width(), horizontalOffset);

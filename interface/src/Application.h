@@ -202,7 +202,6 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
-    BandwidthRecorder* getBandwidthRecorder() { return &_bandwidthRecorder; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
@@ -483,9 +482,6 @@ private:
     float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
-
-    BandwidthRecorder _bandwidthRecorder;
-
 
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)

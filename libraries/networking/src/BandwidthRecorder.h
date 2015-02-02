@@ -17,6 +17,7 @@
 #include <QObject>
 #include <QElapsedTimer>
 #include <QTimer>
+#include "DependencyManager.h"
 #include "Node.h"
 #include "SimpleMovingAverage.h"
 
@@ -27,8 +28,9 @@ const unsigned int COLOR1 = 0xffef40c0;
 const unsigned int COLOR2 = 0xd0d0d0a0;
 
 
-class BandwidthRecorder : public QObject {
+class BandwidthRecorder : public QObject, public Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
     BandwidthRecorder();

@@ -27,10 +27,8 @@ class BandwidthChannelDisplay : public QObject {
     void Paint();
 
  private:
-
     BandwidthRecorder::Channel *ch;
     QLabel* label;
-    // std::string strBuf;
     QString strBuf;
 
  public slots:
@@ -41,8 +39,7 @@ class BandwidthChannelDisplay : public QObject {
 class BandwidthDialog : public QDialog {
     Q_OBJECT
 public:
-    // Sets up the UI based on the configuration of the BandwidthRecorder
-    BandwidthDialog(QWidget* parent, BandwidthRecorder* model);
+    BandwidthDialog(QWidget* parent);
     ~BandwidthDialog();
 
     void paintEvent(QPaintEvent*);
@@ -75,7 +72,6 @@ protected:
     void closeEvent(QCloseEvent*);
 
 private:
-    BandwidthRecorder* _model;
     QTimer *averageUpdateTimer = new QTimer(this);
 
 };
