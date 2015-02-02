@@ -47,8 +47,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _localSockAddr(),
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
-    // _numCollectedPackets(0),
-    // _numCollectedBytes(0),
     _packetStatTimer()
 {
     static bool firstCall = true;
@@ -323,7 +321,6 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
     QMutexLocker locker(&matchingNode->getMutex());
     
     matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-    // matchingNode->recordBytesReceived(packet.size());
     
     if (!matchingNode->getLinkedData() && linkedDataCreateCallback) {
         linkedDataCreateCallback(matchingNode.data());

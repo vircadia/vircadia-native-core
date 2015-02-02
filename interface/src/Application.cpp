@@ -242,10 +242,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
-// _inPacketsPerSecond(0),
-// _outPacketsPerSecond(0),
-// _inBytesPerSecond(0),
-// _outBytesPerSecond(0),
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
@@ -1381,15 +1377,8 @@ void Application::timer() {
     float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
 
     _fps = (float)_frameCount / diffTime;
-
-    // _inPacketsPerSecond = (float) _datagramProcessor.getInPacketCount() / diffTime;
-    // _outPacketsPerSecond = (float) _datagramProcessor.getOutPacketCount() / diffTime;
-    // _inBytesPerSecond = (float) _datagramProcessor.getInByteCount() / diffTime;
-    // _outBytesPerSecond = (float) _datagramProcessor.getOutByteCount() / diffTime;
     _frameCount = 0;
-
     _datagramProcessor.resetCounters();
-
     _timerStart.start();
 
     // ask the node list to check in with the domain server

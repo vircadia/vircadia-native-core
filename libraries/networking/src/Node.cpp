@@ -47,7 +47,6 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _activeSocket(NULL),
     _symmetricSocket(),
     _connectionSecret(),
-        // _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true),
     _pingMs(-1),  // "Uninitialized"
@@ -60,32 +59,7 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
 
 Node::~Node() {
     delete _linkedData;
-    // delete _bytesReceivedMovingAverage;
 }
-
-// void Node::recordBytesReceived(int bytesReceived) {
-//     if (!_bytesReceivedMovingAverage) {
-//         _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
-//     }
-
-//     _bytesReceivedMovingAverage->updateAverage((float) bytesReceived);
-// }
-
-// float Node::getAveragePacketsPerSecond() {
-//     if (_bytesReceivedMovingAverage) {
-//         return (1 / _bytesReceivedMovingAverage->getEventDeltaAverage());
-//     } else {
-//         return 0;
-//     }
-// }
-
-// float Node::getAverageKilobitsPerSecond() {
-//     if (_bytesReceivedMovingAverage) {
-//         return (_bytesReceivedMovingAverage->getAverageSampleValuePerSecond() * (8.0f / 1000));
-//     } else {
-//         return 0;
-//     }
-// }
 
 void Node::updateClockSkewUsec(int clockSkewSample) {
     _clockSkewMovingPercentile.updatePercentile((float)clockSkewSample);

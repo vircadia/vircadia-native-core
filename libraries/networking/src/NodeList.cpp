@@ -160,7 +160,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             break;
         }
         case PacketTypeUnverifiedPing: {
-
             // send back a reply
             QByteArray replyPacket = constructPingReplyPacket(packet, _domainHandler.getICEClientID());
             writeUnverifiedDatagram(replyPacket, senderSockAddr);
