@@ -17,19 +17,18 @@
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QAndroidJniObject>
 
-#endif
-
-#include <QtCore/QTimer>
-#include <QtWidgets/QMenuBar>
-
 #ifdef HAVE_LIBOVR
 
-#include <GlUtils.h>
 #include <VrApi/LocalPreferences.h>
 #include <VrApi/VrApi.h>
 #include <VrApi/VrApi_local.h>
 
 #endif
+#endif
+
+#include <QtCore/QTimer>
+#include <QtGui/QKeyEvent>
+#include <QtWidgets/QMenuBar>
 
 #include "GVRMainWindow.h"
 #include "RenderingClient.h"

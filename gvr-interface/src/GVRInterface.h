@@ -14,12 +14,13 @@
 
 #include <QtWidgets/QApplication>
 
-class RenderingClient;
-
-#ifdef HAVE_LIBOVR
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
 class ovrMobile;
 class ovrHmdInfo;
-#endif
+#endif 
+
+class RenderingClient;
+class QKeyEvent;
 
 #if defined(qApp)
 #undef qApp
@@ -29,10 +30,12 @@ class ovrHmdInfo;
 class GVRInterface : public QApplication {
     Q_OBJECT
 public:
-    GVRInterface(int argc, char* argv[]);
-    
+    GVRInterface(int argc, char* argv[]);   
     RenderingClient* getClient() { return _client; }
     
+protected:
+    void keyPressEvent(QKeyEvent* event);
+        
 private slots:
     void handleApplicationStateChange(Qt::ApplicationState state);
     void idle();
@@ -41,13 +44,13 @@ private:
     void enterVRMode();
     void leaveVRMode();
     
-    RenderingClient* _client;
-    bool _inVRMode;
-    
-#ifdef HAVE_LIBOVR
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
     ovrMobile* _ovr;
     ovrHmdInfo* _hmdInfo;
 #endif
+    
+    RenderingClient* _client;
+    bool _inVRMode;
 };
 
 #endif // hifi_GVRInterface_h

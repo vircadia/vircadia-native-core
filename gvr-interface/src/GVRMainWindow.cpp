@@ -9,13 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtGui/QKeyEvent>
 #include <QtWidgets/QApplication>
-#include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QInputDialog>
 #include <QtWidgets/QMenuBar>
+#include <QtWidgets/QVBoxLayout>
 
 #ifndef ANDROID
 #include <QtWidgets/QDesktopWidget>
+#else
+#ifdef HAVE_LIBOVR
+#include <OVR_CAPI.h>
+#endif
 #endif
 
 #include <AddressManager.h>
@@ -25,8 +30,16 @@
 
 #include "GVRMainWindow.h"
 
+const float LIBOVR_DOUBLE_TAP_DURATION = 0.25f;
+const float LIBOVR_LONG_PRESS_DURATION = 0.75f;
+
 GVRMainWindow::GVRMainWindow(QWidget* parent) :
     QMainWindow(parent),
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
+    _backKeyState(LIBOVR_DOUBLE_TAP_DURATION, LIBOVR_LONG_PRESS_DURATION),
+    _wasBackKeyDown(false),
+#endif
+    _mainLayout(NULL),
     _menuBar(NULL)
 {
     
@@ -55,6 +68,31 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
 
 GVRMainWindow::~GVRMainWindow() {
     delete _menuBar;
+}
+
+void GVRMainWindow::keyPressEvent(QKeyEvent* event) {
+#ifdef ANDROID
+    if (event->key() == Qt::Key_Back) {
+        // got the Android back key, hand off to OVR KeyState
+        _backKeyState.HandleEvent(ovr_GetTimeInSeconds(), true, (_wasBackKeyDown ? 1 : 0));
+        _wasBackKeyDown = true;
+        return;
+    }
+#endif
+    QWidget::keyPressEvent(event);
+}
+
+void GVRMainWindow::keyReleaseEvent(QKeyEvent* event) {
+#ifdef ANDROID
+    if (event->key() == Qt::Key_Back) {
+        // release on the Android back key, hand off to OVR KeyState
+        _backKeyState.HandleEvent(ovr_GetTimeInSeconds(), false, 0);
+        _wasBackKeyDown = false;
+        
+        auto backEvent = _backKeyState.Update(ovr_GetTimeInSeconds());
+    }
+#endif
+    QWidget::keyReleaseEvent(event);
 }
 
 void GVRMainWindow::setupMenuBar() {

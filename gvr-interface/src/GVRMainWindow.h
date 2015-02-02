@@ -14,6 +14,11 @@
 
 #include <QtWidgets/QMainWindow>
 
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
+#include <KeyState.h>
+#endif
+
+class QKeyEvent;
 class QMenuBar;
 class QVBoxLayout;
 
@@ -24,8 +29,16 @@ public:
     ~GVRMainWindow();
 public slots:
     void showAddressBar();
+protected:
+    void keyPressEvent(QKeyEvent* event);
+    void keyReleaseEvent(QKeyEvent* event);
 private:
     void setupMenuBar();
+    
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
+    OVR::KeyState _backKeyState;
+    bool _wasBackKeyDown;
+#endif
     
     QVBoxLayout* _mainLayout;
     QMenuBar* _menuBar;
