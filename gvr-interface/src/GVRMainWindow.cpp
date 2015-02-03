@@ -16,11 +16,16 @@
 #include <QtWidgets/QVBoxLayout>
 
 #ifndef ANDROID
+
 #include <QtWidgets/QDesktopWidget>
-#else
-#ifdef HAVE_LIBOVR
+
+#elif defined(HAVE_LIBOVR)
+
 #include <OVR_CAPI.h>
-#endif
+
+const float LIBOVR_DOUBLE_TAP_DURATION = 0.25f;
+const float LIBOVR_LONG_PRESS_DURATION = 0.75f;
+
 #endif
 
 #include <AddressManager.h>
@@ -30,8 +35,7 @@
 
 #include "GVRMainWindow.h"
 
-const float LIBOVR_DOUBLE_TAP_DURATION = 0.25f;
-const float LIBOVR_LONG_PRESS_DURATION = 0.75f;
+
 
 GVRMainWindow::GVRMainWindow(QWidget* parent) :
     QMainWindow(parent),
