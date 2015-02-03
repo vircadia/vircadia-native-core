@@ -38,3 +38,5 @@ interface/resources/visage/*
 
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/
+
+TAGS
