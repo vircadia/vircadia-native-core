@@ -856,26 +856,6 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     return false;
 }
 
-bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
-    ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
-    // coarse check against bounds
-    AACube cube = element->getAACube();
-    cube.scale(TREE_SCALE);
-    if (!cube.expandedContains(args->shape->getTranslation(), args->shape->getBoundingRadius())) {
-        return false;
-    }
-    if (element->hasContent()) {
-        if (element->findShapeCollisions(args->shape, args->collisions)) {
-            args->found = true;
-            return true;
-        }
-    }
-    if (!element->isLeaf()) {
-        return true; // recurse on children
-    }
-    return false;
-}
-
 uint qHash(const glm::vec3& point) {
     // NOTE: TREE_SCALE = 16384 (15 bits) and multiplier is 1024 (11 bits), 
     // so each component (26 bits) uses more than its alloted 21 bits.
@@ -936,37 +916,6 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
     }
 
     recurseTreeWithOperation(findCapsulePenetrationOp, &args);
-    
-    if (gotLock) {
-        unlock();
-    }
-
-    if (accurateResult) {
-        *accurateResult = true; // if user asked to accuracy or result, let them know this is accurate
-    }
-    return args.found;
-}
-
-bool Octree::findShapeCollisions(const Shape* shape, CollisionList& collisions, 
-                    Octree::lockType lockType, bool* accurateResult) {
-
-    ShapeArgs args = { shape, collisions, false };
-
-    bool gotLock = false;
-    if (lockType == Octree::Lock) {
-        lockForRead();
-        gotLock = true;
-    } else if (lockType == Octree::TryLock) {
-        gotLock = tryLockForRead();
-        if (!gotLock) {
-            if (accurateResult) {
-                *accurateResult = false; // if user asked to accuracy or result, let them know this is inaccurate
-            }
-            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
-        }
-    }
-
-    recurseTreeWithOperation(findShapeCollisionsOp, &args);
     
     if (gotLock) {
         unlock();

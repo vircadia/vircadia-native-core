@@ -1396,12 +1396,6 @@ bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
     return _cube.findSpherePenetration(center, radius, penetration);
 }
 
-bool OctreeElement::findShapeCollisions(const Shape* shape, CollisionList& collisions) const {
-    AACube cube = getAACube();
-    cube.scale(TREE_SCALE);
-    return ShapeCollider::collideShapeWithAACubeLegacy(shape, cube.calcCenter(), cube.getScale(), collisions);
-}
-
 // TODO: consider removing this, or switching to using getOrCreateChildElementContaining(const AACube& box)...
 OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float z, float s) {
     OctreeElement* child = NULL;
