@@ -535,7 +535,7 @@ function mousePressEvent(event) {
             if (result !== null) {
                 var currentProperties = Entities.getEntityProperties(result.entityID);
                 cameraManager.enable();
-                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                cameraManager.focus(currentProperties.position, null, true);
                 cameraManager.mousePressEvent(event);
             }
         } else {
@@ -683,7 +683,7 @@ function mouseClickEvent(event) {
 
             cameraManager.focus(selectionManager.worldPosition,
                                 selectionManager.worldDimensions,
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                                true);
         }
     }
 }
