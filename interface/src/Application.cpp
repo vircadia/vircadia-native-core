@@ -73,7 +73,7 @@
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
@@ -146,12 +146,6 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
-namespace SettingHandles {
-    const SettingHandle<bool> firstRun("firstRun", true);
-    const SettingHandle<QString> lastScriptLocation("LastScriptLocation");
-    const SettingHandle<QString> scriptsLocation("scriptsLocation");
-}
-
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
@@ -200,7 +194,6 @@ bool setupEssentials(int& argc, char** argv) {
     return true;
 }
 
-
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
@@ -221,6 +214,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+        _firstRun("firstRun", true),
+        _previousScriptLocation("LastScriptLocation"),
+        _scriptsLocationHandle("scriptsLocation"),
+        _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
         _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
@@ -238,7 +235,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _inBytesPerSecond(0),
         _outBytesPerSecond(0),
         _nodeBoundsDisplay(this),
-        _previousScriptLocation(),
         _applicationOverlay(),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
@@ -428,19 +424,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // check first run...
-    bool firstRun = SettingHandles::firstRun.get();
-    if (firstRun) {
+    if (_firstRun.get()) {
         qDebug() << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript(DEFAULT_SCRIPTS_JS_URL);
 
-        SettingHandles::firstRun.set(false);
+        _firstRun.set(false);
     } else {
         // do this as late as possible so that all required subsystems are initialized
         loadScripts();
-
-        _previousScriptLocation = SettingHandles::lastScriptLocation.get();
     }
     
     loadSettings();
@@ -717,7 +710,7 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
         TV3DManager::configureCamera(camera, width, height);
     } else {
         camera.setAspectRatio((float)width / height);
-        camera.setFieldOfView(_viewFrustum.getFieldOfView());
+        camera.setFieldOfView(_fieldOfView.get());
     }
 }
 
@@ -2974,7 +2967,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
-    } else if (SettingHandles::rearViewZoomLevel.get() == BODY) {
+    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
@@ -3704,21 +3697,20 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
 
 QString Application::getPreviousScriptLocation() {
     QString suggestedName;
-    if (_previousScriptLocation.isEmpty()) {
+    if (_previousScriptLocation.get().isEmpty()) {
         QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 // Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
 #ifdef __APPLE__
         suggestedName = desktopLocation.append("/script.js");
 #endif
     } else {
-        suggestedName = _previousScriptLocation;
+        suggestedName = _previousScriptLocation.get();
     }
     return suggestedName;
 }
 
 void Application::setPreviousScriptLocation(const QString& previousScriptLocation) {
-    _previousScriptLocation = previousScriptLocation;
-    SettingHandles::lastScriptLocation.set(_previousScriptLocation);
+    _previousScriptLocation.set(previousScriptLocation);
 }
 
 void Application::loadDialog() {
@@ -3753,12 +3745,12 @@ void Application::loadScriptURLDialog() {
     }
 }
 
-QString Application::getScriptsLocation() const {
-    return SettingHandles::scriptsLocation.get();
+QString Application::getScriptsLocation() {
+    return _scriptsLocationHandle.get();
 }
 
 void Application::setScriptsLocation(const QString& scriptsLocation) {
-    SettingHandles::scriptsLocation.set(scriptsLocation);
+    _scriptsLocationHandle.set(scriptsLocation);
     emit scriptLocationChanged(scriptsLocation);
 }
 
