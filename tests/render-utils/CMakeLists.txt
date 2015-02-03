@@ -3,7 +3,8 @@ set(TARGET_NAME render-utils-tests)
 setup_hifi_project(Quick)
 
 include_glm()
-include_oglplus()
+
+#include_oglplus()
 
 # link in the shared libraries
 link_hifi_libraries(render-utils gpu shared)

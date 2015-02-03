@@ -139,7 +139,7 @@ void QTestWindow::makeCurrent() {
   m_context->makeCurrent(this);
 }
 
-static const char * EXAMPLE_TEXT = "Hello 1.0\nline 2";
+static const wchar_t * EXAMPLE_TEXT = L"Hello 1.0\nline 2\ndescent ggg\nascent  ¡¡¡";
 static const glm::uvec2 QUAD_OFFSET(10, 20);
 static const glm::vec3 COLORS[4] = {
   { 1, 1, 1 },
@@ -181,8 +181,9 @@ void QTestWindow::draw() {
     glVertex2f(size.x, _size.height());
     glEnd();
   }
+  QString str = QString::fromWCharArray(EXAMPLE_TEXT);
   for (int i = 0; i < 4; ++i) {
-    _textRenderer[i]->draw(offsets[i].x, offsets[i].y, EXAMPLE_TEXT, glm::vec4(COLORS[i], 1.0f));
+    _textRenderer[i]->draw(offsets[i].x, offsets[i].y, str.toLocal8Bit().constData(), glm::vec4(COLORS[i], 1.0f));
   }
   m_context->swapBuffers(this);
 }
