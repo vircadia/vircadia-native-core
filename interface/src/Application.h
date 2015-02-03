@@ -213,7 +213,7 @@ public:
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
     
-    float getFieldOfView() { _fieldOfView.get(); }
+    float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
