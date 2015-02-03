@@ -136,9 +136,6 @@ using namespace std;
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
 
-static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
-
-
 const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
@@ -304,9 +301,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     audioIO->setPositionGetter(getPositionForAudio);
     audioIO->setOrientationGetter(getOrientationForAudio);
-    
-    connect(audioIO.data(), &AudioClient::inputBytesFromNetwork, &_bandwidthMeter, &BandwidthMeter::updateAudioInputBytes);
-    connect(audioIO.data(), &AudioClient::outputBytesToNetwork, &_bandwidthMeter, &BandwidthMeter::updateAudioOutputBytes);
     
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
