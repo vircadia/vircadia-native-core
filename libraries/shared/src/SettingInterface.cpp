@@ -1,39 +1,25 @@
 //
-//  Settings.cpp
+//  SettingInterface.cpp
 //
 //
-//  Created by Clement on 1/18/15.
+//  Created by Clement on 2/2/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include <QCoreApplication>
 #include <QDebug>
-#include <QHash>
-#include <QSettings>
 #include <QThread>
-#include <QVector>
 
 #include "PathUtils.h"
-#include "Settings.h"
+#include "SettingInterface.h"
+#include "SettingManager.h"
 
 namespace Setting {
-    class Manager : public QSettings {
-    public:
-        ~Manager();
-        void registerHandle(Interface* handle);
-        void removeHandle(const QString& key);
-        
-        void loadSetting(Interface* handle);
-        void saveSetting(Interface* handle);
-        void saveAll();
-        
-    private:
-        QHash<QString, Interface*> _handles;
-    };
-    Manager* privateInstance = nullptr;
+    static Manager* privateInstance = nullptr;
     
     // cleans up the settings private instance. Should only be run once at closing down.
     void cleanupPrivateInstance() {
@@ -55,10 +41,13 @@ namespace Setting {
         // Let's set up the settings Private instance on it's own thread
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);
+        thread->setObjectName("Settings Thread");
+        
         privateInstance = new Manager();
         Q_CHECK_PTR(privateInstance);
-        thread->setObjectName("Settings Thread");
+        
         QObject::connect(privateInstance, SIGNAL(destroyed()), thread, SLOT(quit()));
+        QObject::connect(thread, SIGNAL(started()), privateInstance, SLOT(startTimer()));
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
         privateInstance->moveToThread(thread);
         thread->start();
@@ -70,6 +59,7 @@ namespace Setting {
     // Register setupPrivateInstance to run after QCoreApplication's constructor.
     Q_COREAPP_STARTUP_FUNCTION(setupPrivateInstance)
     
+    
     Interface::~Interface() {
         if (privateInstance) {
             privateInstance->removeHandle(_key);
@@ -77,16 +67,17 @@ namespace Setting {
     }
     
     void Interface::init() {
-        if (privateInstance) {
-            // Register Handle
-            privateInstance->registerHandle(this);
-            _isInitialized = true;
-            
-            // Load value from disk
-            privateInstance->loadSetting(this);
-        } else {
-            qWarning() << "Setting::Interface::init(): Manager not yet created";
+        if (!privateInstance) {
+            qWarning() << "Setting::Interface::init(): Manager not yet created, bailing";
+            return;
         }
+        
+        // Register Handle
+        privateInstance->registerHandle(this);
+        _isInitialized = true;
+        
+        // Load value from disk
+        load();
     }
     
     void Interface::maybeInit() {
@@ -95,39 +86,15 @@ namespace Setting {
         }
     }
     
-    Manager::~Manager() {
-        saveAll();
-        sync();
-    }
-    
-    void Manager::registerHandle(Setting::Interface* handle) {
-        QString key = handle->getKey();
-        if (_handles.contains(key)) {
-            qWarning() << "Setting::Manager::registerHandle(): Key registered more than once, overriding: " << key;
-        }
-        _handles.insert(key, handle);
-    }
-    
-    void Manager::removeHandle(const QString& key) {
-        _handles.remove(key);
-    }
-    
-    void Manager::loadSetting(Interface* handle) {
-        handle->setVariant(value(handle->getKey()));
-    }
-    
-    void Manager::saveSetting(Interface* handle) {
-        if (handle->isSet()) {
-            setValue(handle->getKey(), handle->getVariant());
-        } else {
-            remove(handle->getKey());
+    void Interface::save() {
+        if (privateInstance) {
+            privateInstance->saveSetting(this);
         }
     }
     
-    void Manager::saveAll() {
-        for (auto handle : _handles) {
-            saveSetting(handle);
+    void Interface::load() {
+        if (privateInstance) {
+            privateInstance->loadSetting(this);
         }
     }
-    
 }

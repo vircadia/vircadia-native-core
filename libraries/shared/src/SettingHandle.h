@@ -16,32 +16,14 @@
 #include <QString>
 #include <QVariant>
 
+#include "SettingInterface.h"
+
 // TODO: remove
 class Settings : public QSettings {
     
 };
 
 namespace Setting {
-    class Interface {
-    protected:
-        Interface(const QString& key) : _key(key) {}
-        virtual ~Interface();
-        void init();
-        void maybeInit();
-        
-        QString getKey() const { return _key; }
-        bool isSet() const { return _isSet; }
-        
-        virtual void setVariant(const QVariant& variant) = 0;
-        virtual QVariant getVariant() = 0;
-        
-        bool _isInitialized = false;
-        bool _isSet = false;
-        const QString _key;
-        
-        friend class Manager;
-    };
-    
     template <typename T>
     class Handle : public Interface {
     public:
@@ -50,6 +32,8 @@ namespace Setting {
         
         Handle(const QString& key, const T& defaultValue) : Interface(key), _defaultValue(defaultValue) {}
         Handle(const QStringList& path, const T& defaultValue) : Handle(path.join("/"), defaultValue) {}
+        
+        virtual ~Handle() { save(); }
         
         // Returns setting value, returns its default value if not found
         T get() { return get(_defaultValue); }
