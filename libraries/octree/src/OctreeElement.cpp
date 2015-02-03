@@ -20,7 +20,6 @@
 #include <NodeList.h>
 #include <PerfStat.h>
 #include <AACubeShape.h>
-#include <ShapeCollider.h>
 
 #include "AACube.h"
 #include "OctalCode.h"

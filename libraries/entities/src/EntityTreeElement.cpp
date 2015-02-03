@@ -11,9 +11,6 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include <AACubeShape.h>
-#include <ShapeCollider.h>
-
 #include <FBXReader.h>
 #include <GeometryUtil.h>
 

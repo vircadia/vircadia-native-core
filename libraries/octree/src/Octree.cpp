@@ -27,7 +27,6 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <Shape.h>
-#include <ShapeCollider.h>
 
 #include "CoverageMap.h"
 #include "OctreeConstants.h"
