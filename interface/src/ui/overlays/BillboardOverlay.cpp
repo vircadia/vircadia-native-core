@@ -24,6 +24,7 @@ BillboardOverlay::BillboardOverlay() :
 BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
     Base3DOverlay(billboardOverlay),
     _url(billboardOverlay->_url),
+    _texture(billboardOverlay->_texture),
     _fromImage(billboardOverlay->_fromImage),
     _scale(billboardOverlay->_scale),
     _isFacingAvatar(billboardOverlay->_isFacingAvatar)
