@@ -821,9 +821,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Import Models") {
         modelImporter.doImport();
     } else if (menuItem == "Entity List...") {
-        if (isActive) {
-            entityListTool.toggleVisible();
-        }
+        entityListTool.toggleVisible();
     }
     tooltip.show(false);
 }
