@@ -444,7 +444,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
     connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
     connect(&_settingsThread, SIGNAL(started()), &_settingsTimer, SLOT(start()));
-    connect(&_settingsThread, &QThread::finished, &_settingsTimer, &QTimer::deleteLater);
+    connect(&_settingsThread, SIGNAL(finished()), &_settingsTimer, SLOT(stop()));
     _settingsTimer.moveToThread(&_settingsThread);
     _settingsTimer.setSingleShot(false);
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
@@ -470,6 +470,8 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
+    QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
+    _settingsThread.quit();
     saveSettings();
     
     _entities.getTree()->setSimulation(NULL);
