@@ -70,8 +70,8 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
             
             // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
             if (getIsSolid()) {
-                glm::vec3 topLeft(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                glm::vec3 bottomRight(halfDimensions.x, 0.0f, halfDimensions.y);
+                glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
                 DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, rectangleColor);
             } else {
                 if (getIsDashedLine()) {
