@@ -82,6 +82,8 @@ public:
     QUdpSocket& getDTLSSocket();
     
     bool packetVersionAndHashMatch(const QByteArray& packet);
+
+    qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
     
     qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
@@ -181,6 +183,9 @@ signals:
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 
+    void dataSent(const quint8 channel_type, const int bytes);
+    void dataReceived(const quint8 channel_type, const int bytes);
+
     void packetVersionMismatch();
     
 protected:
@@ -203,8 +208,11 @@ protected:
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
+
+    // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;
     int _numCollectedBytes;
+
     QElapsedTimer _packetStatTimer;
     
     template<typename IteratorLambda>

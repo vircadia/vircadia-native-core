@@ -201,6 +201,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto lodManager = DependencyManager::set<LODManager>();
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     auto dialogsManager = DependencyManager::set<DialogsManager>();
+    auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -241,10 +242,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
-        _inPacketsPerSecond(0),
-        _outPacketsPerSecond(0),
-        _inBytesPerSecond(0),
-        _outBytesPerSecond(0),
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
@@ -434,6 +431,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
+
+    // hook up bandwidth estimator
+    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
+    connect(nodeList.data(), SIGNAL(dataSent(const quint8, const int)),
+            bandwidthRecorder.data(), SLOT(updateOutboundData(const quint8, const int)));
+    connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
+            bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
 
     // check first run...
     bool firstRun = SettingHandles::firstRun.get();
@@ -774,25 +778,8 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     foreach(NodeType_t type, destinationNodeTypes) {
-
         // Perform the broadcast for one type
-        int nReceivingNodes = DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
-
-        // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
-        double bandwidth_amount = nReceivingNodes * packet.size();
-        switch (type) {
-            case NodeType::Agent:
-            case NodeType::AvatarMixer:
-                _bandwidthRecorder.avatarsChannel->output.updateValue(bandwidth_amount);
-                _bandwidthRecorder.totalChannel->input.updateValue(bandwidth_amount);
-                break;
-            case NodeType::EntityServer:
-                _bandwidthRecorder.octreeChannel->output.updateValue(bandwidth_amount);
-                _bandwidthRecorder.totalChannel->output.updateValue(bandwidth_amount);
-                break;
-            default:
-                continue;
-        }
+        DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
     }
 }
 
@@ -1393,15 +1380,8 @@ void Application::timer() {
     float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
 
     _fps = (float)_frameCount / diffTime;
-
-    _inPacketsPerSecond = (float) _datagramProcessor.getInPacketCount() / diffTime;
-    _outPacketsPerSecond = (float) _datagramProcessor.getOutPacketCount() / diffTime;
-    _inBytesPerSecond = (float) _datagramProcessor.getInByteCount() / diffTime;
-    _outBytesPerSecond = (float) _datagramProcessor.getOutByteCount() / diffTime;
     _frameCount = 0;
-
     _datagramProcessor.resetCounters();
-
     _timerStart.start();
 
     // ask the node list to check in with the domain server
@@ -2386,10 +2366,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             
             // make sure we still have an active socket
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
-            
-            // Feed number of bytes to corresponding channel of the bandwidth meter
-            _bandwidthRecorder.octreeChannel->output.updateValue(packetLength);
-            _bandwidthRecorder.totalChannel->output.updateValue(packetLength);
         }
     });
 }
@@ -3377,8 +3353,6 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 }
 
 void Application::packetSent(quint64 length) {
-    _bandwidthRecorder.octreeChannel->output.updateValue(length);
-    _bandwidthRecorder.totalChannel->output.updateValue(length);
 }
 
 const QString SETTINGS_KEY = "Settings";

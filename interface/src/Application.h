@@ -202,16 +202,11 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
-    BandwidthRecorder* getBandwidthRecorder() { return &_bandwidthRecorder; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    float getInPacketsPerSecond() const { return _inPacketsPerSecond; }
-    float getOutPacketsPerSecond() const { return _outPacketsPerSecond; }
-    float getInBytesPerSecond() const { return _inBytesPerSecond; }
-    float getOutBytesPerSecond() const { return _outBytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
@@ -486,9 +481,6 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    BandwidthRecorder _bandwidthRecorder;
-
-
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
@@ -536,11 +528,6 @@ private:
 
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;
-
-    int _inPacketsPerSecond;
-    int _outPacketsPerSecond;
-    int _inBytesPerSecond;
-    int _outBytesPerSecond;
 
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;

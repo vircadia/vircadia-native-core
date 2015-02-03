@@ -47,8 +47,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _localSockAddr(),
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
-    _numCollectedPackets(0),
-    _numCollectedBytes(0),
     _packetStatTimer()
 {
     static bool firstCall = true;
@@ -210,6 +208,21 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     return false;
 }
 
+// qint64 LimitedNodeList::readDatagram(char* data, qint64 maxSize, QHostAddress* address = 0, quint16 * port = 0) {
+
+qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* address = 0, quint16 * port = 0) {
+    qint64 result = getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(), address, port);
+
+    SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
+    if (sendingNode) {
+        emit dataReceived(sendingNode->getType(), incomingPacket.size());
+    } else {
+        emit dataReceived(NodeType::Unassigned, incomingPacket.size());
+    }
+        
+    return result;
+}
+
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
                                       const QUuid& connectionSecret) {
     QByteArray datagramCopy = datagram;
@@ -219,6 +232,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
         replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
     }
     
+    // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
@@ -233,10 +247,11 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
     return bytesWritten;
 }
 
-qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
-                               const HifiSockAddr& overridenSockAddr) {
+qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
+                                      const SharedNodePointer& destinationNode,
+                                      const HifiSockAddr& overridenSockAddr) {
     if (destinationNode) {
-        // if we don't have an ovveriden address, assume they want to send to the node's active socket
+        // if we don't have an overridden address, assume they want to send to the node's active socket
         const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
         if (overridenSockAddr.isNull()) {
             if (destinationNode->getActiveSocket()) {
@@ -247,6 +262,8 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const SharedNo
                 return 0;
             }
         }
+
+        emit dataSent(destinationNode->getType(), datagram.size());
         
         return writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
     }
@@ -305,7 +322,6 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
     QMutexLocker locker(&matchingNode->getMutex());
     
     matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-    matchingNode->recordBytesReceived(packet.size());
     
     if (!matchingNode->getLinkedData() && linkedDataCreateCallback) {
         linkedDataCreateCallback(matchingNode.data());
