@@ -47,6 +47,18 @@
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
+Setting::Handle<bool> dynamicJitterBuffers("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS);
+Setting::Handle<int> maxFramesOverDesired("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
+Setting::Handle<int> staticDesiredJitterBufferFrames("staticDesiredJitterBufferFrames",
+                                                     DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES);
+Setting::Handle<bool> useStDevForJitterCalc("useStDevForJitterCalc", DEFAULT_USE_STDEV_FOR_JITTER_CALC);
+Setting::Handle<int> windowStarveThreshold("windowStarveThreshold", DEFAULT_WINDOW_STARVE_THRESHOLD);
+Setting::Handle<int> windowSecondsForDesiredCalcOnTooManyStarves("windowSecondsForDesiredCalcOnTooManyStarves",
+                                                                 DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES);
+Setting::Handle<int> windowSecondsForDesiredReduction("windowSecondsForDesiredReduction",
+                                                      DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
+Setting::Handle<bool> repetitionWithFade("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE);
+
 Audio::Audio() :
     AbstractAudioInterface(),
     _audioInput(NULL),
@@ -1126,10 +1138,25 @@ void Audio::checkDevices() {
 }
 
 void Audio::loadSettings() {
-    _receivedAudioStream.loadSettings();
+    _receivedAudioStream.setDynamicJitterBuffers(dynamicJitterBuffers.get());
+    _receivedAudioStream.setMaxFramesOverDesired(maxFramesOverDesired.get());
+    _receivedAudioStream.setStaticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames.get());
+    _receivedAudioStream.setUseStDevForJitterCalc(useStDevForJitterCalc.get());
+    _receivedAudioStream.setWindowStarveThreshold(windowStarveThreshold.get());
+    _receivedAudioStream.setWindowSecondsForDesiredCalcOnTooManyStarves(
+                                            windowSecondsForDesiredCalcOnTooManyStarves.get());
+    _receivedAudioStream.setWindowSecondsForDesiredReduction(windowSecondsForDesiredReduction.get());
+    _receivedAudioStream.setRepetitionWithFade(repetitionWithFade.get());
 }
 
 void Audio::saveSettings() {
-    _receivedAudioStream.saveSettings();
+    dynamicJitterBuffers.set(_receivedAudioStream.getDynamicJitterBuffers());
+    maxFramesOverDesired.set(_receivedAudioStream.getMaxFramesOverDesired());
+    staticDesiredJitterBufferFrames.set(_receivedAudioStream.getDesiredJitterBufferFrames());
+    windowStarveThreshold.set(_receivedAudioStream.getWindowStarveThreshold());
+    windowSecondsForDesiredCalcOnTooManyStarves.set(_receivedAudioStream.
+                                            getWindowSecondsForDesiredCalcOnTooManyStarves());
+    windowSecondsForDesiredReduction.set(_receivedAudioStream.getWindowSecondsForDesiredReduction());
+    repetitionWithFade.set(_receivedAudioStream.getRepetitionWithFade());
 }
 

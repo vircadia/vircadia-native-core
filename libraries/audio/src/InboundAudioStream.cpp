@@ -11,25 +11,10 @@
 
 #include <glm/glm.hpp>
 
-#include <SettingHandle.h>
-
 #include "InboundAudioStream.h"
 #include "PacketHeaders.h"
 
 const int STARVE_HISTORY_CAPACITY = 50;
-
-Setting::Handle<bool> dynamicJitterBuffers("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS);
-Setting::Handle<int> maxFramesOverDesired("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
-Setting::Handle<int> staticDesiredJitterBufferFrames("staticDesiredJitterBufferFrames",
-                                                     DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES);
-Setting::Handle<bool> useStDevForJitterCalc("useStDevForJitterCalc", DEFAULT_USE_STDEV_FOR_JITTER_CALC);
-Setting::Handle<int> windowStarveThreshold("windowStarveThreshold", DEFAULT_WINDOW_STARVE_THRESHOLD);
-Setting::Handle<int> windowSecondsForDesiredCalcOnTooManyStarves("windowSecondsForDesiredCalcOnTooManyStarves",
-                                                    DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES);
-Setting::Handle<int> windowSecondsForDesiredReduction("windowSecondsForDesiredReduction",
-                                                      DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
-Setting::Handle<bool> repetitionWithFade("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE);
-
 
 InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacity, const Settings& settings) :
     _ringBuffer(numFrameSamples, false, numFramesCapacity),
@@ -515,28 +500,4 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     }
     return 0.0f;
 }
-
-void InboundAudioStream::loadSettings() {
-    setDynamicJitterBuffers(dynamicJitterBuffers.get());
-    setMaxFramesOverDesired(maxFramesOverDesired.get());
-    setStaticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames.get());
-    setUseStDevForJitterCalc(useStDevForJitterCalc.get());
-    setWindowStarveThreshold(windowStarveThreshold.get());
-    setWindowSecondsForDesiredCalcOnTooManyStarves(windowSecondsForDesiredCalcOnTooManyStarves.get());
-    setWindowSecondsForDesiredReduction(windowSecondsForDesiredReduction.get());
-    setRepetitionWithFade(repetitionWithFade.get());
-}
-
-void InboundAudioStream::saveSettings() {
-    dynamicJitterBuffers.set(getDynamicJitterBuffers());
-    maxFramesOverDesired.set(getMaxFramesOverDesired());
-    staticDesiredJitterBufferFrames.set(getDesiredJitterBufferFrames());
-    useStDevForJitterCalc.set(getUseStDevForJitterCalc());
-    windowStarveThreshold.set(getWindowStarveThreshold());
-    windowSecondsForDesiredCalcOnTooManyStarves.set(getWindowSecondsForDesiredCalcOnTooManyStarves());
-    windowSecondsForDesiredReduction.set(getWindowSecondsForDesiredReduction());
-    repetitionWithFade.set(getRepetitionWithFade());
-}
-
-
 
