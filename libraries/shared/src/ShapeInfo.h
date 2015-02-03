@@ -17,9 +17,21 @@
 
 #include "Shape.h"
 
+enum ShapeType {
+    SHAPE_TYPE_NONE,
+    SHAPE_TYPE_BOX,
+    SHAPE_TYPE_SPHERE,
+    SHAPE_TYPE_ELLIPSOID,
+    SHAPE_TYPE_CYLINDER,
+    SHAPE_TYPE_CAPSULE,
+    SHAPE_TYPE_CONVEX_HULL,
+    SHAPE_TYPE_PLANE,
+    SHAPE_TYPE_COMPOUND
+};
+
 class ShapeInfo {
 public:
-    ShapeInfo() : _type(INVALID_SHAPE) {}
+    ShapeInfo() : _type(SHAPE_TYPE_NONE) {}
 
     void clear();
 

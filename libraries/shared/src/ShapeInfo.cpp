@@ -17,26 +17,26 @@
 #include "ShapeInfo.h"
 
 void ShapeInfo::clear() {
-    _type = INVALID_SHAPE;
+    _type = SHAPE_TYPE_NONE;
     _data.clear();
 }
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
-    _type = BOX_SHAPE;
+    _type = SHAPE_TYPE_BOX;
     _data.clear();
     // _data[0] = < halfX, halfY, halfZ >
     _data.push_back(halfExtents);
 }
 
 void ShapeInfo::setSphere(float radius) {
-    _type = SPHERE_SHAPE;
+    _type = SHAPE_TYPE_SPHERE;
     _data.clear();
     // _data[0] = < radius, radius, radius >
     _data.push_back(glm::vec3(radius));
 }
 
 void ShapeInfo::setCylinder(float radius, float halfHeight) {
-    _type = CYLINDER_SHAPE;
+    _type = SHAPE_TYPE_CYLINDER;
     _data.clear();
     // _data[0] = < radius, halfHeight, radius >
     // NOTE: default cylinder has (UpAxis = 1) axis along yAxis and radius stored in X
@@ -44,7 +44,7 @@ void ShapeInfo::setCylinder(float radius, float halfHeight) {
 }
 
 void ShapeInfo::setCapsule(float radius, float halfHeight) {
-    _type = CAPSULE_SHAPE;
+    _type = SHAPE_TYPE_CAPSULE;
     _data.clear();
     // _data[0] = < radius, halfHeight, radius >
     _data.push_back(glm::vec3(radius, halfHeight, radius));
@@ -52,10 +52,10 @@ void ShapeInfo::setCapsule(float radius, float halfHeight) {
 
 glm::vec3 ShapeInfo::getBoundingBoxDiagonal() const {
     switch(_type) {
-        case BOX_SHAPE:
-        case SPHERE_SHAPE:
-        case CYLINDER_SHAPE:
-        case CAPSULE_SHAPE:
+        case SHAPE_TYPE_BOX:
+        case SHAPE_TYPE_SPHERE:
+        case SHAPE_TYPE_CYLINDER:
+        case SHAPE_TYPE_CAPSULE:
             return 2.0f * _data[0];
         default:
             break;
@@ -67,22 +67,22 @@ float ShapeInfo::computeVolume() const {
     const float DEFAULT_VOLUME = 1.0f;
     float volume = DEFAULT_VOLUME;
     switch(_type) {
-        case BOX_SHAPE: {
+        case SHAPE_TYPE_BOX: {
             // factor of 8.0 because the components of _data[0] are all halfExtents
             volume = 8.0f * _data[0].x * _data[0].y * _data[0].z;
             break;
         }
-        case SPHERE_SHAPE: {
+        case SHAPE_TYPE_SPHERE: {
             float radius = _data[0].x;
             volume = 4.0f * PI * radius * radius * radius / 3.0f;
             break;
         }
-        case CYLINDER_SHAPE: {
+        case SHAPE_TYPE_CYLINDER: {
             float radius = _data[0].x;
             volume = PI * radius * radius * 2.0f * _data[0].y;
             break;
         }
-        case CAPSULE_SHAPE: {
+        case SHAPE_TYPE_CAPSULE: {
             float radius = _data[0].x;
             volume = PI * radius * radius * (2.0f * _data[0].y + 4.0f * radius / 3.0f);
             break;

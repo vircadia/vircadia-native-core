@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <Shape.h> // for FOO_SHAPE types
+#include <ShapeInfo.h>
 #include <SharedUtil.h> // for MILLIMETERS_PER_METER
 
 #include "ShapeInfoUtil.h"
@@ -18,16 +18,16 @@
 int ShapeInfoUtil::toBulletShapeType(int shapeInfoType) {
     int bulletShapeType = INVALID_SHAPE_PROXYTYPE;
     switch(shapeInfoType) {
-        case BOX_SHAPE:
+        case SHAPE_TYPE_BOX:
             bulletShapeType = BOX_SHAPE_PROXYTYPE;
             break;
-        case SPHERE_SHAPE:
+        case SHAPE_TYPE_SPHERE:
             bulletShapeType = SPHERE_SHAPE_PROXYTYPE;
             break;
-        case CAPSULE_SHAPE:
+        case SHAPE_TYPE_CAPSULE:
             bulletShapeType = CAPSULE_SHAPE_PROXYTYPE;
             break;
-        case CYLINDER_SHAPE:
+        case SHAPE_TYPE_CYLINDER:
             bulletShapeType = CYLINDER_SHAPE_PROXYTYPE;
             break;
     }
@@ -35,19 +35,19 @@ int ShapeInfoUtil::toBulletShapeType(int shapeInfoType) {
 }
 
 int ShapeInfoUtil::fromBulletShapeType(int bulletShapeType) {
-    int shapeInfoType = INVALID_SHAPE;
+    int shapeInfoType = SHAPE_TYPE_NONE;
     switch(bulletShapeType) {
         case BOX_SHAPE_PROXYTYPE:
-            shapeInfoType = BOX_SHAPE;
+            shapeInfoType = SHAPE_TYPE_BOX;
             break;
         case SPHERE_SHAPE_PROXYTYPE:
-            shapeInfoType = SPHERE_SHAPE;
+            shapeInfoType = SHAPE_TYPE_SPHERE;
             break;
         case CAPSULE_SHAPE_PROXYTYPE:
-            shapeInfoType = CAPSULE_SHAPE;
+            shapeInfoType = SHAPE_TYPE_CAPSULE;
             break;
         case CYLINDER_SHAPE_PROXYTYPE:
-            shapeInfoType = CYLINDER_SHAPE;
+            shapeInfoType = SHAPE_TYPE_CYLINDER;
             break;
     }
     return shapeInfoType;
@@ -57,24 +57,24 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
     if (shape) {
         int type = ShapeInfoUtil::fromBulletShapeType(shape->getShapeType());
         switch(type) {
-            case BOX_SHAPE: {
+            case SHAPE_TYPE_BOX: {
                 const btBoxShape* boxShape = static_cast<const btBoxShape*>(shape);
                 info.setBox(bulletToGLM(boxShape->getHalfExtentsWithMargin()));
             }
             break;
-            case SPHERE_SHAPE: {
+            case SHAPE_TYPE_SPHERE: {
                 const btSphereShape* sphereShape = static_cast<const btSphereShape*>(shape);
                 info.setSphere(sphereShape->getRadius());
             }
             break;
-            case CYLINDER_SHAPE: {
+            case SHAPE_TYPE_CYLINDER: {
                 // NOTE: we only support cylinders along yAxis
                 const btCylinderShape* cylinderShape = static_cast<const btCylinderShape*>(shape);
                 btVector3 halfExtents = cylinderShape->getHalfExtentsWithMargin();
                 info.setCylinder(halfExtents.getX(), halfExtents.getY());
             }
             break;
-            case CAPSULE_SHAPE: {
+            case SHAPE_TYPE_CAPSULE: {
                 // NOTE: we only support capsules along yAxis
                 const btCapsuleShape* capsuleShape = static_cast<const btCapsuleShape*>(shape);
                 info.setCapsule(capsuleShape->getRadius(), capsuleShape->getHalfHeight());
@@ -93,23 +93,23 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     const QVector<glm::vec3>& data = info.getData();
     switch(info.getType()) {
-        case BOX_SHAPE: {
+        case SHAPE_TYPE_BOX: {
             // data[0] is halfExtents
             shape = new btBoxShape(glmToBullet(data[0]));
         }
         break;
-        case SPHERE_SHAPE: {
+        case SHAPE_TYPE_SPHERE: {
             float radius = data[0].z;
             shape = new btSphereShape(radius);
         }
         break;
-        case CYLINDER_SHAPE: {
+        case SHAPE_TYPE_CYLINDER: {
             // NOTE: default cylinder has (UpAxis = 1) axis along yAxis and radius stored in X
             // data[0] = btVector3(radius, halfHeight, unused)
             shape = new btCylinderShape(glmToBullet(data[0]));
         }
         break;
-        case CAPSULE_SHAPE: {
+        case SHAPE_TYPE_CAPSULE: {
             float radius = data[0].x;
             float height = 2.0f * data[0].y;
             shape = new btCapsuleShape(radius, height);
