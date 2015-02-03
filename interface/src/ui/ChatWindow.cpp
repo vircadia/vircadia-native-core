@@ -22,7 +22,6 @@
 #include <AddressManager.h>
 #include <AccountManager.h>
 #include <PathUtils.h>
-#include <Settings.h>
 
 #include "Application.h"
 #include "ChatMessageArea.h"
@@ -42,10 +41,6 @@ const QRegularExpression regexHifiLinks("([#@]\\S+)");
 const QString mentionSoundsPath("/mention-sounds/");
 const QString mentionRegex("@(\\b%1\\b)");
 
-namespace SettingHandles {
-    const SettingHandle<QDateTime> usernameMentionTimestamp("MentionTimestamp", QDateTime());
-}
-
 ChatWindow::ChatWindow(QWidget* parent) :
     QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
             Qt::WindowCloseButtonHint),
@@ -54,7 +49,8 @@ ChatWindow::ChatWindow(QWidget* parent) :
     _mousePressed(false),
     _mouseStartPosition(),
     _trayIcon(parent),
-    _effectPlayer()
+    _effectPlayer(),
+    _usernameMentionTimestamp("MentionTimestamp", QDateTime())
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
 
@@ -382,9 +378,9 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     if (message.body().contains(usernameMention)) {
 
         // Don't show messages already seen in icon tray at start-up.
-        bool showMessage = SettingHandles::usernameMentionTimestamp.get() < _lastMessageStamp;
+        bool showMessage = usernameMentionTimestamp.get() < _lastMessageStamp;
         if (showMessage) {
-            SettingHandles::usernameMentionTimestamp.set(_lastMessageStamp);
+            usernameMentionTimestamp.set(_lastMessageStamp);
         }
 
         if (isHidden() && showMessage) {

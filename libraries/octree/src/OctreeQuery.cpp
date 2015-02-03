@@ -11,23 +11,21 @@
 
 #include <GLMHelpers.h>
 #include <PacketHeaders.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
 
-namespace SettingHandles {
-    const SettingHandle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
-}
+Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 OctreeQuery::OctreeQuery() {
-    _maxOctreePPS = SettingHandles::maxOctreePacketsPerSecond.get();
+    _maxOctreePPS = maxOctreePacketsPerSecond.get();
 }
 
 void OctreeQuery::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
     if (maxOctreePPS != _maxOctreePPS) {
         _maxOctreePPS = maxOctreePPS;
-        SettingHandles::maxOctreePacketsPerSecond.set(_maxOctreePPS);
+        maxOctreePacketsPerSecond.set(_maxOctreePPS);
     }
 }
 

@@ -21,7 +21,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <qthread.h>
 
-#include <Settings.h>
+#include <SettingHandle.h>
 
 #include "NodeList.h"
 #include "PacketHeaders.h"
@@ -93,7 +93,7 @@ void AccountManager::logout() {
     if (_shouldPersistToSettingsFile) {
         QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
         QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
-        SettingHandles::SettingHandle<DataServerAccountInfo>(path).remove();
+        Setting::Handle<DataServerAccountInfo>(path).remove();
         
         qDebug() << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
     } else {
@@ -341,7 +341,7 @@ void AccountManager::persistAccountToSettings() {
         // store this access token into the local settings
         QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
         QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
-        SettingHandles::SettingHandle<QVariant>(path).set(QVariant::fromValue(_accountInfo));
+        Setting::Handle<QVariant>(path).set(QVariant::fromValue(_accountInfo));
     }
 }
 
