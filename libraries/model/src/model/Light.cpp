@@ -48,11 +48,11 @@ void Light::setOrientation(const glm::quat& orientation) {
 }
 
 void Light::setDirection(const Vec3& direction) {
-    editSchema()._direction = Vec4(direction, 0.f);
+    editSchema()._direction = direction;
 }
 
 const Vec3& Light::getDirection() const {
-    return Vec3(getSchema()._direction);
+    return getSchema()._direction;
 }
 
 void Light::setColor(const Color& color) {

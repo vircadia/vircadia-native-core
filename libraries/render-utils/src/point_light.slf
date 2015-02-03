@@ -66,10 +66,12 @@ void main(void) {
                          dot(eyeDir, wHalfDir));    
     vec3 specularColor = pow(specularPower, frag.gloss * 128.0) * frag.specular;
 
-    // add specular contribution
-    float ring = (lightAttenuation / (0.2 * getLightAttenuationCutoff(light))) - 1;
-    if (ring < 1) {
-        gl_FragColor = vec4(ring * ring * getLightColor(light), 0.0);
+    // Show edge
+    float maxRadius = getLightRadius(light);
+    float edge =  abs(2.0 * ((maxRadius - lightDistance) / (0.1)) - 1.0);
+    if (edge < 1) {
+        float edgeCoord = exp2(-8.0*edge*edge);
+        gl_FragColor = vec4(edgeCoord * edgeCoord * getLightColor(light), 0.0);
     } else {
         gl_FragColor = vec4((diffuseColor + specularColor) * lightAttenuation * getLightColor(light) * getLightIntensity(light), 0.0);
     }

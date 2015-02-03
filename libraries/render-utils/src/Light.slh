@@ -52,6 +52,10 @@ float getLightSquareRadius(Light l) {
     return l._attenuation.w * l._attenuation.w;
 }
 
+float getLightRadius(Light l) {
+    return l._attenuation.w;
+}
+
 float getLightAttenuationCutoff(Light l) {
     return l._attenuation.z;
 }

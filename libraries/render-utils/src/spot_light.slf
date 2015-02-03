@@ -39,27 +39,27 @@ void main(void) {
     // Make the Light vector going from fragment to light center in world space
     vec4 wPos;
     wPos = invViewMat * frag.position;
-    vec3 lightVector = wPos.xyz - getLightPosition(light);
+    vec3 fragLightVec = getLightPosition(light) - wPos.xyz;
 
     // Kill if too far from the light center
-    if (dot(lightVector, lightVector) > getLightSquareRadius(light)) {
+    if (dot(fragLightVec, fragLightVec) > getLightSquareRadius(light)) {
         discard;
     }
 
     // Allright we re valid in the volume
-    float lightDistance = length(lightVector);
-    float lightAttenuation = evalLightAttenuation(light, lightDistance);
+    float fragLightDistance = length(fragLightVec);
+    float lightAttenuation = evalLightAttenuation(light, fragLightDistance);
 
-    vec3 lightDir = lightVector / lightDistance;
+    vec3 fragLightDir = fragLightVec / fragLightDistance;
        
         gl_FragColor = vec4(getLightColor(light), 0.0);
 
     // Kill if not in the spot light (ah ah !)
     vec3 lightSpotDir = getLightDirection(light);
-    float cosSpotAngle = max(-dot(lightDir, lightSpotDir), 0.0);
+    float cosSpotAngle = max(-dot(fragLightDir, lightSpotDir), 0.0);
     if (cosSpotAngle < getLightSpotAngleCos(light)) {
-       // discard;
-       gl_FragColor = vec4(vec3(1.0, 0.0, 0.0), 0.0);
+       discard;
+       //gl_FragColor = vec4(vec3(1.0, 0.0, 0.0), 0.0);
     }
 
     /*

@@ -88,7 +88,8 @@ public:
     class Schema {
     public:
         Vec4 _position; 
-        Vec4 _direction;
+        Vec3 _direction;
+        float _spare0;
         Color _color;
         float _intensity;
         Vec4 _attenuation;
@@ -99,7 +100,8 @@ public:
 
         Schema() :
             _position(0.0f, 0.0f, 0.0f, 1.0f), 
-            _direction(0.0f, 0.0f, -1.0f, 0.f), 
+            _direction(0.0f, 0.0f, -1.0f),
+            _spare0(0.f), 
             _color(1.0f),
             _intensity(1.0f),
             _attenuation(1.0f, 1.0f, 1.0f, 1.0f),
