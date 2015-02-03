@@ -245,8 +245,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
-        _packetsPerSecond(0),
-        _bytesPerSecond(0),
+        _inPacketsPerSecond(0),
+        _outPacketsPerSecond(0),
+        _inBytesPerSecond(0),
+        _outBytesPerSecond(0),
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
@@ -785,19 +787,20 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         int nReceivingNodes = DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
 
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
-        BandwidthMeter::ChannelIndex channel;
+        double bandwidth_amount = nReceivingNodes * packet.size();
         switch (type) {
             case NodeType::Agent:
             case NodeType::AvatarMixer:
-                channel = BandwidthMeter::AVATARS;
+                _bandwidthRecorder.avatarsChannel->output.updateValue(bandwidth_amount);
+                _bandwidthRecorder.totalChannel->input.updateValue(bandwidth_amount);
                 break;
             case NodeType::EntityServer:
-                channel = BandwidthMeter::OCTREE;
+                _bandwidthRecorder.octreeChannel->output.updateValue(bandwidth_amount);
+                _bandwidthRecorder.totalChannel->output.updateValue(bandwidth_amount);
                 break;
             default:
                 continue;
         }
-        _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * packet.size());
     }
 }
 
@@ -1272,7 +1275,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
                 int horizontalOffset = MIRROR_VIEW_WIDTH;
                 Stats::getInstance()->checkClick(getMouseX(), getMouseY(),
                                                  getMouseDragStartedX(), getMouseDragStartedY(), horizontalOffset);
-                checkBandwidthMeterClick();
             }
             
             // fire an action end event
@@ -1400,8 +1402,10 @@ void Application::timer() {
 
     _fps = (float)_frameCount / diffTime;
 
-    _packetsPerSecond = (float) _datagramProcessor.getPacketCount() / diffTime;
-    _bytesPerSecond = (float) _datagramProcessor.getByteCount() / diffTime;
+    _inPacketsPerSecond = (float) _datagramProcessor.getInPacketCount() / diffTime;
+    _outPacketsPerSecond = (float) _datagramProcessor.getOutPacketCount() / diffTime;
+    _inBytesPerSecond = (float) _datagramProcessor.getInByteCount() / diffTime;
+    _outBytesPerSecond = (float) _datagramProcessor.getOutByteCount() / diffTime;
     _frameCount = 0;
 
     _datagramProcessor.resetCounters();
@@ -1456,23 +1460,6 @@ void Application::idle() {
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
         }
-    }
-}
-
-void Application::checkBandwidthMeterClick() {
-    // ... to be called upon button release
-    auto glCanvas = DependencyManager::get<GLCanvas>();
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
-        Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
-        Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
-        glm::compMax(glm::abs(glm::ivec2(getMouseX() - getMouseDragStartedX(),
-                                         getMouseY() - getMouseDragStartedY())))
-        <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-        && _bandwidthMeter.isWithinArea(getMouseX(), getMouseY(), glCanvas->width(), glCanvas->height())) {
-
-        // The bandwidth meter is visible, the click didn't get dragged too far and
-        // we actually hit the bandwidth meter
-        DependencyManager::get<DialogsManager>()->bandwidthDetails();
     }
 }
 
@@ -2389,7 +2376,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
             
             // Feed number of bytes to corresponding channel of the bandwidth meter
-            _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(packetLength);
+            _bandwidthRecorder.octreeChannel->output.updateValue(packetLength);
+            _bandwidthRecorder.totalChannel->output.updateValue(packetLength);
         }
     });
 }
@@ -3377,7 +3365,8 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
 }
 
 void Application::packetSent(quint64 length) {
-    _bandwidthMeter.outputStream(BandwidthMeter::OCTREE).updateValue(length);
+    _bandwidthRecorder.octreeChannel->output.updateValue(length);
+    _bandwidthRecorder.totalChannel->output.updateValue(length);
 }
 
 const QString SETTINGS_KEY = "Settings";
@@ -3404,15 +3393,12 @@ void Application::clearScriptsBeforeRunning() {
 }
 
 void Application::saveScripts() {
-    QStringList runningScripts = getRunningScripts();
-    if (runningScripts.isEmpty()) {
-        return;
-    }
-    
     // Saves all currently running user-loaded scripts
     Settings settings;
     settings.beginWriteArray(SETTINGS_KEY);
     settings.remove("");
+    
+    QStringList runningScripts = getRunningScripts();
     int i = 0;
     for (auto it = runningScripts.begin(); it != runningScripts.end(); ++it) {
         if (getScriptEngine(*it)->isUserLoaded()) {
@@ -3786,6 +3772,7 @@ void Application::toggleLogDialog() {
 
 void Application::checkVersion() {
     QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
+    latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     QNetworkReply* reply = NetworkAccessManager::getInstance().get(latestVersionRequest);
     connect(reply, SIGNAL(finished()), SLOT(parseVersionXml()));

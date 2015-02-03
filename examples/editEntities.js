@@ -1047,4 +1047,3 @@ PropertiesTool = function(opts) {
 };
 
 propertiesTool = PropertiesTool();
-toolBar.setActive(true);

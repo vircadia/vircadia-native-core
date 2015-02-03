@@ -845,7 +845,12 @@ void AudioClient::handleAudioInput() {
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
             _outgoingAvatarAudioSequenceNumber++;
 
+<<<<<<< HEAD:libraries/audio-client/src/AudioClient.cpp
             emit outputBytesToNetwork(packetBytes);
+=======
+            Application::getInstance()->getBandwidthRecorder()->audioChannel->output.updateValue(packetBytes);
+            Application::getInstance()->getBandwidthRecorder()->totalChannel->output.updateValue(packetBytes);
+>>>>>>> 2eeb2a5ec5cdcc27319b2140c7ebae17b8ee5371:interface/src/Audio.cpp
         }
     }
 }
@@ -896,8 +901,9 @@ void AudioClient::addReceivedAudioToStream(const QByteArray& audioByteArray) {
         // Audio output must exist and be correctly set up if we're going to process received audio
         _receivedAudioStream.parseData(audioByteArray);
     }
-
-    emit inputBytesFromNetwork(audioByteArray.size());
+    
+    Application::getInstance()->getBandwidthRecorder()->audioChannel->input.updateValue(audioByteArray.size());
+    Application::getInstance()->getBandwidthRecorder()->totalChannel->input.updateValue(audioByteArray.size());
 }
 
 void AudioClient::parseAudioEnvironmentData(const QByteArray &packet) {

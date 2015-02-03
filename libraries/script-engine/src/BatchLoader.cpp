@@ -15,6 +15,7 @@
 #include <QFile>
 #include "BatchLoader.h"
 #include <NetworkAccessManager.h>
+#include <SharedUtil.h>
 
 BatchLoader::BatchLoader(const QList<QUrl>& urls) 
     : QObject(),
@@ -33,7 +34,9 @@ void BatchLoader::start() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     for (QUrl url : _urls) {
         if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
-            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            QNetworkRequest request = QNetworkRequest(url);
+            request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            QNetworkReply* reply = networkAccessManager.get(request);
 
             qDebug() << "Downloading file at" << url;
 

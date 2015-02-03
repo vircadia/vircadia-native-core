@@ -897,9 +897,8 @@ void ApplicationOverlay::renderAudioMeter() {
 
 void ApplicationOverlay::renderStatsAndLogs() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    const OctreePacketProcessor& octreePacketProcessor = qApp->getOctreePacketProcessor();
-    BandwidthMeter* bandwidthMeter = qApp->getBandwidthMeter();
-    NodeBounds& nodeBoundsDisplay = qApp->getNodeBoundsDisplay();
+    const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
+    NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
 
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
@@ -910,13 +909,12 @@ void ApplicationOverlay::renderStatsAndLogs() {
         int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
         int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
-        Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, qApp->getFps(),
-            qApp->getPacketsPerSecond(), qApp->getBytesPerSecond(), voxelPacketsToProcess);
-        //  Bandwidth meter
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
-            Stats::drawBackground(0x33333399, glCanvas->width() - 296, glCanvas->height() - 68, 296, 68);
-            bandwidthMeter->render(glCanvas->width(), glCanvas->height());
-        }
+        Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, application->getFps(),
+                                      application->getInPacketsPerSecond(),
+                                      application->getOutPacketsPerSecond(),
+                                      application->getInBytesPerSecond(),
+                                      application->getOutBytesPerSecond(),
+                                      voxelPacketsToProcess);
     }
 
     //  Show on-screen msec timer
@@ -925,8 +923,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
         quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
         int timerBottom =
-            (Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
-            Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
+            (Menu::getInstance()->isOptionChecked(MenuOption::Stats))
             ? 80 : 20;
         drawText(glCanvas->width() - 100, glCanvas->height() - timerBottom,
             0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
