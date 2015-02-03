@@ -1,5 +1,5 @@
 //
-//  Settings.h
+//  SettingHandle.h
 //
 //
 //  Created by Clement on 1/18/15.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_Settings_h
-#define hifi_Settings_h
+#ifndef hifi_SettingHandle_h
+#define hifi_SettingHandle_h
 
 #include <QSettings>
 #include <QString>
@@ -63,4 +63,4 @@ namespace Setting {
     }
 }
 
-#endif // hifi_Settings_h
+#endif // hifi_SettingHandle_h

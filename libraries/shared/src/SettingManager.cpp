@@ -19,7 +19,6 @@ namespace Setting {
         // Cleanup timer
         stopTimer();
         disconnect(_saveTimer, 0, 0, 0);
-        _saveTimer.clear();
         
         // Save all settings before exit
         saveAll();
