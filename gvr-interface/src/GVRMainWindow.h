@@ -29,6 +29,7 @@ public:
     ~GVRMainWindow();
 public slots:
     void showAddressBar();
+    void showLoginDialog();
     
 #if defined(ANDROID) && defined(HAVE_LIBOVR)
     OVR::KeyState& getBackKeyState() { return _backKeyState; }

@@ -12,6 +12,8 @@
 #include <QtGui/QKeyEvent>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QInputDialog>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QVBoxLayout>
 
@@ -31,6 +33,7 @@ const float LIBOVR_LONG_PRESS_DURATION = 0.75f;
 #include <AddressManager.h>
 
 #include "InterfaceView.h"
+#include "LoginDialog.h"
 #include "RenderingClient.h"
 
 #include "GVRMainWindow.h"
@@ -110,6 +113,10 @@ void GVRMainWindow::setupMenuBar() {
     connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
     fileMenu->addAction(goToAddress);
     
+    QAction* login = new QAction("Login", fileMenu);
+    connect(login, &QAction::triggered, this, &GVRMainWindow::showLoginDialog);
+    fileMenu->addAction(login);
+    
     QAction* aboutQt = new QAction("About Qt", helpMenu);
     connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
     helpMenu->addAction(aboutQt);
@@ -127,4 +134,14 @@ void GVRMainWindow::showAddressBar() {
     
     connect(addressDialog, &QInputDialog::textValueSelected, 
             DependencyManager::get<AddressManager>().data(), &AddressManager::handleLookupString);
+}
+
+void GVRMainWindow::showLoginDialog() {
+    LoginDialog* loginDialog = new LoginDialog(this);
+    
+    // have the acccount manager handle credentials from LoginDialog
+    AccountManager& accountManager = AccountManager::getInstance();
+    connect(loginDialog, &LoginDialog::credentialsEntered, &accountManager, &AccountManager::requestAccessToken);
+    
+    _mainLayout->addWidget(loginDialog);
 }

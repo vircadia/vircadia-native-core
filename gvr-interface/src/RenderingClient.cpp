@@ -108,7 +108,6 @@ void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, 
             
             if (audioMixer) {
                 audioMixer->setLastHeardMicrostamp(usecTimestampNow());
-                audioMixer->recordBytesReceived(incomingPacket.size());
             }
             
             break;
@@ -122,7 +121,6 @@ void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, 
             
             if (avatarMixer) {
                 avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-                avatarMixer->recordBytesReceived(incomingPacket.size());
                 
                 QMetaObject::invokeMethod(DependencyManager::get<AvatarHashMap>().data(),
                                           "processAvatarMixerDatagram",
