@@ -315,6 +315,11 @@ void Stats::display(
     verticalOffset = 0;
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + 1;
 
+    if (columnOneWidth == _generalStatsWidth) {
+        drawBackground(backgroundColor, horizontalOffset, 0, _bandwidthStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+    }
+    horizontalOffset += 5;
+
     char packetsPerSecondString[30];
     sprintf(packetsPerSecondString, "Packets In/Out: %d/%d", inPacketsPerSecond, outPacketsPerSecond);
     char averageMegabitsPerSecond[30];
