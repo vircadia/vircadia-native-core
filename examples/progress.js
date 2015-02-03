@@ -34,7 +34,7 @@
         windowHeight = 0,
         background2D = {},
         bar2D = {},
-        SCALE_2D = 0.5,                             // Scale the SVGs for 2D display.
+        SCALE_2D = 0.55,                            // Scale the SVGs for 2D display.
         background3D = {},
         bar3D = {},
         ENABLE_VR_MODE_MENU_ITEM = "Enable VR Mode",
