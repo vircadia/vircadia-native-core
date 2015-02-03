@@ -167,16 +167,8 @@ bool setupEssentials(int& argc, char** argv) {
     if (portStr) {
         listenPort = atoi(portStr);
     }
-    
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-    QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-    QApplication::setApplicationName(applicationInfo.value("name").toString());
-    QApplication::setApplicationVersion(BUILD_VERSION);
-    QApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
-    QApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    // Set build version
+    QCoreApplication::setApplicationVersion(BUILD_VERSION);
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     
