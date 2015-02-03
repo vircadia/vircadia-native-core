@@ -18,8 +18,9 @@ hifi_library_search_hints("oglplus")
 
 # locate header
 find_path(OGLPLUS_INCLUDE_DIR "oglplus/all.hpp" PATH_SUFFIXES include HINTS ${OGLPLUS_SEARCH_DIRS})
-set(OGLPLUS_INCLUDE_DIRS "${OGLPLUS_INCLUDE_DIR}/include")
-list(APPEND OGLPLUS_INCLUDE_DIRS "${OGLPLUS_INCLUDE_DIR}/implement")
+
+set(OGLPLUS_INCLUDE_DIRS "${OGLPLUS_INCLUDE_DIR}")
+list(APPEND OGLPLUS_INCLUDE_DIRS "${OGLPLUS_INCLUDE_DIR}/../implement")
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(OGLPLUS DEFAULT_MSG OGLPLUS_INCLUDE_DIRS)
