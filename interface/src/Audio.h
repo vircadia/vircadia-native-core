@@ -115,16 +115,16 @@ public:
     
     void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
 
-    int getOutputBufferSize() { return _outputBufferSizeFrames; }
+    int getOutputBufferSize() { return _outputBufferSizeFrames.get(); }
 
-    bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled; }
-    void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled = enabled; }
+    bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled.get(); }
+    void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled.set(enabled); }
 
-    int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec; }
-    void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec = msecs; }
+    int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec.get(); }
+    void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec.set(msecs); }
 
-    int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold; }
-    void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold = threshold; }
+    int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold.get(); }
+    void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold.set(threshold); }
 
     static const float CALLBACK_ACCELERATOR_RATIO;
     
@@ -208,13 +208,14 @@ private:
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;
 
-    int _outputBufferSizeFrames;
-    bool _outputStarveDetectionEnabled;
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
-    int _outputStarveDetectionPeriodMsec;
-    int _outputStarveDetectionThreshold; // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
-
+    
+    Setting::Handle<int> _outputBufferSizeFrames;
+    Setting::Handle<bool> _outputStarveDetectionEnabled;
+    Setting::Handle<int> _outputStarveDetectionPeriodMsec;
+     // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
+    Setting::Handle<int> _outputStarveDetectionThreshold;
     
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
