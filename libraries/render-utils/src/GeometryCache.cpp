@@ -2120,6 +2120,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
         NetworkMesh networkMesh;
         
         int totalIndices = 0;
+        bool checkForTexcoordLightmap = false;
         foreach (const FBXMeshPart& part, mesh.parts) {
             NetworkMeshPart networkPart;
             if (!part.diffuseTexture.filename.isEmpty()) {
@@ -2149,6 +2150,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                     false, part.emissiveTexture.content);
                 networkPart.emissiveTextureName = part.emissiveTexture.name;
                 networkPart.emissiveTexture->setLoadPriorities(_loadPriorities);
+                checkForTexcoordLightmap = true;
             }
             networkMesh.parts.append(networkPart);
                         
@@ -2215,7 +2217,12 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
                 if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-                if (mesh.texCoords1.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+                if (mesh.texCoords1.size()) {
+                    networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+                } else if (checkForTexcoordLightmap && mesh.texCoords.size()) {
+                    // need lightmap texcoord UV but doesn't have uv#1 so just reuse the same channel
+                    networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum - 1, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+                }
                 if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
                 if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
             }

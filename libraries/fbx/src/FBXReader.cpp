@@ -1179,7 +1179,7 @@ FBXTexture getTexture(const QString& textureID,
         texture.transform.setTranslation(p.translation);
         texture.transform.setRotation(glm::quat(glm::radians(p.rotation)));
         texture.transform.setScale(p.scaling);
-        if ((p.UVSet != "map1") || (p.UVSet != "UVSet0")) {
+        if ((p.UVSet != "map1") && (p.UVSet != "UVSet0")) {
             texture.texcoordSet = 1;
         }
         texture.texcoordSetName = p.UVSet;
@@ -1605,6 +1605,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                     if (property.name == propertyName) {
                                         QString v = property.properties.at(0).toString();
                                         if (property.properties.at(0) == "UVSet") {
+                                            std::string uvName = property.properties.at(index).toString().toStdString();
                                             tex.assign(tex.UVSet, property.properties.at(index).toString());
                                         } else if (property.properties.at(0) == "CurrentTextureBlendMode") {
                                             tex.assign<uint8_t>(tex.currentTextureBlendMode, property.properties.at(index).value<int>());
