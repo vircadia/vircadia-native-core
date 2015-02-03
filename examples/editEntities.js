@@ -671,12 +671,12 @@ function mouseClickEvent(event) {
             orientation = MyAvatar.orientation;
             intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
-            if (!event.isShifted) {
-                selectionManager.clearSelections();
-            }
 
-            var toggle = event.isShifted;
-            selectionManager.addEntity(foundEntity, toggle);
+            if (!event.isShifted) {
+                selectionManager.setSelections([foundEntity]);
+            } else {
+                selectionManager.addEntity(foundEntity, true);
+            }
 
             print("Model selected: " + foundEntity.id);
             selectionDisplay.select(selectedEntityID, event);
