@@ -60,6 +60,7 @@ selectionManager.addEventListener(function() {
         propertiesTool.setVisible(true);
         entityListTool.setVisible(true);
         gridTool.setVisible(true);
+        Window.setFocus();
         hasShownPropertiesTool = true;
     }
     if (!selectionManager.hasSelection()) {
