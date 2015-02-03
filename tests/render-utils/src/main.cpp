@@ -139,8 +139,8 @@ void QTestWindow::makeCurrent() {
   m_context->makeCurrent(this);
 }
 
-static const wchar_t * EXAMPLE_TEXT = L"Hello 1.0\nline 2\ndescent ggg\nascent  ¡¡¡";
-static const glm::uvec2 QUAD_OFFSET(10, 20);
+static const wchar_t * EXAMPLE_TEXT = L"¡y Hello 1.0\ny¡ line 2\n¡y";
+static const glm::uvec2 QUAD_OFFSET(10, 10);
 static const glm::vec3 COLORS[4] = {
   { 1, 1, 1 },
   { 0.5, 1.0, 0.5 },
@@ -183,7 +183,18 @@ void QTestWindow::draw() {
   }
   QString str = QString::fromWCharArray(EXAMPLE_TEXT);
   for (int i = 0; i < 4; ++i) {
-    _textRenderer[i]->drawString(offsets[i].x, offsets[i].y, str, glm::vec4(COLORS[i], 1.0f));
+    glm::vec2 bounds = _textRenderer[i]->computeExtent(str);
+    glPushMatrix(); {
+      glTranslatef(offsets[i].x, offsets[i].y, 0);
+      glColor3f(0, 0, 0);
+      glBegin(GL_QUADS); {
+        glVertex2f(0, 0);
+        glVertex2f(0, bounds.y);
+        glVertex2f(bounds.x, bounds.y);
+        glVertex2f(bounds.x, 0);
+      } glEnd();
+    } glPopMatrix();
+    _textRenderer[i]->draw(offsets[i].x, offsets[i].y, str, glm::vec4(COLORS[i], 1.0f));
   }
   m_context->swapBuffers(this);
 }

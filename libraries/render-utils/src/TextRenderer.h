@@ -65,25 +65,20 @@ public:
 
     ~TextRenderer();
 
+    glm::vec2 computeExtent(const QString & str) const;
+
     // returns the height of the tallest character
-    int calculateHeight(const char * str) const;
-    int calculateHeight(const QString & str) const;
+    //int calculateHeight(const char * str) const;
+    //int calculateHeight(const QString & str) const;
 
-    int computeWidth(char ch) const;
-    int computeWidth(const QChar & ch) const;
+    //int computeWidth(char ch) const;
+    //int computeWidth(const QChar & ch) const;
 
-    int computeWidth(const QString & str) const;
-    int computeWidth(const char * str) const;
+    //int computeWidth(const QString & str) const;
+    //int computeWidth(const char * str) const;
 
     // also returns the height of the tallest character
-    inline int draw(int x, int y, const char* str,
-      const glm::vec4& color = glm::vec4(-1),
-      float maxWidth = -1
-    ) {
-      return drawString(x, y, QString(str), color, maxWidth);
-    }
-
-    float drawString(
+    float draw(
       float x, float y,
       const QString & str,
       const glm::vec4& color = glm::vec4(-1),

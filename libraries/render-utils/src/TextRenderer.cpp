@@ -33,8 +33,9 @@
 #include "gpu/Stream.h"
 #include "FontInconsolataMedium.h"
 #include "FontRoboto.h"
-#include "FontJackInput.h"
 #include "FontTimeless.h"
+#include "FontCourierPrime.h"
+
 
 
 namespace Shaders {
@@ -95,8 +96,12 @@ void main() {
  
   // retrieve signed distance
   float sdf = texture(Font, vTexCoord).r;
-  if (Outline && (sdf > 0.6)) {
-    sdf = 1.0 - sdf;
+  if (Outline) {
+    if (sdf > 0.8) {
+      sdf = 1.0 - sdf;
+    } else {
+      sdf += 0.2;
+    }
   }
   // perform adaptive anti-aliasing of the edges
   // The larger we're rendering, the less anti-aliasing we need
@@ -187,13 +192,15 @@ public:
   // Initialize the OpenGL structures
   void setupGL();
 
+
+  glm::vec2 computeExtent(const QString & str) const;
+
   glm::vec2 drawString(
     float x, float y,
     const QString & str,
     const glm::vec4& color,
-    float scale,
     TextRenderer::EffectType effectType,
-    float maxWidth);
+    float maxWidth) const;
 };
 
 
@@ -231,7 +238,7 @@ void Font::read(QIODevice & in) {
   readStream(in, _descent);
   readStream(in, _spaceWidth);
   _fontSize = _ascent + _descent;
-  _rowHeight = _fontSize + _descent / 2;
+  _rowHeight = _fontSize + _descent;
 
   // Read character count
   uint16_t count;
@@ -360,88 +367,93 @@ void Font::setupGL() {
   _vao->release();
 }
 
+glm::vec2 Font::computeExtent(const QString & str) const {
+  glm::vec2 advance(0, _rowHeight - _descent);
+  float maxX = 0;
+  foreach(QString token, str.split(" ")) {
+    foreach(QChar c, token) {
+      if (QChar('\n') == c) {
+        maxX = std::max(advance.x, maxX);
+        advance.x = 0;
+        advance.y += _rowHeight;
+        continue;
+      }
+      if (!_glyphs.contains(c)) {
+        c = QChar('?');
+      }
+      const Glyph & m = _glyphs[c];
+      advance.x += m.d;
+    }
+    advance.x += _spaceWidth;
+  }
+  return glm::vec2(maxX, advance.y);
+}
+
 glm::vec2 Font::drawString(
   float x, float y,
   const QString & str,
   const glm::vec4& color,
-  float scale,
   TextRenderer::EffectType effectType,
-  float maxWidth) {
-
-  // This is a hand made scale intended to match the previous scale of text in the application
-  //float scale = 0.25f; //  DTP_TO_METERS;
-  //if (fontSize > 0.0) {
-  //  scale *= fontSize / _fontSize;
-  //}
-  
-  //bool wrap = false; // (maxWidth == maxWidth);
-  //if (wrap) {
-  //  maxWidth /= scale;
-  //}
+  float maxWidth) const {
 
   // Stores how far we've moved from the start of the string, in DTP units
-  static const float SPACE_ADVANCE = getGlyph('J').d;
-  glm::vec2 advance(0, -_ascent);
-  MatrixStack::withGlMatrices([&] {
-    // Fetch the matrices out of GL
-    _program->bind();
-    _program->setUniformValue("Color", color.r, color.g, color.b, color.a);
-    _program->setUniformValue("Projection", fromGlm(MatrixStack::projection().top()));
-    if (effectType == TextRenderer::OUTLINE_EFFECT) {
-      _program->setUniformValue("Outline", true);
-    }
-    _texture->bind();
-    _vao->bind();
+  glm::vec2 advance(0, -_rowHeight - _descent);
 
-    MatrixStack & mv = MatrixStack::modelview();
-    MatrixStack & pr = MatrixStack::projection();
-    // scale the modelview into font units
-    mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
-    mv.translate(glm::vec3(0, _ascent, 0));
-    foreach(QString token, str.split(" ")) {
-      // float tokenWidth = measureWidth(token, fontSize);
-      // if (wrap && 0 != advance.x && (advance.x + tokenWidth) > maxWidth) {
+  _program->bind();
+  _program->setUniformValue("Color", color.r, color.g, color.b, color.a);
+  _program->setUniformValue("Projection", fromGlm(MatrixStack::projection().top()));
+  if (effectType == TextRenderer::OUTLINE_EFFECT) {
+    _program->setUniformValue("Outline", true);
+  }
+  _texture->bind();
+  _vao->bind();
+
+  MatrixStack & mv = MatrixStack::modelview();
+  // scale the modelview into font units
+  mv.translate(glm::vec3(0, _ascent, 0));
+  foreach(QString token, str.split(" ")) {
+    // float tokenWidth = measureWidth(token, fontSize);
+    // if (wrap && 0 != advance.x && (advance.x + tokenWidth) > maxWidth) {
+    //  advance.x = 0;
+    //  advance.y -= _rowHeight;
+    // }
+
+    foreach(QChar c, token) {
+      if (QChar('\n') == c) {
+        advance.x = 0;
+        advance.y -= _rowHeight;
+        continue;
+      }
+
+      if (!_glyphs.contains(c)) {
+        c = QChar('?');
+      }
+
+      // get metrics for this character to speed up measurements
+      const Glyph & m = _glyphs[c];
+      //if (wrap && ((advance.x + m.d) > maxWidth)) {
       //  advance.x = 0;
       //  advance.y -= _rowHeight;
-      // }
+      //}
 
-      foreach(QChar c, token) {
-        if (QChar('\n') == c) {
-          advance.x = 0;
-          advance.y -= _rowHeight;
-          continue;
-        }
-
-        if (!_glyphs.contains(c)) {
-          c = QChar('?');
-        }
-
-        // get metrics for this character to speed up measurements
-        const Glyph & m = _glyphs[c];
-        //if (wrap && ((advance.x + m.d) > maxWidth)) {
-        //  advance.x = 0;
-        //  advance.y -= _rowHeight;
-        //}
-
-        // We create an offset vec2 to hold the local offset of this character
-        // This includes compensating for the inverted Y axis of the font
-        // coordinates
-        glm::vec2 offset(advance);
-        offset.y -= m.size.y;
-        // Bind the new position
-        mv.withPush([&] {
-          mv.translate(offset);
-          _program->setUniformValue("ModelView", fromGlm(mv.top()));
-          glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(m.indexOffset));
-        });
-        advance.x += m.d;//+ m.offset.x;// font->getAdvance(m, mFontSize);
-      }
-      advance.x += SPACE_ADVANCE;
+      // We create an offset vec2 to hold the local offset of this character
+      // This includes compensating for the inverted Y axis of the font
+      // coordinates
+      glm::vec2 offset(advance);
+      offset.y -= m.size.y;
+      // Bind the new position
+      mv.withPush([&] {
+        mv.translate(offset);
+        _program->setUniformValue("ModelView", fromGlm(mv.top()));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(m.indexOffset));
+      });
+      advance.x += m.d;//+ m.offset.x;// font->getAdvance(m, mFontSize);
     }
+    advance.x += _spaceWidth;
+  }
 
-    _vao->release();
-    _program->release();
-  });
+  _vao->release();
+  _program->release();
 
   return advance;
 }
@@ -469,7 +481,7 @@ static QHash<QString, Font*> LOADED_FONTS;
 Font * loadFont(const QString & family) {
   if (!LOADED_FONTS.contains(family)) {
     if (family == MONO_FONT_FAMILY) {
-      LOADED_FONTS[family] = loadFont(SDFF_JACKINPUT);
+      LOADED_FONTS[family] = loadFont(SDFF_COURIER_PRIME);
     } else if (family == INCONSOLATA_FONT_FAMILY) {
       LOADED_FONTS[family] = loadFont(SDFF_INCONSOLATA_MEDIUM);
     } else if (family == SANS_FONT_FAMILY) {
@@ -497,44 +509,12 @@ TextRenderer::TextRenderer(const Properties& properties) :
 TextRenderer::~TextRenderer() {
 }
 
-
-int TextRenderer::computeWidth(const QChar & ch) const {
-  //return getGlyph(ch).width();
-  return 0;
+glm::vec2 TextRenderer::computeExtent(const QString & str) const {
+  float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
+  return _font->computeExtent(str) * scale;
 }
 
-int TextRenderer::computeWidth(const QString & str) const {
-  int width = 0;
-  foreach(QChar c, str) {
-    width += computeWidth(c);
-  }
-  return width;
-}
-
-int TextRenderer::computeWidth(const char * str) const {
-  int width = 0;
-  while (*str) {
-    width += computeWidth(*str++);
-  }
-  return width;
-}
-
-int TextRenderer::computeWidth(char ch) const {
-  return computeWidth(QChar(ch));
-}
-
-int TextRenderer::calculateHeight(const char* str) const {
-  int maxHeight = 0;
-  //for (const char* ch = str; *ch != 0; ch++) {
-  //  const Glyph& glyph = getGlyph(*ch);
-  //  if (glyph.bounds().height() > maxHeight) {
-  //    maxHeight = glyph.bounds().height();
-  //  }
-  //}
-  return maxHeight;
-}
-
-float TextRenderer::drawString(
+float TextRenderer::draw(
   float x, float y,
   const QString & str,
   const glm::vec4& color,
@@ -543,6 +523,15 @@ float TextRenderer::drawString(
   if (actualColor.r < 0) {
     actualColor = glm::vec4(_color.redF(), _color.greenF(), _color.blueF(), 1.0);
   }
-  return _font->drawString(x, y, str, actualColor, (_pointSize / DEFAULT_POINT_SIZE) * 0.25f, _effectType, maxWidth).x;
+
+  float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
+  glm::vec2 result;
+  MatrixStack::withGlMatrices([&] {
+    MatrixStack & mv = MatrixStack::modelview();
+    // scale the modelview into font units
+    mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
+    result = _font->drawString(x, y, str, actualColor, _effectType, maxWidth);
+  });
+  return result.x;
 }
 
