@@ -88,8 +88,6 @@ void GVRMainWindow::keyReleaseEvent(QKeyEvent* event) {
         // release on the Android back key, hand off to OVR KeyState
         _backKeyState.HandleEvent(ovr_GetTimeInSeconds(), false, 0);
         _wasBackKeyDown = false;
-        
-        auto backEvent = _backKeyState.Update(ovr_GetTimeInSeconds());
     }
 #endif
     QWidget::keyReleaseEvent(event);

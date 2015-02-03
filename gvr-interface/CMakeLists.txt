@@ -34,7 +34,7 @@ if (ANDROID)
   
   if (LIBOVR_FOUND)
     add_definitions(-DHAVE_LIBOVR)
-    target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${LIBOVR_ANDROID_LIBRARIES})
+    target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${LIBOVR_ANDROID_LIBRARIES} ${TURBOJPEG_LIBRARY})
     include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
   
     # we need VRLib, so add a project.properties to our apk build folder that says that

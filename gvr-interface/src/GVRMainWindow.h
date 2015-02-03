@@ -29,6 +29,11 @@ public:
     ~GVRMainWindow();
 public slots:
     void showAddressBar();
+    
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
+    OVR::KeyState& getBackKeyState() { return _backKeyState; }
+#endif
+    
 protected:
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);

@@ -19,9 +19,8 @@
 
 #ifdef HAVE_LIBOVR
 
-#include <VrApi/LocalPreferences.h>
+#include <KeyState.h>
 #include <VrApi/VrApi.h>
-#include <VrApi/VrApi_local.h>
 
 #endif
 #endif
@@ -37,8 +36,21 @@
 
 static QString launchURLString = QString();
 
+#ifdef ANDROID
+
+extern "C" {
+    
+JNIEXPORT void Java_io_highfidelity_gvrinterface_InterfaceActivity_handleHifiURL(JNIEnv *jni, jclass clazz, jstring hifiURLString) {
+    launchURLString = QAndroidJniObject(hifiURLString).toString();
+}
+
+}
+
+#endif
+
 GVRInterface::GVRInterface(int argc, char* argv[]) : 
     QApplication(argc, argv),
+    _mainWindow(NULL),
     _inVRMode(false)
 {
     if (!launchURLString.isEmpty()) {
@@ -59,6 +71,11 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     jobject activity = (jobject) interface->nativeResourceForIntegration("QtActivity");
 
     ovr_RegisterHmtReceivers(&*jniEnv, activity);
+    
+    // PLATFORMACTIVITY_REMOVAL: Temp workaround for PlatformActivity being
+    // stripped from UnityPlugin. Alternate is to use LOCAL_WHOLE_STATIC_LIBRARIES
+    // but that increases the size of the plugin by ~1MiB
+    OVR::linkerPlatformActivity++;
 #endif
     
     // call our idle function whenever we can
@@ -67,25 +84,13 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     idleTimer->start(0);
 }
 
-#ifdef ANDROID
-
-extern "C" {
-    
-JNIEXPORT void Java_io_highfidelity_gvrinterface_InterfaceActivity_handleHifiURL(JNIEnv *jni, jclass clazz, jstring hifiURLString) {
-    launchURLString = QAndroidJniObject(hifiURLString).toString();
-}
-
-}
-
-#endif
-
 void GVRInterface::idle() {
 #if defined(ANDROID) && defined(HAVE_LIBOVR)
     if (!_inVRMode && ovr_IsHeadsetDocked()) {
         qDebug() << "The headset just got docked - enter VR mode.";
         enterVRMode();
     } else if (_inVRMode) {
-
+        
         if (ovr_IsHeadsetDocked()) {
             static int counter = 0;
             
@@ -113,6 +118,18 @@ void GVRInterface::idle() {
             leaveVRMode();
         }
     } 
+    
+    OVR::KeyState& backKeyState = _mainWindow->getBackKeyState();
+    auto backEvent = backKeyState.Update(ovr_GetTimeInSeconds());
+
+    if (backEvent == OVR::KeyState::KEY_EVENT_LONG_PRESS) {
+        qDebug() << "Attemping to start the Platform UI Activity.";
+        ovr_StartPackageActivity(_ovr, PUI_CLASS_NAME, PUI_GLOBAL_MENU);
+    } else if (backEvent == OVR::KeyState::KEY_EVENT_DOUBLE_TAP || backEvent == OVR::KeyState::KEY_EVENT_SHORT_PRESS) {
+        qDebug() << "Got an event we should cancel for!";
+    } else if (backEvent == OVR::KeyState::KEY_EVENT_DOUBLE_TAP) {
+        qDebug() << "The button is down!";
+    }
 #endif
 }
 
