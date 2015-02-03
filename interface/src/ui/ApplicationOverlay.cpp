@@ -896,6 +896,8 @@ void ApplicationOverlay::renderAudioMeter() {
 }
 
 void ApplicationOverlay::renderStatsAndLogs() {
+    Application* application = Application::getInstance();
+    
     auto glCanvas = DependencyManager::get<GLCanvas>();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
