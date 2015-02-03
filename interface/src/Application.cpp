@@ -128,8 +128,6 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 
-
-
 using namespace std;
 
 //  Starfield information
