@@ -16,14 +16,15 @@
 
 #include "LODManager.h"
 
-namespace SettingHandles {
-    const SettingHandle<bool> automaticAvatarLOD("automaticAvatarLOD", true);
-    const SettingHandle<float> avatarLODDecreaseFPS("avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS);
-    const SettingHandle<float> avatarLODIncreaseFPS("avatarLODIncreaseFPS",  ADJUST_LOD_UP_FPS);
-    const SettingHandle<float> avatarLODDistanceMultiplier("avatarLODDistanceMultiplier",
-                                                           DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
-    const SettingHandle<int> boundaryLevelAdjust("boundaryLevelAdjust", 0);
-    const SettingHandle<float> octreeSizeScale("octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
+LODManager::LODManager() :
+    _automaticAvatarLOD("automaticAvatarLOD", true),
+    _avatarLODDecreaseFPS("avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS),
+    _avatarLODIncreaseFPS("avatarLODIncreaseFPS",  ADJUST_LOD_UP_FPS),
+    _avatarLODDistanceMultiplier("avatarLODDistanceMultiplier",
+                                 DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER),
+    _boundaryLevelAdjust("boundaryLevelAdjust", 0),
+    _octreeSizeScale("octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE)
+{
 }
 
 void LODManager::autoAdjustLOD(float currentFPS) {
@@ -41,23 +42,25 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     quint64 now = usecTimestampNow();
     
     const quint64 ADJUST_AVATAR_LOD_DOWN_DELAY = 1000 * 1000;
-    if (_automaticAvatarLOD) {
-        if (_fastFPSAverage.getAverage() < _avatarLODDecreaseFPS) {
+    if (_automaticAvatarLOD.get()) {
+        if (_fastFPSAverage.getAverage() < _avatarLODDecreaseFPS.get()) {
             if (now - _lastAvatarDetailDrop > ADJUST_AVATAR_LOD_DOWN_DELAY) {
                 // attempt to lower the detail in proportion to the fps difference
-                float targetFps = (_avatarLODDecreaseFPS + _avatarLODIncreaseFPS) * 0.5f;
+                float targetFps = (_avatarLODDecreaseFPS.get() + _avatarLODIncreaseFPS.get()) * 0.5f;
                 float averageFps = _fastFPSAverage.getAverage();
                 const float MAXIMUM_MULTIPLIER_SCALE = 2.0f;
-                _avatarLODDistanceMultiplier = qMin(MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, _avatarLODDistanceMultiplier *
-                                                    (averageFps < EPSILON ? MAXIMUM_MULTIPLIER_SCALE :
-                                                     qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps)));
+                _avatarLODDistanceMultiplier.set(qMin(MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER,
+                                                      _avatarLODDistanceMultiplier.get() *
+                                                      (averageFps < EPSILON ? MAXIMUM_MULTIPLIER_SCALE :
+                                                                              qMin(MAXIMUM_MULTIPLIER_SCALE,
+                                                                                   targetFps / averageFps))));
                 _lastAvatarDetailDrop = now;
             }
-        } else if (_fastFPSAverage.getAverage() > _avatarLODIncreaseFPS) {
+        } else if (_fastFPSAverage.getAverage() > _avatarLODIncreaseFPS.get()) {
             // let the detail level creep slowly upwards
             const float DISTANCE_DECREASE_RATE = 0.05f;
-            _avatarLODDistanceMultiplier = qMax(MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER,
-                                                _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
+            _avatarLODDistanceMultiplier.set(qMax(MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER,
+                                                  _avatarLODDistanceMultiplier.get() - DISTANCE_DECREASE_RATE));
         }
     }
     
@@ -65,29 +68,29 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     quint64 elapsed = now - _lastAdjust;
     
     if (elapsed > ADJUST_LOD_DOWN_DELAY && _fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS
-        && _octreeSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+        && _octreeSizeScale.get() > ADJUST_LOD_MIN_SIZE_SCALE) {
         
-        _octreeSizeScale *= ADJUST_LOD_DOWN_BY;
+        _octreeSizeScale.set(_octreeSizeScale.get() * ADJUST_LOD_DOWN_BY);
         
-        if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
-            _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+        if (_octreeSizeScale.get() < ADJUST_LOD_MIN_SIZE_SCALE) {
+            _octreeSizeScale.set(ADJUST_LOD_MIN_SIZE_SCALE);
         }
         changed = true;
         _lastAdjust = now;
         qDebug() << "adjusting LOD down... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-        << "_octreeSizeScale=" << _octreeSizeScale;
+        << "_octreeSizeScale=" << _octreeSizeScale.get();
     }
     
     if (elapsed > ADJUST_LOD_UP_DELAY && _fpsAverage.getAverage() > ADJUST_LOD_UP_FPS
-        && _octreeSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
-        _octreeSizeScale *= ADJUST_LOD_UP_BY;
-        if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
-            _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
+        && _octreeSizeScale.get() < ADJUST_LOD_MAX_SIZE_SCALE) {
+        _octreeSizeScale.set(_octreeSizeScale.get() * ADJUST_LOD_UP_BY);
+        if (_octreeSizeScale.get() > ADJUST_LOD_MAX_SIZE_SCALE) {
+            _octreeSizeScale.set(ADJUST_LOD_MAX_SIZE_SCALE);
         }
         changed = true;
         _lastAdjust = now;
         qDebug() << "adjusting LOD up... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-        << "_octreeSizeScale=" << _octreeSizeScale;
+        << "_octreeSizeScale=" << _octreeSizeScale.get();
     }
     
     if (changed) {
@@ -179,32 +182,13 @@ bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera
 }
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
-    _octreeSizeScale = sizeScale;
+    _octreeSizeScale.set(sizeScale);
     _shouldRenderTableNeedsRebuilding = true;
 }
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
-    _boundaryLevelAdjust = boundaryLevelAdjust;
+    _boundaryLevelAdjust.set(boundaryLevelAdjust);
     _shouldRenderTableNeedsRebuilding = true;
-}
-
-
-void LODManager::loadSettings() {
-    setAutomaticAvatarLOD(SettingHandles::automaticAvatarLOD.get());
-    setAvatarLODDecreaseFPS(SettingHandles::avatarLODDecreaseFPS.get());
-    setAvatarLODIncreaseFPS(SettingHandles::avatarLODIncreaseFPS.get());
-    setAvatarLODDistanceMultiplier(SettingHandles::avatarLODDistanceMultiplier.get());
-    setBoundaryLevelAdjust(SettingHandles::boundaryLevelAdjust.get());
-    setOctreeSizeScale(SettingHandles::octreeSizeScale.get());
-}
-
-void LODManager::saveSettings() {
-    SettingHandles::automaticAvatarLOD.set(getAutomaticAvatarLOD());
-    SettingHandles::avatarLODDecreaseFPS.set(getAvatarLODDecreaseFPS());
-    SettingHandles::avatarLODIncreaseFPS.set(getAvatarLODIncreaseFPS());
-    SettingHandles::avatarLODDistanceMultiplier.set(getAvatarLODDistanceMultiplier());
-    SettingHandles::boundaryLevelAdjust.set(getBoundaryLevelAdjust());
-    SettingHandles::octreeSizeScale.set(getOctreeSizeScale());
 }
 
 

@@ -28,6 +28,7 @@
 #include <AbstractAudioInterface.h>
 #include <AudioRingBuffer.h>
 #include <DependencyManager.h>
+#include <SettingHandle.h>
 #include <StDev.h>
 
 #include "audio/AudioIOStats.h"

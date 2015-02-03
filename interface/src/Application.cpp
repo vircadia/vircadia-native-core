@@ -1575,14 +1575,12 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
 
 void Application::loadSettings() {
     DependencyManager::get<Audio>()->loadSettings();
-    DependencyManager::get<LODManager>()->loadSettings();
     Menu::getInstance()->loadSettings();
     _myAvatar->loadData();
 }
 
 void Application::saveSettings() {
     DependencyManager::get<Audio>()->saveSettings();
-    DependencyManager::get<LODManager>()->saveSettings();
     Menu::getInstance()->saveSettings();
     _myAvatar->saveData();
 }
