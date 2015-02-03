@@ -12,7 +12,6 @@
 #ifndef hifi_SphereEntityItem_h
 #define hifi_SphereEntityItem_h
 
-#include <SphereShape.h>
 #include "EntityItem.h"
 
 class SphereEntityItem : public EntityItem {
@@ -51,8 +50,6 @@ public:
             _color[BLUE_INDEX] = value.blue;
     }
 
-    virtual const Shape& getCollisionShapeInMeters() const { return _sphereShape; }
-    
     // TODO: implement proper contains for 3D ellipsoid
     //virtual bool contains(const glm::vec3& point) const;
 
@@ -66,10 +63,8 @@ public:
     virtual void debugDump() const;
 
 protected:
-    virtual void recalculateCollisionShape();
 
     rgbColor _color;
-    SphereShape _sphereShape;
 };
 
 #endif // hifi_SphereEntityItem_h
