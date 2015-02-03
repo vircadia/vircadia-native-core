@@ -11,7 +11,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
 #include <QDateTime>
 #include "BandwidthRecorder.h"
 
@@ -53,17 +52,18 @@ void BandwidthRecorder::Channel::updateOutputAverage(const float sample) {
 }
 
 BandwidthRecorder::BandwidthRecorder() {
-    for (uint i=0; i<CHANNEL_COUNT; i++)
+    for (uint i=0; i<CHANNEL_COUNT; i++) {
         _channels[ i ] = NULL;
+    }
 }
 
 BandwidthRecorder::~BandwidthRecorder() {
-    for (uint i=0; i<CHANNEL_COUNT; i++)
+    for (uint i=0; i<CHANNEL_COUNT; i++) {
         delete _channels[ i ];
+    }
 }
 
 void BandwidthRecorder::updateInboundData(const quint8 channelType, const int sample) {
-    Q_ASSERT(channelType < CHANNEL_COUNT);
     if (! _channels[channelType]) {
         _channels[channelType] = new Channel();
     }
@@ -71,7 +71,6 @@ void BandwidthRecorder::updateInboundData(const quint8 channelType, const int sa
 }
 
 void BandwidthRecorder::updateOutboundData(const quint8 channelType, const int sample) {
-    Q_ASSERT(channelType < CHANNEL_COUNT);
     if (! _channels[channelType]) {
         _channels[channelType] = new Channel();
     }
@@ -79,7 +78,6 @@ void BandwidthRecorder::updateOutboundData(const quint8 channelType, const int s
 }
 
 float BandwidthRecorder::getAverageInputPacketsPerSecond(const quint8 channelType) {
-    Q_ASSERT(channelType < CHANNEL_COUNT);
     if (! _channels[channelType]) {
         return 0.0f;
     }
@@ -87,7 +85,6 @@ float BandwidthRecorder::getAverageInputPacketsPerSecond(const quint8 channelTyp
 }
 
 float BandwidthRecorder::getAverageOutputPacketsPerSecond(const quint8 channelType) {
-    Q_ASSERT(channelType < CHANNEL_COUNT);
     if (! _channels[channelType]) {
         return 0.0f;
     }
@@ -95,7 +92,6 @@ float BandwidthRecorder::getAverageOutputPacketsPerSecond(const quint8 channelTy
 }
 
 float BandwidthRecorder::getAverageInputKilobitsPerSecond(const quint8 channelType) {
-    Q_ASSERT(channelType < CHANNEL_COUNT);
     if (! _channels[channelType]) {
         return 0.0f;
     }
@@ -103,7 +99,6 @@ float BandwidthRecorder::getAverageInputKilobitsPerSecond(const quint8 channelTy
 }
 
 float BandwidthRecorder::getAverageOutputKilobitsPerSecond(const quint8 channelType) {
-    Q_ASSERT(channelType < CHANNEL_COUNT);
     if (! _channels[channelType]) {
         return 0.0f;
     }
