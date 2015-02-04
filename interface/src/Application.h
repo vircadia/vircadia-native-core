@@ -187,7 +187,6 @@ public:
     
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return DependencyManager::get<GLCanvas>()->cursor().shape() == Qt::BlankCursor; }
-    void setCursorVisible(bool visible);
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
@@ -397,6 +396,8 @@ private slots:
     void runTests();
     
     void audioMuteToggled();
+
+    void setCursorVisible(bool visible);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);

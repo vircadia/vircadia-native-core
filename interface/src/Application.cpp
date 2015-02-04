@@ -1940,32 +1940,14 @@ void Application::updateCursor(float deltaTime) {
 
     static QPoint lastMousePos = QPoint();
     _lastMouseMove = (lastMousePos == QCursor::pos()) ? _lastMouseMove : usecTimestampNow();
-    bool hideMouse = false;
-    bool underMouse = QGuiApplication::topLevelAt(QCursor::pos()) ==
-                      Application::getInstance()->getWindow()->windowHandle();
-    
-    static const int HIDE_CURSOR_TIMEOUT = 3 * USECS_PER_SECOND; // 3 second
-    int elapsed = usecTimestampNow() - _lastMouseMove;
-    if ((elapsed > HIDE_CURSOR_TIMEOUT)  ||
-        (OculusManager::isConnected() && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode))) {
-        hideMouse = underMouse;
-    }
-    
-    setCursorVisible(!hideMouse);
     lastMousePos = QCursor::pos();
 }
 
 void Application::setCursorVisible(bool visible) {
     if (visible) {
-        if (overrideCursor() != NULL) {
-            restoreOverrideCursor();
-        }
+        DependencyManager::get<GLCanvas>()->unsetCursor();
     } else {
-        if (overrideCursor() != NULL) {
-            changeOverrideCursor(Qt::BlankCursor);
-        } else {
-            setOverrideCursor(Qt::BlankCursor);
-        }
+        DependencyManager::get<GLCanvas>()->setCursor(Qt::BlankCursor);
     }
 }
 
