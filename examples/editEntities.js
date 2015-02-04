@@ -120,10 +120,9 @@ var toolBar = (function () {
         // Hide active button for now - this may come back, so not deleting yet.
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "models-tool.svg",
-            // subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: 0, height: 0 },
-            width: 0,//toolWidth,
-            height: 0,//toolHeight,
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
             alpha: 0.9,
             visible: true
         }, true, false);
@@ -235,7 +234,10 @@ var toolBar = (function () {
             } else {
                 hasShownPropertiesTool = false;
                 cameraManager.enable();
-                grid.setEnabled(true);
+                entityListTool.setVisible(true);
+                gridTool.setVisible(true);
+                propertiesTool.setVisible(true);
+                Window.setFocus();
             }
         }
         toolBar.selectTool(activeButton, active);
