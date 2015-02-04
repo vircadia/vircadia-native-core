@@ -114,6 +114,9 @@ public:
     float getAudioOutputMsecsUnplayed() const;
 
     int getOutputBufferSize() { return _outputBufferSizeFrames.get(); }
+    
+    bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled.get(); }
+    void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled.set(enabled); }
 
     int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec.get(); }
     void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec.set(msecs); }

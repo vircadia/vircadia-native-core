@@ -154,7 +154,7 @@ void PreferencesDialog::loadPreferences() {
     ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
     ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
-    ui.realWorldFieldOfViewSpin->setValue(qApp->getAvatar()->getRealWorldFieldOfView());
+    ui.realWorldFieldOfViewSpin->setValue(DependencyManager::get<AvatarManager>()->getMyAvatar()->getRealWorldFieldOfView());
 
     ui.fieldOfViewSpin->setValue(qApp->getFieldOfView());
     
@@ -234,7 +234,7 @@ void PreferencesDialog::savePreferences() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
-    qApp->getAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     

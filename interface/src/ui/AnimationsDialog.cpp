@@ -21,6 +21,8 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
+#include "avatar/AvatarManager.h"
+
 #include "AnimationsDialog.h"
 
 AnimationsDialog::AnimationsDialog(QWidget* parent) :
