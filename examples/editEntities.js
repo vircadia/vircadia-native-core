@@ -46,28 +46,8 @@ gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
 
-var hasShownPropertiesTool = false;
-
-var entityListVisible = false;
-
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
-    if (selectionManager.hasSelection() && !hasShownPropertiesTool) {
-        // Open properties and model list, but force selection of model list tab
-        propertiesTool.setVisible(false);
-        entityListTool.setVisible(false);
-        gridTool.setVisible(false);
-        propertiesTool.setVisible(true);
-        entityListTool.setVisible(true);
-        gridTool.setVisible(true);
-        Window.setFocus();
-        hasShownPropertiesTool = true;
-    }
-    if (!selectionManager.hasSelection()) {
-        toolBar.setActive(false);
-    } else {
-        toolBar.setActive(true);
-    }
 });
 
 var windowDimensions = Controller.getViewportDimensions();
