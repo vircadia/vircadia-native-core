@@ -31,6 +31,8 @@ public slots:
     void showAddressBar();
     void showLoginDialog();
     
+    void showLoginFailure();
+    
 #if defined(ANDROID) && defined(HAVE_LIBOVR)
     OVR::KeyState& getBackKeyState() { return _backKeyState; }
 #endif

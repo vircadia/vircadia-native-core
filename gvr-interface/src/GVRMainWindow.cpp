@@ -15,6 +15,7 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMenuBar>
+#include <QtWidgets/QMessageBox>
 #include <QtWidgets/QVBoxLayout>
 
 #ifndef ANDROID
@@ -142,6 +143,12 @@ void GVRMainWindow::showLoginDialog() {
     // have the acccount manager handle credentials from LoginDialog
     AccountManager& accountManager = AccountManager::getInstance();
     connect(loginDialog, &LoginDialog::credentialsEntered, &accountManager, &AccountManager::requestAccessToken);
+    connect(&accountManager, &AccountManager::loginFailed, this, &GVRMainWindow::showLoginFailure);
     
     _mainLayout->addWidget(loginDialog);
+}
+
+void GVRMainWindow::showLoginFailure() {
+    QMessageBox::warning(this, "Login Failed",
+                         "Could not log in with that username and password. Please try again!");
 }

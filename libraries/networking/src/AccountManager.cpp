@@ -79,6 +79,9 @@ AccountManager::AccountManager() :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
+    
+    // once we have a profile in account manager make sure we generate a new keypair
+    connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewKeypair);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
