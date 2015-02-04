@@ -51,7 +51,7 @@ public:
     void setOrthographic(bool orthographic) { _orthographic = orthographic; }
     void setWidth(float width) { _width = width; }
     void setHeight(float height) { _height = height; }
-    void setFieldOfView(float f);
+    void setFieldOfView(float f) { _fieldOfView = f; }
     void setAspectRatio(float a) { _aspectRatio = a; }
     void setNearClip(float n) { _nearClip = n; }
     void setFarClip(float f) { _farClip = f; }

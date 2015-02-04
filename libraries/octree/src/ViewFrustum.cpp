@@ -34,10 +34,6 @@ void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
     _direction = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FRONT, 0.0f));
 }
 
-void ViewFrustum::setFieldOfView(float f) {
-    _fieldOfView = f;
-}
-
 // ViewFrustum::calculateViewFrustum()
 //
 // Description: this will calculate the view frustum bounds for a given position and direction
