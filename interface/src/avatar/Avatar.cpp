@@ -913,8 +913,9 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
-    // FIXME need to find an alternate mechanism for this.
-    //_displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
+    // FIXME is this a sufficient replacement for tightBoundingRect?
+    glm::vec2 extent = textRenderer(DISPLAYNAME)->computeExtent(displayName);
+    _displayNameBoundingRect = QRect(QPoint(0, 0), QPoint((int)extent.x, (int)extent.y));
 }
 
 void Avatar::setBillboard(const QByteArray& billboard) {
