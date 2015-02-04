@@ -40,13 +40,13 @@ public:
                                     OctreeElement::AppendState& appendState) const;
 
 
-    virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
     virtual void update(const quint64& now);
     virtual bool needsToCallUpdate() const;
+    void computeShapeInfo(ShapeInfo& info) const;
     virtual void debugDump() const;
 
 
@@ -116,8 +116,6 @@ public:
     
 protected:
 
-    /// For reading models from pre V3 bitstreams
-    int oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     bool isAnimatingSomething() const;
 
     rgbColor _color;

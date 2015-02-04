@@ -81,17 +81,6 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
-
-
-int ModelEntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
-        return oldVersionReadEntityDataFromBuffer(data, bytesLeftToRead, args);
-    }
-    
-    // let our base class do most of the work... it will call us back for our porition...
-    return EntityItem::readEntityDataFromBuffer(data, bytesLeftToRead, args);
-}
-
 int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
@@ -130,122 +119,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     return bytesRead;
 }
-
-int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-
-    int bytesRead = 0;
-    if (bytesLeftToRead >= expectedBytes()) {
-        int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
-
-        const unsigned char* dataAt = data;
-
-        // id
-        // this old bitstream format had 32bit IDs. They are obsolete and need to be replaced with our new UUID
-        // format. We can simply read and ignore the old ID since they should not be repeated. This code should only
-        // run on loading from an old file.
-        quint32 oldID;
-        memcpy(&oldID, dataAt, sizeof(oldID));
-        dataAt += sizeof(oldID);
-        bytesRead += sizeof(oldID);
-        _id = QUuid::createUuid();
-
-        // _lastUpdated
-        memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
-        dataAt += sizeof(_lastUpdated);
-        bytesRead += sizeof(_lastUpdated);
-        _lastUpdated -= clockSkew;
-
-        // _lastEdited
-        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
-        dataAt += sizeof(_lastEdited);
-        bytesRead += sizeof(_lastEdited);
-        _lastEdited -= clockSkew;
-        _created = _lastEdited; // NOTE: old models didn't have age or created time, assume their last edit was a create
-        
-        QString ageAsString = formatSecondsElapsed(getAge());
-        qDebug() << "Loading old model file, _created = _lastEdited =" << _created 
-                        << " age=" << getAge() << "seconds - " << ageAsString
-                        << "old ID=" << oldID << "new ID=" << _id;
-
-        // radius
-        float radius;
-        memcpy(&radius, dataAt, sizeof(radius));
-        dataAt += sizeof(radius);
-        bytesRead += sizeof(radius);
-        setRadius(radius);
-
-        // position
-        memcpy(&_position, dataAt, sizeof(_position));
-        dataAt += sizeof(_position);
-        bytesRead += sizeof(_position);
-
-        // color
-        memcpy(&_color, dataAt, sizeof(_color));
-        dataAt += sizeof(_color);
-        bytesRead += sizeof(_color);
-
-        // TODO: how to handle this? Presumable, this would only ever be true if the model file was saved with
-        // a model being in a shouldBeDeleted state. Which seems unlikely. But if it happens, maybe we should delete the entity after loading?
-        // shouldBeDeleted
-        bool shouldBeDeleted = false;
-        memcpy(&shouldBeDeleted, dataAt, sizeof(shouldBeDeleted));
-        dataAt += sizeof(shouldBeDeleted);
-        bytesRead += sizeof(shouldBeDeleted);
-        if (shouldBeDeleted) {
-            qDebug() << "UNEXPECTED - read shouldBeDeleted=TRUE from an old format file";
-        }
-
-        // modelURL
-        uint16_t modelURLLength;
-        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
-        dataAt += sizeof(modelURLLength);
-        bytesRead += sizeof(modelURLLength);
-        QString modelURLString((const char*)dataAt);
-        setModelURL(modelURLString);
-        dataAt += modelURLLength;
-        bytesRead += modelURLLength;
-
-        // rotation
-        int bytes = unpackOrientationQuatFromBytes(dataAt, _rotation);
-        dataAt += bytes;
-        bytesRead += bytes;
-
-        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ANIMATION) {
-            // animationURL
-            uint16_t animationURLLength;
-            memcpy(&animationURLLength, dataAt, sizeof(animationURLLength));
-            dataAt += sizeof(animationURLLength);
-            bytesRead += sizeof(animationURLLength);
-            QString animationURLString((const char*)dataAt);
-            setAnimationURL(animationURLString);
-            dataAt += animationURLLength;
-            bytesRead += animationURLLength;
-
-            // animationIsPlaying
-            bool animationIsPlaying;
-            memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
-            dataAt += sizeof(animationIsPlaying);
-            bytesRead += sizeof(animationIsPlaying);
-            setAnimationIsPlaying(animationIsPlaying);
-
-            // animationFrameIndex
-            float animationFrameIndex;
-            memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
-            dataAt += sizeof(animationFrameIndex);
-            bytesRead += sizeof(animationFrameIndex);
-            setAnimationFrameIndex(animationFrameIndex);
-
-            // animationFPS
-            float animationFPS;
-            memcpy(&animationFPS, dataAt, sizeof(animationFPS));
-            dataAt += sizeof(animationFPS);
-            bytesRead += sizeof(animationFPS);
-            setAnimationFPS(animationFPS);
-        }
-    }
-    return bytesRead;
-}
-
 
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
 EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
@@ -370,6 +243,21 @@ bool ModelEntityItem::isAnimatingSomething() const {
 
 bool ModelEntityItem::needsToCallUpdate() const {
     return isAnimatingSomething() ?  true : EntityItem::needsToCallUpdate();
+}
+
+void ModelEntityItem::computeShapeInfo(ShapeInfo& info) const {
+    // HACK: Default first first approximation is to boxify the entity... but only if it is small enough.
+    // The limit here is chosen to something that most avatars could not comfortably fit inside
+    // to prevent houses from getting boxified... we don't want the things inside houses to 
+    // collide with a house as if it were a giant solid block.
+    const float MAX_SIZE_FOR_BOXIFICATION_HACK = 3.0f;
+    float diagonal = glm::length(getDimensionsInMeters());
+    if (diagonal < MAX_SIZE_FOR_BOXIFICATION_HACK) {
+        glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
+        info.setBox(halfExtents);
+    } else {
+        info.clear();
+    }
 }
 
 void ModelEntityItem::update(const quint64& now) {

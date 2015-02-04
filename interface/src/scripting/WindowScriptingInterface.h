@@ -40,6 +40,7 @@ public slots:
     void setCursorPosition(int x, int y);
     void setCursorVisible(bool visible);
     QScriptValue hasFocus();
+    void setFocus();
     QScriptValue alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
     QScriptValue form(const QString& title, QScriptValue array);

@@ -36,11 +36,11 @@ public:
     
     // position conversion
     glm::vec3 localToWorldPosition(const glm::vec3& localPosition) {
-        return getBasePosition() + getBaseOrientation() * localPosition;
+        return getBasePosition() + getBaseOrientation() * localPosition * getBaseScale();
     }
 
     glm::vec3 localToWorldDirection(const glm::vec3& localVector) {
-        return getBaseOrientation() * localVector;
+        return getBaseOrientation() * localVector * getBaseScale();
     }
 
     glm::vec3 worldToLocalVector(const glm::vec3& worldVector) const;
@@ -71,6 +71,7 @@ protected:
     
     glm::quat getBaseOrientation() const;
     glm::vec3 getBasePosition() const;
+    float getBaseScale() const;
     
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made

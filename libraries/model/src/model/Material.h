@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 
 #include "gpu/Resource.h"
+#include "gpu/Texture.h"
 
 namespace model {
 typedef gpu::BufferView UniformBufferView;

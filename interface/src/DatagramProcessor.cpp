@@ -15,6 +15,7 @@
 #include <PerfStat.h>
 
 #include "Application.h"
+#include "Audio.h"
 #include "Menu.h"
 
 #include "DatagramProcessor.h"
@@ -38,11 +39,10 @@ void DatagramProcessor::processDatagrams() {
     
     while (DependencyManager::get<NodeList>()->getNodeSocket().hasPendingDatagrams()) {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
-        nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
-                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        nodeList->readDatagram(incomingPacket, senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        _packetCount++;
-        _byteCount += incomingPacket.size();
+        _inPacketCount++;
+        _inByteCount += incomingPacket.size();
         
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
             
@@ -72,7 +72,6 @@ void DatagramProcessor::processDatagrams() {
                     
                     if (audioMixer) {
                         audioMixer->setLastHeardMicrostamp(usecTimestampNow());
-                        audioMixer->recordBytesReceived(incomingPacket.size());
                     }
                     
                     break;
@@ -94,7 +93,6 @@ void DatagramProcessor::processDatagrams() {
                         // add this packet to our list of octree packets and process them on the octree data processing
                         application->_octreeProcessor.queueReceivedPacket(matchedNode, incomingPacket);
                     }
-                    
                     break;
                 }
                 case PacketTypeMetavoxelData:
@@ -109,14 +107,10 @@ void DatagramProcessor::processDatagrams() {
                     
                     if (avatarMixer) {
                         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-                        avatarMixer->recordBytesReceived(incomingPacket.size());
-                        
                         QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
                                                   Q_ARG(const QByteArray&, incomingPacket),
                                                   Q_ARG(const QWeakPointer<Node>&, avatarMixer));
                     }
-                    
-                    application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
                     break;
                 }
                 case PacketTypeDomainConnectionDenied: {

@@ -31,6 +31,7 @@
 
 #include "AnimationObject.h"
 #include "ArrayBufferViewClass.h"
+#include "BatchLoader.h"
 #include "DataViewClass.h"
 #include "EventTypes.h"
 #include "MenuItemProperties.h"
@@ -111,7 +112,7 @@ void ScriptEngine::setIsAvatar(bool isAvatar) {
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
         _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
     }
-    
+
     if (!_isAvatar) {
         delete _avatarIdentityTimer;
         _avatarIdentityTimer = NULL;
@@ -178,7 +179,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
             }
         } else {
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            QNetworkRequest networkRequest = QNetworkRequest(url);
+            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
         }
     }
@@ -304,7 +307,7 @@ QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileN
     QScriptValue result = QScriptEngine::evaluate(program, fileName, lineNumber);
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ": " << result.toString();
+        qDebug() << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
     }
     emit evaluationFinished(result, hasUncaughtException());
     clearExceptions();
@@ -595,44 +598,55 @@ void ScriptEngine::print(const QString& message) {
     emit printedMessage(message);
 }
 
-void ScriptEngine::include(const QString& includeFile) {
-    QUrl url = resolvePath(includeFile);
-    QString includeContents;
+/**
+ * If a callback is specified, the included files will be loaded asynchronously and the callback will be called
+ * when all of the files have finished loading.
+ * If no callback is specified, the included files will be loaded synchronously and will block execution until
+ * all of the files have finished loading.
+ */
+void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callback) {
+    QList<QUrl> urls;
+    for (QString file : includeFiles) {
+        urls.append(resolvePath(file));
+    }
 
-    if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
-        qDebug() << "Downloading included script at" << includeFile;
-        QEventLoop loop;
-        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-        loop.exec();
-        includeContents = reply->readAll();
-        reply->deleteLater();
-    } else {
-#ifdef _WIN32
-        QString fileName = url.toString();
-#else
-        QString fileName = url.toLocalFile();
-#endif
-
-        QFile scriptFile(fileName);
-        if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-            qDebug() << "Including file:" << fileName;
-            QTextStream in(&scriptFile);
-            includeContents = in.readAll();
-        } else {
-            qDebug() << "ERROR Including file:" << fileName;
-            emit errorMessage("ERROR Including file:" + fileName);
+    BatchLoader* loader = new BatchLoader(urls);
+    
+    auto evaluateScripts = [=](const QMap<QUrl, QString>& data) {
+        for (QUrl url : urls) {
+            QString contents = data[url];
+            if (contents.isNull()) {
+                qDebug() << "Error loading file: " << url;
+            } else {
+                QScriptValue result = evaluate(contents, url.toString());
+            }
         }
-    }
 
-    QScriptValue result = evaluate(includeContents);
-    if (hasUncaughtException()) {
-        int line = uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at (" << includeFile << ") line" << line << ":" << result.toString();
-        emit errorMessage("Uncaught exception at (" + includeFile + ") line" + QString::number(line) + ":" + result.toString());
-        clearExceptions();
+        if (callback.isFunction()) {
+            QScriptValue(callback).call();
+        }
+
+        loader->deleteLater();
+    };
+
+    connect(loader, &BatchLoader::finished, this, evaluateScripts);
+
+    // If we are destroyed before the loader completes, make sure to clean it up
+    connect(this, &QObject::destroyed, loader, &QObject::deleteLater);
+
+    loader->start();
+
+    if (!callback.isFunction() && !loader->isFinished()) {
+        QEventLoop loop;
+        QObject::connect(loader, &BatchLoader::finished, &loop, &QEventLoop::quit);
+        loop.exec();
     }
+}
+
+void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
+    QStringList urls;
+    urls.append(includeFile);
+    include(urls, callback);
 }
 
 void ScriptEngine::load(const QString& loadFile) {

@@ -12,34 +12,38 @@
 //
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-Script.include("libraries/stringHelpers.js");
-Script.include("libraries/dataviewHelpers.js");
-Script.include("libraries/httpMultiPart.js");
-Script.include("libraries/modelUploader.js");
-Script.include("libraries/toolBars.js");
-Script.include("libraries/progressDialog.js");
 
-Script.include("libraries/entitySelectionTool.js");
+Script.include([
+    "libraries/stringHelpers.js",
+    "libraries/dataviewHelpers.js",
+    "libraries/httpMultiPart.js",
+    "libraries/modelUploader.js",
+    "libraries/toolBars.js",
+    "libraries/progressDialog.js",
+
+    "libraries/entitySelectionTool.js",
+    "libraries/ModelImporter.js",
+
+    "libraries/ExportMenu.js",
+    "libraries/ToolTip.js",
+
+    "libraries/entityPropertyDialogBox.js",
+    "libraries/entityCameraTool.js",
+    "libraries/gridTool.js",
+    "libraries/entityList.js",
+]);
+
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
-
-Script.include("libraries/ModelImporter.js");
 var modelImporter = new ModelImporter();
-
-Script.include("libraries/ExportMenu.js");
-Script.include("libraries/ToolTip.js");
-
-Script.include("libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
-Script.include("libraries/entityCameraTool.js");
 var cameraManager = new CameraManager();
 
-Script.include("libraries/gridTool.js");
 var grid = Grid();
 gridTool = GridTool({ horizontalGrid: grid });
+gridTool.setVisible(false);
 
-Script.include("libraries/entityList.js");
 var entityListTool = EntityListTool();
 
 var hasShownPropertiesTool = false;
@@ -52,9 +56,17 @@ selectionManager.addEventListener(function() {
         // Open properties and model list, but force selection of model list tab
         propertiesTool.setVisible(false);
         entityListTool.setVisible(false);
+        gridTool.setVisible(false);
         propertiesTool.setVisible(true);
         entityListTool.setVisible(true);
+        gridTool.setVisible(true);
+        Window.setFocus();
         hasShownPropertiesTool = true;
+    }
+    if (!selectionManager.hasSelection()) {
+        toolBar.setActive(false);
+    } else {
+        toolBar.setActive(true);
     }
 });
 
@@ -123,11 +135,13 @@ var toolBar = (function () {
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
 
+        // Hide active button for now - this may come back, so not deleting yet.
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "models-tool.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-            width: toolWidth,
-            height: toolHeight,
+            // subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: 0, height: 0 },
+            width: 0,//toolWidth,
+            height: 0,//toolHeight,
             alpha: 0.9,
             visible: true
         }, true, false);
@@ -239,7 +253,6 @@ var toolBar = (function () {
             } else {
                 hasShownPropertiesTool = false;
                 cameraManager.enable();
-                gridTool.setVisible(true);
                 grid.setEnabled(true);
             }
         }
@@ -507,7 +520,7 @@ function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event) || gridTool.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         mouseCapturedByTool = true;
         return;
     }
@@ -522,7 +535,7 @@ function mousePressEvent(event) {
             if (result !== null) {
                 var currentProperties = Entities.getEntityProperties(result.entityID);
                 cameraManager.enable();
-                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                cameraManager.focus(currentProperties.position, null, true);
                 cameraManager.mousePressEvent(event);
             }
         } else {
@@ -543,19 +556,16 @@ function mouseMoveEvent(event) {
     }
 
     mouseHasMovedSincePress = true;
-    if (isActive) {
-        // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
-        if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
-            return;
-        }
 
-        lastMousePosition = { x: event.x, y: event.y };
-
-        highlightEntityUnderCursor(lastMousePosition, false);
-        idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
-    } else {
-        cameraManager.mouseMoveEvent(event);
+    // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
+    if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
+        return;
     }
+
+    lastMousePosition = { x: event.x, y: event.y };
+
+    highlightEntityUnderCursor(lastMousePosition, false);
+    idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
 }
 
 function handleIdleMouse() {
@@ -608,7 +618,7 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
-    if (!isActive) {
+    if (!event.isRightButton) {
         return;
     }
 
@@ -619,6 +629,7 @@ function mouseClickEvent(event) {
         }
         return;
     }
+    toolBar.setActive(true);
     var pickRay = result.pickRay;
     var foundEntity = result.entityID;
 
@@ -660,15 +671,19 @@ function mouseClickEvent(event) {
             orientation = MyAvatar.orientation;
             intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
-            if (!event.isShifted) {
-                selectionManager.clearSelections();
-            }
 
-            var toggle = event.isShifted;
-            selectionManager.addEntity(foundEntity, toggle);
+            if (!event.isShifted) {
+                selectionManager.setSelections([foundEntity]);
+            } else {
+                selectionManager.addEntity(foundEntity, true);
+            }
 
             print("Model selected: " + foundEntity.id);
             selectionDisplay.select(selectedEntityID, event);
+
+            cameraManager.focus(selectionManager.worldPosition,
+                                selectionManager.worldDimensions,
+                                true);
         }
     }
 }
@@ -806,9 +821,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Import Models") {
         modelImporter.doImport();
     } else if (menuItem == "Entity List...") {
-        if (isActive) {
-            entityListTool.toggleVisible();
-        }
+        entityListTool.toggleVisible();
     }
     tooltip.show(false);
 }
@@ -816,16 +829,20 @@ function handeMenuEvent(menuItem) {
 Menu.menuItemEvent.connect(handeMenuEvent);
 
 Controller.keyPressEvent.connect(function(event) {
-    if (event.text == 'w' || event.text == 'a' || event.text == 's' || event.text == 'd'
-        || event.text == 'UP' || event.text == 'DOWN' || event.text == 'LEFT' || event.text == 'RIGHT') {
-       toolBar.setActive(false);
+    if (isActive) {
+        cameraManager.keyPressEvent(event);
     }
 });
 
 Controller.keyReleaseEvent.connect(function (event) {
+    if (isActive) {
+        cameraManager.keyReleaseEvent(event);
+    }
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
     if (event.text == "BACKSPACE" || event.text == "DELETE") {
         deleteSelectedEntities();
+    } else if (event.text == "ESC") {
+        selectionManager.clearSelections();
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
@@ -845,55 +862,6 @@ Controller.keyReleaseEvent.connect(function (event) {
             var newPosition = selectionManager.worldPosition;
             newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
             grid.setPosition(newPosition);
-        }
-    } else if (isActive) {
-        var delta = null;
-        var increment = event.isShifted ? grid.getMajorIncrement() : grid.getMinorIncrement();
-
-        if (event.text == 'UP') {
-            if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: increment, z: 0 };
-            } else {
-                delta = { x: 0, y: 0, z: -increment };
-            }
-        } else if (event.text == 'DOWN') {
-            if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: -increment, z: 0 };
-            } else {
-                delta = { x: 0, y: 0, z: increment };
-            }
-        } else if (event.text == 'LEFT') {
-            delta = { x: -increment, y: 0, z: 0 };
-        } else if (event.text == 'RIGHT') {
-            delta = { x: increment, y: 0, z: 0 };
-        }
-
-        if (delta != null) {
-            // Adjust delta so that movements are relative to the current camera orientation
-            var lookDirection = Quat.getFront(Camera.getOrientation());
-            lookDirection.z *= -1;
-
-            var angle = Math.atan2(lookDirection.z, lookDirection.x);
-            angle -= (Math.PI / 4);
-
-            var rotation = Math.floor(angle / (Math.PI / 2)) * (Math.PI / 2);
-            var rotator = Quat.fromPitchYawRollRadians(0, rotation, 0);
-
-            delta = Vec3.multiplyQbyV(rotator, delta);
-
-            SelectionManager.saveProperties();
-
-            for (var i = 0; i < selectionManager.selections.length; i++) {
-                var entityID = selectionManager.selections[i];
-                var properties = Entities.getEntityProperties(entityID);
-                Entities.editEntity(entityID, {
-                    position: Vec3.sum(properties.position, delta)
-                });
-            }
-
-            pushCommandForSelections();
-
-            selectionManager._update();
         }
     }
 });
@@ -1078,4 +1046,3 @@ PropertiesTool = function(opts) {
 };
 
 propertiesTool = PropertiesTool();
-

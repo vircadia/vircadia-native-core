@@ -9,15 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <NetworkAccessManager.h>
-
 #include "Application.h"
 
 #include "BillboardOverlay.h"
 
 BillboardOverlay::BillboardOverlay() :
-    _newTextureNeeded(true),
-    _fromImage(-1,-1,-1,-1),
+    _fromImage(),
     _scale(1.0f),
     _isFacingAvatar(true)
 {
@@ -27,10 +24,7 @@ BillboardOverlay::BillboardOverlay() :
 BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
     Base3DOverlay(billboardOverlay),
     _url(billboardOverlay->_url),
-    _billboard(billboardOverlay->_billboard),
-    _size(),
-    _billboardTexture(),
-    _newTextureNeeded(true),
+    _texture(billboardOverlay->_texture),
     _fromImage(billboardOverlay->_fromImage),
     _scale(billboardOverlay->_scale),
     _isFacingAvatar(billboardOverlay->_isFacingAvatar)
@@ -38,41 +32,23 @@ BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
 }
 
 void BillboardOverlay::render(RenderArgs* args) {
-    if (!_visible || !_isLoaded) {
+    if (!_isLoaded) {
+        _isLoaded = true;
+        _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
+    }
+
+    if (!_visible || !_texture->isLoaded()) {
         return;
     }
-    
-    if (!_billboard.isEmpty()) {
-        if (_newTextureNeeded && _billboardTexture) {
-            _billboardTexture.reset();
-        }
-        if (!_billboardTexture) {
-            QImage image = QImage::fromData(_billboard);
-            if (image.format() != QImage::Format_ARGB32) {
-                image = image.convertToFormat(QImage::Format_ARGB32);
-            }
-            _size = image.size();
-            if (_fromImage.x() == -1) {
-                _fromImage.setRect(0, 0, _size.width(), _size.height());
-            }
-            _billboardTexture.reset(new Texture());
-            _newTextureNeeded = false;
-            glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _size.width(), _size.height(), 0,
-                         GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            
-        } else {
-            glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-        }
-    }
-    
+
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.5f);
-    
+
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_LIGHTING);
-    
+
+    glBindTexture(GL_TEXTURE_2D, _texture->getID());
+
     glPushMatrix(); {
         glTranslatef(_position.x, _position.y, _position.z);
         glm::quat rotation;
@@ -86,39 +62,55 @@ void BillboardOverlay::render(RenderArgs* args) {
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         glScalef(_scale, _scale, _scale);
-        
-        if (_billboardTexture) {
-            float maxSize = glm::max(_fromImage.width(), _fromImage.height());
-            float x = _fromImage.width() / (2.0f * maxSize);
-            float y = -_fromImage.height() / (2.0f * maxSize);
-            
-            const float MAX_COLOR = 255.0f;
-            xColor color = getColor();
-            float alpha = getAlpha();
-            glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-            
-            glm::vec2 topLeft(-x, -y);
-            glm::vec2 bottomRight(x, y);
-            glm::vec2 texCoordTopLeft((float)_fromImage.x() / (float)_size.width(), 
-                                      (float)_fromImage.y() / (float)_size.height());
-            glm::vec2 texCoordBottomRight(((float)_fromImage.x() + (float)_fromImage.width()) / (float)_size.width(),
-                                          ((float)_fromImage.y() + (float)_fromImage.height()) / _size.height());
 
-            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
-            
+        const float MAX_COLOR = 255.0f;
+        xColor color = getColor();
+        float alpha = getAlpha();
+
+        float imageWidth = _texture->getWidth();
+        float imageHeight = _texture->getHeight();
+
+        QRect fromImage;
+        if (_fromImage.isNull()) {
+            fromImage.setX(0);
+            fromImage.setY(0);
+            fromImage.setWidth(imageWidth);
+            fromImage.setHeight(imageHeight);
+        } else {
+            float scaleX = imageWidth / _texture->getOriginalWidth();
+            float scaleY = imageHeight / _texture->getOriginalHeight();
+
+            fromImage.setX(scaleX * _fromImage.x());
+            fromImage.setY(scaleY * _fromImage.y());
+            fromImage.setWidth(scaleX * _fromImage.width());
+            fromImage.setHeight(scaleY * _fromImage.height());
         }
+
+        float maxSize = glm::max(fromImage.width(), fromImage.height());
+        float x = fromImage.width() / (2.0f * maxSize);
+        float y = -fromImage.height() / (2.0f * maxSize);
+
+        glm::vec2 topLeft(-x, -y);
+        glm::vec2 bottomRight(x, y);
+        glm::vec2 texCoordTopLeft(fromImage.x() / imageWidth, fromImage.y() / imageHeight);
+        glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width()) / imageWidth,
+                                      (fromImage.y() + fromImage.height()) / imageHeight);
+
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+                                                            glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
+
     } glPopMatrix();
-    
+
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_LIGHTING);
     glDisable(GL_ALPHA_TEST);
-    
+
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void BillboardOverlay::setProperties(const QScriptValue &properties) {
     Base3DOverlay::setProperties(properties);
-    
+
     QScriptValue urlValue = properties.property("url");
     if (urlValue.isValid()) {
         QString newURL = urlValue.toVariant().toString();
@@ -126,39 +118,43 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
             setBillboardURL(newURL);
         }
     }
-    
+
     QScriptValue subImageBounds = properties.property("subImage");
     if (subImageBounds.isValid()) {
-        QRect oldSubImageRect = _fromImage;
-        QRect subImageRect = _fromImage;
-        if (subImageBounds.property("x").isValid()) {
-            subImageRect.setX(subImageBounds.property("x").toVariant().toInt());
+        if (subImageBounds.isNull()) {
+            _fromImage = QRect();
         } else {
-            subImageRect.setX(oldSubImageRect.x());
+            QRect oldSubImageRect = _fromImage;
+            QRect subImageRect = _fromImage;
+            if (subImageBounds.property("x").isValid()) {
+                subImageRect.setX(subImageBounds.property("x").toVariant().toInt());
+            } else {
+                subImageRect.setX(oldSubImageRect.x());
+            }
+            if (subImageBounds.property("y").isValid()) {
+                subImageRect.setY(subImageBounds.property("y").toVariant().toInt());
+            } else {
+                subImageRect.setY(oldSubImageRect.y());
+            }
+            if (subImageBounds.property("width").isValid()) {
+                subImageRect.setWidth(subImageBounds.property("width").toVariant().toInt());
+            } else {
+                subImageRect.setWidth(oldSubImageRect.width());
+            }
+            if (subImageBounds.property("height").isValid()) {
+                subImageRect.setHeight(subImageBounds.property("height").toVariant().toInt());
+            } else {
+                subImageRect.setHeight(oldSubImageRect.height());
+            }
+            setClipFromSource(subImageRect);
         }
-        if (subImageBounds.property("y").isValid()) {
-            subImageRect.setY(subImageBounds.property("y").toVariant().toInt());
-        } else {
-            subImageRect.setY(oldSubImageRect.y());
-        }
-        if (subImageBounds.property("width").isValid()) {
-            subImageRect.setWidth(subImageBounds.property("width").toVariant().toInt());
-        } else {
-            subImageRect.setWidth(oldSubImageRect.width());
-        }
-        if (subImageBounds.property("height").isValid()) {
-            subImageRect.setHeight(subImageBounds.property("height").toVariant().toInt());
-        } else {
-            subImageRect.setHeight(oldSubImageRect.height());
-        }
-        setClipFromSource(subImageRect);
     }
-    
+
     QScriptValue scaleValue = properties.property("scale");
     if (scaleValue.isValid()) {
         _scale = scaleValue.toVariant().toFloat();
     }
-    
+
     QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
     if (isFacingAvatarValue.isValid()) {
         _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
@@ -188,33 +184,20 @@ void BillboardOverlay::setURL(const QString& url) {
 
 void BillboardOverlay::setBillboardURL(const QString& url) {
     _url = url;
-    QUrl actualURL = url;
-
     _isLoaded = false;
-
-    // clear the billboard if previously set
-    _billboard.clear();
-    _newTextureNeeded = true;
-
-    QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(actualURL));
-    connect(reply, &QNetworkReply::finished, this, &BillboardOverlay::replyFinished);
-}
-
-void BillboardOverlay::replyFinished() {
-    // replace our byte array with the downloaded data
-    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
-    _billboard = reply->readAll();
-    _isLoaded = true;
-    reply->deleteLater();
 }
 
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
 
-    if (_billboardTexture) {
-        float maxSize = glm::max(_fromImage.width(), _fromImage.height());
-        float x = _fromImage.width() / (2.0f * maxSize);
-        float y = -_fromImage.height() / (2.0f * maxSize);
+    if (_texture) {
+        bool isNull = _fromImage.isNull();
+        float width = isNull ? _texture->getWidth() : _fromImage.width();
+        float height = isNull ? _texture->getHeight() : _fromImage.height();
+
+        float maxSize = glm::max(width, height);
+        float x = width / (2.0f * maxSize);
+        float y = -height / (2.0f * maxSize);
         float maxDimension = glm::max(x,y);
         float scaledDimension = maxDimension * _scale;
         glm::vec3 corner = getCenter() - glm::vec3(scaledDimension, scaledDimension, scaledDimension) ;

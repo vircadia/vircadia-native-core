@@ -226,16 +226,16 @@ public:
     
     glm::mat4 offset;
     
-    int leftEyeJointIndex;
-    int rightEyeJointIndex;
-    int neckJointIndex;
-    int rootJointIndex;
-    int leanJointIndex;
-    int headJointIndex;
-    int leftHandJointIndex;
-    int rightHandJointIndex;
-    int leftToeJointIndex;
-    int rightToeJointIndex;
+    int leftEyeJointIndex = -1;
+    int rightEyeJointIndex = -1;
+    int neckJointIndex = -1;
+    int rootJointIndex = -1;
+    int leanJointIndex = -1;
+    int headJointIndex = -1;
+    int leftHandJointIndex = -1;
+    int rightHandJointIndex = -1;
+    int leftToeJointIndex = -1;
+    int rightToeJointIndex = -1;
     
     QVector<int> humanIKJointIndices;
     

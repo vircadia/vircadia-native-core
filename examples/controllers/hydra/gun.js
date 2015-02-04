@@ -304,7 +304,6 @@ function makePlatform(gravity, scale, size) {
 }
 
 function entityCollisionWithEntity(entity1, entity2, collision) {
-
     if (((entity1.id == bulletID.id) || (entity1.id == targetID.id)) && 
         ((entity2.id == bulletID.id) || (entity2.id == targetID.id))) {
         score++;
@@ -486,7 +485,8 @@ function mousePressEvent(event) {
     if (clickedOverlay == offButton) {
         Script.stop();
     } else if (clickedOverlay == platformButton) {
-        makePlatform(-9.8, 1.0, 5);
+        var platformSize = 3;
+        makePlatform(-9.8, 1.0, platformSize);
     } else if (clickedOverlay == gridButton) {
         makeGrid("Box", 1.0, 3);
     } 
@@ -500,6 +500,7 @@ function scriptEnding() {
     Overlays.deleteOverlay(pointer[0]);
     Overlays.deleteOverlay(pointer[1]);
     Overlays.deleteOverlay(text);
+    MyAvatar.detachOne(gunModel);
     MyAvatar.detachOne(gunModel);
     clearPose();
 }

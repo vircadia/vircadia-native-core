@@ -73,8 +73,6 @@ body {
 }
 
 .grid-section {
-    border-top: 0.75pt solid #DDD;
-    background-color: #efefef;
 }
 
 input[type=button] {
@@ -169,7 +167,7 @@ input {
     color: rgb(150, 150, 150);
 }
 
-#properties-list input, #properties-list textarea {
+input, textarea {
     background-color: rgb(102, 102, 102);
     color: rgb(204, 204, 204);
     border: none;

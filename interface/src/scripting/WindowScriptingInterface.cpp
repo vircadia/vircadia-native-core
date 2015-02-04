@@ -15,6 +15,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QScriptValue>
+#include <QScrollArea>
 
 #include "Application.h"
 #include "MainWindow.h"
@@ -41,6 +42,11 @@ WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title
 
 QScriptValue WindowScriptingInterface::hasFocus() {
     return DependencyManager::get<GLCanvas>()->hasFocus();
+}
+
+void WindowScriptingInterface::setFocus() {
+    Application::getInstance()->getWindow()->activateWindow();
+    Application::getInstance()->getWindow()->setFocus();
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {

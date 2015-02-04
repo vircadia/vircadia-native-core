@@ -49,13 +49,13 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         const float MAX_COLOR = 255.0f;
         xColor backgroundColor = getBackgroundColorX();
         float alpha = 1.0f; //getBackgroundAlpha();
-        glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
+        glm::vec4 color(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
        
         const float SLIGHTLY_BEHIND = -0.005f;
 
         glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
         glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, color);
         
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
@@ -78,12 +78,11 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
         xColor textColor = getTextColorX();
-        glColor3f(textColor.red / MAX_COLOR, textColor.green / MAX_COLOR, textColor.blue / MAX_COLOR);
+        glm::vec4 textColorV4(textColor.red / MAX_COLOR, textColor.green / MAX_COLOR, textColor.blue / MAX_COLOR, 1.0f);
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
-        float textAlpha = 1.0f; // getTextAlpha()
         foreach(QString thisLine, lines) {
-            textRenderer->draw(0, lineOffset, qPrintable(thisLine), textAlpha);
+            textRenderer->draw(0, lineOffset, qPrintable(thisLine), textColorV4);
             lineOffset += maxHeight;
         }
 

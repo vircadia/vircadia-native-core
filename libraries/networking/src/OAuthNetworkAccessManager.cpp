@@ -14,6 +14,7 @@
 #include <QThreadStorage>
 
 #include "AccountManager.h"
+#include "SharedUtil.h"
 
 #include "OAuthNetworkAccessManager.h"
 
@@ -33,6 +34,7 @@ QNetworkReply* OAuthNetworkAccessManager::createRequest(QNetworkAccessManager::O
     
     if (accountManager.hasValidAccessToken()) {
         QNetworkRequest authenticatedRequest(req);
+        authenticatedRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         authenticatedRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
                                           accountManager.getAccountInfo().getAccessToken().authorizationHeaderValue());
         
