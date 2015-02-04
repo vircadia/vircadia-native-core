@@ -167,6 +167,8 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
+
+            emit packetVersionMismatch();
             
             versionDebugSuppressMap.insert(senderUUID, checkType);
         }
@@ -410,25 +412,27 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
-    try {
-        SharedNodePointer matchingNode = _nodeHash.at(uuid);
+    NodeHash::const_iterator it = _nodeHash.find(uuid);
+    
+    if (it != _nodeHash.end()) {
+        SharedNodePointer& matchingNode = it->second;
         
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
         
         return matchingNode;
-    } catch (std::out_of_range) {
+    } else {
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
-        SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
+        SharedNodePointer newNodePointer(newNode);
         
-        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodeSharedPointer));
+        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
         
         qDebug() << "Added" << *newNode;
         
-        emit nodeAdded(newNodeSharedPointer);
+        emit nodeAdded(newNodePointer);
         
-        return newNodeSharedPointer;
+        return newNodePointer;
     }
 }
 

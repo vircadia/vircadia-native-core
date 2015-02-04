@@ -212,6 +212,9 @@ public:
 
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
+    
+    float getFieldOfView() { return _fieldOfView.get(); }
+    void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -296,7 +299,7 @@ public:
 
     Bookmarks* getBookmarks() const { return _bookmarks; }
     
-    QString getScriptsLocation() const;
+    QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
 
 signals:
@@ -361,6 +364,8 @@ public slots:
     
     void loadSettings();
     void saveSettings();
+
+    void notifyPacketVersionMismatch();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -488,6 +493,11 @@ private:
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
+    
+    Setting::Handle<bool> _firstRun;
+    Setting::Handle<QString> _previousScriptLocation;
+    Setting::Handle<QString> _scriptsLocationHandle;
+    Setting::Handle<float> _fieldOfView;
 
     Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
@@ -545,8 +555,6 @@ private:
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
-    QString _previousScriptLocation;
-
     FileLogger* _logger;
 
     void checkVersion();
@@ -576,6 +584,8 @@ private:
     bool _aboutToQuit;
 
     Bookmarks* _bookmarks;
+
+    bool _notifiedPacketVersionMismatchThisDomain;
     
     QThread _settingsThread;
     QTimer _settingsTimer;

@@ -16,15 +16,13 @@
 #include <QtWebKit/QWebElement>
 
 #include <PathUtils.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 
 #include "InfoView.h"
 
 static const float MAX_DIALOG_HEIGHT_RATIO = 0.9f;
 
-namespace SettingHandles {
-    const SettingHandle<QString> infoVersion("info-version", QString());
-}
+Setting::Handle<QString> infoVersion("info-version", QString());
 
 InfoView::InfoView(bool forced, QString path) :
     _forced(forced)
@@ -52,13 +50,13 @@ bool InfoView::shouldShow() {
         return true;
     }
     
-    QString lastVersion = SettingHandles::infoVersion.get();
+    QString lastVersion = infoVersion.get();
     
     QWebElement versionTag = page()->mainFrame()->findFirstElement("#version");
     QString version = versionTag.attribute("value");
     
     if (version != QString::null && (lastVersion == QString::null || lastVersion != version)) {
-        SettingHandles::infoVersion.set(version);
+        infoVersion.set(version);
         shouldShow = true;
     } else {
         shouldShow = false;

@@ -38,7 +38,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PositionalAudioStream.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 
@@ -47,16 +47,17 @@
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
-namespace SettingHandles {
-    const SettingHandle<bool> audioOutputStarveDetectionEnabled("audioOutputStarveDetectionEnabled",
-                                                                DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED);
-    const SettingHandle<int> audioOutputStarveDetectionThreshold("audioOutputStarveDetectionThreshold",
-                                                                 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD);
-    const SettingHandle<int> audioOutputStarveDetectionPeriod("audioOutputStarveDetectionPeriod",
-                                                              DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD);
-    const SettingHandle<int> audioOutputBufferSize("audioOutputBufferSize",
-                                                   DEFAULT_MAX_FRAMES_OVER_DESIRED);
-}
+Setting::Handle<bool> dynamicJitterBuffers("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS);
+Setting::Handle<int> maxFramesOverDesired("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
+Setting::Handle<int> staticDesiredJitterBufferFrames("staticDesiredJitterBufferFrames",
+                                                     DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES);
+Setting::Handle<bool> useStDevForJitterCalc("useStDevForJitterCalc", DEFAULT_USE_STDEV_FOR_JITTER_CALC);
+Setting::Handle<int> windowStarveThreshold("windowStarveThreshold", DEFAULT_WINDOW_STARVE_THRESHOLD);
+Setting::Handle<int> windowSecondsForDesiredCalcOnTooManyStarves("windowSecondsForDesiredCalcOnTooManyStarves",
+                                                                 DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES);
+Setting::Handle<int> windowSecondsForDesiredReduction("windowSecondsForDesiredReduction",
+                                                      DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
+Setting::Handle<bool> repetitionWithFade("repetitionWithFade", DEFAULT_REPETITION_WITH_FADE);
 
 Audio::Audio() :
     AbstractAudioInterface(),
@@ -74,12 +75,16 @@ Audio::Audio() :
     _inputRingBuffer(0),
     _receivedAudioStream(0, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, InboundAudioStream::Settings()),
     _isStereoInput(false),
-    _outputBufferSizeFrames(DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
-    _outputStarveDetectionEnabled(true),
     _outputStarveDetectionStartTimeMsec(0),
     _outputStarveDetectionCount(0),
-    _outputStarveDetectionPeriodMsec(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
-    _outputStarveDetectionThreshold(DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
+    _outputBufferSizeFrames("audioOutputBufferSize",
+                            DEFAULT_MAX_FRAMES_OVER_DESIRED),
+    _outputStarveDetectionEnabled("audioOutputStarveDetectionEnabled",
+                                  DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED),
+    _outputStarveDetectionPeriodMsec("audioOutputStarveDetectionPeriod",
+                                     DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
+    _outputStarveDetectionThreshold("audioOutputStarveDetectionThreshold",
+                                    DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD),
     _averagedLatency(0.0f),
     _lastInputLoudness(0.0f),
     _timeSinceLastClip(-1.0f),
@@ -962,16 +967,16 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
 void Audio::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
     if (recentUnfulfilled > 0) {
-        if (_outputStarveDetectionEnabled) {
+        if (_outputStarveDetectionEnabled.get()) {
             quint64 now = usecTimestampNow() / 1000;
             quint64 dt = now - _outputStarveDetectionStartTimeMsec;
-            if (dt > _outputStarveDetectionPeriodMsec) {
+            if (dt > _outputStarveDetectionPeriodMsec.get()) {
                 _outputStarveDetectionStartTimeMsec = now;
                 _outputStarveDetectionCount = 0;
             } else {
                 _outputStarveDetectionCount += recentUnfulfilled;
-                if (_outputStarveDetectionCount > _outputStarveDetectionThreshold) {
-                    int newOutputBufferSizeFrames = _outputBufferSizeFrames + 1;
+                if (_outputStarveDetectionCount > _outputStarveDetectionThreshold.get()) {
+                    int newOutputBufferSizeFrames = _outputBufferSizeFrames.get() + 1;
                     qDebug() << "Starve detection threshold met, increasing buffer size to " << newOutputBufferSizeFrames;
                     setOutputBufferSize(newOutputBufferSizeFrames);
 
@@ -1009,7 +1014,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(_outputBufferSizeFrames * _outputFrameSize * sizeof(int16_t));
+            _audioOutput->setBufferSize(_outputBufferSizeFrames.get() * _outputFrameSize * sizeof(int16_t));
 
             connect(_audioOutput, &QAudioOutput::notify, this, &Audio::outputNotify);
 
@@ -1032,9 +1037,9 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
 
 void Audio::setOutputBufferSize(int numFrames) {
     numFrames = std::min(std::max(numFrames, MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES), MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
-    if (numFrames != _outputBufferSizeFrames) {
+    if (numFrames != _outputBufferSizeFrames.get()) {
         qDebug() << "Audio output buffer size (frames): " << numFrames;
-        _outputBufferSizeFrames = numFrames;
+        _outputBufferSizeFrames.set(numFrames);
 
         if (_audioOutput) {
             // The buffer size can't be adjusted after QAudioOutput::start() has been called, so
@@ -1133,26 +1138,25 @@ void Audio::checkDevices() {
 }
 
 void Audio::loadSettings() {
-    _receivedAudioStream.loadSettings();
-    
-    setOutputStarveDetectionEnabled(SettingHandles::audioOutputStarveDetectionEnabled.get());
-    setOutputStarveDetectionThreshold(SettingHandles::audioOutputStarveDetectionThreshold.get());
-    setOutputStarveDetectionPeriod(SettingHandles::audioOutputStarveDetectionPeriod.get());
-    
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setOutputBufferSize",
-                                  Q_ARG(int, SettingHandles::audioOutputBufferSize.get()));
-    } else {
-        setOutputBufferSize(SettingHandles::audioOutputBufferSize.get());
-    }
+    _receivedAudioStream.setDynamicJitterBuffers(dynamicJitterBuffers.get());
+    _receivedAudioStream.setMaxFramesOverDesired(maxFramesOverDesired.get());
+    _receivedAudioStream.setStaticDesiredJitterBufferFrames(staticDesiredJitterBufferFrames.get());
+    _receivedAudioStream.setUseStDevForJitterCalc(useStDevForJitterCalc.get());
+    _receivedAudioStream.setWindowStarveThreshold(windowStarveThreshold.get());
+    _receivedAudioStream.setWindowSecondsForDesiredCalcOnTooManyStarves(
+                                            windowSecondsForDesiredCalcOnTooManyStarves.get());
+    _receivedAudioStream.setWindowSecondsForDesiredReduction(windowSecondsForDesiredReduction.get());
+    _receivedAudioStream.setRepetitionWithFade(repetitionWithFade.get());
 }
 
 void Audio::saveSettings() {
-    _receivedAudioStream.saveSettings();
-    
-    SettingHandles::audioOutputStarveDetectionEnabled.set(getOutputStarveDetectionEnabled());
-    SettingHandles::audioOutputStarveDetectionThreshold.set(getOutputStarveDetectionThreshold());
-    SettingHandles::audioOutputStarveDetectionPeriod.set(getOutputStarveDetectionPeriod());
-    SettingHandles::audioOutputBufferSize.set(getOutputBufferSize());
+    dynamicJitterBuffers.set(_receivedAudioStream.getDynamicJitterBuffers());
+    maxFramesOverDesired.set(_receivedAudioStream.getMaxFramesOverDesired());
+    staticDesiredJitterBufferFrames.set(_receivedAudioStream.getDesiredJitterBufferFrames());
+    windowStarveThreshold.set(_receivedAudioStream.getWindowStarveThreshold());
+    windowSecondsForDesiredCalcOnTooManyStarves.set(_receivedAudioStream.
+                                            getWindowSecondsForDesiredCalcOnTooManyStarves());
+    windowSecondsForDesiredReduction.set(_receivedAudioStream.getWindowSecondsForDesiredReduction());
+    repetitionWithFade.set(_receivedAudioStream.getRepetitionWithFade());
 }
 

@@ -14,7 +14,6 @@
 
 #include <DependencyManager.h>
 #include <OctreeConstants.h>
-#include <Settings.h>
 #include <SharedUtil.h>
 #include <SimpleMovingAverage.h>
 
