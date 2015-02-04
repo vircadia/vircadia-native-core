@@ -441,7 +441,7 @@ void Stats::display(
     if (_expanded) {
         SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
-            avatarMixerStats = QString("Avatar Mixer: %1 kbps, %1 pps").
+            avatarMixerStats = QString("Avatar Mixer: %1 kbps, %2 pps").
                 arg(roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
                            bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer))).
                 arg(roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
