@@ -228,6 +228,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
+        _cursorVisible(true),
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
@@ -1473,6 +1474,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
     
     auto glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
+    
+    updateCursorVisibility();
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -1943,12 +1946,17 @@ void Application::updateCursor(float deltaTime) {
     lastMousePos = QCursor::pos();
 }
 
-void Application::setCursorVisible(bool visible) {
-    if (visible) {
-        DependencyManager::get<GLCanvas>()->unsetCursor();
-    } else {
+void Application::updateCursorVisibility() {
+    if (!_cursorVisible || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         DependencyManager::get<GLCanvas>()->setCursor(Qt::BlankCursor);
+    } else {
+        DependencyManager::get<GLCanvas>()->unsetCursor();
     }
+}
+
+void Application::setCursorVisible(bool visible) {
+    _cursorVisible = visible;
+    updateCursorVisibility();
 }
 
 void Application::update(float deltaTime) {
