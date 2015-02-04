@@ -28,7 +28,7 @@
 #include <HTTPConnection.h>
 #include <LogUtils.h>
 #include <PacketHeaders.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <UUID.h>
@@ -1925,7 +1925,7 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     
     // persist the cookie to settings file so we can get it back on DS relaunch
     QStringList path = QStringList() << DS_SETTINGS_SESSIONS_GROUP << cookieUUID.toString();
-    SettingHandles::SettingHandle<QVariant>(path).set(QVariant::fromValue(sessionData));
+    Setting::Handle<QVariant>(path).set(QVariant::fromValue(sessionData));
     
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);

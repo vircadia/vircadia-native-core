@@ -16,15 +16,10 @@
 
 #include <QString>
 
-#include <Settings.h>
+#include <SettingHandle.h>
 
 class QFile;
 class QTemporaryFile;
-
-namespace SettingHandles {
-    const SettingHandle<QString> snapshotsLocation("snapshotsLocation",
-                        QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
-}
 
 class SnapshotMetaData {
 public:
@@ -50,6 +45,7 @@ public:
     static QTemporaryFile* saveTempSnapshot();
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
     
+    static Setting::Handle<QString> snapshotsLocation;
 private:
     static QFile* savedFileForSnapshot(bool isTemporary);
 };

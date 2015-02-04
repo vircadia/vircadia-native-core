@@ -14,6 +14,8 @@
 
 #include <QMainWindow>
 
+#include <SettingHandle.h>
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -33,6 +35,9 @@ protected:
     virtual void showEvent(QShowEvent* event);
     virtual void hideEvent(QHideEvent* event);
     virtual void changeEvent(QEvent* event);
+    
+private:
+    Setting::Handle<QRect> _windowGeometry;
 };
 
 #endif /* defined(__hifi__MainWindow__) */

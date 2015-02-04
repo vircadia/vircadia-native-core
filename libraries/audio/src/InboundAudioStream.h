@@ -126,9 +126,6 @@ public:
     void setWindowSecondsForDesiredReduction(int windowSecondsForDesiredReduction);
     void setRepetitionWithFade(bool repetitionWithFade) { _repetitionWithFade = repetitionWithFade; }
 
-    void loadSettings();
-    void saveSettings();
-
     virtual AudioStreamStats getAudioStreamStats() const;
 
     /// returns the desired number of jitter buffer frames under the dyanmic jitter buffers scheme

@@ -38,7 +38,6 @@
 #include <GeometryCache.h>
 #include <GLMHelpers.h>
 #include <ResourceCache.h>
-#include <Settings.h>
 #include <TextureCache.h>
 
 #include "ModelUploader.h"
@@ -68,14 +67,13 @@ static const int MAX_CHECK = 30;
 static const int QCOMPRESS_HEADER_POSITION = 0;
 static const int QCOMPRESS_HEADER_SIZE = 4;
 
-namespace SettingHandles {
-    const SettingHandle<QString> lastModelUploadLocation("LastModelUploadLocation",
-                        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
-}
+Setting::Handle<QString> ModelUploader::_lastModelUploadLocation("LastModelUploadLocation",
+                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
 
 void ModelUploader::uploadModel(ModelType modelType) {
     ModelUploader* uploader = new ModelUploader(modelType);
     QThread* thread = new QThread();
+    thread->setObjectName("Model Uploader");
     thread->connect(uploader, SIGNAL(destroyed()), SLOT(quit()));
     thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
     uploader->connect(thread, SIGNAL(started()), SLOT(send()));
@@ -117,7 +115,7 @@ ModelUploader::~ModelUploader() {
 
 bool ModelUploader::zip() {
     // File Dialog
-    QString lastLocation = SettingHandles::lastModelUploadLocation.get();
+    QString lastLocation = _lastModelUploadLocation.get();
     
     if (lastLocation.isEmpty()) {
        lastLocation  = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
@@ -134,7 +132,7 @@ bool ModelUploader::zip() {
         // If the user canceled we return.
         return false;
     }
-    SettingHandles::lastModelUploadLocation.set(filename);
+    _lastModelUploadLocation.set(filename);
     
     // First we check the FST file (if any)
     QFile* fst;
