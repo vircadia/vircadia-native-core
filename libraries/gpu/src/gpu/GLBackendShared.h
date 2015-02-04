@@ -49,7 +49,7 @@ static const GLenum _elementTypeToGLType[NUM_TYPES]= {
     GL_UNSIGNED_BYTE
 };
 
-#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
-//#define CHECK_GL_ERROR()
+//#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
+#define CHECK_GL_ERROR()
 
 #endif
