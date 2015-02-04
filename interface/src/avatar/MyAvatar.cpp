@@ -29,7 +29,6 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
-#include <Settings.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <TextRenderer.h>
@@ -53,6 +52,7 @@ const float YAW_SPEED = 500.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
+const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
 const float MAX_WALKING_SPEED = 2.5f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
@@ -91,7 +91,9 @@ MyAvatar::MyAvatar() :
     _billboardValid(false),
     _physicsSimulation(),
     _feetTouchFloor(true),
-    _isLookingAtLeftEye(true)
+    _isLookingAtLeftEye(true),
+    _realWorldFieldOfView("realWorldFieldOfView",
+                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES)
 {
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -340,8 +342,8 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
-        float magnifyFieldOfView = qApp->getViewFrustum()->getFieldOfView() /
-                                   qApp->getViewFrustum()->getRealWorldFieldOfView();
+        float magnifyFieldOfView = qApp->getFieldOfView() /
+                                   _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
     }

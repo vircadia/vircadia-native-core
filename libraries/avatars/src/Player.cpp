@@ -166,6 +166,7 @@ void Player::pausePlayer() {
 
 void Player::setupAudioThread() {
     _audioThread = new QThread();
+    _audioThread->setObjectName("Player Audio Thread");
     _options.position = _avatar->getPosition();
     _options.orientation = _avatar->getOrientation();
     _injector.reset(new AudioInjector(_recording->getAudioData(), _options), &QObject::deleteLater);

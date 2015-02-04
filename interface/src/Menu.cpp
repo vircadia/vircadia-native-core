@@ -18,7 +18,7 @@
 #include <DependencyManager.h>
 #include <GlowEffect.h>
 #include <PathUtils.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <UserActivityLogger.h>
 #include <XmppClient.h>
 

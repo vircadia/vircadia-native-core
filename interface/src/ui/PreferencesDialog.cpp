@@ -122,7 +122,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
-    ui.snapshotLocationEdit->setText(SettingHandles::snapshotsLocation.get());
+    ui.snapshotLocationEdit->setText(Snapshot::snapshotsLocation.get());
 
     ui.scriptsLocationEdit->setText(qApp->getScriptsLocation());
 
@@ -154,9 +154,9 @@ void PreferencesDialog::loadPreferences() {
     ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
     ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
-    ui.realWorldFieldOfViewSpin->setValue(qApp->getViewFrustum()->getRealWorldFieldOfView());
+    ui.realWorldFieldOfViewSpin->setValue(qApp->getAvatar()->getRealWorldFieldOfView());
 
-    ui.fieldOfViewSpin->setValue(qApp->getViewFrustum()->getFieldOfView());
+    ui.fieldOfViewSpin->setValue(qApp->getFieldOfView());
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
     
@@ -220,7 +220,7 @@ void PreferencesDialog::savePreferences() {
     }
 
     if (!ui.snapshotLocationEdit->text().isEmpty() && QDir(ui.snapshotLocationEdit->text()).exists()) {
-        SettingHandles::snapshotsLocation.set(ui.snapshotLocationEdit->text());
+        Snapshot::snapshotsLocation.set(ui.snapshotLocationEdit->text());
     }
 
     if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
@@ -234,9 +234,9 @@ void PreferencesDialog::savePreferences() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
-    qApp->getViewFrustum()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    qApp->getAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
-    qApp->getViewFrustum()->setFieldOfView(ui.fieldOfViewSpin->value());
+    qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     
     auto faceshift = DependencyManager::get<Faceshift>();
     faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /

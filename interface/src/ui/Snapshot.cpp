@@ -43,6 +43,9 @@ const QString ORIENTATION_W = "orientation-w";
 
 const QString DOMAIN_KEY = "domain";
 
+Setting::Handle<QString> Snapshot::snapshotsLocation("snapshotsLocation",
+                                QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     
     if (!QFile(snapshotPath).exists()) {
@@ -125,7 +128,7 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
     const int IMAGE_QUALITY = 100;
     
     if (!isTemporary) {
-        QString snapshotFullPath = SettingHandles::snapshotsLocation.get();
+        QString snapshotFullPath = snapshotsLocation.get();
         
         if (!snapshotFullPath.endsWith(QDir::separator())) {
             snapshotFullPath.append(QDir::separator());

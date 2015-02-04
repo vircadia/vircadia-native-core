@@ -44,6 +44,11 @@ QScriptValue WindowScriptingInterface::hasFocus() {
     return DependencyManager::get<GLCanvas>()->hasFocus();
 }
 
+void WindowScriptingInterface::setFocus() {
+    Application::getInstance()->getWindow()->activateWindow();
+    Application::getInstance()->getWindow()->setFocus();
+}
+
 void WindowScriptingInterface::setCursorVisible(bool visible) {
     Application::getInstance()->setCursorVisible(visible);
 }

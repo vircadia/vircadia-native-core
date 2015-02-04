@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <SettingHandle.h>
 #include <Util.h>
 
 #include "Application.h"
@@ -16,15 +17,14 @@
 
 #include "LODManager.h"
 
-namespace SettingHandles {
-    const SettingHandle<bool> automaticAvatarLOD("automaticAvatarLOD", true);
-    const SettingHandle<float> avatarLODDecreaseFPS("avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS);
-    const SettingHandle<float> avatarLODIncreaseFPS("avatarLODIncreaseFPS",  ADJUST_LOD_UP_FPS);
-    const SettingHandle<float> avatarLODDistanceMultiplier("avatarLODDistanceMultiplier",
+Setting::Handle<bool> automaticAvatarLOD("automaticAvatarLOD", true);
+Setting::Handle<float> avatarLODDecreaseFPS("avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS);
+Setting::Handle<float> avatarLODIncreaseFPS("avatarLODIncreaseFPS",  ADJUST_LOD_UP_FPS);
+Setting::Handle<float> avatarLODDistanceMultiplier("avatarLODDistanceMultiplier",
                                                            DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
-    const SettingHandle<int> boundaryLevelAdjust("boundaryLevelAdjust", 0);
-    const SettingHandle<float> octreeSizeScale("octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
-}
+Setting::Handle<int> boundaryLevelAdjust("boundaryLevelAdjust", 0);
+Setting::Handle<float> octreeSizeScale("octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
+
 
 void LODManager::autoAdjustLOD(float currentFPS) {
     // NOTE: our first ~100 samples at app startup are completely all over the place, and we don't
@@ -190,21 +190,21 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
 
 
 void LODManager::loadSettings() {
-    setAutomaticAvatarLOD(SettingHandles::automaticAvatarLOD.get());
-    setAvatarLODDecreaseFPS(SettingHandles::avatarLODDecreaseFPS.get());
-    setAvatarLODIncreaseFPS(SettingHandles::avatarLODIncreaseFPS.get());
-    setAvatarLODDistanceMultiplier(SettingHandles::avatarLODDistanceMultiplier.get());
-    setBoundaryLevelAdjust(SettingHandles::boundaryLevelAdjust.get());
-    setOctreeSizeScale(SettingHandles::octreeSizeScale.get());
+    setAutomaticAvatarLOD(automaticAvatarLOD.get());
+    setAvatarLODDecreaseFPS(avatarLODDecreaseFPS.get());
+    setAvatarLODIncreaseFPS(avatarLODIncreaseFPS.get());
+    setAvatarLODDistanceMultiplier(avatarLODDistanceMultiplier.get());
+    setBoundaryLevelAdjust(boundaryLevelAdjust.get());
+    setOctreeSizeScale(octreeSizeScale.get());
 }
 
 void LODManager::saveSettings() {
-    SettingHandles::automaticAvatarLOD.set(getAutomaticAvatarLOD());
-    SettingHandles::avatarLODDecreaseFPS.set(getAvatarLODDecreaseFPS());
-    SettingHandles::avatarLODIncreaseFPS.set(getAvatarLODIncreaseFPS());
-    SettingHandles::avatarLODDistanceMultiplier.set(getAvatarLODDistanceMultiplier());
-    SettingHandles::boundaryLevelAdjust.set(getBoundaryLevelAdjust());
-    SettingHandles::octreeSizeScale.set(getOctreeSizeScale());
+    automaticAvatarLOD.set(getAutomaticAvatarLOD());
+    avatarLODDecreaseFPS.set(getAvatarLODDecreaseFPS());
+    avatarLODIncreaseFPS.set(getAvatarLODIncreaseFPS());
+    avatarLODDistanceMultiplier.set(getAvatarLODDistanceMultiplier());
+    boundaryLevelAdjust.set(getBoundaryLevelAdjust());
+    octreeSizeScale.set(getOctreeSizeScale());
 }
 
 

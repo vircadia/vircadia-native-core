@@ -18,6 +18,10 @@
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
 class OctreePacketProcessor : public ReceivedPacketProcessor {
     Q_OBJECT
+
+signals:
+    void packetVersionMismatch();
+
 protected:
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 };

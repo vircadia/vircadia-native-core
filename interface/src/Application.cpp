@@ -73,7 +73,7 @@
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
@@ -143,12 +143,6 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
-namespace SettingHandles {
-    const SettingHandle<bool> firstRun("firstRun", true);
-    const SettingHandle<QString> lastScriptLocation("LastScriptLocation");
-    const SettingHandle<QString> scriptsLocation("scriptsLocation");
-}
-
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
@@ -164,16 +158,8 @@ bool setupEssentials(int& argc, char** argv) {
     if (portStr) {
         listenPort = atoi(portStr);
     }
-    
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings::setDefaultFormat(QSettings::IniFormat);
-    QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-    QApplication::setApplicationName(applicationInfo.value("name").toString());
-    QApplication::setApplicationVersion(BUILD_VERSION);
-    QApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
-    QApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    // Set build version
+    QCoreApplication::setApplicationVersion(BUILD_VERSION);
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
@@ -208,7 +194,6 @@ bool setupEssentials(int& argc, char** argv) {
     return true;
 }
 
-
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
@@ -229,6 +214,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+        _firstRun("firstRun", true),
+        _previousScriptLocation("LastScriptLocation"),
+        _scriptsLocationHandle("scriptsLocation"),
+        _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
         _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
@@ -242,7 +231,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
         _nodeBoundsDisplay(this),
-        _previousScriptLocation(),
         _applicationOverlay(),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
@@ -250,7 +238,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
-        _aboutToQuit(false)
+        _aboutToQuit(false),
+        _notifiedPacketVersionMismatchThisDomain(false)
 {
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
     qInstallMessageHandler(messageHandler);
@@ -277,6 +266,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
     // start the nodeThread so its event loop is running
+    _nodeThread->setObjectName("Datagram Processor Thread");
     _nodeThread->start();
 
     // make sure the node thread is given highest priority
@@ -291,6 +281,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
+    audioThread->setObjectName("Audio Thread");
     
     auto audioIO = DependencyManager::get<AudioClient>();
     
@@ -326,6 +317,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
+    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -438,26 +430,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
 
     // check first run...
-    bool firstRun = SettingHandles::firstRun.get();
-    if (firstRun) {
+    if (_firstRun.get()) {
         qDebug() << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript(DEFAULT_SCRIPTS_JS_URL);
 
-        SettingHandles::firstRun.set(false);
+        _firstRun.set(false);
     } else {
         // do this as late as possible so that all required subsystems are initialized
         loadScripts();
-
-        _previousScriptLocation = SettingHandles::lastScriptLocation.get();
     }
     
     loadSettings();
     int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
     connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
-    connect(&_settingsThread, SIGNAL(started), &_settingsTimer, SLOT(start));
-    connect(&_settingsThread, &QThread::finished, &_settingsTimer, &QTimer::deleteLater);
+    connect(&_settingsThread, SIGNAL(started()), &_settingsTimer, SLOT(start()));
+    connect(&_settingsThread, SIGNAL(finished()), &_settingsTimer, SLOT(stop()));
     _settingsTimer.moveToThread(&_settingsThread);
     _settingsTimer.setSingleShot(false);
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
@@ -483,6 +472,8 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
+    QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
+    _settingsThread.quit();
     saveSettings();
     
     _entities.getTree()->setSimulation(NULL);
@@ -568,6 +559,7 @@ void Application::initializeGL() {
 
     // create thread for parsing of octee data independent of the main network and rendering threads
     _octreeProcessor.initialize(_enableProcessOctreeThread);
+    connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
@@ -727,7 +719,7 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
         TV3DManager::configureCamera(camera, width, height);
     } else {
         camera.setAspectRatio((float)width / height);
-        camera.setFieldOfView(_viewFrustum.getFieldOfView());
+        camera.setFieldOfView(_fieldOfView.get());
     }
 }
 
@@ -1567,15 +1559,16 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
 }
 
 void Application::loadSettings() {
+
     DependencyManager::get<AudioClient>()->loadSettings();
-    DependencyManager::get<LODManager>()->loadSettings();
+
     Menu::getInstance()->loadSettings();
     _myAvatar->loadData();
 }
 
 void Application::saveSettings() {
     DependencyManager::get<AudioClient>()->saveSettings();
-    DependencyManager::get<LODManager>()->saveSettings();
+
     Menu::getInstance()->saveSettings();
     _myAvatar->saveData();
 }
@@ -2936,7 +2929,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
-    } else if (SettingHandles::rearViewZoomLevel.get() == BODY) {
+    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
@@ -3174,11 +3167,11 @@ void Application::connectedToDomain(const QString& hostname) {
     
     if (accountManager.isLoggedIn() && !domainID.isNull()) {
         // update our data-server with the domain-server we're logged in with
-
         QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
-
         accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), domainPutJsonString.toUtf8());
+
+        _notifiedPacketVersionMismatchThisDomain = false;
     }
 }
 
@@ -3445,6 +3438,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 #endif
 
     QThread* workerThread = new QThread(this);
+    workerThread->setObjectName("Script Engine Thread");
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
@@ -3663,21 +3657,20 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
 
 QString Application::getPreviousScriptLocation() {
     QString suggestedName;
-    if (_previousScriptLocation.isEmpty()) {
+    if (_previousScriptLocation.get().isEmpty()) {
         QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 // Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
 #ifdef __APPLE__
         suggestedName = desktopLocation.append("/script.js");
 #endif
     } else {
-        suggestedName = _previousScriptLocation;
+        suggestedName = _previousScriptLocation.get();
     }
     return suggestedName;
 }
 
 void Application::setPreviousScriptLocation(const QString& previousScriptLocation) {
-    _previousScriptLocation = previousScriptLocation;
-    SettingHandles::lastScriptLocation.set(_previousScriptLocation);
+    _previousScriptLocation.set(previousScriptLocation);
 }
 
 void Application::loadDialog() {
@@ -3712,12 +3705,12 @@ void Application::loadScriptURLDialog() {
     }
 }
 
-QString Application::getScriptsLocation() const {
-    return SettingHandles::scriptsLocation.get();
+QString Application::getScriptsLocation() {
+    return _scriptsLocationHandle.get();
 }
 
 void Application::setScriptsLocation(const QString& scriptsLocation) {
-    SettingHandles::scriptsLocation.set(scriptsLocation);
+    _scriptsLocationHandle.set(scriptsLocation);
     emit scriptLocationChanged(scriptsLocation);
 }
 
@@ -3938,5 +3931,20 @@ int Application::getRenderAmbientLight() const {
         return 9;
     } else {
         return -1;
+    }
+}
+
+void Application::notifyPacketVersionMismatch() {
+    if (!_notifiedPacketVersionMismatchThisDomain) {
+        _notifiedPacketVersionMismatchThisDomain = true;
+
+        QString message = "The location you are visiting is running an incompatible server version.\n";
+        message += "Content may not display properly.";
+
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
     }
 }
