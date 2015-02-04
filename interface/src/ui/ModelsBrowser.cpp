@@ -85,6 +85,7 @@ ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
     
     // Setup and launch update thread
     QThread* thread = new QThread();
+    thread->setObjectName("Models Browser");
     thread->connect(_handler, SIGNAL(destroyed()), SLOT(quit()));
     thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
     _handler->moveToThread(thread);

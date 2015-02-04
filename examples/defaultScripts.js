@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.load("progress.js");
 Script.load("lookWithTouch.js");
 Script.load("editEntities.js");
 Script.load("selectAudioDevice.js");
