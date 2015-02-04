@@ -378,9 +378,9 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     if (message.body().contains(usernameMention)) {
 
         // Don't show messages already seen in icon tray at start-up.
-        bool showMessage = usernameMentionTimestamp.get() < _lastMessageStamp;
+        bool showMessage = _usernameMentionTimestamp.get() < _lastMessageStamp;
         if (showMessage) {
-            usernameMentionTimestamp.set(_lastMessageStamp);
+            _usernameMentionTimestamp.set(_lastMessageStamp);
         }
 
         if (isHidden() && showMessage) {

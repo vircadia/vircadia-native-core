@@ -14,7 +14,6 @@
 
 #include <DependencyManager.h>
 #include <OctreeConstants.h>
-#include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <SimpleMovingAverage.h>
 
@@ -43,38 +42,41 @@ class LODManager : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD.set(automaticAvatarLOD); }
-    bool getAutomaticAvatarLOD() { return _automaticAvatarLOD.get(); }
-    void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS.set(avatarLODDecreaseFPS); }
-    float getAvatarLODDecreaseFPS() { return _avatarLODDecreaseFPS.get(); }
-    void setAvatarLODIncreaseFPS(float avatarLODIncreaseFPS) { _avatarLODIncreaseFPS.set(avatarLODIncreaseFPS); }
-    float getAvatarLODIncreaseFPS() { return _avatarLODIncreaseFPS.get(); }
-    void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier.set(multiplier); }
-    float getAvatarLODDistanceMultiplier() { return _avatarLODDistanceMultiplier.get(); }
+    void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; }
+    bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
+    void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; }
+    float getAvatarLODDecreaseFPS() const { return _avatarLODDecreaseFPS; }
+    void setAvatarLODIncreaseFPS(float avatarLODIncreaseFPS) { _avatarLODIncreaseFPS = avatarLODIncreaseFPS; }
+    float getAvatarLODIncreaseFPS() const { return _avatarLODIncreaseFPS; }
+    void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier = multiplier; }
+    float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     
     // User Tweakable LOD Items
     QString getLODFeedbackText();
     void setOctreeSizeScale(float sizeScale);
-    float getOctreeSizeScale() { return _octreeSizeScale.get(); }
+    float getOctreeSizeScale() const { return _octreeSizeScale; }
     
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
-    int getBoundaryLevelAdjust() { return _boundaryLevelAdjust.get(); }
+    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     
     void autoAdjustLOD(float currentFPS);
     void resetLODAdjust();
     
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
     
+    void loadSettings();
+    void saveSettings();
+    
 private:
-    LODManager();
+    LODManager() {}
     
-    Setting::Handle<bool> _automaticAvatarLOD;
-    Setting::Handle<float> _avatarLODDecreaseFPS;
-    Setting::Handle<float> _avatarLODIncreaseFPS;
-    Setting::Handle<float> _avatarLODDistanceMultiplier;
+    bool _automaticAvatarLOD = true;
+    float _avatarLODDecreaseFPS = DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS;
+    float _avatarLODIncreaseFPS = ADJUST_LOD_UP_FPS;
+    float _avatarLODDistanceMultiplier = DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER;
     
-    Setting::Handle<int> _boundaryLevelAdjust;
-    Setting::Handle<float> _octreeSizeScale;
+    float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
+    int _boundaryLevelAdjust = 0;
     
     quint64 _lastAdjust = 0;
     quint64 _lastAvatarDetailDrop = 0;
