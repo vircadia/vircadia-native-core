@@ -48,7 +48,8 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     _wasBackKeyDown(false),
 #endif
     _mainLayout(NULL),
-    _menuBar(NULL)
+    _menuBar(NULL),
+    _loginAction(NULL)
 {
     
 #ifndef ANDROID
@@ -114,9 +115,16 @@ void GVRMainWindow::setupMenuBar() {
     connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
     fileMenu->addAction(goToAddress);
     
-    QAction* login = new QAction("Login", fileMenu);
-    connect(login, &QAction::triggered, this, &GVRMainWindow::showLoginDialog);
-    fileMenu->addAction(login);
+    _loginAction = new QAction("Login", fileMenu);
+    fileMenu->addAction(_loginAction);
+    
+    // change the login action depending on our logged in/out state
+    AccountManager& accountManager = AccountManager::getInstance();
+    connect(&accountManager, &AccountManager::loginComplete, this, &GVRMainWindow::refreshLoginAction);
+    connect(&accountManager, &AccountManager::logoutComplete, this, &GVRMainWindow::refreshLoginAction);
+    
+    // refresh the state now
+    refreshLoginAction();
     
     QAction* aboutQt = new QAction("About Qt", helpMenu);
     connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
@@ -151,4 +159,18 @@ void GVRMainWindow::showLoginDialog() {
 void GVRMainWindow::showLoginFailure() {
     QMessageBox::warning(this, "Login Failed",
                          "Could not log in with that username and password. Please try again!");
+}
+
+void GVRMainWindow::refreshLoginAction() {
+    AccountManager& accountManager = AccountManager::getInstance();
+    disconnect(_loginAction, &QAction::triggered, &accountManager, 0);
+    
+    if (accountManager.isLoggedIn()) {
+        _loginAction->setText("Logout");
+        connect(_loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
+    } else {
+        _loginAction->setText("Login");
+        connect(_loginAction, &QAction::triggered, this, &GVRMainWindow::showLoginDialog);
+    }
+    
 }

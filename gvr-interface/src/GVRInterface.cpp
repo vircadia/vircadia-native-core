@@ -53,6 +53,10 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     _mainWindow(NULL),
     _inVRMode(false)
 {
+    setApplicationName("gvr-interface");
+    setOrganizationName("highfidelity");
+    setOrganizationDomain("io");
+    
     if (!launchURLString.isEmpty()) {
         // did we get launched with a lookup URL? If so it is time to give that to the AddressManager
         qDebug() << "We were opened via a hifi URL -" << launchURLString;

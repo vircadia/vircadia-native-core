@@ -40,6 +40,8 @@ public slots:
 protected:
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
+private slots:
+    void refreshLoginAction();
 private:
     void setupMenuBar();
     
@@ -50,6 +52,7 @@ private:
     
     QVBoxLayout* _mainLayout;
     QMenuBar* _menuBar;
+    QAction* _loginAction;
 };
 
 #endif // hifi_GVRMainWindow_h
