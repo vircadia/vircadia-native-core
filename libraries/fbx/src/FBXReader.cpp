@@ -1303,6 +1303,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     QString jointRightHandID;
     QString jointLeftToeID;
     QString jointRightToeID;
+
+    float lightmapOffset = 0.0f;
     
     QVector<QString> humanIKJointNames;
     for (int i = 0;; i++) {
@@ -2123,6 +2125,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 
                 FBXTexture emissiveTexture;
                 glm::vec2 emissiveParams(0.f, 1.f);
+                emissiveParams.x = lightmapOffset;
                 emissiveParams.y = lightmapLevel;
                 QString emissiveTextureID = emissiveTextures.value(childID);
                 QString ambientTextureID = ambientTextures.value(childID);
