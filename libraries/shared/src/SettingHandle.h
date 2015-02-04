@@ -12,6 +12,8 @@
 #ifndef hifi_SettingHandle_h
 #define hifi_SettingHandle_h
 
+#include <type_traits>
+
 #include <QSettings>
 #include <QString>
 #include <QVariant>
@@ -57,7 +59,7 @@ namespace Setting {
     
     template <typename T>
     void Handle<T>::setVariant(const QVariant& variant) {
-        if (variant.canConvert<T>()) {
+        if (variant.canConvert<T>() || std::is_same<T, QVariant>::value) {
             set(variant.value<T>());
         }
     }
