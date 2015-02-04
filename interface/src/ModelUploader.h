@@ -53,7 +53,7 @@ private:
     ModelUploader(ModelType type);
     ~ModelUploader();
     
-    void populateBasicMapping(QVariantHash& mapping, QString filename, FBXGeometry geometry);
+    void populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry);
     bool zip();
     bool addTextures(const QString& texdir, const FBXGeometry& geometry);
     bool addPart(const QString& path, const QString& name, bool isTexture = false);

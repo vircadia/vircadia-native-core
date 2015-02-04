@@ -265,7 +265,7 @@ bool ModelUploader::zip() {
     return true;
 }
 
-void ModelUploader::populateBasicMapping(QVariantHash& mapping, QString filename, FBXGeometry geometry) {
+void ModelUploader::populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry) {
     if (!mapping.contains(NAME_FIELD)) {
         mapping.insert(NAME_FIELD, QFileInfo(filename).baseName());
     }
