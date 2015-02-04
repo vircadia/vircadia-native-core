@@ -19,6 +19,23 @@
 Script.include("../../libraries/globals.js");
 Script.include("../../libraries/virtualKeyboard.js");
 
+function Instructions(imageURL) {
+    this.overlay = Overlays.addOverlay("image", {
+                imageURL: HIFI_PUBLIC_BUCKET + "images/tutorial-goTo.svg",
+                x: 0,
+                y: 0,
+                alpha: 1,
+                visible: true
+    });
+    this.remove = function() {
+        Overlays.deleteOverlay(this.overlay);
+    };
+};
+
+var theInstruction = new Instructions();
+
+
+
 var windowDimensions = Controller.getViewportDimensions();
 var cursor = new Cursor({visible: false});;
 var keyboard = new Keyboard({visible: false});
@@ -124,6 +141,7 @@ function scriptEnding() {
     Controller.releaseKeyEvents({key: SPACEBAR_CHARCODE});
     Controller.releaseKeyEvents({key: RETURN_CHARCODE});
     Controller.releaseKeyEvents({key: ENTER_CHARCODE});
+    theInstruction.remove();
 }
 
 function reportButtonValue(button, newValue, oldValue) {
