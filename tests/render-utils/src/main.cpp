@@ -28,50 +28,60 @@
 #include <glm/glm.hpp>
 #include <PathUtils.h>
 
-using TexturePtr = std::shared_ptr < QOpenGLTexture > ;
-using VertexArrayPtr = std::shared_ptr < QOpenGLVertexArrayObject >;
-using ProgramPtr = std::shared_ptr < QOpenGLShaderProgram >;
-using BufferPtr = std::shared_ptr < QOpenGLBuffer >;
+//#define USE_OGLPLUS
+#ifdef USE_OGLPLUS
+#include <oglplus/all.hpp>
+#include <oglplus/shapes/plane.hpp>
+#include <oglplus/shapes/wrapper.hpp>
+using ProgramPtr = std::shared_ptr < oglplus::Program >;
+using ShapeWrapperPtr = std::shared_ptr < oglplus::shapes::ShapeWrapper >;
+#endif
 
 
-const char textured_vs[] = R"XXXX(#version 330
+
+const char simple_vs[] = R"XXXX(#version 330
 
 uniform mat4 Projection = mat4(1);
 uniform mat4 ModelView = mat4(1);
-uniform vec2 UvMultiplier = vec2(1);
-
 layout(location = 0) in vec3 Position;
-layout(location = 1) in vec2 TexCoord;
-
-out vec2 vTexCoord;
 
 void main() {
   gl_Position = Projection * ModelView * vec4(Position, 1);
-  vTexCoord = TexCoord * UvMultiplier;
 }
 )XXXX";
 
-const char textured_fs[] = R"XXXX(#version 330
+const char example_gs[] = R"XXXX(#version 330
+    layout(triangles) in;
+    layout(triangle_strip, max_vertices = 3) out;
 
-uniform sampler2D sampler;
-uniform float Alpha = 1.0;
+    void main() {
+        for (int i = 0; i < 3; ++i) {
+          gl_Position = vec4(gl_in[i].gl_Position.xyz / 2.0f, 1.0);
+          EmitVertex();
+        }
+        EndPrimitive();
+    }
+)XXXX";
 
-in vec2 vTexCoord;
-out vec4 vFragColor;
+const char colored_fs[] = R"XXXX(#version 330
+
+uniform vec4 Color = vec4(1, 0, 1, 1);
+out vec4 FragColor;
 
 void main() {
-  vec4 c = texture(sampler, vTexCoord);
-  c.a = min(Alpha, c.a);
-  vFragColor = c; 
-  //vFragColor = vec4(fract(vTexCoord), log(vTexCoord.x), 1.0);
-})XXXX";
+  FragColor = Color;
+}
+)XXXX";
+
+
 
 class QTestWindow : public QWindow {
   Q_OBJECT
   QOpenGLContext * m_context;
+#ifdef USE_OGLPLUS
   ProgramPtr shader;
-  VertexArrayPtr vao;
-  BufferPtr geometry;
+  ShapeWrapperPtr plane;
+#endif
   QSize _size;
   TextRenderer* _textRenderer[4];
 
@@ -84,7 +94,6 @@ public:
 protected:
   void resizeEvent(QResizeEvent * ev) override;
 };
-
 
 QTestWindow::QTestWindow() {
   setSurfaceType(QSurface::OpenGLSurface);
@@ -127,9 +136,50 @@ QTestWindow::QTestWindow() {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   _textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
-  _textRenderer[1] = TextRenderer::getInstance("Times New Roman", 12, TextRenderer::SHADOW_EFFECT);
+  _textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false, TextRenderer::SHADOW_EFFECT);
   _textRenderer[2] = TextRenderer::getInstance(MONO_FONT_FAMILY, 48, -1, false, TextRenderer::OUTLINE_EFFECT);
   _textRenderer[3] = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, 24);
+
+
+#ifdef USE_OGLPLUS
+  using namespace oglplus;
+  shader = ProgramPtr(new Program());
+  // attach the shaders to the program
+  shader->AttachShader(
+    VertexShader()
+    .Source(GLSLSource((const char*)simple_vs))
+    .Compile()
+  );
+  shader->AttachShader(
+    GeometryShader()
+    .Source(GLSLSource((const char*)example_gs))
+    .Compile()
+  );
+  shader->AttachShader(
+    FragmentShader()
+    .Source(GLSLSource((const char*)colored_fs))
+    .Compile()
+  );
+  shader->Link();
+  
+  size_t uniformCount = shader->ActiveUniforms().Size();
+  for (size_t i = 0; i < uniformCount; ++i) {
+    std::string name = shader->ActiveUniforms().At(i).Name();
+    int location = shader->ActiveUniforms().At(i).Index();
+    qDebug() << name.c_str() << " " << location;
+  }
+  plane = ShapeWrapperPtr(
+    new shapes::ShapeWrapper(
+      { "Position", "TexCoord" },
+      shapes::Plane(Vec3f(1, 0, 0), Vec3f(0, 1, 0)),
+      *shader
+    )
+  );
+  plane->Use();
+#endif
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 QTestWindow::~QTestWindow() {
@@ -154,9 +204,16 @@ void QTestWindow::draw() {
   glViewport(0, 0, _size.width(), _size.height());
   glClearColor(0.2f, 0.2f, 0.2f, 1);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glDisable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //{
+  //  using namespace oglplus;
+  //  shader->Use();
+  //  Uniform<Vec4f>(*shader, "Color").Set(Vec4f(1.0f, 0, 0, 1.0f));
+  //  plane->Use();
+  //  plane->Draw();
+  //  NoProgram().Bind();
+  //}
+   
+  // m_context->swapBuffers(this); return;
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -172,15 +229,6 @@ void QTestWindow::draw() {
     { QUAD_OFFSET.x, size.y + QUAD_OFFSET.y },
   };
 
-  {
-    glColor3f(0.9, 0.9, 0.9);
-    glBegin(GL_LINES);
-    glVertex2f(0, size.y);
-    glVertex2f(_size.width(), size.y);
-    glVertex2f(size.x, 0);
-    glVertex2f(size.x, _size.height());
-    glEnd();
-  }
   QString str = QString::fromWCharArray(EXAMPLE_TEXT);
   for (int i = 0; i < 4; ++i) {
     glm::vec2 bounds = _textRenderer[i]->computeExtent(str);
