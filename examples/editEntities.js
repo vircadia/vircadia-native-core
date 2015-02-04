@@ -74,9 +74,11 @@ var DEFAULT_DIMENSIONS = {
 };
 
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
+var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
+var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 
 var modelURLs = [
@@ -515,7 +517,7 @@ function mousePressEvent(event) {
             if (result !== null) {
                 var currentProperties = Entities.getEntityProperties(result.entityID);
                 cameraManager.enable();
-                cameraManager.focus(currentProperties.position, null, true);
+                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
                 cameraManager.mousePressEvent(event);
             }
         } else {
@@ -661,9 +663,11 @@ function mouseClickEvent(event) {
             print("Model selected: " + foundEntity.id);
             selectionDisplay.select(selectedEntityID, event);
 
-            cameraManager.focus(selectionManager.worldPosition,
-                                selectionManager.worldDimensions,
-                                true);
+            if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
+                cameraManager.focus(selectionManager.worldPosition,
+                                    selectionManager.worldDimensions,
+                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            }
         }
     }
 }
@@ -705,7 +709,9 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
 
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT, afterItem: MENU_INSPECT_TOOL_ENABLED,
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_AUTO_FOCUS_ON_SELECT,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 
     Entities.setLightsArePickable(false);
@@ -731,11 +737,12 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("File", "Import Models");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
+    Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
 }
 
 Script.scriptEnding.connect(function() {
-    Settings.setValue(SETTING_INSPECT_TOOL_ENABLED, Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED));
+    Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
 
     progressDialog.cleanup();
