@@ -132,8 +132,7 @@ void ResourceCache::requestCompleted(Resource* resource) {
     // look for the highest priority pending request
     int highestIndex = -1;
     float highestPriority = -FLT_MAX;
-    int pendingRequests = sharedItems->_pendingRequests.size();
-    for (int i = 0; i < pendingRequests; ) {
+    for (int i = 0; i < sharedItems->_pendingRequests.size(); ) {
         Resource* resource = sharedItems->_pendingRequests.at(i).data();
         if (!resource) {
             sharedItems->_pendingRequests.removeAt(i);
