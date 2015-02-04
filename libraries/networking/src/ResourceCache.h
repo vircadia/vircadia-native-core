@@ -22,6 +22,8 @@
 #include <QUrl>
 #include <QWeakPointer>
 
+#include <DependencyManager.h>
+
 class QNetworkReply;
 class QTimer;
 
@@ -40,6 +42,21 @@ static const qint64 DEFAULT_UNUSED_MAX_SIZE = 1024 * BYTES_PER_MEGABYTES;
 static const qint64 MIN_UNUSED_MAX_SIZE = 0;
 static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 
+// We need to make sure that these items are available for all instances of
+// ResourceCache derived classes. Since we can't count on the ordering of
+// static members destruction, we need to use this Dependency manager implemented
+// object instead
+class ResouceCacheSharedItems : public Dependency  {
+    SINGLETON_DEPENDENCY
+public:
+    QList<QPointer<Resource> > _pendingRequests;
+    QList<Resource*> _loadingRequests;
+private:
+    ResouceCacheSharedItems() { }
+    virtual ~ResouceCacheSharedItems() { }
+};
+
+
 /// Base class for resource caches.
 class ResourceCache : public QObject {
     Q_OBJECT
@@ -51,9 +68,11 @@ public:
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
-    static const QList<Resource*>& getLoadingRequests() { return _loadingRequests; }
+    static const QList<Resource*>& getLoadingRequests() 
+        { return DependencyManager::get<ResouceCacheSharedItems>()->_loadingRequests; }
 
-    static int getPendingRequestCount() { return _pendingRequests.size(); }
+    static int getPendingRequestCount() 
+        { return DependencyManager::get<ResouceCacheSharedItems>()->_pendingRequests.size(); }
 
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();
@@ -90,8 +109,6 @@ private:
     int _lastLRUKey = 0;
     
     static int _requestLimit;
-    static QList<QPointer<Resource> > _pendingRequests;
-    static QList<Resource*> _loadingRequests;
 };
 
 /// Base class for resources.

@@ -112,27 +112,31 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
 }
 
 void ResourceCache::attemptRequest(Resource* resource) {
+    auto sharedItems = DependencyManager::get<ResouceCacheSharedItems>();
     if (_requestLimit <= 0) {
         // wait until a slot becomes available
-        _pendingRequests.append(resource);
+        sharedItems->_pendingRequests.append(resource);
         return;
     }
     _requestLimit--;
-    _loadingRequests.append(resource);
+    sharedItems->_loadingRequests.append(resource);
     resource->makeRequest();
 }
 
 void ResourceCache::requestCompleted(Resource* resource) {
-    _loadingRequests.removeOne(resource);
+    
+    auto sharedItems = DependencyManager::get<ResouceCacheSharedItems>();
+    sharedItems->_loadingRequests.removeOne(resource);
     _requestLimit++;
     
     // look for the highest priority pending request
     int highestIndex = -1;
     float highestPriority = -FLT_MAX;
-    for (int i = 0; i < _pendingRequests.size(); ) {
-        Resource* resource = _pendingRequests.at(i).data();
+    int pendingRequests = sharedItems->_pendingRequests.size();
+    for (int i = 0; i < pendingRequests; ) {
+        Resource* resource = sharedItems->_pendingRequests.at(i).data();
         if (!resource) {
-            _pendingRequests.removeAt(i);
+            sharedItems->_pendingRequests.removeAt(i);
             continue;
         }
         float priority = resource->getLoadPriority();
@@ -143,15 +147,12 @@ void ResourceCache::requestCompleted(Resource* resource) {
         i++;
     }
     if (highestIndex >= 0) {
-        attemptRequest(_pendingRequests.takeAt(highestIndex));
+        attemptRequest(sharedItems->_pendingRequests.takeAt(highestIndex));
     }
 }
 
 const int DEFAULT_REQUEST_LIMIT = 10;
 int ResourceCache::_requestLimit = DEFAULT_REQUEST_LIMIT;
-
-QList<QPointer<Resource> > ResourceCache::_pendingRequests;
-QList<Resource*> ResourceCache::_loadingRequests;
 
 Resource::Resource(const QUrl& url, bool delayLoad) :
     _url(url),
