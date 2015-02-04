@@ -46,7 +46,8 @@ const char SOLID_BLOCK_CHAR = 127;
 #define INCONSOLATA_FONT_WEIGHT QFont::Bold
 #endif
 
-
+// TextRenderer is actually a fairly thin wrapper around a Font class
+// defined in the cpp file.  
 class TextRenderer {
 public:
     enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
@@ -58,17 +59,6 @@ public:
 
     glm::vec2 computeExtent(const QString & str) const;
 
-    // returns the height of the tallest character
-    //int calculateHeight(const char * str) const;
-    //int calculateHeight(const QString & str) const;
-
-    //int computeWidth(char ch) const;
-    //int computeWidth(const QChar & ch) const;
-
-    //int computeWidth(const QString & str) const;
-    //int computeWidth(const char * str) const;
-
-    // also returns the height of the tallest character
     float draw(
       float x, float y,
       const QString & str,

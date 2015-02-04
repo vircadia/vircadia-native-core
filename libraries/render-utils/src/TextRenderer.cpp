@@ -62,6 +62,17 @@ glm::uvec2 toGlm(const QSize & size) {
   return glm::uvec2(size.width(), size.height());
 }
 
+template <class T, size_t N >
+void fillBuffer(QBuffer & buffer, T(&t)[N]) {
+  buffer.setData((const char*)t, N);
+}
+
+QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
+  QRectF result(pos.x, pos.y, size.x, size.y);
+  return result;
+}
+
+
 const char SHADER_TEXT_VS[] = R"XXXX(#version 330
 
 uniform mat4 Projection = mat4(1);
@@ -84,6 +95,16 @@ void main() {
 })XXXX";
 
 
+// FIXME 
+// Work in progress to support clipping text to a specific region in 
+// worldspace.  Right now this is a passthrough goemetry shader but 
+// in theory we should be able to populate the clip planes in the 
+// vertex shader and use them to clip out any triangle where the geometry
+// would impinge on the clipping planes
+// 
+// However, it might be simpler to do this calculation inside the CPU 
+// draw call by aborting any letter where the bounding box falls outside 
+// given rectangle
 const char SHADER_TEXT_GS[] = R"XXXX(#version 330
     layout(triangles) in;
     layout(triangle_strip, max_vertices = 3) out;
@@ -100,6 +121,10 @@ const char SHADER_TEXT_GS[] = R"XXXX(#version 330
     }
 )XXXX";
 
+// FIXME support the shadow effect, or remove it from the API
+
+// FIXME figure out how to improve the anti-aliasing on the 
+// interior of the outline fonts
 const char SHADER_TEXT_FS[] = R"XXXX(#version 330
 
 uniform sampler2D Font;
@@ -219,6 +244,41 @@ public:
     float maxWidth) const;
 };
 
+static QHash<QString, Font*> LOADED_FONTS;
+
+Font * loadFont(QIODevice & buffer) {
+  Font * result = new Font();
+  result->read(buffer);
+  return result;
+}
+
+template <class T, size_t N >
+Font * loadFont(T(&t)[N]) {
+  QBuffer buffer;
+  buffer.setData((const char*)t, N);
+  buffer.open(QBuffer::ReadOnly);
+  return loadFont(buffer);
+}
+
+Font * loadFont(const QString & family) {
+  if (!LOADED_FONTS.contains(family)) {
+    if (family == MONO_FONT_FAMILY) {
+
+      LOADED_FONTS[family] = loadFont(SDFF_COURIER_PRIME);
+    } else if (family == INCONSOLATA_FONT_FAMILY) {
+      LOADED_FONTS[family] = loadFont(SDFF_INCONSOLATA_MEDIUM);
+    } else if (family == SANS_FONT_FAMILY) {
+      LOADED_FONTS[family] = loadFont(SDFF_ROBOTO);
+    } else {
+      if (!LOADED_FONTS.contains(SERIF_FONT_FAMILY)) {
+        LOADED_FONTS[SERIF_FONT_FAMILY] = loadFont(SDFF_TIMELESS);
+      }
+      LOADED_FONTS[family] = LOADED_FONTS[SERIF_FONT_FAMILY];
+    }
+  }
+  return LOADED_FONTS[family];
+}
+
 const Glyph & Font::getGlyph(const QChar & c) const {
   if (!_glyphs.contains(c)) {
     return _glyphs[QChar('?')];
@@ -305,12 +365,6 @@ struct QuadBuilder {
     vertices[3] = TextureVertex(r.topLeft(), tr.bottomLeft());
   }
 };
-
-QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
-  QRectF result(pos.x, pos.y, size.x, size.y);
-  return result;
-}
-
 
 QRectF Glyph::bounds() const {
   return glmToRect(offset, size);
@@ -405,6 +459,8 @@ glm::vec2 Font::computeExtent(const QString & str) const {
   return glm::vec2(maxX, advance.y);
 }
 
+// FIXME support the maxWidth parameter and allow the text to automatically wrap
+// even without explicit line feeds.
 glm::vec2 Font::drawString(
   float x, float y,
   const QString & str,
@@ -460,17 +516,19 @@ glm::vec2 Font::drawString(
       // Bind the new position
       mv.withPush([&] {
         mv.translate(offset);
+        // FIXME find a better (and GL ES 3.1 compatible) way of rendering the text
+        // that doesn't involve a single GL call per character.  
+        // Most likely an 'indirect' call or an 'instanced' call.  
         _program->setUniformValue("ModelView", fromGlm(mv.top()));
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(m.indexOffset));
       });
-      advance.x += m.d;//+ m.offset.x;// font->getAdvance(m, mFontSize);
+      advance.x += m.d;
     }
     advance.x += _spaceWidth;
   }
 
   _vao->release();
   _program->release();
-
   return advance;
 }
 
@@ -480,47 +538,6 @@ TextRenderer* TextRenderer::getInstance(const char* family, float pointSize, int
     pointSize = DEFAULT_POINT_SIZE;
   }
   return new TextRenderer(family, pointSize, weight, italic, effect, effectThickness, color);
-}
-
-static QHash<QString, Font*> LOADED_FONTS;
-
-template <class T, size_t N >
-void fillBuffer(QBuffer & buffer, T(&t)[N]) {
-  buffer.setData((const char*)t, N);
-}
-
-Font * loadFont(QIODevice & buffer) {
-  Font * result = new Font();
-  result->read(buffer);
-  return result;
-}
-
-template <class T, size_t N >
-Font * loadFont(T(&t)[N]) {
-  QBuffer buffer;
-  buffer.setData((const char*)t, N);
-  buffer.open(QBuffer::ReadOnly);
-  return loadFont(buffer);
-}
-
-Font * loadFont(const QString & family) {
-  
-  if (!LOADED_FONTS.contains(family)) {
-    if (family == MONO_FONT_FAMILY) {
-      
-      LOADED_FONTS[family] = loadFont(SDFF_COURIER_PRIME);
-    } else if (family == INCONSOLATA_FONT_FAMILY) {
-      LOADED_FONTS[family] = loadFont(SDFF_INCONSOLATA_MEDIUM);
-    } else if (family == SANS_FONT_FAMILY) {
-      LOADED_FONTS[family] = loadFont(SDFF_ROBOTO);
-    } else {
-      if (!LOADED_FONTS.contains(SERIF_FONT_FAMILY)) {
-        LOADED_FONTS[SERIF_FONT_FAMILY] = loadFont(SDFF_TIMELESS);
-      }
-      LOADED_FONTS[family] = LOADED_FONTS[SERIF_FONT_FAMILY];
-    }
-  }
-  return LOADED_FONTS[family];
 }
 
 TextRenderer::TextRenderer(const char* family, float pointSize, int weight, bool italic,
@@ -557,7 +574,11 @@ float TextRenderer::draw(
   MatrixStack::withGlMatrices([&] {
     MatrixStack & mv = MatrixStack::modelview();
     // scale the modelview into font units
+    // FIXME migrate the constant scale factor into the geometry of the 
+    // fonts so we don't have to flip the Y axis here and don't have to 
+    // scale at all.
     mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
+    // The font does all the OpenGL work
     result = _font->drawString(x, y, str, actualColor, _effectType, maxWidth);
   });
   return result.x;
