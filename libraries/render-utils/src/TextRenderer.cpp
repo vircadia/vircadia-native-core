@@ -66,6 +66,8 @@ const char SHADER_TEXT_VS[] = R"XXXX(#version 330
 
 uniform mat4 Projection = mat4(1);
 uniform mat4 ModelView = mat4(1);
+uniform vec4 ClipPlane[4];
+uniform int ClipPlaneCount = 0;
 
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec2 TexCoord;
@@ -74,8 +76,29 @@ out vec2 vTexCoord;
 
 void main() {
   vTexCoord = TexCoord;
-  gl_Position = Projection * ModelView * vec4(Position, 1);
+  vec4 clipVertex = ModelView * vec4(Position, 1);
+  for (int i = 0; i < ClipPlaneCount; ++i) {
+    gl_ClipDistance[i] = dot( ClipPlane[i], clipVertex);
+  }
+  gl_Position = Projection * clipVertex;
 })XXXX";
+
+
+const char SHADER_TEXT_GS[] = R"XXXX(#version 330
+    layout(triangles) in;
+    layout(triangle_strip, max_vertices = 3) out;
+
+    in vec2 vTexCoord[];
+    out vec2 gTexCoord;
+    void main() {
+        for (int i = 0; i < 3; ++i) {
+          gl_Position = gl_in[i].gl_Position;
+          gTexCoord = vTexCoord[i];
+          EmitVertex();
+        }
+        EndPrimitive();
+    }
+)XXXX";
 
 const char SHADER_TEXT_FS[] = R"XXXX(#version 330
 
@@ -83,7 +106,7 @@ uniform sampler2D Font;
 uniform vec4 Color = vec4(1);
 uniform bool Outline = false;
 
-in vec2 vTexCoord;
+in vec2 gTexCoord;
 out vec4 FragColor;
 
 const float gamma = 2.6;
@@ -93,7 +116,7 @@ void main() {
   FragColor = vec4(1);
  
   // retrieve signed distance
-  float sdf = texture(Font, vTexCoord).r;
+  float sdf = texture(Font, gTexCoord).r;
   if (Outline) {
     if (sdf > 0.8) {
       sdf = 1.0 - sdf;
@@ -103,7 +126,7 @@ void main() {
   }
   // perform adaptive anti-aliasing of the edges
   // The larger we're rendering, the less anti-aliasing we need
-  float s = smoothing * length(fwidth(vTexCoord));
+  float s = smoothing * length(fwidth(gTexCoord));
   float w = clamp( s, 0.0, 0.5);
   float a = smoothstep(0.5 - w, 0.5 + w, sdf);
 
@@ -306,6 +329,7 @@ void Font::setupGL() {
   if (
     !_program->addShaderFromSourceCode(QOpenGLShader::Vertex, SHADER_TEXT_VS) ||
     !_program->addShaderFromSourceCode(QOpenGLShader::Fragment, SHADER_TEXT_FS) ||
+    !_program->addShaderFromSourceCode(QOpenGLShader::Geometry, SHADER_TEXT_GS) ||
     !_program->link()) {
     qFatal(_program->log().toLocal8Bit().constData());
   }
