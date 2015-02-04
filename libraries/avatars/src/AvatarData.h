@@ -37,12 +37,12 @@ typedef unsigned long long quint64;
 #include <QHash>
 #include <QObject>
 #include <QRect>
-#include <QScriptable>
 #include <QStringList>
 #include <QUrl>
 #include <QUuid>
 #include <QVariantMap>
 #include <QVector>
+#include <QtScript/QScriptable>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
