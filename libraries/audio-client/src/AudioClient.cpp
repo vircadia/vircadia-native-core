@@ -790,6 +790,8 @@ void AudioClient::handleAudioInput() {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
             _timeSinceLastClip = 0.0f;
+            
+            _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
         }
 
         auto nodeList = DependencyManager::get<NodeList>();
