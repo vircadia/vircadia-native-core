@@ -51,15 +51,6 @@ class TextRenderer {
 public:
     enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
 
-    class Properties {
-    public:
-      QString font;
-      float pointSize;
-      EffectType effect;
-      int effectThickness;
-      QColor color;
-    };
-
     static TextRenderer* getInstance(const char* family, float pointSize = -1, int weight = -1, bool italic = false,
         EffectType effect = NO_EFFECT, int effectThickness = 1, const QColor& color = QColor(255, 255, 255));
 
@@ -85,7 +76,8 @@ public:
       float maxWidth = -1);
 
 private:
-    TextRenderer(const Properties& properties);
+    TextRenderer(const char* family, float pointSize = -1, int weight = -1, bool italic = false,
+        EffectType effect = NO_EFFECT, int effectThickness = 1, const QColor& color = QColor(255, 255, 255));
 
     // the type of effect to apply
     const EffectType _effectType;

@@ -36,8 +36,6 @@
 #include "FontTimeless.h"
 #include "FontCourierPrime.h"
 
-
-
 namespace Shaders {
   // Normally we could use 'enum class' to avoid namespace pollution,
   // but we want easy conversion to GLuint
@@ -120,7 +118,6 @@ void main() {
   FragColor = vec4(Color.rgb, a);
 })XXXX";
 
-
 // stores the font metrics for a single character
 struct Glyph {
   QChar c;
@@ -131,15 +128,11 @@ struct Glyph {
   float d;  // xadvance - adjusts character positioning
   size_t indexOffset;
 
-  int width() const {
-    return size.x;
-  }
   QRectF bounds() const;
   QRectF textureBounds(const glm::vec2 & textureSize) const;
 
   void read(QIODevice & in);
 };
-
 
 void Glyph::read(QIODevice & in) {
   uint16_t charcode;
@@ -202,7 +195,6 @@ public:
     TextRenderer::EffectType effectType,
     float maxWidth) const;
 };
-
 
 const Glyph & Font::getGlyph(const QChar & c) const {
   if (!_glyphs.contains(c)) {
@@ -463,24 +455,35 @@ TextRenderer* TextRenderer::getInstance(const char* family, float pointSize, int
   if (pointSize < 0) {
     pointSize = DEFAULT_POINT_SIZE;
   }
-  return new TextRenderer(Properties{ QString(family), pointSize, effect, effectThickness, color });
-}
-
-template <class T, size_t N >
-Font * loadFont(T (&t)[N]) {
-  Font * result = new Font();
-  QBuffer buffer;
-  buffer.setData((const char*)t, N);
-  buffer.open(QBuffer::ReadOnly);
-  result->read(buffer);
-  return result;
+  return new TextRenderer(family, pointSize, weight, italic, effect, effectThickness, color);
 }
 
 static QHash<QString, Font*> LOADED_FONTS;
 
+template <class T, size_t N >
+void fillBuffer(QBuffer & buffer, T(&t)[N]) {
+  buffer.setData((const char*)t, N);
+}
+
+Font * loadFont(QIODevice & buffer) {
+  Font * result = new Font();
+  result->read(buffer);
+  return result;
+}
+
+template <class T, size_t N >
+Font * loadFont(T(&t)[N]) {
+  QBuffer buffer;
+  buffer.setData((const char*)t, N);
+  buffer.open(QBuffer::ReadOnly);
+  return loadFont(buffer);
+}
+
 Font * loadFont(const QString & family) {
+  
   if (!LOADED_FONTS.contains(family)) {
     if (family == MONO_FONT_FAMILY) {
+      
       LOADED_FONTS[family] = loadFont(SDFF_COURIER_PRIME);
     } else if (family == INCONSOLATA_FONT_FAMILY) {
       LOADED_FONTS[family] = loadFont(SDFF_INCONSOLATA_MEDIUM);
@@ -496,12 +499,13 @@ Font * loadFont(const QString & family) {
   return LOADED_FONTS[family];
 }
 
-TextRenderer::TextRenderer(const Properties& properties) :
-  _effectType(properties.effect),
-  _pointSize(properties.pointSize),
-  _effectThickness(properties.effectThickness),
-  _color(properties.color),
-  _font(loadFont(properties.font))
+TextRenderer::TextRenderer(const char* family, float pointSize, int weight, bool italic,
+  EffectType effect, int effectThickness, const QColor& color) :
+  _effectType(effect),
+  _pointSize(pointSize),
+  _effectThickness(effectThickness),
+  _color(color),
+  _font(loadFont(family))
 {
   
 }
