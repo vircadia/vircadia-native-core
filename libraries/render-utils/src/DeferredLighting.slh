@@ -45,6 +45,9 @@ vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
 
 uniform SphericalHarmonics ambientSphere;
 
+// Everything about light
+<@include Light.slh@>
+
 vec3 evalAmbientColor(vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     return diffuse.rgb * gl_FrontLightProduct[0].ambient.rgb;
 }
@@ -55,19 +58,27 @@ vec3 evalAmbientSphereColor(vec3 normal, vec3 diffuse, vec3 specular, float glos
     return diffuse.rgb * ambientLight;
 }
 
-vec3 evalDirectionalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+// Frag Shading returns the diffuse amount as W and the specular rgb as xyz
+vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
     // Diffuse Lighting
-    float diffuseDot = dot(normal, gl_LightSource[0].position.xyz);
-    float facingLight = step(0.0, diffuseDot) * shadowAttenuation;
-    vec3 diffuseColor = diffuse * (gl_FrontLightProduct[0].diffuse.rgb * (diffuseDot * facingLight));
-        
-    // compute the specular multiplier (sans exponent)
-    float specularPower = facingLight * max(0.0,
-                         dot(normalize(gl_LightSource[0].position.xyz - normalize(position)), normal));    
-    vec3 specularColor = pow(specularPower, gloss * 128.0) * specular;
+    float diffuseDot = dot(fragNormal, fragLightDir);
+    float facingLight = step(0.0, diffuseDot);
+    float diffuse = diffuseDot * facingLight;
+ 
+    // Specular Lighting depends on the half vector and the gloss
+    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
-    // add specular contribution
-    return vec3(diffuseColor + specularColor);
+    float specularPower = facingLight * max(0.0, dot(fragEyeDir, halfDir));
+    vec3 reflect = pow(specularPower, gloss * 128.0) * specular;
+
+    return vec4(reflect, diffuse);
+}
+
+vec3 evalDirectionalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+    
+    vec4 shading = evalFragShading(normal, gl_LightSource[0].position.xyz, normalize(position), specular, gloss);
+
+    return vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * gl_FrontLightProduct[0].diffuse.rgb;
 }
 
 

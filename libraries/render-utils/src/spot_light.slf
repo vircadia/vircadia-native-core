@@ -57,10 +57,14 @@ void main(void) {
        discard;
     }
 
-    vec4 wNor = invViewMat * vec4(frag.normal, 0.0);
+    vec4 fragNormal = invViewMat * vec4(frag.normal, 0.0);
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
-    vec3 wHalfDir = normalize(fragEyeDir + fragLightDir);
+
+    vec4 shading = evalFragShading(fragNormal, fragLightDir, fragEyeDir, frag.specular, frag.gloss);
+
+    vec3 fragColor = shading.w * (frag.diffuse + shading.xyz);
+ /*   vec3 wHalfDir = normalize(fragEyeDir + fragLightDir);
 
     // Diffuse Lighting
     float diffuseDot = dot(wNor.xyz, fragLightDir);
@@ -70,7 +74,7 @@ void main(void) {
     // compute the specular multiplier (sans exponent)
     float specularPower = facingLight * max(0.0, dot(fragEyeDir, wHalfDir));
     vec3 specularColor = pow(specularPower, frag.gloss * 128.0) * frag.specular;
-
+    */
     // Eval angular attenuation
     float lightAngularAttenuation = clamp((cosSpotAngle - getLightSpotAngleCos(light)) / (1.0 - getLightSpotAngleCos(light)), 0.0, 1.0);
 
@@ -84,7 +88,7 @@ void main(void) {
         float edgeCoord = exp2(-8.0*edge*edge);
         gl_FragColor = vec4(edgeCoord * edgeCoord * getLightColor(light), 0.0);
     } else {
-        gl_FragColor = vec4((diffuseColor + specularColor) * lightAngularAttenuation * lightAttenuation * getLightColor(light) * getLightIntensity(light), 0.0);
+        gl_FragColor = vec4(fragColor * lightAngularAttenuation * lightAttenuation * getLightColor(light) * getLightIntensity(light), 0.0);
     }
 }
 
