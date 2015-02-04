@@ -212,7 +212,7 @@ private:
     bool _outputStarveDetectionEnabled;
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
-    int _outputStarveDetectionPeriodMsec;
+    uint _outputStarveDetectionPeriodMsec;
     int _outputStarveDetectionThreshold; // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
 
     
