@@ -108,7 +108,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         
         // Same font properties as textSize()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-        float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
+        float maxHeight = (float)textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
         
         float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
 
@@ -125,7 +125,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
         glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
-        textRenderer->drawString(0, 0, _text, textColor);
+        textRenderer->draw(0, 0, _text, textColor);
 
         glDisable(GL_CLIP_PLANE0);
         glDisable(GL_CLIP_PLANE1);

@@ -61,7 +61,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         
         // Same font properties as textSize()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-        float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
+        float maxHeight = (float)textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
         
         float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
 

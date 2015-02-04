@@ -680,10 +680,11 @@ EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id)
 
 void EntityTreeElement::cleanupEntities() {
     uint16_t numberOfEntities = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem* entity = (*_entityItems)[i];
-        entity->_element = NULL;
-        delete entity;
+    QList<EntityItem*> entitiesToDelete = *_entityItems;
+    foreach(EntityItem* entity, entitiesToDelete) {
+      entity->_element = NULL;
+      delete entity;
+      assert(_entityItems->size() == entitiesToDelete.size());
     }
     _entityItems->clear();
 }
