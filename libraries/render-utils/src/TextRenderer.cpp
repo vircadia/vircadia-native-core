@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "TextRenderer.h"
-#include "MatrixStack.h"
 
 #include <gpu/GPUConfig.h>
 #include <QApplication>
@@ -36,6 +34,9 @@
 #include "FontRoboto.h"
 #include "FontTimeless.h"
 #include "FontCourierPrime.h"
+#include "MatrixStack.h"
+
+#include "TextRenderer.h"
 
 namespace Shaders {
     // Normally we could use 'enum class' to avoid namespace pollution,
@@ -231,7 +232,7 @@ public:
             float maxWidth) const;
 };
 
-static QHash<QString, Font*> LOADED_FONTS;
+static QHash<QString, Font *> LOADED_FONTS;
 
 Font * loadFont(QIODevice & buffer) {
     Font * result = new Font();
