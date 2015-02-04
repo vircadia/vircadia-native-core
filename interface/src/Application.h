@@ -362,6 +362,8 @@ public slots:
     void loadSettings();
     void saveSettings();
 
+    void notifyPacketVersionMismatch();
+
 private slots:
     void clearDomainOctreeDetails();
     void timer();
@@ -576,6 +578,8 @@ private:
     bool _aboutToQuit;
 
     Bookmarks* _bookmarks;
+
+    bool _notifiedPacketVersionMismatchThisDomain;
     
     QThread _settingsThread;
     QTimer _settingsTimer;
