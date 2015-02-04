@@ -17,7 +17,7 @@
 #include <QStringList>
 
 #include <GLMHelpers.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <UUID.h>
 
 #include "NodeList.h"
@@ -26,11 +26,9 @@
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
-namespace SettingHandles {
-    const SettingHandle<QUrl> currentAddress(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP
-                                             << "address",
-                                             QUrl());
-}
+
+Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address");
+
 
 AddressManager::AddressManager() :
     _rootPlaceName(),
@@ -57,14 +55,14 @@ const QUrl AddressManager::currentAddress() const {
 
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        handleLookupString(SettingHandles::currentAddress.get().toString());
+        handleLookupString(currentAddressHandle.get().toString());
     } else {
         handleLookupString(lookupString);
     }
 }
 
 void AddressManager::storeCurrentAddress() {
-    SettingHandles::currentAddress.set(currentAddress());
+    currentAddressHandle.set(currentAddress());
 }
 
 const QString AddressManager::currentPath(bool withOrientation) const {

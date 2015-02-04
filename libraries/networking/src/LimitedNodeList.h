@@ -185,6 +185,8 @@ signals:
 
     void dataSent(const quint8 channel_type, const int bytes);
     void dataReceived(const quint8 channel_type, const int bytes);
+
+    void packetVersionMismatch();
     
 protected:
     LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);

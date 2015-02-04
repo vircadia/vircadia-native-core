@@ -22,7 +22,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include <GeometryUtil.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 
 #include "MetavoxelData.h"
 #include "Spanner.h"
@@ -58,9 +58,7 @@ static QItemEditorCreatorBase* heightfieldColorEditorCreator = createHeightfield
 const float DEFAULT_PLACEMENT_GRANULARITY = 0.01f;
 const float DEFAULT_VOXELIZATION_GRANULARITY = powf(2.0f, -3.0f);
 
-namespace SettingHandles {
-    const SettingHandle<QString> heightfieldDir("heightDir", QString());
-}
+Setting::Handle<QString> heightfieldDir("heightDir");
 
 Spanner::Spanner() :
     _renderer(NULL),
@@ -615,12 +613,12 @@ static int getHeightfieldSize(int size) {
 
 void HeightfieldHeightEditor::select() {
     QString result = QFileDialog::getOpenFileName(this, "Select Height Image",
-                                                  SettingHandles::heightfieldDir.get(),
+                                                  heightfieldDir.get(),
                                                   "Images (*.png *.jpg *.bmp *.raw *.mdr)");
     if (result.isNull()) {
         return;
     }
-    SettingHandles::heightfieldDir.set(QFileInfo(result).path());
+    heightfieldDir.set(QFileInfo(result).path());
     const quint16 CONVERSION_OFFSET = 1;
     QString lowerResult = result.toLower();
     bool isMDR = lowerResult.endsWith(".mdr");
@@ -885,12 +883,12 @@ void HeightfieldColorEditor::setColor(const HeightfieldColorPointer& color) {
 
 void HeightfieldColorEditor::select() {
     QString result = QFileDialog::getOpenFileName(this, "Select Color Image",
-                                                  SettingHandles::heightfieldDir.get(),
+                                                  heightfieldDir.get(),
         "Images (*.png *.jpg *.bmp)");
     if (result.isNull()) {
         return;
     }
-    SettingHandles::heightfieldDir.get(QFileInfo(result).path());
+    heightfieldDir.get(QFileInfo(result).path());
     QImage image;
     if (!image.load(result)) {
         QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
