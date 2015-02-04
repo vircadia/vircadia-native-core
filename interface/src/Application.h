@@ -202,21 +202,19 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
-    BandwidthRecorder* getBandwidthRecorder() { return &_bandwidthRecorder; }
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    float getInPacketsPerSecond() const { return _inPacketsPerSecond; }
-    float getOutPacketsPerSecond() const { return _outPacketsPerSecond; }
-    float getInBytesPerSecond() const { return _inBytesPerSecond; }
-    float getOutBytesPerSecond() const { return _outBytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     void setViewTransform(const Transform& view);
+    
+    float getFieldOfView() { return _fieldOfView.get(); }
+    void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -301,7 +299,7 @@ public:
 
     Bookmarks* getBookmarks() const { return _bookmarks; }
     
-    QString getScriptsLocation() const;
+    QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
 
 signals:
@@ -366,6 +364,8 @@ public slots:
     
     void loadSettings();
     void saveSettings();
+
+    void notifyPacketVersionMismatch();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -484,9 +484,6 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    BandwidthRecorder _bandwidthRecorder;
-
-
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
@@ -496,6 +493,11 @@ private:
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
+    
+    Setting::Handle<bool> _firstRun;
+    Setting::Handle<QString> _previousScriptLocation;
+    Setting::Handle<QString> _scriptsLocationHandle;
+    Setting::Handle<float> _fieldOfView;
 
     Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
@@ -535,11 +537,6 @@ private:
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;
 
-    int _inPacketsPerSecond;
-    int _outPacketsPerSecond;
-    int _inBytesPerSecond;
-    int _outBytesPerSecond;
-
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
@@ -557,8 +554,6 @@ private:
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
-
-    QString _previousScriptLocation;
 
     FileLogger* _logger;
 
@@ -589,6 +584,8 @@ private:
     bool _aboutToQuit;
 
     Bookmarks* _bookmarks;
+
+    bool _notifiedPacketVersionMismatchThisDomain;
     
     QThread _settingsThread;
     QTimer _settingsTimer;

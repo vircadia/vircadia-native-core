@@ -905,6 +905,7 @@ void ApplicationOverlay::renderAudioMeter() {
 void ApplicationOverlay::renderStatsAndLogs() {
 
     Application* application = Application::getInstance();
+    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     
     auto glCanvas = DependencyManager::get<GLCanvas>();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
@@ -920,10 +921,10 @@ void ApplicationOverlay::renderStatsAndLogs() {
         int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
         Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, application->getFps(),
-                                      application->getInPacketsPerSecond(),
-                                      application->getOutPacketsPerSecond(),
-                                      application->getInBytesPerSecond(),
-                                      application->getOutBytesPerSecond(),
+                                      bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond(),
+                                      bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond(),
+                                      bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond(),
+                                      bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond(),
                                       voxelPacketsToProcess);
     }
 

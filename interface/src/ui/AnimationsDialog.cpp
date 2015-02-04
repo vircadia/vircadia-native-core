@@ -20,15 +20,9 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-#include <Settings.h>
-
 #include "AnimationsDialog.h"
 #include "Application.h"
 #include "MainWindow.h"
-
-namespace SettingHandles {
-    const SettingHandle<QString> animationDirectory("animation_directory", QString());
-}
 
 AnimationsDialog::AnimationsDialog(QWidget* parent) :
     QDialog(parent) {
@@ -77,6 +71,8 @@ void AnimationsDialog::addAnimation() {
     _animations->insertWidget(_animations->count() - 1, new AnimationPanel(
         this, Application::getInstance()->getAvatar()->addAnimationHandle()));
 }
+
+Setting::Handle<QString> AnimationPanel::_animationDirectory("animation_directory", QString());
 
 AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePointer& handle) :
         _dialog(dialog),
@@ -163,12 +159,12 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
 }
 
 void AnimationPanel::chooseURL() {
-    QString directory = SettingHandles::animationDirectory.get();
-    QString filename = QFileDialog::getOpenFileName(this, "Choose Animation", directory, "Animation files (*.fbx)");
+    QString filename = QFileDialog::getOpenFileName(this, "Choose Animation",
+                                                    _animationDirectory.get(), "Animation files (*.fbx)");
     if (filename.isEmpty()) {
         return;
     }
-    SettingHandles::animationDirectory.set(QFileInfo(filename).path());
+    _animationDirectory.set(QFileInfo(filename).path());
     _url->setText(QUrl::fromLocalFile(filename).toString());
     emit _url->returnPressed();
 }

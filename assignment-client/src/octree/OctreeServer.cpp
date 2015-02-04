@@ -879,6 +879,7 @@ void OctreeServer::setupDatagramProcessingThread() {
     
     // setup a QThread with us as parent that will house the OctreeServerDatagramProcessor
     _datagramProcessingThread = new QThread(this);
+    _datagramProcessingThread->setObjectName("Octree Datagram Processor");
     
     // create an OctreeServerDatagramProcessor and move it to that thread
     OctreeServerDatagramProcessor* datagramProcessor = new OctreeServerDatagramProcessor(nodeList->getNodeSocket(), thread());

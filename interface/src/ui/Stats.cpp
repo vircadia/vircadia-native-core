@@ -25,6 +25,7 @@
 #include <PerfStat.h>
 
 #include "Stats.h"
+#include "BandwidthRecorder.h"
 #include "InterfaceConfig.h"
 #include "Menu.h"
 #include "Util.h"
@@ -201,8 +202,8 @@ void Stats::display(
         float fps, 
         int inPacketsPerSecond,
         int outPacketsPerSecond,
-        int inBytesPerSecond,
-        int outBytesPerSecond,
+        int inKbitsPerSecond,
+        int outKbitsPerSecond,
         int voxelPacketsToProcess) 
 {
     auto glCanvas = DependencyManager::get<GLCanvas>();
@@ -215,6 +216,8 @@ void Stats::display(
 
     QLocale locale(QLocale::English);
     std::stringstream octreeStats;
+
+    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
 
     if (_lastHorizontalOffset != horizontalOffset) {
         resetWidth(glCanvas->width(), horizontalOffset);
@@ -312,12 +315,17 @@ void Stats::display(
     verticalOffset = 0;
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + 1;
 
+    if (columnOneWidth == _generalStatsWidth) {
+        drawBackground(backgroundColor, horizontalOffset, 0, _bandwidthStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+    }
+    horizontalOffset += 5;
+
     char packetsPerSecondString[30];
     sprintf(packetsPerSecondString, "Packets In/Out: %d/%d", inPacketsPerSecond, outPacketsPerSecond);
     char averageMegabitsPerSecond[30];
     sprintf(averageMegabitsPerSecond, "Mbps In/Out: %3.2f/%3.2f",
-            (float)inBytesPerSecond * 8.0f / 1000000.0f,
-            (float)outBytesPerSecond * 8.0f / 1000000.0f);
+            (float)inKbitsPerSecond * 1.0f / 1000.0f,
+            (float)outKbitsPerSecond * 1.0f / 1000.0f);
 
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString, color);
@@ -440,8 +448,10 @@ void Stats::display(
         SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
-                    roundf(avatarMixer->getAverageKilobitsPerSecond()),
-                    roundf(avatarMixer->getAveragePacketsPerSecond()));
+                    roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
+                           bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)),
+                    roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
+                           bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
         } else {
             sprintf(avatarMixerStats, "No Avatar Mixer");
         }

@@ -40,17 +40,11 @@ public:
     
     virtual BillboardOverlay* createClone() const;
 
-private slots:
-    void replyFinished();
-
 private:
     void setBillboardURL(const QString& url);
     
     QString _url;
-    QByteArray _billboard;
-    QSize _size;
-    QScopedPointer<Texture> _billboardTexture;
-    bool _newTextureNeeded;
+    NetworkTexturePointer _texture;
     
     QRect _fromImage; // where from in the image to sample
 

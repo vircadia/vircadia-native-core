@@ -19,6 +19,8 @@
 #include <QTimer>
 
 #include <Application.h>
+#include <SettingHandle.h>
+
 #include "FramelessDialog.h"
 
 #ifdef HAVE_QXMPP
@@ -69,6 +71,8 @@ private:
     QSystemTrayIcon _trayIcon;
     QStringList _mentionSounds;
     QMediaPlayer _effectPlayer;
+    
+    Setting::Handle<QDateTime> _usernameMentionTimestamp;
 
 private slots:
     void connected();
