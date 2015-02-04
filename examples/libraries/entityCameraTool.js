@@ -18,8 +18,8 @@ var PAN_ZOOM_SCALE_RATIO = 0.4;
 var KEY_ORBIT_SENSITIVITY = 90;
 var KEY_ZOOM_SENSITIVITY = 3;
 
-// Scaling applied based on the size of the object being focused
-var FOCUS_ZOOM_SCALE = 1.3;
+// Scaling applied based on the size of the object being focused (Larger values focus further away)
+var FOCUS_ZOOM_SCALE = 2.3;
 
 // Minimum zoom level when focusing on an object
 var FOCUS_MIN_ZOOM = 0.5;
