@@ -239,8 +239,6 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
-    const QString SettingsExport = "Export Settings";
-    const QString SettingsImport = "Import Settings";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";

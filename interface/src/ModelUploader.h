@@ -16,6 +16,7 @@
 #include <QTimer>
 
 #include <FBXReader.h>
+#include <SettingHandle.h>
 
 #include "ui/ModelsBrowser.h"
 
@@ -53,7 +54,7 @@ private:
     ModelUploader(ModelType type);
     ~ModelUploader();
     
-    void populateBasicMapping(QVariantHash& mapping, QString filename, FBXGeometry geometry);
+    void populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry);
     bool zip();
     bool addTextures(const QString& texdir, const FBXGeometry& geometry);
     bool addPart(const QString& path, const QString& name, bool isTexture = false);
@@ -68,13 +69,15 @@ private:
     ModelType _modelType;
     bool _readyToSend;
     
-    QHttpMultiPart* _dataMultiPart;
+    QHttpMultiPart* _dataMultiPart = nullptr;
     
     int _numberOfChecks;
     QTimer _timer;
     
-    QDialog* _progressDialog;
-    QProgressBar* _progressBar;
+    QDialog* _progressDialog = nullptr;
+    QProgressBar* _progressBar = nullptr;
+    
+    static Setting::Handle<QString> _lastModelUploadLocation;
 };
 
 /// A dialog that allows customization of various model properties.
@@ -101,23 +104,23 @@ private:
     QVariantHash _originalMapping;
     QString _basePath;
     FBXGeometry _geometry;
-    QLineEdit* _name;
-    QPushButton* _textureDirectory;
-    QDoubleSpinBox* _scale;
-    QDoubleSpinBox* _translationX;
-    QDoubleSpinBox* _translationY;
-    QDoubleSpinBox* _translationZ;
-    QCheckBox* _pivotAboutCenter;
-    QComboBox* _pivotJoint;
-    QComboBox* _leftEyeJoint;
-    QComboBox* _rightEyeJoint;
-    QComboBox* _neckJoint;
-    QComboBox* _rootJoint;
-    QComboBox* _leanJoint;
-    QComboBox* _headJoint;
-    QComboBox* _leftHandJoint;
-    QComboBox* _rightHandJoint;
-    QVBoxLayout* _freeJoints;
+    QLineEdit* _name = nullptr;
+    QPushButton* _textureDirectory = nullptr;
+    QDoubleSpinBox* _scale = nullptr;
+    QDoubleSpinBox* _translationX = nullptr;
+    QDoubleSpinBox* _translationY = nullptr;
+    QDoubleSpinBox* _translationZ = nullptr;
+    QCheckBox* _pivotAboutCenter = nullptr;
+    QComboBox* _pivotJoint = nullptr;
+    QComboBox* _leftEyeJoint = nullptr;
+    QComboBox* _rightEyeJoint = nullptr;
+    QComboBox* _neckJoint = nullptr;
+    QComboBox* _rootJoint = nullptr;
+    QComboBox* _leanJoint = nullptr;
+    QComboBox* _headJoint = nullptr;
+    QComboBox* _leftHandJoint = nullptr;
+    QComboBox* _rightHandJoint = nullptr;
+    QVBoxLayout* _freeJoints = nullptr;
 };
 
 #endif // hifi_ModelUploader_h

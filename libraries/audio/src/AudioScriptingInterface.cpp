@@ -53,6 +53,7 @@ AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjec
         injector->setLocalAudioInterface(_localAudioInterface);
         
         QThread* injectorThread = new QThread();
+        injectorThread->setObjectName("Audio Injector Thread");
         
         injector->moveToThread(injectorThread);
         

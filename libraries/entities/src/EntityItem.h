@@ -159,7 +159,6 @@ public:
 
     const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
     glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
-    float getDistanceToBottomOfEntity() const; /// get the distance from the position of the entity to its "bottom" in y axis
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
@@ -195,9 +194,6 @@ public:
     void setGravityInMeters(const glm::vec3& value) { _gravity = value / (float) TREE_SCALE; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
     
-    // TODO: this should eventually be updated to support resting on collisions with other surfaces
-    bool isRestingOnSurface() const;
-
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
 

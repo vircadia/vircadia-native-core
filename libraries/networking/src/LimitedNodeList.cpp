@@ -167,6 +167,8 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
+
+            emit packetVersionMismatch();
             
             versionDebugSuppressMap.insert(senderUUID, checkType);
         }
