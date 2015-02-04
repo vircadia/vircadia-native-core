@@ -115,7 +115,8 @@ QTestWindow::QTestWindow() {
   resizeGl();
 }
 
-static const wchar_t * EXAMPLE_TEXT = L"¡y Hello 1.0\ny¡ line 2\n¡y";
+
+static const wchar_t * EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
 static const glm::uvec2 QUAD_OFFSET(10, 10);
 static const glm::vec3 COLORS[4] = {
   { 1.0, 1.0, 1.0 },

@@ -46,6 +46,8 @@ const char SOLID_BLOCK_CHAR = 127;
 #define INCONSOLATA_FONT_WEIGHT QFont::Bold
 #endif
 
+class Font;
+
 // TextRenderer is actually a fairly thin wrapper around a Font class
 // defined in the cpp file.  
 class TextRenderer {
@@ -80,7 +82,6 @@ private:
     // text color
     const QColor _color;
 
-    friend class Font;
     Font * _font;
 };
 

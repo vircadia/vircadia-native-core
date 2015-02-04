@@ -27,6 +27,9 @@
 #include <stack>
 #include <QMatrix4x4>
 
+#include <gpu/GPUConfig.h>
+
+
 
 class MatrixStack : public std::stack<glm::mat4> {
 

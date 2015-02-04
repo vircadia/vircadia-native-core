@@ -54,7 +54,7 @@ void readStream(QIODevice & in, T & t) {
 }
 
 template <typename T, size_t N>
-void readStream(T(&t)[N]) {
+void readStream(QIODevice & in, T(&t)[N]) {
   in.read((char*)t, N);
 }
 
@@ -228,7 +228,7 @@ public:
   QImage _image;
   ProgramPtr _program;
 
-  const Glyph & Font::getGlyph(const QChar & c) const;
+  const Glyph & getGlyph(const QChar & c) const;
   void read(QIODevice & path);
   // Initialize the OpenGL structures
   void setupGL();
