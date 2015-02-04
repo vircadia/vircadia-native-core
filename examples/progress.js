@@ -25,10 +25,10 @@
         visible = false,
         BAR_WIDTH = 320,                            // Nominal dimension of SVG in pixels of visible portion (half) of the bar.
         BAR_HEIGHT = 20,
-        BAR_URL = "http://ctrlaltstudio.com/hifi/progress-bar.svg",
+        BAR_URL = "http://hifi-public.s3.amazonaws.com/images/progress-bar.svg",
         BACKGROUND_WIDTH = 360,
         BACKGROUND_HEIGHT = 60,
-        BACKGROUND_URL = "http://ctrlaltstudio.com/hifi/progress-bar-background.svg",
+        BACKGROUND_URL = "http://hifi-public.s3.amazonaws.com/images/progress-bar-background.svg",
         isOnHMD = false,
         windowWidth = 0,
         windowHeight = 0,
