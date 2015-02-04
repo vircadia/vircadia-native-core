@@ -60,6 +60,7 @@ selectionManager.addEventListener(function() {
         propertiesTool.setVisible(true);
         entityListTool.setVisible(true);
         gridTool.setVisible(true);
+        Window.setFocus();
         hasShownPropertiesTool = true;
     }
     if (!selectionManager.hasSelection()) {
@@ -534,7 +535,7 @@ function mousePressEvent(event) {
             if (result !== null) {
                 var currentProperties = Entities.getEntityProperties(result.entityID);
                 cameraManager.enable();
-                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                cameraManager.focus(currentProperties.position, null, true);
                 cameraManager.mousePressEvent(event);
             }
         } else {
@@ -670,19 +671,19 @@ function mouseClickEvent(event) {
             orientation = MyAvatar.orientation;
             intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
-            if (!event.isShifted) {
-                selectionManager.clearSelections();
-            }
 
-            var toggle = event.isShifted;
-            selectionManager.addEntity(foundEntity, toggle);
+            if (!event.isShifted) {
+                selectionManager.setSelections([foundEntity]);
+            } else {
+                selectionManager.addEntity(foundEntity, true);
+            }
 
             print("Model selected: " + foundEntity.id);
             selectionDisplay.select(selectedEntityID, event);
 
             cameraManager.focus(selectionManager.worldPosition,
                                 selectionManager.worldDimensions,
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                                true);
         }
     }
 }
@@ -820,9 +821,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Import Models") {
         modelImporter.doImport();
     } else if (menuItem == "Entity List...") {
-        if (isActive) {
-            entityListTool.toggleVisible();
-        }
+        entityListTool.toggleVisible();
     }
     tooltip.show(false);
 }
