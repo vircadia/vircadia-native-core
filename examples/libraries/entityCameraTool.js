@@ -15,8 +15,8 @@ var MOUSE_SENSITIVITY = 0.9;
 var SCROLL_SENSITIVITY = 0.05;
 var PAN_ZOOM_SCALE_RATIO = 0.4;
 
-var KEY_ORBIT_SENSITIVITY = 40;
-var KEY_ZOOM_SENSITIVITY = 10;
+var KEY_ORBIT_SENSITIVITY = 90;
+var KEY_ZOOM_SENSITIVITY = 3;
 
 // Scaling applied based on the size of the object being focused
 var FOCUS_ZOOM_SCALE = 1.3;
@@ -433,8 +433,13 @@ CameraManager = function() {
         that.targetYaw += (actions.orbitRight - actions.orbitLeft) * dt * KEY_ORBIT_SENSITIVITY;
         that.targetPitch += (actions.orbitUp - actions.orbitDown) * dt * KEY_ORBIT_SENSITIVITY;
         that.targetPitch = clamp(that.targetPitch, -90, 90);
-        that.targetZoomDistance += (actions.orbitBackward - actions.orbitForward) * dt * KEY_ZOOM_SENSITIVITY;
-        that.targetZoomDistance = clamp(that.targetZoomDistance, MIN_ZOOM_DISTANCE, MAX_ZOOM_DISTANCE);
+
+        var dZoom = actions.orbitBackward - actions.orbitForward;
+        if (dZoom) {
+            dZoom *= that.targetZoomDistance * dt * KEY_ZOOM_SENSITIVITY;
+            that.targetZoomDistance += dZoom;
+            that.targetZoomDistance = clamp(that.targetZoomDistance, MIN_ZOOM_DISTANCE, MAX_ZOOM_DISTANCE);
+        }
 
 
         if (easing) {
