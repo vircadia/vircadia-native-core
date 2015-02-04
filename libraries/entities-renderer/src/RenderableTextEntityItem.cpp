@@ -63,7 +63,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         glTranslatef(-(halfDimensions.x - leftMargin), halfDimensions.y - topMargin, 0.0f);
         glm::vec4 textColor(toGlm(getTextColorX()), alpha);
         // this is a ratio determined through experimentation
-        const float scaleFactor = 0.1f * _lineHeight;
+        const float scaleFactor = 0.08f * _lineHeight;
         glScalef(scaleFactor, -scaleFactor, scaleFactor);
         textRenderer->draw(0, 0, _text, textColor);
     } 
