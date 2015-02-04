@@ -25,7 +25,6 @@
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stack>
-#include <QMatrix4x4>
 
 #include <gpu/GPUConfig.h>
 
@@ -201,8 +200,5 @@ public:
       f();
     });
   }
-
 };
-
-QMatrix4x4 fromGlm(const glm::mat4 & m);
 

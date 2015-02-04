@@ -18,17 +18,13 @@
 #include <TextRenderer.h>
 
 #include "RenderableTextEntityItem.h"
+#include "GLMHelpers.h"
 
 const int FIXED_FONT_POINT_SIZE = 40;
 const float LINE_SCALE_RATIO = 1.2f;
 
 EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableTextEntityItem(entityID, properties);
-}
-
-glm::vec3 toGlm(const xColor & color) {
-  static const float MAX_COLOR = 255.0f;
-  return std::move(glm::vec3(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR));
 }
 
 void RenderableTextEntityItem::render(RenderArgs* args) {
