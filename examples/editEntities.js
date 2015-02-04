@@ -535,6 +535,9 @@ var idleMouseTimerId = null;
 var IDLE_MOUSE_TIMEOUT = 200;
 
 function mouseMoveEvent(event) {
+    if (!isActive) {
+        return;
+    }
     if (idleMouseTimerId) {
         Script.clearTimeout(idleMouseTimerId);
     }
@@ -602,7 +605,7 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
-    if (!event.isRightButton) {
+    if (!event.isLeftButton || !isActive) {
         return;
     }
 
