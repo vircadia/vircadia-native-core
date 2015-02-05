@@ -37,7 +37,7 @@ public:
 
     // Semantic and Index types to retreive the JointTrackers of this MotionTracker
     typedef std::string Semantic;
-    typedef int Index;
+    typedef uint32_t Index;
     static const Index INVALID_SEMANTIC = -1;
     static const Index INVALID_PARENT = -2;
 

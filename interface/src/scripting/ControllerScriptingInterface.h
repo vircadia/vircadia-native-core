@@ -38,7 +38,7 @@ public slots:
 private:
 
     int  _deviceTrackerId;
-    int  _subTrackerId;
+    uint  _subTrackerId;
 
     // cache for the spatial
     SpatialEvent    _eventCache;

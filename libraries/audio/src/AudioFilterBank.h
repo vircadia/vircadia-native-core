@@ -52,7 +52,7 @@ public:
     AudioFilterBank() :
         _sampleRate(0.0f),
         _frameCount(0) {
-        for (int i = 0; i < _channelCount; ++i) {
+        for (uint32_t i = 0; i < _channelCount; ++i) {
             _buffer[ i ] = NULL;
         }
     }
