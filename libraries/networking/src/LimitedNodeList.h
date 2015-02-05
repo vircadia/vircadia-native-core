@@ -76,6 +76,9 @@ class LimitedNodeList : public QObject, public Dependency {
 public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
+
+    bool getThisNodeCanEdit() { return _thisNodeCanEdit; }
+    void setThisNodeCanEdit(bool canEdit) { _thisNodeCanEdit = canEdit; }
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
@@ -106,7 +109,7 @@ public:
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canEdit);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
@@ -201,6 +204,7 @@ protected:
     void handleNodeKill(const SharedNodePointer& node);
 
     QUuid _sessionUUID;
+    bool _thisNodeCanEdit;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
     QUdpSocket _nodeSocket;

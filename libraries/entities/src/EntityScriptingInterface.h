@@ -59,6 +59,8 @@ public:
 
     void setEntityTree(EntityTree* modelTree) { _entityTree = modelTree; }
     EntityTree* getEntityTree(EntityTree*) { return _entityTree; }
+
+    bool canEdit();
     
 public slots:
     /// adds a model with the specific properties

@@ -26,22 +26,32 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
 
+
+bool EntityScriptingInterface::canEdit() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanEdit();
+}
+
+
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
+
 
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
 
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
-    // If we have a local entity tree set, then also update it.
-    if (_entityTree) {
-        _entityTree->lockForWrite();
-        _entityTree->addEntity(id, properties);
-        _entityTree->unlock();
-    }
+    if (canEdit()) {
+        // If we have a local entity tree set, then also update it.
+        if (_entityTree) {
+            _entityTree->lockForWrite();
+            _entityTree->addEntity(id, properties);
+            _entityTree->unlock();
+        }
 
-    // queue the packet
-    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        // queue the packet
+        queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+    }
 
     return id;
 }
@@ -94,6 +104,11 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
 }
 
 EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
+
+    if (! canEdit()) {
+        return entityID;
+    }
+
     EntityItemID actualID = entityID;
     // if the entity is unknown, attempt to look it up
     if (!entityID.isKnownID) {
