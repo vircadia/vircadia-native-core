@@ -94,6 +94,7 @@ var modelURLs = [
 var mode = 0;
 var isActive = false;
 
+var placingEntityID = null;
 
 var toolBar = (function () {
     var that = {},
@@ -363,7 +364,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({
+                placingEntityID = Entities.addEntity({
                                 type: "Box",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
                                 dimensions: DEFAULT_DIMENSIONS,
@@ -380,7 +381,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({
+                placingEntityID = Entities.addEntity({
                                 type: "Sphere",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
                                 dimensions: DEFAULT_DIMENSIONS,
@@ -396,7 +397,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({
+                placingEntityID = Entities.addEntity({
                                 type: "Light",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
                                 dimensions: DEFAULT_DIMENSIONS,
@@ -421,7 +422,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                placingEntityID = Entities.addEntity({
                                 type: "Text",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
                                 dimensions: { x: 0.5, y: 0.3, z: 0.01 },
@@ -533,8 +534,22 @@ var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
 var IDLE_MOUSE_TIMEOUT = 200;
+var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
 function mouseMoveEvent(event) {
+    if (placingEntityID) {
+        if (!placingEntityID.isKnownID) {
+            placingEntityID = Entities.identifyEntity(placingEntityID);
+        }
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+        var offset = Vec3.multiply(distance, pickRay.direction);
+        var position = Vec3.sum(Camera.position, offset);
+        Entities.editEntity(placingEntityID, {
+            position: position,
+        });
+        return;
+    }
     if (!isActive) {
         return;
     }
@@ -590,6 +605,10 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    if (placingEntityID) {
+        selectionManager.setSelections([placingEntityID]);
+        placingEntityID = null;
+    }
     if (isActive && selectionManager.hasSelection()) {
         tooltip.show(false);
     }
