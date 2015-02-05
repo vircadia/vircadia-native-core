@@ -542,7 +542,7 @@ function mouseMoveEvent(event) {
             placingEntityID = Entities.identifyEntity(placingEntityID);
         }
         var pickRay = Camera.computePickRay(event.x, event.y);
-        var distance = Camera.mode == "independent" ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+        var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
         var offset = Vec3.multiply(distance, pickRay.direction);
         var position = Vec3.sum(Camera.position, offset);
         Entities.editEntity(placingEntityID, {
