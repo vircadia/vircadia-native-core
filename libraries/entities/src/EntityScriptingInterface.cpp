@@ -35,7 +35,6 @@ bool EntityScriptingInterface::canEdit() {
 
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
-
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
 
