@@ -64,12 +64,12 @@ void main(void) {
     vec3 fragColor = shading.w * (frag.diffuse + shading.xyz);
     gl_FragColor = vec4(fragColor * radialAttenuation * getLightColor(light) * getLightIntensity(light), 0.0);
 
-<@if SHOW_LIGHT_CONTOUR@>
-    // Show edge
-    float edge =  abs(2.0 * ((getLightRadius(light) - fragLightDistance) / (0.1)) - 1.0);
-    if (edge < 1) {
-        float edgeCoord = exp2(-8.0*edge*edge);
-        gl_FragColor = vec4(edgeCoord * edgeCoord * getLightColor(light), 0.0);
+    if (getLightShowContour(light) > 0.0) {
+        // Show edge
+        float edge =  abs(2.0 * ((getLightRadius(light) - fragLightDistance) / (0.1)) - 1.0);
+        if (edge < 1) {
+            float edgeCoord = exp2(-8.0*edge*edge);
+            gl_FragColor = vec4(edgeCoord * edgeCoord * getLightShowContour(light) * getLightColor(light), 0.0);
+        }
     }
-<@endif@>
 }

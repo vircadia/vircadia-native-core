@@ -61,6 +61,10 @@ float getLightAttenuationCutoff(Light l) {
     return l._attenuation.z;
 }
 
+float getLightShowContour(Light l) {
+    return l._control.w;
+}
+
 <@if GLPROFILE == PC_GL@>
 uniform lightBuffer {
     Light light;

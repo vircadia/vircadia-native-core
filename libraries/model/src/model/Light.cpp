@@ -48,7 +48,7 @@ void Light::setOrientation(const glm::quat& orientation) {
 }
 
 void Light::setDirection(const Vec3& direction) {
-    editSchema()._direction = direction;
+    editSchema()._direction = glm::normalize(direction);
 }
 
 const Vec3& Light::getDirection() const {
@@ -56,7 +56,7 @@ const Vec3& Light::getDirection() const {
 }
 
 void Light::setColor(const Color& color) {
-    editSchema()._color = color;
+    editSchema()._color = glm::normalize(color);
 }
 
 void Light::setIntensity(float intensity) {
@@ -89,3 +89,9 @@ void Light::setSpotExponent(float exponent) {
     editSchema()._spot.w = exponent;
 }
 
+void Light::setShowVolumeContour(float show) {
+    if (show <= 0.f) {
+        show = 0.0f;
+    }
+    editSchema()._control.w = show;
+}

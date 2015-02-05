@@ -209,6 +209,17 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
+
+    // Allocate 2 global lights representing the GLobal Directional light casting shadow (the sun) and the ambient light
+    _globalLights.push_back(0);
+    _allocatedLights.push_back(model::LightPointer(new model::Light()));
+
+    model::LightPointer lp = _allocatedLights[0];
+
+    lp->setDirection(-glm::vec3(1.0f, 1.0f, 1.0f));
+    lp->setColor(glm::vec3(1.0f));
+    lp->setIntensity(1.0f);
+    lp->setType(model::Light::SUN);
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
@@ -264,51 +275,27 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation, float linearAttenuation,
         float quadraticAttenuation, const glm::vec3& direction, float exponent, float cutoff) {
     
-    int lightID = _pointLights.size() + _spotLights.size();
+    int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
         _allocatedLights.push_back(model::LightPointer(new model::Light()));
     }
     model::LightPointer lp = _allocatedLights[lightID];
 
-    if (exponent == 0.0f && cutoff == PI) {
-        PointLight light;
-        light.position = glm::vec4(position, 1.0f);
-        light.radius = radius;
-        light.ambient = glm::vec4(ambient, 1.0f);
-        light.diffuse = glm::vec4(diffuse, 1.0f);
-        light.specular = glm::vec4(specular, 1.0f);
-        light.constantAttenuation = constantAttenuation;
-        light.linearAttenuation = linearAttenuation;
+    lp->setPosition(position);
+    lp->setMaximumRadius(radius);
+    lp->setColor(diffuse);
+    lp->setIntensity(1.0f);
+    lp->setShowVolumeContour(quadraticAttenuation);
 
-        lp->setPosition(position);
-        lp->setMaximumRadius(radius);
-        lp->setColor(diffuse);
-        lp->setIntensity(1.0f);
+    if (exponent == 0.0f && cutoff == PI) {
         lp->setType(model::Light::POINT);
         _pointLights.push_back(lightID);
         
     } else {
-        SpotLight light;
-        light.position = glm::vec4(position, 1.0f);
-        light.radius = radius;
-        light.ambient = glm::vec4(ambient, 1.0f);
-        light.diffuse = glm::vec4(diffuse, 1.0f);
-        light.specular = glm::vec4(specular, 1.0f);
-        light.constantAttenuation = constantAttenuation;
-        light.linearAttenuation = linearAttenuation;
-        light.direction = direction;
-        light.exponent = exponent;
-        light.cutoff = cutoff;
-
-        lp->setPosition(position);
         lp->setDirection(direction);
-        lp->setMaximumRadius(radius);
         lp->setSpotAngle(cutoff);
         lp->setSpotExponent(exponent);
-        lp->setColor(diffuse);
-        lp->setIntensity(1.0f);
         lp->setType(model::Light::SPOT);
-
         _spotLights.push_back(lightID);
     }
 }
@@ -368,6 +355,10 @@ void DeferredLightingEffect::render() {
     float tMin = viewport[VIEWPORT_Y_INDEX] / (float)primaryFBO->height();
     float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)primaryFBO->height();
    
+    // Fetch the ViewMatrix;
+    glm::mat4 invViewMat;
+    _viewState->getViewTransform().getMatrix(invViewMat);
+
     ProgramObject* program = &_directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
     bool shadowsEnabled = _viewState->getShadowsEnabled();
@@ -418,6 +409,17 @@ void DeferredLightingEffect::render() {
         }
     }
     
+    {
+        auto light = _allocatedLights[_globalLights.front()];
+
+        if (locations->lightBufferUnit >= 0) {
+            gpu::Batch batch;
+            batch.setUniformBuffer(locations->lightBufferUnit, light->getSchemaBuffer());
+            gpu::GLBackend::renderBatch(batch);
+        }
+        glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+    }
+
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
     _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
@@ -457,8 +459,6 @@ void DeferredLightingEffect::render() {
     
     const glm::vec3& eyePoint = _viewState->getCurrentViewFrustum()->getPosition();
     float nearRadius = glm::distance(eyePoint, _viewState->getCurrentViewFrustum()->getNearTopLeft());
-    glm::mat4 invViewMat;
-    _viewState->getViewTransform().getMatrix(invViewMat);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     

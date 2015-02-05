@@ -84,6 +84,10 @@ public:
     void setSpotExponent(float exponent);
     float getSpotExponent() const { return getSchema()._spot.w; }
 
+    // For editing purpose, show the light volume contour
+    void setShowVolumeContour(float show);
+    float getShowVolumeContour() const { return getSchema()._control.w; }
+
     // Schema to access the attribute values of the light
     class Schema {
     public:
