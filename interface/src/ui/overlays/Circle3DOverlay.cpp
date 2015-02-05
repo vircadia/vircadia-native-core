@@ -417,19 +417,19 @@ bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin,
                                 const glm::vec3& direction, float& distance, BoxFace& face) {
 
     bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face);
-    if (intersects) {
-        glm::vec3 hitAt = origin + (direction * distance);
-        float distanceToHit = glm::distance(hitAt, _position);
 
-        float maxDimension = glm::max(_dimensions.x, _dimensions.y);
-        float innerRadius = maxDimension * getInnerRadius();
-        float outerRadius = maxDimension * getOuterRadius();
-        
-        // TODO: this really only works for circles, we should be handling the ellipse case as well...
-        if (distanceToHit < innerRadius || distanceToHit > outerRadius) {
-            intersects = false;
-        }
+    if (intersects) {
+        glm::vec3 hitPosition = origin + (distance * direction);
+        glm::vec3 localHitPosition = glm::inverse(_rotation) * (hitPosition - _position);
+        localHitPosition.y = localHitPosition.y * _dimensions.x / _dimensions.y;  // Scale to make circular
+
+        float distanceToHit = glm::length(localHitPosition);
+        float innerRadius = _dimensions.x / 2.0f * _innerRadius;
+        float outerRadius = _dimensions.x / 2.0f * _outerRadius;
+
+        intersects = innerRadius <= distanceToHit && distanceToHit <= outerRadius;
     }
+
     return intersects;
 }
 
