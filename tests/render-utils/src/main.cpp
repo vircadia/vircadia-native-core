@@ -29,12 +29,49 @@
 #include <glm/glm.hpp>
 #include <PathUtils.h>
 
+class RateCounter {
+    std::vector<float> times;
+    QElapsedTimer timer;
+public:
+    RateCounter() {
+        timer.start();
+    }
+
+    void reset() {
+        times.clear();
+    }
+
+    unsigned int count() const {
+        return times.size() - 1;
+    }
+
+    float elapsed() const {
+        if (times.size() < 1) {
+            return 0.0f;
+        }
+        float elapsed = *times.rbegin() - *times.begin();
+        return elapsed;
+    }
+
+    void increment() {
+        times.push_back(timer.elapsed() / 1000.0f);
+    }
+
+    float rate() const {
+        if (elapsed() == 0.0f) {
+            return NAN;
+        }
+        return (float) count() / elapsed();
+    }
+};
+
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow: public QWindow {
     Q_OBJECT
     QOpenGLContext * _context;
     QSize _size;
     TextRenderer* _textRenderer[4];
+    RateCounter fps;
 
 protected:
     void resizeEvent(QResizeEvent * ev) override {
@@ -81,7 +118,7 @@ QTestWindow::QTestWindow() {
 
     show();
     makeCurrent();
-    qDebug() << (const char*)glGetString(GL_VERSION);
+    qDebug() << (const char*) glGetString(GL_VERSION);
 
 #ifdef WIN32
     glewExperimental = true;
@@ -121,12 +158,8 @@ QTestWindow::QTestWindow() {
 static const wchar_t * EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
 static const glm::uvec2 QUAD_OFFSET(10, 10);
 
-static const glm::vec3 COLORS[4] = {
-    { 1.0, 1.0, 1.0 },
-    { 0.5, 1.0, 0.5 },
-    { 1.0, 0.5, 0.5 },
-    { 0.5, 0.5, 1.0 }
-};
+static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
+        1.0, 0.5, 0.5 }, { 0.5, 0.5, 1.0 } };
 
 void QTestWindow::draw() {
     makeCurrent();
@@ -139,38 +172,46 @@ void QTestWindow::draw() {
 
     QString str = QString::fromWCharArray(EXAMPLE_TEXT);
 
-    for (int i = 0; i < 4; ++i) {
-        glm::vec2 bounds = _textRenderer[i]->computeExtent(str);
+    for (int i = 0; i < 1000; ++i) {
+        for (int i = 0; i < 4; ++i) {
+            glm::vec2 bounds = _textRenderer[i]->computeExtent(str);
 
-        // Draw backgrounds around where the text will appear
-        glPushMatrix();
-        {
-            glTranslatef(offsets[i].x, offsets[i].y, 0);
-            glColor3f(0, 0, 0);
-            glBegin(GL_QUADS);
+            // Draw backgrounds around where the text will appear
+            glPushMatrix();
             {
-                glVertex2f(0, 0);
-                glVertex2f(0, bounds.y);
-                glVertex2f(bounds.x, bounds.y);
-                glVertex2f(bounds.x, 0);
+                glTranslatef(offsets[i].x, offsets[i].y, 0);
+                glColor3f(0, 0, 0);
+                glBegin(GL_QUADS);
+                {
+                    glVertex2f(0, 0);
+                    glVertex2f(0, bounds.y);
+                    glVertex2f(bounds.x, bounds.y);
+                    glVertex2f(bounds.x, 0);
+                }
+                glEnd();
             }
-            glEnd();
-        }
-        glPopMatrix();
+            glPopMatrix();
 
-        // Draw the text itself
-        _textRenderer[i]->draw(offsets[i].x, offsets[i].y, str,
-                glm::vec4(COLORS[i], 1.0f));
+            // Draw the text itself
+            _textRenderer[i]->draw(offsets[i].x, offsets[i].y, str,
+                    glm::vec4(COLORS[i], 1.0f));
+        }
     }
 
     _context->swapBuffers(this);
+    glFinish();
+    fps.increment();
+    if (fps.elapsed() >= 2.0f) {
+        qDebug() << "FPS: " << fps.rate();
+        fps.reset();
+    }
 }
 
 int main(int argc, char** argv) {
     QApplication app(argc, argv);
     QTestWindow window;
     QTimer timer;
-    timer.setInterval(10);
+    timer.setInterval(1);
     app.connect(&timer, &QTimer::timeout, &app, [&] {
         window.draw();
     });
