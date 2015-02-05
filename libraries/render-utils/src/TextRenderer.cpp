@@ -29,14 +29,17 @@
 
 #include "gpu/GLBackend.h"
 #include "gpu/Stream.h"
+
 #include "GLMHelpers.h"
 #include "FontInconsolataMedium.h"
 #include "FontRoboto.h"
 #include "FontTimeless.h"
 #include "FontCourierPrime.h"
 #include "MatrixStack.h"
-
 #include "TextRenderer.h"
+
+#include "sdf_text_vert.h"
+#include "sdf_text_frag.h"
 
 namespace Shaders {
     // Normally we could use 'enum class' to avoid namespace pollution,
@@ -64,100 +67,13 @@ void fillBuffer(QBuffer & buffer, T (&t)[N]) {
     buffer.setData((const char*) t, N);
 }
 
-const char SHADER_TEXT_VS[] =
-        R"XXXX(#version 330
-
-uniform mat4 Projection = mat4(1);
-uniform mat4 ModelView = mat4(1);
-uniform vec4 ClipPlane[4];
-uniform int ClipPlaneCount = 0;
-
-layout(location = 0) in vec3 Position;
-layout(location = 1) in vec2 TexCoord;
-
-out vec2 vTexCoord;
-
-void main() {
-  vTexCoord = TexCoord;
-  vec4 clipVertex = ModelView * vec4(Position, 1);
-  for (int i = 0; i < ClipPlaneCount; ++i) {
-    gl_ClipDistance[i] = dot( ClipPlane[i], clipVertex);
-  }
-  gl_Position = Projection * clipVertex;
-})XXXX";
-
-// FIXME 
-// Work in progress to support clipping text to a specific region in 
-// worldspace.  Right now this is a passthrough goemetry shader but 
-// in theory we should be able to populate the clip planes in the 
-// vertex shader and use them to clip out any triangle where the geometry
-// would impinge on the clipping planes
-// 
-// However, it might be simpler to do this calculation inside the CPU 
-// draw call by aborting any letter where the bounding box falls outside 
-// given rectangle
-const char SHADER_TEXT_GS[] =
-        R"XXXX(#version 330
-    layout(triangles) in;
-    layout(triangle_strip, max_vertices = 3) out;
-
-    in vec2 vTexCoord[];
-    out vec2 gTexCoord;
-    void main() {
-        for (int i = 0; i < 3; ++i) {
-          gl_Position = gl_in[i].gl_Position;
-          gTexCoord = vTexCoord[i];
-          EmitVertex();
-        }
-        EndPrimitive();
-    }
-)XXXX";
 
 // FIXME support the shadow effect, or remove it from the API
 
 // FIXME figure out how to improve the anti-aliasing on the 
 // interior of the outline fonts
 const char SHADER_TEXT_FS[] =
-        R"XXXX(#version 330
-
-uniform sampler2D Font;
-uniform vec4 Color = vec4(1);
-uniform bool Outline = false;
-
-in vec2 gTexCoord;
-out vec4 FragColor;
-
-const float gamma = 2.6;
-const float smoothing = 100.0;
-
-void main() {
-  FragColor = vec4(1);
- 
-  // retrieve signed distance
-  float sdf = texture(Font, gTexCoord).r;
-  if (Outline) {
-    if (sdf > 0.8) {
-      sdf = 1.0 - sdf;
-    } else {
-      sdf += 0.2;
-    }
-  }
-  // perform adaptive anti-aliasing of the edges
-  // The larger we're rendering, the less anti-aliasing we need
-  float s = smoothing * length(fwidth(gTexCoord));
-  float w = clamp( s, 0.0, 0.5);
-  float a = smoothstep(0.5 - w, 0.5 + w, sdf);
-
-  // gamma correction for linear attenuation
-  a = pow(a, 1.0 / gamma);
-
-  if (a < 0.01) {
-    discard;
-  }
-
-  // final color
-  FragColor = vec4(Color.rgb, a);
-})XXXX";
+        R"XXXX()XXXX";
 
 // stores the font metrics for a single character
 struct Glyph {
@@ -196,7 +112,11 @@ public:
     using BufferPtr = QSharedPointer < QOpenGLBuffer >;
 
     // maps characters to cached glyph info
-    QHash<QChar, Glyph> _glyphs;
+    // HACK... the operator[] const for QHash returns a 
+    // copy of the value, not a const value reference, so
+    // we declare the hash as mutable in order to avoid such 
+    // copies
+    mutable QHash<QChar, Glyph> _glyphs;
 
     // the id of the glyph texture to which we're currently writing
     GLuint _currentTextureID;
@@ -220,16 +140,21 @@ public:
     QImage _image;
     ProgramPtr _program;
 
-    const Glyph & getGlyph(const QChar & c);
+    const Glyph & getGlyph(const QChar & c) const;
     void read(QIODevice & path);
     // Initialize the OpenGL structures
     void setupGL();
 
     glm::vec2 computeExtent(const QString & str) const;
 
+    glm::vec2 computeTokenExtent(const QString & str) const;
+
     glm::vec2 drawString(float x, float y, const QString & str,
             const glm::vec4& color, TextRenderer::EffectType effectType,
-            float maxWidth) const;
+            const glm::vec2& bound) const;
+
+private:
+    QStringList tokenizeForWrapping(const QString & str) const;
 };
 
 static QHash<QString, Font *> LOADED_FONTS;
@@ -268,7 +193,7 @@ Font * loadFont(const QString & family) {
 }
 
 // NERD RAGE: why doesn't QHash have a 'const T & operator[] const' member
-const Glyph & Font::getGlyph(const QChar & c) {
+const Glyph & Font::getGlyph(const QChar & c) const {
     if (!_glyphs.contains(c)) {
         return _glyphs[QChar('?')];
     }
@@ -370,12 +295,9 @@ void Font::setupGL() {
     if (!_program->create()) {
         qFatal("Could not create text shader");
     }
-    if (!_program->addShaderFromSourceCode(QOpenGLShader::Vertex,
-            SHADER_TEXT_VS)
-            || !_program->addShaderFromSourceCode(QOpenGLShader::Fragment,
-                    SHADER_TEXT_FS)
-            || !_program->addShaderFromSourceCode(QOpenGLShader::Geometry,
-                    SHADER_TEXT_GS) || !_program->link()) {
+    if (!_program->addShaderFromSourceCode(QOpenGLShader::Vertex, sdf_text_vert) || //
+        !_program->addShaderFromSourceCode(QOpenGLShader::Fragment, sdf_text_frag) || //
+        !_program->link()) {
         qFatal(_program->log().toLocal8Bit().constData());
     }
 
@@ -430,33 +352,67 @@ void Font::setupGL() {
     _vao->release();
 }
 
-glm::vec2 Font::computeExtent(const QString & str) const {
-    glm::vec2 advance(0, _rowHeight - _descent);
-    float maxX = 0;
-    foreach(QString token, str.split(" ")) {
-        foreach(QChar c, token) {
-            if (QChar('\n') == c) {
-                maxX = std::max(advance.x, maxX);
-                advance.x = 0;
-                advance.y += _rowHeight;
-                continue;
+// FIXME there has to be a cleaner way of doing this
+QStringList Font::tokenizeForWrapping(const QString & str) const {
+    QStringList result;
+    foreach(const QString & token1, str.split(" ", QString::SkipEmptyParts)) {
+        bool lineFeed = false;
+        foreach(const QString & token2, token1.split("\n")) {
+            if (lineFeed) {
+                result << "\n";
             }
-            if (!_glyphs.contains(c)) {
-                c = QChar('?');
+            if (token2.size()) {
+                result << token2;
             }
-            const Glyph & m = _glyphs[c];
-            advance.x += m.d;
+            lineFeed = true;
         }
-        advance.x += _spaceWidth;
     }
-    return glm::vec2(maxX, advance.y);
+    return result;
+}
+
+
+glm::vec2 Font::computeTokenExtent(const QString & token) const {
+    glm::vec2 advance(0, _rowHeight - _descent);
+    foreach(QChar c, token) {
+        assert(c != ' ' && c != '\n');
+        const Glyph & m = getGlyph(c);
+        advance.x += m.d;
+    }
+    return advance;
+}
+
+
+glm::vec2 Font::computeExtent(const QString & str) const {
+    glm::vec2 extent(0, _rowHeight - _descent);
+    // FIXME, come up with a better method of splitting text
+    // that will allow wrapping but will preserve things like
+    // tabs or consecutive spaces
+    bool firstTokenOnLine = true;
+    float lineWidth = 0.0f;
+    QStringList tokens = tokenizeForWrapping(str);
+    foreach(const QString & token, tokens) {
+        if (token == "\n") {
+            extent.x = std::max(lineWidth, extent.x);
+            lineWidth = 0.0f;
+            extent.y += _rowHeight;
+            firstTokenOnLine = true;
+            continue;
+        }
+        if (!firstTokenOnLine) {
+            lineWidth += _spaceWidth;
+        }
+        lineWidth += computeTokenExtent(token).x;
+        firstTokenOnLine = false;
+    }
+    extent.x = std::max(lineWidth, extent.x);
+    return extent;
 }
 
 // FIXME support the maxWidth parameter and allow the text to automatically wrap
 // even without explicit line feeds.
 glm::vec2 Font::drawString(float x, float y, const QString & str,
         const glm::vec4& color, TextRenderer::EffectType effectType,
-        float maxWidth) const {
+        const glm::vec2& bounds) const {
 
     // Stores how far we've moved from the start of the string, in DTP units
     glm::vec2 advance(0, -_rowHeight - _descent);
@@ -474,31 +430,36 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
     MatrixStack & mv = MatrixStack::modelview();
     // scale the modelview into font units
     mv.translate(glm::vec3(0, _ascent, 0));
-    foreach(QString token, str.split(" ")) {
-        // float tokenWidth = measureWidth(token, fontSize);
-        // if (wrap && 0 != advance.x && (advance.x + tokenWidth) > maxWidth) {
-        //  advance.x = 0;
-        //  advance.y -= _rowHeight;
-        // }
+    foreach(const QString & token, tokenizeForWrapping(str)) {
+        if (token == "\n") {
+            advance.x = 0.0f;
+            advance.y -= _rowHeight;
+            // If we've wrapped right out of the bounds, then we're 
+            // done with rendering the tokens
+            if (bounds.y > 0 && abs(advance.y) > bounds.y) {
+                break;
+            }
+            continue;
+        }
 
-        foreach(QChar c, token) {
-            if (QChar('\n') == c) {
-                advance.x = 0;
+        glm::vec2 tokenExtent = computeTokenExtent(token);
+        if (bounds.x > 0 && advance.x > 0) {
+            // We check if we'll be out of bounds
+            if (advance.x + tokenExtent.x >= bounds.x) {
+                // We're out of bounds, so wrap to the next line
+                advance.x = 0.0f;
                 advance.y -= _rowHeight;
-                continue;
+                // If we've wrapped right out of the bounds, then we're 
+                // done with rendering the tokens
+                if (bounds.y > 0 && abs(advance.y) > bounds.y) {
+                    break;
+                }
             }
+        }
 
-            if (!_glyphs.contains(c)) {
-                c = QChar('?');
-            }
-
+        foreach(const QChar & c, token) {
             // get metrics for this character to speed up measurements
-            const Glyph & m = _glyphs[c];
-            //if (wrap && ((advance.x + m.d) > maxWidth)) {
-            //  advance.x = 0;
-            //  advance.y -= _rowHeight;
-            //}
-
+            const Glyph & m = getGlyph(c);
             // We create an offset vec2 to hold the local offset of this character
             // This includes compensating for the inverted Y axis of the font
             // coordinates
@@ -550,24 +511,23 @@ glm::vec2 TextRenderer::computeExtent(const QString & str) const {
 }
 
 float TextRenderer::draw(float x, float y, const QString & str,
-        const glm::vec4& color, float maxWidth) {
+    const glm::vec4& color, const glm::vec2 & bounds) {
     glm::vec4 actualColor(color);
     if (actualColor.r < 0) {
-        actualColor = glm::vec4(_color.redF(), _color.greenF(), _color.blueF(),
-                1.0);
+        actualColor = toGlm(_color);
     }
 
     float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
     glm::vec2 result;
     MatrixStack::withGlMatrices([&] {
         MatrixStack & mv = MatrixStack::modelview();
-        // scale the modelview into font units
-        // FIXME migrate the constant scale factor into the geometry of the
-        // fonts so we don't have to flip the Y axis here and don't have to
-        // scale at all.
+            // scale the modelview into font units
+            // FIXME migrate the constant scale factor into the geometry of the
+            // fonts so we don't have to flip the Y axis here and don't have to
+            // scale at all.
             mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
-        // The font does all the OpenGL work
-            result = _font->drawString(x, y, str, actualColor, _effectType, maxWidth);
+            // The font does all the OpenGL work
+            result = _font->drawString(x, y, str, actualColor, _effectType, bounds / scale);
         });
     return result.x;
 }

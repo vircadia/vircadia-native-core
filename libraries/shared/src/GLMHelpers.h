@@ -19,6 +19,7 @@
 
 #include <QtCore/QByteArray>
 #include <QtGui/QMatrix4x4>
+#include <QtGui/QColor>
 
 #include "SharedUtil.h"
 
@@ -91,6 +92,7 @@ glm::uvec2 toGlm(const QSize & size);
 glm::ivec2 toGlm(const QPoint & pt);
 glm::vec2 toGlm(const QPointF & pt);
 glm::vec3 toGlm(const xColor & color);
+glm::vec4 toGlm(const QColor & color);
 
 QMatrix4x4 fromGlm(const glm::mat4 & m);
 

@@ -321,6 +321,10 @@ glm::vec3 toGlm(const xColor & color) {
     return std::move(glm::vec3(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR));
 }
 
+glm::vec4 toGlm(const QColor & color) {
+    return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());
+}
+
 QMatrix4x4 fromGlm(const glm::mat4 & m) {
   return QMatrix4x4(&m[0][0]).transposed();
 }

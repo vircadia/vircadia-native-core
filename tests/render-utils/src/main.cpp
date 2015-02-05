@@ -160,7 +160,7 @@ void QTestWindow::draw() {
 
         // Draw the text itself
         _textRenderer[i]->draw(offsets[i].x, offsets[i].y, str,
-                glm::vec4(COLORS[i], 1.0f));
+                glm::vec4(COLORS[i], 1.0f), glm::vec2(200, 200));
     }
 
     _context->swapBuffers(this);

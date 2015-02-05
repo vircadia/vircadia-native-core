@@ -61,7 +61,8 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         // this is a ratio determined through experimentation
         const float scaleFactor = 0.08f * _lineHeight;
         glScalef(scaleFactor, -scaleFactor, scaleFactor);
-        textRenderer->draw(0, 0, _text, textColor);
+        glm::vec2 bounds(dimensions.x / scaleFactor, dimensions.y / scaleFactor);
+        textRenderer->draw(0, 0, _text, textColor, bounds);
     } 
     glPopMatrix();
 }

@@ -64,8 +64,8 @@ public:
     float draw(
       float x, float y,
       const QString & str,
-      const glm::vec4& color = glm::vec4(-1),
-      float maxWidth = -1);
+      const glm::vec4& color = glm::vec4(-1.0f),
+      const glm::vec2& bounds = glm::vec2(-1.0f));
 
 private:
     TextRenderer(const char* family, float pointSize = -1, int weight = -1, bool italic = false,
