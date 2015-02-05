@@ -73,6 +73,7 @@
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
+#include <ScriptCache.h>
 #include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
@@ -188,6 +189,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     auto dialogsManager = DependencyManager::set<DialogsManager>();
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
+    auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -514,6 +516,11 @@ Application::~Application() {
     _myAvatar = NULL;
     
     DependencyManager::destroy<GLCanvas>();
+    DependencyManager::destroy<AnimationCache>();
+    DependencyManager::destroy<TextureCache>();
+    DependencyManager::destroy<GeometryCache>();
+    DependencyManager::destroy<ScriptCache>();
+    DependencyManager::destroy<SoundCache>();
 }
 
 void Application::initializeGL() {
