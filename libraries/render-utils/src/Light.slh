@@ -41,11 +41,12 @@ float getLightSpotAngleCos(Light l) {
     return l._spot.x;
 }
 
+vec2 getLightSpotOutsideNormal2(Light l) {
+    return vec2(-l._spot.y, l._spot.x);
+}
+
 float evalLightSpotAttenuation(Light l, float cosA) {
-    if (cosA > l._spot.x) {
-        return 0.0;
-    }
-    return clamp(pow(cosA / l._spot.x, l._spot.w), 0.0, 1.0);
+    return pow(cosA * l._spot.z, l._spot.w);
 }
 
 float getLightSquareRadius(Light l) {

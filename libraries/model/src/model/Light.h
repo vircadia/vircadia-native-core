@@ -81,7 +81,7 @@ public:
     bool isSpot() const { return getType() == SPOT; }
     void setSpotCone(float angle);
     void setSpotConeExponent(float exponent);
-    float getSpotConeAngle() const { return getSchema()._spot.z; }
+    float getSpotConeAngle() const { return _spotConeAngle; }
     float getSpotConeExponent() const { return getSchema()._spot.w; }
 
     // Schema to access the attribute values of the light
@@ -105,7 +105,7 @@ public:
             _color(1.0f),
             _intensity(1.0f),
             _attenuation(1.0f, 1.0f, 1.0f, 1.0f),
-            _spot(0.0f, 0.0f, 0.0f, 0.0f),
+            _spot(0.0f, 0.0f, 0.0f, 3.0f),
             _control(0.0f)
             {}
     };
@@ -117,6 +117,7 @@ protected:
     Flags _flags;
     UniformBufferView _schemaBuffer;
     Transform _transform;
+    float _spotConeAngle = 0.0f;
 
     const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }

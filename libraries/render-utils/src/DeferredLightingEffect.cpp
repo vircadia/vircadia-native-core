@@ -304,6 +304,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         lp->setDirection(direction);
         lp->setMaximumRadius(radius);
         lp->setSpotCone(cutoff);
+        lp->setSpotConeExponent(exponent);
         lp->setColor(diffuse);
         lp->setIntensity(1.0f);
         lp->setType(model::Light::SPOT);
@@ -470,25 +471,14 @@ void DeferredLightingEffect::render() {
 
         for (auto lightID : _pointLights) {
             auto light = _allocatedLights[lightID];
-      //  foreach (const PointLight& light, _pointLights) {
+
             if (_pointLightLocations.lightBufferUnit >= 0) {
                 gpu::Batch batch;
                 batch.setUniformBuffer(_pointLightLocations.lightBufferUnit, light->getSchemaBuffer());
                 gpu::GLBackend::renderBatch(batch);
             }
             glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
-            
 
-/*
-            _pointLight.setUniformValue(_pointLightLocations.radius, light.radius);
-            glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
-            glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
-            glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
-            glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.0f ? light.constantAttenuation : 0.0f));
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.0f ? light.linearAttenuation : 0.0f));
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.0f ? light.quadraticAttenuation : 0.0f));
-         */
             glPushMatrix();
             
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
@@ -527,29 +517,12 @@ void DeferredLightingEffect::render() {
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
 
-     //   foreach (const SpotLight& light, _spotLights) {
             if (_spotLightLocations.lightBufferUnit >= 0) {
                 gpu::Batch batch;
                 batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
                 gpu::GLBackend::renderBatch(batch);
             }
             glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
-
-     //       _spotLight.setUniformValue(_spotLightLocations.radius, light->getAttenuationRadius());
-            
-            /*
-                      _spotLight.setUniformValue(_spotLightLocations.radius, light.radius);
-            glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
-            glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
-            glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
-            glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.0f ? light.constantAttenuation : 0.0f));
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.0f ? light.linearAttenuation : 0.0f));
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.0f ? light.quadraticAttenuation : 0.0f));
-            glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (const GLfloat*)&light.direction);
-            glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, light.exponent);
-            glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
-            */
 
             glPushMatrix();
             
