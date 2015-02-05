@@ -45,7 +45,7 @@ public:
     
     void setIsAuthenticated(bool isAuthenticated) { _isAuthenticated = isAuthenticated; }
     bool isAuthenticated() const { return _isAuthenticated; }
-
+    
     QHash<QUuid, QUuid>& getSessionSecretHash() { return _sessionSecretHash; }
 private:
     QJsonObject mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject);
