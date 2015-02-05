@@ -119,7 +119,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
         glPushMatrix();
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            glScalef(dimensions.x, dimensions.y, 1.0f);
+            glScalef(dimensions.x / 2.0f, dimensions.y / 2.0f, 1.0f);
 
             glLineWidth(_lineWidth);
 
