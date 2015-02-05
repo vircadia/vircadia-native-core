@@ -1221,7 +1221,7 @@ SelectionDisplay = (function () {
                 x: selectionManager.worldDimensions.x,
                 y: selectionManager.worldDimensions.z
             },
-            rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+            rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         });
 
 

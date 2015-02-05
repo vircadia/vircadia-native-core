@@ -929,14 +929,13 @@ void ApplicationOverlay::renderStatsAndLogs() {
 
     //  Show on-screen msec timer
     if (Menu::getInstance()->isOptionChecked(MenuOption::FrameTimer)) {
-        char frameTimer[10];
         quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
-        sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
+        QString frameTimer = QString("%1\n").arg((int)(mSecsNow % 1000));
         int timerBottom =
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats))
             ? 80 : 20;
         drawText(glCanvas->width() - 100, glCanvas->height() - timerBottom,
-            0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
+            0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
     }
     nodeBoundsDisplay.drawOverlay();
 }
