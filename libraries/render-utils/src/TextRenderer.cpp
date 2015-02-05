@@ -41,16 +41,6 @@
 #include "sdf_text_vert.h"
 #include "sdf_text_frag.h"
 
-namespace Shaders {
-    // Normally we could use 'enum class' to avoid namespace pollution,
-    // but we want easy conversion to GLuint
-    namespace Attributes {
-        enum {
-            Position = 0, TexCoord = 1,
-        };
-    }
-}
-
 // Helper functions for reading binary data from an IO device
 template<class T>
 void readStream(QIODevice & in, T & t) {
@@ -290,7 +280,7 @@ QRectF Glyph::textureBounds(const glm::vec2 & textureSize) const {
 
 void Font::setupGL() {
     _texture = TexturePtr(
-            new QOpenGLTexture(_image, QOpenGLTexture::DontGenerateMipMaps));
+            new QOpenGLTexture(_image, QOpenGLTexture::GenerateMipMaps));
     _program = ProgramPtr(new QOpenGLShaderProgram());
     if (!_program->create()) {
         qFatal("Could not create text shader");
@@ -334,7 +324,6 @@ void Font::setupGL() {
     _vertices->bind();
     _vertices->allocate(&vertexData[0],
             sizeof(TextureVertex) * vertexData.size());
-
     _indices = BufferPtr(new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer));
     _indices->create();
     _indices->bind();
@@ -342,13 +331,12 @@ void Font::setupGL() {
 
     GLsizei stride = (GLsizei) sizeof(TextureVertex);
     void* offset = (void*) offsetof(TextureVertex, tex);
-
-    glEnableVertexAttribArray(Shaders::Attributes::Position);
-    glVertexAttribPointer(Shaders::Attributes::Position, 3, GL_FLOAT, false,
-            stride, nullptr);
-    glEnableVertexAttribArray(Shaders::Attributes::TexCoord);
-    glVertexAttribPointer(Shaders::Attributes::TexCoord, 2, GL_FLOAT, false,
-            stride, offset);
+    int posLoc = _program->attributeLocation("Position");
+    int texLoc = _program->attributeLocation("TexCoord");
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, false, stride, nullptr);
+    glEnableVertexAttribArray(texLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, false, stride, offset);
     _vao->release();
 }
 
@@ -424,6 +412,8 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
     if (effectType == TextRenderer::OUTLINE_EFFECT) {
         _program->setUniformValue("Outline", true);
     }
+    // Needed?
+    glEnable(GL_TEXTURE_2D);
     _texture->bind();
     _vao->bind();
 
@@ -481,6 +471,8 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
 
     _vao->release();
     _program->release();
+    // FIXME, needed?
+    // glDisable(GL_TEXTURE_2D);
     return advance;
 }
 

@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 uniform sampler2D Font;
-uniform vec4 Color = vec4(1);
-uniform bool Outline = false;
+uniform vec4 Color;
+uniform bool Outline;
 
 varying vec2 vTexCoord;
 
@@ -23,7 +23,7 @@ const float outlineExpansion = 0.2;
 
 void main() {
   // retrieve signed distance
-  float sdf = texture(Font, vTexCoord).r;
+  float sdf = texture2D(Font, vTexCoord).r;
   if (Outline) {
     if (sdf > interiorCutoff) {
       sdf = 1.0 - sdf;
