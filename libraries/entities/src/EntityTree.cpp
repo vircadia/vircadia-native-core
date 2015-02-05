@@ -228,7 +228,7 @@ void EntityTree::setSimulation(EntitySimulation* simulation) {
     _simulation = simulation;
 }
 
-void EntityTree::deleteEntity(const EntityItemID& entityID) {
+void EntityTree::deleteEntity(const EntityItemID& entityID, bool force) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
         qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
@@ -241,7 +241,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
         return;
     }
 
-    if (existingEntity->getLocked()) {
+    if (existingEntity->getLocked() && !force) {
         qDebug() << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
         return;
     }
@@ -255,7 +255,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
     _isDirty = true;
 }
 
-void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
+void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force) {
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(this);
     foreach(const EntityItemID& entityID, entityIDs) {
@@ -271,7 +271,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
             continue;
         }
 
-        if (existingEntity->getLocked()) {
+        if (existingEntity->getLocked() && !force) {
             qDebug() << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
             continue;
         }
@@ -667,7 +667,7 @@ void EntityTree::update() {
             foreach (EntityItem* entity, entitiesToDelete) {
                 idsToDelete.insert(entity->getEntityItemID());
             }
-            deleteEntities(idsToDelete);
+            deleteEntities(idsToDelete, true);
         }
         unlock();
     }

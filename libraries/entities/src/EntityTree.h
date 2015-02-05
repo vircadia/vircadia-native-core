@@ -91,8 +91,8 @@ public:
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
     bool updateEntity(EntityItem* entity, const EntityItemProperties& properties);
 
-    void deleteEntity(const EntityItemID& entityID);
-    void deleteEntities(QSet<EntityItemID> entityIDs);
+    void deleteEntity(const EntityItemID& entityID, bool force = false);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false);
     void removeEntityFromSimulation(EntityItem* entity);
 
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);

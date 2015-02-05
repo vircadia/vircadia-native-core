@@ -424,11 +424,11 @@ var toolBar = (function () {
                 Entities.addEntity({ 
                                 type: "Text",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: DEFAULT_DIMENSIONS,
-                                backgroundColor: { red: 0, green: 0, blue: 0 },
+                                dimensions: { x: 0.5, y: 0.3, z: 0.01 },
+                                backgroundColor: { red: 64, green: 64, blue: 64 },
                                 textColor: { red: 255, green: 255, blue: 255 },
                                 text: "some text",
-                                lineHight: "0.1"
+                                lineHeight: 0.06
                                 });
             } else {
                 print("Can't create box: Text would be out of bounds.");
