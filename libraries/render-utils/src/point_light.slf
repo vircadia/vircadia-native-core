@@ -51,7 +51,6 @@ void main(void) {
     float fragLightDistance = length(fragLightVec);
     vec3 fragLightDir = fragLightVec / fragLightDistance;
 
-
     // Eval shading
     vec3 fragNormal = vec3(invViewMat * vec4(frag.normal, 0.0));
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);

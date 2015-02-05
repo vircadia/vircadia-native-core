@@ -303,8 +303,8 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         lp->setPosition(position);
         lp->setDirection(direction);
         lp->setMaximumRadius(radius);
-        lp->setSpotCone(cutoff);
-        lp->setSpotConeExponent(exponent);
+        lp->setSpotAngle(cutoff);
+        lp->setSpotExponent(exponent);
         lp->setColor(diffuse);
         lp->setIntensity(1.0f);
         lp->setType(model::Light::SPOT);
@@ -527,7 +527,7 @@ void DeferredLightingEffect::render() {
             glPushMatrix();
             
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-            float edgeRadius = expandedRadius / glm::cos(light->getSpotConeAngle());
+            float edgeRadius = expandedRadius / glm::cos(light->getSpotAngle());
             if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < edgeRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
@@ -547,7 +547,7 @@ void DeferredLightingEffect::render() {
                 glm::vec3 axis = glm::axis(spotRotation);
                 glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
                 glTranslatef(0.0f, 0.0f, -light->getMaximumRadius() * (1.0f + SCALE_EXPANSION * 0.5f));  
-                geometryCache->renderCone(expandedRadius * glm::tan(light->getSpotConeAngle()),
+                geometryCache->renderCone(expandedRadius * glm::tan(light->getSpotAngle()),
                     expandedRadius, 32, 1);
             }
             

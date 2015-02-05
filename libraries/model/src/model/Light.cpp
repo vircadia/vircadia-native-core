@@ -31,7 +31,6 @@ Light& Light::operator= (const Light& light) {
     _flags = (light._flags);
     _schemaBuffer = (light._schemaBuffer);
     _transform = (light._transform);
-    _spotConeAngle = (light._spotConeAngle);
 
     return (*this);
 }
@@ -73,18 +72,17 @@ void Light::setMaximumRadius(float radius) {
     editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, radius);
 }
 
-void Light::setSpotCone(float angle) {
+void Light::setSpotAngle(float angle) {
     if (angle <= 0.f) {
         angle = 0.0f;
     }
     float cosAngle = cos(angle);
-    editSchema()._spot.x = cosAngle;
+    editSchema()._spot.x = cos(angle);
     editSchema()._spot.y = sin(angle);
-    editSchema()._spot.z = 1.0f / cosAngle;
-    _spotConeAngle = angle;
+    editSchema()._spot.z = angle;
 }
 
-void Light::setSpotConeExponent(float exponent) {
+void Light::setSpotExponent(float exponent) {
     if (exponent <= 0.f) {
         exponent = 1.0f;
     }
