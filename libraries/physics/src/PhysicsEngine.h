@@ -79,13 +79,13 @@ public:
     /// \return true if Object added
     void addObject(const ShapeInfo& shapeInfo, btCollisionShape* shape, ObjectMotionState* motionState);
 
-    /// \param motionState pointer to Object's MotionState
-    void removeObject(ObjectMotionState* motionState);
-
     /// process queue of changed from external sources
     void relayIncomingChangesToSimulation();
 
 private:
+    /// \param motionState pointer to Object's MotionState
+    void removeObjectFromBullet(ObjectMotionState* motionState);
+
     void removeContacts(ObjectMotionState* motionState);
 
     // return 'true' of update was successful
