@@ -678,9 +678,7 @@ void Avatar::renderDisplayName() {
     glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
     
     float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
-    glScalef(scaleFactor, scaleFactor, 1.0);
-    
-    glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
+    glScalef(scaleFactor, -scaleFactor, scaleFactor);  // TextRenderer::draw paints the text upside down in y axis
 
     int text_x = -_displayNameBoundingRect.width() / 2;
     int text_y = -_displayNameBoundingRect.height() / 2;
