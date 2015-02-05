@@ -18,6 +18,17 @@
 #include "Application.h"
 
 int main(int argc, const char * argv[]) {
+
+#ifdef Q_OS_WIN
+    // Run only one instance of Interface at a time.
+    HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface");
+    DWORD result = GetLastError();
+    if (result == ERROR_ALREADY_EXISTS || result == ERROR_ACCESS_DENIED) {
+        // Interface is already running.
+        return 0;
+    }
+#endif
+
     QElapsedTimer startupTime;
     startupTime.start();
     
@@ -44,6 +55,11 @@ int main(int argc, const char * argv[]) {
         qDebug( "Created QT Application.");
         exitCode = app.exec();
     }
+
+#ifdef Q_OS_WIN
+    ReleaseMutex(mutex);
+#endif
+
     qDebug("Normal exit.");
     return exitCode;
 }   
