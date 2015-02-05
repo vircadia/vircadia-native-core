@@ -534,6 +534,7 @@ var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
 var IDLE_MOUSE_TIMEOUT = 200;
+var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
 function mouseMoveEvent(event) {
     if (placingEntityID) {
@@ -541,7 +542,8 @@ function mouseMoveEvent(event) {
             placingEntityID = Entities.identifyEntity(placingEntityID);
         }
         var pickRay = Camera.computePickRay(event.x, event.y);
-        var offset = Vec3.multiply(cameraManager.zoomDistance, pickRay.direction);
+        var distance = Camera.mode == "independent" ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+        var offset = Vec3.multiply(distance, pickRay.direction);
         var position = Vec3.sum(Camera.position, offset);
         Entities.editEntity(placingEntityID, {
             position: position,
