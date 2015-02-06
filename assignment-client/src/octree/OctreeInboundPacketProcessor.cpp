@@ -92,11 +92,6 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
-
-        if (! sendingNode.data()->getCanEdit()) {
-            qDebug("node %s attempted unpermitted edit", sendingNode->getUUID().toString().toUtf8().constData());
-            return;
-        }
         
         const unsigned char* packetData = reinterpret_cast<const unsigned char*>(packet.data());
 

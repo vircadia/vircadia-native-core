@@ -644,15 +644,15 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
             nodeUUID = QUuid::createUuid();
         }
 
-        // if this user is in the editors list (or if the editors list is empty) set the user's node's canEdit to true
+        // if this user is in the editors list (or if the editors list is empty) set the user's node's canAdjustLocks to true
         const QVariant* allowedEditorsVariant =
             valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
         QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
-        bool canEdit = allowedEditors.isEmpty() || allowedEditors.contains(username);
+        bool canAdjustLocks = allowedEditors.isEmpty() || allowedEditors.contains(username);
 
         SharedNodePointer newNode =
             DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(nodeUUID, nodeType,
-                                                                       publicSockAddr, localSockAddr, canEdit);
+                                                                       publicSockAddr, localSockAddr, canAdjustLocks);
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
@@ -852,7 +852,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // always send the node their own UUID back
     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
     broadcastDataStream << node->getUUID();
-    broadcastDataStream << node->getCanEdit();
+    broadcastDataStream << node->getCanAdjustLocks();
 
     int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
 

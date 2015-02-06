@@ -27,9 +27,9 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
 }
 
 
-bool EntityScriptingInterface::canEdit() {
+bool EntityScriptingInterface::canAdjustLocks() {
     auto nodeList = DependencyManager::get<NodeList>();
-    return nodeList->getThisNodeCanEdit();
+    return nodeList->getThisNodeCanAdjustLocks();
 }
 
 
@@ -40,17 +40,15 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
 
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
-    if (canEdit()) {
-        // If we have a local entity tree set, then also update it.
-        if (_entityTree) {
-            _entityTree->lockForWrite();
-            _entityTree->addEntity(id, properties);
-            _entityTree->unlock();
-        }
-
-        // queue the packet
-        queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+    // If we have a local entity tree set, then also update it.
+    if (_entityTree) {
+        _entityTree->lockForWrite();
+        _entityTree->addEntity(id, properties);
+        _entityTree->unlock();
     }
+
+    // queue the packet
+    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
 
     return id;
 }
@@ -74,42 +72,36 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
 EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID entityID) {
     EntityItemProperties results;
 
-    if (canEdit()) {
-        EntityItemID identity = identifyEntity(entityID);
-        if (_entityTree) {
-            _entityTree->lockForRead();
-            EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
+    EntityItemID identity = identifyEntity(entityID);
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
         
-            if (entity) {
-                results = entity->getProperties();
+        if (entity) {
+            results = entity->getProperties();
 
-                // TODO: improve sitting points and naturalDimensions in the future, 
-                //       for now we've included the old sitting points model behavior for entity types that are models
-                //        we've also added this hack for setting natural dimensions of models
-                if (entity->getType() == EntityTypes::Model) {
-                    const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
-                    if (geometry) {
-                        results.setSittingPoints(geometry->sittingPoints);
-                        Extents meshExtents = geometry->getUnscaledMeshExtents();
-                        results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
-                    }
+            // TODO: improve sitting points and naturalDimensions in the future, 
+            //       for now we've included the old sitting points model behavior for entity types that are models
+            //        we've also added this hack for setting natural dimensions of models
+            if (entity->getType() == EntityTypes::Model) {
+                const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
+                if (geometry) {
+                    results.setSittingPoints(geometry->sittingPoints);
+                    Extents meshExtents = geometry->getUnscaledMeshExtents();
+                    results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
                 }
-
-            } else {
-                results.setIsUnknownID();
             }
-            _entityTree->unlock();
+
+        } else {
+            results.setIsUnknownID();
         }
+        _entityTree->unlock();
     }
     
     return results;
 }
 
 EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
-
-    if (!canEdit()) {
-        return entityID;
-    }
 
     EntityItemID actualID = entityID;
     // if the entity is unknown, attempt to look it up
@@ -125,7 +117,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, properties);
+        _entityTree->updateEntity(entityID, properties, canAdjustLocks());
         _entityTree->unlock();
     }
 
@@ -150,10 +142,6 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
 }
 
 void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
-
-    if (!canEdit()) {
-        return;
-    }
 
     EntityItemID actualID = entityID;
     

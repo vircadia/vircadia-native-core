@@ -42,7 +42,7 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, bool canEdit) :
+           const HifiSockAddr& localSocket, bool canAdjustLocks) :
     NetworkPeer(uuid, publicSocket, localSocket),
     _type(type),
     _activeSocket(NULL),
@@ -54,7 +54,7 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _clockSkewUsec(0),
     _mutex(),
     _clockSkewMovingPercentile(30, 0.8f),   // moving 80th percentile of 30 samples
-    _canEdit(canEdit)
+    _canAdjustLocks(canAdjustLocks)
 {
     
 }
@@ -133,7 +133,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._uuid;
     out << node._publicSocket;
     out << node._localSocket;
-    out << node._canEdit;
+    out << node._canAdjustLocks;
     
     return out;
 }
@@ -143,7 +143,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._uuid;
     in >> node._publicSocket;
     in >> node._localSocket;
-    in >> node._canEdit;
+    in >> node._canAdjustLocks;
     
     return in;
 }
