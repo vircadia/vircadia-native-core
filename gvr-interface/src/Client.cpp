@@ -53,8 +53,6 @@ void Client::setupNetworking() {
 }
 
 void Client::processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket) {
-    PacketType incomingType = packetTypeForPacket(incomingPacket);
-    
     DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, incomingPacket);
 }
 
