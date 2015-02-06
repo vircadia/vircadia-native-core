@@ -57,13 +57,9 @@ void fillBuffer(QBuffer & buffer, T (&t)[N]) {
     buffer.setData((const char*) t, N);
 }
 
-
 // FIXME support the shadow effect, or remove it from the API
-
 // FIXME figure out how to improve the anti-aliasing on the 
 // interior of the outline fonts
-const char SHADER_TEXT_FS[] =
-        R"XXXX()XXXX";
 
 // stores the font metrics for a single character
 struct Glyph {
@@ -288,7 +284,7 @@ void Font::setupGL() {
     if (!_program->addShaderFromSourceCode(QOpenGLShader::Vertex, sdf_text_vert) || //
         !_program->addShaderFromSourceCode(QOpenGLShader::Fragment, sdf_text_frag) || //
         !_program->link()) {
-        qFatal(_program->log().toLocal8Bit().constData());
+        qFatal("%s", _program->log().toLocal8Bit().constData());
     }
 
     std::vector<TextureVertex> vertexData;
@@ -314,7 +310,6 @@ void Font::setupGL() {
             indexData.push_back(index + 3);
         });
 
-    //_vao = VertexArrayPtr(new VertexArray());
     _vao = VertexArrayPtr(new QOpenGLVertexArrayObject());
     _vao->create();
     _vao->bind();
@@ -489,9 +484,13 @@ TextRenderer* TextRenderer::getInstance(const char* family, float pointSize,
 TextRenderer::TextRenderer(const char* family, float pointSize, int weight,
         bool italic, EffectType effect, int effectThickness,
         const QColor& color) :
-        _effectType(effect), _pointSize(pointSize), _effectThickness(
-                effectThickness), _color(color), _font(loadFont(family)) {
-
+        _effectType(effect), _effectThickness(effectThickness), _pointSize(pointSize), _color(color), _font(loadFont(family)) {
+    if (1 != _effectThickness) {
+        qWarning() << "Effect thickness not current supported";
+    }
+    if (NO_EFFECT != _effectType && OUTLINE_EFFECT != _effectType) {
+        qWarning() << "Effect thickness not current supported";
+    }
 }
 
 TextRenderer::~TextRenderer() {
