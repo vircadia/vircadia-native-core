@@ -191,8 +191,7 @@ public:
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     
     bool isMousePressed() const { return _mousePressed; }
-    bool isMouseHidden() const { return DependencyManager::get<GLCanvas>()->cursor().shape() == Qt::BlankCursor; }
-    void setCursorVisible(bool visible);
+    bool isMouseHidden() const { return !_cursorVisible; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
@@ -403,10 +402,14 @@ private slots:
     
     void audioMuteToggled();
 
+    void setCursorVisible(bool visible);
+
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
+
+    void updateCursorVisibility();
 
     void sendPingPackets();
 
@@ -519,6 +522,7 @@ private:
 
     Environment _environment;
 
+    bool _cursorVisible;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;

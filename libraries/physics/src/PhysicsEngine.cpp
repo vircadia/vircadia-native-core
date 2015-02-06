@@ -86,7 +86,7 @@ void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
     if (physicsInfo) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(physicsInfo);
         if (motionState->getRigidBody()) {
-            removeObject(motionState);
+            removeObjectFromBullet(motionState);
         } else {
             // only need to hunt in this list when there is no RigidBody
             _nonPhysicalKinematicObjects.remove(motionState);
@@ -130,7 +130,7 @@ void PhysicsEngine::clearEntitiesInternal() {
     // For now we assume this would only be called on shutdown in which case we can just let the memory get lost.
     QSet<EntityMotionState*>::const_iterator stateItr = _entityMotionStates.begin();
     for (stateItr = _entityMotionStates.begin(); stateItr != _entityMotionStates.end(); ++stateItr) {
-        removeObject(*stateItr);
+        removeObjectFromBullet(*stateItr);
         delete (*stateItr);
     }
     _entityMotionStates.clear();
@@ -211,6 +211,9 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
         if (removeMotionState) {
             // if we get here then there is no need to keep this motionState around (no physics or kinematics)
             _outgoingPackets.remove(motionState);
+            if (motionState->getType() == MOTION_STATE_TYPE_ENTITY) {
+                _entityMotionStates.remove(static_cast<EntityMotionState*>(motionState));
+            }
             // NOTE: motionState will clean up its own backpointers in the Object
             delete motionState;
             continue;
@@ -455,7 +458,7 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
     _dynamicsWorld->addRigidBody(body);
 }
 
-void PhysicsEngine::removeObject(ObjectMotionState* motionState) {
+void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
     assert(motionState);
     btRigidBody* body = motionState->getRigidBody();
     if (body) {
@@ -464,8 +467,9 @@ void PhysicsEngine::removeObject(ObjectMotionState* motionState) {
         ShapeInfoUtil::collectInfoFromShape(shape, shapeInfo);
         _dynamicsWorld->removeRigidBody(body);
         _shapeManager.releaseShape(shapeInfo);
-        delete body;
+        // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         motionState->setRigidBody(NULL);
+        delete body;
         motionState->setKinematic(false, _numSubsteps);
 
         removeContacts(motionState);
@@ -492,8 +496,9 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
             // FAIL! we are unable to support these changes!
             _shapeManager.releaseShape(oldShape);
 
-            delete body;
+            // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
             motionState->setRigidBody(NULL);
+            delete body;
             motionState->setKinematic(false, _numSubsteps);
             removeContacts(motionState);
             return false;
