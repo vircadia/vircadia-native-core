@@ -71,7 +71,6 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID entityID) {
     EntityItemProperties results;
-
     EntityItemID identity = identifyEntity(entityID);
     if (_entityTree) {
         _entityTree->lockForRead();
@@ -102,7 +101,6 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
 }
 
 EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
-
     EntityItemID actualID = entityID;
     // if the entity is unknown, attempt to look it up
     if (!entityID.isKnownID) {
