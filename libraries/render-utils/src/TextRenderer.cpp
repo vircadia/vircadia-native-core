@@ -144,7 +144,7 @@ private:
 
 static QHash<QString, Font*> LOADED_FONTS;
 
-Font* loadFont(QFile& fontFile) {
+Font* loadFont(QIODevice& fontFile) {
     Font* result = new Font();
     result->read(fontFile);
     return result;
