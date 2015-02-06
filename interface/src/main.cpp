@@ -37,8 +37,6 @@ static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
 
 
 int main(int argc, const char * argv[]) {
-    Q_INIT_RESOURCE(fonts);
-
 #ifdef Q_OS_WIN
     // Run only one instance of Interface at a time.
     HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface");
