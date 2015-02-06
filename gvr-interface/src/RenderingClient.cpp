@@ -82,56 +82,59 @@ RenderingClient::~RenderingClient() {
 void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket) {
     auto nodeList = DependencyManager::get<NodeList>();
     PacketType incomingType = packetTypeForPacket(incomingPacket);
-    // only process this packet if we have a match on the packet version
-    switch (incomingType) {
-        case PacketTypeAudioEnvironment:
-        case PacketTypeAudioStreamStats:
-        case PacketTypeMixedAudio:
-        case PacketTypeSilentAudioFrame: {
+    
+    if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
+        // only process this packet if we have a match on the packet version
+        switch (incomingType) {
+            case PacketTypeAudioEnvironment:
+            case PacketTypeAudioStreamStats:
+            case PacketTypeMixedAudio:
+            case PacketTypeSilentAudioFrame: {
             
-            if (incomingType == PacketTypeAudioStreamStats) {
-                QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioStreamStatsPacket",
-                                          Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, incomingPacket));
-            } else if (incomingType == PacketTypeAudioEnvironment) {
-                QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioEnvironmentData",
-                                          Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, incomingPacket));
-            } else {
-                QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "addReceivedAudioToStream",
-                                          Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, incomingPacket));
+                if (incomingType == PacketTypeAudioStreamStats) {
+                    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioStreamStatsPacket",
+                                              Qt::QueuedConnection,
+                                              Q_ARG(QByteArray, incomingPacket));
+                } else if (incomingType == PacketTypeAudioEnvironment) {
+                    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioEnvironmentData",
+                                              Qt::QueuedConnection,
+                                              Q_ARG(QByteArray, incomingPacket));
+                } else {
+                    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "addReceivedAudioToStream",
+                                              Qt::QueuedConnection,
+                                              Q_ARG(QByteArray, incomingPacket));
+                }
+            
+                // update having heard from the audio-mixer and record the bytes received
+                SharedNodePointer audioMixer = nodeList->sendingNodeForPacket(incomingPacket);
+            
+                if (audioMixer) {
+                    audioMixer->setLastHeardMicrostamp(usecTimestampNow());
+                }
+            
+                break;
             }
+            case PacketTypeBulkAvatarData:
+            case PacketTypeKillAvatar:
+            case PacketTypeAvatarIdentity:
+            case PacketTypeAvatarBillboard: {
+                // update having heard from the avatar-mixer and record the bytes received
+                SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
             
-            // update having heard from the audio-mixer and record the bytes received
-            SharedNodePointer audioMixer = nodeList->sendingNodeForPacket(incomingPacket);
-            
-            if (audioMixer) {
-                audioMixer->setLastHeardMicrostamp(usecTimestampNow());
-            }
-            
-            break;
-        }
-        case PacketTypeBulkAvatarData:
-        case PacketTypeKillAvatar:
-        case PacketTypeAvatarIdentity:
-        case PacketTypeAvatarBillboard: {
-            // update having heard from the avatar-mixer and record the bytes received
-            SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
-            
-            if (avatarMixer) {
-                avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
+                if (avatarMixer) {
+                    avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
                 
-                QMetaObject::invokeMethod(DependencyManager::get<AvatarHashMap>().data(),
-                                          "processAvatarMixerDatagram",
-                                          Q_ARG(const QByteArray&, incomingPacket),
-                                          Q_ARG(const QWeakPointer<Node>&, avatarMixer));
+                    QMetaObject::invokeMethod(DependencyManager::get<AvatarHashMap>().data(),
+                                              "processAvatarMixerDatagram",
+                                              Q_ARG(const QByteArray&, incomingPacket),
+                                              Q_ARG(const QWeakPointer<Node>&, avatarMixer));
+                }
+                break;
             }
-            break;
+            default:
+                Client::processVerifiedPacket(senderSockAddr, incomingPacket);
+                break;
         }
-        default:
-            Client::processVerifiedPacket(senderSockAddr, incomingPacket);
-            break;
     }
 }
 

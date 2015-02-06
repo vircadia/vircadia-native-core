@@ -64,7 +64,7 @@ void AvatarManager::init() {
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
+    PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
     
     _myAvatar->update(deltaTime);
     

@@ -54,13 +54,8 @@ void Client::setupNetworking() {
 
 void Client::processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket) {
     PacketType incomingType = packetTypeForPacket(incomingPacket);
-    // only process this packet if we have a match on the packet version
-    switch (incomingType) {
-        default:
-            auto nodeList = DependencyManager::get<NodeList>();
-            nodeList->processNodeData(senderSockAddr, incomingPacket);
-            break;
-    }
+    
+    DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, incomingPacket);
 }
 
 void Client::processDatagrams() {
