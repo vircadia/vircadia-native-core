@@ -50,7 +50,12 @@ void WindowScriptingInterface::setFocus() {
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {
-    Application::getInstance()->setCursorVisible(visible);
+    QMetaObject::invokeMethod(Application::getInstance(), "setCursorVisible", Qt::BlockingQueuedConnection,
+                              Q_ARG(bool, visible));
+}
+
+bool WindowScriptingInterface::isCursorVisible() const {
+    return !Application::getInstance()->isMouseHidden();
 }
 
 void WindowScriptingInterface::setCursorPosition(int x, int y) {

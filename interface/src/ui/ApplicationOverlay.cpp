@@ -330,8 +330,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
             _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
         }
         _overlays.render();
-        renderPointersOculus(myAvatar->getDefaultEyePosition());
-        
+        if (!Application::getInstance()->isMouseHidden()) {
+            renderPointersOculus(myAvatar->getDefaultEyePosition());
+        }
         glDepthMask(GL_TRUE);
         _overlays.releaseTexture();
         glDisable(GL_TEXTURE_2D);
@@ -542,7 +543,7 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-    if (OculusManager::isConnected() && !application->getLastMouseMoveWasSimulated()) {
+    if (OculusManager::isConnected() && !application->getLastMouseMoveWasSimulated() && !application->isMouseHidden()) {
         //If we are in oculus, render reticle later
         if (_lastMouseMove == 0) {
             _lastMouseMove = usecTimestampNow();
