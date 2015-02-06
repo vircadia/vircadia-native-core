@@ -15,6 +15,7 @@
 
 #include <SharedUtil.h>
 
+#include "AddressManager.h"
 #include "Application.h"
 
 #ifdef Q_OS_WIN
@@ -48,6 +49,14 @@ int main(int argc, const char * argv[]) {
         if (otherInstance) {
             ShowWindow(otherInstance, SW_RESTORE);
             SetForegroundWindow(otherInstance);
+
+            QUrl url = QUrl(argv[1]);
+            if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                COPYDATASTRUCT cds;
+                cds.cbData = strlen(argv[1]) + 1;
+                cds.lpData = (PVOID)argv[1];
+                SendMessage(otherInstance, WM_COPYDATA, 0, (LPARAM)&cds);
+            }
         }
         return 0;
     }

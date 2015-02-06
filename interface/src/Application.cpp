@@ -166,6 +166,13 @@ public:
             if (message->message == WM_SHOWWINDOW) {
                 Application::getInstance()->getWindow()->showNormal();
             }
+            if (message->message == WM_COPYDATA) {
+                COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
+                QUrl url = QUrl((const char*)(pcds->lpData));
+                if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                    DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+                }
+            }
         }
         return false;
     }
