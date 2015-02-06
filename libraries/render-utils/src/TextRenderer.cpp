@@ -178,7 +178,7 @@ Font* loadFont(const QString& family) {
             QFile fontFile(loadFilename);
             fontFile.open(QIODevice::ReadOnly);
             
-            qDebug() << "the file with filename" << loadFilename << "is" << fontFile.size() << "bytes";
+            qDebug() << "Loaded font" << loadFilename << "from Qt Resource System.";
             
             LOADED_FONTS[family] = loadFont(fontFile);
         }
