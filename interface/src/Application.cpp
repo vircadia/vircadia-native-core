@@ -2585,6 +2585,9 @@ const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
 const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
 
+const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
+const float GLOBAL_LIGHT_INTENSITY = 1.0f;
+
 void Application::setupWorldLight() {
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
@@ -2599,6 +2602,7 @@ void Application::setupWorldLight() {
     glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
+
 }
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
@@ -2805,7 +2809,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
-
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(getSunDirection(), GLOBAL_LIGHT_COLOR, GLOBAL_LIGHT_INTENSITY);
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();

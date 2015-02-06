@@ -56,7 +56,7 @@ const Vec3& Light::getDirection() const {
 }
 
 void Light::setColor(const Color& color) {
-    editSchema()._color = glm::normalize(color);
+    editSchema()._color = color;
 }
 
 void Light::setIntensity(float intensity) {
@@ -89,7 +89,7 @@ void Light::setSpotExponent(float exponent) {
     editSchema()._spot.w = exponent;
 }
 
-void Light::setShowVolumeContour(float show) {
+void Light::setShowContour(float show) {
     if (show <= 0.f) {
         show = 0.0f;
     }

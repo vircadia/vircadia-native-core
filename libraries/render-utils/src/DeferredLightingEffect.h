@@ -73,22 +73,9 @@ public:
     void prepare();
     void render();
 
-    enum AmbientLightPreset {
-        OLD_TOWN_SQUARE = 0,
-        GRACE_CATHEDRAL,
-        EUCALYPTUS_GROVE,
-        ST_PETERS_BASILICA,
-        UFFIZI_GALLERY,
-        GALILEOS_TOMB,
-        VINE_STREET_KITCHEN,
-        BREEZEWAY,
-        CAMPUS_SUNSET,
-        FUNSTON_BEACH_SUNSET,
-
-        NUM_PRESET,
-    };
-
+    // update global lighting
     void setAmbientLightMode(int preset);
+    void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity);
 
 private:
     DeferredLightingEffect() {}
