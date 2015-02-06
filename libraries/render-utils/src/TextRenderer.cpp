@@ -189,7 +189,7 @@ Font* loadFont(const QString& family) {
 Font::Font() {
     static bool fontResourceInitComplete = false;
     if (!fontResourceInitComplete) {
-        Q_INIT_RESOURCE(font);
+        Q_INIT_RESOURCE(fonts);
         fontResourceInitComplete = true;
     }
 }
