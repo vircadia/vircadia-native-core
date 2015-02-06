@@ -26,9 +26,9 @@ public:
         Pixels(const Element& format, Size size, const Byte* bytes);
         ~Pixels();
 
-        mutable Sysmem _sysmem;
+        Sysmem _sysmem;
         Element _format;
-        mutable bool _isGPULoaded;
+        bool _isGPULoaded;
     };
     typedef QSharedPointer< Pixels > PixelsPointer;
 
