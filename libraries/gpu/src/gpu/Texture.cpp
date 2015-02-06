@@ -175,7 +175,7 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
 
         // Evaluate the new size with the new format
         const int DIM_SIZE[] = {1, 1, 1, 6};
-        int size = DIM_SIZE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
+        uint32_t size = DIM_SIZE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
 
         // If size change then we need to reset 
         if (changed || (size != getSize())) {

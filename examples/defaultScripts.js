@@ -17,3 +17,4 @@ Script.load("headMove.js");
 Script.load("inspect.js");
 Script.load("lobby.js");
 Script.load("notifications.js");
+Script.load("lookWithMouse.js")

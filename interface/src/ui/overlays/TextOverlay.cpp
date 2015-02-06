@@ -92,17 +92,7 @@ void TextOverlay::render(RenderArgs* args) {
     
     float alpha = getAlpha();
     glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, alpha };
-    QStringList lines = _text.split("\n");
-    int lineOffset = 0;
-    foreach(QString thisLine, lines) {
-        if (lineOffset == 0) {
-            lineOffset = textRenderer->calculateHeight(qPrintable(thisLine));
-        }
-        lineOffset += textRenderer->draw(x, y + lineOffset, qPrintable(thisLine), textColor);
-
-        const int lineGap = 2;
-        lineOffset += lineGap;
-    }
+    textRenderer->draw(x, y, _text, textColor);
 }
 
 void TextOverlay::setProperties(const QScriptValue& properties) {

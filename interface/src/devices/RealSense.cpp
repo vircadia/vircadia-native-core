@@ -15,9 +15,6 @@
 #include "Menu.h"
 #include "SharedUtil.h"
 
-const int PALMROOT_NUM_JOINTS = 2;
-const int FINGER_NUM_JOINTS = 4;
-
 const DeviceTracker::Name RealSense::NAME = "RealSense";
 
 // find the index of a joint from

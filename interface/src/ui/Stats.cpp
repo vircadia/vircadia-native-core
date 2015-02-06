@@ -18,6 +18,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <avatar/AvatarManager.h>
 #include <Application.h>
 #include <GeometryCache.h>
 #include <GLCanvas.h>
@@ -227,7 +228,7 @@ void Stats::display(
     glPointSize(1.0f);
 
     // we need to take one avatar out so we don't include ourselves
-    int totalAvatars = Application::getInstance()->getAvatarManager().size() - 1;
+    int totalAvatars = DependencyManager::get<AvatarManager>()->size() - 1;
     int totalServers = DependencyManager::get<NodeList>()->size();
 
     lines = _expanded ? 5 : 3;
@@ -256,25 +257,20 @@ void Stats::display(
     
     int columnOneHorizontalOffset = horizontalOffset;
 
-    char serverNodes[30];
-    sprintf(serverNodes, "Servers: %d", totalServers);
-    char avatarNodes[30];
-    sprintf(avatarNodes, "Avatars: %d", totalAvatars);
-    char framesPerSecond[30];
-    sprintf(framesPerSecond, "Framerate: %3.0f FPS", fps);
+    QString serverNodes = QString("Servers: %1").arg(totalServers);
+    QString avatarNodes = QString("Avatars: %1").arg(totalAvatars);
+    QString framesPerSecond = QString("Framerate: %1 FPS").arg(fps, 3, 'f', 0);
  
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, serverNodes, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, serverNodes.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarNodes, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarNodes.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, framesPerSecond, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, framesPerSecond.toUtf8().constData(), color);
     
     // TODO: the display of these timing details should all be moved to JavaScript
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
         // Timing details...
-        const int TIMER_OUTPUT_LINE_LENGTH = 1000;
-        char perfLine[TIMER_OUTPUT_LINE_LENGTH];
         verticalOffset += STATS_PELS_PER_LINE * 4; // skip 4 lines to be under the other columns
         drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, 
                 "-------------------------------------------------------- Function "
@@ -301,12 +297,13 @@ void Stats::display(
             QString functionName = j.value(); 
             const PerformanceTimerRecord& record = allRecords.value(functionName);
 
-            sprintf(perfLine, "%120s: %8.4f [%6llu]", qPrintable(functionName),
-                        (float)record.getMovingAverage() / (float)USECS_PER_MSEC,
-                        record.getCount());
-        
+            QString perfLine = QString("%1: %2 [%3]").
+                arg(QString(qPrintable(functionName)), 120).
+                arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3).
+                arg(record.getCount(), 6);
+
             verticalOffset += STATS_PELS_PER_LINE;
-            drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, perfLine, color);
+            drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, perfLine.toUtf8().constData(), color);
         }
     }
 
@@ -320,17 +317,15 @@ void Stats::display(
     }
     horizontalOffset += 5;
 
-    char packetsPerSecondString[30];
-    sprintf(packetsPerSecondString, "Packets In/Out: %d/%d", inPacketsPerSecond, outPacketsPerSecond);
-    char averageMegabitsPerSecond[30];
-    sprintf(averageMegabitsPerSecond, "Mbps In/Out: %3.2f/%3.2f",
-            (float)inKbitsPerSecond * 1.0f / 1000.0f,
-            (float)outKbitsPerSecond * 1.0f / 1000.0f);
+    QString packetsPerSecondString = QString("Packets In/Out: %1/%2").arg(inPacketsPerSecond).arg(outPacketsPerSecond);
+    QString averageMegabitsPerSecond = QString("Mbps In/Out: %1/%2").
+        arg((float)inKbitsPerSecond * 1.0f / 1000.0f).
+        arg((float)outKbitsPerSecond * 1.0f / 1000.0f);
 
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond.toUtf8().constData(), color);
 
 
 
@@ -375,51 +370,51 @@ void Stats::display(
         horizontalOffset += 5;
 
         
-        char audioPing[30];
+        QString audioPing;
         if (pingAudio >= 0) {
-            sprintf(audioPing, "Audio ping: %d", pingAudio);
+            audioPing = QString("Audio ping: %1").arg(pingAudio);
         } else {
-            sprintf(audioPing, "Audio ping: --");
+            audioPing = QString("Audio ping: --");
         }
 
-        char avatarPing[30];
+        QString avatarPing;
         if (pingAvatar >= 0) {
-            sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
+            avatarPing = QString("Avatar ping: %1").arg(pingAvatar);
         } else {
-            sprintf(avatarPing, "Avatar ping: --");
+            avatarPing = QString("Avatar ping: --");
         }
 
-        char voxelAvgPing[30];
+        QString voxelAvgPing;
         if (pingVoxel >= 0) {
-            sprintf(voxelAvgPing, "Entities avg ping: %d", pingVoxel);
+            voxelAvgPing = QString("Entities avg ping: %1").arg(pingVoxel);
         } else {
-            sprintf(voxelAvgPing, "Entities avg ping: --");
+            voxelAvgPing = QString("Entities avg ping: --");
         }
 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioPing, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioPing.toUtf8().constData(), color);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarPing, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarPing.toUtf8().constData(), color);
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelAvgPing, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelAvgPing.toUtf8().constData(), color);
 
         if (_expanded) {
-            char voxelMaxPing[30];
+            QString voxelMaxPing;
             if (pingVoxel >= 0) {  // Average is only meaningful if pingVoxel is valid.
-                sprintf(voxelMaxPing, "Voxel max ping: %d", pingOctreeMax);
+                voxelMaxPing = QString("Voxel max ping: %1").arg(pingOctreeMax);
             } else {
-                sprintf(voxelMaxPing, "Voxel max ping: --");
+                voxelMaxPing = QString("Voxel max ping: --");
             }
 
             verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
+            drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing.toUtf8().constData(), color);
         }
 
         verticalOffset = 0;
         horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _bandwidthStatsWidth + _pingStatsWidth + 2;
     }
     
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
     lines = _expanded ? 8 : 3;
@@ -429,35 +424,35 @@ void Stats::display(
     }
     horizontalOffset += 5;
 
-    char avatarPosition[200];
-    sprintf(avatarPosition, "Position: %.1f, %.1f, %.1f", avatarPos.x, avatarPos.y, avatarPos.z);
-    char avatarVelocity[30];
-    sprintf(avatarVelocity, "Velocity: %.1f", glm::length(myAvatar->getVelocity()));
-    char avatarBodyYaw[30];
-    sprintf(avatarBodyYaw, "Yaw: %.1f", myAvatar->getBodyYaw());
-    char avatarMixerStats[200];
+    QString avatarPosition = QString("Position: %1, %2, %3").
+        arg(avatarPos.x, -1, 'f', 1).
+        arg(avatarPos.y, -1, 'f', 1).
+        arg(avatarPos.z, -1, 'f', 1);
+    QString avatarVelocity = QString("Velocity: %1").arg(glm::length(myAvatar->getVelocity()), -1, 'f', 1);
+    QString avatarBodyYaw = QString("Yaw: %1").arg(myAvatar->getBodyYaw(), -1, 'f', 1);
+    QString avatarMixerStats;
 
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarPosition, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarPosition.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarVelocity, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarVelocity.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarBodyYaw, color);
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarBodyYaw.toUtf8().constData(), color);
 
     if (_expanded) {
         SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
-            sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
-                    roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
-                           bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)),
-                    roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
+            avatarMixerStats = QString("Avatar Mixer: %1 kbps, %2 pps").
+                arg(roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
+                           bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer))).
+                arg(roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
                            bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
         } else {
-            sprintf(avatarMixerStats, "No Avatar Mixer");
+            avatarMixerStats = QString("No Avatar Mixer");
         }
 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarMixerStats, color);
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarMixerStats.toUtf8().constData(), color);
         
         stringstream downloads;
         downloads << "Downloads: ";

@@ -15,6 +15,7 @@
 #include <glm/glm.hpp>
 
 #include <QString>
+#include <QStandardPaths>
 
 #include <SettingHandle.h>
 

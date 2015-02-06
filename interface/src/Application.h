@@ -37,6 +37,7 @@
 #include <TextureCache.h>
 #include <ViewFrustum.h>
 
+#include "AudioClient.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
@@ -49,7 +50,6 @@
 #include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
-#include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
@@ -109,14 +109,15 @@ static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
 static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
-// 70 times per second - target is 60hz, but this helps account for any small deviations
-// in the update loop
-static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = (1000 * 1000) / 70;
-
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
+
+#ifdef Q_OS_WIN
+static const UINT UWM_IDENTIFY_INSTANCES = 
+    RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}");
+#endif
 
 class Application;
 #if defined(qApp)
@@ -134,6 +135,8 @@ public:
     static Application* getInstance() { return qApp; } // TODO: replace fully by qApp
     static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
+    static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
+    static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
 
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
@@ -168,8 +171,6 @@ public:
 
     bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
 
-    MyAvatar* getAvatar() { return _myAvatar; }
-    const MyAvatar* getAvatar() const { return _myAvatar; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
@@ -186,8 +187,7 @@ public:
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     
     bool isMousePressed() const { return _mousePressed; }
-    bool isMouseHidden() const { return DependencyManager::get<GLCanvas>()->cursor().shape() == Qt::BlankCursor; }
-    void setCursorVisible(bool visible);
+    bool isMouseHidden() const { return !_cursorVisible; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
@@ -225,8 +225,6 @@ public:
     virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
-
-    AvatarManager& getAvatarManager() { return _avatarManager; }
     void resetProfile(const QString& username);
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
@@ -264,7 +262,7 @@ public:
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y);
-    virtual const glm::vec3& getAvatarPosition() const { return getAvatar()->getPosition(); }
+    virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
@@ -334,7 +332,6 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
-    void initAvatarAndViewFrustum();
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
         bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
@@ -398,10 +395,14 @@ private slots:
     
     void audioMuteToggled();
 
+    void setCursorVisible(bool visible);
+
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
+
+    void updateCursorVisibility();
 
     void sendPingPackets();
 
@@ -427,7 +428,6 @@ private:
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 
-    void updateMyAvatar(float deltaTime);
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
@@ -484,7 +484,6 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
     PrioVR _prioVR;
@@ -514,6 +513,7 @@ private:
 
     Environment _environment;
 
+    bool _cursorVisible;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;
@@ -576,8 +576,6 @@ private:
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
-
-    quint64 _lastSendAvatarDataTime;
 
     bool _isVSyncOn;
     

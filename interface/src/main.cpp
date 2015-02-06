@@ -15,9 +15,53 @@
 
 #include <SharedUtil.h>
 
+#include "AddressManager.h"
 #include "Application.h"
 
+#ifdef Q_OS_WIN
+static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
+    const UINT TIMEOUT = 200;  // ms
+    DWORD response;
+    LRESULT result = SendMessageTimeout(hWnd, UWM_IDENTIFY_INSTANCES, 0, 0, SMTO_BLOCK | SMTO_ABORTIFHUNG, TIMEOUT, &response);
+    if (result == 0) {  // Timeout; continue search.
+        return TRUE;
+    }
+    if (response == UWM_IDENTIFY_INSTANCES) {
+        HWND* target = (HWND*)lParam;
+        *target = hWnd;
+        return FALSE;  // Found; terminate search.
+    }
+    return TRUE;  // Not found; continue search.
+}
+#endif
+
+
 int main(int argc, const char * argv[]) {
+
+#ifdef Q_OS_WIN
+    // Run only one instance of Interface at a time.
+    HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface");
+    DWORD result = GetLastError();
+    if (result == ERROR_ALREADY_EXISTS || result == ERROR_ACCESS_DENIED) {
+        // Interface is already running.
+        HWND otherInstance = NULL;
+        EnumWindows(enumWindowsCallback, (LPARAM)&otherInstance);
+        if (otherInstance) {
+            ShowWindow(otherInstance, SW_RESTORE);
+            SetForegroundWindow(otherInstance);
+
+            QUrl url = QUrl(argv[1]);
+            if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                COPYDATASTRUCT cds;
+                cds.cbData = strlen(argv[1]) + 1;
+                cds.lpData = (PVOID)argv[1];
+                SendMessage(otherInstance, WM_COPYDATA, 0, (LPARAM)&cds);
+            }
+        }
+        return 0;
+    }
+#endif
+
     QElapsedTimer startupTime;
     startupTime.start();
     
@@ -44,6 +88,11 @@ int main(int argc, const char * argv[]) {
         qDebug( "Created QT Application.");
         exitCode = app.exec();
     }
+
+#ifdef Q_OS_WIN
+    ReleaseMutex(mutex);
+#endif
+
     qDebug("Normal exit.");
     return exitCode;
 }   

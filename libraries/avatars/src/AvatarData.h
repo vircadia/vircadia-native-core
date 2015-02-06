@@ -37,12 +37,12 @@ typedef unsigned long long quint64;
 #include <QHash>
 #include <QObject>
 #include <QRect>
-#include <QScriptable>
 #include <QStringList>
 #include <QUrl>
 #include <QUuid>
 #include <QVariantMap>
 #include <QVector>
+#include <QtScript/QScriptable>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -109,6 +109,10 @@ const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
 const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
 const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
+
+// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
+// This is the start location in the Sandbox (xyz: 6270, 211, 6000).
+const glm::vec3 START_LOCATION(6270, 211, 6000);
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -297,8 +301,10 @@ public:
     const Referential* getReferential() const { return _referential; }
 
 public slots:
+    void sendAvatarDataPacket();
     void sendIdentityPacket();
     void sendBillboardPacket();
+    
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
@@ -329,7 +335,7 @@ public slots:
     
 protected:
     QUuid _sessionUUID;
-    glm::vec3 _position;
+    glm::vec3 _position = START_LOCATION;
     glm::vec3 _handPosition;
     
     Referential* _referential;
@@ -357,8 +363,8 @@ protected:
     HeadData* _headData;
     HandData* _handData;
 
-    QUrl _faceModelURL;
-    QUrl _skeletonModelURL;
+    QUrl _faceModelURL = DEFAULT_HEAD_MODEL_URL;
+    QUrl _skeletonModelURL = DEFAULT_BODY_MODEL_URL;
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
 

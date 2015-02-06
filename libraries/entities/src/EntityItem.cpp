@@ -548,7 +548,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // is sending us data with a known "last simulated" time. That time is likely in the past, and therefore
             // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
             // use our simulation helper routine to get a best estimate of where the entity should be.
-            float skipTimeForward = (float)(now - _lastSimulated) / (float)(USECS_PER_SECOND);
+            const float MIN_TIME_SKIP = 0.0f;
+            const float MAX_TIME_SKIP = 1.0f; // in seconds
+            float skipTimeForward = glm::clamp((float)(now - _lastSimulated) / (float)(USECS_PER_SECOND), 
+                                        MIN_TIME_SKIP, MAX_TIME_SKIP);
             if (skipTimeForward > 0.0f) {
                 #ifdef WANT_DEBUG
                     qDebug() << "skipTimeForward:" << skipTimeForward;
@@ -625,8 +628,6 @@ void EntityItem::setMass(float mass) {
         _density = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     }
 }
-
-const float ENTITY_ITEM_EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
 
 void EntityItem::simulate(const quint64& now) {
     if (_lastSimulated == 0) {

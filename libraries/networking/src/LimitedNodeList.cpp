@@ -106,19 +106,6 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
         // DTLS requires that IP_DONTFRAG be set
         // This is not accessible on some platforms (OS X) so we need to make sure DTLS still works without it
         
-#if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
-        qDebug() << "Making required DTLS changes to LimitedNodeList DTLS socket.";
-        
-        int socketHandle = _dtlsSocket->socketDescriptor();
-#if defined(IP_DONTFRAG)
-        int optValue = 1;
-        setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
-#elif defined(IP_MTU_DISCOVER)
-        int optValue = 1;
-        setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
-#endif
-#endif
-        
         qDebug() << "LimitedNodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
@@ -139,7 +126,6 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
         }
         int oldBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
         if (oldBufferSize < numBytes) {
-            _nodeSocket.setSocketOption(bufferOpt, numBytes);
             int newBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
             
             qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
@@ -411,7 +397,8 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 }
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                                   const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
+                                                   const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+                                                   bool canAdjustLocks) {
     NodeHash::const_iterator it = _nodeHash.find(uuid);
     
     if (it != _nodeHash.end()) {
@@ -419,11 +406,12 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
+        matchingNode->setCanAdjustLocks(canAdjustLocks);
         
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, canAdjustLocks);
         SharedNodePointer newNodePointer(newNode);
         
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));

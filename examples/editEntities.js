@@ -46,28 +46,8 @@ gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
 
-var hasShownPropertiesTool = false;
-
-var entityListVisible = false;
-
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
-    if (selectionManager.hasSelection() && !hasShownPropertiesTool) {
-        // Open properties and model list, but force selection of model list tab
-        propertiesTool.setVisible(false);
-        entityListTool.setVisible(false);
-        gridTool.setVisible(false);
-        propertiesTool.setVisible(true);
-        entityListTool.setVisible(true);
-        gridTool.setVisible(true);
-        Window.setFocus();
-        hasShownPropertiesTool = true;
-    }
-    if (!selectionManager.hasSelection()) {
-        toolBar.setActive(false);
-    } else {
-        toolBar.setActive(true);
-    }
 });
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -94,9 +74,11 @@ var DEFAULT_DIMENSIONS = {
 };
 
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
+var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
+var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 
 var modelURLs = [
@@ -112,6 +94,7 @@ var modelURLs = [
 var mode = 0;
 var isActive = false;
 
+var placingEntityID = null;
 
 var toolBar = (function () {
     var that = {},
@@ -138,10 +121,9 @@ var toolBar = (function () {
         // Hide active button for now - this may come back, so not deleting yet.
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "models-tool.svg",
-            // subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: 0, height: 0 },
-            width: 0,//toolWidth,
-            height: 0,//toolHeight,
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
             alpha: 0.9,
             visible: true
         }, true, false);
@@ -253,7 +235,10 @@ var toolBar = (function () {
             } else {
                 hasShownPropertiesTool = false;
                 cameraManager.enable();
-                grid.setEnabled(true);
+                entityListTool.setVisible(true);
+                gridTool.setVisible(true);
+                propertiesTool.setVisible(true);
+                Window.setFocus();
             }
         }
         toolBar.selectTool(activeButton, active);
@@ -379,7 +364,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({
+                placingEntityID = Entities.addEntity({
                                 type: "Box",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
                                 dimensions: DEFAULT_DIMENSIONS,
@@ -396,7 +381,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({
+                placingEntityID = Entities.addEntity({
                                 type: "Sphere",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
                                 dimensions: DEFAULT_DIMENSIONS,
@@ -412,7 +397,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({
+                placingEntityID = Entities.addEntity({
                                 type: "Light",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
                                 dimensions: DEFAULT_DIMENSIONS,
@@ -437,14 +422,14 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                placingEntityID = Entities.addEntity({
                                 type: "Text",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: DEFAULT_DIMENSIONS,
-                                backgroundColor: { red: 0, green: 0, blue: 0 },
+                                dimensions: { x: 0.5, y: 0.3, z: 0.01 },
+                                backgroundColor: { red: 64, green: 64, blue: 64 },
                                 textColor: { red: 255, green: 255, blue: 255 },
                                 text: "some text",
-                                lineHight: "0.1"
+                                lineHeight: 0.06
                                 });
             } else {
                 print("Can't create box: Text would be out of bounds.");
@@ -535,7 +520,7 @@ function mousePressEvent(event) {
             if (result !== null) {
                 var currentProperties = Entities.getEntityProperties(result.entityID);
                 cameraManager.enable();
-                cameraManager.focus(currentProperties.position, null, true);
+                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
                 cameraManager.mousePressEvent(event);
             }
         } else {
@@ -549,8 +534,25 @@ var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
 var IDLE_MOUSE_TIMEOUT = 200;
+var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
 function mouseMoveEvent(event) {
+    if (placingEntityID) {
+        if (!placingEntityID.isKnownID) {
+            placingEntityID = Entities.identifyEntity(placingEntityID);
+        }
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+        var offset = Vec3.multiply(distance, pickRay.direction);
+        var position = Vec3.sum(Camera.position, offset);
+        Entities.editEntity(placingEntityID, {
+            position: position,
+        });
+        return;
+    }
+    if (!isActive) {
+        return;
+    }
     if (idleMouseTimerId) {
         Script.clearTimeout(idleMouseTimerId);
     }
@@ -603,6 +605,10 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    if (placingEntityID) {
+        selectionManager.setSelections([placingEntityID]);
+        placingEntityID = null;
+    }
     if (isActive && selectionManager.hasSelection()) {
         tooltip.show(false);
     }
@@ -618,7 +624,7 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
-    if (!event.isRightButton) {
+    if (!event.isLeftButton || !isActive) {
         return;
     }
 
@@ -681,9 +687,11 @@ function mouseClickEvent(event) {
             print("Model selected: " + foundEntity.id);
             selectionDisplay.select(selectedEntityID, event);
 
-            cameraManager.focus(selectionManager.worldPosition,
-                                selectionManager.worldDimensions,
-                                true);
+            if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
+                cameraManager.focus(selectionManager.worldPosition,
+                                    selectionManager.worldDimensions,
+                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            }
         }
     }
 }
@@ -725,7 +733,9 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
 
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT, afterItem: MENU_INSPECT_TOOL_ENABLED,
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_AUTO_FOCUS_ON_SELECT,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 
     Entities.setLightsArePickable(false);
@@ -751,11 +761,12 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("File", "Import Models");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
+    Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
 }
 
 Script.scriptEnding.connect(function() {
-    Settings.setValue(SETTING_INSPECT_TOOL_ENABLED, Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED));
+    Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
 
     progressDialog.cleanup();
