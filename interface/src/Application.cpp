@@ -23,6 +23,7 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
+#include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>
 #include <QDesktopWidget>
@@ -147,6 +148,30 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
+#ifdef Q_OS_WIN
+class MyNativeEventFilter : public QAbstractNativeEventFilter {
+public:
+    static MyNativeEventFilter& getInstance() {
+        static MyNativeEventFilter staticInstance;
+        return staticInstance;
+    }
+
+    bool nativeEventFilter(const QByteArray &eventType, void* msg, long* result) Q_DECL_OVERRIDE {
+        if (eventType == "windows_generic_MSG") {
+            MSG* message = (MSG*)msg;
+            if (message->message == UWM_IDENTIFY_INSTANCES) {
+                *result = UWM_IDENTIFY_INSTANCES;
+                return true;
+            }
+            if (message->message == WM_SHOWWINDOW) {
+                Application::getInstance()->getWindow()->showNormal();
+            }
+        }
+        return false;
+    }
+};
+#endif
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
@@ -244,6 +269,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false)
 {
+#ifdef Q_OS_WIN
+    installNativeEventFilter(&MyNativeEventFilter::getInstance());
+#endif
+
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
     qInstallMessageHandler(messageHandler);
     

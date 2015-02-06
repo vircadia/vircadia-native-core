@@ -17,6 +17,24 @@
 
 #include "Application.h"
 
+#ifdef Q_OS_WIN
+static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
+    const UINT TIMEOUT = 200;  // ms
+    DWORD response;
+    LRESULT result = SendMessageTimeout(hWnd, UWM_IDENTIFY_INSTANCES, 0, 0, SMTO_BLOCK | SMTO_ABORTIFHUNG, TIMEOUT, &response);
+    if (result == 0) {  // Timeout; continue search.
+        return TRUE;
+    }
+    if (response == UWM_IDENTIFY_INSTANCES) {
+        HWND* target = (HWND*)lParam;
+        *target = hWnd;
+        return FALSE;  // Found; terminate search.
+    }
+    return TRUE;  // Not found; continue search.
+}
+#endif
+
+
 int main(int argc, const char * argv[]) {
 
 #ifdef Q_OS_WIN
@@ -25,6 +43,12 @@ int main(int argc, const char * argv[]) {
     DWORD result = GetLastError();
     if (result == ERROR_ALREADY_EXISTS || result == ERROR_ACCESS_DENIED) {
         // Interface is already running.
+        HWND otherInstance = NULL;
+        EnumWindows(enumWindowsCallback, (LPARAM)&otherInstance);
+        if (otherInstance) {
+            ShowWindow(otherInstance, SW_RESTORE);
+            SetForegroundWindow(otherInstance);
+        }
         return 0;
     }
 #endif
