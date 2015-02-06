@@ -88,6 +88,9 @@ const float DEFAULT_POINT_SIZE = 12;
 
 class Font {
 public:
+    
+    Font();
+    
     using TexturePtr = QSharedPointer < QOpenGLTexture >;
     using VertexArrayPtr = QSharedPointer< QOpenGLVertexArrayObject >;
     using ProgramPtr = QSharedPointer < QOpenGLShaderProgram >;
@@ -181,6 +184,14 @@ Font* loadFont(const QString& family) {
         }
     }
     return LOADED_FONTS[family];
+}
+
+Font::Font() {
+    static bool fontResourceInitComplete = false;
+    if (!fontResourceInitComplete) {
+        Q_INIT_RESOURCE(font);
+        fontResourceInitComplete = true;
+    }
 }
 
 // NERD RAGE: why doesn't QHash have a 'const T & operator[] const' member
