@@ -236,9 +236,8 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
             serverCount++;
             
             if (serverCount > _octreeServerLabelsCount) {
-                char label[128] = { 0 };
-                sprintf(label, "%s Server %d", serverTypeName, serverCount);
-                int thisServerRow = _octreeServerLables[serverCount-1] = AddStatItem(label);
+                QString label = QString("%1 Server %2").arg(serverTypeName).arg(serverCount);
+                int thisServerRow = _octreeServerLables[serverCount-1] = AddStatItem(label.toUtf8().constData());
                 _labels[thisServerRow]->setTextFormat(Qt::RichText);
                 _labels[thisServerRow]->setTextInteractionFlags(Qt::TextBrowserInteraction);
                 connect(_labels[thisServerRow], SIGNAL(linkActivated(const QString&)), this, SLOT(moreless(const QString&)));

@@ -73,6 +73,7 @@
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
+#include <ScriptCache.h>
 #include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
@@ -187,6 +188,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     auto dialogsManager = DependencyManager::set<DialogsManager>();
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
+    auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -227,6 +229,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
+        _cursorVisible(true),
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
@@ -514,6 +517,11 @@ Application::~Application() {
     _myAvatar = NULL;
     
     DependencyManager::destroy<GLCanvas>();
+    DependencyManager::destroy<AnimationCache>();
+    DependencyManager::destroy<TextureCache>();
+    DependencyManager::destroy<GeometryCache>();
+    DependencyManager::destroy<ScriptCache>();
+    DependencyManager::destroy<SoundCache>();
 }
 
 void Application::initializeGL() {
@@ -1473,6 +1481,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
     
     auto glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
+    
+    updateCursorVisibility();
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -1943,33 +1953,20 @@ void Application::updateCursor(float deltaTime) {
 
     static QPoint lastMousePos = QPoint();
     _lastMouseMove = (lastMousePos == QCursor::pos()) ? _lastMouseMove : usecTimestampNow();
-    bool hideMouse = false;
-    bool underMouse = QGuiApplication::topLevelAt(QCursor::pos()) ==
-                      Application::getInstance()->getWindow()->windowHandle();
-    
-    static const int HIDE_CURSOR_TIMEOUT = 3 * USECS_PER_SECOND; // 3 second
-    int elapsed = usecTimestampNow() - _lastMouseMove;
-    if ((elapsed > HIDE_CURSOR_TIMEOUT)  ||
-        (OculusManager::isConnected() && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode))) {
-        hideMouse = underMouse;
-    }
-    
-    setCursorVisible(!hideMouse);
     lastMousePos = QCursor::pos();
 }
 
-void Application::setCursorVisible(bool visible) {
-    if (visible) {
-        if (overrideCursor() != NULL) {
-            restoreOverrideCursor();
-        }
+void Application::updateCursorVisibility() {
+    if (!_cursorVisible || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+        DependencyManager::get<GLCanvas>()->setCursor(Qt::BlankCursor);
     } else {
-        if (overrideCursor() != NULL) {
-            changeOverrideCursor(Qt::BlankCursor);
-        } else {
-            setOverrideCursor(Qt::BlankCursor);
-        }
+        DependencyManager::get<GLCanvas>()->unsetCursor();
     }
+}
+
+void Application::setCursorVisible(bool visible) {
+    _cursorVisible = visible;
+    updateCursorVisibility();
 }
 
 void Application::update(float deltaTime) {

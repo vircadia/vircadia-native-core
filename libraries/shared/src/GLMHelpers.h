@@ -18,6 +18,8 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QByteArray>
+#include <QtGui/QMatrix4x4>
+#include <QtGui/QColor>
 
 #include "SharedUtil.h"
 
@@ -91,5 +93,14 @@ bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientio
 const float POSITION_SIMILAR_ENOUGH = 0.1f; // 0.1 meter
 bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, float similarEnough = POSITION_SIMILAR_ENOUGH);
 
+glm::uvec2 toGlm(const QSize & size);
+glm::ivec2 toGlm(const QPoint & pt);
+glm::vec2 toGlm(const QPointF & pt);
+glm::vec3 toGlm(const xColor & color);
+glm::vec4 toGlm(const QColor & color);
+
+QMatrix4x4 fromGlm(const glm::mat4 & m);
+
+QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size);
 
 #endif // hifi_GLMHelpers_h

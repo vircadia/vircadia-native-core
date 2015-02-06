@@ -330,8 +330,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
             _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
         }
         _overlays.render();
-        renderPointersOculus(myAvatar->getDefaultEyePosition());
-        
+        if (!Application::getInstance()->isMouseHidden()) {
+            renderPointersOculus(myAvatar->getDefaultEyePosition());
+        }
         glDepthMask(GL_TRUE);
         _overlays.releaseTexture();
         glDisable(GL_TEXTURE_2D);
@@ -537,7 +538,7 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-    if (OculusManager::isConnected() && !qApp->getLastMouseMoveWasSimulated()) {
+    if (OculusManager::isConnected() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
         if (_lastMouseMove == 0) {
             _lastMouseMove = usecTimestampNow();
@@ -922,14 +923,13 @@ void ApplicationOverlay::renderStatsAndLogs() {
 
     //  Show on-screen msec timer
     if (Menu::getInstance()->isOptionChecked(MenuOption::FrameTimer)) {
-        char frameTimer[10];
         quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
-        sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
+        QString frameTimer = QString("%1\n").arg((int)(mSecsNow % 1000));
         int timerBottom =
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats))
             ? 80 : 20;
         drawText(glCanvas->width() - 100, glCanvas->height() - timerBottom,
-            0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
+            0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
     }
     nodeBoundsDisplay.drawOverlay();
 }
