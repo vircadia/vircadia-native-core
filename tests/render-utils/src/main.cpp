@@ -100,6 +100,10 @@ public:
     void draw();
 };
 
+#ifndef SERIF_FONT_FAMILY
+#define SERIF_FONT_FAMILY "Times New Roman"
+#endif
+
 QTestWindow::QTestWindow() {
     setSurfaceType(QSurface::OpenGLSurface);
 
@@ -155,7 +159,8 @@ QTestWindow::QTestWindow() {
     resizeGl();
 }
 
-static const wchar_t * EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
+static const wchar_t * EXAMPLE_TEXT = L"Hello";
+//static const wchar_t * EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
 static const glm::uvec2 QUAD_OFFSET(10, 10);
 
 static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
@@ -167,37 +172,34 @@ void QTestWindow::draw() {
 
     const glm::uvec2 size = glm::uvec2(_size.width() / 2, _size.height() / 2);
     const glm::uvec2 offsets[4] = { { QUAD_OFFSET.x, QUAD_OFFSET.y }, { size.x
-            + QUAD_OFFSET.x, QUAD_OFFSET.y }, { size.x + QUAD_OFFSET.x, size.y
-            + QUAD_OFFSET.y }, { QUAD_OFFSET.x, size.y + QUAD_OFFSET.y }, };
+        + QUAD_OFFSET.x, QUAD_OFFSET.y }, { size.x + QUAD_OFFSET.x, size.y
+        + QUAD_OFFSET.y }, { QUAD_OFFSET.x, size.y + QUAD_OFFSET.y }, };
 
     QString str = QString::fromWCharArray(EXAMPLE_TEXT);
-
-    for (int i = 0; i < 1000; ++i) {
-        for (int i = 0; i < 4; ++i) {
-            glm::vec2 bounds = _textRenderer[i]->computeExtent(str);
-
-            // Draw backgrounds around where the text will appear
-            glPushMatrix();
+    for (int i = 0; i < 4; ++i) {
+        glm::vec2 bounds = _textRenderer[i]->computeExtent(str);
+        glPushMatrix();
+        {
+            glTranslatef(offsets[i].x, offsets[i].y, 0);
+            glColor3f(0, 0, 0);
+            glBegin(GL_QUADS);
             {
-                glTranslatef(offsets[i].x, offsets[i].y, 0);
-                glColor3f(0, 0, 0);
-                glBegin(GL_QUADS);
-                {
-                    glVertex2f(0, 0);
-                    glVertex2f(0, bounds.y);
-                    glVertex2f(bounds.x, bounds.y);
-                    glVertex2f(bounds.x, 0);
-                }
-                glEnd();
+                glVertex2f(0, 0);
+                glVertex2f(0, bounds.y);
+                glVertex2f(bounds.x, bounds.y);
+                glVertex2f(bounds.x, 0);
             }
-            glPopMatrix();
-
+            glEnd();
+        }
+        glPopMatrix();
+        const int testCount = 100;
+        for (int j = 0; j < testCount; ++j) {
+            // Draw backgrounds around where the text will appear
             // Draw the text itself
-            _textRenderer[i]->draw(offsets[i].x, offsets[i].y, str,
-                    glm::vec4(COLORS[i], 1.0f));
+            _textRenderer[i]->draw(offsets[i].x, offsets[i].y, str.toLocal8Bit().constData(),
+                glm::vec4(COLORS[i], 1.0f));
         }
     }
-
     _context->swapBuffers(this);
     glFinish();
     fps.increment();
