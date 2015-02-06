@@ -21,7 +21,6 @@
 #include "GLMHelpers.h"
 
 const int FIXED_FONT_POINT_SIZE = 40;
-const float LINE_SCALE_RATIO = 1.2f;
 
 EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableTextEntityItem(entityID, properties);
@@ -35,9 +34,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
     float leftMargin = 0.1f;
-    float rightMargin = 0.1f;
     float topMargin = 0.1f;
-    float bottomMargin = 0.1f;
 
     //qDebug() << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
 
