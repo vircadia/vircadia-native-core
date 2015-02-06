@@ -118,7 +118,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor, 
                                  (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
-        glScalef(scaleFactor, -scaleFactor, 1.0);
+        glScalef(scaleFactor, -scaleFactor, scaleFactor);
         enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipDimensions.x);
         enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
         enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
