@@ -60,9 +60,12 @@ public:
     void setEntityTree(EntityTree* modelTree) { _entityTree = modelTree; }
     EntityTree* getEntityTree(EntityTree*) { return _entityTree; }
 
-    bool canEdit();
     
 public slots:
+
+    // returns true if the DomainServer will allow this Node/Avatar to make changes
+    Q_INVOKABLE bool canEdit();
+
     /// adds a model with the specific properties
     Q_INVOKABLE EntityItemID addEntity(const EntityItemProperties& properties);
 

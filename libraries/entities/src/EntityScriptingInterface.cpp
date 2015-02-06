@@ -73,30 +73,33 @@ EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID entityID) {
     EntityItemProperties results;
-    EntityItemID identity = identifyEntity(entityID);
-    if (_entityTree) {
-        _entityTree->lockForRead();
-        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
+
+    if (canEdit()) {
+        EntityItemID identity = identifyEntity(entityID);
+        if (_entityTree) {
+            _entityTree->lockForRead();
+            EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
         
-        if (entity) {
-            results = entity->getProperties();
+            if (entity) {
+                results = entity->getProperties();
 
-            // TODO: improve sitting points and naturalDimensions in the future, 
-            //       for now we've included the old sitting points model behavior for entity types that are models
-            //        we've also added this hack for setting natural dimensions of models
-            if (entity->getType() == EntityTypes::Model) {
-                const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
-                if (geometry) {
-                    results.setSittingPoints(geometry->sittingPoints);
-                    Extents meshExtents = geometry->getUnscaledMeshExtents();
-                    results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+                // TODO: improve sitting points and naturalDimensions in the future, 
+                //       for now we've included the old sitting points model behavior for entity types that are models
+                //        we've also added this hack for setting natural dimensions of models
+                if (entity->getType() == EntityTypes::Model) {
+                    const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
+                    if (geometry) {
+                        results.setSittingPoints(geometry->sittingPoints);
+                        Extents meshExtents = geometry->getUnscaledMeshExtents();
+                        results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+                    }
                 }
-            }
 
-        } else {
-            results.setIsUnknownID();
+            } else {
+                results.setIsUnknownID();
+            }
+            _entityTree->unlock();
         }
-        _entityTree->unlock();
     }
     
     return results;
@@ -147,6 +150,9 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
 }
 
 void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
+
+    if (! canEdit())
+        return;
 
     EntityItemID actualID = entityID;
     
