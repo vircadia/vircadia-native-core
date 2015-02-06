@@ -23,6 +23,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AnimationHandle.h>
+#include <AudioClient.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
@@ -33,7 +34,7 @@
 #include <TextRenderer.h>
 
 #include "Application.h"
-#include "Audio.h"
+#include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
 #include "ModelReferential.h"
@@ -149,7 +150,7 @@ void MyAvatar::update(float deltaTime) {
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
     //  Get audio loudness data from audio input device
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
@@ -492,9 +493,12 @@ void MyAvatar::startRecording() {
     if (!_recorder) {
         _recorder = RecorderPointer(new Recorder(this));
     }
-    DependencyManager::get<Audio>()->setRecorder(_recorder);
-    _recorder->startRecording();
+    // connect to AudioClient's signal so we get input audio
+    auto audioClient = DependencyManager::get<AudioClient>();
+    connect(audioClient.data(), &AudioClient::inputReceived, _recorder.data(),
+            &Recorder::recordAudio, Qt::BlockingQueuedConnection);
     
+    _recorder->startRecording();
 }
 
 void MyAvatar::stopRecording() {
@@ -506,6 +510,10 @@ void MyAvatar::stopRecording() {
         return;
     }
     if (_recorder) {
+        // stop grabbing audio from the AudioClient
+        auto audioClient = DependencyManager::get<AudioClient>();
+        disconnect(audioClient.data(), 0, _recorder.data(), 0);
+        
         _recorder->stopRecording();
     }
 }
@@ -898,7 +906,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
     
     int howManyLookingAtMe = 0;
-    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
@@ -1615,7 +1623,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    const AvatarHash& avatars = Application::getInstance()->getAvatarManager().getAvatarHash();
+    const AvatarHash& avatars = DependencyManager::get<AvatarManager>()->getAvatarHash();
     if (avatars.size() <= 1) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
@@ -1690,7 +1698,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     
-    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         if ( ! avatar->isChatCirclingEnabled() ||
                 avatar == static_cast<Avatar*>(this)) {

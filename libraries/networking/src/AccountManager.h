@@ -69,12 +69,13 @@ public:
     Q_INVOKABLE bool checkAndSignalForAccessToken();
     void setAccessTokenForCurrentAuthURL(const QString& accessToken);
 
-    void requestAccessToken(const QString& login, const QString& password);
     void requestProfile();
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
 
 public slots:
+    void requestAccessToken(const QString& login, const QString& password);
+    
     void requestAccessTokenFinished();
     void requestProfileFinished();
     void requestAccessTokenError(QNetworkReply::NetworkError error);

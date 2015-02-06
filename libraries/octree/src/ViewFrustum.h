@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 
 #include "AABox.h"

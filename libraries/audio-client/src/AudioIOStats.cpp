@@ -9,14 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-
 #include <AudioConstants.h>
 #include <MixedProcessedAudioStream.h>
 #include <NodeList.h>
 #include <PositionalAudioStream.h>
 
-#include "Audio.h"
+#include "AudioClient.h"
 
 #include "AudioIOStats.h"
 
@@ -27,7 +25,7 @@ const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.0f / Au
 
 AudioIOStats::AudioIOStats(MixedProcessedAudioStream* receivedAudioStream) :
     _receivedAudioStream(receivedAudioStream),
-    _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AudioConstants::NETWORK_FRAME_MSECS * Audio::CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
+    _audioInputMsecsReadStats(MSECS_PER_SECOND / (float)AudioConstants::NETWORK_FRAME_MSECS * AudioClient::CALLBACK_ACCELERATOR_RATIO, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _inputRingBufferMsecsAvailableStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _audioOutputMsecsUnplayedStats(1, FRAMES_AVAILABLE_STATS_WINDOW_SECONDS),
     _lastSentAudioPacket(0),
@@ -97,7 +95,7 @@ void AudioIOStats::parseAudioStreamStatsPacket(const QByteArray& packet) {
 
 void AudioIOStats::sendDownstreamAudioStatsPacket() {
     
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
     
     // since this function is called every second, we'll sample for some of our stats here
     _inputRingBufferMsecsAvailableStats.update(audioIO->getInputRingBufferMsecsAvailable());

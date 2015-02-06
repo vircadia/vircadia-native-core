@@ -19,6 +19,7 @@ hifi_library_search_hints("glm")
 
 # locate header
 find_path(GLM_INCLUDE_DIR "glm/glm.hpp" HINTS ${GLM_SEARCH_DIRS})
+
 set(GLM_INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
 
 include(FindPackageHandleStandardArgs)

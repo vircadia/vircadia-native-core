@@ -26,6 +26,9 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 
+// 70 times per second - target is 60hz, but this helps account for any small deviations
+// in the update loop
+static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = (1000 * 1000) / 70;
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
@@ -56,9 +59,24 @@ AvatarManager::AvatarManager(QObject* parent) :
 
 void AvatarManager::init() {
     _myAvatar->init();
-    _myAvatar->setPosition(START_LOCATION);
-    _myAvatar->setDisplayingLookatVectors(false);
     _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
+}
+
+void AvatarManager::updateMyAvatar(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
+    
+    _myAvatar->update(deltaTime);
+    
+    quint64 now = usecTimestampNow();
+    quint64 dt = now - _lastSendAvatarDataTime;
+    
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
+        // send head/hand data to the avatar mixer and voxel server
+        PerformanceTimer perfTimer("send");
+        _myAvatar->sendAvatarDataPacket();
+        _lastSendAvatarDataTime = now;
+    }
 }
 
 void AvatarManager::updateOtherAvatars(float deltaTime) {

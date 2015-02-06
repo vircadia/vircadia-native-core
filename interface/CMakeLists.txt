@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "Gverb" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "RSSDK")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -13,10 +13,6 @@ endforeach()
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
-
-
-# As Gverb is currently the only reverb library, it's required.
-find_package(Gverb REQUIRED)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -114,7 +110,8 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars audio animation script-engine physics 
+link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars 
+                    audio audio-client animation script-engine physics 
                     render-utils entities-renderer)
 
 # find any optional and required libraries
@@ -179,13 +176,6 @@ if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
   add_definitions(-DQXMPP_STATIC) 
 endif ()
 
-if (GVERB_FOUND)
-  file(GLOB GVERB_SRCS ${GVERB_SRC_DIRS}/*.c)
-  include_directories(${GVERB_INCLUDE_DIRS})
-  add_library(gverb STATIC ${GVERB_SRCS})
-  target_link_libraries(${TARGET_NAME} gverb)
-endif (GVERB_FOUND)
-
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
@@ -199,12 +189,10 @@ add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
-  find_library(CoreAudio CoreAudio)
-  find_library(CoreFoundation CoreFoundation)
   find_library(OpenGL OpenGL)
   find_library(AppKit AppKit)
 
-  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${OpenGL} ${AppKit})
+  target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
     
   # install command for OS X bundle
   INSTALL(TARGETS ${TARGET_NAME}

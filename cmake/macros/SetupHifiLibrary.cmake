@@ -9,14 +9,18 @@
 
 macro(SETUP_HIFI_LIBRARY)
   
-  project(${TARGET_NAME})
+  project(${TARGET_NAME})  
 
   # grab the implemenation and header files
   file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp")
-  set(LIB_SRCS ${LIB_SRCS})
+  list(APPEND ${TARGET_NAME}_SRCS ${LIB_SRCS})
 
   # create a library and set the property so it can be referenced later
-  add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC} ${QT_RESOURCES_FILE})
+  if (${${TARGET_NAME}_SHARED})
+    add_library(${TARGET_NAME} SHARED ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC} ${QT_RESOURCES_FILE})
+  else ()
+    add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC} ${QT_RESOURCES_FILE})
+  endif ()
   
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
   list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)

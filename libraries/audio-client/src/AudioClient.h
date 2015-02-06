@@ -1,5 +1,5 @@
 //
-//  Audio.h
+//  AudioClient.h
 //  interface/src
 //
 //  Created by Stephen Birarda on 1/22/13.
@@ -9,43 +9,38 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_Audio_h
-#define hifi_Audio_h
+#ifndef hifi_AudioClient_h
+#define hifi_AudioClient_h
 
 #include <fstream>
 #include <vector>
 
-#include <QAudio>
-#include <QAudioInput>
-#include <QElapsedTimer>
-#include <QGLWidget>
+#include <QtCore/QByteArray>
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
 #include <QtCore/QVector>
+#include <QtMultimedia/QAudio>
 #include <QtMultimedia/QAudioFormat>
-#include <QVector>
-#include <QByteArray>
+#include <QtMultimedia/QAudioInput>
 
 #include <AbstractAudioInterface.h>
+#include <AudioBuffer.h>
+#include <AudioEffectOptions.h>
+#include <AudioFormat.h>
+#include <AudioGain.h>
 #include <AudioRingBuffer.h>
+#include <AudioSourceTone.h>
+#include <AudioSourceNoise.h>
+#include <AudioStreamStats.h>
 #include <DependencyManager.h>
+
+#include <MixedProcessedAudioStream.h>
+#include <RingBufferHistory.h>
 #include <SettingHandle.h>
 #include <StDev.h>
 
-#include "audio/AudioIOStats.h"
-#include "audio/AudioNoiseGate.h"
-#include "AudioStreamStats.h"
-#include "Recorder.h"
-#include "RingBufferHistory.h"
-#include "AudioRingBuffer.h"
-#include "AudioFormat.h"
-#include "AudioBuffer.h"
-#include "AudioSourceTone.h"
-#include "AudioSourceNoise.h"
-#include "AudioGain.h"
-
-#include "MixedProcessedAudioStream.h"
-#include "AudioEffectOptions.h"
-
+#include "AudioIOStats.h"
+#include "AudioNoiseGate.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -67,20 +62,24 @@ static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
 static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
 static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
 static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
-static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
+static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
 
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
+struct soxr;
 
-class Audio : public AbstractAudioInterface, public Dependency {
+typedef glm::vec3 (*AudioPositionGetter)();
+typedef glm::quat (*AudioOrientationGetter)();
+
+class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
 
     class AudioOutputIODevice : public QIODevice {
     public:
-        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, Audio* audio) : 
+        AudioOutputIODevice(MixedProcessedAudioStream& receivedAudioStream, AudioClient* audio) :
             _receivedAudioStream(receivedAudioStream), _audio(audio), _unfulfilledReads(0) {};
 
         void start() { open(QIODevice::ReadOnly); }
@@ -91,7 +90,7 @@ public:
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         MixedProcessedAudioStream& _receivedAudioStream;
-        Audio* _audio;
+        AudioClient* _audio;
         int _unfulfilledReads;
     };
     
@@ -113,19 +112,20 @@ public:
 
     float getInputRingBufferMsecsAvailable() const;
     float getAudioOutputMsecsUnplayed() const;
-    
-    void setRecorder(RecorderPointer recorder) { _recorder = recorder; }
 
     int getOutputBufferSize() { return _outputBufferSizeFrames.get(); }
-
+    
     bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled.get(); }
     void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled.set(enabled); }
 
     int getOutputStarveDetectionPeriod() { return _outputStarveDetectionPeriodMsec.get(); }
     void setOutputStarveDetectionPeriod(int msecs) { _outputStarveDetectionPeriodMsec.set(msecs); }
-
+    
     int getOutputStarveDetectionThreshold() { return _outputStarveDetectionThreshold.get(); }
     void setOutputStarveDetectionThreshold(int threshold) { _outputStarveDetectionThreshold.set(threshold); }
+    
+    void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
+    void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
     static const float CALLBACK_ACCELERATOR_RATIO;
     
@@ -179,10 +179,13 @@ public slots:
 signals:
     bool muteToggled();
     void inputReceived(const QByteArray& inputSamples);
+    void outputBytesToNetwork(int numBytes);
+    void inputBytesFromNetwork(int numBytes);
+
     void deviceChanged();
 
 protected:
-    Audio();
+    AudioClient();
     
 private:
     void outputFormatChanged();
@@ -208,7 +211,7 @@ private:
 
     QString _inputAudioDeviceName;
     QString _outputAudioDeviceName;
-
+    
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
     
@@ -237,6 +240,11 @@ private:
     AudioEffectOptions* _reverbOptions;
     ty_gverb* _gverbLocal;
     ty_gverb* _gverb;
+    
+    // possible soxr streams needed for resample
+    soxr* _inputToNetworkResampler;
+    soxr* _networkToOutputResampler;
+    soxr* _loopbackResampler;
 
     // Adds Reverb
     void initGverb();
@@ -251,7 +259,7 @@ private:
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
-    float calculateDeviceToNetworkInputRatio(int numBytes) const;
+    float calculateDeviceToNetworkInputRatio() const;
 
     // Input framebuffer
     AudioBufferFloat32 _inputFrameBuffer;
@@ -274,16 +282,17 @@ private:
 
     AudioOutputIODevice _audioOutputIODevice;
     
-    WeakRecorderPointer _recorder;
-    
     AudioIOStats _stats;
     
     AudioNoiseGate _inputGate;
-
+    
+    AudioPositionGetter _positionGetter;
+    AudioOrientationGetter _orientationGetter;
+    
     QVector<QString> _inputDevices;
     QVector<QString> _outputDevices;
     void checkDevices();
 };
 
 
-#endif // hifi_Audio_h
+#endif // hifi_AudioClient_h
