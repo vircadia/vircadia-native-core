@@ -18,6 +18,9 @@
 #include "Application.h"
 
 int main(int argc, const char * argv[]) {
+    
+    Q_INIT_RESOURCE(fonts);
+    
     QElapsedTimer startupTime;
     startupTime.start();
     

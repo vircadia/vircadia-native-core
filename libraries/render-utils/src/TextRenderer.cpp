@@ -88,9 +88,6 @@ const float DEFAULT_POINT_SIZE = 12;
 
 class Font {
 public:
-    
-    Font() { Q_INIT_RESOURCE(fonts); }
-    
     using TexturePtr = QSharedPointer < QOpenGLTexture >;
     using VertexArrayPtr = QSharedPointer< QOpenGLVertexArrayObject >;
     using ProgramPtr = QSharedPointer < QOpenGLShaderProgram >;

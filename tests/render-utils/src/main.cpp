@@ -210,6 +210,8 @@ void QTestWindow::draw() {
 }
 
 int main(int argc, char** argv) {
+    Q_INIT_RESOURCE(fonts);
+    
     QApplication app(argc, argv);
     QTestWindow window;
     QTimer timer;
