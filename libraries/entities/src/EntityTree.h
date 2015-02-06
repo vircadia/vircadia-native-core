@@ -162,7 +162,7 @@ private:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
-                                 EntityTreeElement* containingElement, bool AllowLockChange);
+                                 EntityTreeElement* containingElement, bool allowLockChange);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
