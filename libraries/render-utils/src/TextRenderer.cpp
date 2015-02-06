@@ -143,23 +143,23 @@ private:
     QStringList tokenizeForWrapping(const QString & str) const;
 };
 
-static QHash<QString, Font *> LOADED_FONTS;
+static QHash<QString, Font*> LOADED_FONTS;
 
-Font * loadFont(QIODevice & buffer) {
-    Font * result = new Font();
+Font* loadFont(QIODevice & buffer) {
+    Font* result = new Font();
     result->read(buffer);
     return result;
 }
 
 template<class T, size_t N>
-Font * loadFont(T (&t)[N]) {
+Font* loadFont(T (&t)[N]) {
     QBuffer buffer;
     buffer.setData((const char*) t, N);
     buffer.open(QBuffer::ReadOnly);
     return loadFont(buffer);
 }
 
-Font * loadFont(const QString & family) {
+Font* loadFont(const QString & family) {
     if (!LOADED_FONTS.contains(family)) {
         if (family == MONO_FONT_FAMILY) {
 
