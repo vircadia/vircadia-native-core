@@ -114,6 +114,11 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
 
+#ifdef Q_OS_WIN
+static const UINT UWM_IDENTIFY_INSTANCES = 
+    RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}");
+#endif
+
 class Application;
 #if defined(qApp)
 #undef qApp
