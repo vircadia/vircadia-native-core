@@ -18,6 +18,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <avatar/AvatarManager.h>
 #include <Application.h>
 #include <GeometryCache.h>
 #include <GLCanvas.h>
@@ -227,7 +228,7 @@ void Stats::display(
     glPointSize(1.0f);
 
     // we need to take one avatar out so we don't include ourselves
-    int totalAvatars = Application::getInstance()->getAvatarManager().size() - 1;
+    int totalAvatars = DependencyManager::get<AvatarManager>()->size() - 1;
     int totalServers = DependencyManager::get<NodeList>()->size();
 
     lines = _expanded ? 5 : 3;
@@ -413,7 +414,7 @@ void Stats::display(
         horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _bandwidthStatsWidth + _pingStatsWidth + 2;
     }
     
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
     lines = _expanded ? 8 : 3;

@@ -5,7 +5,7 @@ setup_hifi_library(Network Script)
 
 include_glm()
 
-link_hifi_libraries(audio shared octree networking gpu model fbx)
+link_hifi_libraries(audio shared networking)
 
 # call macro to include our dependency includes and bubble them up via a property on our target
 include_dependency_includes()

@@ -11,11 +11,10 @@
 
 #include "InterfaceConfig.h"
 
+#include <AudioClient.h>
 #include <GLCanvas.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
-
-#include "Audio.h"
 
 #include "AudioToolBox.h"
 
@@ -29,7 +28,7 @@ AudioToolBox::AudioToolBox() :
 
 bool AudioToolBox::mousePressEvent(int x, int y) {
     if (_iconBounds.contains(x, y)) {
-        DependencyManager::get<Audio>()->toggleMute();
+        DependencyManager::get<AudioClient>()->toggleMute();
         return true;
     }
     return false;
@@ -49,7 +48,7 @@ void AudioToolBox::render(int x, int y, bool boxed) {
         _boxTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
     }
     
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
     
     if (boxed) {
         bool isClipping = ((audioIO->getTimeSinceLastClip() > 0.0f) && (audioIO->getTimeSinceLastClip() < 1.0f));

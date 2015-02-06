@@ -33,13 +33,13 @@
 #include <QVBoxLayout>
 
 #include <AttributeRegistry.h>
+#include <avatar/AvatarManager.h>
 #include <GeometryCache.h>
 #include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
 #include <PathUtils.h>
 
 #include "Application.h"
-#include "MainWindow.h"
 #include "MetavoxelEditor.h"
 
 using namespace std;
@@ -267,7 +267,7 @@ void MetavoxelEditor::deleteSelectedAttribute() {
 void MetavoxelEditor::centerGridPosition() {
     const float CENTER_OFFSET = 0.625f;
     float eyePosition = (glm::inverse(getGridRotation()) * Application::getInstance()->getCamera()->getPosition()).z -
-        Application::getInstance()->getAvatar()->getScale() * CENTER_OFFSET;
+                         DependencyManager::get<AvatarManager>()->getMyAvatar()->getScale() * CENTER_OFFSET;
     double step = getGridSpacing();
     _gridPosition->setValue(step * floor(eyePosition / step));
 }

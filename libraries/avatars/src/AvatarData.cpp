@@ -1068,6 +1068,13 @@ void AvatarData::setJointMappingsFromNetworkReply() {
     networkReply->deleteLater();
 }
 
+void AvatarData::sendAvatarDataPacket() {
+    QByteArray dataPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+    dataPacket.append(toByteArray());
+    
+    DependencyManager::get<NodeList>()->broadcastToNodes(dataPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
 void AvatarData::sendIdentityPacket() {
     QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
     identityPacket.append(identityByteArray());

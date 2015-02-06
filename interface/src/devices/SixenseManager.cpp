@@ -11,6 +11,7 @@
 
 #include <vector>
 
+#include <avatar/AvatarManager.h>
 #include <PerfStat.h>
 
 #include "Application.h"
@@ -144,7 +145,7 @@ void SixenseManager::setFilter(bool filter) {
 
 void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
-    Hand* hand = Application::getInstance()->getAvatar()->getHand();
+    Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
     if (_isInitialized && _isEnabled) {
 #ifdef __APPLE__
         SixenseBaseFunction sixenseGetNumActiveControllers =
@@ -458,8 +459,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
 
 //Injecting mouse movements and clicks
 void SixenseManager::emulateMouse(PalmData* palm, int index) {
-    Application* application = Application::getInstance();
-    MyAvatar* avatar = application->getAvatar();
+    MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     auto glCanvas = DependencyManager::get<GLCanvas>();
     QPoint pos;
     
@@ -478,7 +478,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers) 
         || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
-        pos = application->getApplicationOverlay().getPalmClickLocation(palm);
+        pos = qApp->getApplicationOverlay().getPalmClickLocation(palm);
     } else {
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
@@ -501,14 +501,14 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         if (_bumperPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
-            application->mouseReleaseEvent(&mouseEvent, deviceID);
+            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
 
             _bumperPressed[index] = false;
         }
         if (_triggerPressed[index]) {
             QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
-            application->mouseReleaseEvent(&mouseEvent, deviceID);
+            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
 
             _triggerPressed[index] = false;
         }
@@ -522,11 +522,11 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         //Only send the mouse event if the opposite left button isnt held down.
         if (triggerButton == Qt::LeftButton) {
             if (!_triggerPressed[(int)(!index)]) {
-                application->mouseMoveEvent(&mouseEvent, deviceID);
+                qApp->mouseMoveEvent(&mouseEvent, deviceID);
             }
         } else {
             if (!_bumperPressed[(int)(!index)]) {
-                application->mouseMoveEvent(&mouseEvent, deviceID);
+                qApp->mouseMoveEvent(&mouseEvent, deviceID);
             }
         } 
     }
@@ -549,12 +549,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, bumperButton, bumperButton, 0);
 
-            application->mousePressEvent(&mouseEvent, deviceID);
+            qApp->mousePressEvent(&mouseEvent, deviceID);
         }
     } else if (_bumperPressed[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
 
-        application->mouseReleaseEvent(&mouseEvent, deviceID);
+        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
 
         _bumperPressed[index] = false;
     }
@@ -566,12 +566,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
             QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, triggerButton, triggerButton, 0);
 
-            application->mousePressEvent(&mouseEvent, deviceID);
+            qApp->mousePressEvent(&mouseEvent, deviceID);
         }
     } else if (_triggerPressed[index]) {
         QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
 
-        application->mouseReleaseEvent(&mouseEvent, deviceID);
+        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
 
         _triggerPressed[index] = false;
     }
