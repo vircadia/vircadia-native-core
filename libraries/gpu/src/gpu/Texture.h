@@ -26,8 +26,9 @@ public:
         Pixels(const Element& format, Size size, const Byte* bytes);
         ~Pixels();
 
-        Sysmem _sysmem;
+        mutable Sysmem _sysmem;
         Element _format;
+        mutable bool _isGPULoaded;
     };
     typedef QSharedPointer< Pixels > PixelsPointer;
 
@@ -42,7 +43,8 @@ public:
         virtual bool allocateMip(uint16 level);
         virtual bool assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes);
         virtual bool isMipAvailable(uint16 level) const;
- 
+        virtual void notifyGPULoaded(uint16 level) const;
+
     protected:
         Texture* _texture;
         std::vector<PixelsPointer> _mips;
@@ -168,7 +170,8 @@ public:
     // Access the the sub mips
     bool isStoredMipAvailable(uint16 level) const { return _storage->isMipAvailable(level); }
     const PixelsPointer accessStoredMip(uint16 level) const { return _storage->getMip(level); }
- 
+    void notifyGPULoaded(uint16 level) const { return _storage->notifyGPULoaded(level); }
+
     // access sizes for the stored mips
     uint16 getStoredMipWidth(uint16 level) const;
     uint16 getStoredMipHeight(uint16 level) const;
