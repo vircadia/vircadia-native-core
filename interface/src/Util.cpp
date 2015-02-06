@@ -96,7 +96,7 @@ static TextRenderer* textRenderer(int mono) {
 }
 
 int widthText(float scale, int mono, char const* string) {
-    return textRenderer(mono)->computeWidth(string) * (scale / 0.10);
+    return textRenderer(mono)->computeExtent(string).x;  // computeWidth(string) * (scale / 0.10);
 }
 
 void drawText(int x, int y, float scale, float radians, int mono,

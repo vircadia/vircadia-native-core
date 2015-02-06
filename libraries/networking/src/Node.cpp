@@ -41,8 +41,9 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
 }
 
-Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
-	NetworkPeer(uuid, publicSocket, localSocket),
+Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
+           const HifiSockAddr& localSocket, bool canAdjustLocks) :
+    NetworkPeer(uuid, publicSocket, localSocket),
     _type(type),
     _activeSocket(NULL),
     _symmetricSocket(),
@@ -52,7 +53,8 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
-    _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples
+    _clockSkewMovingPercentile(30, 0.8f),   // moving 80th percentile of 30 samples
+    _canAdjustLocks(canAdjustLocks)
 {
     
 }
@@ -131,6 +133,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._uuid;
     out << node._publicSocket;
     out << node._localSocket;
+    out << node._canAdjustLocks;
     
     return out;
 }
@@ -140,6 +143,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._uuid;
     in >> node._publicSocket;
     in >> node._localSocket;
+    in >> node._canAdjustLocks;
     
     return in;
 }

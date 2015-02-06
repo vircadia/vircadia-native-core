@@ -93,7 +93,7 @@ void EntityTree::postAddEntity(EntityItem* entity) {
     emit addingEntity(entity->getEntityItemID());
 }
 
-bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool allowLockChange) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
         qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
@@ -106,21 +106,27 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         return false;
     }
 
-    return updateEntityWithElement(existingEntity, properties, containingElement);
+    return updateEntityWithElement(existingEntity, properties, containingElement, allowLockChange);
 }
 
-bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties) {
+bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
         qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
             << entity->getEntityItemID();
         return false;
     }
-    return updateEntityWithElement(entity, properties, containingElement);
+    return updateEntityWithElement(entity, properties, containingElement, allowLockChange);
 }
 
 bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
-        EntityTreeElement* containingElement) {
+                                         EntityTreeElement* containingElement, bool allowLockChange) {
+
+    if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
+        qDebug() << "Refusing disallowed lock adjustment.";
+        return false;
+    }
+
     // enforce support for locked entities. If an entity is currently locked, then the only
     // property we allow you to change is the locked property.
     if (entity->getLocked()) {
@@ -586,7 +592,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     
                     // if the EntityItem exists, then update it
                     if (existingEntity) {
-                        updateEntity(entityItemID, properties);
+                        updateEntity(entityItemID, properties, senderNode->getCanAdjustLocks());
                         existingEntity->markAsChangedOnServer();
                     } else {
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
