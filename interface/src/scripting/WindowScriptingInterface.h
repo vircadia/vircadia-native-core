@@ -27,7 +27,7 @@ class WindowScriptingInterface : public QObject {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
-    Q_PROPERTY(bool cursorVisible READ isCursorVisible)
+    Q_PROPERTY(bool cursorVisible READ isCursorVisible WRITE setCursorVisible)
 public:
     static WindowScriptingInterface* getInstance();
     int getInnerWidth();
