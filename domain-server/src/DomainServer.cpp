@@ -41,6 +41,11 @@ int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
 
+
+const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
+const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
+
+
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
@@ -638,10 +643,16 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
             // we got a packetUUID we didn't recognize, just add the node
             nodeUUID = QUuid::createUuid();
         }
-        
 
-        SharedNodePointer newNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(nodeUUID, nodeType,
-                                                                                    publicSockAddr, localSockAddr);
+        // if this user is in the editors list (or if the editors list is empty) set the user's node's canAdjustLocks to true
+        const QVariant* allowedEditorsVariant =
+            valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
+        QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
+        bool canAdjustLocks = allowedEditors.isEmpty() || allowedEditors.contains(username);
+
+        SharedNodePointer newNode =
+            DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(nodeUUID, nodeType,
+                                                                       publicSockAddr, localSockAddr, canAdjustLocks);
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
@@ -663,7 +674,6 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     }
 }
 
-const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
 
 bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
@@ -842,6 +852,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // always send the node their own UUID back
     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
     broadcastDataStream << node->getUUID();
+    broadcastDataStream << node->getCanAdjustLocks();
 
     int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
 

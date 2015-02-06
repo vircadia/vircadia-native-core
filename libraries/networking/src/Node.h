@@ -45,7 +45,8 @@ namespace NodeType {
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
-    Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+    Node(const QUuid& uuid, NodeType_t type,
+         const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canAdjustLocks);
     ~Node();
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -76,6 +77,9 @@ public:
     virtual void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
     
     const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
+
+    void setCanAdjustLocks(bool canAdjustLocks) { _canAdjustLocks = canAdjustLocks; }
+    bool getCanAdjustLocks() { return _canAdjustLocks; }
     
     void activatePublicSocket();
     void activateLocalSocket();
@@ -101,6 +105,7 @@ private:
     int _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
+    bool _canAdjustLocks;
 };
 
 QDebug operator<<(QDebug debug, const Node &message);

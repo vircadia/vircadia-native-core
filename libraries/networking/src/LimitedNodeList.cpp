@@ -411,7 +411,8 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 }
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                                   const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
+                                                   const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+                                                   bool canAdjustLocks) {
     NodeHash::const_iterator it = _nodeHash.find(uuid);
     
     if (it != _nodeHash.end()) {
@@ -419,11 +420,12 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
+        matchingNode->setCanAdjustLocks(canAdjustLocks);
         
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, canAdjustLocks);
         SharedNodePointer newNodePointer(newNode);
         
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
