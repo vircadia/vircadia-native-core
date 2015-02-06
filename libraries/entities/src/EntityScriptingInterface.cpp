@@ -107,7 +107,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
 
 EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
 
-    if (! canEdit()) {
+    if (!canEdit()) {
         return entityID;
     }
 
@@ -151,8 +151,9 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
 
 void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
 
-    if (! canEdit())
+    if (!canEdit()) {
         return;
+    }
 
     EntityItemID actualID = entityID;
     
