@@ -107,7 +107,7 @@ void EntityTests::entityTreeTests(bool verbose) {
 
         properties.setPosition(newPosition);
 
-        tree.updateEntity(entityID, properties);
+        tree.updateEntity(entityID, properties, true);
         
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionNearOriginInTreeUnits, targetRadius);
@@ -147,7 +147,7 @@ void EntityTests::entityTreeTests(bool verbose) {
 
         properties.setPosition(newPosition);
 
-        tree.updateEntity(entityID, properties);
+        tree.updateEntity(entityID, properties, true);
         
         float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenterInTreeUnits, targetRadius);

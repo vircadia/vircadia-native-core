@@ -1,6 +1,6 @@
 //
 //  UIUtil.cpp
-//  library/shared/src
+//  interface/src
 //
 //  Created by Ryan Huffman on 09/02/2014.
 //  Copyright 2014 High Fidelity, Inc.

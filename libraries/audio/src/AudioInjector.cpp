@@ -108,12 +108,7 @@ void AudioInjector::injectLocally() {
             // give our current send position to the local buffer
             _localBuffer->setCurrentOffset(_currentSendPosition);
             
-            QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
-                                      Qt::BlockingQueuedConnection,
-                                      Q_RETURN_ARG(bool, success),
-                                      Q_ARG(bool, _options.stereo),
-                                      Q_ARG(qreal, _options.volume),
-                                      Q_ARG(AudioInjector*, this));
+            success = _localAudioInterface->outputLocalInjector(_options.stereo, _options.volume, this);
             
             // if we're not looping and the buffer tells us it is empty then emit finished
             connect(_localBuffer, &AudioInjectorLocalBuffer::bufferEmpty, this, &AudioInjector::stop);

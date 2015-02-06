@@ -18,9 +18,12 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-#include "Application.h"
+#include <avatar/AvatarManager.h>
+#include <avatar/MyAvatar.h>
+#include <DependencyManager.h>
+
 #include "AttachmentsDialog.h"
-#include "MainWindow.h"
+#include "ModelsBrowser.h"
 
 AttachmentsDialog::AttachmentsDialog(QWidget* parent) :
     QDialog(parent) {
@@ -40,7 +43,7 @@ AttachmentsDialog::AttachmentsDialog(QWidget* parent) :
     area->setWidget(container);
     _attachments->addStretch(1);
     
-    foreach (const AttachmentData& data, Application::getInstance()->getAvatar()->getAttachmentData()) {
+    foreach (const AttachmentData& data, DependencyManager::get<AvatarManager>()->getMyAvatar()->getAttachmentData()) {
         addAttachment(data);
     }
     
@@ -70,7 +73,7 @@ void AttachmentsDialog::updateAttachmentData() {
     for (int i = 0; i < _attachments->count() - 1; i++) {
         data.append(static_cast<AttachmentPanel*>(_attachments->itemAt(i)->widget())->getAttachmentData());
     }
-    Application::getInstance()->getAvatar()->setAttachmentData(data);
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->setAttachmentData(data);
 }
 
 void AttachmentsDialog::addAttachment(const AttachmentData& data) {
@@ -116,7 +119,7 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
     connect(chooseURL, SIGNAL(clicked(bool)), SLOT(chooseModelURL()));
     
     layout->addRow("Joint:", _jointName = new QComboBox());
-    QSharedPointer<NetworkGeometry> geometry = Application::getInstance()->getAvatar()->getSkeletonModel().getGeometry();
+    QSharedPointer<NetworkGeometry> geometry = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSkeletonModel().getGeometry();
     if (geometry && geometry->isLoaded()) {
         foreach (const FBXJoint& joint, geometry->getFBXGeometry().joints) {
             _jointName->addItem(joint.name);
@@ -177,7 +180,7 @@ void AttachmentPanel::modelURLChanged() {
         _dialog->updateAttachmentData();
         return;
     }
-    AttachmentData attachment = Application::getInstance()->getAvatar()->loadAttachmentData(_modelURL->text());
+    AttachmentData attachment = DependencyManager::get<AvatarManager>()->getMyAvatar()->loadAttachmentData(_modelURL->text());
     if (attachment.isValid()) {
         _applying = true;
         _jointName->setCurrentText(attachment.jointName);
@@ -195,7 +198,7 @@ void AttachmentPanel::jointNameChanged() {
         _dialog->updateAttachmentData();
         return;
     }
-    AttachmentData attachment = Application::getInstance()->getAvatar()->loadAttachmentData(
+    AttachmentData attachment = DependencyManager::get<AvatarManager>()->getMyAvatar()->loadAttachmentData(
         _modelURL->text(), _jointName->currentText());
     if (attachment.isValid()) {
         applyAttachmentData(attachment);
@@ -209,7 +212,7 @@ void AttachmentPanel::updateAttachmentData() {
     }
     // save the attachment data under the model URL (if any)
     if (!_modelURL->text().isEmpty()) {
-        Application::getInstance()->getAvatar()->saveAttachmentData(getAttachmentData());
+        DependencyManager::get<AvatarManager>()->getMyAvatar()->saveAttachmentData(getAttachmentData());
     }
     _dialog->updateAttachmentData();
 }

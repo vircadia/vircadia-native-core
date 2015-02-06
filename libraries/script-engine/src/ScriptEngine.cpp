@@ -208,6 +208,8 @@ void ScriptEngine::init() {
     
     _isInitialized = true;
 
+    _entityScriptingInterface.init();
+
     // register various meta-types
     registerMetaTypes(this);
     registerMIDIMetaTypes(this);

@@ -73,6 +73,20 @@
             "can_set": true
           }
         ]
+      },
+      {
+        "name": "allowed_editors",
+        "type": "table",
+        "label": "Allowed Editors",
+        "help": "List the High Fidelity names for people you want to be able lock or unlock entities in this domain.<br/>An empty list means everyone.",
+        "numbered": false,
+        "columns": [
+          {
+            "name": "username",
+            "label": "Username",
+            "can_set": true
+          }
+        ]
       }
     ]
   },

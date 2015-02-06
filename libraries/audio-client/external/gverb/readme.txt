@@ -1,5 +1,4 @@
-
-Instructions for adding the Gverb library to Interface
+Instructions for adding the Gverb library to audio-client
 (This is a required library)
 Clément Brisset, October 22nd, 2014
 
@@ -9,7 +8,7 @@ Clément Brisset, October 22nd, 2014
 
 2. Extract the archive
 
-3. Place the directories “include” and “src” in interface/external/gverb 
+3. Place the directories “include” and “src” in libraries/audio-client/external/gverb 
    (Normally next to this readme)
 
 4. Clear your build directory, run cmake, build and you should be all set.
