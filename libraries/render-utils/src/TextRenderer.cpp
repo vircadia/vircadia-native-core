@@ -31,10 +31,6 @@
 #include "gpu/Stream.h"
 
 #include "GLMHelpers.h"
-#include "FontInconsolataMedium.h"
-#include "FontRoboto.h"
-#include "FontTimeless.h"
-#include "FontCourierPrime.h"
 #include "MatrixStack.h"
 #include "TextRenderer.h"
 
@@ -92,6 +88,9 @@ const float DEFAULT_POINT_SIZE = 12;
 
 class Font {
 public:
+    
+    Font() { Q_INIT_RESOURCE(fonts); }
+    
     using TexturePtr = QSharedPointer < QOpenGLTexture >;
     using VertexArrayPtr = QSharedPointer< QOpenGLVertexArrayObject >;
     using ProgramPtr = QSharedPointer < QOpenGLShaderProgram >;
@@ -127,7 +126,7 @@ public:
     ProgramPtr _program;
 
     const Glyph & getGlyph(const QChar & c) const;
-    void read(QIODevice & path);
+    void read(QIODevice& path);
     // Initialize the OpenGL structures
     void setupGL();
 
@@ -145,34 +144,43 @@ private:
 
 static QHash<QString, Font*> LOADED_FONTS;
 
-Font* loadFont(QIODevice & buffer) {
+Font* loadFont(QFile& fontFile) {
     Font* result = new Font();
-    result->read(buffer);
+    result->read(fontFile);
     return result;
 }
 
-template<class T, size_t N>
-Font* loadFont(T (&t)[N]) {
-    QBuffer buffer;
-    buffer.setData((const char*) t, N);
-    buffer.open(QBuffer::ReadOnly);
-    return loadFont(buffer);
-}
-
-Font* loadFont(const QString & family) {
+Font* loadFont(const QString& family) {
     if (!LOADED_FONTS.contains(family)) {
+        
+        const QString SDFF_COURIER_PRIME_FILENAME = ":/CourierPrime.sdff";
+        const QString SDFF_INCONSOLATA_MEDIUM_FILENAME = ":/InconsolataMedium.sdff";
+        const QString SDFF_ROBOTO_FILENAME = ":/Roboto.sdff";
+        const QString SDFF_TIMELESS_FILENAME = ":/Timeless.sdff";
+        
+        QString loadFilename;
+        
         if (family == MONO_FONT_FAMILY) {
-
-            LOADED_FONTS[family] = loadFont(SDFF_COURIER_PRIME);
+            loadFilename = SDFF_COURIER_PRIME_FILENAME;
         } else if (family == INCONSOLATA_FONT_FAMILY) {
-            LOADED_FONTS[family] = loadFont(SDFF_INCONSOLATA_MEDIUM);
+            loadFilename = SDFF_INCONSOLATA_MEDIUM_FILENAME;
         } else if (family == SANS_FONT_FAMILY) {
-            LOADED_FONTS[family] = loadFont(SDFF_ROBOTO);
+            loadFilename = SDFF_ROBOTO_FILENAME;
         } else {
             if (!LOADED_FONTS.contains(SERIF_FONT_FAMILY)) {
-                LOADED_FONTS[SERIF_FONT_FAMILY] = loadFont(SDFF_TIMELESS);
+                loadFilename = SDFF_TIMELESS_FILENAME;
+            } else {
+                LOADED_FONTS[family] = LOADED_FONTS[SERIF_FONT_FAMILY];
             }
-            LOADED_FONTS[family] = LOADED_FONTS[SERIF_FONT_FAMILY];
+        }
+        
+        if (!loadFilename.isEmpty()) {
+            QFile fontFile(loadFilename);
+            fontFile.open(QIODevice::ReadOnly);
+            
+            qDebug() << "the file with filename" << loadFilename << "is" << fontFile.size() << "bytes";
+            
+            LOADED_FONTS[family] = loadFont(fontFile);
         }
     }
     return LOADED_FONTS[family];
@@ -186,7 +194,7 @@ const Glyph & Font::getGlyph(const QChar & c) const {
     return _glyphs[c];
 }
 
-void Font::read(QIODevice & in) {
+void Font::read(QIODevice& in) {
     uint8_t header[4];
     readStream(in, header);
     if (memcmp(header, "SDFF", 4)) {
