@@ -135,9 +135,6 @@ using namespace std;
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
 
-static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
-
-
 const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
@@ -225,12 +222,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
+        _cursorVisible(true),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
-        _cursorVisible(true),
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
