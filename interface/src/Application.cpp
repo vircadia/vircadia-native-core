@@ -135,9 +135,6 @@ using namespace std;
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
 
-static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
-
-
 const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
@@ -225,6 +222,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
+        _cursorVisible(true),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
         _touchAvgX(0.0f),
@@ -1480,6 +1478,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
     
     auto glCanvas = DependencyManager::get<GLCanvas>();
     resizeGL(glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
+    
+    updateCursorVisibility();
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -1947,33 +1947,20 @@ void Application::updateCursor(float deltaTime) {
 
     static QPoint lastMousePos = QPoint();
     _lastMouseMove = (lastMousePos == QCursor::pos()) ? _lastMouseMove : usecTimestampNow();
-    bool hideMouse = false;
-    bool underMouse = QGuiApplication::topLevelAt(QCursor::pos()) ==
-                      Application::getInstance()->getWindow()->windowHandle();
-    
-    static const int HIDE_CURSOR_TIMEOUT = 3 * USECS_PER_SECOND; // 3 second
-    int elapsed = usecTimestampNow() - _lastMouseMove;
-    if ((elapsed > HIDE_CURSOR_TIMEOUT)  ||
-        (OculusManager::isConnected() && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode))) {
-        hideMouse = underMouse;
-    }
-    
-    setCursorVisible(!hideMouse);
     lastMousePos = QCursor::pos();
 }
 
-void Application::setCursorVisible(bool visible) {
-    if (visible) {
-        if (overrideCursor() != NULL) {
-            restoreOverrideCursor();
-        }
+void Application::updateCursorVisibility() {
+    if (!_cursorVisible || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+        DependencyManager::get<GLCanvas>()->setCursor(Qt::BlankCursor);
     } else {
-        if (overrideCursor() != NULL) {
-            changeOverrideCursor(Qt::BlankCursor);
-        } else {
-            setOverrideCursor(Qt::BlankCursor);
-        }
+        DependencyManager::get<GLCanvas>()->unsetCursor();
     }
+}
+
+void Application::setCursorVisible(bool visible) {
+    _cursorVisible = visible;
+    updateCursorVisibility();
 }
 
 void Application::update(float deltaTime) {

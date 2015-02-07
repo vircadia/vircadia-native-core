@@ -629,8 +629,6 @@ void EntityItem::setMass(float mass) {
     }
 }
 
-const float ENTITY_ITEM_EPSILON_VELOCITY_LENGTH = 0.001f / (float)TREE_SCALE;
-
 void EntityItem::simulate(const quint64& now) {
     if (_lastSimulated == 0) {
         _lastSimulated = now;
