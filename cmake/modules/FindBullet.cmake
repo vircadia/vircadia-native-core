@@ -61,8 +61,6 @@ macro(_FIND_BULLET_LIBRARY _var)
   
   select_library_configurations(${_var})
   
-  message(STATUS ${${_var}_LIBRARY})
-  
   mark_as_advanced(${_var}_LIBRARY)
   mark_as_advanced(${_var}_LIBRARY)
 endmacro()
