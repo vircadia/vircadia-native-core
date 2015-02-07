@@ -1166,7 +1166,7 @@ int matchTextureUVSetToAttributeChannel(const QString& texUVSetName, const QHash
 
 FBXLight extractLight(const FBXNode& object) {
     FBXLight light;
-
+    int unkwnon = 0;
     foreach (const FBXNode& subobject, object.children) {
         QString childname = QString(subobject.name);
         if (subobject.name == "Properties70") {
@@ -1177,6 +1177,8 @@ FBXLight extractLight(const FBXNode& object) {
                     QString propname = property.properties.at(0).toString();
                     if (propname == "Intensity") {
                         light.intensity = 0.01f * property.properties.at(valIndex).value<double>();
+                    } else if (propname == "Color") {
+                        light.color = getVec3(property.properties, valIndex);
                     }
                 }
             }
@@ -1764,6 +1766,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                 if (lightmapLevel <= 0.0f) {
                                     loadLightmaps = false;
                                 }
+                                lightmapOffset = glm::clamp((*lit).second.color.x, 0.f, 1.f);
                             }
                         }
                     }
@@ -2074,6 +2077,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 glm::vec2 emissiveParams(0.f, 1.f);
                 emissiveParams.x = lightmapOffset;
                 emissiveParams.y = lightmapLevel;
+
                 QString emissiveTextureID = emissiveTextures.value(childID);
                 QString ambientTextureID = ambientTextures.value(childID);
                 if (loadLightmaps && (!emissiveTextureID.isNull() || !ambientTextureID.isNull())) {
