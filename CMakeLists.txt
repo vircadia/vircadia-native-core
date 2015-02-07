@@ -95,6 +95,8 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
+# Instruct CMake to run rcc automatically when needed
+set(CMAKE_AUTORCC ON)
 
 set(HIFI_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries")
 

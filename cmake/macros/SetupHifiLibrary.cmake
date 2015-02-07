@@ -17,9 +17,9 @@ macro(SETUP_HIFI_LIBRARY)
 
   # create a library and set the property so it can be referenced later
   if (${${TARGET_NAME}_SHARED})
-    add_library(${TARGET_NAME} SHARED ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
+    add_library(${TARGET_NAME} SHARED ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC} ${QT_RESOURCES_FILE})
   else ()
-    add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
+    add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC} ${QT_RESOURCES_FILE})
   endif ()
   
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
