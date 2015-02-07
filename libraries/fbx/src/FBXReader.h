@@ -174,12 +174,14 @@ public:
     QString name;
     Transform transform;
     float intensity;
+    float fogValue;
     glm::vec3 color;
 
     FBXLight() :
         name(),
         transform(),
         intensity(1.0f),
+        fogValue(0.0f),
         color(1.0f)
     {}
 };
