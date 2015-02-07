@@ -11,6 +11,8 @@
 
 #include "HMDScriptingInterface.h"
 
+#include <avatar/AvatarManager.h>
+
 HMDScriptingInterface& HMDScriptingInterface::getInstance() {
     static HMDScriptingInterface sharedInstance;
     return sharedInstance;
@@ -31,7 +33,7 @@ glm::vec3 HMDScriptingInterface::getHUDLookAtPosition3D() const {
 }
 
 glm::vec2 HMDScriptingInterface::getHUDLookAtPosition2D() const {
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     glm::vec3 sphereCenter = myAvatar->getDefaultEyePosition();
 
     glm::vec3 hudIntersection = getHUDLookAtPosition3D();
