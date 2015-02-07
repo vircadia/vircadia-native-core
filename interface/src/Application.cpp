@@ -2809,7 +2809,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(getSunDirection(), GLOBAL_LIGHT_COLOR, GLOBAL_LIGHT_INTENSITY);
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(-getSunDirection(), GLOBAL_LIGHT_COLOR, GLOBAL_LIGHT_INTENSITY);
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
