@@ -20,21 +20,30 @@ Script.include("../../libraries/globals.js");
 Script.include("../../libraries/virtualKeyboard.js");
 
 function Instructions(imageURL) {
+    var tthis = this;
+    this.visible = false;
     this.overlay = Overlays.addOverlay("image", {
                 imageURL: HIFI_PUBLIC_BUCKET + "images/tutorial-goTo.svg",
                 x: 0,
                 y: 0,
+                width: 200,
+                height: 200,
                 alpha: 1,
-                visible: true
+                visible: this.visible
     });
+    this.show = function() {
+        tthis.visible = true;
+        Overlays.editOverlay(tthis.overlay, {visible: tthis.visible});
+    }
     this.remove = function() {
         Overlays.deleteOverlay(this.overlay);
+        this.visible = false;
     };
 };
 
 var theInstruction = new Instructions();
 
-
+var firstControllerPlugged = false;
 
 var windowDimensions = Controller.getViewportDimensions();
 var cursor = new Cursor({visible: false});;
@@ -84,6 +93,7 @@ keyboard.onKeyRelease = function(event) {
            location = "hifi://" + locationURL;
            locationURL = "";
            keyboard.hide();
+           cursor.hide();
            updateTextOverlay();
         }
     }
@@ -116,6 +126,9 @@ keyboard.onFullyLoaded = function() {
 };
 
 function keyPressEvent(event) {
+    if (theInstruction.visible) {
+        return;
+    }
     if (event.key === SPACEBAR_CHARCODE) {
         keyboard.pressFocussedKey();
     } else if (event.key === ENTER_CHARCODE || event.key === RETURN_CHARCODE) {
@@ -128,6 +141,9 @@ function keyPressEvent(event) {
 }
 
 function keyReleaseEvent(event) {
+    if (theInstruction.visible) {
+        return;
+    }
     if (event.key === SPACEBAR_CHARCODE) {
         keyboard.releaseKeys();
     }
@@ -145,7 +161,11 @@ function scriptEnding() {
 }
 
 function reportButtonValue(button, newValue, oldValue) {
-    if (button == Joysticks.BUTTON_FACE_BOTTOM) {
+    if (theInstruction.visible) {
+        if (button == Joysticks.BUTTON_FACE_BOTTOM && newValue) {
+            theInstruction.remove();
+        }
+    } else if (button == Joysticks.BUTTON_FACE_BOTTOM) {
         if (newValue) {
             keyboard.pressFocussedKey();
         } else {
@@ -158,6 +178,10 @@ function reportButtonValue(button, newValue, oldValue) {
 
 function addJoystick(gamepad) {
     gamepad.buttonStateChanged.connect(reportButtonValue);
+    if (!firstControllerPlugged) {
+        firstControllerPlugged = true;
+        theInstruction.show();
+    }
 }
 
 var allJoysticks = Joysticks.getAllJoysticks();
