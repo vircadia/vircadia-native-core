@@ -23,6 +23,9 @@ void ShapeInfo::clear() {
 }
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<glm::vec3>* data) {
+    _type = type;
+    _halfExtents = halfExtents;
+    _externalData = data;
 }
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
