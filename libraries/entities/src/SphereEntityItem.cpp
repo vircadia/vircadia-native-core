@@ -94,12 +94,6 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
 
-void SphereEntityItem::computeShapeInfo(ShapeInfo& info) const {
-    glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
-    // TODO: support ellipsoid shapes
-    info.setSphere(halfExtents.x);
-}
-
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {
