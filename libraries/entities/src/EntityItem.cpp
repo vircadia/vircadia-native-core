@@ -68,7 +68,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
     _created = UNKNOWN_CREATED_TIME;
-    _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
     _element = NULL;
@@ -84,7 +83,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
     _created = UNKNOWN_CREATED_TIME;
-    _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
     _element = NULL;
@@ -1018,7 +1016,7 @@ float EntityItem::getRadius() const {
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) const {
-    info.clear();
+    info.setParams(getShapeType(), 0.5f * getDimensionsInMeters());
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;

@@ -21,6 +21,7 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
+#include <ShapeInfo.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
@@ -260,6 +261,9 @@ public:
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     virtual void computeShapeInfo(ShapeInfo& info) const;
 
+    /// return preferred shape type (actual physical shape may differ)
+    virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
+
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
     void updatePositionInMeters(const glm::vec3& value);
@@ -355,7 +359,7 @@ protected:
 
     // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
     // to a non-NULL value when the EntityItem has a representation in the physics engine.
-    void* _physicsInfo; // only set by EntitySimulation
+    void* _physicsInfo = NULL; // only set by EntitySimulation
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation

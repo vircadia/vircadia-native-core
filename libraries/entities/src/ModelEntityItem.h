@@ -46,7 +46,7 @@ public:
 
     virtual void update(const quint64& now);
     virtual bool needsToCallUpdate() const;
-    void computeShapeInfo(ShapeInfo& info) const;
+    ShapeType getShapeType() const;
     virtual void debugDump() const;
 
 
