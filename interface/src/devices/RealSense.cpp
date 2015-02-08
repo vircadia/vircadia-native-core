@@ -15,6 +15,11 @@
 #include "Menu.h"
 #include "SharedUtil.h"
 
+#ifdef HAVE_RSSDK
+const int PALMROOT_NUM_JOINTS = 3;
+const int FINGER_NUM_JOINTS = 4;
+#endif // HAVE_RSSDK
+
 const DeviceTracker::Name RealSense::NAME = "RealSense";
 
 // find the index of a joint from
