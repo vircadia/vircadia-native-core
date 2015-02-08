@@ -167,7 +167,7 @@ cmake .. -G "Visual Studio 12"
 msbuild BULLET_PHYSICS.sln /p:Configuration=Debug
 ```
 
-This will create Debug libraries in cmakebuild\lib\Debug you can replace Debug with Release in the msbuild command and that will generate Release libraries in cmakebuild\lib\Release.
+This will create Debug libraries in cmakebuild\lib\Debug. You can replace Debug with Release in the msbuild command and that will generate Release libraries in cmakebuild\lib\Release.
 
 You now have Bullet libraries compiled, now you need to put them in the right place for hifi to find them:
 
