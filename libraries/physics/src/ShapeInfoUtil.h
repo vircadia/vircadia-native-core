@@ -15,9 +15,8 @@
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
 
+#include <DoubleHashKey.h>
 #include <ShapeInfo.h>
-
-#include "DoubleHashKey.h"
 
 // translates between ShapeInfo and btShape
 
@@ -26,7 +25,7 @@ namespace ShapeInfoUtil {
 
     btCollisionShape* createShapeFromInfo(const ShapeInfo& info);
 
-    DoubleHashKey computeHash(const ShapeInfo& info);
+    //DoubleHashKey computeHash(const ShapeInfo& info);
 
     // TODO? just use bullet shape types everywhere?
     int toBulletShapeType(int shapeInfoType);
