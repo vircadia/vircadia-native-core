@@ -46,8 +46,10 @@ public:
 
     virtual void update(const quint64& now);
     virtual bool needsToCallUpdate() const;
-    ShapeType getShapeType() const;
     virtual void debugDump() const;
+
+    void updateShapeType(ShapeType type);
+    ShapeType getShapeType() const { return _shapeType; }
 
 
     // TODO: Move these to subclasses, or other appropriate abstraction
@@ -126,6 +128,7 @@ protected:
     AnimationLoop _animationLoop;
     QString _animationSettings;
     QString _textures;
+    ShapeType _shapeType = SHAPE_TYPE_NONE;
 
     // used on client side
     bool _jointMappingCompleted;

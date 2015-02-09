@@ -91,6 +91,7 @@ enum EntityPropertyList {
     PROP_TEXT = PROP_MODEL_URL,
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
     PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
+    PROP_SHAPE_TYPE,
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
