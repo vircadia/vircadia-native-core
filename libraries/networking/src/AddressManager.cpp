@@ -202,14 +202,19 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
             
             if (!domainObject.isEmpty()) {
                 const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
+                const QString DOMAIN_NETWORK_PORT_KEY = "network_port";
                 const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
                 
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
                     
+                    quint16 domainPort = domainObject.contains(DOMAIN_NETWORK_PORT_KEY)
+                        ? domainObject[DOMAIN_NETWORK_PORT_KEY].toUInt()
+                        : DEFAULT_DOMAIN_SERVER_PORT;
+                    
                     qDebug() << "Possible domain change required to connect to" << domainHostname
-                        << "on" << DEFAULT_DOMAIN_SERVER_PORT;
-                    emit possibleDomainChangeRequired(domainHostname, DEFAULT_DOMAIN_SERVER_PORT);
+                        << "on" << domainPort;
+                    emit possibleDomainChangeRequired(domainHostname, domainPort);
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
                     
