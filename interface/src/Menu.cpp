@@ -334,7 +334,7 @@ Menu::Menu() {
 #if defined(Q_OS_MAC)
 #else
         addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
-                                               qApp, SLOT(changeVSync()));
+                                               qApp, SLOT(setVSyncEnabled()));
 #endif
     }
 
