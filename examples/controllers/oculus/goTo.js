@@ -113,7 +113,6 @@ keyboard.onKeyPress = function(event) {
 };
 
 keyboard.onKeyRelease = function(event) {
-    print("Key release event test");
     // you can cancel a key by releasing its focusing before releasing it
     if (event.focus) {
         if (event.event == 'delete') {
@@ -191,7 +190,6 @@ function scriptEnding() {
 }
 
 function reportButtonValue(button, newValue, oldValue) {
-    print(button);
     if (theInstruction.visible) {
         if (button == Joysticks.BUTTON_FACE_BOTTOM && newValue) {
             theInstruction.remove();
