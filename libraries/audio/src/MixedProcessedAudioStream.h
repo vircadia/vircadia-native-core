@@ -14,7 +14,7 @@
 
 #include "InboundAudioStream.h"
 
-class Audio;
+class AudioClient;
 
 class MixedProcessedAudioStream  : public InboundAudioStream {
     Q_OBJECT

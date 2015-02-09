@@ -55,10 +55,6 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
-// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
-// This is the start location in the Sandbox (xyz: 6270, 211, 6000).
-const glm::vec3 START_LOCATION(0.38269043f * TREE_SCALE, 0.01287842f * TREE_SCALE, 0.36621094f * TREE_SCALE);
-
 class Texture;
 
 class Avatar : public AvatarData {

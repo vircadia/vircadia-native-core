@@ -17,8 +17,11 @@
 #include <QTemporaryFile>
 
 #include <AccountManager.h>
-#include <Application.h>
+#include <avatar/AvatarManager.h>
+#include <avatar/MyAvatar.h>
 #include <FileUtils.h>
+#include <GLCanvas.h>
+#include <NodeList.h>
 
 #include "Snapshot.h"
 
@@ -93,7 +96,7 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     QImage shot = glCanvas->grabFrameBuffer();
     
-    Avatar* avatar = qApp->getAvatar();
+    Avatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     
     glm::vec3 location = avatar->getPosition();
     glm::quat orientation = avatar->getHead()->getOrientation();

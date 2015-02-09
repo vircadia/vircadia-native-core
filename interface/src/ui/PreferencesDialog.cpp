@@ -11,11 +11,12 @@
 
 #include <QFileDialog>
 
+#include <AudioClient.h>
+#include <avatar/AvatarManager.h>
 #include <devices/Faceshift.h>
 #include <devices/SixenseManager.h>
 
 #include "Application.h"
-#include "Audio.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
@@ -107,7 +108,7 @@ void PreferencesDialog::resizeEvent(QResizeEvent *resizeEvent) {
 
 void PreferencesDialog::loadPreferences() {
     
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     Menu* menuInstance = Menu::getInstance();
 
     _displayNameString = myAvatar->getDisplayName();
@@ -133,8 +134,8 @@ void PreferencesDialog::loadPreferences() {
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
     ui.faceshiftHostnameEdit->setText(faceshift->getHostname());
-    
-    auto audio = DependencyManager::get<Audio>();
+
+    auto audio = DependencyManager::get<AudioClient>();
     MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
 
     ui.dynamicJitterBuffersCheckBox->setChecked(stream.getDynamicJitterBuffers());
@@ -153,7 +154,7 @@ void PreferencesDialog::loadPreferences() {
     ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
     ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
-    ui.realWorldFieldOfViewSpin->setValue(qApp->getAvatar()->getRealWorldFieldOfView());
+    ui.realWorldFieldOfViewSpin->setValue(DependencyManager::get<AvatarManager>()->getMyAvatar()->getRealWorldFieldOfView());
 
     ui.fieldOfViewSpin->setValue(qApp->getFieldOfView());
     
@@ -173,7 +174,7 @@ void PreferencesDialog::loadPreferences() {
 
 void PreferencesDialog::savePreferences() {
     
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     bool shouldDispatchIdentityPacket = false;
     
     QString displayNameStr(ui.displayNameEdit->text());
@@ -233,7 +234,7 @@ void PreferencesDialog::savePreferences() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
 
-    qApp->getAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     
@@ -251,7 +252,7 @@ void PreferencesDialog::savePreferences() {
     sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
     sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
     MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
     
     stream.setDynamicJitterBuffers(ui.dynamicJitterBuffersCheckBox->isChecked());

@@ -13,8 +13,8 @@
 #define hifi_DataServerAccountInfo_h
 
 #include <QtCore/QObject>
-#include <qnetworkreply.h>
 #include <QtCore/QUuid>
+#include <QtNetwork/qnetworkreply.h>
 
 #include "OAuthAccessToken.h"
 

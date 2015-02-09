@@ -22,6 +22,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <FaceshiftConstants.h>
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
 #include <OctalCode.h>
@@ -609,60 +610,6 @@ QString getName(const QVariantList& properties) {
 QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
-
-const char* FACESHIFT_BLENDSHAPES[] = {
-    "EyeBlink_L",
-    "EyeBlink_R",
-    "EyeSquint_L",
-    "EyeSquint_R",
-    "EyeDown_L",
-    "EyeDown_R",
-    "EyeIn_L",
-    "EyeIn_R",
-    "EyeOpen_L",
-    "EyeOpen_R",
-    "EyeOut_L",
-    "EyeOut_R",
-    "EyeUp_L",
-    "EyeUp_R",
-    "BrowsD_L",
-    "BrowsD_R",
-    "BrowsU_C",
-    "BrowsU_L",
-    "BrowsU_R",
-    "JawFwd",
-    "JawLeft",
-    "JawOpen",
-    "JawChew",
-    "JawRight",
-    "MouthLeft",
-    "MouthRight",
-    "MouthFrown_L",
-    "MouthFrown_R",
-    "MouthSmile_L",
-    "MouthSmile_R",
-    "MouthDimple_L",
-    "MouthDimple_R",
-    "LipsStretch_L",
-    "LipsStretch_R",
-    "LipsUpperClose",
-    "LipsLowerClose",
-    "LipsUpperUp",
-    "LipsLowerDown",
-    "LipsUpperOpen",
-    "LipsLowerOpen",
-    "LipsFunnel",
-    "LipsPucker",
-    "ChinLowerRaise",
-    "ChinUpperRaise",
-    "Sneer",
-    "Puff",
-    "CheekSquint_L",
-    "CheekSquint_R",
-    ""
-};
-
-const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
 
 const char* HUMANIK_JOINTS[] = {
     "RightHand",

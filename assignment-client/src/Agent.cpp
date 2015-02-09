@@ -17,7 +17,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
-#include <AvatarData.h>
+#include <AvatarHashMap.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -39,8 +39,7 @@ Agent::Agent(const QByteArray& packet) :
     _receivedAudioStream(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
         InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
         DEFAULT_WINDOW_STARVE_THRESHOLD, DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES,
-        DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false)),
-    _avatarHashMap()
+        DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
@@ -135,7 +134,7 @@ void Agent::readPendingDatagrams() {
                        || datagramPacketType == PacketTypeAvatarBillboard
                        || datagramPacketType == PacketTypeKillAvatar) {
                 // let the avatar hash map process it
-                _avatarHashMap.processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
+                DependencyManager::get<AvatarHashMap>()->processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending avatar-mixer
@@ -202,7 +201,7 @@ void Agent::run() {
     
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
-    _scriptEngine.setAvatarHashMap(&_avatarHashMap, "AvatarList");
+    _scriptEngine.setAvatarHashMap(DependencyManager::get<AvatarHashMap>().data(), "AvatarList");
     
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);

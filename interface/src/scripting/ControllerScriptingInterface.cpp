@@ -9,10 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <avatar/AvatarManager.h>
+#include <avatar/MyAvatar.h>
+#include <GLCanvas.h>
 #include <HandData.h>
 #include <HFBackEvent.h>
 
-#include "Application.h"
 #include "devices/MotionTracker.h"
 #include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
@@ -41,7 +43,7 @@ void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
 const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
     int leftPalmIndex, rightPalmIndex;
 
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
     handData->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     
     if (rightPalmIndex != -1) {
@@ -52,7 +54,7 @@ const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
 }
 
 int ControllerScriptingInterface::getNumberOfActivePalms() const {
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
     int numberOfPalms = handData->getNumPalms();
     int numberOfActivePalms = 0;
     for (int i = 0; i < numberOfPalms; i++) {
@@ -64,12 +66,12 @@ int ControllerScriptingInterface::getNumberOfActivePalms() const {
 }
 
 const PalmData* ControllerScriptingInterface::getPalm(int palmIndex) const {
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
     return &handData->getPalms()[palmIndex];
 }
 
 const PalmData* ControllerScriptingInterface::getActivePalm(int palmIndex) const {
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
     int numberOfPalms = handData->getNumPalms();
     int numberOfActivePalms = 0;
     for (int i = 0; i < numberOfPalms; i++) {

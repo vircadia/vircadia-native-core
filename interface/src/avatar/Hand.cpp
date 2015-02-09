@@ -12,15 +12,14 @@
 
 #include <QImage>
 
-#include <NodeList.h>
-
 #include <GeometryUtil.h>
+#include <NodeList.h>
 #include <ProgramObject.h>
 
-#include "Application.h"
-#include "Avatar.h"
+#include "AvatarManager.h"
 #include "Hand.h"
 #include "Menu.h"
+#include "MyAvatar.h"
 #include "Util.h"
 
 using namespace std;
@@ -131,7 +130,7 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
 void Hand::renderHandTargets(bool isMine) {
     glPushMatrix();
 
-    const float avatarScale = Application::getInstance()->getAvatar()->getScale();
+    const float avatarScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getScale();
 
     const float alpha = 1.0f;
     const glm::vec3 handColor(1.0, 0.0, 0.0); //  Color the hand targets red to be different than skin

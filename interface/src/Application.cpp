@@ -23,6 +23,7 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
+#include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>
 #include <QDesktopWidget>
@@ -81,12 +82,14 @@
 #include <UUID.h>
 
 #include "Application.h"
-#include "Audio.h"
+#include "AudioClient.h"
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+
+#include "avatar/AvatarManager.h"
 
 #include "audio/AudioToolBox.h"
 #include "audio/AudioIOStatsRenderer.h"
@@ -127,8 +130,6 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 
-
-
 using namespace std;
 
 //  Starfield information
@@ -143,6 +144,37 @@ const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
+
+#ifdef Q_OS_WIN
+class MyNativeEventFilter : public QAbstractNativeEventFilter {
+public:
+    static MyNativeEventFilter& getInstance() {
+        static MyNativeEventFilter staticInstance;
+        return staticInstance;
+    }
+
+    bool nativeEventFilter(const QByteArray &eventType, void* msg, long* result) Q_DECL_OVERRIDE {
+        if (eventType == "windows_generic_MSG") {
+            MSG* message = (MSG*)msg;
+            if (message->message == UWM_IDENTIFY_INSTANCES) {
+                *result = UWM_IDENTIFY_INSTANCES;
+                return true;
+            }
+            if (message->message == WM_SHOWWINDOW) {
+                Application::getInstance()->getWindow()->showNormal();
+            }
+            if (message->message == WM_COPYDATA) {
+                COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
+                QUrl url = QUrl((const char*)(pcds->lpData));
+                if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                    DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+                }
+            }
+        }
+        return false;
+    }
+};
+#endif
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
@@ -163,6 +195,7 @@ bool setupEssentials(int& argc, char** argv) {
     QCoreApplication::setApplicationVersion(BUILD_VERSION);
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+    DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     
     // Set dependencies
     auto glCanvas = DependencyManager::set<GLCanvas>();
@@ -171,7 +204,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto geometryCache = DependencyManager::set<GeometryCache>();
     auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
-    auto audio = DependencyManager::set<Audio>();
+    auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
     auto audioIOStatsRenderer = DependencyManager::set<AudioIOStatsRenderer>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
@@ -182,6 +215,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
+    auto avatarManager = DependencyManager::set<AvatarManager>();
     auto lodManager = DependencyManager::set<LODManager>();
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     auto dialogsManager = DependencyManager::set<DialogsManager>();
@@ -242,9 +276,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false)
 {
+#ifdef Q_OS_WIN
+    installNativeEventFilter(&MyNativeEventFilter::getInstance());
+#endif
+
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
     qInstallMessageHandler(messageHandler);
-    
+
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
     
@@ -253,7 +291,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto glCanvas = DependencyManager::get<GLCanvas>();
     auto nodeList = DependencyManager::get<NodeList>();
 
-    _myAvatar = _avatarManager.getMyAvatar();
+    _myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     _applicationStartupTime = startup_time;
 
@@ -284,9 +322,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     QThread* audioThread = new QThread(this);
     audioThread->setObjectName("Audio Thread");
     
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
+    
+    audioIO->setPositionGetter(getPositionForAudio);
+    audioIO->setOrientationGetter(getOrientationForAudio);
+    
     audioIO->moveToThread(audioThread);
-    connect(audioThread, &QThread::started, audioIO.data(), &Audio::start);
+    connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
     audioThread->start();
@@ -330,9 +372,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(&accountManager, &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
-    
-    // once we have a profile in account manager make sure we generate a new keypair
-    connect(&accountManager, &AccountManager::profileChanged, &accountManager, &AccountManager::generateNewKeypair);
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
@@ -497,7 +536,7 @@ Application::~Application() {
     // kill any audio injectors that are still around
     AudioScriptingInterface::getInstance().stopAllInjectors();
     
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
 
     // stop the audio process
     QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
@@ -706,7 +745,7 @@ void Application::runTests() {
 void Application::audioMuteToggled() {
     QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteAudio);
     Q_CHECK_PTR(muteAction);
-    muteAction->setChecked(DependencyManager::get<Audio>()->isMuted());
+    muteAction->setChecked(DependencyManager::get<AudioClient>()->isMuted());
 }
 
 void Application::aboutApp() {
@@ -1566,13 +1605,16 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
 }
 
 void Application::loadSettings() {
-    DependencyManager::get<Audio>()->loadSettings();
+
+    DependencyManager::get<AudioClient>()->loadSettings();
+
     Menu::getInstance()->loadSettings();
     _myAvatar->loadData();
 }
 
 void Application::saveSettings() {
-    DependencyManager::get<Audio>()->saveSettings();
+    DependencyManager::get<AudioClient>()->saveSettings();
+
     Menu::getInstance()->saveSettings();
     _myAvatar->saveData();
 }
@@ -1606,7 +1648,7 @@ void Application::init() {
     DependencyManager::get<AmbientOcclusionEffect>()->init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
-    _avatarManager.init();
+    DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
@@ -1985,7 +2027,7 @@ void Application::update(float deltaTime) {
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     
-    _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
+    DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
 
     updateMetavoxels(deltaTime); // update metavoxels
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
@@ -2012,7 +2054,7 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("myAvatar");
         updateMyAvatarLookAtPosition();
-        updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+        DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
 
     {
@@ -2069,28 +2111,8 @@ void Application::update(float deltaTime) {
         if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
             _lastSendDownstreamAudioStats = now;
 
-            QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
-    }
-}
-
-void Application::updateMyAvatar(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
-
-    _myAvatar->update(deltaTime);
-
-    quint64 now = usecTimestampNow();
-    quint64 dt = now - _lastSendAvatarDataTime;
-
-    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
-        // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");
-        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-        packet.append(_myAvatar->toByteArray());
-        controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
-
-        _lastSendAvatarDataTime = now;
     }
 }
 
@@ -2533,7 +2555,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("avatarManager");
-            _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
+            DependencyManager::get<AvatarManager>()->renderAvatars(Avatar::SHADOW_RENDER_MODE);
         }
 
         {
@@ -2789,7 +2811,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
-        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
             false, selfAvatarOnly);   
     }
 
@@ -2804,7 +2826,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         PerformanceTimer perfTimer("avatarsPostLighting");
-        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
             true, selfAvatarOnly);   
     }
     
@@ -3068,7 +3090,7 @@ void Application::resetSensors() {
     
     _myAvatar->reset();
 
-    QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "reset", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -3208,7 +3230,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
-        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "audioMixerKilled");
+        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     }
 
     if (node->getType() == NodeType::EntityServer) {
@@ -3251,7 +3273,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
-        _avatarManager.clearOtherAvatars();
+        DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     }
 }
 
@@ -3400,7 +3422,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // hook our avatar and avatar hash map object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
-    scriptEngine->setAvatarHashMap(&_avatarManager, "AvatarList");
+    scriptEngine->setAvatarHashMap(DependencyManager::get<AvatarManager>().data(), "AvatarList");
 
     scriptEngine->registerGlobalObject("Camera", &_myCamera);
 
@@ -3441,7 +3463,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine, DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
-    scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
+    scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
     
     scriptEngine->registerGlobalObject("Joysticks", &JoystickScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine, joystickToScriptValue, joystickFromScriptValue);
@@ -3739,10 +3761,6 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->show();
     }
-}
-
-void Application::initAvatarAndViewFrustum() {
-    updateMyAvatar(0.0f);
 }
 
 void Application::checkVersion() {
