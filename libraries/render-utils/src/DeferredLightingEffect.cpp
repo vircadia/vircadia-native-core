@@ -70,7 +70,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
 
-    // Allocate 2 global lights representing the GLobal Directional light casting shadow (the sun) and the ambient light
+    // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _globalLights.push_back(0);
     _allocatedLights.push_back(model::LightPointer(new model::Light()));
 
