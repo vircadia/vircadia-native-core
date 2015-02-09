@@ -21,8 +21,15 @@ vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 s
     // Specular Lighting depends on the half vector and the gloss
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
-    float specularPower = facingLight * max(0.0, dot(fragEyeDir, halfDir));
-    vec3 reflect = pow(specularPower, gloss * 128.0) * specular;
+    float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
+    specularPower *= (gloss * 128.0 * 0.125 + 0.25);
+
+    float shlickPower = (1.0 - dot(fragLightDir,halfDir));
+    float shlickPower2 = shlickPower * shlickPower;
+    float shlickPower5 = shlickPower2 * shlickPower2 * shlickPower;
+   // vec3 schlick = specular * (1.0 - shlickPower5) + vec3(shlickPower5);
+    vec3 schlick = vec3(0.21) * (1.0 - shlickPower5) + vec3(shlickPower5);
+    vec3 reflect = specularPower * schlick;
 
     return vec4(reflect, diffuse);
 }
