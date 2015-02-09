@@ -13,12 +13,12 @@
 uniform mat4 Projection;
 uniform mat4 ModelView;
 
-attribute vec3 Position;
+attribute vec2 Position;
 attribute vec2 TexCoord;
 
 varying vec2 vTexCoord;
 
 void main() {
   vTexCoord = TexCoord;
-  gl_Position = Projection * ModelView * vec4(Position, 1.0);
+  gl_Position = Projection * ModelView * vec4(Position, 0.0, 1.0);
 }

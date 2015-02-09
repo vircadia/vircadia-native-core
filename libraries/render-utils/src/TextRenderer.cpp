@@ -345,7 +345,7 @@ void Font::setupGL() {
     int posLoc = _program->attributeLocation("Position");
     int texLoc = _program->attributeLocation("TexCoord");
     glEnableVertexAttribArray(posLoc);
-    glVertexAttribPointer(posLoc, 3, GL_FLOAT, false, stride, nullptr);
+    glVertexAttribPointer(posLoc, 2, GL_FLOAT, false, stride, nullptr);
     glEnableVertexAttribArray(texLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, false, stride, offset);
     _vao->release();
