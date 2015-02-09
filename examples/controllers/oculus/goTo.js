@@ -19,34 +19,62 @@
 Script.include("../../libraries/globals.js");
 Script.include("../../libraries/virtualKeyboard.js");
 
-function Instructions(imageURL) {
+const MAX_SHOW_INSTRUCTION_TIMES = 2;
+const INSTRUCTIONS_SETTING = "GoToInstructionsShowCounter"
+
+var windowDimensions = Controller.getViewportDimensions();
+
+function Instructions(imageURL, originalWidth, originalHeight) {
     var tthis = this;
+    this.originalSize = {w: originalWidth, h: originalHeight};
     this.visible = false;
     this.overlay = Overlays.addOverlay("image", {
-                imageURL: HIFI_PUBLIC_BUCKET + "images/tutorial-goTo.svg",
+                imageURL: imageURL,
                 x: 0,
                 y: 0,
-                width: 200,
-                height: 200,
+                width: originalWidth,
+                height: originalHeight,
                 alpha: 1,
                 visible: this.visible
     });
+
     this.show = function() {
-        tthis.visible = true;
-        Overlays.editOverlay(tthis.overlay, {visible: tthis.visible});
+        var timesShown = Settings.getValue(INSTRUCTIONS_SETTING);
+        timesShown = timesShown === "" ? 0 : parseInt(timesShown);
+        print(timesShown);
+        if (timesShown < MAX_SHOW_INSTRUCTION_TIMES) {
+            Settings.setValue(INSTRUCTIONS_SETTING, timesShown + 1);
+            tthis.visible = true;
+            tthis.rescale();
+            Overlays.editOverlay(tthis.overlay, {visible: tthis.visible});
+            return;
+        }
+        tthis.remove();
     }
     this.remove = function() {
-        Overlays.deleteOverlay(this.overlay);
-        this.visible = false;
+        Overlays.deleteOverlay(tthis.overlay);
+        tthis.visible = false;
     };
+    this.rescale = function() {
+        var scale = Math.min(windowDimensions.x / tthis.originalSize.w, windowDimensions.y / tthis.originalSize.h);
+        var newWidth = tthis.originalSize.w * scale;
+        var newHeight = tthis.originalSize.h * scale;
+        Overlays.editOverlay(tthis.overlay, {
+            x: (windowDimensions.x / 2) - (newWidth / 2),
+            y: (windowDimensions.y / 2) - (newHeight / 2),
+            width: newWidth,
+            height: newHeight
+        });
+    };
+    this.rescale();
 };
 
-var theInstruction = new Instructions();
+var theInstruction = new Instructions(HIFI_PUBLIC_BUCKET + "images/tutorial-goTo.svg", 457, 284.1);
 
 var firstControllerPlugged = false;
 
-var windowDimensions = Controller.getViewportDimensions();
-var cursor = new Cursor({visible: false});;
+
+var cursor = new Cursor({visible: false});
 var keyboard = new Keyboard({visible: false});
 var textFontSize = 9;
 var text = null;
