@@ -17,7 +17,8 @@ using namespace gpu;
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _sysmem(size, bytes),
-    _format(format) {
+    _format(format),
+    _isGPULoaded(false) {
 }
 
 Texture::Pixels::~Pixels() {
@@ -51,6 +52,14 @@ const Texture::PixelsPointer Texture::Storage::getMip(uint16 level) const {
         return _mips[level];
     }
     return PixelsPointer();
+}
+
+void Texture::Storage::notifyGPULoaded(uint16 level) const {
+    PixelsPointer mip = getMip(level);
+    if (mip) {
+        mip->_isGPULoaded = true;
+        mip->_sysmem.resize(0);
+    }
 }
 
 bool Texture::Storage::isMipAvailable(uint16 level) const {
@@ -175,7 +184,7 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
 
         // Evaluate the new size with the new format
         const int DIM_SIZE[] = {1, 1, 1, 6};
-        int size = DIM_SIZE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
+        uint32_t size = DIM_SIZE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
 
         // If size change then we need to reset 
         if (changed || (size != getSize())) {

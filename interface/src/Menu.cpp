@@ -14,18 +14,19 @@
 #include <QShortcut>
 
 #include <AddressManager.h>
+#include <AudioClient.h>
 #include <DependencyManager.h>
 #include <GlowEffect.h>
 #include <PathUtils.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <UserActivityLogger.h>
 #include <XmppClient.h>
 
 #include "Application.h"
 #include "AccountManager.h"
-#include "Audio.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
+#include "avatar/AvatarManager.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
@@ -186,26 +187,26 @@ Menu::Menu() {
                                   SLOT(resetSensors()));
 
     QMenu* avatarMenu = addMenu("Avatar");
+    QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     QMenu* avatarSizeMenu = avatarMenu->addMenu("Size");
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
                                   Qt::Key_Plus,
-                                  qApp->getAvatar(),
+                                  avatar,
                                   SLOT(increaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::DecreaseAvatarSize,
                                   Qt::Key_Minus,
-                                  qApp->getAvatar(),
+                                  avatar,
                                   SLOT(decreaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::ResetAvatarSize,
                                   Qt::Key_Equal,
-                                  qApp->getAvatar(),
+                                  avatar,
                                   SLOT(resetSize()));
 
-    QObject* avatar = qApp->getAvatar();
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::KeyboardMotorControl, 
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::KeyboardMotorControl,
             Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
             avatar, SLOT(updateMotionBehavior()));
@@ -333,7 +334,7 @@ Menu::Menu() {
 #if defined(Q_OS_MAC)
 #else
         addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
-                                               qApp, SLOT(changeVSync()));
+                                               qApp, SLOT(setVSyncEnabled()));
 #endif
     }
 
@@ -447,7 +448,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
 
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,

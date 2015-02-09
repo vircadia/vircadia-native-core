@@ -18,8 +18,6 @@
 
 #include <HeadData.h>
 
-#include <OctreeConstants.h> // for IDENTITY_*
-
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
 #include "world.h"

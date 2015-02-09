@@ -23,6 +23,11 @@
 const int ICON_SIZE = 24;
 const int ICON_PADDING = 5;
 
+const char SETTINGS_GROUP_NAME[] = "Rear View Tools";
+const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";
+Setting::Handle<int> RearMirrorTools::rearViewZoomLevel(QStringList() << SETTINGS_GROUP_NAME << ZOOM_LEVEL_SETTINGS,
+                                                        ZoomLevel::HEAD);
+
 RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds) :
     _parent(parent),
     _bounds(bounds),
@@ -52,7 +57,7 @@ void RearMirrorTools::render(bool fullScreen) {
         if (_windowed) {
             displayIcon(_bounds, _closeIconRect, _closeTextureId);
 
-            ZoomLevel zoomLevel = (ZoomLevel)SettingHandles::rearViewZoomLevel.get();
+            ZoomLevel zoomLevel = (ZoomLevel)rearViewZoomLevel.get();
             displayIcon(_bounds, _headZoomIconRect, _zoomHeadTextureId, zoomLevel == HEAD);
             displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTextureId, zoomLevel == BODY);
         }
@@ -68,12 +73,12 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
         }
         
         if (_headZoomIconRect.contains(x, y)) {
-            SettingHandles::rearViewZoomLevel.set(HEAD);
+            rearViewZoomLevel.set(HEAD);
             return true;
         }
         
         if (_bodyZoomIconRect.contains(x, y)) {
-            SettingHandles::rearViewZoomLevel.set(BODY);
+            rearViewZoomLevel.set(BODY);
             return true;
         }
 

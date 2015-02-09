@@ -136,7 +136,6 @@ void Recorder::record() {
     }
 }
 
-void Recorder::record(char* samples, int size) {
-    QByteArray byteArray(samples, size);
-    _recording->addAudioPacket(byteArray);
+void Recorder::recordAudio(const QByteArray& audioByteArray) {
+    _recording->addAudioPacket(audioByteArray);
 }

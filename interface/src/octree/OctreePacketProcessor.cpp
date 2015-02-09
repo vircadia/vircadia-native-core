@@ -68,11 +68,12 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
             << senderUUID << "sent" << (int)packetVersion << "but"
             << (int)expectedVersion << "expected.";
             
+            emit packetVersionMismatch();
+
             versionDebugSuppressMap.insert(senderUUID, voxelPacketType);
         }
         return; // bail since piggyback version doesn't match
     }
-
     
     app->trackIncomingOctreePacket(mutablePacket, sendingNode, wasStatsPacket);
 

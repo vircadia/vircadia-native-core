@@ -13,5 +13,11 @@ macro(AUTO_MTC)
   
   file(GLOB INCLUDE_FILES src/*.h)
   
-  add_custom_command(OUTPUT ${AUTOMTC_SRC} COMMAND mtc -o ${AUTOMTC_SRC} ${INCLUDE_FILES} DEPENDS mtc ${INCLUDE_FILES})
+  if (NOT ANDROID)
+    set(MTC_EXECUTABLE mtc)
+  else ()
+    set(MTC_EXECUTABLE $ENV{MTC_PATH}/mtc)
+  endif ()
+  
+  add_custom_command(OUTPUT ${AUTOMTC_SRC} COMMAND ${MTC_EXECUTABLE} -o ${AUTOMTC_SRC} ${INCLUDE_FILES} DEPENDS ${MTC_EXECUTABLE} ${INCLUDE_FILES})
 endmacro()

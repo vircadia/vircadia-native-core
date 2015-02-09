@@ -16,23 +16,18 @@
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QLineEdit>
+#include <QMenu>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-#include <Settings.h>
+#include "avatar/AvatarManager.h"
 
 #include "AnimationsDialog.h"
-#include "Application.h"
-#include "MainWindow.h"
-
-namespace SettingHandles {
-    const SettingHandle<QString> animationDirectory("animation_directory", QString());
-}
 
 AnimationsDialog::AnimationsDialog(QWidget* parent) :
-    QDialog(parent) {
-    
+    QDialog(parent)
+{
     setWindowTitle("Edit Animations");
     setAttribute(Qt::WA_DeleteOnClose);
     
@@ -48,7 +43,8 @@ AnimationsDialog::AnimationsDialog(QWidget* parent) :
     area->setWidget(container);
     _animations->addStretch(1);
     
-    foreach (const AnimationHandlePointer& handle, Application::getInstance()->getAvatar()->getAnimationHandles()) {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    foreach (const AnimationHandlePointer& handle, myAvatar->getAnimationHandles()) {
         _animations->insertWidget(_animations->count() - 1, new AnimationPanel(this, handle));
     }
     
@@ -74,9 +70,11 @@ void AnimationsDialog::setVisible(bool visible) {
 }
 
 void AnimationsDialog::addAnimation() {
-    _animations->insertWidget(_animations->count() - 1, new AnimationPanel(
-        this, Application::getInstance()->getAvatar()->addAnimationHandle()));
+    _animations->insertWidget(_animations->count() - 1, new AnimationPanel(this,
+                    DependencyManager::get<AvatarManager>()->getMyAvatar()->addAnimationHandle()));
 }
+
+Setting::Handle<QString> AnimationPanel::_animationDirectory("animation_directory", QString());
 
 AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePointer& handle) :
         _dialog(dialog),
@@ -163,12 +161,12 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
 }
 
 void AnimationPanel::chooseURL() {
-    QString directory = SettingHandles::animationDirectory.get();
-    QString filename = QFileDialog::getOpenFileName(this, "Choose Animation", directory, "Animation files (*.fbx)");
+    QString filename = QFileDialog::getOpenFileName(this, "Choose Animation",
+                                                    _animationDirectory.get(), "Animation files (*.fbx)");
     if (filename.isEmpty()) {
         return;
     }
-    SettingHandles::animationDirectory.set(QFileInfo(filename).path());
+    _animationDirectory.set(QFileInfo(filename).path());
     _url->setText(QUrl::fromLocalFile(filename).toString());
     emit _url->returnPressed();
 }
@@ -176,7 +174,7 @@ void AnimationPanel::chooseURL() {
 void AnimationPanel::chooseMaskedJoints() {
     QMenu menu;
     QStringList maskedJoints = _handle->getMaskedJoints();
-    foreach (const QString& jointName, Application::getInstance()->getAvatar()->getJointNames()) {
+    foreach (const QString& jointName, DependencyManager::get<AvatarManager>()->getMyAvatar()->getJointNames()) {
         QAction* action = menu.addAction(jointName);
         action->setCheckable(true);
         action->setChecked(maskedJoints.contains(jointName));
@@ -207,6 +205,6 @@ void AnimationPanel::updateHandle() {
 }
 
 void AnimationPanel::removeHandle() {
-    Application::getInstance()->getAvatar()->removeAnimationHandle(_handle);
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->removeAnimationHandle(_handle);
     deleteLater();
 }

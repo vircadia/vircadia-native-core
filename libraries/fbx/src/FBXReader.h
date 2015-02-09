@@ -33,11 +33,6 @@ class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
 
-/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
-extern const char* FACESHIFT_BLENDSHAPES[];
-/// The size of FACESHIFT_BLENDSHAPES
-extern const int NUM_FACESHIFT_BLENDSHAPES;
-
 /// The names of the joints in the Maya HumanIK rig, terminated with an empty string.
 extern const char* HUMANIK_JOINTS[];
 
@@ -174,12 +169,14 @@ public:
     QString name;
     Transform transform;
     float intensity;
+    float fogValue;
     glm::vec3 color;
 
     FBXLight() :
         name(),
         transform(),
         intensity(1.0f),
+        fogValue(0.0f),
         color(1.0f)
     {}
 };
