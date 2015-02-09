@@ -51,10 +51,12 @@ function Instructions(imageURL, originalWidth, originalHeight) {
         }
         tthis.remove();
     }
+
     this.remove = function() {
         Overlays.deleteOverlay(tthis.overlay);
         tthis.visible = false;
     };
+
     this.rescale = function() {
         var scale = Math.min(windowDimensions.x / tthis.originalSize.w, windowDimensions.y / tthis.originalSize.h);
         var newWidth = tthis.originalSize.w * scale;
@@ -115,14 +117,14 @@ keyboard.onKeyRelease = function(event) {
     // you can cancel a key by releasing its focusing before releasing it
     if (event.focus) {
         if (event.event == 'delete') {
-           deleteChar();
+            deleteChar();
         } else if (event.event == 'submit' || event.event == 'enter') {
-           print("going to hifi://" + locationURL);
-           location = "hifi://" + locationURL;
-           locationURL = "";
-           keyboard.hide();
-           cursor.hide();
-           updateTextOverlay();
+            print("going to hifi://" + locationURL);
+            location = "hifi://" + locationURL;
+            locationURL = "";
+            keyboard.hide();
+            cursor.hide();
+            updateTextOverlay();
         }
     }
 };
@@ -131,18 +133,18 @@ keyboard.onFullyLoaded = function() {
     print("Virtual-keyboard fully loaded.");
     var dimensions = Controller.getViewportDimensions();
     text = Overlays.addOverlay("text", {
-         x: 0,
-         y: dimensions.y - keyboard.height() - 260,
-         width: dimensions.x,
-         height: 250,
-         backgroundColor: { red: 255, green: 255, blue: 255},
-         color: { red: 0, green: 0, blue: 0},
-         topMargin: 5,
-         leftMargin: 0,
-         font: {size: textFontSize},
-         text: "",
-         alpha: 0.8,
-         visible: keyboard.visible
+            x: 0,
+            y: dimensions.y - keyboard.height() - 260,
+            width: dimensions.x,
+            height: 250,
+            backgroundColor: { red: 255, green: 255, blue: 255},
+            color: { red: 0, green: 0, blue: 0},
+            topMargin: 5,
+            leftMargin: 0,
+            font: {size: textFontSize},
+            text: "",
+            alpha: 0.8,
+            visible: keyboard.visible
     });
     updateTextOverlay();
     // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
@@ -189,6 +191,7 @@ function scriptEnding() {
 }
 
 function reportButtonValue(button, newValue, oldValue) {
+    print(button);
     if (theInstruction.visible) {
         if (button == Joysticks.BUTTON_FACE_BOTTOM && newValue) {
             theInstruction.remove();
@@ -201,6 +204,27 @@ function reportButtonValue(button, newValue, oldValue) {
         }
     } else if (button == Joysticks.BUTTON_FACE_RIGHT && newValue) {
         deleteChar();
+    } else if (button == Joysticks.BUTTON_FACE_LEFT && newValue) {
+        keyboard.hide();
+        if (cursor !== undefined) {
+            cursor.hide();
+        }
+        Overlays.editOverlay(text, {visible: false});
+    } else if (button == Joysticks.BUTTON_RIGHT_SHOULDER && newValue) {
+        if (keyboard.visible) {
+            print("going to hifi://" + locationURL);
+            location = "hifi://" + locationURL;
+            locationURL = "";
+            keyboard.hide();
+            cursor.hide();
+            updateTextOverlay();
+            return;
+        }
+        keyboard.show();
+        if (cursor !== undefined) {
+            cursor.show();
+        }
+        Overlays.editOverlay(text, {visible: true});            
     }
 }
 

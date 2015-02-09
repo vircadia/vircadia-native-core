@@ -719,6 +719,9 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
 //Renders a small magnification of the currently bound texture at the coordinates
 void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) {
+    if (!_magnifier) {
+        return;
+    }
     auto glCanvas = DependencyManager::get<GLCanvas>();
     
     const int widgetWidth = glCanvas->width();
