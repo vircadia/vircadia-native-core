@@ -86,6 +86,20 @@ input[type=button] {
     font-weight: bold;
 }
 
+#entity-list-header {
+    padding: 0.5em;
+}
+
+#search-area {
+    width: 100%;
+    padding: 0.5em;
+    box-sizing: border-box;
+}
+
+#search-area input {
+    width: 100%;
+}
+
 textarea, input {
     margin: 0;
     padding: 1.5pt;
@@ -120,6 +134,7 @@ table#entity-table {
 }
 
 #entity-table tr.selected {
+    color: rgb(43, 43, 43);
     background-color: #AAA;
 }
 

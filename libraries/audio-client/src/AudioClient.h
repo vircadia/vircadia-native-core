@@ -186,6 +186,7 @@ signals:
 
 protected:
     AudioClient();
+    ~AudioClient();
     
 private:
     void outputFormatChanged();
