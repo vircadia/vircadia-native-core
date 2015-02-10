@@ -83,8 +83,10 @@ MotionTracker::Index MotionTracker::addJoint(const Semantic& semantic, Index par
 
     // Check that the semantic is not already in use
     Index foundIndex = findJointIndex(semantic);
-    if (foundIndex >= 0)
+    if (foundIndex >= 0) {
         return INVALID_SEMANTIC;
+    }
+    
 
     // All good then allocate the joint
     Index newIndex = _jointsArray.size();
@@ -97,8 +99,10 @@ MotionTracker::Index MotionTracker::addJoint(const Semantic& semantic, Index par
 MotionTracker::Index MotionTracker::findJointIndex(const Semantic& semantic) const {
     // TODO C++11 auto jointIt = _jointsMap.find(semantic);
     JointTracker::Map::const_iterator jointIt = _jointsMap.find(semantic);
-    if (jointIt != _jointsMap.end())
+    if (jointIt != _jointsMap.end()) {
         return (*jointIt).second;
+    }
+    
     return INVALID_SEMANTIC;
 }
 

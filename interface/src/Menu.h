@@ -19,128 +19,23 @@
 #include <QPointer>
 #include <QStandardPaths>
 
-#include <EventTypes.h>
 #include <MenuItemProperties.h>
-#include <OctreeConstants.h>
 
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-#include "SpeechRecognizer.h"
-#endif
-
-#include "devices/Faceshift.h"
-#include "devices/SixenseManager.h"
-#include "ui/ChatWindow.h"
-#include "ui/JSConsole.h"
-#include "ui/ScriptEditorWindow.h"
-
-// Make an LOD handler class and move everything overthere
-const float ADJUST_LOD_DOWN_FPS = 40.0;
-const float ADJUST_LOD_UP_FPS = 55.0;
-const float DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS = 30.0f;
-
-const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 5;
-const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
-
-const float ADJUST_LOD_DOWN_BY = 0.9f;
-const float ADJUST_LOD_UP_BY = 1.1f;
-
-const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.25f;
-const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
-
-const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
-const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
-const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
-
-const int ONE_SECOND_OF_FRAMES = 60;
-const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
-//////////////////////////////////////////////////////////
-
-const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
-
-const QString SETTINGS_ADDRESS_KEY = "address";
-class QSettings;
-
-class AddressBarDialog;
-class AnimationsDialog;
-class AttachmentsDialog;
-class CachesSizeDialog;
-class BandwidthDialog;
-class DataWebDialog;
-class HMDToolsDialog;
-class LodToolsDialog;
-class LoginDialog;
-class OctreeStatsDialog;
-class PreferencesDialog;
-class MetavoxelEditor;
-class MetavoxelNetworkSimulator;
-class ChatWindow;
-class MenuItemProperties;
+class Settings;
 
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
+    
+    void loadSettings();
+    void saveSettings();
+    
+    QMenu* getMenu(const QString& menuName);
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-
-    const InboundAudioStream::Settings& getReceivedAudioStreamSettings() const { return _receivedAudioStreamSettings; }
-    void setReceivedAudioStreamSettings(const InboundAudioStream::Settings& receivedAudioStreamSettings) { _receivedAudioStreamSettings = receivedAudioStreamSettings; }
-    float getFieldOfView() const { return _fieldOfView; }
-    void setFieldOfView(float fieldOfView) { _fieldOfView = fieldOfView; bumpSettings(); }
-    float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
-    void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
-    float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
-    void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; bumpSettings(); }
-    float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
-    void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; bumpSettings(); }
-    bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
-    void setInvertSixenseButtons(bool invertSixenseButtons) { _invertSixenseButtons = invertSixenseButtons; bumpSettings(); }
-
-    float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
-    void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; bumpSettings(); }
-    const QString& getFaceshiftHostname() const { return _faceshiftHostname; }
-    void setFaceshiftHostname(const QString& hostname) { _faceshiftHostname = hostname; bumpSettings(); }
-    QString getSnapshotsLocation() const;
-    void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; bumpSettings(); }
-
-    const QString& getScriptsLocation() const { return _scriptsLocation; }
-    void setScriptsLocation(const QString& scriptsLocation);
-
-    BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
-    OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
-    LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
-    HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
-
-    bool getShadowsEnabled() const;
-
-    // User Tweakable LOD Items
-    QString getLODFeedbackText();
-    void autoAdjustLOD(float currentFPS);
-    void resetLODAdjust();
-    void setOctreeSizeScale(float sizeScale);
-    float getOctreeSizeScale() const { return _octreeSizeScale; }
-    void setAutomaticAvatarLOD(bool automaticAvatarLOD) { _automaticAvatarLOD = automaticAvatarLOD; bumpSettings(); }
-    bool getAutomaticAvatarLOD() const { return _automaticAvatarLOD; }
-    void setAvatarLODDecreaseFPS(float avatarLODDecreaseFPS) { _avatarLODDecreaseFPS = avatarLODDecreaseFPS; bumpSettings(); }
-    float getAvatarLODDecreaseFPS() const { return _avatarLODDecreaseFPS; }
-    void setAvatarLODIncreaseFPS(float avatarLODIncreaseFPS) { _avatarLODIncreaseFPS = avatarLODIncreaseFPS; bumpSettings(); }
-    float getAvatarLODIncreaseFPS() const { return _avatarLODIncreaseFPS; }
-    void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier = multiplier; bumpSettings(); }
-    float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
-    void setBoundaryLevelAdjust(int boundaryLevelAdjust);
-    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
-
-    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
-
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
-#endif
-
-    // User Tweakable PPS from Voxel Server
-    int getMaxOctreePacketsPerSecond() const { return _maxOctreePacketsPerSecond; }
-    void setMaxOctreePacketsPerSecond(int value) { _maxOctreePacketsPerSecond = value; bumpSettings(); }
-
+    
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString& actionName,
                                            const QKeySequence& shortcut = 0,
@@ -154,35 +49,10 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-
+    
     void removeAction(QMenu* menu, const QString& actionName);
     
-    const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
-
-signals:
-    void scriptLocationChanged(const QString& newPath);
-
 public slots:
-
-    void clearLoginDialogDisplayedFlag();
-    void loginForCurrentDomain();
-    void showLoginForCurrentDomain();
-    void bandwidthDetails();
-    void octreeStatsDetails();
-    void cachesSizeDialog();
-    void lodTools();
-    void hmdTools(bool showTools);
-    void loadSettings(QSettings* settings = NULL);
-    void saveSettings(QSettings* settings = NULL);
-    void importSettings();
-    void exportSettings();
-    void toggleAddressBar();
-    void copyAddress();
-    void copyPath();
-
-    void toggleLoginMenuItem();
-    void toggleSixense(bool shouldEnable);
-
     QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
     bool menuExists(const QString& menuName);
@@ -193,47 +63,21 @@ public slots:
     bool menuItemExists(const QString& menuName, const QString& menuitem);
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
-
-private slots:
-    void aboutApp();
-    void showEditEntitiesHelp();
-    void bumpSettings();
-    void editPreferences();
-    void editAttachments();
-    void editAnimations();
-    void changePrivateKey();
-    void bookmarkLocation();
-    void teleportToBookmark();
-    void deleteBookmark();
-    void hmdToolsClosed();
-    void runTests();
-    void showMetavoxelEditor();
-    void showMetavoxelNetworkSimulator();
-    void showScriptEditor();
-    void showChat();
-    void toggleConsole();
-    void toggleToolWindow();
-    void toggleChat();
-    void audioMuteToggled();
-    void displayNameLocationResponse(const QString& errorString);
-    void changeVSync();
-    void loadRSSDKFile();
-
+    
 private:
     static Menu* _instance;
-
     Menu();
-
-    typedef void(*settingsAction)(QSettings*, QAction*);
-    static void loadAction(QSettings* set, QAction* action);
-    static void saveAction(QSettings* set, QAction* action);
-    void scanMenuBar(settingsAction modifySetting, QSettings* set);
-    void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
-
+    
+    typedef void(*settingsAction)(Settings&, QAction&);
+    static void loadAction(Settings& settings, QAction& action);
+    static void saveAction(Settings& settings, QAction& action);
+    void scanMenuBar(settingsAction modifySetting);
+    void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
+    
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,
-                                                int menuItemLocation = UNSPECIFIED_POSITION);
-
+                                       int menuItemLocation = UNSPECIFIED_POSITION);
+    
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString& actionName,
                                                     const QKeySequence& shortcut = 0,
@@ -241,78 +85,17 @@ private:
                                                     const QObject* receiver = NULL,
                                                     const char* member = NULL,
                                                     int menuItemLocation = UNSPECIFIED_POSITION);
-
+    
     QAction* getActionFromName(const QString& menuName, QMenu* menu);
     QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
     QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
-
+    
     QAction* getMenuAction(const QString& menuName);
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
-    QMenu* getMenu(const QString& menuName);
-
-
+    
+    
     QHash<QString, QAction*> _actionHash;
-    InboundAudioStream::Settings _receivedAudioStreamSettings;
-    // in Degrees, doesn't apply to HMD like Oculus
-    float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
-    //  The actual FOV set by the user's monitor size and view distance
-    float _realWorldFieldOfView = DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES;
-    float _faceshiftEyeDeflection = DEFAULT_FACESHIFT_EYE_DEFLECTION;
-    QString _faceshiftHostname = DEFAULT_FACESHIFT_HOSTNAME;
-    
-    QDialog* _jsConsole = nullptr;
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    SpeechRecognizer _speechRecognizer;
-#endif
-    float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
-    float _oculusUIAngularSize = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
-    float _sixenseReticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
-    bool _invertSixenseButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
-    bool _hasLoginDialogDisplayed = false;
-    
-    bool _automaticAvatarLOD = true;
-    float _avatarLODDecreaseFPS = DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS;
-    float _avatarLODIncreaseFPS = ADJUST_LOD_UP_FPS;
-    float _avatarLODDistanceMultiplier = DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER;
-    
-    int _boundaryLevelAdjust = 0;
-    int _maxOctreePacketsPerSecond = DEFAULT_MAX_OCTREE_PPS;
-    
-    quint64 _lastAdjust;
-    quint64 _lastAvatarDetailDrop;
-    
-    SimpleMovingAverage _fpsAverage = FIVE_SECONDS_OF_FRAMES;
-    SimpleMovingAverage _fastFPSAverage = ONE_SECOND_OF_FRAMES;
-    
-    QPointer<AddressBarDialog> _addressBarDialog;
-    QPointer<AnimationsDialog> _animationsDialog;
-    QPointer<AttachmentsDialog> _attachmentsDialog;
-    QPointer<BandwidthDialog> _bandwidthDialog;
-    QPointer<CachesSizeDialog> _cachesSizeDialog;
-    QPointer<HMDToolsDialog> _hmdToolsDialog;
-    QPointer<LodToolsDialog> _lodToolsDialog;
-    QPointer<LoginDialog> _loginDialog;
-    QPointer<OctreeStatsDialog> _octreeStatsDialog;
-    QPointer<PreferencesDialog> _preferencesDialog;
-
-    QPointer<MetavoxelEditor> _MetavoxelEditor;
-    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
-    QPointer<ScriptEditorWindow> _ScriptEditor;
-    QPointer<ChatWindow> _chatWindow;
-    
-    QAction* _loginAction = nullptr;
-    QAction* _chatAction = nullptr;
-    QString _snapshotsLocation;
-    QString _scriptsLocation;
-    QByteArray _walletPrivateKey;
-    
-    bool _shouldRenderTableNeedsRebuilding = true;
-    QMap<float, float> _shouldRenderTable;
-
-    void loadBookmarks();
-    QMenu* _bookmarksMenu;
-    QAction* _deleteBookmarksMenu;
 };
 
 namespace MenuOption {
@@ -337,7 +120,6 @@ namespace MenuOption {
     const QString AudioSourcePinkNoise = "Pink Noise";
     const QString AudioSourceSine440 = "Sine 440hz";
     const QString Avatars = "Avatars";
-    const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
@@ -402,7 +184,6 @@ namespace MenuOption {
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
-    const QString Logout = "Logout";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
@@ -424,9 +205,9 @@ namespace MenuOption {
     const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
+    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
-    const QString RenderSpanners = "Render Spanners";
     const QString RenderTargetFramerate = "Framerate";
     const QString RenderTargetFramerateUnlimited = "Unlimited";
     const QString RenderTargetFramerate60 = "60";
@@ -440,14 +221,24 @@ namespace MenuOption {
     const QString RenderResolutionHalf = "1/2";
     const QString RenderResolutionThird = "1/3";
     const QString RenderResolutionQuarter = "1/4";
+    const QString RenderAmbientLight = "Ambient Light";
+    const QString RenderAmbientLightGlobal = "Global";
+    const QString RenderAmbientLight0 = "OLD_TOWN_SQUARE";
+    const QString RenderAmbientLight1 = "GRACE_CATHEDRAL";
+    const QString RenderAmbientLight2 = "EUCALYPTUS_GROVE";
+    const QString RenderAmbientLight3 = "ST_PETERS_BASILICA";
+    const QString RenderAmbientLight4 = "UFFIZI_GALLERY";
+    const QString RenderAmbientLight5 = "GALILEOS_TOMB";
+    const QString RenderAmbientLight6 = "VINE_STREET_KITCHEN";
+    const QString RenderAmbientLight7 = "BREEZEWAY";
+    const QString RenderAmbientLight8 = "CAMPUS_SUNSET";
+    const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
-    const QString SettingsExport = "Export Settings";
-    const QString SettingsImport = "Import Settings";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
@@ -472,10 +263,7 @@ namespace MenuOption {
     const QString UploadSkeleton = "Upload Skeleton Model";
     const QString UserInterface = "User Interface";
     const QString Visage = "Visage";
-    const QString WalletPrivateKey = "Wallet Private Key...";
     const QString Wireframe = "Wireframe";
 }
-
-void sendFakeEnterEvent();
 
 #endif // hifi_Menu_h

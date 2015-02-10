@@ -12,6 +12,7 @@
 #ifndef hifi_MetavoxelEditor_h
 #define hifi_MetavoxelEditor_h
 
+#include <QFormLayout>
 #include <QList>
 #include <QWidget>
 
@@ -38,7 +39,7 @@ class MetavoxelEditor : public QWidget {
 
 public:
     
-    MetavoxelEditor();
+    MetavoxelEditor(QWidget* parent = nullptr);
 
     QString getSelectedAttribute() const;
     
@@ -92,11 +93,14 @@ class MetavoxelTool : public QWidget {
 
 public:
 
-    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true, bool userFacing = true);
+    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true,
+        bool userFacing = true, bool usesGrid = true);
     
     bool getUsesValue() const { return _usesValue; }
     
     bool isUserFacing() const { return _userFacing; }
+    
+    bool getUsesGrid() const { return _usesGrid; }
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
     
@@ -113,6 +117,7 @@ protected:
     MetavoxelEditor* _editor;
     bool _usesValue;
     bool _userFacing;
+    bool _usesGrid;
 };
 
 /// Base class for tools that allow dragging out a 3D box.
@@ -322,6 +327,7 @@ protected:
     
     QFormLayout* _form;
     QDoubleSpinBox* _radius;
+    QDoubleSpinBox* _granularity;
     
     glm::vec3 _position;
     bool _positionValid;
@@ -342,6 +348,7 @@ protected:
 private:
     
     QDoubleSpinBox* _height;
+    QComboBox* _mode;
 };
 
 /// Contains widgets for editing materials.
@@ -387,13 +394,47 @@ private:
     MaterialControl* _materialControl;
 };
 
-/// Allows setting voxel materials by dragging out a box.
-class VoxelMaterialBoxTool : public BoxTool {
+/// Allows sculpting parts of the heightfield.
+class HeightfieldSculptBrushTool : public HeightfieldBrushTool {
     Q_OBJECT
 
 public:
     
-    VoxelMaterialBoxTool(MetavoxelEditor* editor);
+    HeightfieldSculptBrushTool(MetavoxelEditor* editor);
+    
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+
+private:
+    
+    MaterialControl* _materialControl;
+};
+
+/// Allows "filling" (removing dual contour stack data) parts of the heightfield.
+class HeightfieldFillBrushTool : public HeightfieldBrushTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldFillBrushTool(MetavoxelEditor* editor);
+    
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+
+private:
+    
+    QComboBox* _mode;
+};
+
+/// Allows setting heightfield materials by dragging out a box.
+class HeightfieldMaterialBoxTool : public BoxTool {
+    Q_OBJECT
+
+public:
+    
+    HeightfieldMaterialBoxTool(MetavoxelEditor* editor);
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
     
@@ -409,15 +450,16 @@ private:
     
     QCheckBox* _snapToGrid;
     MaterialControl* _materialControl;
+    QDoubleSpinBox* _granularity;
 };
 
-/// Allows setting voxel materials by placing a spanner.
-class VoxelMaterialSpannerTool : public PlaceSpannerTool {
+/// Allows setting heightfield materials by placing a spanner.
+class HeightfieldMaterialSpannerTool : public PlaceSpannerTool {
     Q_OBJECT
 
 public:
     
-    VoxelMaterialSpannerTool(MetavoxelEditor* editor);
+    HeightfieldMaterialSpannerTool(MetavoxelEditor* editor);
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
@@ -431,65 +473,7 @@ private:
     
     SharedObjectEditor* _spannerEditor;
     MaterialControl* _materialControl;
-};
-
-/// Base class for voxel brush tools.
-class VoxelBrushTool : public MetavoxelTool {
-    Q_OBJECT
-
-public:
-    
-    VoxelBrushTool(MetavoxelEditor* editor, const QString& name);
-    
-    virtual bool appliesTo(const AttributePointer& attribute) const;
-     
-    virtual void render();
-
-    virtual bool eventFilter(QObject* watched, QEvent* event);
-
-protected:
-    
-    virtual QVariant createEdit(bool alternate) = 0;
-    
-    QFormLayout* _form;
-    QDoubleSpinBox* _radius;
-    
-    glm::vec3 _position;
-    bool _positionValid;
-};
-
-/// Allows texturing parts of the voxel field.
-class VoxelMaterialBrushTool : public VoxelBrushTool {
-    Q_OBJECT
-    
-public:
-    
-    VoxelMaterialBrushTool(MetavoxelEditor* editor);
-
-protected:
-    
-    virtual QVariant createEdit(bool alternate);
-
-private:
-    
-    MaterialControl* _materialControl;
-};
-
-/// Allows sculpting parts of the voxel field.
-class VoxelSculptBrushTool : public VoxelBrushTool {
-    Q_OBJECT
-
-public:
-    
-    VoxelSculptBrushTool(MetavoxelEditor* editor);
-    
-protected:
-    
-    virtual QVariant createEdit(bool alternate);
-
-private:
-    
-    MaterialControl* _materialControl;
+    QDoubleSpinBox* _granularity;
 };
 
 #endif // hifi_MetavoxelEditor_h

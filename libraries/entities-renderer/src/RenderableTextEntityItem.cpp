@@ -18,9 +18,9 @@
 #include <TextRenderer.h>
 
 #include "RenderableTextEntityItem.h"
+#include "GLMHelpers.h"
 
 const int FIXED_FONT_POINT_SIZE = 40;
-const float LINE_SCALE_RATIO = 1.2f;
 
 EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableTextEntityItem(entityID, properties);
@@ -34,9 +34,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
     float leftMargin = 0.1f;
-    float rightMargin = 0.1f;
     float topMargin = 0.1f;
-    float bottomMargin = 0.1f;
 
     //qDebug() << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
 
@@ -46,52 +44,22 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
-        const float MAX_COLOR = 255.0f;
-        xColor backgroundColor = getBackgroundColorX();
         float alpha = 1.0f; //getBackgroundAlpha();
-        glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
-       
-        const float SLIGHTLY_BEHIND = -0.005f;
+        static const float SLIGHTLY_BEHIND =  -0.005f;
 
         glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
         glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
-        
-        const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
-        
-        // Same font properties as textSize()
-        TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-        float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
-        
-        float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, glm::vec4(toGlm(getBackgroundColorX()), alpha));
+
+        TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
 
         glTranslatef(-(halfDimensions.x - leftMargin), halfDimensions.y - topMargin, 0.0f);
-
-        glm::vec2 clipMinimum(0.0f, 0.0f);
-        glm::vec2 clipDimensions((dimensions.x - (leftMargin + rightMargin)) / scaleFactor, 
-                                 (dimensions.y - (topMargin + bottomMargin)) / scaleFactor);
-
-        glScalef(scaleFactor, -scaleFactor, 1.0);
-        enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipDimensions.x);
-        enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
-        enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
-        enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
-    
-        xColor textColor = getTextColorX();
-        glColor3f(textColor.red / MAX_COLOR, textColor.green / MAX_COLOR, textColor.blue / MAX_COLOR);
-        QStringList lines = _text.split("\n");
-        int lineOffset = maxHeight;
-        float textAlpha = 1.0f; // getTextAlpha()
-        foreach(QString thisLine, lines) {
-            textRenderer->draw(0, lineOffset, qPrintable(thisLine), textAlpha);
-            lineOffset += maxHeight;
-        }
-
-        glDisable(GL_CLIP_PLANE0);
-        glDisable(GL_CLIP_PLANE1);
-        glDisable(GL_CLIP_PLANE2);
-        glDisable(GL_CLIP_PLANE3);
-        
+        glm::vec4 textColor(toGlm(getTextColorX()), alpha);
+        // this is a ratio determined through experimentation
+        const float scaleFactor = 0.08f * _lineHeight;
+        glScalef(scaleFactor, -scaleFactor, scaleFactor);
+        glm::vec2 bounds(dimensions.x / scaleFactor, dimensions.y / scaleFactor);
+        textRenderer->draw(0, 0, _text, textColor, bounds);
     } 
     glPopMatrix();
 }

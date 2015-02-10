@@ -12,10 +12,11 @@
 #include <EntityItem.h>
 #include <EntityEditPacketSender.h>
 
-#ifdef USE_BULLET_PHYSICS
 #include "BulletUtil.h"
-#endif // USE_BULLET_PHYSICS
 #include "EntityMotionState.h"
+#include "PhysicsEngine.h"
+#include "PhysicsHelpers.h"
+
 
 QSet<EntityItem*>* _outgoingEntityList;
 
@@ -33,6 +34,7 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
 
 EntityMotionState::EntityMotionState(EntityItem* entity) 
     :   _entity(entity) {
+    _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
 }
 
@@ -43,19 +45,41 @@ EntityMotionState::~EntityMotionState() {
 }
 
 MotionType EntityMotionState::computeMotionType() const {
-    // HACK: According to EntityTree the meaning of "static" is "not moving" whereas
-    // to Bullet it means "can't move".  For demo purposes we temporarily interpret
-    // Entity::weightless to mean Bullet::static.
-    return _entity->getCollisionsWillMove() ? MOTION_TYPE_DYNAMIC : MOTION_TYPE_STATIC;
+    if (_entity->getCollisionsWillMove()) {
+        return MOTION_TYPE_DYNAMIC;
+    }
+    return _entity->isMoving() ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
 }
 
-#ifdef USE_BULLET_PHYSICS
+void EntityMotionState::updateKinematicState(uint32_t substep) {
+    setKinematic(_entity->isMoving(), substep);
+}
+
+void EntityMotionState::stepKinematicSimulation(quint64 now) {
+    assert(_isKinematic);
+    // NOTE: this is non-physical kinematic motion which steps to real run-time (now)
+    // which is different from physical kinematic motion (inside getWorldTransform())
+    // which steps in physics simulation time.
+    _entity->simulate(now);
+}
+
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
 // (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
+    if (_isKinematic) {
+        // This is physical kinematic motion which steps strictly by the subframe count
+        // of the physics simulation.
+        uint32_t substep = PhysicsEngine::getNumSubsteps();
+        float dt = (substep - _lastKinematicSubstep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+        _entity->simulateKinematicMotion(dt);
+        _entity->setLastSimulated(usecTimestampNow());
+
+        // bypass const-ness so we can remember the substep
+        const_cast<EntityMotionState*>(this)->_lastKinematicSubstep = substep;
+    }
     worldTrans.setOrigin(glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
 }
@@ -74,13 +98,21 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
     _entity->setAngularVelocity(glm::degrees(v));
 
+    _entity->setLastSimulated(usecTimestampNow());
+
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
+
+    #ifdef WANT_DEBUG
+        quint64 now = usecTimestampNow();
+        qDebug() << "EntityMotionState::setWorldTransform()... changed entity:" << _entity->getEntityItemID();
+        qDebug() << "       last edited:" << _entity->getLastEdited() << formatUsecTime(now - _entity->getLastEdited()) << "ago";
+        qDebug() << "    last simulated:" << _entity->getLastSimulated() << formatUsecTime(now - _entity->getLastSimulated()) << "ago";
+        qDebug() << "      last updated:" << _entity->getLastUpdated() << formatUsecTime(now - _entity->getLastUpdated()) << "ago";
+    #endif
 }
-#endif // USE_BULLET_PHYSICS
 
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
-#ifdef USE_BULLET_PHYSICS
     if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
         if (flags & EntityItem::DIRTY_POSITION) {
             _sentPosition = _entity->getPositionInMeters() - ObjectMotionState::getWorldOffset();
@@ -116,11 +148,9 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
         _body->updateInertiaTensor();
     }
     _body->activate();
-#endif // USE_BULLET_PHYSICS
 };
 
 void EntityMotionState::updateObjectVelocities() {
-#ifdef USE_BULLET_PHYSICS
     if (_body) {
         _sentVelocity = _entity->getVelocityInMeters();
         setVelocity(_sentVelocity);
@@ -134,7 +164,6 @@ void EntityMotionState::updateObjectVelocities() {
 
         _body->setActivationState(ACTIVE_TAG);
     }
-#endif // USE_BULLET_PHYSICS
 }
 
 void EntityMotionState::computeShapeInfo(ShapeInfo& shapeInfo) {
@@ -146,7 +175,9 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
-#ifdef USE_BULLET_PHYSICS
+    if (!_entity->isKnownID()) {
+        return; // never update entities that are unknown
+    }
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
@@ -197,21 +228,53 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         if (_numNonMovingUpdates <= 1) {
             // we only update lastEdited when we're sending new physics data 
             // (i.e. NOT when we just simulate the positions forward, nore when we resend non-moving data)
+            // NOTE: Andrew & Brad to discuss. Let's make sure we're using lastEdited, lastSimulated, and lastUpdated correctly
             quint64 lastSimulated = _entity->getLastSimulated();
             _entity->setLastEdited(lastSimulated);
             properties.setLastEdited(lastSimulated);
+
+            #ifdef WANT_DEBUG
+                quint64 now = usecTimestampNow();
+                qDebug() << "EntityMotionState::sendUpdate()";
+                qDebug() << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
+                qDebug() << "       lastSimulated:" << debugTime(lastSimulated, now);
+            #endif //def WANT_DEBUG
+
         } else {
             properties.setLastEdited(_entity->getLastEdited());
         }
 
-        EntityItemID id(_entity->getID());
-        EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
-        entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        if (EntityItem::getSendPhysicsUpdates()) {
+            EntityItemID id(_entity->getID());
+            EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+            #ifdef WANT_DEBUG
+                qDebug() << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
+            #endif
+            entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        } else {
+            #ifdef WANT_DEBUG
+                qDebug() << "EntityMotionState::sendUpdate()... NOT sending update as requested.";
+            #endif
+        }
 
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
         // to the full set.  These flags may be momentarily cleared by incoming external changes.  
         _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
         _sentFrame = frame;
     }
-#endif // USE_BULLET_PHYSICS
+}
+
+uint32_t EntityMotionState::getIncomingDirtyFlags() const { 
+    uint32_t dirtyFlags = _entity->getDirtyFlags(); 
+
+    if (_body) {
+        // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
+        int bodyFlags = _body->getCollisionFlags();
+        bool isMoving = _entity->isMoving();
+        if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
+                (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
+            dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE; 
+        }
+    }
+    return dirtyFlags;
 }

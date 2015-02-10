@@ -15,21 +15,22 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
-#include <QSettings>
+
+#include <SettingHandle.h>
 
 enum ZoomLevel {
-    HEAD,
-    BODY
+    HEAD = 0,
+    BODY = 1
 };
 
 class RearMirrorTools : public QObject {
     Q_OBJECT
 public:
-    RearMirrorTools(QGLWidget* parent, QRect& bounds, QSettings* settings);
+    RearMirrorTools(QGLWidget* parent, QRect& bounds);
     void render(bool fullScreen);
     bool mousePressEvent(int x, int y);
-    ZoomLevel getZoomLevel() { return _zoomLevel; }
-    void saveSettings(QSettings* settings);
+    
+    static Setting::Handle<int> rearViewZoomLevel;
 
 signals:
     void closeView();
@@ -44,7 +45,6 @@ private:
     GLuint _resetTextureId;
     GLuint _zoomBodyTextureId;
     GLuint _zoomHeadTextureId;
-    ZoomLevel _zoomLevel;
     
     QRect _closeIconRect;
     QRect _resetIconRect;

@@ -18,7 +18,6 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-#include <AvatarHashMap.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
 #include <EntityTreeHeadlessViewer.h>
@@ -63,8 +62,6 @@ private:
     
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
-
-    AvatarHashMap _avatarHashMap;
 };
 
 #endif // hifi_Agent_h

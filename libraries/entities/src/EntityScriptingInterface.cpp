@@ -14,6 +14,7 @@
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
 
+
 EntityScriptingInterface::EntityScriptingInterface() :
     _nextCreatorTokenID(0),
     _entityTree(NULL)
@@ -24,6 +25,13 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
         EntityItemID entityID, const EntityItemProperties& properties) {
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
+
+
+bool EntityScriptingInterface::canAdjustLocks() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanAdjustLocks();
+}
+
 
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
@@ -107,7 +115,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, properties);
+        _entityTree->updateEntity(entityID, properties, canAdjustLocks());
         _entityTree->unlock();
     }
 
@@ -144,15 +152,26 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
         }
     }
 
+    bool shouldDelete = true;
+
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->deleteEntity(entityID);
+
+        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(actualID));
+        if (entity) {
+            if (entity->getLocked()) {
+                shouldDelete = false;
+            } else {
+                _entityTree->deleteEntity(entityID);
+            }
+        }
+
         _entityTree->unlock();
     }
 
-    // if at this point, we know the id, send the update to the entity server
-    if (entityID.isKnownID) {
+    // if at this point, we know the id, and we should still delete the entity, send the update to the entity server
+    if (shouldDelete && entityID.isKnownID) {
         getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 }
@@ -232,6 +251,14 @@ void EntityScriptingInterface::setLightsArePickable(bool value) {
 
 bool EntityScriptingInterface::getLightsArePickable() const {
     return LightEntityItem::getLightsArePickable();
+}
+
+void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {
+    EntityItem::setSendPhysicsUpdates(value);
+}
+
+bool EntityScriptingInterface::getSendPhysicsUpdates() const {
+    return EntityItem::getSendPhysicsUpdates();
 }
 
 

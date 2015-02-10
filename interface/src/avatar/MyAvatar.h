@@ -12,9 +12,8 @@
 #ifndef hifi_MyAvatar_h
 #define hifi_MyAvatar_h
 
-#include <QSettings>
-
 #include <PhysicsSimulation.h>
+#include <SettingHandle.h>
 
 #include "Avatar.h"
 
@@ -47,12 +46,14 @@ public:
     void setLeanScale(float scale) { _leanScale = scale; }
     void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
+    void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
     // getters
     float getLeanScale() const { return _leanScale; }
     glm::vec3 getGravity() const { return _gravity; }
-    glm::vec3 getDefaultEyePosition() const;
+    Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
+    float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
     
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
     AnimationHandlePointer addAnimationHandle();
@@ -78,8 +79,8 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     
     // get/set avatar data
-    void saveData(QSettings* settings);
-    void loadData(QSettings* settings);
+    void saveData();
+    void loadData();
 
     void saveAttachmentData(const AttachmentData& attachment) const;
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;
@@ -224,6 +225,8 @@ private:
     RecorderPointer _recorder;
     
     glm::vec3 _trackedHeadPosition;
+    
+    Setting::Handle<float> _realWorldFieldOfView;
     
 	// private methods
     void updateOrientation(float deltaTime);

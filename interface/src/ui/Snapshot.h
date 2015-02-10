@@ -12,15 +12,15 @@
 #ifndef hifi_Snapshot_h
 #define hifi_Snapshot_h
 
-#include "InterfaceConfig.h"
+#include <glm/glm.hpp>
 
-#include <qimage.h>
-#include <qfile.h>
-#include <qtemporaryfile.h>
-#include <QGLWidget>
-#include <qstring.h>
+#include <QString>
+#include <QStandardPaths>
 
-#include "avatar/Avatar.h"
+#include <SettingHandle.h>
+
+class QFile;
+class QTemporaryFile;
 
 class SnapshotMetaData {
 public:
@@ -41,12 +41,12 @@ private:
 };
 
 class Snapshot {
-
 public:
     static QString saveSnapshot();
     static QTemporaryFile* saveTempSnapshot();
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
     
+    static Setting::Handle<QString> snapshotsLocation;
 private:
     static QFile* savedFileForSnapshot(bool isTemporary);
 };

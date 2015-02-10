@@ -43,5 +43,5 @@ void main(void) {
     gl_FrontColor = vec4(1.0, 1.0, 1.0, step(height, 0.0));
     
     // pass along the scaled/offset texture coordinates
-    gl_TexCoord[0] = vec4((heightCoord - heightScale.st) * colorScale, 0.0, 1.0);
+    gl_TexCoord[0] = vec4((heightCoord - vec2(0.5, 0.5)) * colorScale + vec2(0.5, 0.5), 0.0, 1.0);
 }

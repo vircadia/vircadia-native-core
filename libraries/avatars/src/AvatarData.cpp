@@ -1021,6 +1021,7 @@ void AvatarData::setBillboardFromURL(const QString &billboardURL) {
     qDebug() << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
     
     QNetworkRequest billboardRequest;
+    billboardRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     billboardRequest.setUrl(QUrl(billboardURL));
     
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
@@ -1067,6 +1068,13 @@ void AvatarData::setJointMappingsFromNetworkReply() {
     networkReply->deleteLater();
 }
 
+void AvatarData::sendAvatarDataPacket() {
+    QByteArray dataPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+    dataPacket.append(toByteArray());
+    
+    DependencyManager::get<NodeList>()->broadcastToNodes(dataPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
 void AvatarData::sendIdentityPacket() {
     QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
     identityPacket.append(identityByteArray());
@@ -1089,7 +1097,9 @@ void AvatarData::updateJointMappings() {
     
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkReply* networkReply = networkAccessManager.get(QNetworkRequest(_skeletonModelURL));
+        QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
         connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
     }
 }

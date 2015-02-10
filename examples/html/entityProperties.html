@@ -119,6 +119,7 @@
             var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
             var elLifetime = document.getElementById("property-lifetime");
             var elScriptURL = document.getElementById("property-script-url");
+            var elUserData = document.getElementById("property-user-data");
 
             var elBoxSections = document.querySelectorAll(".box-section");
             var elBoxColorRed = document.getElementById("property-box-red");
@@ -224,6 +225,7 @@
                             elCollisionsWillMove.checked = properties.collisionsWillMove;
                             elLifetime.value = properties.lifetime;
                             elScriptURL.value = properties.script;
+                            elUserData.value = properties.userData;
 
                             if (properties.type != "Box") {
                                 for (var i = 0; i < elBoxSections.length; i++) {
@@ -361,6 +363,7 @@
             elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
             elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
+            elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
 
             var boxColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'color', elBoxColorRed, elBoxColorGreen, elBoxColorBlue);
@@ -559,13 +562,6 @@
         </div>
 
         <div class="property">
-            <div class="label">Mass</div>
-            <div class="value">
-                <input type='number' id="property-mass"></input>
-            </div>
-        </div>
-
-        <div>
             <div class="label">Density</div>
             <div>
                 <input type='number' id="property-density"></input>
@@ -597,6 +593,13 @@
             <div class="label">Script URL</div>
             <div class="value">
                 <input id="property-script-url" class="url"></input>
+            </div>
+        </div>
+
+        <div class="property">
+            <div class="label">User Data</div>
+            <div class="value">
+                <textarea id="property-user-data"></textarea>
             </div>
         </div>
 
@@ -645,7 +648,7 @@
         <div class="model-section property">
             <div class="label">Animation Settings</div>
             <div class="value">
-                <textarea id="property-model-animation-settings" value='asdfasdf'></textarea>
+                <textarea id="property-model-animation-settings"></textarea>
             </div>
         </div>
         <div class="model-section property">

@@ -1,0 +1,43 @@
+<!
+//  DeferredBufferWrite.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 1/12/15.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not DEFERRED_BUFFER_WRITE_SLH@>
+<@def DEFERRED_BUFFER_WRITE_SLH@>
+
+// the glow intensity
+uniform float glowIntensity;
+
+// the alpha threshold
+uniform float alphaThreshold;
+
+float evalOpaqueFinalAlpha(float alpha, float mapAlpha) {
+    return mix(alpha * glowIntensity, 1.0 - alpha * glowIntensity, step(mapAlpha, alphaThreshold));
+}
+
+void packDeferredFragment(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess) {
+    gl_FragData[0] = vec4(diffuse.rgb, alpha);
+    gl_FragData[1] = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
+    gl_FragData[2] = vec4(specular, shininess / 128.0);
+}
+
+void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess, vec3 emissive) {
+    gl_FragData[0] = vec4(diffuse.rgb, alpha);
+    //gl_FragData[1] = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
+    gl_FragData[1] = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
+    gl_FragData[2] = vec4(emissive, shininess / 128.0);
+}
+
+void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess) {
+    gl_FragData[0] = vec4(diffuse.rgb, alpha);
+  //  gl_FragData[1] = vec4(normal, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
+  //  gl_FragData[2] = vec4(specular, shininess / 128.0);
+}
+
+<@endif@>

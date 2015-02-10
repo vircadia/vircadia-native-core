@@ -9,9 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "MainWindow.h"
-#include "Menu.h"
-
+#include <QApplication>
+#include <QDesktopWidget>
 #include <QEvent>
 #include <QMoveEvent>
 #include <QResizeEvent>
@@ -19,8 +18,29 @@
 #include <QHideEvent>
 #include <QWindowStateChangeEvent>
 
+#include "MainWindow.h"
+#include "Menu.h"
+#include "Util.h"
+
 MainWindow::MainWindow(QWidget* parent) :
-    QMainWindow(parent) {
+    QMainWindow(parent),
+    _windowGeometry("WindowGeometry")
+{
+}
+
+void MainWindow::restoreGeometry() {
+    // Did not use setGeometry() on purpose,
+    // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
+    QRect geometry = _windowGeometry.get(qApp->desktop()->availableGeometry());
+    move(geometry.topLeft());
+    resize(geometry.size());
+}
+
+void MainWindow::saveGeometry() {
+    // Did not use geometry() on purpose,
+    // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
+    QRect geometry(pos(), size());
+    _windowGeometry.set(geometry);
 }
 
 void MainWindow::moveEvent(QMoveEvent* event) {

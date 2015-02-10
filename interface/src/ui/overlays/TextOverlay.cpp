@@ -70,7 +70,7 @@ void TextOverlay::render(RenderArgs* args) {
 
     const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
-    glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
+    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR,
         getBackgroundAlpha());
 
     int left = _bounds.left();
@@ -80,7 +80,7 @@ void TextOverlay::render(RenderArgs* args) {
 
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
 
     // Same font properties as textSize()
     TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
@@ -90,19 +90,9 @@ void TextOverlay::render(RenderArgs* args) {
     int x = _bounds.left() + _leftMargin + leftAdjust;
     int y = _bounds.top() + _topMargin + topAdjust;
     
-    glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
     float alpha = getAlpha();
-    QStringList lines = _text.split("\n");
-    int lineOffset = 0;
-    foreach(QString thisLine, lines) {
-        if (lineOffset == 0) {
-            lineOffset = textRenderer->calculateHeight(qPrintable(thisLine));
-        }
-        lineOffset += textRenderer->draw(x, y + lineOffset, qPrintable(thisLine), alpha);
-
-        const int lineGap = 2;
-        lineOffset += lineGap;
-    }
+    glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, alpha };
+    textRenderer->draw(x, y, _text, textColor);
 }
 
 void TextOverlay::setProperties(const QScriptValue& properties) {

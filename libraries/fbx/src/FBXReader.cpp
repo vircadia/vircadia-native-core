@@ -22,6 +22,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <FaceshiftConstants.h>
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
 #include <OctalCode.h>
@@ -610,60 +611,6 @@ QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
 
-const char* FACESHIFT_BLENDSHAPES[] = {
-    "EyeBlink_L",
-    "EyeBlink_R",
-    "EyeSquint_L",
-    "EyeSquint_R",
-    "EyeDown_L",
-    "EyeDown_R",
-    "EyeIn_L",
-    "EyeIn_R",
-    "EyeOpen_L",
-    "EyeOpen_R",
-    "EyeOut_L",
-    "EyeOut_R",
-    "EyeUp_L",
-    "EyeUp_R",
-    "BrowsD_L",
-    "BrowsD_R",
-    "BrowsU_C",
-    "BrowsU_L",
-    "BrowsU_R",
-    "JawFwd",
-    "JawLeft",
-    "JawOpen",
-    "JawChew",
-    "JawRight",
-    "MouthLeft",
-    "MouthRight",
-    "MouthFrown_L",
-    "MouthFrown_R",
-    "MouthSmile_L",
-    "MouthSmile_R",
-    "MouthDimple_L",
-    "MouthDimple_R",
-    "LipsStretch_L",
-    "LipsStretch_R",
-    "LipsUpperClose",
-    "LipsLowerClose",
-    "LipsUpperUp",
-    "LipsLowerDown",
-    "LipsUpperOpen",
-    "LipsLowerOpen",
-    "LipsFunnel",
-    "LipsPucker",
-    "ChinLowerRaise",
-    "ChinUpperRaise",
-    "Sneer",
-    "Puff",
-    "CheekSquint_L",
-    "CheekSquint_R",
-    ""
-};
-
-const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
-
 const char* HUMANIK_JOINTS[] = {
     "RightHand",
     "RightForeArm",
@@ -1219,7 +1166,7 @@ int matchTextureUVSetToAttributeChannel(const QString& texUVSetName, const QHash
 
 FBXLight extractLight(const FBXNode& object) {
     FBXLight light;
-
+    int unkwnon = 0;
     foreach (const FBXNode& subobject, object.children) {
         QString childname = QString(subobject.name);
         if (subobject.name == "Properties70") {
@@ -1230,6 +1177,8 @@ FBXLight extractLight(const FBXNode& object) {
                     QString propname = property.properties.at(0).toString();
                     if (propname == "Intensity") {
                         light.intensity = 0.01f * property.properties.at(valIndex).value<double>();
+                    } else if (propname == "Color") {
+                        light.color = getVec3(property.properties, valIndex);
                     }
                 }
             }
@@ -1303,6 +1252,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     QString jointRightHandID;
     QString jointLeftToeID;
     QString jointRightToeID;
+
+    float lightmapOffset = 0.0f;
     
     QVector<QString> humanIKJointNames;
     for (int i = 0;; i++) {
@@ -1815,6 +1766,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                 if (lightmapLevel <= 0.0f) {
                                     loadLightmaps = false;
                                 }
+                                lightmapOffset = glm::clamp((*lit).second.color.x, 0.f, 1.f);
                             }
                         }
                     }
@@ -2123,7 +2075,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 
                 FBXTexture emissiveTexture;
                 glm::vec2 emissiveParams(0.f, 1.f);
+                emissiveParams.x = lightmapOffset;
                 emissiveParams.y = lightmapLevel;
+
                 QString emissiveTextureID = emissiveTextures.value(childID);
                 QString ambientTextureID = ambientTextures.value(childID);
                 if (loadLightmaps && (!emissiveTextureID.isNull() || !ambientTextureID.isNull())) {

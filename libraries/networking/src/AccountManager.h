@@ -48,13 +48,15 @@ public:
                               QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
                               const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                               const QByteArray& dataByteArray = QByteArray(),
-                              QHttpMultiPart* dataMultiPart = NULL);
+                              QHttpMultiPart* dataMultiPart = NULL,
+                              const QVariantMap& propertyMap = QVariantMap());
     
     void unauthenticatedRequest(const QString& path,
                                 QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
                                 const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                                 const QByteArray& dataByteArray = QByteArray(),
-                                QHttpMultiPart* dataMultiPart = NULL);
+                                QHttpMultiPart* dataMultiPart = NULL,
+                                const QVariantMap& propertyMap = QVariantMap()) ;
 
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
@@ -67,12 +69,13 @@ public:
     Q_INVOKABLE bool checkAndSignalForAccessToken();
     void setAccessTokenForCurrentAuthURL(const QString& accessToken);
 
-    void requestAccessToken(const QString& login, const QString& password);
     void requestProfile();
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
 
 public slots:
+    void requestAccessToken(const QString& login, const QString& password);
+    
     void requestAccessTokenFinished();
     void requestProfileFinished();
     void requestAccessTokenError(QNetworkReply::NetworkError error);
@@ -109,7 +112,8 @@ private:
                                     QNetworkAccessManager::Operation operation,
                                     const JSONCallbackParameters& callbackParams,
                                     const QByteArray& dataByteArray,
-                                    QHttpMultiPart* dataMultiPart);
+                                    QHttpMultiPart* dataMultiPart,
+                                    const QVariantMap& propertyMap);
 
     QUrl _authURL;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;

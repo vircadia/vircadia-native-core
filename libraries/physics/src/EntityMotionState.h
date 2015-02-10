@@ -15,14 +15,6 @@
 #include <AACube.h>
 
 #include "ObjectMotionState.h"
-#ifndef USE_BULLET_PHYSICS
-// ObjectMotionState stubbery
-class ObjectMotionState {
-public:
-    // so that this stub implementation is not completely empty we give the class a data member
-    bool _stubData;
-};
-#endif // USE_BULLET_PHYSICS
 
 class EntityItem;
 
@@ -39,19 +31,21 @@ public:
     static void setOutgoingEntityList(QSet<EntityItem*>* list);
     static void enqueueOutgoingEntity(EntityItem* entity);
 
+    EntityMotionState() = delete; // prevent compiler from making default ctor
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
     MotionType computeMotionType() const;
 
-#ifdef USE_BULLET_PHYSICS
+    void updateKinematicState(uint32_t substep);
+    void stepKinematicSimulation(quint64 now);
+
     // this relays incoming position/rotation to the RigidBody
     void getWorldTransform(btTransform& worldTrans) const;
 
     // this relays outgoing position/rotation to the EntityItem
     void setWorldTransform(const btTransform& worldTrans);
-#endif // USE_BULLET_PHYSICS
 
     // these relay incoming values to the RigidBody
     void updateObjectEasy(uint32_t flags, uint32_t frame);
@@ -62,8 +56,10 @@ public:
 
     void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
 
-    uint32_t getIncomingDirtyFlags() const { return _entity->getDirtyFlags(); }
+    uint32_t getIncomingDirtyFlags() const;
     void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
+
+    EntityItem* getEntity() const { return _entity; }
 
 protected:
     EntityItem* _entity;

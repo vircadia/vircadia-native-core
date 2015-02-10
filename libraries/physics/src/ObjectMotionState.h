@@ -12,7 +12,13 @@
 #ifndef hifi_ObjectMotionState_h
 #define hifi_ObjectMotionState_h
 
+#include <btBulletDynamicsCommon.h>
+#include <glm/glm.hpp>
+
 #include <EntityItem.h>
+
+#include "ContactInfo.h"
+#include "ShapeInfo.h"
 
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
@@ -20,9 +26,14 @@ enum MotionType {
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
+enum MotionStateType {
+    MOTION_STATE_TYPE_UNKNOWN,
+    MOTION_STATE_TYPE_ENTITY,
+    MOTION_STATE_TYPE_AVATAR
+};
+
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
 // and re-added to the physics engine and "easy" which just updates the body properties.
-typedef unsigned int uint32_t;
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY |
                 EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP);
@@ -33,13 +44,6 @@ const uint32_t DIRTY_PHYSICS_FLAGS = HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSI
 // These are the outgoing flags that the PhysicsEngine can affect:
 const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY;
 
-#ifdef USE_BULLET_PHYSICS
-
-#include <btBulletDynamicsCommon.h>
-#include <glm/glm.hpp>
-#include <EntityItem.h> // for EntityItem::DIRTY_FOO bitmasks
-
-#include "ShapeInfo.h"
 
 class OctreeEditPacketSender;
 
@@ -60,6 +64,7 @@ public:
     virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
     virtual void updateObjectVelocities() = 0;
 
+    MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
 
     virtual void computeShapeInfo(ShapeInfo& info) = 0;
@@ -87,9 +92,22 @@ public:
 
     virtual MotionType computeMotionType() const = 0;
 
+    virtual void updateKinematicState(uint32_t substep) = 0;
+
+    btRigidBody* getRigidBody() const { return _body; }
+
+    bool isKinematic() const { return _isKinematic; }
+
+    void setKinematic(bool kinematic, uint32_t substep);
+    virtual void stepKinematicSimulation(quint64 now) = 0;
+
     friend class PhysicsEngine;
 protected:
-    // TODO: move these materials properties to EntityItem
+    void setRigidBody(btRigidBody* body);
+
+    MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN;
+
+    // TODO: move these materials properties outside of ObjectMotionState
     float _friction;
     float _restitution;
     float _linearDamping;
@@ -97,8 +115,10 @@ protected:
 
     MotionType _motionType;
 
-    // _body has NO setters -- it is only changed by PhysicsEngine
     btRigidBody* _body;
+
+    bool _isKinematic = false;
+    uint32_t _lastKinematicSubstep = 0;
 
     bool _sentMoving;   // true if last update was moving
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
@@ -112,5 +132,4 @@ protected:
     glm::vec3 _sentAcceleration;
 };
 
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_ObjectMotionState_h

@@ -24,18 +24,18 @@ class MyAvatar;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
     
     /// Registers the script types associated with the avatar manager.
     static void registerMetaTypes(QScriptEngine* engine);
 
-    AvatarManager(QObject* parent = 0);
-
     void init();
 
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
+    void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
     void renderAvatars(Avatar::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
     
@@ -51,6 +51,7 @@ public:
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
     
 private:
+    AvatarManager(QObject* parent = 0);
     AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
@@ -63,6 +64,7 @@ private:
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;
+    quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
     
     QVector<AvatarManager::LocalLight> _localLights;
 };

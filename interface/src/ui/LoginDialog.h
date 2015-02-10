@@ -27,6 +27,11 @@ public:
     ~LoginDialog();
 
 public slots:
+    void toggleQAction();
+    void showLoginForCurrentDomain();
+    
+protected slots:
+    void reset();
     void handleLoginClicked();
     void handleLoginCompleted(const QUrl& authURL);
     void handleLoginFailed();
@@ -35,8 +40,7 @@ protected:
     void moveEvent(QMoveEvent* event);
 
 private:
-    Ui::LoginDialog* _ui;
-
+    Ui::LoginDialog* _ui = nullptr;
 };
 
 #endif // hifi_LoginDialog_h

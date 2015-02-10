@@ -11,6 +11,7 @@
 
 #include <QTimer>
 
+#include <GLMHelpers.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 
@@ -54,7 +55,9 @@ Faceshift::Faceshift() :
     _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
-    _longTermAverageInitialized(false)
+    _longTermAverageInitialized(false),
+    _eyeDeflection("faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION),
+    _hostname("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME)
 {
 #ifdef HAVE_FACESHIFT
     connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
@@ -159,7 +162,7 @@ void Faceshift::connectSocket() {
             qDebug("Faceshift: Connecting...");
         }
 
-        _tcpSocket.connectToHost(Menu::getInstance()->getFaceshiftHostname(), FACESHIFT_PORT);
+        _tcpSocket.connectToHost(_hostname.get(), FACESHIFT_PORT);
         _tracking = false;
     }
 }
@@ -308,4 +311,12 @@ void Faceshift::receive(const QByteArray& buffer) {
         }
     }
 #endif
+}
+
+void Faceshift::setEyeDeflection(float faceshiftEyeDeflection) {
+    _eyeDeflection.set(faceshiftEyeDeflection);
+}
+
+void Faceshift::setHostname(const QString& hostname) {
+    _hostname.set(hostname);
 }

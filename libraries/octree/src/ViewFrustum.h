@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 
 #include "AABox.h"
@@ -27,13 +28,14 @@
 
 const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
-const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = TREE_SCALE;
 
 class ViewFrustum {
 public:
+    ViewFrustum();
+    
     // setters for camera attributes
     void setPosition(const glm::vec3& p) { _position = p; _positionVoxelScale = (p / (float)TREE_SCALE); }
     void setOrientation(const glm::quat& orientationAsQuaternion);
@@ -91,8 +93,6 @@ public:
 
     void calculate();
 
-    ViewFrustum();
-
     typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
 
     ViewFrustum::location pointInFrustum(const glm::vec3& point) const;
@@ -132,47 +132,49 @@ private:
     ViewFrustum::location boxInKeyhole(const AABox& box) const;
 
     void calculateOrthographic();
-
+    
     // camera location/orientation attributes
-    glm::vec3 _position; // the position in TREE_SCALE
-    glm::vec3 _positionVoxelScale; // the position in voxel scale
-    glm::quat _orientation;
+    glm::vec3 _position = glm::vec3(0.0f); // the position in TREE_SCALE
+    glm::vec3 _positionVoxelScale = glm::vec3(0.0f); // the position in voxel scale
+    glm::quat _orientation = glm::quat();
 
     // calculated for orientation
-    glm::vec3 _direction;
-    glm::vec3 _up;
-    glm::vec3 _right;
+    glm::vec3 _direction = IDENTITY_FRONT;
+    glm::vec3 _up = IDENTITY_UP;
+    glm::vec3 _right = IDENTITY_RIGHT;
 
     // Lens attributes
-    bool _orthographic;
-    float _width;
-    float _height;
-    float _fieldOfView; // degrees
-    float _aspectRatio;
-    float _nearClip;
-    float _farClip;
-    float _focalLength;
-    glm::vec3 _eyeOffsetPosition;
-    glm::quat _eyeOffsetOrientation;
+    bool _orthographic = false;
+    float _width = 1.0f;
+    float _height = 1.0f;
+    float _aspectRatio = 1.0f;
+    float _nearClip = DEFAULT_NEAR_CLIP;
+    float _farClip = DEFAULT_FAR_CLIP;
+    float _focalLength = 0.25f;
+    glm::vec3 _eyeOffsetPosition = glm::vec3(0.0f);
+    glm::quat _eyeOffsetOrientation = glm::quat();
+    
+    // in Degrees, doesn't apply to HMD like Oculus
+    float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
 
     // keyhole attributes
-    float _keyholeRadius;
+    float _keyholeRadius = DEFAULT_KEYHOLE_RADIUS;
     AACube _keyholeBoundingCube;
 
 
     // Calculated values
-    glm::vec3 _offsetPosition;
-    glm::vec3 _offsetDirection;
-    glm::vec3 _offsetUp;
-    glm::vec3 _offsetRight;
-    glm::vec3 _farTopLeft;
-    glm::vec3 _farTopRight;
-    glm::vec3 _farBottomLeft;
-    glm::vec3 _farBottomRight;
-    glm::vec3 _nearTopLeft;
-    glm::vec3 _nearTopRight;
-    glm::vec3 _nearBottomLeft;
-    glm::vec3 _nearBottomRight;
+    glm::vec3 _offsetPosition = glm::vec3(0.0f);
+    glm::vec3 _offsetDirection = glm::vec3(0.0f);
+    glm::vec3 _offsetUp = glm::vec3(0.0f);
+    glm::vec3 _offsetRight = glm::vec3(0.0f);
+    glm::vec3 _farTopLeft = glm::vec3(0.0f);
+    glm::vec3 _farTopRight = glm::vec3(0.0f);
+    glm::vec3 _farBottomLeft = glm::vec3(0.0f);
+    glm::vec3 _farBottomRight = glm::vec3(0.0f);
+    glm::vec3 _nearTopLeft = glm::vec3(0.0f);
+    glm::vec3 _nearTopRight = glm::vec3(0.0f);
+    glm::vec3 _nearBottomLeft = glm::vec3(0.0f);
+    glm::vec3 _nearBottomRight = glm::vec3(0.0f);
     enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
     ::Plane _planes[6]; // How will this be used?
 

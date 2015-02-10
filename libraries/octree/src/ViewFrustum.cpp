@@ -18,44 +18,21 @@
 #include <QtCore/QDebug>
 
 #include "GeometryUtil.h"
+#include "GLMHelpers.h"
 #include "SharedUtil.h"
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
 
 using namespace std;
 
-ViewFrustum::ViewFrustum() :
-    _position(0,0,0),
-    _positionVoxelScale(0,0,0),
-    _orientation(),
-    _direction(IDENTITY_FRONT),
-    _up(IDENTITY_UP),
-    _right(IDENTITY_RIGHT),
-    _orthographic(false),
-    _width(1.0f),
-    _height(1.0f),
-    _fieldOfView(0.0),
-    _aspectRatio(1.0f),
-    _nearClip(DEFAULT_NEAR_CLIP),
-    _farClip(DEFAULT_FAR_CLIP),
-    _focalLength(0.25f),
-    _keyholeRadius(DEFAULT_KEYHOLE_RADIUS),
-    _farTopLeft(0,0,0),
-    _farTopRight(0,0,0),
-    _farBottomLeft(0,0,0),
-    _farBottomRight(0,0,0),
-    _nearTopLeft(0,0,0),
-    _nearTopRight(0,0,0),
-    _nearBottomLeft(0,0,0),
-    _nearBottomRight(0,0,0)
-{
+ViewFrustum::ViewFrustum() {
 }
 
 void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
     _orientation = orientationAsQuaternion;
-    _right       = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_RIGHT, 0.0f));
-    _up          = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_UP,    0.0f));
-    _direction   = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FRONT, 0.0f));
+    _right = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_RIGHT, 0.0f));
+    _up = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_UP,    0.0f));
+    _direction = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FRONT, 0.0f));
 }
 
 // ViewFrustum::calculateViewFrustum()

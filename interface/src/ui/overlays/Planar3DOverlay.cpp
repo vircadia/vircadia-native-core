@@ -93,7 +93,6 @@ QScriptValue Planar3DOverlay::getProperty(const QString& property) {
 
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
-
     RayIntersectionInfo rayInfo;
     rayInfo._rayStart = origin;
     rayInfo._rayDirection = direction;
@@ -110,9 +109,13 @@ bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
 
     if (intersects) {
         distance = rayInfo._hitDistance;
-        // TODO: if it intersects, we want to check to see if the intersection point is within our dimensions
-        // glm::vec3 hitAt = origin + direction * distance;
-        // _dimensions
+
+        glm::vec3 hitPosition = origin + (distance * direction);
+        glm::vec3 localHitPosition = glm::inverse(_rotation) * (hitPosition - _position);
+        glm::vec2 halfDimensions = _dimensions / 2.0f;
+
+        intersects = -halfDimensions.x <= localHitPosition.x && localHitPosition.x <= halfDimensions.x
+            && -halfDimensions.y <= localHitPosition.y && localHitPosition.y <= halfDimensions.y;
     }
     return intersects;
 }

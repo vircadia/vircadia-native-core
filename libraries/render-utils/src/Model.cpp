@@ -178,7 +178,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
     locations.texcoordMatrices = program.uniformLocation("texcoordMatrices");
     locations.emissiveParams = program.uniformLocation("emissiveParams");
-
+    locations.glowIntensity = program.uniformLocation("glowIntensity");
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
 
@@ -196,6 +196,35 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
         locations.emissiveTextureUnit = 3;
     } else {
         locations.emissiveTextureUnit = -1;
+    }
+
+    // bindable uniform version
+#if defined(Q_OS_MAC)
+    loc = program.uniformLocation("materialBuffer");
+    if (loc >= 0) {
+        locations.materialBufferUnit = loc;
+    } else {
+        locations.materialBufferUnit = -1;
+    }
+#elif defined(Q_OS_WIN)
+    loc = glGetUniformBlockIndex(program.programId(), "materialBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, 1);
+        locations.materialBufferUnit = 1;
+    } else {
+        locations.materialBufferUnit = -1;
+    }
+#else
+    loc = program.uniformLocation("materialBuffer");
+    if (loc >= 0) {
+        locations.materialBufferUnit = loc;
+    } else {
+        locations.materialBufferUnit = -1;
+    }
+#endif
+
+    if (!program.isLinked()) {
+        program.release();
     }
 
     program.release();
@@ -782,6 +811,15 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     if (mode == SHADOW_RENDER_MODE) {
         GLBATCH(glCullFace)(GL_BACK);
     }
+
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 1);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 2);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 3);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
 
     // deactivate vertex arrays after drawing
     GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
@@ -1739,6 +1777,17 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
             GLBATCH(glCullFace)(GL_BACK);
         }
 
+        
+        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 1);
+        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 2);
+        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 3);
+        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+
+
         // deactivate vertex arrays after drawing
         GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
         GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
@@ -2195,7 +2244,10 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
     
     GLBATCH(glUseProgram)(activeProgram->programId());
-    GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+
+    if ((activeLocations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
+        GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+    }
 }
 
 int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
@@ -2319,7 +2371,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
             }
         }
 
-        GLBATCH(glPushMatrix)();
+    //    GLBATCH(glPushMatrix)();
 
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
@@ -2348,6 +2400,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
             const FBXMeshPart& part = mesh.parts.at(j);
+            model::MaterialPointer material = part._material;
             if ((networkPart.isTranslucent() || part.opacity != 1.0f) != translucent) {
                 offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
@@ -2355,7 +2408,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
             // apply material properties
             if (mode == SHADOW_RENDER_MODE) {
-                GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+             ///   GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
                 
             } else {
                 if (lastMaterialID != part.materialID) {
@@ -2366,15 +2419,16 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         qDebug() << "NEW part.materialID:" << part.materialID;
                     }
 
-                    glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
-                    if (!(translucent && alphaThreshold == 0.0f)) {
-                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = glowEffect->getIntensity());
+                    if (locations->glowIntensity >= 0) {
+                        GLBATCH(glUniform1f)(locations->glowIntensity, glowEffect->getIntensity());
                     }
-                    glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-                    GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, (part.shininess > 128.0f ? 128.0f: part.shininess));
+                    if (!(translucent && alphaThreshold == 0.0f)) {
+                        GLBATCH(glAlphaFunc)(GL_EQUAL, glowEffect->getIntensity());
+                    }
+
+                    if (locations->materialBufferUnit >= 0) {
+                        batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
+                    }
 
                     Texture* diffuseMap = networkPart.diffuseTexture.data();
                     if (mesh.isEye && diffuseMap) {
@@ -2383,9 +2437,12 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
                     static bool showDiffuse = true;
                     if (showDiffuse && diffuseMap) {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
+                       // GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
+                        batch.setUniformTexture(0, diffuseMap->getGPUTexture());
+                        
                     } else {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, textureCache->getWhiteTextureID());
+                     //   GLBATCH(glBindTexture)(GL_TEXTURE_2D, textureCache->getWhiteTextureID());
+                        batch.setUniformTexture(0, textureCache->getWhiteTexture());
                     }
 
                     if (locations->texcoordMatrices >= 0) {
@@ -2400,19 +2457,16 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
 
                     if (!mesh.tangents.isEmpty()) {                 
-                        GLBATCH(glActiveTexture)(GL_TEXTURE1);
                         Texture* normalMap = networkPart.normalTexture.data();
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !normalMap ?
-                            textureCache->getBlueTextureID() : normalMap->getID());
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                        batch.setUniformTexture(1, !normalMap ?
+                            textureCache->getBlueTexture() : normalMap->getGPUTexture());
+
                     }
                 
                     if (locations->specularTextureUnit >= 0) {
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
                         Texture* specularMap = networkPart.specularTexture.data();
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !specularMap ?
-                            textureCache->getWhiteTextureID() : specularMap->getID());
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                        batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
+                                                    textureCache->getWhiteTexture() : specularMap->getGPUTexture());
                     }
 
                     if (args) {
@@ -2429,11 +2483,9 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     float emissiveScale = part.emissiveParams.y;
                     GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
 
-                    GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                     Texture* emissiveMap = networkPart.emissiveTexture.data();
-                    GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
-                        textureCache->getWhiteTextureID() : emissiveMap->getID());
-                    GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                        batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
+                                                    textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
                 }
 
                 lastMaterialID = part.materialID;
@@ -2458,27 +2510,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                 args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
             }
         }
-
-        if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
-            GLBATCH(glActiveTexture)(GL_TEXTURE1);
-            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-            GLBATCH(glActiveTexture)(GL_TEXTURE0);
-        }
-
-        if (locations->specularTextureUnit >= 0) {
-            GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
-            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-            GLBATCH(glActiveTexture)(GL_TEXTURE0);
-        }
-
-        if (locations->emissiveTextureUnit >= 0) {
-            GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
-            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-            GLBATCH(glActiveTexture)(GL_TEXTURE0);
-        }
-
-        GLBATCH(glPopMatrix)();
-
     }
 
     return meshPartsRendered;

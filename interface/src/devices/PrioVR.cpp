@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <QtDebug>
 
+#include <avatar/AvatarManager.h>
 #include <FBXReader.h>
 #include <PerfStat.h>
 #include <TextRenderer.h>
@@ -42,7 +43,7 @@ static int indexOfHumanIKJoint(const char* jointName) {
 }
 
 static void setPalm(float deltaTime, int index) {
-    MyAvatar* avatar = Application::getInstance()->getAvatar();
+    MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     Hand* hand = avatar->getHand();
     PalmData* palm;
     bool foundHand = false;
@@ -86,9 +87,9 @@ static void setPalm(float deltaTime, int index) {
     // TODO: transfom this to stay in the model-frame.
     glm::vec3 position;
     glm::quat rotation;
-    SkeletonModel* skeletonModel = &Application::getInstance()->getAvatar()->getSkeletonModel();
+    SkeletonModel* skeletonModel = &DependencyManager::get<AvatarManager>()->getMyAvatar()->getSkeletonModel();
     int jointIndex;
-    glm::quat inverseRotation = glm::inverse(Application::getInstance()->getAvatar()->getOrientation());
+    glm::quat inverseRotation = glm::inverse(DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation());
     if (index == LEFT_HAND_INDEX) {
         jointIndex = skeletonModel->getLeftHandJointIndex();
         skeletonModel->getJointRotationInWorldFrame(jointIndex, rotation);      
@@ -216,8 +217,8 @@ void PrioVR::renderCalibrationCountdown() {
         false, TextRenderer::OUTLINE_EFFECT, 2);
     QByteArray text = "Assume T-Pose in " + QByteArray::number(secondsRemaining) + "...";
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    textRenderer->draw((glCanvas->width() - textRenderer->computeWidth(text.constData())) / 2,
+    textRenderer->draw((glCanvas->width() - textRenderer->computeExtent(text.constData()).x) / 2,
                        glCanvas->height() / 2,
-                       text);
+                       text, glm::vec4(1,1,1,1));
 #endif  
 }

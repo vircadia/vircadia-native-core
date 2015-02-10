@@ -16,6 +16,7 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <DependencyManager.h>
 #include <Node.h>
 
 #include "AvatarData.h"
@@ -24,23 +25,24 @@ typedef QSharedPointer<AvatarData> AvatarSharedPointer;
 typedef QWeakPointer<AvatarData> AvatarWeakPointer;
 typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
 
-class AvatarHashMap : public QObject {
+class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
-public:
-    AvatarHashMap();
+    SINGLETON_DEPENDENCY
     
+public:
     const AvatarHash& getAvatarHash() { return _avatarHash; }
-    int size() const { return _avatarHash.size(); }
+    int size() { return _avatarHash.size(); }
     
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     bool containsAvatarWithDisplayName(const QString& displayName);
-    AvatarData* avatarWithDisplayName(const QString& displayname);
+    AvatarWeakPointer avatarWithDisplayName(const QString& displayname);
     
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
     
 protected:
+    AvatarHashMap();
     virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
     
     bool shouldKillAvatar(const AvatarSharedPointer& sharedAvatar);

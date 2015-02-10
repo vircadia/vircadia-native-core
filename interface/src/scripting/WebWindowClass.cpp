@@ -41,17 +41,25 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 
     _dockWidget = new QDockWidget(title, toolWindow);
     _dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
-    QWebView* webView = new QWebView(_dockWidget);
-    webView->page()->mainFrame()->addToJavaScriptWindowObject("EventBridge", _eventBridge);
-    webView->setUrl(url);
-    _dockWidget->setWidget(webView);
+
+    _webView = new QWebView(_dockWidget);
+    _webView->setUrl(url);
+    addEventBridgeToWindowObject();
+
+    _dockWidget->setWidget(_webView);
 
     toolWindow->addDockWidget(Qt::RightDockWidgetArea, _dockWidget);
 
+    connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
+            this, &WebWindowClass::addEventBridgeToWindowObject);
     connect(this, &WebWindowClass::destroyed, _dockWidget, &QWidget::deleteLater);
 }
 
 WebWindowClass::~WebWindowClass() {
+}
+
+void WebWindowClass::addEventBridgeToWindowObject() {
+    _webView->page()->mainFrame()->addToJavaScriptWindowObject("EventBridge", _eventBridge);
 }
 
 void WebWindowClass::setVisible(bool visible) {

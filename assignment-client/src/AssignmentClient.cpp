@@ -9,14 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QProcess>
-#include <QtCore/qsharedmemory.h>
-#include <QtCore/QThread>
-#include <QtCore/QTimer>
+#include <QProcess>
+#include <QSettings>
+#include <QSharedMemory>
+#include <QThread>
+#include <QTimer>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
+#include <AvatarHashMap.h>
 #include <HifiConfigVariantMap.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
@@ -54,6 +56,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
+    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32

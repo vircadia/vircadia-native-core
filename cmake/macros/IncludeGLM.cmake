@@ -8,12 +8,6 @@
 # 
 
 macro(INCLUDE_GLM)
-
 	find_package(GLM REQUIRED)
-	include_directories("${GLM_INCLUDE_DIRS}")
-
-  if (APPLE OR UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${GLM_INCLUDE_DIRS}")
-  endif ()
-
+	include_directories(SYSTEM "${GLM_INCLUDE_DIRS}")
 endmacro(INCLUDE_GLM)

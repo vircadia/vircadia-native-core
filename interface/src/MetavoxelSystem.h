@@ -26,8 +26,8 @@
 class HeightfieldBaseLayerBatch;
 class HeightfieldSplatBatch;
 class HermiteBatch;
+class MetavoxelBatch;
 class Model;
-class VoxelBatch;
 class VoxelSplatBatch;
 
 /// Renders a metavoxel tree.
@@ -59,47 +59,34 @@ public:
     void setNetworkSimulation(const NetworkSimulation& simulation);
     NetworkSimulation getNetworkSimulation();
     
-    const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
-    const AttributePointer& getVoxelBufferAttribute() { return _voxelBufferAttribute; }
-    
     void simulate(float deltaTime);
     void render();
 
     void renderHeightfieldCursor(const glm::vec3& position, float radius);
 
-    void renderVoxelCursor(const glm::vec3& position, float radius);
-
-    bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
-
     Q_INVOKABLE void paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color);
 
     Q_INVOKABLE void paintHeightfieldMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material);
         
-    Q_INVOKABLE void paintVoxelColor(const glm::vec3& position, float radius, const QColor& color);
-    
-    Q_INVOKABLE void paintVoxelMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material);
+    Q_INVOKABLE void setHeightfieldColor(const SharedObjectPointer& spanner, const QColor& color, bool paint = false);
         
-    Q_INVOKABLE void setVoxelColor(const SharedObjectPointer& spanner, const QColor& color);
-        
-    Q_INVOKABLE void setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material);
+    Q_INVOKABLE void setHeightfieldMaterial(const SharedObjectPointer& spanner,
+        const SharedObjectPointer& material, bool paint = false);
     
     void addHeightfieldBaseBatch(const HeightfieldBaseLayerBatch& batch) { _heightfieldBaseBatches.append(batch); }
     void addHeightfieldSplatBatch(const HeightfieldSplatBatch& batch) { _heightfieldSplatBatches.append(batch); }
     
-    void addVoxelBaseBatch(const VoxelBatch& batch) { _voxelBaseBatches.append(batch); }
+    void addVoxelBaseBatch(const MetavoxelBatch& batch) { _voxelBaseBatches.append(batch); }
     void addVoxelSplatBatch(const VoxelSplatBatch& batch) { _voxelSplatBatches.append(batch); }
     
     void addHermiteBatch(const HermiteBatch& batch) { _hermiteBatches.append(batch); }
 
     Q_INVOKABLE void deleteTextures(int heightTextureID, int colorTextureID, int materialTextureID) const;
-        
+    Q_INVOKABLE void deleteBuffers(int vertexBufferID, int indexBufferID, int hermiteBufferID) const;
+    
 signals:
 
     void rendering();
-
-public slots:
-
-    void refreshVoxelData();
 
 protected:
 
@@ -111,9 +98,6 @@ private:
     
     void guideToAugmented(MetavoxelVisitor& visitor, bool render = false);
     
-    AttributePointer _heightfieldBufferAttribute;
-    AttributePointer _voxelBufferAttribute;
-    
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
     Frustum _frustum;
@@ -123,7 +107,7 @@ private:
     
     QVector<HeightfieldBaseLayerBatch> _heightfieldBaseBatches;
     QVector<HeightfieldSplatBatch> _heightfieldSplatBatches;
-    QVector<VoxelBatch> _voxelBaseBatches;
+    QVector<MetavoxelBatch> _voxelBaseBatches;
     QVector<VoxelSplatBatch> _voxelSplatBatches;
     QVector<HermiteBatch> _hermiteBatches;
     
@@ -166,16 +150,21 @@ private:
     static void loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations);
 };
 
-/// Base class for heightfield batches.
-class HeightfieldBatch {
+/// Base class for all batches.
+class MetavoxelBatch {
 public:
-    QOpenGLBuffer* vertexBuffer;
-    QOpenGLBuffer* indexBuffer;
+    GLuint vertexBufferID;
+    GLuint indexBufferID;
     glm::vec3 translation;
     glm::quat rotation;
     glm::vec3 scale;
     int vertexCount;
     int indexCount;
+};
+
+/// Base class for heightfield batches.
+class HeightfieldBatch : public MetavoxelBatch {
+public:
     GLuint heightTextureID;
     glm::vec4 heightScale;
 };
@@ -199,18 +188,10 @@ public:
     int materialIndex;
 };
 
-/// Base class for voxel batches.
-class VoxelBatch {
-public:
-    QOpenGLBuffer* vertexBuffer;
-    QOpenGLBuffer* indexBuffer;
-    int vertexCount;
-    int indexCount;
-};
-
 /// A batch containing a voxel splat.
-class VoxelSplatBatch : public VoxelBatch {
+class VoxelSplatBatch : public MetavoxelBatch {
 public:
+    glm::vec3 splatTextureOffset;
     int splatTextureIDs[4];
     glm::vec4 splatTextureScalesS;
     glm::vec4 splatTextureScalesT;
@@ -220,7 +201,10 @@ public:
 /// A batch containing Hermite data for debugging.
 class HermiteBatch {
 public:
-    QOpenGLBuffer* vertexBuffer;
+    GLuint vertexBufferID;
+    glm::vec3 translation;
+    glm::quat rotation;
+    glm::vec3 scale;
     int vertexCount;
 };
 
@@ -271,8 +255,6 @@ public:
     void setRenderedAugmentedData(const MetavoxelData& data) { _renderedAugmentedData = data; }
 
     virtual int parseData(const QByteArray& packet);
-
-    Q_INVOKABLE void refreshVoxelData();
     
 protected:
     
@@ -295,7 +277,8 @@ public:
     
     virtual ~BufferData();
 
-    virtual void render(bool cursor = false) = 0;
+    virtual void render(const glm::vec3& translation, const glm::quat& rotation,
+        const glm::vec3& scale, bool cursor = false) = 0;
 };
 
 typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
@@ -334,42 +317,32 @@ public:
     VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
         const QMultiHash<VoxelCoord, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
             QVector<SharedObjectPointer>());
+    virtual ~VoxelBuffer();
+
+    bool isHermiteEnabled() const { return _hermiteEnabled; }
 
     /// Finds the first intersection between the described ray and the voxel data.
-    /// \param entry the entry point of the ray in relative coordinates, from (0, 0, 0) to (1, 1, 1)
-    bool findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
-        const glm::vec3& direction, float& distance) const;
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float boundsDistance, float& distance) const;
         
-    virtual void render(bool cursor = false);
+    virtual void render(const glm::vec3& translation, const glm::quat& rotation,
+        const glm::vec3& scale, bool cursor = false);
 
 private:
     
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
     QVector<glm::vec3> _hermite;
+    bool _hermiteEnabled;
     QMultiHash<VoxelCoord, int> _quadIndices;
     int _size;
     int _vertexCount;
     int _indexCount;
     int _hermiteCount;
-    QOpenGLBuffer _vertexBuffer;
-    QOpenGLBuffer _indexBuffer;
-    QOpenGLBuffer _hermiteBuffer;
+    GLuint _vertexBufferID;
+    GLuint _indexBufferID;
+    GLuint _hermiteBufferID;
     QVector<SharedObjectPointer> _materials;
     QVector<NetworkTexturePointer> _networkTextures;
-};
-
-/// A client-side attribute that stores renderable buffers.
-class BufferDataAttribute : public InlineAttribute<BufferDataPointer> {
-    Q_OBJECT
-    
-public:
-    
-    Q_INVOKABLE BufferDataAttribute(const QString& name = QString());
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-    
-    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 /// Renders metavoxels as points.
@@ -380,7 +353,6 @@ public:
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
-    virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
 };
@@ -450,6 +422,9 @@ public:
     HeightfieldNodeRenderer();
     virtual ~HeightfieldNodeRenderer();
     
+    virtual bool findRayIntersection(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const glm::vec3& origin, const glm::vec3& direction, float boundsDistance, float& distance) const; 
+        
     void render(const HeightfieldNodePointer& node, const glm::vec3& translation,
         const glm::quat& rotation, const glm::vec3& scale, bool cursor);
     
@@ -459,6 +434,8 @@ private:
     GLuint _colorTextureID;
     GLuint _materialTextureID;
     QVector<NetworkTexturePointer> _networkTextures;
+    
+    BufferDataPointer _voxels;
     
     typedef QPair<int, int> IntPair;    
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;

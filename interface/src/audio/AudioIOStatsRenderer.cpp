@@ -11,14 +11,13 @@
 
 #include "InterfaceConfig.h"
 
+#include <AudioClient.h>
 #include <AudioConstants.h>
+#include <AudioIOStats.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <NodeList.h>
 #include <Util.h>
-
-#include "Audio.h"
-#include "AudioIOStats.h"
 
 #include "AudioIOStatsRenderer.h"
 
@@ -28,7 +27,7 @@ AudioIOStatsRenderer::AudioIOStatsRenderer() :
     _shouldShowInjectedStreams(false)
 {
     // grab the stats object from the audio I/O singleton
-    _stats = &DependencyManager::get<Audio>()->getStats();
+    _stats = &DependencyManager::get<AudioClient>()->getStats();
 }
 
 #ifdef _WIN32
@@ -50,14 +49,12 @@ void AudioIOStatsRenderer::render(const float* color, int width, int height) {
     int statsHeight = STATS_HEIGHT_PER_LINE * lines;
     
     
-    static const float backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 0.6f };
+    static const glm::vec4 backgroundColor = { 0.2f, 0.2f, 0.2f, 0.6f };
     int x = std::max((width - (int)STATS_WIDTH) / 2, 0);
     int y = std::max((height - CENTERED_BACKGROUND_HEIGHT) / 2, 0);
     int w = STATS_WIDTH;
     int h = statsHeight;
-    glColor4fv(backgroundColor);
-    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h);
-    glColor4f(1, 1, 1, 1); 
+    DependencyManager::get<GeometryCache>()->renderQuad(x, y, w, h, backgroundColor);
     
     int horizontalOffset = x + 5;
     int verticalOffset = y;

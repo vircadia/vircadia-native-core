@@ -23,6 +23,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AnimationHandle.h>
+#include <AudioClient.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
@@ -33,7 +34,7 @@
 #include <TextRenderer.h>
 
 #include "Application.h"
-#include "Audio.h"
+#include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
 #include "ModelReferential.h"
@@ -51,6 +52,7 @@ const float YAW_SPEED = 500.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
+const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
 const float MAX_WALKING_SPEED = 2.5f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
@@ -89,7 +91,9 @@ MyAvatar::MyAvatar() :
     _billboardValid(false),
     _physicsSimulation(),
     _feetTouchFloor(true),
-    _isLookingAtLeftEye(true)
+    _isLookingAtLeftEye(true),
+    _realWorldFieldOfView("realWorldFieldOfView",
+                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES)
 {
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -146,7 +150,7 @@ void MyAvatar::update(float deltaTime) {
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
     //  Get audio loudness data from audio input device
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
@@ -338,7 +342,8 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
-        float magnifyFieldOfView = Menu::getInstance()->getFieldOfView() / Menu::getInstance()->getRealWorldFieldOfView();
+        float magnifyFieldOfView = qApp->getFieldOfView() /
+                                   _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
     }
@@ -381,17 +386,15 @@ void MyAvatar::renderDebugBodyPoints() {
     //  Torso Sphere
     position = torsoPosition;
     glPushMatrix();
-    glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.2f, 10.0f, 10.0f);
+    DependencyManager::get<GeometryCache>()->renderSphere(0.2f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
     glPopMatrix();
 
     //  Head Sphere
     position = headPosition;
     glPushMatrix();
-    glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.15f, 10.0f, 10.0f);
+    DependencyManager::get<GeometryCache>()->renderSphere(0.15f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
     glPopMatrix();
 }
 
@@ -490,9 +493,12 @@ void MyAvatar::startRecording() {
     if (!_recorder) {
         _recorder = RecorderPointer(new Recorder(this));
     }
-    DependencyManager::get<Audio>()->setRecorder(_recorder);
-    _recorder->startRecording();
+    // connect to AudioClient's signal so we get input audio
+    auto audioClient = DependencyManager::get<AudioClient>();
+    connect(audioClient.data(), &AudioClient::inputReceived, _recorder.data(),
+            &Recorder::recordAudio, Qt::BlockingQueuedConnection);
     
+    _recorder->startRecording();
 }
 
 void MyAvatar::stopRecording() {
@@ -504,6 +510,10 @@ void MyAvatar::stopRecording() {
         return;
     }
     if (_recorder) {
+        // stop grabbing audio from the AudioClient
+        auto audioClient = DependencyManager::get<AudioClient>();
+        disconnect(audioClient.data(), 0, _recorder.data(), 0);
+        
         _recorder->stopRecording();
     }
 }
@@ -677,60 +687,70 @@ AnimationDetails MyAvatar::getAnimationDetails(const QString& url) {
     return result;
 }
 
-void MyAvatar::saveData(QSettings* settings) {
-    settings->beginGroup("Avatar");
+void MyAvatar::saveData() {
+    Settings settings;
+    settings.beginGroup("Avatar");
 
-    settings->setValue("headPitch", getHead()->getBasePitch());
+    settings.setValue("headPitch", getHead()->getBasePitch());
 
-    settings->setValue("pupilDilation", getHead()->getPupilDilation());
+    settings.setValue("pupilDilation", getHead()->getPupilDilation());
 
-    settings->setValue("leanScale", _leanScale);
-    settings->setValue("scale", _targetScale);
+    settings.setValue("leanScale", _leanScale);
+    settings.setValue("scale", _targetScale);
     
-    settings->setValue("faceModelURL", _faceModelURL);
-    settings->setValue("skeletonModelURL", _skeletonModelURL);
+    settings.setValue("faceModelURL", _faceModelURL);
+    settings.setValue("skeletonModelURL", _skeletonModelURL);
     
-    settings->beginWriteArray("attachmentData");
+    settings.beginWriteArray("attachmentData");
     for (int i = 0; i < _attachmentData.size(); i++) {
-        settings->setArrayIndex(i);
+        settings.setArrayIndex(i);
         const AttachmentData& attachment = _attachmentData.at(i);
-        settings->setValue("modelURL", attachment.modelURL);
-        settings->setValue("jointName", attachment.jointName);
-        settings->setValue("translation_x", attachment.translation.x);
-        settings->setValue("translation_y", attachment.translation.y);
-        settings->setValue("translation_z", attachment.translation.z);
+        settings.setValue("modelURL", attachment.modelURL);
+        settings.setValue("jointName", attachment.jointName);
+        settings.setValue("translation_x", attachment.translation.x);
+        settings.setValue("translation_y", attachment.translation.y);
+        settings.setValue("translation_z", attachment.translation.z);
         glm::vec3 eulers = safeEulerAngles(attachment.rotation);
-        settings->setValue("rotation_x", eulers.x);
-        settings->setValue("rotation_y", eulers.y);
-        settings->setValue("rotation_z", eulers.z);
-        settings->setValue("scale", attachment.scale);
+        settings.setValue("rotation_x", eulers.x);
+        settings.setValue("rotation_y", eulers.y);
+        settings.setValue("rotation_z", eulers.z);
+        settings.setValue("scale", attachment.scale);
     }
-    settings->endArray();
+    settings.endArray();
     
-    settings->beginWriteArray("animationHandles");
+    settings.beginWriteArray("animationHandles");
     for (int i = 0; i < _animationHandles.size(); i++) {
-        settings->setArrayIndex(i);
+        settings.setArrayIndex(i);
         const AnimationHandlePointer& pointer = _animationHandles.at(i);
-        settings->setValue("role", pointer->getRole());
-        settings->setValue("url", pointer->getURL());
-        settings->setValue("fps", pointer->getFPS());
-        settings->setValue("priority", pointer->getPriority());
-        settings->setValue("loop", pointer->getLoop());
-        settings->setValue("hold", pointer->getHold());
-        settings->setValue("startAutomatically", pointer->getStartAutomatically());
-        settings->setValue("firstFrame", pointer->getFirstFrame());
-        settings->setValue("lastFrame", pointer->getLastFrame());
-        settings->setValue("maskedJoints", pointer->getMaskedJoints());
+        settings.setValue("role", pointer->getRole());
+        settings.setValue("url", pointer->getURL());
+        settings.setValue("fps", pointer->getFPS());
+        settings.setValue("priority", pointer->getPriority());
+        settings.setValue("loop", pointer->getLoop());
+        settings.setValue("hold", pointer->getHold());
+        settings.setValue("startAutomatically", pointer->getStartAutomatically());
+        settings.setValue("firstFrame", pointer->getFirstFrame());
+        settings.setValue("lastFrame", pointer->getLastFrame());
+        settings.setValue("maskedJoints", pointer->getMaskedJoints());
     }
-    settings->endArray();
+    settings.endArray();
     
-    settings->setValue("displayName", _displayName);
+    settings.setValue("displayName", _displayName);
 
-    settings->endGroup();
+    settings.endGroup();
 }
 
-void MyAvatar::loadData(QSettings* settings) {
-    settings->beginGroup("Avatar");
+float loadSetting(QSettings& settings, const char* name, float defaultValue) {
+    float value = settings.value(name, defaultValue).toFloat();
+    if (glm::isnan(value)) {
+        value = defaultValue;
+    }
+    return value;
+}
+
+void MyAvatar::loadData() {
+    Settings settings;
+    settings.beginGroup("Avatar");
 
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
@@ -741,16 +761,16 @@ void MyAvatar::loadData(QSettings* settings) {
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
     
-    setFaceModelURL(settings->value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl());
-    setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
+    setFaceModelURL(settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl());
+    setSkeletonModelURL(settings.value("skeletonModelURL").toUrl());
     
     QVector<AttachmentData> attachmentData;
-    int attachmentCount = settings->beginReadArray("attachmentData");
+    int attachmentCount = settings.beginReadArray("attachmentData");
     for (int i = 0; i < attachmentCount; i++) {
-        settings->setArrayIndex(i);
+        settings.setArrayIndex(i);
         AttachmentData attachment;
-        attachment.modelURL = settings->value("modelURL").toUrl();
-        attachment.jointName = settings->value("jointName").toString();
+        attachment.modelURL = settings.value("modelURL").toUrl();
+        attachment.jointName = settings.value("jointName").toString();
         attachment.translation.x = loadSetting(settings, "translation_x", 0.0f);
         attachment.translation.y = loadSetting(settings, "translation_y", 0.0f);
         attachment.translation.z = loadSetting(settings, "translation_z", 0.0f);
@@ -762,10 +782,10 @@ void MyAvatar::loadData(QSettings* settings) {
         attachment.scale = loadSetting(settings, "scale", 1.0f);
         attachmentData.append(attachment);
     }
-    settings->endArray();
+    settings.endArray();
     setAttachmentData(attachmentData);
     
-    int animationCount = settings->beginReadArray("animationHandles");
+    int animationCount = settings.beginReadArray("animationHandles");
     while (_animationHandles.size() > animationCount) {
         _animationHandles.takeLast()->stop();
     }
@@ -773,65 +793,64 @@ void MyAvatar::loadData(QSettings* settings) {
         addAnimationHandle();
     }
     for (int i = 0; i < animationCount; i++) {
-        settings->setArrayIndex(i);
+        settings.setArrayIndex(i);
         const AnimationHandlePointer& handle = _animationHandles.at(i);
-        handle->setRole(settings->value("role", "idle").toString());
-        handle->setURL(settings->value("url").toUrl());
+        handle->setRole(settings.value("role", "idle").toString());
+        handle->setURL(settings.value("url").toUrl());
         handle->setFPS(loadSetting(settings, "fps", 30.0f));
         handle->setPriority(loadSetting(settings, "priority", 1.0f));
-        handle->setLoop(settings->value("loop", true).toBool());
-        handle->setHold(settings->value("hold", false).toBool());
-        handle->setStartAutomatically(settings->value("startAutomatically", true).toBool());
-        handle->setFirstFrame(settings->value("firstFrame", 0.0f).toFloat());
-        handle->setLastFrame(settings->value("lastFrame", INT_MAX).toFloat());
-        handle->setMaskedJoints(settings->value("maskedJoints").toStringList());
+        handle->setLoop(settings.value("loop", true).toBool());
+        handle->setHold(settings.value("hold", false).toBool());
+        handle->setStartAutomatically(settings.value("startAutomatically", true).toBool());
+        handle->setFirstFrame(settings.value("firstFrame", 0.0f).toFloat());
+        handle->setLastFrame(settings.value("lastFrame", INT_MAX).toFloat());
+        handle->setMaskedJoints(settings.value("maskedJoints").toStringList());
     }
-    settings->endArray();
+    settings.endArray();
     
-    setDisplayName(settings->value("displayName").toString());
+    setDisplayName(settings.value("displayName").toString());
 
-    settings->endGroup();
+    settings.endGroup();
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
-    QSettings* settings = Application::getInstance()->lockSettings();
-    settings->beginGroup("savedAttachmentData");
-    settings->beginGroup(_skeletonModel.getURL().toString());
-    settings->beginGroup(attachment.modelURL.toString());
-    settings->setValue("jointName", attachment.jointName);
+    Settings settings;
+    settings.beginGroup("savedAttachmentData");
+    settings.beginGroup(_skeletonModel.getURL().toString());
+    settings.beginGroup(attachment.modelURL.toString());
+    settings.setValue("jointName", attachment.jointName);
     
-    settings->beginGroup(attachment.jointName);
-    settings->setValue("translation_x", attachment.translation.x);
-    settings->setValue("translation_y", attachment.translation.y);
-    settings->setValue("translation_z", attachment.translation.z);
+    settings.beginGroup(attachment.jointName);
+    settings.setValue("translation_x", attachment.translation.x);
+    settings.setValue("translation_y", attachment.translation.y);
+    settings.setValue("translation_z", attachment.translation.z);
     glm::vec3 eulers = safeEulerAngles(attachment.rotation);
-    settings->setValue("rotation_x", eulers.x);
-    settings->setValue("rotation_y", eulers.y);
-    settings->setValue("rotation_z", eulers.z);
-    settings->setValue("scale", attachment.scale);
+    settings.setValue("rotation_x", eulers.x);
+    settings.setValue("rotation_y", eulers.y);
+    settings.setValue("rotation_z", eulers.z);
+    settings.setValue("scale", attachment.scale);
     
-    settings->endGroup();
-    settings->endGroup();
-    settings->endGroup();
-    settings->endGroup();
-    Application::getInstance()->unlockSettings();
+    settings.endGroup();
+    settings.endGroup();
+    settings.endGroup();
+    settings.endGroup();
 }
 
 AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString& jointName) const {
-    QSettings* settings = Application::getInstance()->lockSettings();
-    settings->beginGroup("savedAttachmentData");
-    settings->beginGroup(_skeletonModel.getURL().toString());
-    settings->beginGroup(modelURL.toString());
+    Settings settings;
+    settings.beginGroup("savedAttachmentData");
+    settings.beginGroup(_skeletonModel.getURL().toString());
+    settings.beginGroup(modelURL.toString());
     
     AttachmentData attachment;
     attachment.modelURL = modelURL;
     if (jointName.isEmpty()) {
-        attachment.jointName = settings->value("jointName").toString();
+        attachment.jointName = settings.value("jointName").toString();
     } else {
         attachment.jointName = jointName;
     }
-    settings->beginGroup(attachment.jointName);
-    if (settings->contains("translation_x")) {
+    settings.beginGroup(attachment.jointName);
+    if (settings.contains("translation_x")) {
         attachment.translation.x = loadSetting(settings, "translation_x", 0.0f);
         attachment.translation.y = loadSetting(settings, "translation_y", 0.0f);
         attachment.translation.z = loadSetting(settings, "translation_z", 0.0f);
@@ -845,11 +864,10 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
         attachment = AttachmentData();
     }
     
-    settings->endGroup();
-    settings->endGroup();
-    settings->endGroup();
-    settings->endGroup();
-    Application::getInstance()->unlockSettings();
+    settings.endGroup();
+    settings.endGroup();
+    settings.endGroup();
+    settings.endGroup();
     
     return attachment;
 }
@@ -888,7 +906,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
     
     int howManyLookingAtMe = 0;
-    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
@@ -1605,7 +1623,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    const AvatarHash& avatars = Application::getInstance()->getAvatarManager().getAvatarHash();
+    const AvatarHash& avatars = DependencyManager::get<AvatarManager>()->getAvatarHash();
     if (avatars.size() <= 1) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
@@ -1680,7 +1698,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     
-    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         if ( ! avatar->isChatCirclingEnabled() ||
                 avatar == static_cast<Avatar*>(this)) {
@@ -1940,14 +1958,13 @@ void MyAvatar::renderLaserPointers() {
     for (size_t i = 0; i < getHand()->getNumPalms(); ++i) {
         PalmData& palm = getHand()->getPalms()[i];
         if (palm.isActive()) {
-            glColor4f(0, 1, 1, 1);
             glm::vec3 tip = getLaserPointerTipPosition(&palm);
             glm::vec3 root = palm.getPosition();
 
             //Scale the root vector with the avatar scale
             scaleVectorRelativeToPosition(root);
 
-            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS);
+            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
         }
     }
 }

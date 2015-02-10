@@ -76,12 +76,17 @@ class LimitedNodeList : public QObject, public Dependency {
 public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
+
+    bool getThisNodeCanAdjustLocks() { return _thisNodeCanAdjustLocks; }
+    void setThisNodeCanAdjustLocks(bool canAdjustLocks) { _thisNodeCanAdjustLocks = canAdjustLocks; }
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
     QUdpSocket& getDTLSSocket();
     
     bool packetVersionAndHashMatch(const QByteArray& packet);
+
+    qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
     
     qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
@@ -104,7 +109,7 @@ public:
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canAdjustLocks);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
@@ -180,6 +185,11 @@ signals:
     
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
+
+    void dataSent(const quint8 channel_type, const int bytes);
+    void dataReceived(const quint8 channel_type, const int bytes);
+
+    void packetVersionMismatch();
     
 protected:
     LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -194,6 +204,7 @@ protected:
     void handleNodeKill(const SharedNodePointer& node);
 
     QUuid _sessionUUID;
+    bool _thisNodeCanAdjustLocks;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
     QUdpSocket _nodeSocket;
@@ -201,8 +212,11 @@ protected:
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
+
+    // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;
     int _numCollectedBytes;
+
     QElapsedTimer _packetStatTimer;
     
     template<typename IteratorLambda>

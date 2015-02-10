@@ -74,6 +74,7 @@ void AnimationHandle::setRunning(bool running) {
         }
     } else {
         _model->_runningAnimations.removeOne(_self);
+        restoreJoints();
         replaceMatchingPriorities(0.0f);
     }
     emit runningChanged(isRunning());
@@ -169,6 +170,16 @@ void AnimationHandle::replaceMatchingPriorities(float newPriority) {
             if (_priority == state._animationPriority) {
                 state._animationPriority = newPriority;
             }
+        }
+    }
+}
+
+void AnimationHandle::restoreJoints() {
+    for (int i = 0; i < _jointMappings.size(); i++) {
+        int mapping = _jointMappings.at(i);
+        if (mapping != -1) {
+            JointState& state = _model->_jointStates[mapping];
+            state.restoreRotation(1.0f, state._animationPriority);
         }
     }
 }

@@ -32,11 +32,6 @@ class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
 
-/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
-extern const char* FACESHIFT_BLENDSHAPES[];
-/// The size of FACESHIFT_BLENDSHAPES
-extern const int NUM_FACESHIFT_BLENDSHAPES;
-
 /// The names of the joints in the Maya HumanIK rig, terminated with an empty string.
 extern const char* HUMANIK_JOINTS[];
 
@@ -179,12 +174,14 @@ public:
     QString name;
     Transform transform;
     float intensity;
+    float fogValue;
     glm::vec3 color;
 
     FBXLight() :
         name(),
         transform(),
         intensity(1.0f),
+        fogValue(0.0f),
         color(1.0f)
     {}
 };
@@ -226,16 +223,16 @@ public:
     
     glm::mat4 offset;
     
-    int leftEyeJointIndex;
-    int rightEyeJointIndex;
-    int neckJointIndex;
-    int rootJointIndex;
-    int leanJointIndex;
-    int headJointIndex;
-    int leftHandJointIndex;
-    int rightHandJointIndex;
-    int leftToeJointIndex;
-    int rightToeJointIndex;
+    int leftEyeJointIndex = -1;
+    int rightEyeJointIndex = -1;
+    int neckJointIndex = -1;
+    int rootJointIndex = -1;
+    int leanJointIndex = -1;
+    int headJointIndex = -1;
+    int leftHandJointIndex = -1;
+    int rightHandJointIndex = -1;
+    int leftToeJointIndex = -1;
+    int rightToeJointIndex = -1;
     
     QVector<int> humanIKJointIndices;
     

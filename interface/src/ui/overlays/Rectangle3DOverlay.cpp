@@ -39,7 +39,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     glDisable(GL_LIGHTING);
     
@@ -70,37 +70,37 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
             
             // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
             if (getIsSolid()) {
-                glm::vec3 topLeft(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                glm::vec3 bottomRight(halfDimensions.x, 0.0f, halfDimensions.y);
-                DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight);
+                glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
+                DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, rectangleColor);
             } else {
                 if (getIsDashedLine()) {
 
-                    glm::vec3 point1(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glm::vec3 point2(halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glm::vec3 point3(halfDimensions.x, 0.0f, halfDimensions.y);
-                    glm::vec3 point4(-halfDimensions.x, 0.0f, halfDimensions.y);
+                    glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                    glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
+                    glm::vec3 point3(halfDimensions.x, halfDimensions.y, 0.0f);
+                    glm::vec3 point4(-halfDimensions.x, halfDimensions.y, 0.0f);
                 
-                    geometryCache->renderDashedLine(point1, point2);
-                    geometryCache->renderDashedLine(point2, point3);
-                    geometryCache->renderDashedLine(point3, point4);
-                    geometryCache->renderDashedLine(point4, point1);
+                    geometryCache->renderDashedLine(point1, point2, rectangleColor);
+                    geometryCache->renderDashedLine(point2, point3, rectangleColor);
+                    geometryCache->renderDashedLine(point3, point4, rectangleColor);
+                    geometryCache->renderDashedLine(point4, point1, rectangleColor);
 
                 } else {
                 
                     if (halfDimensions != _previousHalfDimensions) {
                         QVector<glm::vec3> border;
-                        border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                        border << glm::vec3(halfDimensions.x, 0.0f, -halfDimensions.y);
-                        border << glm::vec3(halfDimensions.x, 0.0f, halfDimensions.y);
-                        border << glm::vec3(-halfDimensions.x, 0.0f, halfDimensions.y);
-                        border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                        geometryCache->updateVertices(_geometryCacheID, border);
+                        border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                        border << glm::vec3(halfDimensions.x, -halfDimensions.y, 0.0f);
+                        border << glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
+                        border << glm::vec3(-halfDimensions.x, halfDimensions.y, 0.0f);
+                        border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                        geometryCache->updateVertices(_geometryCacheID, border, rectangleColor);
 
                         _previousHalfDimensions = halfDimensions;
                         
                     }
-                    geometryCache->renderVertices(GL_LINE_STRIP, _geometryCacheID);
+                    geometryCache->renderVertices(gpu::LINE_STRIP, _geometryCacheID);
                 }
             }
  
