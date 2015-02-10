@@ -134,6 +134,7 @@ table#entity-table {
 }
 
 #entity-table tr.selected {
+    color: rgb(43, 43, 43);
     background-color: #AAA;
 }
 
