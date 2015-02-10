@@ -847,7 +847,7 @@ void ApplicationOverlay::renderAudioMeter() {
 
     //  Draw audio meter background Quad
     DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X, audioMeterY, AUDIO_METER_WIDTH, AUDIO_METER_HEIGHT, 
-                                                            glm::vec4(0, 0, 0, 1));
+                                                            glm::vec4(0.298f, 0.757f, 0.722f, 1));
 
     if (audioLevel > AUDIO_RED_START) {
         glm::vec4 quadColor;
