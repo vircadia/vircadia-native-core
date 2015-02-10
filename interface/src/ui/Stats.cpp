@@ -271,7 +271,7 @@ void Stats::display(
     // TODO: the display of these timing details should all be moved to JavaScript
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
         // Timing details...
-        verticalOffset += STATS_PELS_PER_LINE * 4; // skip 4 lines to be under the other columns
+        verticalOffset += STATS_PELS_PER_LINE * 6; // skip 6 lines to be under the other columns
         drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, 
                 "-------------------------------------------------------- Function "
                 "------------------------------------------------------- --msecs- -calls--", color);
@@ -294,13 +294,14 @@ void Stats::display(
         j.toBack();
         while (j.hasPrevious()) {
             j.previous();
+            QChar noBreakingSpace = QChar::Nbsp;
             QString functionName = j.value(); 
             const PerformanceTimerRecord& record = allRecords.value(functionName);
 
             QString perfLine = QString("%1: %2 [%3]").
-                arg(QString(qPrintable(functionName)), 120).
-                arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3).
-                arg(record.getCount(), 6);
+                arg(QString(qPrintable(functionName)), 120, noBreakingSpace).
+                arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3, noBreakingSpace).
+                arg((int)record.getCount(), 6, 10, noBreakingSpace);
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, perfLine.toUtf8().constData(), color);
