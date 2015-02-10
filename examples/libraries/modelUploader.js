@@ -21,7 +21,7 @@ modelUploader = (function () {
         //svoBuffer,
         mapping,
         geometry,
-        API_URL = "https://data.highfidelity.io/api/v1/models",
+        API_URL = "https://metaverse.highfidelity.io/api/v1/models",
         MODEL_URL = "http://public.highfidelity.io/models/content",
         NAME_FIELD = "name",
         SCALE_FIELD = "scale",
