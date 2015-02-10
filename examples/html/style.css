@@ -86,6 +86,10 @@ input[type=button] {
     font-weight: bold;
 }
 
+#entity-list-header {
+    padding: 0.5em;
+}
+
 textarea, input {
     margin: 0;
     padding: 1.5pt;
