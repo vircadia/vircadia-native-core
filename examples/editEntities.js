@@ -245,7 +245,7 @@ var toolBar = (function () {
     };
 
     var RESIZE_INTERVAL = 50;
-    var RESIZE_TIMEOUT = 20000;
+    var RESIZE_TIMEOUT = 120000; // 2 minutes
     var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
     function addModel(url) {
         var position;
