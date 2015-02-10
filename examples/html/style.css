@@ -90,6 +90,16 @@ input[type=button] {
     padding: 0.5em;
 }
 
+#search-area {
+    width: 100%;
+    padding: 0.5em;
+    box-sizing: border-box;
+}
+
+#search-area input {
+    width: 100%;
+}
+
 textarea, input {
     margin: 0;
     padding: 1.5pt;
