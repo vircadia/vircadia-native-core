@@ -46,8 +46,7 @@ int main(int argc, const char * argv[]) {
         HWND otherInstance = NULL;
         EnumWindows(enumWindowsCallback, (LPARAM)&otherInstance);
         if (otherInstance) {
-            ShowWindow(otherInstance, SW_RESTORE);
-            SetForegroundWindow(otherInstance);
+            SendMessage(otherInstance, UWM_SHOW_APPLICATION, 0, 0);
 
             QUrl url = QUrl(argv[1]);
             if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
