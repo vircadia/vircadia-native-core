@@ -22,7 +22,7 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 sp
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
    // float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
-    float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
+    float specularPower = pow(max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
     specularPower *= (gloss * 128.0 * 0.125 + 0.25);
 
     float shlickPower = (1.0 - dot(fragLightDir,halfDir));
@@ -51,11 +51,11 @@ vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 
 
 vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
 
-   /* if (gl_FragCoord.x > 1000) {
+    /*if (gl_FragCoord.x > 1000) {
         return evalBlinnShading(fragNormal, fragLightDir, fragEyeDir, specular, gloss);
-    } else { */
+    } else {*/
         return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, specular, gloss);
-   // }
+    //}
 }
 
 <@endif@>
