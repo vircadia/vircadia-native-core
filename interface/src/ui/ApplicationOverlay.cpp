@@ -788,7 +788,7 @@ void ApplicationOverlay::renderAudioMeter() {
 
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
-    const int AUDIO_METER_INSET = 2;
+    const int AUDIO_METER_INSET = 0;
     const int MUTE_ICON_PADDING = 10;
     const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET - MUTE_ICON_PADDING;
     const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
