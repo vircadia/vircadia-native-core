@@ -2437,11 +2437,9 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
                     static bool showDiffuse = true;
                     if (showDiffuse && diffuseMap) {
-                       // GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
                         batch.setUniformTexture(0, diffuseMap->getGPUTexture());
                         
                     } else {
-                     //   GLBATCH(glBindTexture)(GL_TEXTURE_2D, textureCache->getWhiteTextureID());
                         batch.setUniformTexture(0, textureCache->getWhiteTexture());
                     }
 
