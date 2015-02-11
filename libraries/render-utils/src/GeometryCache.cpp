@@ -999,12 +999,12 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
-    Vec2Pair key(minCorner, maxCorner);
+    Vec4Pair key(glm::vec4(minCorner.x, minCorner.y, maxCorner.x, maxCorner.y), color);
     BatchItemDetails& details = registered ? _registeredQuad2D[id] : _quad2D[key];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
-        Vec2Pair& lastKey = _lastRegisteredQuad2D[id];
+        Vec4Pair & lastKey = _lastRegisteredQuad2D[id];
         if (lastKey != key) {
             details.clear();
             _lastRegisteredQuad2D[id] = key;  
@@ -1082,12 +1082,14 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
                     const glm::vec4& color, int id) {
 
     bool registered = (id != UNKNOWN_ID);
-    Vec2PairPair key(Vec2Pair(minCorner, maxCorner), Vec2Pair(texCoordMinCorner, texCoordMaxCorner));
+    Vec4PairVec4 key(Vec4Pair(glm::vec4(minCorner.x, minCorner.y, maxCorner.x, maxCorner.y),
+                              glm::vec4(texCoordMinCorner.x, texCoordMinCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y)), 
+                              color);
     BatchItemDetails& details = registered ? _registeredQuad2DTextures[id] : _quad2DTextures[key];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
-        Vec2PairPair& lastKey = _lastRegisteredQuad2DTexture[id];
+        Vec4PairVec4& lastKey = _lastRegisteredQuad2DTexture[id];
         if (lastKey != key) {
             details.clear();
             _lastRegisteredQuad2DTexture[id] = key;  
@@ -1172,12 +1174,12 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
 
 void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
-    Vec3Pair key(minCorner, maxCorner);
+    Vec3PairVec4 key(Vec3Pair(minCorner, maxCorner), color);
     BatchItemDetails& details = registered ? _registeredQuad3D[id] : _quad3D[key];
 
     // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
     if (registered && details.isCreated) {
-        Vec3Pair& lastKey = _lastRegisteredQuad3D[id];
+        Vec3PairVec4& lastKey = _lastRegisteredQuad3D[id];
         if (lastKey != key) {
             details.clear();
             _lastRegisteredQuad3D[id] = key;  
