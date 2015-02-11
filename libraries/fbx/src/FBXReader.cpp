@@ -1167,7 +1167,6 @@ int matchTextureUVSetToAttributeChannel(const QString& texUVSetName, const QHash
 
 FBXLight extractLight(const FBXNode& object) {
     FBXLight light;
-    int unkwnon = 0;
     foreach (const FBXNode& subobject, object.children) {
         QString childname = QString(subobject.name);
         if (subobject.name == "Properties70") {
