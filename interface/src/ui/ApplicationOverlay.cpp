@@ -788,13 +788,12 @@ void ApplicationOverlay::renderAudioMeter() {
 
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
-    const int AUDIO_METER_INSET = 0;
     const int MUTE_ICON_PADDING = 10;
-    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET - MUTE_ICON_PADDING;
-    const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
+    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE  - MUTE_ICON_PADDING;
+    const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 ;
     const int AUDIO_METER_HEIGHT = 8;
     const int AUDIO_METER_GAP = 5;
-    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET + AUDIO_METER_GAP;
+    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_GAP;
 
     int audioMeterY;
     bool smallMirrorVisible = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !OculusManager::isConnected();
@@ -857,10 +856,10 @@ void ApplicationOverlay::renderAudioMeter() {
             quadColor = glm::vec4(1, 1, 1, 1);
         }
         // Draw Red Quad
-        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, 
-                                                            audioMeterY + AUDIO_METER_INSET, 
+        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X +AUDIO_RED_START, 
+                                                            audioMeterY, 
                                                             audioLevel - AUDIO_RED_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
+                                                            AUDIO_METER_HEIGHT, quadColor,
                                                             _audioRedQuad);
         
         audioLevel = AUDIO_RED_START;
@@ -874,10 +873,10 @@ void ApplicationOverlay::renderAudioMeter() {
             quadColor = glm::vec4(1, 1, 1, 1);
         }
         // Draw Green Quad
-        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, 
-                                                            audioMeterY + AUDIO_METER_INSET, 
+        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X  + AUDIO_GREEN_START, 
+                                                            audioMeterY, 
                                                             audioLevel - AUDIO_GREEN_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
+                                                            AUDIO_METER_HEIGHT, quadColor,
                                                             _audioGreenQuad);
 
         audioLevel = AUDIO_GREEN_START;
@@ -892,9 +891,9 @@ void ApplicationOverlay::renderAudioMeter() {
 			quadColor = glm::vec4(1, 1, 1, 1);
 		}
 		// Draw Blue (low level) quad
-		DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET,
-			audioMeterY + AUDIO_METER_INSET,
-			audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
+		DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X,
+			audioMeterY,
+			audioLevel, AUDIO_METER_HEIGHT, quadColor,
 			_audioBlueQuad);
 	}
 }
