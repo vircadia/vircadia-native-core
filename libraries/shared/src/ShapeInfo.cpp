@@ -24,7 +24,22 @@ void ShapeInfo::clear() {
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<glm::vec3>* data) {
     _type = type;
-    _halfExtents = halfExtents;
+    switch(type) {
+        case SHAPE_TYPE_NONE:
+            _halfExtents = glm::vec3(0.0f);
+            break;
+        case SHAPE_TYPE_BOX:
+            _halfExtents = halfExtents;
+            break;
+        case SHAPE_TYPE_SPHERE: {
+            // sphere radius is max of halfExtents
+            float radius = glm::max(glm::max(halfExtents.x, halfExtents.y), halfExtents.z);
+            _halfExtents = glm::vec3(radius);
+            break;
+        }
+        default:
+            _halfExtents = halfExtents;
+    }
     _externalData = data;
 }
 
