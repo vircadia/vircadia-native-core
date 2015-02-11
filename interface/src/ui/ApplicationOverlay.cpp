@@ -856,7 +856,7 @@ void ApplicationOverlay::renderAudioMeter() {
             quadColor = glm::vec4(1, 1, 1, 1);
         }
         // Draw Red Quad
-        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X +AUDIO_RED_START, 
+        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_RED_START, 
                                                             audioMeterY, 
                                                             audioLevel - AUDIO_RED_START, 
                                                             AUDIO_METER_HEIGHT, quadColor,
@@ -883,18 +883,18 @@ void ApplicationOverlay::renderAudioMeter() {
     }
     //   Draw Blue Quad
 	if (audioLevel >= 0) {
-		glm::vec4 quadColor;
-		if (!isClipping) {
-			quadColor = AUDIO_METER_BLUE;
-		}
-		else {
-			quadColor = glm::vec4(1, 1, 1, 1);
-		}
-		// Draw Blue (low level) quad
-		DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X,
-			audioMeterY,
-			audioLevel, AUDIO_METER_HEIGHT, quadColor,
-			_audioBlueQuad);
+	    glm::vec4 quadColor;
+	    if (!isClipping) {
+	        quadColor = AUDIO_METER_BLUE;
+	    }
+	    else {
+	        quadColor = glm::vec4(1, 1, 1, 1);
+	}
+	// Draw Blue (low level) quad
+	DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X,
+	    audioMeterY,
+	    audioLevel, AUDIO_METER_HEIGHT, quadColor,
+	    _audioBlueQuad);
 	}
 }
 
