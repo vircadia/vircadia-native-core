@@ -226,7 +226,7 @@ void Stats::display(
     int totalAvatars = DependencyManager::get<AvatarManager>()->size() - 1;
     int totalServers = DependencyManager::get<NodeList>()->size();
 
-    lines = _expanded ? 5 : 3;
+    lines = 5;
     int columnOneWidth = _generalStatsWidth;
 
     PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
@@ -262,6 +262,17 @@ void Stats::display(
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarNodes.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, framesPerSecond.toUtf8().constData(), color);
+
+    QString packetsPerSecondString = QString("Packets In/Out: %1/%2").arg(inPacketsPerSecond).arg(outPacketsPerSecond);
+    QString averageMegabitsPerSecond = QString("Mbps In/Out: %1/%2").
+        arg((float)inKbitsPerSecond * 1.0f / 1000.0f).
+        arg((float)outKbitsPerSecond * 1.0f / 1000.0f);
+
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString.toUtf8().constData(), color);
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond.toUtf8().constData(), color);
+
     
     // TODO: the display of these timing details should all be moved to JavaScript
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
@@ -302,18 +313,6 @@ void Stats::display(
             drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, perfLine.toUtf8().constData(), color);
         }
     }
-
-
-    QString packetsPerSecondString = QString("Packets In/Out: %1/%2").arg(inPacketsPerSecond).arg(outPacketsPerSecond);
-    QString averageMegabitsPerSecond = QString("Mbps In/Out: %1/%2").
-        arg((float)inKbitsPerSecond * 1.0f / 1000.0f).
-        arg((float)outKbitsPerSecond * 1.0f / 1000.0f);
-
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString.toUtf8().constData(), color);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond.toUtf8().constData(), color);
-
 
 
     verticalOffset = 0;
