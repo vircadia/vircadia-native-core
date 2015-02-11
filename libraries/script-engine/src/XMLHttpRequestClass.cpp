@@ -207,7 +207,7 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
                 notImplemented();
             }
         } else {
-            if (url.toLower().left(33) == "https://data.highfidelity.io/api/") {
+            if (url.toLower().left(33) == "https://metaverse.highfidelity.io/api/") {
                 AccountManager& accountManager = AccountManager::getInstance();
                 
                 if (accountManager.hasValidAccessToken()) {
