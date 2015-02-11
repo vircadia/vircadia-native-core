@@ -542,9 +542,6 @@ Application::~Application() {
     _nodeThread->quit();
     _nodeThread->wait();
     
-    // kill any audio injectors that are still around
-    AudioScriptingInterface::getInstance().stopAllInjectors();
-    
     auto audioIO = DependencyManager::get<AudioClient>();
 
     // stop the audio process

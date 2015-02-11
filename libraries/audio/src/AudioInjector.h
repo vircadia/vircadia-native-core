@@ -13,6 +13,7 @@
 #define hifi_AudioInjector_h
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 
 #include <glm/glm.hpp>
@@ -42,6 +43,7 @@ public:
 public slots:
     void injectAudio();
     void stop();
+    void stopAndDeleteLater();
     void setOptions(AudioInjectorOptions& options);
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
     float getLoudness();

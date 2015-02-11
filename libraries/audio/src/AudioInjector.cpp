@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
 
 #include <NodeList.h>
@@ -22,6 +23,9 @@
 #include "AudioInjector.h"
 
 QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in) {
+    // when the script goes down we want to cleanup the injector
+    QObject::connect(engine, &QScriptEngine::destroyed, in, &AudioInjector::stopAndDeleteLater);
+    
     return engine->newQObject(in);
 }
 
@@ -236,6 +240,14 @@ void AudioInjector::injectToMixer() {
             // send two packets before the first sleep so the mixer can start playback right away
             
             if (_currentSendPosition != bytesToCopy && _currentSendPosition < _audioData.size()) {
+                
+                // process events in case we have been told to stop and be deleted
+                QCoreApplication::processEvents();
+                
+                if (_shouldStop) {
+                    break;
+                }
+                
                 // not the first packet and not done
                 // sleep for the appropriate time
                 int usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000;
@@ -263,4 +275,9 @@ void AudioInjector::stop() {
         _isFinished = true;
         emit finished();
     }
+}
+
+void AudioInjector::stopAndDeleteLater() {
+    stop();
+    QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
 }
