@@ -418,9 +418,7 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
         const glm::vec4& color, TextRenderer::EffectType effectType,
         const glm::vec2& bounds) {
 
-    if (!_initialized) {
-        setupGL();
-    }
+    setupGL();
 
     // Stores how far we've moved from the start of the string, in DTP units
     glm::vec2 advance(0, -_rowHeight - _descent);
