@@ -49,8 +49,7 @@ public:
     virtual void debugDump() const;
 
     void updateShapeType(ShapeType type);
-    ShapeType getShapeType() const { return _shapeType; }
-
+    virtual ShapeType getShapeType() const { return _shapeType; }
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
