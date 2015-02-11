@@ -51,6 +51,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     return properties;
 }
 
@@ -66,6 +67,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -116,6 +118,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
+    READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
 
     return bytesRead;
 }
@@ -131,6 +134,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_ANIMATION_PLAYING;
     requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_TEXTURES;
+    requestedProperties += PROP_SHAPE_TYPE;
     
     return requestedProperties;
 }
@@ -153,6 +157,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, getTextures());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, getAnimationSettings());
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
 }
 
 
@@ -268,7 +273,7 @@ void ModelEntityItem::debugDump() const {
 void ModelEntityItem::updateShapeType(ShapeType type) {
     if (type != _shapeType) {
         _shapeType = type;
-        _dirtyFlags |= EntityItem::DIRTY_SHAPE;
+        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     }
 }
 
