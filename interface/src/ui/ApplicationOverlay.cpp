@@ -882,7 +882,7 @@ void ApplicationOverlay::renderAudioMeter() {
         audioLevel = AUDIO_GREEN_START;
     }
     //   Draw Blue Quad
-	if (audioLevel > 0) {
+	if (audioLevel >= 0) {
 		glm::vec4 quadColor;
 		if (!isClipping) {
 			quadColor = AUDIO_METER_BLUE;
