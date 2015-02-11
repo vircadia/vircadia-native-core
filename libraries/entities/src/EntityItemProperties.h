@@ -81,12 +81,11 @@ enum EntityPropertyList {
     // used by Model entities
     PROP_TEXTURES,
     PROP_ANIMATION_SETTINGS,
+    PROP_USER_DATA,
     PROP_SHAPE_TYPE,
     
-    // NOTE: add new properties ABOVE this line
-
-    PROP_USER_DATA,
-    PROP_LAST_ITEM = PROP_USER_DATA,
+    // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
+    PROP_LAST_ITEM = PROP_SHAPE_TYPE
 
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
