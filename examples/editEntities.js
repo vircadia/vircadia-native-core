@@ -425,7 +425,7 @@ var toolBar = (function () {
                 placingEntityID = Entities.addEntity({
                                 type: "Text",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 0.5, y: 0.3, z: 0.01 },
+                                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
                                 backgroundColor: { red: 64, green: 64, blue: 64 },
                                 textColor: { red: 255, green: 255, blue: 255 },
                                 text: "some text",
