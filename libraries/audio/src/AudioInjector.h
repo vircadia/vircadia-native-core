@@ -43,25 +43,31 @@ public:
 public slots:
     void injectAudio();
     void stop();
-    void stopAndDeleteLater();
     void setOptions(AudioInjectorOptions& options);
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
-    float getLoudness();
+    float getLoudness() const;
+    bool isPlaying() const { return !_isFinished; }
     
 signals:
     void finished();
+
+private slots:
+    void stopAndDeleteLater();
 private:
     void injectToMixer();
     void injectLocally();
     
     QByteArray _audioData;
     AudioInjectorOptions _options;
-    bool _shouldStop;
-    float _loudness;
-    bool _isFinished;
-    int _currentSendPosition;
-    AbstractAudioInterface* _localAudioInterface;
-    AudioInjectorLocalBuffer* _localBuffer;
+    bool _shouldStop = false;
+    float _loudness = 0.0f;
+    bool _isStarted = false;
+    bool _isFinished = false;
+    int _currentSendPosition = 0;
+    AbstractAudioInterface* _localAudioInterface = NULL;
+    AudioInjectorLocalBuffer* _localBuffer = NULL;
+    
+    friend QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in);
 };
 
 Q_DECLARE_METATYPE(AudioInjector*)

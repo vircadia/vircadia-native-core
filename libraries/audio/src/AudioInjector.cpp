@@ -34,35 +34,20 @@ void injectorFromScriptValue(const QScriptValue& object, AudioInjector*& out) {
 }
 
 AudioInjector::AudioInjector(QObject* parent) :
-    QObject(parent),
-    _options(),
-    _shouldStop(false),
-    _loudness(0.0f),
-    _isFinished(false),
-    _currentSendPosition(0),
-    _localBuffer(NULL)
+    QObject(parent)
 {
+    
 }
 
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
     _audioData(sound->getByteArray()),
-    _options(injectorOptions),
-    _shouldStop(false),
-    _loudness(0.0f),
-    _isFinished(false),
-    _currentSendPosition(0),
-    _localBuffer(NULL)
+    _options(injectorOptions)
 {
 }
 
 AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
     _audioData(audioData),
-    _options(injectorOptions),
-    _shouldStop(false),
-    _loudness(0.0f),
-    _isFinished(false),
-    _currentSendPosition(0),
-    _localBuffer(NULL)
+    _options(injectorOptions)
 {
     
 }
@@ -83,21 +68,25 @@ float AudioInjector::getLoudness() {
 
 void AudioInjector::injectAudio() {
     
-    // check if we need to offset the sound by some number of seconds
-    if (_options.secondOffset > 0.0f) {
+    if (!_isStarted) {
+        // check if we need to offset the sound by some number of seconds
+        if (_options.secondOffset > 0.0f) {
+            
+            // convert the offset into a number of bytes
+            int byteOffset = (int) floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+            byteOffset *= sizeof(int16_t);
+            
+            _currentSendPosition = byteOffset;
+        }
         
-        // convert the offset into a number of bytes
-        int byteOffset = (int) floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
-        byteOffset *= sizeof(int16_t);
-        
-        _currentSendPosition = byteOffset;
-    }
-    
-    if (_options.localOnly) {
-        injectLocally();
+        if (_options.localOnly) {
+            injectLocally();
+        } else {
+            injectToMixer();
+        }
     } else {
-        injectToMixer();
-    }
+        qDebug() << "AudioInjector::injectAudio called but already started.";
+    }    
 }
 
 void AudioInjector::injectLocally() {
