@@ -131,16 +131,6 @@ public:
     void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
     void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
-    void _glMatrixMode(GLenum mode); 
-    void _glPushMatrix();
-    void _glPopMatrix();
-    void _glMultMatrixf(const GLfloat *m);
-    void _glLoadMatrixf(const GLfloat *m);
-    void _glLoadIdentity(void);
-    void _glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
-    void _glScalef(GLfloat x, GLfloat y, GLfloat z);
-    void _glTranslatef(GLfloat x, GLfloat y, GLfloat z);
-
     void _glDrawArrays(GLenum mode, GLint first, GLsizei count);
     void _glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices);
 
@@ -200,16 +190,6 @@ public:
         COMMAND_glUniform2f,
         COMMAND_glUniform4fv,
         COMMAND_glUniformMatrix4fv,
-
-        COMMAND_glMatrixMode,
-        COMMAND_glPushMatrix,
-        COMMAND_glPopMatrix,
-        COMMAND_glMultMatrixf,
-        COMMAND_glLoadMatrixf,
-        COMMAND_glLoadIdentity,
-        COMMAND_glRotatef,
-        COMMAND_glScalef,
-        COMMAND_glTranslatef,
 
         COMMAND_glDrawArrays,
         COMMAND_glDrawRangeElements,

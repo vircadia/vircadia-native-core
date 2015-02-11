@@ -177,16 +177,6 @@ protected:
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
-    void do_glMatrixMode(Batch& batch, uint32 paramOffset);
-    void do_glPushMatrix(Batch& batch, uint32 paramOffset);
-    void do_glPopMatrix(Batch& batch, uint32 paramOffset);
-    void do_glMultMatrixf(Batch& batch, uint32 paramOffset);
-    void do_glLoadMatrixf(Batch& batch, uint32 paramOffset);
-    void do_glLoadIdentity(Batch& batch, uint32 paramOffset);
-    void do_glRotatef(Batch& batch, uint32 paramOffset);
-    void do_glScalef(Batch& batch, uint32 paramOffset);
-    void do_glTranslatef(Batch& batch, uint32 paramOffset);
-
     void do_glDrawArrays(Batch& batch, uint32 paramOffset);
     void do_glDrawRangeElements(Batch& batch, uint32 paramOffset);
 
