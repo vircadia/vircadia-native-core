@@ -105,15 +105,7 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
-        browseModelsButton,
-        loadURLMenuItem,
-        loadFileMenuItem,
-        menuItemWidth,
-        menuItemOffset,
-        menuItemHeight,
-        menuItemMargin = 5,
-        menuTextColor = { red: 255, green: 255, blue: 255 },
-        menuBackgroundColor = { red: 18, green: 66, blue: 66 };
+        browseModelsButton;
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
@@ -144,34 +136,6 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: true
         });
-
-        menuItemOffset = toolBar.height / 3 + 2;
-        menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
-
-        loadURLMenuItem = Overlays.addOverlay("text", {
-            height: menuItemHeight,
-            backgroundColor: menuBackgroundColor,
-            topMargin: menuItemMargin,
-            text: "Model URL",
-            alpha: 0.9,
-            backgroundAlpha: 0.9,
-            visible: false
-        });
-
-        loadFileMenuItem = Overlays.addOverlay("text", {
-            height: menuItemHeight,
-            backgroundColor: menuBackgroundColor,
-            topMargin: menuItemMargin,
-            text: "Model File",
-            alpha: 0.9,
-            backgroundAlpha: 0.9,
-            visible: false
-        });
-
-        menuItemWidth = Math.max(Overlays.textSize(loadURLMenuItem, "Model URL").width,
-            Overlays.textSize(loadFileMenuItem, "Model File").width) + 20;
-        Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
-        Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
         newCubeButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-cube.svg",
@@ -210,17 +174,6 @@ var toolBar = (function () {
         });
 
     }
-
-    function toggleNewModelButton(active) {
-        if (active === undefined) {
-            active = !toolBar.toolSelected(newModelButton);
-        }
-        toolBar.selectTool(newModelButton, active);
-
-        Overlays.editOverlay(loadURLMenuItem, { visible: active });
-        Overlays.editOverlay(loadFileMenuItem, { visible: active });
-    }
-
 
     that.setActive = function(active) {
         if (active != isActive) {
@@ -306,9 +259,6 @@ var toolBar = (function () {
         toolsY = (windowDimensions.y - toolBar.height) / 2;
 
         toolBar.move(toolsX, toolsY);
-
-        Overlays.editOverlay(loadURLMenuItem, { x: toolsX - menuItemWidth, y: toolsY + menuItemOffset });
-        Overlays.editOverlay(loadFileMenuItem, { x: toolsX - menuItemWidth, y: toolsY + menuItemOffset + menuItemHeight });
     };
 
     that.mousePressEvent = function (event) {
@@ -324,12 +274,6 @@ var toolBar = (function () {
         }
 
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            toggleNewModelButton();
-            return true;
-        }
-
-        if (clickedOverlay === loadURLMenuItem) {
-            toggleNewModelButton(false);
             url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
             if (url !== null && url !== "") {
                 addModel(url);
@@ -337,22 +281,7 @@ var toolBar = (function () {
             return true;
         }
 
-        if (clickedOverlay === loadFileMenuItem) {
-            toggleNewModelButton(false);
-
-            file = Window.browse("Select your model file ...",
-                Settings.getValue("LastModelUploadLocation").path(),
-                "Model files (*.fst *.fbx)");
-                //"Model files (*.fst *.fbx *.svo)");
-            if (file !== null) {
-                Settings.setValue("LastModelUploadLocation", file);
-                modelUploader.upload(file, addModel);
-            }
-            return true;
-        }
-
         if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
-            toggleNewModelButton(false);
             url = Window.s3Browse(".*(fbx|FBX)");
             if (url !== null && url !== "") {
                 addModel(url);
@@ -443,8 +372,6 @@ var toolBar = (function () {
 
     that.cleanup = function () {
         toolBar.cleanup();
-        Overlays.deleteOverlay(loadURLMenuItem);
-        Overlays.deleteOverlay(loadFileMenuItem);
     };
 
     return that;
