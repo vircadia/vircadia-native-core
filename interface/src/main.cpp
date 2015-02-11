@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
 #include <QSettings>
@@ -36,7 +37,7 @@ static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
 #endif
 
 
-int main(int argc, const char * argv[]) {
+int main(int argc, const char* argv[]) {
 #ifdef Q_OS_WIN
     // Run only one instance of Interface at a time.
     HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface");
@@ -46,15 +47,32 @@ int main(int argc, const char * argv[]) {
         HWND otherInstance = NULL;
         EnumWindows(enumWindowsCallback, (LPARAM)&otherInstance);
         if (otherInstance) {
-            ShowWindow(otherInstance, SW_RESTORE);
-            SetForegroundWindow(otherInstance);
+            // Show other instance.
+            SendMessage(otherInstance, UWM_SHOW_APPLICATION, 0, 0);
 
-            QUrl url = QUrl(argv[1]);
-            if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
-                COPYDATASTRUCT cds;
-                cds.cbData = strlen(argv[1]) + 1;
-                cds.lpData = (PVOID)argv[1];
-                SendMessage(otherInstance, WM_COPYDATA, 0, (LPARAM)&cds);
+            // Send command line --url value to other instance.
+            if (argc >= 3) {
+                QStringList arguments;
+                for (int i = 0; i < argc; i += 1) {
+                    arguments << argv[i];
+                }
+
+                QCommandLineParser parser;
+                QCommandLineOption urlOption("url", "", "value");
+                parser.addOption(urlOption);
+                parser.process(arguments);
+
+                if (parser.isSet(urlOption)) {
+                    QUrl url = QUrl(parser.value(urlOption));
+                    if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                        QByteArray urlBytes = url.toString().toLatin1();
+                        const char* urlChars = urlBytes.data();
+                        COPYDATASTRUCT cds;
+                        cds.cbData = urlBytes.length() + 1;
+                        cds.lpData = (PVOID)urlChars;
+                        SendMessage(otherInstance, WM_COPYDATA, 0, (LPARAM)&cds);
+                    }
+                }
             }
         }
         return 0;

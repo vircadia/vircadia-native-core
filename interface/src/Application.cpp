@@ -157,18 +157,27 @@ public:
     bool nativeEventFilter(const QByteArray &eventType, void* msg, long* result) Q_DECL_OVERRIDE {
         if (eventType == "windows_generic_MSG") {
             MSG* message = (MSG*)msg;
+
             if (message->message == UWM_IDENTIFY_INSTANCES) {
                 *result = UWM_IDENTIFY_INSTANCES;
                 return true;
             }
-            if (message->message == WM_SHOWWINDOW) {
-                Application::getInstance()->getWindow()->showNormal();
+
+            if (message->message == UWM_SHOW_APPLICATION) {
+                MainWindow* applicationWindow = Application::getInstance()->getWindow();
+                if (applicationWindow->isMinimized()) {
+                    applicationWindow->showNormal();  // Restores to windowed or maximized state appropriately.
+                }
+                Application::getInstance()->setActiveWindow(applicationWindow);  // Flashes the taskbar icon if not focus.
+                return true;
             }
+
             if (message->message == WM_COPYDATA) {
                 COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
                 QUrl url = QUrl((const char*)(pcds->lpData));
                 if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
                     DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+                    return true;
                 }
             }
         }
