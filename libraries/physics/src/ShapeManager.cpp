@@ -27,6 +27,9 @@ ShapeManager::~ShapeManager() {
 }
 
 btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
+    if (info.getType() == SHAPE_TYPE_NONE) {
+        return NULL;
+    }
     // Very small or large objects are not supported.
     float diagonal = 4.0f * glm::length2(info.getHalfExtents());
     const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
