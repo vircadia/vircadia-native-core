@@ -1755,15 +1755,18 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     if (!isLoaded()) {
         return false;
     }
-    foreach (const NetworkMesh& mesh, _meshes) {
-        foreach (const NetworkMeshPart& part, mesh.parts) {
-            if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
-                    (part.normalTexture && !part.normalTexture->isLoaded()) ||
-                    (part.specularTexture && !part.specularTexture->isLoaded()) ||
-                    (part.emissiveTexture && !part.emissiveTexture->isLoaded())) {
-                return false;
+    if (!_isLoadedWithTextures) {
+        foreach (const NetworkMesh& mesh, _meshes) {
+            foreach (const NetworkMeshPart& part, mesh.parts) {
+                if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
+                        (part.normalTexture && !part.normalTexture->isLoaded()) ||
+                        (part.specularTexture && !part.specularTexture->isLoaded()) ||
+                        (part.emissiveTexture && !part.emissiveTexture->isLoaded())) {
+                    return false;
+                }
             }
         }
+        _isLoadedWithTextures = true;
     }
     return true;
 }
@@ -1940,6 +1943,7 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
         // we don't have meshes downloaded yet, so hold this texture as pending
         _pendingTextureChanges.insert(name, url);
     }
+    _isLoadedWithTextures = false;
 }
 
 QStringList NetworkGeometry::getTextureNames() const {

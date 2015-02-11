@@ -357,6 +357,8 @@ private:
     QHash<QWeakPointer<Animation>, QVector<int> > _jointMappings;
     
     QHash<QString, QUrl> _pendingTextureChanges;
+
+    mutable bool _isLoadedWithTextures = false;
 };
 
 /// The state associated with a single mesh part.
