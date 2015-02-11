@@ -136,10 +136,12 @@ public:
 
     glm::vec2 drawString(float x, float y, const QString & str,
             const glm::vec4& color, TextRenderer::EffectType effectType,
-            const glm::vec2& bound) const;
+            const glm::vec2& bound);
 
 private:
     QStringList tokenizeForWrapping(const QString & str) const;
+
+    bool _initialized;
 };
 
 static QHash<QString, Font*> LOADED_FONTS;
@@ -186,7 +188,7 @@ Font* loadFont(const QString& family) {
     return LOADED_FONTS[family];
 }
 
-Font::Font() {
+Font::Font() : _initialized(false) {
     static bool fontResourceInitComplete = false;
     if (!fontResourceInitComplete) {
         Q_INIT_RESOURCE(fonts);
@@ -255,8 +257,6 @@ void Font::read(QIODevice& in) {
         // store in the character to glyph hash
         _glyphs[g.c] = g;
     };
-
-    setupGL();
 }
 
 struct TextureVertex {
@@ -291,6 +291,11 @@ QRectF Glyph::textureBounds(const glm::vec2 & textureSize) const {
 }
 
 void Font::setupGL() {
+    if (_initialized) {
+        return;
+    }
+    _initialized = true;
+
     _texture = TexturePtr(
             new QOpenGLTexture(_image, QOpenGLTexture::GenerateMipMaps));
     _program = ProgramPtr(new QOpenGLShaderProgram());
@@ -411,7 +416,11 @@ glm::vec2 Font::computeExtent(const QString & str) const {
 // even without explicit line feeds.
 glm::vec2 Font::drawString(float x, float y, const QString & str,
         const glm::vec4& color, TextRenderer::EffectType effectType,
-        const glm::vec2& bounds) const {
+        const glm::vec2& bounds) {
+
+    if (!_initialized) {
+        setupGL();
+    }
 
     // Stores how far we've moved from the start of the string, in DTP units
     glm::vec2 advance(0, -_rowHeight - _descent);
