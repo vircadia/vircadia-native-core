@@ -354,7 +354,7 @@ function update(deltaTime) {
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
-    if (currentMuzakInjector && !currentMuzakInjector.isPlaying()) {
+    if (currentMuzakInjector && !currentMuzakInjector.isPlaying) {
       playNextMuzak();
     }
   }

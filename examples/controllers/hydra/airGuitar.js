@@ -85,7 +85,7 @@ function checkHands(deltaTime) {
 		var chord = Controller.getTriggerValue(chordHand);
 
 		if (volume > 1.0) volume = 1.0;
-		if ((chord > 0.1) && soundPlaying.isPlaying()) {
+		if ((chord > 0.1) && soundPlaying.isPlaying) {
 			// If chord finger trigger pulled, stop current chord
 			print("stopped sound");
 			soundPlaying.stop();
@@ -132,7 +132,7 @@ function checkHands(deltaTime) {
 }
 
 function playChord(position, volume) {
-	if (soundPlaying.isPlaying()) {
+	if (soundPlaying.isPlaying) {
 		print("stopped sound");
 		soundPlaying.stop();
 	}
