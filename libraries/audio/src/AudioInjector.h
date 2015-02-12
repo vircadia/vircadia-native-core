@@ -46,7 +46,9 @@ public:
 public slots:
     void injectAudio();
     void restart();
+    
     void stop();
+    void triggerDeleteAfterFinish() { _shouldDeleteAfterFinish = true; }
     void stopAndDeleteLater();
     
     void setOptions(AudioInjectorOptions& options) { _options = options; }
@@ -69,6 +71,7 @@ private:
     float _loudness = 0.0f;
     bool _isStarted = false;
     bool _isFinished = false;
+    bool _shouldDeleteAfterFinish = false;
     int _currentSendPosition = 0;
     AbstractAudioInterface* _localAudioInterface = NULL;
     AudioInjectorLocalBuffer* _localBuffer = NULL;

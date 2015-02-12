@@ -39,7 +39,7 @@ signals:
 protected slots:
     void stopInjectorImmediately();
 private:
-    AudioInjector* _injector;
+    QPointer<AudioInjector> _injector;
     
     friend QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* const& in);
 };
