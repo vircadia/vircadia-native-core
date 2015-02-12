@@ -57,7 +57,6 @@ AudioInjector* AudioScriptingInterface::invokedPlaySound(Sound* sound, const Aud
         // connect the right slots and signals for AudioInjector and thread cleanup
         connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
         connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
-        connect(injectorThread, &QThread::destroyed, this, &AudioScriptingInterface::threadDead);
         
         injectorThread->start();
         
@@ -67,8 +66,4 @@ AudioInjector* AudioScriptingInterface::invokedPlaySound(Sound* sound, const Aud
         qDebug() << "AudioScriptingInterface::playSound called with null Sound object.";
         return NULL;
     }
-}
-
-void AudioScriptingInterface::threadDead() {
-    qDebug() << "The audio thread has gone down";
 }

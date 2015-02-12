@@ -31,9 +31,9 @@ public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
-    ~AudioInjector();
     
     bool isFinished() const { return _isFinished; }
+    
     int getCurrentSendPosition() const { return _currentSendPosition; }
     
     AudioInjectorLocalBuffer* getLocalBuffer() const { return _localBuffer; }
@@ -43,9 +43,9 @@ public:
 public slots:
     void injectAudio();
     void stop();
-    void setOptions(AudioInjectorOptions& options);
+    void setOptions(AudioInjectorOptions& options) { _options = options; }
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
-    float getLoudness() const;
+    float getLoudness() const { return _loudness; }
     bool isPlaying() const { return !_isFinished; }
     
 signals:
@@ -56,6 +56,8 @@ private slots:
 private:
     void injectToMixer();
     void injectLocally();
+    
+    void setIsFinished(bool isFinished);
     
     QByteArray _audioData;
     AudioInjectorOptions _options;

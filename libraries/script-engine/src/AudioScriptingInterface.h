@@ -31,9 +31,6 @@ signals:
     void mutedByMixer();
     void environmentMuted();
     
-public slots:
-    void threadDead();
-    
 private slots:
     AudioInjector* invokedPlaySound(Sound* sound, const AudioInjectorOptions& injectorOptions);
 

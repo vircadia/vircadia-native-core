@@ -52,18 +52,19 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
     
 }
 
-AudioInjector::~AudioInjector() {
-    if (_localBuffer) {
-        _localBuffer->stop();
+void AudioInjector::setIsFinished(bool isFinished) {
+    _isFinished = isFinished;
+    
+    if (_isFinished) {
+        emit finished();
+        
+        if (_localBuffer) {
+            _localBuffer->stop();
+        }
+        
+        // cleanup the audio data so we aren't holding that memory unecessarily
+        _audioData.resize(0);
     }
-}
-
-void AudioInjector::setOptions(AudioInjectorOptions& options) {
-    _options = options;
-}
-
-float AudioInjector::getLoudness() {
-    return _loudness;
 }
 
 void AudioInjector::injectAudio() {
@@ -252,8 +253,7 @@ void AudioInjector::injectToMixer() {
         }
     }
     
-    _isFinished = true;
-    emit finished();
+    setIsFinished(true);
 }
 
 void AudioInjector::stop() {
@@ -261,8 +261,7 @@ void AudioInjector::stop() {
     
     if (_options.localOnly) {
         // we're only a local injector, so we can say we are finished right away too
-        _isFinished = true;
-        emit finished();
+        setIsFinished(true);
     }
 }
 
