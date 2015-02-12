@@ -30,13 +30,6 @@ function update(deltaTime) {
     } 
 }
 
-function scriptEnding() {
-    if (soundPlaying.isPlaying) {
-        Audio.stopInjector(soundPlaying);
-        print("Stopped sound loop");
-    }
-}
-
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 

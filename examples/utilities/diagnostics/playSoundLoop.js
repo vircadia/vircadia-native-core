@@ -45,11 +45,9 @@ function maybePlaySound(deltaTime) {
 }
         
 function scriptEnding() {
-    if (soundPlaying.isPlaying) {
-        soundPlaying.stop();
-        Entities.deleteEntity(ball);
-        print("Stopped sound.");
-    }
+  if (ball) {
+    Entities.deleteEntity(ball);
+  }
 }
 
 // Connect a call back that happens every frame
