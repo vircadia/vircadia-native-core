@@ -982,6 +982,7 @@ bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector
         localOutput->moveToThread(injector->getLocalBuffer()->thread());
         
         // have it be stopped when that local buffer is about to close
+        connect(injector->getLocalBuffer(), &AudioInjectorLocalBuffer::bufferEmpty, localOutput, &QAudioOutput::stop);
         connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
         
         qDebug() << "Starting QAudioOutput for local injector" << localOutput;
@@ -992,7 +993,6 @@ bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector
     
     return false;
 }
-
 
 void AudioClient::outputFormatChanged() {
     int outputFormatChannelCountTimesSampleRate = _outputFormat.channelCount() * _outputFormat.sampleRate();

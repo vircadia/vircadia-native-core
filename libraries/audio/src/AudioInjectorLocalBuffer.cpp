@@ -23,7 +23,16 @@ AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(const QByteArray& rawAudioArr
 
 void AudioInjectorLocalBuffer::stop() {
     _isStopped = true;
+    
     QIODevice::close();
+}
+
+bool AudioInjectorLocalBuffer::seek(qint64 pos) {
+    if (_isStopped) {
+        return false;
+    } else {
+        return QIODevice::seek(pos);
+    }
 }
 
 qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
