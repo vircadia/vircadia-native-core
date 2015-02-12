@@ -227,10 +227,10 @@ function cleanupLobby() {
   panelWall = false;
   orbShell = false;
   
-  Audio.stopInjector(currentDrone);
+  currentDrone.stop();
   currentDrone = null;
   
-  Audio.stopInjector(currentMuzakInjector);
+  currentMuzakInjector.stop();
   currentMuzakInjector = null;
   
   places = {};
@@ -354,7 +354,7 @@ function update(deltaTime) {
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
-    if (currentMuzakInjector && !Audio.isInjectorPlaying(currentMuzakInjector)) {
+    if (currentMuzakInjector && !currentMuzakInjector.isPlaying()) {
       playNextMuzak();
     }
   }
