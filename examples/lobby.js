@@ -179,6 +179,26 @@ function changeLobbyTextures() {
 
 var MUZAK_VOLUME = 0.1;
 
+function playCurrentSound(secondOffset) {  
+  if (currentSound == latinSound) {
+    if (!latinInjector) {
+      latinInjector = Audio.playSound(latinSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
+    } else {
+      latinInjector.restart();
+    }
+    
+    currentMuzakInjector = latinInjector;
+  } else if (currentSound == elevatorSound) {
+    if (!elevatorInjector) {
+      elevatorInjector = Audio.playSound(elevatorSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
+    } else {
+      elevatorInjector.restart();
+    }
+    
+    currentMuzakInjector = elevatorInjector;
+  }
+}
+
 function playNextMuzak() {
   if (panelWall) {
     if (currentSound == latinSound) {
@@ -190,8 +210,8 @@ function playNextMuzak() {
         currentSound = latinSound;
       }
     }
-  
-    currentMuzakInjector = Audio.playSound(currentSound, { localOnly: true, volume: MUZAK_VOLUME });
+    
+    playCurrentSound(0);
   }
 }
 
@@ -206,27 +226,11 @@ function playRandomMuzak() {
     currentSound = elevatorSound;
   }
   
-  if (currentSound) {    
+  if (currentSound) {
     // pick a random number of seconds from 0-10 to offset the muzak
     var secondOffset = Math.random() * 10;
     
-    if (currentSound == latinSound) {
-      if (!latinInjector) {
-        latinInjector = Audio.playSound(latinSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
-      } else {
-        latinInjector.restart();
-      }
-      
-      currentMuzakInjector = latinInjector;
-    } else if (currentSound == elevatorSound) {
-      if (!elevatorInjector) {
-        elevatorInjector = Audio.playSound(elevatorSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
-      } else {
-        elevatorInjector.restart();
-      }
-      
-      currentMuzakInjector = elevatorInjector;
-    }
+    playCurrentSound(secondOffset);
   } else {
     currentMuzakInjector = null;
   }
