@@ -37,7 +37,7 @@ RenderingClient::RenderingClient(QObject *parent, const QString& launchURLString
     DependencyManager::set<AvatarHashMap>();
     
     // get our audio client setup on its own thread
-    QThread* audioThread = new QThread(this);
+    QThread* audioThread = new QThread();
     auto audioClient = DependencyManager::set<AudioClient>();
     
     audioClient->setPositionGetter(getPositionForAudio);
@@ -45,6 +45,8 @@ RenderingClient::RenderingClient(QObject *parent, const QString& launchURLString
     
     audioClient->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioClient.data(), &AudioClient::start);
+    connect(audioClient.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
+    connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
 
     audioThread->start();
     
@@ -68,15 +70,9 @@ void RenderingClient::sendAvatarPacket() {
     _fakeAvatar.sendIdentityPacket();
 }
 
-RenderingClient::~RenderingClient() {
-    auto audioClient = DependencyManager::get<AudioClient>();
-
-    // stop the audio client
-    QMetaObject::invokeMethod(audioClient.data(), "stop", Qt::BlockingQueuedConnection);
-    
-    // ask the audio thread to quit and wait until it is done
-    audioClient->thread()->quit();
-    audioClient->thread()->wait();
+void RenderingClient::cleanupBeforeQuit() {
+    // destroy the AudioClient so it and it's thread will safely go down
+    DependencyManager::destroy<AudioClient>();
 }
 
 void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket) {
