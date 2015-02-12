@@ -11,9 +11,6 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include <AACubeShape.h>
-#include <ShapeCollider.h>
-
 #include <FBXReader.h>
 #include <GeometryUtil.h>
 
@@ -568,33 +565,6 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
         ++entityItr;
     }
     return false;
-}
-
-bool EntityTreeElement::findShapeCollisions(const Shape* shape, CollisionList& collisions) const {
-    bool atLeastOneCollision = false;
-    QList<EntityItem*>::iterator entityItr = _entityItems->begin();
-    QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
-    while(entityItr != entityEnd) {
-        EntityItem* entity = (*entityItr);
-        
-        // entities that are set for ignore for collisions then don't consider them for collision
-        const Shape* otherCollisionShape = &entity->getCollisionShapeInMeters();
-        
-        bool ignoreForCollisions = entity->getIgnoreForCollisions();
-        if (shape != otherCollisionShape && !ignoreForCollisions) {
-            if (ShapeCollider::collideShapes(shape, otherCollisionShape, collisions)) {
-                CollisionInfo* lastCollision = collisions.getLastCollision();
-                if (lastCollision) {
-                    lastCollision->_extraData = entity;
-                    atLeastOneCollision = true;
-                } else {
-                    qDebug() << "UNEXPECTED - ShapeCollider::collideShapes() returned true, but no lastCollision.";
-                }
-            }
-        }
-        ++entityItr;
-    }
-    return atLeastOneCollision;
 }
 
 void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID) {
