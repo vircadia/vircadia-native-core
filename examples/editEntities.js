@@ -190,6 +190,7 @@ var toolBar = (function () {
                 cameraManager.enable();
                 entityListTool.setVisible(true);
                 gridTool.setVisible(true);
+                grid.setEnabled(true);
                 propertiesTool.setVisible(true);
                 Window.setFocus();
             }
