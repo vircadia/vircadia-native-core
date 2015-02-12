@@ -75,7 +75,7 @@ void RenderingClient::cleanupBeforeQuit() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
     
-    // destroy the AudioClient so it and it's thread will safely go down
+    // destroy the AudioClient so it and its thread will safely go down
     DependencyManager::destroy<AudioClient>();
 }
 
