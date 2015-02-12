@@ -138,10 +138,15 @@ function playChord(position, volume) {
 	}
   
 	print("Played sound: " + whichChord + " at volume " + options.volume);
-	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
-	  position: position,
-    volume: volume
-	});	
+  if (!soundPlaying) {
+  	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
+  	  position: position,
+      volume: volume
+  	});	
+  } else {
+    soundPlaying.restart();
+  }
+	
 }
 
 function keyPressEvent(event) {
