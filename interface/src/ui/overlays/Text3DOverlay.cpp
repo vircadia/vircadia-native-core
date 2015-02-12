@@ -20,6 +20,7 @@ const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const float DEFAULT_MARGIN = 0.1f;
 const int FIXED_FONT_POINT_SIZE = 40;
+const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;
 
 Text3DOverlay::Text3DOverlay() :
@@ -103,8 +104,6 @@ void Text3DOverlay::render(RenderArgs* args) {
         glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
         glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
-        
-        const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
         // Same font properties as textSize()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
@@ -229,22 +228,12 @@ Text3DOverlay* Text3DOverlay::createClone() const {
 }
 
 QSizeF Text3DOverlay::textSize(const QString& text) const {
+    auto textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    auto extents = textRenderer->computeExtent(text);
 
-    QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
-    QFontMetrics fontMetrics(font);
-    const float TEXT_SCALE_ADJUST = 1.025f;  // Experimentally detemined for the specified font
-    const int TEXT_HEIGHT_ADJUST = -10;
-    float scaleFactor = _lineHeight * TEXT_SCALE_ADJUST * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
+    float maxHeight = (float)textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
+    float pointToWorldScale = (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
 
-    QStringList lines = text.split(QRegExp("\r\n|\r|\n"));
-
-    float width = 0.0f;
-    for (int i = 0; i < lines.count(); i += 1) {
-        width = std::max(width, scaleFactor * (float)fontMetrics.width(qPrintable(lines[i])));
-    }
-
-    float height = lines.count() * scaleFactor * (float)(fontMetrics.height() + TEXT_HEIGHT_ADJUST);
-
-    return QSizeF(width, height);
+    return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }
 
