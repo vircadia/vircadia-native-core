@@ -974,14 +974,15 @@ bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector
         
         QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
                                                      localFormat,
-                                                     injector);
+                                                     injector->getLocalBuffer());
+        
         localOutput->setVolume(volume);
         
         // move the localOutput to the same thread as the local injector buffer
         localOutput->moveToThread(injector->getLocalBuffer()->thread());
         
-        // have it be cleaned up when that injector is done
-        connect(injector, &AudioInjector::finished, localOutput, &QAudioOutput::stop);
+        // have it be stopped when that local buffer is about to close
+        connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
         
         qDebug() << "Starting QAudioOutput for local injector" << localOutput;
         

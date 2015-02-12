@@ -91,6 +91,7 @@ void AudioInjector::injectAudio() {
 }
 
 void AudioInjector::restart() {
+    qDebug() << "Restarting an AudioInjector by stopping and starting over.";
     stop();
     QMetaObject::invokeMethod(this, "injectAudio", Qt::QueuedConnection);
 }
@@ -101,6 +102,7 @@ void AudioInjector::injectLocally() {
         if (_audioData.size() > 0) {
             
             _localBuffer = new AudioInjectorLocalBuffer(_audioData, this);
+            
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
             

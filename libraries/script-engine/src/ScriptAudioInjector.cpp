@@ -31,9 +31,8 @@ ScriptAudioInjector::ScriptAudioInjector(AudioInjector* injector) :
 ScriptAudioInjector::~ScriptAudioInjector() {
     if (!_injector.isNull()) {
         // we've been asked to delete after finishing, trigger a queued deleteLater here
-        QMetaObject::invokeMethod(_injector.data(), "triggerDeleteAfterFinish", Qt::QueuedConnection);
+        _injector->triggerDeleteAfterFinish();
     }
-    
 }
 
 void ScriptAudioInjector::stopInjectorImmediately() {

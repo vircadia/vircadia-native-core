@@ -49,7 +49,6 @@ AudioInjector* AudioScriptingInterface::invokedPlaySound(Sound* sound, const Aud
         optionsCopy.stereo = sound->isStereo();
         
         QThread* injectorThread = new QThread();
-        qDebug() << "the injector thread is" << injectorThread;
         injectorThread->setObjectName("Audio Injector Thread");
         
         AudioInjector* injector = new AudioInjector(sound, optionsCopy);
@@ -57,11 +56,8 @@ AudioInjector* AudioScriptingInterface::invokedPlaySound(Sound* sound, const Aud
         
         injector->moveToThread(injectorThread);
         
-        qDebug() << "the injector is" << injector;
-        
         // start injecting when the injector thread starts
         connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
-        
         
         // connect the right slots and signals for AudioInjector and thread cleanup
         connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);

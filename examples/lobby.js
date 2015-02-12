@@ -55,7 +55,9 @@ var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.st
 var currentDrone = null;
 
 var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.stereo.raw")
+var latinInjector = null;
 var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
+var elevatorInjector = null;
 var currentMuzakInjector = null;
 var currentSound = null;
 
@@ -140,7 +142,11 @@ function drawLobby() {
     
     if (droneSound.downloaded) {
       // start the drone sound
-      currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+      if (!currentDrone) {
+        currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+      } else {
+        currentDrone.restart();
+      }
     }
     
     // start one of our muzak sounds
@@ -203,7 +209,24 @@ function playRandomMuzak() {
   if (currentSound) {    
     // pick a random number of seconds from 0-10 to offset the muzak
     var secondOffset = Math.random() * 10;
-    currentMuzakInjector = Audio.playSound(currentSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
+    
+    if (currentSound == latinSound) {
+      if (!latinInjector) {
+        latinInjector = Audio.playSound(latinSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
+      } else {
+        latinInjector.restart();
+      }
+      
+      currentMuzakInjector = latinInjector;
+    } else if (currentSound == elevatorSound) {
+      if (!elevatorInjector) {
+        elevatorInjector = Audio.playSound(elevatorSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
+      } else {
+        elevatorInjector.restart();
+      }
+      
+      currentMuzakInjector = elevatorInjector;
+    }
   } else {
     currentMuzakInjector = null;
   }
@@ -228,9 +251,8 @@ function cleanupLobby() {
   orbShell = false;
   
   currentDrone.stop();
-  currentDrone = null;
-  
   currentMuzakInjector.stop();
+  
   currentMuzakInjector = null;
   
   places = {};
