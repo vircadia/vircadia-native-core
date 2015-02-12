@@ -65,9 +65,7 @@ void AudioInjector::setIsFinished(bool isFinished) {
 }
 
 void AudioInjector::injectAudio() {
-    
     if (!_isStarted) {
-        
         // check if we need to offset the sound by some number of seconds
         if (_options.secondOffset > 0.0f) {
             
@@ -93,6 +91,7 @@ void AudioInjector::injectAudio() {
 void AudioInjector::restart() {
     qDebug() << "Restarting an AudioInjector by stopping and starting over.";
     stop();
+    setIsFinished(false);
     QMetaObject::invokeMethod(this, "injectAudio", Qt::QueuedConnection);
 }
 
