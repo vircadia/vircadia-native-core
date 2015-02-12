@@ -155,6 +155,7 @@
             var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
+            var elModelShapeType = document.getElementById("property-model-shape");
 
             var elTextSections = document.querySelectorAll(".text-section");
             var elTextText = document.getElementById("property-text-text");
@@ -258,6 +259,7 @@
                                 elModelAnimationSettings.value = properties.animationSettings;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
+                                elModelShapeType.value = properties.shapeType;
                             }
 
                             if (properties.type != "Text") {
@@ -404,6 +406,7 @@
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
             elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
+            elModelShapeType.addEventListener('change', createEmitNumberPropertyUpdateFunction('shapeType'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -661,6 +664,17 @@
             <div class="label">Original Textures</div>
             <div class="value">
                 <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
+            </div>
+        </div>
+
+        <div class="model-section property">
+            <div class="label">Shape Type</div>
+            <div class="value">
+                <select name="SelectShapeType" id="property-model-shape" name="SelectShapeType">
+                    <option value=0>None</option>
+                    <option value=1>Box</option>
+                    <option value=2>Sphere</option>
+                </select> 
             </div>
         </div>
 

@@ -27,14 +27,17 @@ ShapeManager::~ShapeManager() {
 }
 
 btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
+    if (info.getType() == SHAPE_TYPE_NONE) {
+        return NULL;
+    }
     // Very small or large objects are not supported.
-    float diagonal = glm::length2(info.getBoundingBoxDiagonal());
+    float diagonal = 4.0f * glm::length2(info.getHalfExtents());
     const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
     const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e4f;  // 100 m cube
     if (diagonal < MIN_SHAPE_DIAGONAL_SQUARED || diagonal > MAX_SHAPE_DIAGONAL_SQUARED) {
         return NULL;
     }
-    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
+    DoubleHashKey key = info.getHash();
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         shapeRef->_refCount++;
@@ -51,7 +54,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
 }
 
 bool ShapeManager::releaseShape(const ShapeInfo& info) {
-    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
+    DoubleHashKey key = info.getHash();
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         if (shapeRef->_refCount > 0) {
@@ -95,7 +98,7 @@ void ShapeManager::collectGarbage() {
 }
 
 int ShapeManager::getNumReferences(const ShapeInfo& info) const {
-    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
+    DoubleHashKey key = info.getHash();
     const ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         return shapeRef->_refCount;
