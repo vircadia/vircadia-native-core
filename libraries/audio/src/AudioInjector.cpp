@@ -60,16 +60,19 @@ void AudioInjector::setIsFinished(bool isFinished) {
         
         if (_localBuffer) {
             _localBuffer->stop();
+            _localBuffer->deleteLater();
+            _localBuffer = NULL;
         }
         
-        // cleanup the audio data so we aren't holding that memory unecessarily
-        _audioData.resize(0);
+        _isStarted = false;
+        _shouldStop = false;
     }
 }
 
 void AudioInjector::injectAudio() {
     
     if (!_isStarted) {
+        
         // check if we need to offset the sound by some number of seconds
         if (_options.secondOffset > 0.0f) {
             
@@ -78,6 +81,8 @@ void AudioInjector::injectAudio() {
             byteOffset *= sizeof(int16_t);
             
             _currentSendPosition = byteOffset;
+        } else {
+            _currentSendPosition = 0;
         }
         
         if (_options.localOnly) {
@@ -88,6 +93,11 @@ void AudioInjector::injectAudio() {
     } else {
         qDebug() << "AudioInjector::injectAudio called but already started.";
     }    
+}
+
+void AudioInjector::restart() {
+    stop();
+    QMetaObject::invokeMethod(this, "injectAudio", Qt::QueuedConnection);
 }
 
 void AudioInjector::injectLocally() {

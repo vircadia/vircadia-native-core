@@ -25,6 +25,9 @@
 
 class AbstractAudioInterface;
 
+// In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
+// until it dies. 
+
 class AudioInjector : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool isPlaying READ isPlaying)
@@ -44,6 +47,7 @@ public:
     void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 public slots:
     void injectAudio();
+    void restart();
     void stop();
     void setOptions(AudioInjectorOptions& options) { _options = options; }
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }

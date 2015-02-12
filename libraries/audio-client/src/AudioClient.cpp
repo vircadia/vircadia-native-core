@@ -980,6 +980,9 @@ bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector
         // move the localOutput to the same thread as the local injector buffer
         localOutput->moveToThread(injector->getLocalBuffer()->thread());
         
+        // have it be cleaned up when that injector is done
+        connect(injector, &AudioInjector::finished, localOutput, &QAudioOutput::stop);
+        
         qDebug() << "Starting QAudioOutput for local injector" << localOutput;
         
         localOutput->start(injector->getLocalBuffer());
