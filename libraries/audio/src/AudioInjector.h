@@ -30,8 +30,6 @@ class AbstractAudioInterface;
 
 class AudioInjector : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool isPlaying READ isPlaying)
-    Q_PROPERTY(float loudness READ getLoudness)
 public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
@@ -49,6 +47,8 @@ public slots:
     void injectAudio();
     void restart();
     void stop();
+    void stopAndDeleteLater();
+    
     void setOptions(AudioInjectorOptions& options) { _options = options; }
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
     float getLoudness() const { return _loudness; }
@@ -57,8 +57,6 @@ public slots:
 signals:
     void finished();
 
-private slots:
-    void stopAndDeleteLater();
 private:
     void injectToMixer();
     void injectLocally();
@@ -74,13 +72,7 @@ private:
     int _currentSendPosition = 0;
     AbstractAudioInterface* _localAudioInterface = NULL;
     AudioInjectorLocalBuffer* _localBuffer = NULL;
-    
-    friend QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in);
 };
 
-Q_DECLARE_METATYPE(AudioInjector*)
-
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in);
-void injectorFromScriptValue(const QScriptValue& object, AudioInjector*& out);
 
 #endif // hifi_AudioInjector_h

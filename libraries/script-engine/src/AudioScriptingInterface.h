@@ -16,6 +16,8 @@
 #include <AudioInjector.h>
 #include <Sound.h>
 
+class ScriptAudioInjector;
+
 class AudioScriptingInterface : public QObject {
     Q_OBJECT
 public:
@@ -25,7 +27,7 @@ public:
     
 protected:
     // this method is protected to stop C++ callers from calling, but invokable from script
-    Q_INVOKABLE AudioInjector* playSound(Sound* sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
+    Q_INVOKABLE ScriptAudioInjector* playSound(Sound* sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
     
 signals:
     void mutedByMixer();

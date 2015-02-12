@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptAudioInjector.h"
+
 #include "AudioScriptingInterface.h"
 
 void registerAudioMetaTypes(QScriptEngine* engine) {
@@ -28,12 +30,16 @@ AudioScriptingInterface::AudioScriptingInterface() :
     
 }
 
-AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
+ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
     AudioInjector* injector = NULL;
     QMetaObject::invokeMethod(this, "invokedPlaySound", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(AudioInjector*, injector),
                               Q_ARG(Sound*, sound), Q_ARG(const AudioInjectorOptions&, injectorOptions));
-    return injector;
+    if (injector) {
+        return new ScriptAudioInjector(injector);
+    } else {
+        return NULL;
+    }
 }
 
 AudioInjector* AudioScriptingInterface::invokedPlaySound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
@@ -43,12 +49,15 @@ AudioInjector* AudioScriptingInterface::invokedPlaySound(Sound* sound, const Aud
         optionsCopy.stereo = sound->isStereo();
         
         QThread* injectorThread = new QThread();
+        qDebug() << "the injector thread is" << injectorThread;
         injectorThread->setObjectName("Audio Injector Thread");
         
         AudioInjector* injector = new AudioInjector(sound, optionsCopy);
         injector->setLocalAudioInterface(_localAudioInterface);
         
         injector->moveToThread(injectorThread);
+        
+        qDebug() << "the injector is" << injector;
         
         // start injecting when the injector thread starts
         connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);

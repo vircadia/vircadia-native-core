@@ -22,17 +22,6 @@
 
 #include "AudioInjector.h"
 
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in) {
-    // when the script goes down we want to cleanup the injector
-    QObject::connect(engine, &QScriptEngine::destroyed, in, &AudioInjector::stopAndDeleteLater);
-    
-    return engine->newQObject(in);
-}
-
-void injectorFromScriptValue(const QScriptValue& object, AudioInjector*& out) {
-    out = qobject_cast<AudioInjector*>(object.toQObject());
-}
-
 AudioInjector::AudioInjector(QObject* parent) :
     QObject(parent)
 {
