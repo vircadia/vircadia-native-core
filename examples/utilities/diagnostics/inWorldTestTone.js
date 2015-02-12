@@ -21,7 +21,7 @@ var offset = Vec3.normalize(Quat.getFront(MyAvatar.orientation));
 var position = Vec3.sum(MyAvatar.position, offset);
 
 function update(deltaTime) {
-    if (!Audio.isInjectorPlaying(soundPlaying)) {
+    if (!soundPlaying.isPlaying) {
         soundPlaying = Audio.playSound(sound, {
           position: position,
           loop: true
@@ -31,7 +31,7 @@ function update(deltaTime) {
 }
 
 function scriptEnding() {
-    if (Audio.isInjectorPlaying(soundPlaying)) {
+    if (soundPlaying.isPlaying) {
         Audio.stopInjector(soundPlaying);
         print("Stopped sound loop");
     }

@@ -27,6 +27,8 @@ class AbstractAudioInterface;
 
 class AudioInjector : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool isPlaying READ isPlaying)
+    Q_PROPERTY(float loudness READ getLoudness)
 public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);

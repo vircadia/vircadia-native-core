@@ -45,8 +45,8 @@ function maybePlaySound(deltaTime) {
 }
         
 function scriptEnding() {
-    if (Audio.isInjectorPlaying(soundPlaying)) {
-        Audio.stopInjector(soundPlaying);
+    if (soundPlaying.isPlaying) {
+        soundPlaying.stop();
         Entities.deleteEntity(ball);
         print("Stopped sound.");
     }

@@ -117,7 +117,7 @@
             print("stopSound()");
         }
         if (this.injector) {
-            Audio.stopInjector(this.injector);
+            this.injector.stop();
             this.injector = null;
         }
     }
