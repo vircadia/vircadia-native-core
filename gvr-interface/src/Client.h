@@ -16,8 +16,6 @@
 
 #include <HifiSockAddr.h>
 
-class QThread;
-
 class Client : public QObject {
     Q_OBJECT
 public:
