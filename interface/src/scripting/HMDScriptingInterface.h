@@ -21,10 +21,11 @@ class HMDScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool magnifier READ getMagnifier)
     Q_PROPERTY(bool active READ isHMDMode)
-    Q_PROPERTY(glm::vec3 HUDLookAtPosition3D READ getHUDLookAtPosition3D)
-    Q_PROPERTY(glm::vec2 HUDLookAtPosition2D READ getHUDLookAtPosition2D)
 public:
     static HMDScriptingInterface& getInstance();
+
+    static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
 public slots:
     void toggleMagnifier() { Application::getInstance()->getApplicationOverlay().toggleMagnifier(); };
@@ -34,8 +35,8 @@ private:
     bool getMagnifier() const { return Application::getInstance()->getApplicationOverlay().hasMagnifier(); };
     bool isHMDMode() const { return Application::getInstance()->isHMDMode(); }
 
-    glm::vec3 getHUDLookAtPosition3D() const;
-    glm::vec2 getHUDLookAtPosition2D() const;
+    bool getHUDLookAtPosition3D(glm::vec3& result) const;
+
 };
 
 #endif // hifi_HMDScriptingInterface_h

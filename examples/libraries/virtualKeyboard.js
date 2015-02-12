@@ -516,12 +516,16 @@ Cursor = (function(params) {
                 });
             }
             var editobject = {};
-            if (tthis.x !== HMD.HUDLookAtPosition2D.x) {
-                 tthis.x = HMD.HUDLookAtPosition2D.x;
+            var hudLookatPosition = HMD.getHUDLookAtPosition2D();
+            if (hudLookatPosition === null) {
+                return;
+            }
+            if (tthis.x !== hudLookatPosition.x) {
+                 tthis.x = hudLookatPosition.x;
                  editobject.x = tthis.x - (CURSOR_WIDTH / 2);
             }
-            if (tthis.y !== HMD.HUDLookAtPosition2D.y) {
-                 tthis.y = HMD.HUDLookAtPosition2D.y;
+            if (tthis.y !== hudLookatPosition.y) {
+                 tthis.y = hudLookatPosition.y;
                  editobject.y = tthis.y - (CURSOR_HEIGHT / 2);
             }
             if (Object.keys(editobject).length > 0) {

@@ -58,6 +58,8 @@ public:
     void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                               QScriptEngine::FunctionSignature setter, QScriptValue object = QScriptValue::NullValue);
     void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
+    void registerFunction(QScriptValue parent, const QString& name, QScriptEngine::FunctionSignature fun,
+                          int numArguments = -1);
 
     Q_INVOKABLE void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
