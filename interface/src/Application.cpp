@@ -328,7 +328,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
 
     // put the audio processing on a separate thread
-    QThread* audioThread = new QThread(this);
+    QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
     
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -338,7 +338,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
-    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
+    connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
+    connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
 
     audioThread->start();
     
@@ -516,20 +518,32 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     _aboutToQuit = true;
+    
+    cleanupBeforeQuit();
 }
 
-Application::~Application() {
+void Application::cleanupBeforeQuit() {
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
     _settingsThread.quit();
     saveSettings();
     
+    // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
+    // an event loop to send the packet?
+    UserActivityLogger::getInstance().close();
+    
+    // stop the AudioClient
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                              "stop", Qt::BlockingQueuedConnection);
+    
+    // destroy the AudioClient so it and its thread have a chance to go down safely
+    DependencyManager::destroy<AudioClient>();
+}
+
+Application::~Application() {    
     _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
     
     _window->saveGeometry();
-    
-    int DELAY_TIME = 1000;
-    UserActivityLogger::getInstance().close(DELAY_TIME);
     
     // make sure we don't call the idle timer any more
     delete idleTimer;
@@ -540,15 +554,6 @@ Application::~Application() {
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
-    
-    auto audioIO = DependencyManager::get<AudioClient>();
-
-    // stop the audio process
-    QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
-    
-    // ask the audio thread to quit and wait until it is done
-    audioIO->thread()->quit();
-    audioIO->thread()->wait();
     
     _octreeProcessor.terminate();
     _entityEditSender.terminate();

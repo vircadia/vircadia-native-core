@@ -410,6 +410,8 @@ private:
 
     void initDisplay();
     void init();
+    
+    void cleanupBeforeQuit();
 
     void update(float deltaTime);
 
