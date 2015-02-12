@@ -271,9 +271,10 @@ void MetavoxelSession::handleMessage(const QVariant& message) {
         _lodPacketNumber = _sequencer.getIncomingPacketNumber();
         
     } else if (userType == MetavoxelEditMessage::Type) {
-        QMetaObject::invokeMethod(_sender->getServer(), "applyEdit", Q_ARG(const MetavoxelEditMessage&,
-            message.value<MetavoxelEditMessage>()));
-        
+        if (_node->getCanAdjustLocks()) {
+            QMetaObject::invokeMethod(_sender->getServer(), "applyEdit",
+                                      Q_ARG(const MetavoxelEditMessage&, message.value<MetavoxelEditMessage>()));
+        }
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {
             handleMessage(element);
