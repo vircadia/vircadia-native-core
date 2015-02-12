@@ -37,7 +37,7 @@ void MainWindow::restoreGeometry() {
     resize(geometry.size());
 
     // Restore to maximized or full screen after restoring to windowed so that going windowed goes to good position and sizes.
-    Qt::WindowStates state = _windowState.get(Qt::WindowNoState);
+    Qt::WindowStates state = (Qt::WindowStates)_windowState.get(Qt::WindowNoState);
     if (state != Qt::WindowNoState) {
         setWindowState(state);
     }
@@ -46,7 +46,7 @@ void MainWindow::restoreGeometry() {
 void MainWindow::saveGeometry() {
     // Did not use geometry() on purpose,
     // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
-    _windowState.set(windowState());
+    _windowState.set((int)windowState());
 
     // Save position and size only if windowed so that have good values for windowed after starting maximized or full screen.
     if (windowState() == Qt::WindowNoState) {
