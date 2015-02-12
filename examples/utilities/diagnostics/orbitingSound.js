@@ -39,7 +39,6 @@ function update(deltaTime) {
 
 Script.scriptEnding.connect(function() {
     Entities.deleteEntity(objectId);
-    sound.stop();
 });
 
 Script.update.connect(update);

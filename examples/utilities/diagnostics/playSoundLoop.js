@@ -30,7 +30,7 @@ var playing = false;
 var ball = false;
 
 function maybePlaySound(deltaTime) {
-    if (sound.downloaded) {
+    if (sound.downloaded && !soundPlaying) {
         var properties = {
                 type: "Sphere",
                 position: options.position, 
