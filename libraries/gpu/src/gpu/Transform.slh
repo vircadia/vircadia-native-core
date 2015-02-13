@@ -29,7 +29,7 @@ vec4 transform(TransformCamera camera, TransformObject object, vec4 pos) {
 }
 
 
-
+<!
 <@if GLPROFILE == PC_GL@>
 uniform transformStateBuffer {
     TransformState xform;
@@ -54,7 +54,7 @@ TransformState getMaterial() {
     return xform;   
 }
 <@endif@>
-
+!>
 
 
 <@endif@>
