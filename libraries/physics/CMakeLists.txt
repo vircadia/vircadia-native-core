@@ -4,6 +4,7 @@ set(TARGET_NAME physics)
 setup_hifi_library()
 
 add_dependency_external_project(glm)
+find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 include_bullet()

@@ -4,6 +4,7 @@ set(TARGET_NAME audio)
 setup_hifi_library(Network)
 
 add_dependency_external_project(glm)
+find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 link_hifi_libraries(networking shared)

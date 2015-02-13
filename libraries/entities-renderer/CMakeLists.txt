@@ -4,6 +4,7 @@ set(TARGET_NAME entities-renderer)
 setup_hifi_library(Widgets OpenGL Network Script)
 
 add_dependency_external_project(glm)
+find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 link_hifi_libraries(shared gpu script-engine render-utils)
