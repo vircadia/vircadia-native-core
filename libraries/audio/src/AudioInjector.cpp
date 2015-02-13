@@ -58,7 +58,7 @@ void AudioInjector::setIsFinished(bool isFinished) {
         
         if (_shouldDeleteAfterFinish) {
             // we've been asked to delete after finishing, trigger a queued deleteLater here
-            qDebug() << "triggering the delete since we are finished";
+            qDebug() << "AudioInjector triggering delete from setIsFinished";
             QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
         }
     }
