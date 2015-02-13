@@ -188,6 +188,10 @@ protected:
     AudioClient();
     ~AudioClient();
     
+    virtual void customDeleter() {
+        deleteLater();
+    }
+    
 private:
     void outputFormatChanged();
 

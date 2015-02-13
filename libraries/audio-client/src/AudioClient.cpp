@@ -136,6 +136,8 @@ AudioClient::AudioClient() :
 }
 
 AudioClient::~AudioClient() {
+    stop();
+    
     if (_gverbLocal) {
         gverb_free(_gverbLocal);
     }
@@ -489,7 +491,6 @@ void AudioClient::start() {
 }
 
 void AudioClient::stop() {
-
     _inputFrameBuffer.finalize();
     _inputGain.finalize();
     _sourceGain.finalize();
