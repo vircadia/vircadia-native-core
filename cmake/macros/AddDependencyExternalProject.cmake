@@ -21,8 +21,5 @@ macro(ADD_DEPENDENCY_EXTERNAL_PROJECT _PROJ_NAME)
     add_subdirectory(${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME} ${_PROJ_BINARY_DIR})
   endif ()
   
-  string(TOUPPER ${_PROJ_NAME} _PROJ_NAME_UPPER)
-  get_target_property(${_PROJ_NAME_UPPER}_INCLUDE_DIRS ${_PROJ_NAME} INCLUDE_DIRS)
-  
   add_dependencies(${TARGET_NAME} ${_PROJ_NAME})
 endmacro()
