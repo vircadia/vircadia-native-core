@@ -38,6 +38,7 @@ protected:
     
 private:
     Setting::Handle<QRect> _windowGeometry;
+    Setting::Handle<int> _windowState;
 };
 
 #endif /* defined(__hifi__MainWindow__) */

@@ -57,8 +57,6 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
     _locked = ENTITY_ITEM_DEFAULT_LOCKED;
     _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
-    
-    recalculateCollisionShape();
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
@@ -70,7 +68,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
     _created = UNKNOWN_CREATED_TIME;
-    _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
     _element = NULL;
@@ -86,7 +83,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
     _created = UNKNOWN_CREATED_TIME;
-    _physicsInfo = NULL;
     _dirtyFlags = 0;
     _changedOnServer = 0;
     _element = NULL;
@@ -541,7 +537,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
-        recalculateCollisionShape();
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
             // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
             // closely match where the entities should be if they'd stepped forward in time to "now". The server
@@ -1003,14 +998,7 @@ float EntityItem::getRadius() const {
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) const {
-    info.clear();
-}
-
-void EntityItem::recalculateCollisionShape() {
-    AACube entityAACube = getMinimumAACube();
-    entityAACube.scale(TREE_SCALE); // scale to meters
-    _collisionShape.setTranslation(entityAACube.calcCenter());
-    _collisionShape.setScale(entityAACube.getScale());
+    info.setParams(getShapeType(), 0.5f * getDimensionsInMeters());
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;
@@ -1023,7 +1011,6 @@ const float MIN_SPIN_DELTA = 0.0003f;
 void EntityItem::updatePosition(const glm::vec3& value) { 
     if (glm::distance(_position, value) * (float)TREE_SCALE > MIN_POSITION_DELTA) {
         _position = value; 
-        recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
@@ -1032,7 +1019,6 @@ void EntityItem::updatePositionInMeters(const glm::vec3& value) {
     glm::vec3 position = glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f);
     if (glm::distance(_position, position) * (float)TREE_SCALE > MIN_POSITION_DELTA) {
         _position = position;
-        recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
@@ -1040,7 +1026,6 @@ void EntityItem::updatePositionInMeters(const glm::vec3& value) {
 void EntityItem::updateDimensions(const glm::vec3& value) { 
     if (_dimensions != value) {
         _dimensions = glm::abs(value);
-        recalculateCollisionShape();
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
     }
 }
@@ -1049,7 +1034,6 @@ void EntityItem::updateDimensionsInMeters(const glm::vec3& value) {
     glm::vec3 dimensions = glm::abs(value) / (float) TREE_SCALE;
     if (_dimensions != dimensions) {
         _dimensions = dimensions;
-        recalculateCollisionShape();
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
     }
 }
@@ -1057,7 +1041,6 @@ void EntityItem::updateDimensionsInMeters(const glm::vec3& value) {
 void EntityItem::updateRotation(const glm::quat& rotation) { 
     if (glm::dot(_rotation, rotation) < MIN_ALIGNMENT_DOT) {
         _rotation = rotation; 
-        recalculateCollisionShape();
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }

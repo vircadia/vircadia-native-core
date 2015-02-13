@@ -26,7 +26,7 @@
 #include <FBXReader.h> // for SittingPoint
 #include <PropertyFlags.h>
 #include <OctreeConstants.h>
-
+#include <ShapeInfo.h>
 
 #include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
@@ -82,8 +82,10 @@ enum EntityPropertyList {
     PROP_TEXTURES,
     PROP_ANIMATION_SETTINGS,
     PROP_USER_DATA,
-
-    PROP_LAST_ITEM = PROP_USER_DATA,
+    PROP_SHAPE_TYPE,
+    
+    // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
+    PROP_LAST_ITEM = PROP_SHAPE_TYPE,
 
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
@@ -179,6 +181,7 @@ public:
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
+    DEFINE_PROPERTY_REF(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
