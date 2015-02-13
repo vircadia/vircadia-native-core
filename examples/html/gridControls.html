@@ -30,8 +30,8 @@
                         elPosY.value = origin.y.toFixed(2);
                     }
 
-                    if (data.minorGridSpacing !== undefined) {
-                        elMinorSpacing.value = data.minorGridSpacing;
+                    if (data.minorGridWidth !== undefined) {
+                        elMinorSpacing.value = data.minorGridWidth;
                     }
 
                     if (data.majorGridEvery !== undefined) {
@@ -57,7 +57,7 @@
                         origin: {
                             y: elPosY.value,
                         },
-                        minorGridSpacing: elMinorSpacing.value,
+                        minorGridWidth: elMinorSpacing.value,
                         majorGridEvery: elMajorSpacing.value,
                         gridColor: gridColor,
                         colorIndex: gridColorIndex,
