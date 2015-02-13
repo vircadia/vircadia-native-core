@@ -26,7 +26,6 @@ class RenderingClient : public Client {
     Q_OBJECT
 public:
     RenderingClient(QObject* parent = 0, const QString& launchURLString = QString());
-    ~RenderingClient();
     
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
@@ -34,6 +33,8 @@ public:
     
     static glm::vec3 getPositionForAudio() { return _instance->getPosition(); }
     static glm::quat getOrientationForAudio() { return _instance->getOrientation(); }
+    
+    virtual void cleanupBeforeQuit();
     
 private slots:
     void goToLocation(const glm::vec3& newPosition,

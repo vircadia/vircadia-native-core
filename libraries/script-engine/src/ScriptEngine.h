@@ -19,13 +19,13 @@
 #include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
-#include <AudioScriptingInterface.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
 
 #include "AbstractControllerScriptingInterface.h"
 #include "ArrayBufferClass.h"
+#include "AudioScriptingInterface.h"
 #include "Quat.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"

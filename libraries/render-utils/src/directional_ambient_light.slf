@@ -15,22 +15,22 @@
 // Everything about deferred buffer
 <@include DeferredBuffer.slh@>
 
-<@include DeferredLighting.slh@>
+<@include DeferredGlobalLight.slh@>
 
 void main(void) {
     DeferredFragment frag = unpackDeferredFragment(gl_TexCoord[0].st);
 
+
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
-        gl_FragColor = vec4( evalLightmappedColor(
-                        1.0,
-                        frag.normal,
-                        frag.diffuse,
-                        frag.specularVal),
-                        1.0);
+        gl_FragColor = vec4(evalLightmappedColor(
+                                1.0,
+                                frag.normal,
+                                frag.diffuse,
+                                frag.specularVal),
+                            1.0);
     } else {
-        vec3 color =   evalAmbientSphereColor(frag.normal, frag.diffuse, frag.specular, frag.gloss)
-                     + evalDirectionalColor(1.0,
+        vec3 color =  evalAmbienSphereGlobalColor(1.0,
                                         frag.position.xyz,
                                         frag.normal,
                                         frag.diffuse,

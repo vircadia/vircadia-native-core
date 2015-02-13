@@ -534,7 +534,9 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 function mouseReleaseEvent(event) {
     if (placingEntityID) {
-        selectionManager.setSelections([placingEntityID]);
+        if (isActive) {
+            selectionManager.setSelections([placingEntityID]);
+        }
         placingEntityID = null;
     }
     if (isActive && selectionManager.hasSelection()) {

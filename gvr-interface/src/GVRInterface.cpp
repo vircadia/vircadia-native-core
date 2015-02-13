@@ -86,6 +86,13 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     QTimer* idleTimer = new QTimer(this);
     connect(idleTimer, &QTimer::timeout, this, &GVRInterface::idle);
     idleTimer->start(0);
+    
+    // call our quit handler before we go down
+    connect(this, &QCoreApplication::aboutToQuit, this, &GVRInterface::handleApplicationQuit);
+}
+
+void GVRInterface::handleApplicationQuit() {
+    _client->cleanupBeforeQuit();
 }
 
 void GVRInterface::idle() {

@@ -15,7 +15,7 @@
 // Everything about deferred buffer
 <@include DeferredBuffer.slh@>
 
-<@include DeferredLighting.slh@>
+<@include DeferredGlobalLight.slh@>
 
 // Everything about shadow
 <@include Shadow.slh@>
@@ -36,8 +36,7 @@ void main(void) {
                                 frag.specularVal),
                             1.0);
     } else {
-        vec3 color =   evalAmbientSphereColor(frag.normal, frag.diffuse, frag.specular, frag.gloss)
-                     + evalDirectionalColor(shadowAttenuation,
+        vec3 color =  evalAmbienSphereGlobalColor(shadowAttenuation,
                                         frag.position.xyz,
                                         frag.normal,
                                         frag.diffuse,
