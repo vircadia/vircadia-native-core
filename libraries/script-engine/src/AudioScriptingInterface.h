@@ -32,9 +32,6 @@ protected:
 signals:
     void mutedByMixer();
     void environmentMuted();
-    
-private slots:
-    AudioInjector* invokedPlaySound(Sound* sound, const AudioInjectorOptions& injectorOptions);
 
 private:
     AudioScriptingInterface();
