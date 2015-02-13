@@ -48,7 +48,8 @@
     this.turnSounds = new Array();
     this.moveSound = null;
     this.turnSound = null;
-    this.injector = null;
+    this.moveInjector = null;
+    this.turnInjector = null;
     
     var debug = false;
     var displayRotateTargets = true; // change to false if you don't want the rotate targets
@@ -92,9 +93,14 @@
         }
         if (this.moveSound && this.moveSound.downloaded) {
             if (debug) {
-                print("playMoveSound() --- calling this.injector = Audio.playSound(this.moveSound...)");
+                print("playMoveSound() --- calling this.moveInjector = Audio.playSound(this.moveSound...)");
             }
-            this.injector = Audio.playSound(this.moveSound, { position: this.properties.position, loop: true, volume: 0.1 });
+            
+            if (!this.moveInjector) {
+                this.moveInjector = Audio.playSound(this.moveSound, { position: this.properties.position, loop: true, volume: 0.1 });
+            } else {
+                this.moveInjector.restart();
+            }
         }
     }
 
@@ -105,9 +111,13 @@
         }
         if (this.turnSound && this.turnSound.downloaded) {
             if (debug) {
-                print("playTurnSound() --- calling this.injector = Audio.playSound(this.turnSound...)");
+                print("playTurnSound() --- calling this.turnInjector = Audio.playSound(this.turnSound...)");
             }
-            this.injector = Audio.playSound(this.turnSound, { position: this.properties.position, loop: true, volume: 0.1 });
+            if (!this.turnInjector) {
+                this.turnInjector = Audio.playSound(this.turnSound, { position: this.properties.position, loop: true, volume: 0.1 });
+            } else {
+                this.turnInjector.restart();
+            }
         }
     }
 
@@ -116,9 +126,11 @@
         if (debug) {
             print("stopSound()");
         }
-        if (this.injector) {
-            Audio.stopInjector(this.injector);
-            this.injector = null;
+        if (this.turnInjector) {
+            this.turnInjector.stop();
+        }
+        if (this.moveInjector) {
+            this.moveInjector.stop();
         }
     }
 
@@ -174,7 +186,7 @@
         
     this.move = function(mouseEvent) {
         this.updatePosition(mouseEvent);
-        if (this.injector === null) {
+        if (this.moveInjector === null || !this.moveInjector.isPlaying) {
             this.playMoveSound();
         }
     };
@@ -233,7 +245,7 @@
             }
         }
 
-        if (this.injector === null) {
+        if (this.turnInjector === null || !this.turnInjector.isPlaying) {
             this.playTurnSound();
         }
     };

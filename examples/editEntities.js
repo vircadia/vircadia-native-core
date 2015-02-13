@@ -190,6 +190,7 @@ var toolBar = (function () {
                 cameraManager.enable();
                 entityListTool.setVisible(true);
                 gridTool.setVisible(true);
+                grid.setEnabled(true);
                 propertiesTool.setVisible(true);
                 Window.setFocus();
             }
@@ -533,7 +534,9 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 function mouseReleaseEvent(event) {
     if (placingEntityID) {
-        selectionManager.setSelections([placingEntityID]);
+        if (isActive) {
+            selectionManager.setSelections([placingEntityID]);
+        }
         placingEntityID = null;
     }
     if (isActive && selectionManager.hasSelection()) {

@@ -53,6 +53,7 @@ private slots:
     void handleApplicationStateChange(Qt::ApplicationState state);
     void idle();
 private:
+    void handleApplicationQuit();
     
     void enterVRMode();
     void leaveVRMode();

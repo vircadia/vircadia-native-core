@@ -23,6 +23,7 @@ typedef gpu::BufferView::Index Index;
 typedef gpu::BufferView BufferView;
 typedef AABox Box;
 typedef std::vector< Box > Boxes;
+typedef glm::vec3 Vec3;
 
 class Mesh {
 public:
@@ -35,7 +36,7 @@ public:
     typedef gpu::Stream::Format VertexFormat;
     typedef std::map< Slot, BufferView > BufferViewMap;
 
-    typedef glm::vec3 Vec3;
+    typedef model::Vec3 Vec3;
 
     Mesh();
     Mesh(const Mesh& mesh);
