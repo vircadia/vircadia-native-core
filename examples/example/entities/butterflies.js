@@ -13,6 +13,9 @@
 //
 
 
+print("BUTTERFLIES START");
+
+
 var numButterflies = 25;
 
 
@@ -109,7 +112,7 @@ function updateButterflies(deltaTime) {
                 var properties = Entities.getEntityProperties(butterflies[i]);
                 if (Vec3.length(Vec3.subtract(properties.position, flockPosition)) > range) {
                     Entities.editEntity(butterflies[i], { position: flockPosition } );
-                } else if (properties.velocity.y < 0.0) {
+                } else if (properties.velocity.y <= 0.0) {
                     //  If falling, Create a new direction and impulse
                     var HORIZ_SCALE = 0.50;
                     var VERT_SCALE = 0.50;
@@ -139,3 +142,5 @@ Script.scriptEnding.connect(function() {
         Entities.deleteEntity(butterflies[i]);
     }
 });
+
+print("BUTTERFLIES END");
