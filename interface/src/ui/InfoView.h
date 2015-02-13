@@ -27,6 +27,7 @@ private:
     
 private slots:
     void loaded(bool ok);
+    void linkClickedInfoView(QUrl url);
 };
 
 #endif // hifi_InfoView_h
