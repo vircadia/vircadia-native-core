@@ -109,7 +109,7 @@ add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # set up the external glm library
 add_dependency_external_project(glm)
-target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars 

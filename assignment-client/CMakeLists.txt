@@ -2,7 +2,8 @@ set(TARGET_NAME assignment-client)
 
 setup_hifi_project(Core Gui Network Script Widgets)
 
-include_glm()
+add_dependency_external_project(glm)
+target_link_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
 # link in the shared libraries
 link_hifi_libraries( 
