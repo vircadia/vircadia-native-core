@@ -523,13 +523,21 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    // make sure we don't call the idle timer any more
+    delete idleTimer;
+
+    // save state
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
     _settingsThread.quit();
     saveSettings();
+    _window->saveGeometry();
     
     // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
     // an event loop to send the packet?
     UserActivityLogger::getInstance().close();
+
+    // let the avatar mixer know we're out
+    MyAvatar::sendKillAvatar();
     
     // stop the AudioClient
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
@@ -540,13 +548,12 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {    
-    _window->saveGeometry();
-    
-    // make sure we don't call the idle timer any more
-    delete idleTimer;
-    
-    // let the avatar mixer know we're out
-    MyAvatar::sendKillAvatar();
+    EntityTree* tree = _entities.getTree();
+    tree->lockForWrite();
+    _entities.getTree()->setSimulation(NULL);
+    tree->unlock();
+
+    qInstallMessageHandler(NULL);
 
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
@@ -565,13 +572,6 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
-
-    EntityTree* tree = _entities.getTree();
-    tree->lockForWrite();
-    _entities.getTree()->setSimulation(NULL);
-    tree->unlock();
-
-    qInstallMessageHandler(NULL);
 }
 
 void Application::initializeGL() {
