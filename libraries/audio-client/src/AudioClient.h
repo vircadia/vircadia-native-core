@@ -47,10 +47,7 @@
 #pragma warning( disable : 4273 )
 #pragma warning( disable : 4305 )
 #endif
-extern "C" {
-    #include <gverb.h>
-    #include <gverbdsp.h>
-}
+
 #ifdef _WIN32
 #pragma warning( pop )
 #endif
@@ -68,6 +65,7 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 struct soxr;
+typedef struct ty_gverb ty_gverb;
 
 typedef glm::vec3 (*AudioPositionGetter)();
 typedef glm::quat (*AudioOrientationGetter)();

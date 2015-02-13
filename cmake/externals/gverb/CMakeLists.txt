@@ -1,10 +1,10 @@
-set(EXTERNAL_NAME glm)
+set(EXTERNAL_NAME gverb)
 
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   PREFIX ${EXTERNAL_NAME}
-  URL https://github.com/g-truc/glm/archive/0.9.5.4.zip
+  GIT_REPOSITORY https://github.com/birarda/gverb.git
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD ON
 )
@@ -13,3 +13,4 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE TYPE STRING)
+set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libgverb.a CACHE TYPE STRING)

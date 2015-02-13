@@ -8,17 +8,13 @@ link_hifi_libraries(audio)
 # append audio includes to our list of includes to bubble
 list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${HIFI_LIBRARY_DIR}/audio/src")
 
-set(GVERB_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/gverb")
+# have CMake grab Gverb from git and then set up linking and directory include
+add_dependency_external_project(gverb)
 
-# As Gverb is currently the only reverb library, it's required.
 find_package(Gverb REQUIRED)
 
-file(GLOB GVERB_SRCS ${GVERB_SRC_DIRS}/*.c)
-add_library(gverb STATIC ${GVERB_SRCS})
-target_link_libraries(${TARGET_NAME} gverb)
-
-# append gverb includes to our list of includes to bubble
-list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${GVERB_INCLUDE_DIRS}")
+target_link_libraries(${TARGET_NAME} ${GVERB_LIBRARIES})
+target_include_directories(${TARGET_NAME} PRIVATE ${GVERB_INCLUDE_DIRS})
 
 # we use libsoxr for resampling
 find_package(Soxr REQUIRED)
