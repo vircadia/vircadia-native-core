@@ -49,7 +49,7 @@ vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
 uniform SphericalHarmonics ambientSphere;
 
 // Everything about light
-<@include Light.slh@>
+<@include model/Light.slh@>
 
 // The view Matrix
 uniform mat4 invViewMat;

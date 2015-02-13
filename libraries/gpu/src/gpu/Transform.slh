@@ -1,0 +1,60 @@
+<!
+//  gpu/TransformState.slh
+//
+//  Created by Sam Gateau on 2/10/15.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not GPU_TRANSFORM_STATE_SLH@>
+<@def GPU_TRANSFORM_STATE_SLH@>
+
+struct TransformObject { 
+    mat4 _model;
+    mat4 _modelInverseTranspose;
+};
+
+struct TransformCamera { 
+    mat4 _view;
+    mat4 _viewInverseTranspose;
+    mat4 _proj;
+    mat4 _projInverseTranspose;
+    mat4 _viewProj;
+    mat4 _viewProjInverseTranspose;
+};
+
+vec4 transform(TransformCamera camera, TransformObject object, vec4 pos) {
+    return camera._proj * (camera._view * (object._model * pos)));
+}
+
+
+
+<@if GLPROFILE == PC_GL@>
+uniform transformStateBuffer {
+    TransformState xform;
+};
+TransformState getTransformState() {
+    return xform;
+}
+<@elif GLPROFILE == MAC_GL@>
+uniform vec4 transformStateBuffer[2];
+TransformState getTransformState() {
+    TransformState xform;
+    xform._diffuse = transformStateBuffer[0];
+    xform._specular = transformStateBuffer[1];
+    return xform;
+}
+<@else@>
+uniform vec4 transformStateBuffer[2];
+TransformState getMaterial() {
+    TransformState xform;
+    xform._diffuse = transformStateBuffer[0];
+    xform._specular = transformStateBuffer[1];
+    return xform;   
+}
+<@endif@>
+
+
+
+<@endif@>
