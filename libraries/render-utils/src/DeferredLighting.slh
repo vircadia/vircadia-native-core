@@ -71,7 +71,7 @@ vec3 evalDirectionalColor(float shadowAttenuation, vec3 position, vec3 normal, v
 }
 
 
-vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
+vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, vec4 lightmap) {
     
     float diffuseDot = dot(normal, gl_LightSource[0].position.xyz);
     
@@ -79,17 +79,25 @@ vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, ve
     // it should be just 0, but we have innacurracy so we need to overshoot
     const float PERPENDICULAR_THRESHOLD = -0.005;
     float facingLight = step(PERPENDICULAR_THRESHOLD, diffuseDot); 
-        
+    
+    //float normalMapContrib = (lightmap.w != 0.0 ? diffuseDot * abs(2*lightmap.w - 1.0) : 1.0);
+ //   float normalMapContrib = (lightmap.w != 0.0 ? diffuseDot * abs(2*lightmap.w - 1.0) : 1.0);
+    float normalMapContrib = 2.0 * (lightmap.w - 0.5);
+
     // evaluate the shadow test but only relevant for light facing fragments
     float lightAttenuation = (1 - facingLight) + facingLight * shadowAttenuation;
             
+    lightAttenuation *= (normalMapContrib * max(0, diffuseDot) - (1.0 - normalMapContrib));
+
     // diffuse light is the lightmap dimmed by shadow
-    vec3 diffuseLight = lightAttenuation * lightmap;
+    vec3 diffuseLight = lightAttenuation * lightmap.rgb;
 
     // ambient is a tiny percentage of the lightmap and only when in the shadow
-    vec3 ambientLight = (1 - lightAttenuation) * 0.5 * lightmap; 
+    vec3 ambientLight = (1 - lightAttenuation) * 0.5 * lightmap.rgb; 
 
-    return diffuse * (ambientLight +  diffuseLight);
+
+   // return normal;
+    return diffuse * (ambientLight + diffuseLight);
 }
 
 

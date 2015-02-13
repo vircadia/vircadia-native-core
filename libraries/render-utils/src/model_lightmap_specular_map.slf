@@ -45,5 +45,5 @@ void main(void) {
         getMaterialDiffuse(mat) * diffuse.rgb,
         specular, // no use of getMaterialSpecular(mat)
         getMaterialShininess(mat),
-        (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));
+        vec4(vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb, 0.0));
 }
