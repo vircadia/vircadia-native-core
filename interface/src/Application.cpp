@@ -519,37 +519,31 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
+    // stop idle calls
+    delete idleTimer;
+
+    // save settings
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
     _settingsThread.quit();
     saveSettings();
-    
-    _entities.getTree()->setSimulation(NULL);
-    qInstallMessageHandler(NULL);
-    
     _window->saveGeometry();
-    
-    int DELAY_TIME = 1000;
-    UserActivityLogger::getInstance().close(DELAY_TIME);
-    
-    // make sure we don't call the idle timer any more
-    delete idleTimer;
     
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
 
+    // log activity (sends data over HTTP)
+    // NOTE: there is still an occasional crash in UserActivitiyLogger::close()
+    int DELAY_TIME = 1000;
+    UserActivityLogger::getInstance().close(DELAY_TIME);
+    
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
     
-    // kill any audio injectors that are still around
+    // kill audio
     AudioScriptingInterface::getInstance().stopAllInjectors();
-    
     auto audioIO = DependencyManager::get<AudioClient>();
-
-    // stop the audio process
     QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
-    
-    // ask the audio thread to quit and wait until it is done
     audioIO->thread()->quit();
     audioIO->thread()->wait();
     
@@ -566,6 +560,17 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+
+    EntityTree* tree = _entities.getTree();
+    tree->lockForWrite();
+    _entities.getTree()->setSimulation(NULL);
+    tree->unlock();
+
+    qInstallMessageHandler(NULL);
+
+    // At this point we return all memory to the operating system ASAP 
+    // and don't worry about proper cleanup of global variables.
+    exit(0);
 }
 
 void Application::initializeGL() {
