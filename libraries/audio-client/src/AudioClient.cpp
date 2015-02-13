@@ -616,9 +616,10 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-void AudioClient::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat, bool noEcho) {
+void AudioClient::addReverb(ty_gverb* gverb, int16_t* samplesData, int16_t* reverbAlone, int numSamples,
+                            QAudioFormat& audioFormat, bool noEcho) {
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-    float dryFraction = (noEcho) ? 0.0f : (1.0f - wetFraction);
+    float dryFraction = 1.0f - wetFraction;
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
@@ -633,11 +634,19 @@ void AudioClient::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSample
                 int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction),
                                          AudioConstants::MIN_SAMPLE_VALUE, AudioConstants::MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)lResult;
+                
+                if (noEcho) {
+                    reverbAlone[j] = (int16_t)lValue * wetFraction;
+                }
             } else if (j == (sample + 1)) {
                 // right channel
                 int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction),
                                          AudioConstants::MIN_SAMPLE_VALUE, AudioConstants::MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)rResult;
+                
+                if (noEcho) {
+                    reverbAlone[j] = (int16_t)rValue * wetFraction;
+                }
             } else {
                 // ignore channels above 2
             }
@@ -647,9 +656,8 @@ void AudioClient::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSample
 
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
-    bool hasLocalReverb = (_reverb || _receivedAudioStream.hasReverb()) &&
-                          !_shouldEchoToServer;
-    if (_muted || !_audioOutput || (!_shouldEchoLocally && !hasLocalReverb)) {
+    bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
+    if (_muted || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
         return;
     }
     
@@ -671,24 +679,30 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         }
     }
     
-    static QByteArray loopBackByteArray;
-    loopBackByteArray.resize(numDestinationSamplesRequired(_inputFormat, _outputFormat,
-                                                           inputByteArray.size() / sizeof(int16_t)) * sizeof(int16_t));
+    int numInputSamples = inputByteArray.size() / sizeof(int16_t);
+    int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
     
-    possibleResampling(_loopbackResampler,
-                       reinterpret_cast<int16_t*>(inputByteArray.data()),
-                       reinterpret_cast<int16_t*>(loopBackByteArray.data()),
-                       inputByteArray.size() / sizeof(int16_t), loopBackByteArray.size() / sizeof(int16_t),
-                       _inputFormat, _outputFormat);
+    static QByteArray reverbAlone;
+    reverbAlone.resize(inputByteArray.size());
+    int16_t* reverbAloneSamples = reinterpret_cast<int16_t*>(reverbAlone.data());
     
-    if (hasLocalReverb) {
-        int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
-        int numLoopbackSamples = loopBackByteArray.size() / sizeof(int16_t);
+    if (hasReverb) {
         updateGverbOptions();
-        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat, !_shouldEchoLocally);
+        addReverb(_gverbLocal, inputSamples, reverbAloneSamples, numInputSamples,
+                  _outputFormat, !_shouldEchoLocally);
     }
     
     if (_loopbackOutputDevice) {
+        static QByteArray loopBackByteArray;
+        int numLoopbackSamples = numDestinationSamplesRequired(_inputFormat, _outputFormat, numInputSamples);
+        loopBackByteArray.resize(numLoopbackSamples * sizeof(int16_t));
+        
+        possibleResampling(_loopbackResampler,
+                           (_shouldEchoLocally) ? inputSamples : reverbAloneSamples,
+                           reinterpret_cast<int16_t*>(loopBackByteArray.data()),
+                           numInputSamples, numLoopbackSamples,
+                           _inputFormat, _outputFormat);
+        
         _loopbackOutputDevice->write(loopBackByteArray);
     }
 }
@@ -884,11 +898,6 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
                        reinterpret_cast<int16_t*>(outputBuffer.data()),
                        numNetworkOutputSamples, numDeviceOutputSamples,
                        _desiredOutputFormat, _outputFormat);
-    
-    if(_reverb || _receivedAudioStream.hasReverb()) {
-        updateGverbOptions();
-        addReverb(_gverb, (int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
-    }
 }
 
 void AudioClient::sendMuteEnvironmentPacket() {

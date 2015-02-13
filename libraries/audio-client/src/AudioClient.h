@@ -251,7 +251,7 @@ private:
     ty_gverb* createGverbFilter();
     void configureGverbFilter(ty_gverb* filter);
     void updateGverbOptions();
-    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
+    void addReverb(ty_gverb* gverb, int16_t* samples, int16_t* reverbAlone, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
