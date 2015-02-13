@@ -105,15 +105,7 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
-        browseModelsButton,
-        loadURLMenuItem,
-        loadFileMenuItem,
-        menuItemWidth,
-        menuItemOffset,
-        menuItemHeight,
-        menuItemMargin = 5,
-        menuTextColor = { red: 255, green: 255, blue: 255 },
-        menuBackgroundColor = { red: 18, green: 66, blue: 66 };
+        browseModelsButton;
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
@@ -144,34 +136,6 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: true
         });
-
-        menuItemOffset = toolBar.height / 3 + 2;
-        menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
-
-        loadURLMenuItem = Overlays.addOverlay("text", {
-            height: menuItemHeight,
-            backgroundColor: menuBackgroundColor,
-            topMargin: menuItemMargin,
-            text: "Model URL",
-            alpha: 0.9,
-            backgroundAlpha: 0.9,
-            visible: false
-        });
-
-        loadFileMenuItem = Overlays.addOverlay("text", {
-            height: menuItemHeight,
-            backgroundColor: menuBackgroundColor,
-            topMargin: menuItemMargin,
-            text: "Model File",
-            alpha: 0.9,
-            backgroundAlpha: 0.9,
-            visible: false
-        });
-
-        menuItemWidth = Math.max(Overlays.textSize(loadURLMenuItem, "Model URL").width,
-            Overlays.textSize(loadFileMenuItem, "Model File").width) + 20;
-        Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
-        Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
         newCubeButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-cube.svg",
@@ -211,17 +175,6 @@ var toolBar = (function () {
 
     }
 
-    function toggleNewModelButton(active) {
-        if (active === undefined) {
-            active = !toolBar.toolSelected(newModelButton);
-        }
-        toolBar.selectTool(newModelButton, active);
-
-        Overlays.editOverlay(loadURLMenuItem, { visible: active });
-        Overlays.editOverlay(loadFileMenuItem, { visible: active });
-    }
-
-
     that.setActive = function(active) {
         if (active != isActive) {
             isActive = active;
@@ -237,6 +190,7 @@ var toolBar = (function () {
                 cameraManager.enable();
                 entityListTool.setVisible(true);
                 gridTool.setVisible(true);
+                grid.setEnabled(true);
                 propertiesTool.setVisible(true);
                 Window.setFocus();
             }
@@ -245,7 +199,7 @@ var toolBar = (function () {
     };
 
     var RESIZE_INTERVAL = 50;
-    var RESIZE_TIMEOUT = 20000;
+    var RESIZE_TIMEOUT = 120000; // 2 minutes
     var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
     function addModel(url) {
         var position;
@@ -306,9 +260,6 @@ var toolBar = (function () {
         toolsY = (windowDimensions.y - toolBar.height) / 2;
 
         toolBar.move(toolsX, toolsY);
-
-        Overlays.editOverlay(loadURLMenuItem, { x: toolsX - menuItemWidth, y: toolsY + menuItemOffset });
-        Overlays.editOverlay(loadFileMenuItem, { x: toolsX - menuItemWidth, y: toolsY + menuItemOffset + menuItemHeight });
     };
 
     that.mousePressEvent = function (event) {
@@ -324,12 +275,6 @@ var toolBar = (function () {
         }
 
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            toggleNewModelButton();
-            return true;
-        }
-
-        if (clickedOverlay === loadURLMenuItem) {
-            toggleNewModelButton(false);
             url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
             if (url !== null && url !== "") {
                 addModel(url);
@@ -337,22 +282,7 @@ var toolBar = (function () {
             return true;
         }
 
-        if (clickedOverlay === loadFileMenuItem) {
-            toggleNewModelButton(false);
-
-            file = Window.browse("Select your model file ...",
-                Settings.getValue("LastModelUploadLocation").path(),
-                "Model files (*.fst *.fbx)");
-                //"Model files (*.fst *.fbx *.svo)");
-            if (file !== null) {
-                Settings.setValue("LastModelUploadLocation", file);
-                modelUploader.upload(file, addModel);
-            }
-            return true;
-        }
-
         if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
-            toggleNewModelButton(false);
             url = Window.s3Browse(".*(fbx|FBX)");
             if (url !== null && url !== "") {
                 addModel(url);
@@ -425,7 +355,7 @@ var toolBar = (function () {
                 placingEntityID = Entities.addEntity({
                                 type: "Text",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 0.5, y: 0.3, z: 0.01 },
+                                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
                                 backgroundColor: { red: 64, green: 64, blue: 64 },
                                 textColor: { red: 255, green: 255, blue: 255 },
                                 text: "some text",
@@ -443,8 +373,6 @@ var toolBar = (function () {
 
     that.cleanup = function () {
         toolBar.cleanup();
-        Overlays.deleteOverlay(loadURLMenuItem);
-        Overlays.deleteOverlay(loadFileMenuItem);
     };
 
     return that;

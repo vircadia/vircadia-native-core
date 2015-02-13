@@ -308,9 +308,6 @@ public:
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration, 
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    bool findShapeCollisions(const Shape* shape, CollisionList& collisions, 
-                                    Octree::lockType = Octree::TryLock, bool* accurateResult = NULL);
-
     bool findContentInCube(const AACube& cube, CubeList& cubes);
 
     OctreeElement* getElementEnclosingPoint(const glm::vec3& point, 

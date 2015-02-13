@@ -1,6 +1,6 @@
 //
 //  DoubleHashKey.cpp
-//  libraries/physcis/src
+//  libraries/shared/src
 //
 //  Created by Andrew Meadows 2014.11.02
 //  Copyright 2014 High Fidelity, Inc.
@@ -11,8 +11,8 @@
 
 #include "DoubleHashKey.h"
 
-const int NUM_PRIMES = 64;
-const unsigned int PRIMES[] = { 
+const uint32_t NUM_PRIMES = 64;
+const uint32_t PRIMES[] = { 
     4194301U, 4194287U, 4194277U, 4194271U, 4194247U, 4194217U, 4194199U, 4194191U,
     4194187U, 4194181U, 4194173U, 4194167U, 4194143U, 4194137U, 4194131U, 4194107U,
     4194103U, 4194023U, 4194011U, 4194007U, 4193977U, 4193971U, 4193963U, 4193957U,
@@ -23,8 +23,8 @@ const unsigned int PRIMES[] = {
     4193353U, 4193327U, 4193309U, 4193303U, 4193297U, 4193279U, 4193269U, 4193263U
 };
 
-unsigned int DoubleHashKey::hashFunction(unsigned int value, int primeIndex) {
-    unsigned int hash = PRIMES[primeIndex % NUM_PRIMES] * (value + 1U);
+uint32_t DoubleHashKey::hashFunction(uint32_t value, uint32_t primeIndex) {
+    uint32_t hash = PRIMES[primeIndex % NUM_PRIMES] * (value + 1U);
     hash += ~(hash << 15);
     hash ^=  (hash >> 10);
     hash +=  (hash << 3); 
@@ -33,11 +33,16 @@ unsigned int DoubleHashKey::hashFunction(unsigned int value, int primeIndex) {
     return hash ^ (hash >> 16);
 }
 
-unsigned int DoubleHashKey::hashFunction2(unsigned int value) {
-    unsigned hash = 0x811c9dc5U;
-    for (int i = 0; i < 4; i++ ) {
-        unsigned int byte = (value << (i * 8)) >> (24 - i * 8);
+uint32_t DoubleHashKey::hashFunction2(uint32_t value) {
+    uint32_t hash = 0x811c9dc5U;
+    for (uint32_t i = 0; i < 4; i++ ) {
+        uint32_t byte = (value << (i * 8)) >> (24 - i * 8);
         hash = ( hash ^ byte ) * 0x01000193U;
     }
    return hash;
+}
+
+void DoubleHashKey::computeHash(uint32_t value, uint32_t primeIndex) {
+    _hash = DoubleHashKey::hashFunction(value, primeIndex);
+    _hash2 = DoubleHashKey::hashFunction2(value);
 }

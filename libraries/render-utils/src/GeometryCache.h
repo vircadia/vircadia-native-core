@@ -41,7 +41,9 @@ typedef QPair<Vec2Pair, Vec2Pair> Vec2PairPair;
 typedef QPair<glm::vec3, glm::vec3> Vec3Pair;
 typedef QPair<glm::vec4, glm::vec4> Vec4Pair;
 typedef QPair<Vec3Pair, Vec2Pair> Vec3PairVec2Pair;
+typedef QPair<Vec3Pair, glm::vec4> Vec3PairVec4;
 typedef QPair<Vec3Pair, Vec4Pair> Vec3PairVec4Pair;
+typedef QPair<Vec4Pair, glm::vec4> Vec4PairVec4;
 typedef QPair<Vec4Pair, Vec4Pair> Vec4PairVec4Pair;
 
 inline uint qHash(const glm::vec2& v, uint seed) {
@@ -87,12 +89,28 @@ inline uint qHash(const Vec3PairVec2Pair& v, uint seed) {
                  5077 * v.second.second.x + 5081 * v.second.second.y, seed);
 }
 
+inline uint qHash(const Vec3PairVec4& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.first.x + 5009 * v.first.first.y + 5011 * v.first.first.z +
+                 5021 * v.first.second.x + 5023 * v.first.second.y + 5039 * v.first.second.z +
+                 5051 * v.second.x + 5059 * v.second.y + 5077 * v.second.z + 5081 * v.second.w, seed);
+}
+
+
 inline uint qHash(const Vec3PairVec4Pair& v, uint seed) {
     // multiply by prime numbers greater than the possible size
     return qHash(v.first.first.x + 5009 * v.first.first.y + 5011 * v.first.first.z 
                 + 5023 * v.first.second.x + 5039 * v.first.second.y + 5051 * v.first.second.z 
                 + 5077 * v.second.first.x + 5081 * v.second.first.y + 5087 * v.second.first.z + 5099 * v.second.first.w 
                 + 5101 * v.second.second.x + 5107 * v.second.second.y + 5113 * v.second.second.z + 5119 * v.second.second.w, 
+                seed);
+}
+
+inline uint qHash(const Vec4PairVec4& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.first.x + 5009 * v.first.first.y + 5011 * v.first.first.z + 5021 * v.first.first.w 
+                + 5023 * v.first.second.x + 5039 * v.first.second.y + 5051 * v.first.second.z + 5059 * v.first.second.w 
+                + 5077 * v.second.x + 5081 * v.second.y + 5087 * v.second.z + 5099 * v.second.w,
                 seed);
 }
 
@@ -236,16 +254,16 @@ private:
     QHash<Vec3PairVec4Pair, BatchItemDetails> _quad3DTextures;
     QHash<int, BatchItemDetails> _registeredQuad3DTextures;
 
-    QHash<int, Vec2PairPair> _lastRegisteredQuad2DTexture;
-    QHash<Vec2PairPair, BatchItemDetails> _quad2DTextures;
+    QHash<int, Vec4PairVec4> _lastRegisteredQuad2DTexture;
+    QHash<Vec4PairVec4, BatchItemDetails> _quad2DTextures;
     QHash<int, BatchItemDetails> _registeredQuad2DTextures;
 
-    QHash<int, Vec3Pair> _lastRegisteredQuad3D;
-    QHash<Vec3Pair, BatchItemDetails> _quad3D;
+    QHash<int, Vec3PairVec4> _lastRegisteredQuad3D;
+    QHash<Vec3PairVec4, BatchItemDetails> _quad3D;
     QHash<int, BatchItemDetails> _registeredQuad3D;
 
-    QHash<int, Vec2Pair> _lastRegisteredQuad2D;
-    QHash<Vec2Pair, BatchItemDetails> _quad2D;
+    QHash<int, Vec4Pair> _lastRegisteredQuad2D;
+    QHash<Vec4Pair, BatchItemDetails> _quad2D;
     QHash<int, BatchItemDetails> _registeredQuad2D;
 
     QHash<int, Vec3Pair> _lastRegisteredBevelRects;
@@ -339,6 +357,8 @@ private:
     QHash<QWeakPointer<Animation>, QVector<int> > _jointMappings;
     
     QHash<QString, QUrl> _pendingTextureChanges;
+
+    mutable bool _isLoadedWithTextures = false;
 };
 
 /// The state associated with a single mesh part.

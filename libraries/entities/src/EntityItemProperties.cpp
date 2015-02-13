@@ -64,6 +64,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
     CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
     CONSTRUCT_PROPERTY(backgroundColor, TextEntityItem::DEFAULT_BACKGROUND_COLOR),
+    CONSTRUCT_PROPERTY(shapeType, SHAPE_TYPE_NONE),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -210,6 +211,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
+    CHECK_PROPERTY_CHANGE(PROP_SHAPE_TYPE, shapeType);
 
     return changedProperties;
 }
@@ -268,6 +270,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(shapeType);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -347,6 +350,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lineHeight, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(backgroundColor, setBackgroundColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(shapeType, setShapeType, ShapeType);
 
     _lastEdited = usecTimestampNow();
 }
@@ -510,6 +514,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, properties.getAnimationIsPlaying());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, properties.getTextures());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, properties.getAnimationSettings());
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)(properties.getShapeType()));
             }
 
             if (properties.getType() == EntityTypes::Light) {
@@ -731,6 +736,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXTURES, setTextures);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, setAnimationSettings);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     }
     
     if (properties.getType() == EntityTypes::Light) {
@@ -820,6 +826,7 @@ void EntityItemProperties::markAllChanged() {
     _lineHeightChanged = true;
     _textColorChanged = true;
     _backgroundColorChanged = true;
+    _shapeTypeChanged = true;
 }
 
 AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {

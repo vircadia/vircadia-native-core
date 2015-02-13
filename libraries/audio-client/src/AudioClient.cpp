@@ -135,6 +135,15 @@ AudioClient::AudioClient() :
     updateTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 }
 
+AudioClient::~AudioClient() {
+    if (_gverbLocal) {
+        gverb_free(_gverbLocal);
+    }
+    if (_gverb) {
+        gverb_free(_gverb);
+    }
+}
+
 void AudioClient::reset() {
     _receivedAudioStream.reset();
     _stats.reset();
@@ -522,10 +531,17 @@ bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
 
 void AudioClient::initGverb() {
     // Initialize a new gverb instance
+    if (_gverbLocal) {
+        gverb_free(_gverbLocal);
+    }
     _gverbLocal = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
                             _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
                             _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
                             _reverbOptions->getTailLevel());
+    
+    if (_gverb) {
+        gverb_free(_gverb);
+    }
     _gverb = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
                        _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
                        _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),

@@ -37,7 +37,6 @@ using namespace std;
 const int STATS_PELS_PER_LINE = 20;
 
 const int STATS_GENERAL_MIN_WIDTH = 165; 
-const int STATS_BANDWIDTH_MIN_WIDTH = 250;
 const int STATS_PING_MIN_WIDTH = 190;
 const int STATS_GEO_MIN_WIDTH = 240;
 const int STATS_OCTREE_MIN_WIDTH = 410;
@@ -52,7 +51,6 @@ Stats::Stats():
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _generalStatsWidth(STATS_GENERAL_MIN_WIDTH),
-        _bandwidthStatsWidth(STATS_BANDWIDTH_MIN_WIDTH),
         _pingStatsWidth(STATS_PING_MIN_WIDTH),
         _geoStatsWidth(STATS_GEO_MIN_WIDTH),
         _octreeStatsWidth(STATS_OCTREE_MIN_WIDTH),
@@ -133,7 +131,6 @@ void Stats::resetWidth(int width, int horizontalOffset) {
     auto glCanvas = DependencyManager::get<GLCanvas>();
     int extraSpace = glCanvas->width() - horizontalOffset -2
                    - STATS_GENERAL_MIN_WIDTH
-                   - STATS_BANDWIDTH_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
                    - STATS_GEO_MIN_WIDTH
                    - STATS_OCTREE_MIN_WIDTH;
@@ -141,7 +138,6 @@ void Stats::resetWidth(int width, int horizontalOffset) {
     int panels = 4;
 
     _generalStatsWidth = STATS_GENERAL_MIN_WIDTH;
-    _bandwidthStatsWidth = STATS_BANDWIDTH_MIN_WIDTH;
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         _pingStatsWidth = STATS_PING_MIN_WIDTH;
     } else {
@@ -153,13 +149,12 @@ void Stats::resetWidth(int width, int horizontalOffset) {
 
     if (extraSpace > panels) {
         _generalStatsWidth += (int) extraSpace / panels;
-        _bandwidthStatsWidth += (int) extraSpace / panels;
         if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
             _pingStatsWidth += (int) extraSpace / panels;
         }
         _geoStatsWidth += (int) extraSpace / panels;
         _octreeStatsWidth += glCanvas->width() -
-            (_generalStatsWidth + _bandwidthStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
+            (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
     }
 }
 
@@ -231,14 +226,14 @@ void Stats::display(
     int totalAvatars = DependencyManager::get<AvatarManager>()->size() - 1;
     int totalServers = DependencyManager::get<NodeList>()->size();
 
-    lines = _expanded ? 5 : 3;
+    lines = 5;
     int columnOneWidth = _generalStatsWidth;
 
     PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
     
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
 
-        columnOneWidth = _generalStatsWidth + _bandwidthStatsWidth + _pingStatsWidth + _geoStatsWidth; // 4 columns wide...
+        columnOneWidth = _generalStatsWidth + _pingStatsWidth + _geoStatsWidth; // 3 columns wide...
         // we will also include room for 1 line per timing record and a header of 4 lines
         lines += 4;
 
@@ -267,6 +262,17 @@ void Stats::display(
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarNodes.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, framesPerSecond.toUtf8().constData(), color);
+
+    QString packetsPerSecondString = QString("Packets In/Out: %1/%2").arg(inPacketsPerSecond).arg(outPacketsPerSecond);
+    QString averageMegabitsPerSecond = QString("Mbps In/Out: %1/%2").
+        arg((float)inKbitsPerSecond * 1.0f / 1000.0f).
+        arg((float)outKbitsPerSecond * 1.0f / 1000.0f);
+
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString.toUtf8().constData(), color);
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond.toUtf8().constData(), color);
+
     
     // TODO: the display of these timing details should all be moved to JavaScript
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
@@ -309,29 +315,8 @@ void Stats::display(
     }
 
 
-
     verticalOffset = 0;
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + 1;
-
-    if (columnOneWidth == _generalStatsWidth) {
-        drawBackground(backgroundColor, horizontalOffset, 0, _bandwidthStatsWidth, lines * STATS_PELS_PER_LINE + 10);
-    }
-    horizontalOffset += 5;
-
-    QString packetsPerSecondString = QString("Packets In/Out: %1/%2").arg(inPacketsPerSecond).arg(outPacketsPerSecond);
-    QString averageMegabitsPerSecond = QString("Mbps In/Out: %1/%2").
-        arg((float)inKbitsPerSecond * 1.0f / 1000.0f).
-        arg((float)outKbitsPerSecond * 1.0f / 1000.0f);
-
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString.toUtf8().constData(), color);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond.toUtf8().constData(), color);
-
-
-
-    verticalOffset = 0;
-    horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _bandwidthStatsWidth +1;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingOctreeMax = -1;
@@ -412,7 +397,7 @@ void Stats::display(
         }
 
         verticalOffset = 0;
-        horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _bandwidthStatsWidth + _pingStatsWidth + 2;
+        horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + 2;
     }
     
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
@@ -492,7 +477,7 @@ void Stats::display(
     }
 
     verticalOffset = 0;
-    horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _bandwidthStatsWidth + _pingStatsWidth + _geoStatsWidth + 3;
+    horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3;
 
     lines = _expanded ? 14 : 3;
 

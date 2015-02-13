@@ -18,11 +18,12 @@
 #include <QVariant>
 #include <QVector>
 
-#include <Extents.h>
-#include <Transform.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+#include <Extents.h>
+#include <Transform.h>
+#include <ShapeInfo.h>
 
 #include <model/Geometry.h>
 #include <model/Material.h>
@@ -53,12 +54,6 @@ public:
     QVector<glm::vec3> normals;
 };
 
-enum ShapeType {
-    SHAPE_TYPE_SPHERE = 0,
-    SHAPE_TYPE_CAPSULE = 1,
-    SHAPE_TYPE_UNKNOWN = 2
-};
-
 /// A single joint (transformation node) extracted from an FBX document.
 class FBXJoint {
 public:
@@ -83,7 +78,7 @@ public:
     QString name;
     glm::vec3 shapePosition;  // in joint frame
     glm::quat shapeRotation;  // in joint frame
-    ShapeType shapeType;
+    quint8 shapeType;
     bool isSkeletonJoint;
 };
 
