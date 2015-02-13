@@ -19,7 +19,6 @@
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
-#include <AudioInjector.h>
 #include <AvatarData.h>
 #include <Bitstream.h>
 #include <CollisionInfo.h>
@@ -35,6 +34,7 @@
 #include "DataViewClass.h"
 #include "EventTypes.h"
 #include "MenuItemProperties.h"
+#include "ScriptAudioInjector.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"

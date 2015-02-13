@@ -328,7 +328,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
 
     // put the audio processing on a separate thread
-    QThread* audioThread = new QThread(this);
+    QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
     
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -338,7 +338,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
-    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
+    connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
+    connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
 
     audioThread->start();
     
@@ -516,20 +518,32 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     _aboutToQuit = true;
+    
+    cleanupBeforeQuit();
 }
 
-Application::~Application() {
+void Application::cleanupBeforeQuit() {
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
     _settingsThread.quit();
     saveSettings();
     
+    // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
+    // an event loop to send the packet?
+    UserActivityLogger::getInstance().close();
+    
+    // stop the AudioClient
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                              "stop", Qt::BlockingQueuedConnection);
+    
+    // destroy the AudioClient so it and its thread have a chance to go down safely
+    DependencyManager::destroy<AudioClient>();
+}
+
+Application::~Application() {    
     _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
     
     _window->saveGeometry();
-    
-    int DELAY_TIME = 1000;
-    UserActivityLogger::getInstance().close(DELAY_TIME);
     
     // make sure we don't call the idle timer any more
     delete idleTimer;
@@ -540,18 +554,6 @@ Application::~Application() {
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
-    
-    // kill any audio injectors that are still around
-    AudioScriptingInterface::getInstance().stopAllInjectors();
-    
-    auto audioIO = DependencyManager::get<AudioClient>();
-
-    // stop the audio process
-    QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
-    
-    // ask the audio thread to quit and wait until it is done
-    audioIO->thread()->quit();
-    audioIO->thread()->wait();
     
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
@@ -2602,6 +2604,9 @@ const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
 const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
 
+const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
+const float GLOBAL_LIGHT_INTENSITY = 1.0f;
+
 void Application::setupWorldLight() {
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
@@ -2616,6 +2621,7 @@ void Application::setupWorldLight() {
     glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
+
 }
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
@@ -2822,7 +2828,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
-
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(-getSunDirection(), GLOBAL_LIGHT_COLOR, GLOBAL_LIGHT_INTENSITY);
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();

@@ -85,8 +85,11 @@ bool Texture::Storage::allocateMip(uint16 level) {
 bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes) {
         // Ok we should be able to do that...
     allocateMip(level);
-    _mips[level]->_format = format;
-    Size allocated = _mips[level]->_sysmem.setData(size, bytes);
+    auto mip = _mips[level];
+    mip->_format = format;
+    Size allocated = mip->_sysmem.setData(size, bytes);
+    mip->_isGPULoaded = false;
+
     return allocated == size;
 }
 
