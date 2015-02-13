@@ -568,9 +568,11 @@ Application::~Application() {
 
     qInstallMessageHandler(NULL);
 
+#ifndef DEBUG
     // At this point we return all memory to the operating system ASAP 
     // and don't worry about proper cleanup of global variables.
     exit(0);
+#endif
 }
 
 void Application::initializeGL() {
