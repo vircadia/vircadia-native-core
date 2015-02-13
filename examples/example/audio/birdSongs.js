@@ -75,14 +75,14 @@ function maybePlaySound(deltaTime) {
 		//print("number playing = " + numPlaying);
 	} 	
 	for (var i = 0; i < playing.length; i++) {
-		if (!Audio.isInjectorPlaying(playing[i].audioId)) {
+		if (!playing[i].audioId.isPlaying) {
 			Entities.deleteEntity(playing[i].entityId);
 			if (useLights) {
         		Entities.deleteEntity(playing[i].lightId);
         	}	
 			playing.splice(i, 1);
 		} else {
-			var loudness = Audio.getLoudness(playing[i].audioId);
+			var loudness = playing[i].audioId.loudness;
 			var newColor = { red: playing[i].color.red, green: playing[i].color.green, blue: playing[i].color.blue };
 			if (loudness > 0.05) {
 				newColor.red *= (1.0 - loudness); 

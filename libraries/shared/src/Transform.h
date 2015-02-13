@@ -100,6 +100,8 @@ public:
     // Left will be inversed before the multiplication
     static Transform& inverseMult(Transform& result, const Transform& left, const Transform& right);
 
+    Vec4 transform(const Vec4& pos) const;
+
 protected:
 
     enum Flag {
@@ -413,6 +415,13 @@ inline Transform& Transform::inverseMult( Transform& result, const Transform& le
 
     return result;
 }
+
+inline Transform::Vec4 Transform::transform(const Vec4& pos) const {
+    Mat4 m;
+    getMatrix(m);
+    return m * pos;
+}
+
 
 inline Transform::Mat4& Transform::getCachedMatrix(Transform::Mat4& result) const {
     updateCache();
