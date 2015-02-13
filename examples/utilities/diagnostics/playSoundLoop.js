@@ -30,7 +30,7 @@ var playing = false;
 var ball = false;
 
 function maybePlaySound(deltaTime) {
-    if (sound.downloaded) {
+    if (sound.downloaded && !soundPlaying) {
         var properties = {
                 type: "Sphere",
                 position: options.position, 
@@ -45,11 +45,9 @@ function maybePlaySound(deltaTime) {
 }
         
 function scriptEnding() {
-    if (Audio.isInjectorPlaying(soundPlaying)) {
-        Audio.stopInjector(soundPlaying);
-        Entities.deleteEntity(ball);
-        print("Stopped sound.");
-    }
+  if (ball) {
+    Entities.deleteEntity(ball);
+  }
 }
 
 // Connect a call back that happens every frame
