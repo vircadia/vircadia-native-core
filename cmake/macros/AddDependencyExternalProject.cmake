@@ -10,6 +10,9 @@
 # 
 
 macro(ADD_DEPENDENCY_EXTERNAL_PROJECT _PROJ_NAME)
-  add_subdirectory(${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME} ${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME}/build)
+  if (NOT TARGET ${_PROJ_NAME})
+    add_subdirectory(${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME} ${CMAKE_BINARY_DIR}/externals/${_PROJ_NAME})
+  endif ()
+  
   add_dependencies(${TARGET_NAME} ${_PROJ_NAME})
 endmacro()
