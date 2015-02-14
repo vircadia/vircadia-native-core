@@ -8,7 +8,7 @@ include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   PREFIX ${EXTERNAL_NAME}
-  GIT_REPOSITORY https://github.com/birarda/gverb.git
+  GIT_REPOSITORY http://github.com/birarda/gverb.git
   CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD ON
 )

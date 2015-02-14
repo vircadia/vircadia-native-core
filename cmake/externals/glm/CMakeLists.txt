@@ -4,7 +4,7 @@ include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   PREFIX ${EXTERNAL_NAME}
-  URL https://github.com/g-truc/glm/archive/0.9.5.4.zip
+  URL http://github.com/g-truc/glm/archive/0.9.5.4.zip
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD ON
 )
