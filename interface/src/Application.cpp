@@ -65,6 +65,7 @@
 #include <HFBackEvent.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -565,6 +566,8 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
+
+    ModelEntityItem::cleanupLoadedAnimations() ;
     
     DependencyManager::destroy<GLCanvas>();
     DependencyManager::destroy<AnimationCache>();
