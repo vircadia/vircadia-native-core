@@ -8,7 +8,7 @@ include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   PREFIX ${EXTERNAL_NAME}
-  GIT_REPOSITORY http://github.com/birarda/gverb.git
+  GIT_REPOSITORY https://github.com/birarda/gverb.git
   CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD ON
 )
@@ -17,4 +17,9 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE TYPE STRING)
-set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libgverb.a CACHE TYPE STRING)
+
+if (WIN32) 
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/gverb.lib CACHE TYPE STRING)
+else ()
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libgverb.a CACHE TYPE STRING)
+endif ()
