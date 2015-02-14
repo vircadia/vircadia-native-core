@@ -213,7 +213,9 @@ void OctreePersistThread::persist() {
         }
         _tree->unlock();
 
+        qDebug() << "persist operation calling backup...";
         backup(); // handle backup if requested        
+        qDebug() << "persist operation DONE with backup...";
 
 
         // create our "lock" file to indicate we're saving.
@@ -347,6 +349,7 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
 
 
 void OctreePersistThread::backup() {
+    qDebug() << "backup operation wantBackup:" << _wantBackup;
     if (_wantBackup) {
         quint64 now = usecTimestampNow();
         
@@ -354,10 +357,12 @@ void OctreePersistThread::backup() {
             BackupRule& rule = _backupRules[i];
 
             quint64 sinceLastBackup = now - rule.lastBackup;
-
             quint64 SECS_TO_USECS = 1000 * 1000;
             quint64 intervalToBackup = rule.interval * SECS_TO_USECS;
-        
+
+            qDebug() << "Checking [" << rule.name << "] - Time since last backup [" << sinceLastBackup << "] " << 
+                        "compared to backup interval [" << intervalToBackup << "]...";
+
             if (sinceLastBackup > intervalToBackup) {
                 qDebug() << "Time since last backup [" << sinceLastBackup << "] for rule [" << rule.name 
                                         << "] exceeds backup interval [" << intervalToBackup << "] doing backup now...";
@@ -379,15 +384,22 @@ void OctreePersistThread::backup() {
                 }
 
 
-                qDebug() << "backing up persist file " << _filename << "to" << backupFileName << "...";
-                bool result = QFile::copy(_filename, backupFileName);
-                if (result) {
-                    qDebug() << "DONE backing up persist file...";
+                QFile persistFile(_filename);
+                if (persistFile.exists()) {
+                    qDebug() << "backing up persist file " << _filename << "to" << backupFileName << "...";
+                    bool result = QFile::copy(_filename, backupFileName);
+                    if (result) {
+                        qDebug() << "DONE backing up persist file...";
+                        rule.lastBackup = now; // only record successful backup in this case.
+                    } else {
+                        qDebug() << "ERROR in backing up persist file...";
+                    }
                 } else {
-                    qDebug() << "ERROR in backing up persist file...";
+                    qDebug() << "persist file " << _filename << " does not exist. " << 
+                                "nothing to backup for this rule ["<< rule.name << "]...";
                 }
-            
-                rule.lastBackup = now;
+            } else {
+                qDebug() << "Backup not needed for this rule ["<< rule.name << "]...";
             }
         }
     }
