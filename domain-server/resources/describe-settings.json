@@ -410,6 +410,13 @@
         "advanced": true
       },
       {
+        "name": "wantEditLogging",
+        "type": "checkbox",
+        "help": "Logging of all edits to entities",
+        "default": true,
+        "advanced": true
+      },
+      {
         "name": "verboseDebug",
         "type": "checkbox",
         "help": "lots of debugging",
