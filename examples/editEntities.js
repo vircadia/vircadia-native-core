@@ -959,9 +959,18 @@ PropertiesTool = function(opts) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
                         var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
-                        Entities.editEntity(selectionManager.selections[i], {
-                            dimensions: properties.naturalDimensions,
-                        });
+                        var naturalDimensions = properties.naturalDimensions;
+
+                        // If any of the natural dimensions are not 0, resize
+                        if (properties.type == "Model" && naturalDimensions.x == 0
+                                && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
+                            Window.alert("Cannot reset entity to its natural dimensions: Model URL"
+                                         + " is invalid or the model has not yet been loaded.");
+                        } else {
+                            Entities.editEntity(selectionManager.selections[i], {
+                                dimensions: properties.naturalDimensions,
+                            });
+                        }
                     }
                     pushCommandForSelections();
                     selectionManager._update();

@@ -208,7 +208,7 @@ void Agent::run() {
 
     _scriptEngine.init(); // must be done before we set up the viewers
     
-    _scriptEngine.registerGlobalObject("SoundCache", &SoundCache::getInstance());
+    _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
     _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
     _entityViewer.setJurisdictionListener(_scriptEngine.getEntityScriptingInterface()->getJurisdictionListener());
