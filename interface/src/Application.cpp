@@ -65,6 +65,7 @@
 #include <HFBackEvent.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -211,6 +212,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
+    auto scriptCache = DependencyManager::set<ScriptCache>();
+    auto soundCache = DependencyManager::set<SoundCache>();
     auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
     auto audio = DependencyManager::set<AudioClient>();
@@ -328,7 +331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
 
     // put the audio processing on a separate thread
-    QThread* audioThread = new QThread(this);
+    QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
     
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -338,7 +341,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
-    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
+    connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
+    connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
 
     audioThread->start();
     
@@ -516,42 +521,46 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     _aboutToQuit = true;
+    
+    cleanupBeforeQuit();
 }
 
-Application::~Application() {
+void Application::cleanupBeforeQuit() {
+    // make sure we don't call the idle timer any more
+    delete idleTimer;
+
+    // save state
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
     _settingsThread.quit();
     saveSettings();
-    
-    _entities.getTree()->setSimulation(NULL);
-    qInstallMessageHandler(NULL);
-    
     _window->saveGeometry();
     
-    int DELAY_TIME = 1000;
-    UserActivityLogger::getInstance().close(DELAY_TIME);
-    
-    // make sure we don't call the idle timer any more
-    delete idleTimer;
-    
+    // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
+    // an event loop to send the packet?
+    UserActivityLogger::getInstance().close();
+
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
+    
+    // stop the AudioClient
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                              "stop", Qt::BlockingQueuedConnection);
+    
+    // destroy the AudioClient so it and its thread have a chance to go down safely
+    DependencyManager::destroy<AudioClient>();
+}
+
+Application::~Application() {    
+    EntityTree* tree = _entities.getTree();
+    tree->lockForWrite();
+    _entities.getTree()->setSimulation(NULL);
+    tree->unlock();
+
+    qInstallMessageHandler(NULL);
 
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
-    
-    // kill any audio injectors that are still around
-    AudioScriptingInterface::getInstance().stopAllInjectors();
-    
-    auto audioIO = DependencyManager::get<AudioClient>();
-
-    // stop the audio process
-    QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
-    
-    // ask the audio thread to quit and wait until it is done
-    audioIO->thread()->quit();
-    audioIO->thread()->wait();
     
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
@@ -559,13 +568,18 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
+
+    ModelEntityItem::cleanupLoadedAnimations() ;
     
     DependencyManager::destroy<GLCanvas>();
+
+    qDebug() << "start destroying ResourceCaches Application::~Application() line:" << __LINE__;
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+    qDebug() << "done destroying ResourceCaches Application::~Application() line:" << __LINE__;
 }
 
 void Application::initializeGL() {
@@ -3464,7 +3478,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
-    scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
+    scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
 

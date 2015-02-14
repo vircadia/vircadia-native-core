@@ -219,14 +219,14 @@ static QScriptValue createRandomScriptValue(bool complex = false, bool ensureHas
         
         case 4: {
             int length = randIntInRange(2, 6);
-            QScriptValue value = ScriptCache::getInstance()->getEngine()->newArray(length);
+            QScriptValue value = DependencyManager::get<ScriptCache>()->getEngine()->newArray(length);
             for (int i = 0; i < length; i++) {
                 value.setProperty(i, createRandomScriptValue());
             }
             return value;
         }
         default: {
-            QScriptValue value = ScriptCache::getInstance()->getEngine()->newObject();
+            QScriptValue value = DependencyManager::get<ScriptCache>()->getEngine()->newObject();
             if (ensureHashOrder) {
                 // we can't depend on the iteration order, so if we need it to be the same (as when comparing bytes), we
                 // can only have one property
@@ -747,7 +747,7 @@ static SharedObjectPointer mutate(const SharedObjectPointer& state) {
         case 3: {
             SharedObjectPointer newState = state->clone(true);
             QScriptValue oldValue = static_cast<TestSharedObjectA*>(newState.data())->getBizzle();
-            QScriptValue newValue = ScriptCache::getInstance()->getEngine()->newObject();
+            QScriptValue newValue = DependencyManager::get<ScriptCache>()->getEngine()->newObject();
             for (QScriptValueIterator it(oldValue); it.hasNext(); ) {
                 it.next();
                 newValue.setProperty(it.scriptName(), it.value());
@@ -755,8 +755,8 @@ static SharedObjectPointer mutate(const SharedObjectPointer& state) {
             switch (randIntInRange(0, 2)) {
                 case 0: {
                     QScriptValue oldArray = oldValue.property("foo");
-                    int oldLength = oldArray.property(ScriptCache::getInstance()->getLengthString()).toInt32();
-                    QScriptValue newArray = ScriptCache::getInstance()->getEngine()->newArray(oldLength);
+                    int oldLength = oldArray.property(DependencyManager::get<ScriptCache>()->getLengthString()).toInt32();
+                    QScriptValue newArray = DependencyManager::get<ScriptCache>()->getEngine()->newArray(oldLength);
                     for (int i = 0; i < oldLength; i++) {
                         newArray.setProperty(i, oldArray.property(i));
                     }
@@ -1203,8 +1203,8 @@ TestSharedObjectA::TestSharedObjectA(float foo, TestEnum baz, TestFlags bong) :
         _bong(bong) {
     sharedObjectsCreated++; 
     
-    _bizzle = ScriptCache::getInstance()->getEngine()->newObject();
-    _bizzle.setProperty("foo", ScriptCache::getInstance()->getEngine()->newArray(4));
+    _bizzle = DependencyManager::get<ScriptCache>()->getEngine()->newObject();
+    _bizzle.setProperty("foo", DependencyManager::get<ScriptCache>()->getEngine()->newArray(4));
 }
 
 TestSharedObjectA::~TestSharedObjectA() {
