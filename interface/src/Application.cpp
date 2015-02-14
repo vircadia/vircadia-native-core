@@ -65,6 +65,7 @@
 #include <HFBackEvent.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -525,13 +526,21 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    // make sure we don't call the idle timer any more
+    delete idleTimer;
+
+    // save state
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
     _settingsThread.quit();
     saveSettings();
+    _window->saveGeometry();
     
     // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
     // an event loop to send the packet?
     UserActivityLogger::getInstance().close();
+
+    // let the avatar mixer know we're out
+    MyAvatar::sendKillAvatar();
     
     // stop the AudioClient
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
@@ -542,16 +551,12 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {    
+    EntityTree* tree = _entities.getTree();
+    tree->lockForWrite();
     _entities.getTree()->setSimulation(NULL);
+    tree->unlock();
+
     qInstallMessageHandler(NULL);
-    
-    _window->saveGeometry();
-    
-    // make sure we don't call the idle timer any more
-    delete idleTimer;
-    
-    // let the avatar mixer know we're out
-    MyAvatar::sendKillAvatar();
 
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
@@ -563,6 +568,8 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
+
+    ModelEntityItem::cleanupLoadedAnimations() ;
     
     DependencyManager::destroy<GLCanvas>();
 
