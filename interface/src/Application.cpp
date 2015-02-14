@@ -212,6 +212,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
+    auto scriptCache = DependencyManager::set<ScriptCache>();
+    auto soundCache = DependencyManager::set<SoundCache>();
     auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
     auto audio = DependencyManager::set<AudioClient>();
@@ -570,11 +572,14 @@ Application::~Application() {
     ModelEntityItem::cleanupLoadedAnimations() ;
     
     DependencyManager::destroy<GLCanvas>();
+
+    qDebug() << "start destroying ResourceCaches Application::~Application() line:" << __LINE__;
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+    qDebug() << "done destroying ResourceCaches Application::~Application() line:" << __LINE__;
 }
 
 void Application::initializeGL() {
@@ -3473,7 +3478,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
-    scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
+    scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
 

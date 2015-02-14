@@ -15,11 +15,6 @@
 
 static int soundPointerMetaTypeId = qRegisterMetaType<SharedSoundPointer>();
 
-SoundCache& SoundCache::getInstance() {
-    static SoundCache staticInstance;
-    return staticInstance;
-}
-
 SoundCache::SoundCache(QObject* parent) :
     ResourceCache(parent)
 {
