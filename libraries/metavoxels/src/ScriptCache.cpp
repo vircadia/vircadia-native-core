@@ -57,8 +57,8 @@ bool operator==(const QScriptValue& first, const QScriptValue& second) {
         if (!second.isArray()) {
             return false;
         }
-        int length = first.property(ScriptCache::getInstance()->getLengthString()).toInt32();
-        if (second.property(ScriptCache::getInstance()->getLengthString()).toInt32() != length) {
+        int length = first.property(DependencyManager::get<ScriptCache>()->getLengthString()).toInt32();
+        if (second.property(DependencyManager::get<ScriptCache>()->getLengthString()).toInt32() != length) {
             return false;
         }
         for (int i = 0; i < length; i++) {
@@ -101,11 +101,6 @@ bool operator!=(const QScriptValue& first, const QScriptValue& second) {
 
 bool operator<(const QScriptValue& first, const QScriptValue& second) {
     return first.lessThan(second);
-}
-
-ScriptCache* ScriptCache::getInstance() {
-    static ScriptCache cache;
-    return &cache;
 }
 
 ScriptCache::ScriptCache() :
