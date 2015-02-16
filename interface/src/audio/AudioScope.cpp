@@ -230,7 +230,7 @@ int AudioScope::addSilenceToScope(QByteArray* byteArray, int frameOffset, int si
     int samplesToBufferEnd = _samplesPerScope - frameOffset;
     if (silentSamples > samplesToBufferEnd) {
         memset(destination + frameOffset, 0, samplesToBufferEnd * sizeof(int16_t));
-        memset(destination, 0, silentSamples - samplesToBufferEnd * sizeof(int16_t));
+        memset(destination, 0, (silentSamples - samplesToBufferEnd) * sizeof(int16_t));
     } else {
         memset(destination + frameOffset, 0, silentSamples * sizeof(int16_t));
     }
