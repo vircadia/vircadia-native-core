@@ -789,7 +789,7 @@ void ApplicationOverlay::renderAudioMeter() {
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
     const int MUTE_ICON_PADDING = 10;
-    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE  - MUTE_ICON_PADDING;
+    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - MUTE_ICON_PADDING;
     const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 ;
     const int AUDIO_METER_HEIGHT = 8;
     const int AUDIO_METER_GAP = 5;
@@ -845,8 +845,8 @@ void ApplicationOverlay::renderAudioMeter() {
     audioMeterY += AUDIO_METER_HEIGHT;
 
     //  Draw audio meter background Quad
-    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X, audioMeterY, AUDIO_METER_WIDTH, AUDIO_METER_HEIGHT, 
-                                                            glm::vec4(0.298f, 0.757f, 0.722f, 1));
+    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X, audioMeterY, AUDIO_METER_WIDTH, AUDIO_METER_HEIGHT,
+                                                            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
     if (audioLevel > AUDIO_RED_START) {
         glm::vec4 quadColor;
