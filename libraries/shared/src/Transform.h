@@ -90,6 +90,7 @@ public:
 
     Mat4& getMatrix(Mat4& result) const;
     Mat4& getInverseMatrix(Mat4& result) const;
+    Mat4& getInverseTransposeMatrix(Mat4& result) const;
 
     Transform& evalInverse(Transform& result) const;
 
@@ -328,6 +329,13 @@ inline Transform::Mat4& Transform::getInverseMatrix(Transform::Mat4& result) con
     evalInverse(inverse);
     return inverse.getMatrix(result);
 }
+
+inline Transform::Mat4& Transform::getInverseTransposeMatrix(Transform::Mat4& result) const {
+    getInverseMatrix(result);
+    result = glm::transpose(result);
+    return result;
+}
+
 
 inline void Transform::evalFromRawMatrix(const Mat4& matrix) {
     // for now works only in the case of TRS transformation

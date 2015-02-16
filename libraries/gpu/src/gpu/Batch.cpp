@@ -153,10 +153,10 @@ void Batch::setViewTransform(const Transform& view) {
     _params.push_back(_transforms.cache(view));
 }
 
-void Batch::setProjectionTransform(const Transform& proj) {
+void Batch::setProjectionTransform(const Mat4& proj) {
     ADD_COMMAND(setProjectionTransform);
 
-    _params.push_back(_transforms.cache(proj));
+    _params.push_back(cacheData(sizeof(Mat4), &proj);
 }
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {

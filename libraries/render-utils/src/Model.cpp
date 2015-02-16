@@ -1659,10 +1659,25 @@ void Model::setupBatchTransform(gpu::Batch& batch) {
 void Model::endScene(RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
+    
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
     if (args) {
         renderSide = args->_renderSide;
     }
+
+    if (args) {
+        glm::mat4 proj;
+        args->_viewFrustum->evalProjectionMatrix(proj); 
+        gpu::Batch batch;
+        batch.setProjectionTransform(proj);
+        ::gpu::GLBackend::renderBatch(batch);
+        
+    }
+
+    _viewState->getViewTransform();
+    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
+    _transforms[0].preTranslate(-_translation);
+
 
     // Do the rendering batch creation for mono or left eye, not for right eye
     if (renderSide != RenderArgs::STEREO_RIGHT) {

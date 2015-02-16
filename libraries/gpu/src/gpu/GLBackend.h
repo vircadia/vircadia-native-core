@@ -113,11 +113,17 @@ protected:
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
 
+    void initTransform();
+    void killTransform();
     void updateTransform();
     struct TransformStageState {
+        TransformObject _transformObject;
+        TransformCamera _transformCamera;
+        GLuint _transformObjectBuffer;
+        GLuint _transformCameraBuffer;
         Transform _model;
         Transform _view;
-        Transform _projection;
+        Mat4 _projection;
         bool _invalidModel;
         bool _invalidView;
         bool _invalidProj;
@@ -125,6 +131,8 @@ protected:
         GLenum _lastMode;
 
         TransformStageState() :
+            _transformObjectBuffer(0),
+            _transformCameraBuffer(0),
             _model(),
             _view(),
             _projection(),

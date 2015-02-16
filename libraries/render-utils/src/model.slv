@@ -14,6 +14,11 @@
 <@include gpu/Transform.slh@>
 const int MAX_TEXCOORDS = 2;
 
+<$inputPosition(vin_position)$>
+<$inputNormal(vin_normal)$>
+<$inputTexcoord(vin_texcoord)$>
+<$inputColor(vin_color)$>
+
 uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
 
 // the interpolated normal
@@ -30,6 +35,23 @@ void main(void) {
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
     
     // use standard pipeline transform
-    gl_Position = ftransform();
+    gl_Position = gl_ModelViewProjectionMatrix * vec4(vin_position, 1.0);
 }
 
+
+
+/*
+void main(void) {
+    // transform and store the normal for interpolation
+    normal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
+    
+    // pass along the diffuse color
+    gl_FrontColor = gl_Color;
+    
+    // and the texture coordinates
+    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
+    
+    // use standard pipeline transform
+    gl_Position = ftransform();
+}
+*/

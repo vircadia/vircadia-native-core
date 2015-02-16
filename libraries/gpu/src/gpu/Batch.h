@@ -89,7 +89,7 @@ public:
     // with the ModelTransformu to create the equivalent of the glModelViewMatrix
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
-    void setProjectionTransform(const Transform& proj);
+    void setProjectionTransform(const Mat4& proj);
 
     // Shader Stage
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);

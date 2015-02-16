@@ -866,4 +866,11 @@ float ViewFrustum::distanceToCamera(const glm::vec3& point) const {
     return distanceToPoint;
 }
 
+void ViewFrustum::evalProjectionMatrix(glm::mat4& proj) const {
+    if (isOrthographic()) {
+        proj = glm::ortho(getWidth() * -0.5, getWidth() * +0.5, getHeight() * -0.5, getHeight() * 0.5);
+    } else {
+        proj = glm::perspective(getFieldOfView(), getAspectRatio(), getNearClip(), getFarClip());
+    }
+}
 
