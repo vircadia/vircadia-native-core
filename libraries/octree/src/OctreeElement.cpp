@@ -20,7 +20,6 @@
 #include <NodeList.h>
 #include <PerfStat.h>
 #include <AACubeShape.h>
-#include <ShapeCollider.h>
 
 #include "AACube.h"
 #include "OctalCode.h"
@@ -1394,12 +1393,6 @@ bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const g
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
     return _cube.findSpherePenetration(center, radius, penetration);
-}
-
-bool OctreeElement::findShapeCollisions(const Shape* shape, CollisionList& collisions) const {
-    AACube cube = getAACube();
-    cube.scale(TREE_SCALE);
-    return ShapeCollider::collideShapeWithAACubeLegacy(shape, cube.calcCenter(), cube.getScale(), collisions);
 }
 
 // TODO: consider removing this, or switching to using getOrCreateChildElementContaining(const AACube& box)...

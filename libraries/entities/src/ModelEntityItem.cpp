@@ -51,6 +51,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     return properties;
 }
 
@@ -66,6 +67,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -116,6 +118,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
+    READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
 
     return bytesRead;
 }
@@ -131,6 +134,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_ANIMATION_PLAYING;
     requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_TEXTURES;
+    requestedProperties += PROP_SHAPE_TYPE;
     
     return requestedProperties;
 }
@@ -153,20 +157,11 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, getTextures());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, getAnimationSettings());
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
 }
 
 
 QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
-
-// This class/instance will cleanup the animations once unloaded.
-class EntityAnimationsBookkeeper {
-public:
-    ~EntityAnimationsBookkeeper() {
-        ModelEntityItem::cleanupLoadedAnimations();
-    }
-};
-
-EntityAnimationsBookkeeper modelAnimationsBookkeeperInstance;
 
 void ModelEntityItem::cleanupLoadedAnimations() {
     foreach(AnimationPointer animation, _loadedAnimations) {
@@ -245,21 +240,6 @@ bool ModelEntityItem::needsToCallUpdate() const {
     return isAnimatingSomething() ?  true : EntityItem::needsToCallUpdate();
 }
 
-void ModelEntityItem::computeShapeInfo(ShapeInfo& info) const {
-    // HACK: Default first first approximation is to boxify the entity... but only if it is small enough.
-    // The limit here is chosen to something that most avatars could not comfortably fit inside
-    // to prevent houses from getting boxified... we don't want the things inside houses to 
-    // collide with a house as if it were a giant solid block.
-    const float MAX_SIZE_FOR_BOXIFICATION_HACK = 3.0f;
-    float diagonal = glm::length(getDimensionsInMeters());
-    if (diagonal < MAX_SIZE_FOR_BOXIFICATION_HACK) {
-        glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
-        info.setBox(halfExtents);
-    } else {
-        info.clear();
-    }
-}
-
 void ModelEntityItem::update(const quint64& now) {
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
@@ -278,6 +258,13 @@ void ModelEntityItem::debugDump() const {
     qDebug() << "    position:" << getPosition() * (float)TREE_SCALE;
     qDebug() << "    dimensions:" << getDimensions() * (float)TREE_SCALE;
     qDebug() << "    model URL:" << getModelURL();
+}
+
+void ModelEntityItem::updateShapeType(ShapeType type) {
+    if (type != _shapeType) {
+        _shapeType = type;
+        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+    }
 }
 
 void ModelEntityItem::setAnimationURL(const QString& url) { 

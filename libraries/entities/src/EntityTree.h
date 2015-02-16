@@ -151,6 +151,9 @@ public:
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     void setSimulation(EntitySimulation* simulation);
+    
+    bool wantEditLogging() const { return _wantEditLogging; }
+    void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -180,6 +183,8 @@ private:
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
     EntitySimulation* _simulation;
+    
+    bool _wantEditLogging = false;
 };
 
 #endif // hifi_EntityTree_h

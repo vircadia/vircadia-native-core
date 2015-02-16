@@ -42,16 +42,11 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityI
     _cutoff = PI;
 
     setProperties(properties);
-
-    // a light is not collide-able so we make it's shape be a tiny sphere at origin
-    _emptyShape.setTranslation(glm::vec3(0.0f, 0.0f, 0.0f));
-    _emptyShape.setRadius(0.0f);
 }
 
 void LightEntityItem::setDimensions(const glm::vec3& value) {
     float maxDimension = glm::max(value.x, value.y, value.z);
     _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension); 
-    recalculateCollisionShape(); 
 }
 
 

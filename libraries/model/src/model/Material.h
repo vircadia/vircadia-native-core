@@ -100,7 +100,6 @@ public:
     void setTextureView(MapChannel channel, const TextureView& texture);
     const TextureMap& getTextureMap() const { return _textureMap; }
 
-    const Schema* getSchema() const { return &_schemaBuffer.get<Schema>(); }
 protected:
 
     Flags _flags;
