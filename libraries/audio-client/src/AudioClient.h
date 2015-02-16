@@ -243,7 +243,6 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    ty_gverb* _gverbLocal;
     ty_gverb* _gverb;
     
     // possible soxr streams needed for resample

@@ -104,7 +104,6 @@ AudioClient::AudioClient() :
     _audioSourceInjectEnabled(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
-    _gverbLocal(NULL),
     _gverb(NULL),
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
@@ -130,20 +129,14 @@ AudioClient::AudioClient() :
     connect(updateTimer, &QTimer::timeout, this, &AudioClient::checkDevices);
     updateTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
     
-    // create GVerb filters
+    // create GVerb filter
     _gverb = createGverbFilter();
-    _gverbLocal = createGverbFilter();
-    // configure filters
     configureGverbFilter(_gverb);
-    configureGverbFilter(_gverbLocal);
 }
 
 AudioClient::~AudioClient() {
     stop();
     
-    if (_gverbLocal) {
-        gverb_free(_gverbLocal);
-    }
     if (_gverb) {
         gverb_free(_gverb);
     }
@@ -158,7 +151,6 @@ void AudioClient::reset() {
     _inputGain.reset();
     
     gverb_flush(_gverb);
-    gverb_flush(_gverbLocal);
 }
 
 void AudioClient::audioMixerKilled() {
@@ -582,9 +574,6 @@ void AudioClient::updateGverbOptions() {
         gverb_free(_gverb);
         _gverb = createGverbFilter();
         configureGverbFilter(_gverb);
-        gverb_free(_gverbLocal);
-        _gverbLocal = createGverbFilter();
-        configureGverbFilter(_gverbLocal);
     }
 }
 
@@ -593,7 +582,6 @@ void AudioClient::setReverb(bool reverb) {
     
     if (!_reverb) {
         gverb_flush(_gverb);
-        gverb_flush(_gverbLocal);
     }
 }
 
@@ -616,9 +604,6 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
         gverb_free(_gverb);
         _gverb = createGverbFilter();
         configureGverbFilter(_gverb);
-        gverb_free(_gverbLocal);
-        _gverbLocal = createGverbFilter();
-        configureGverbFilter(_gverbLocal);
     }
 }
 
@@ -694,7 +679,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     
     if (hasReverb) {
         updateGverbOptions();
-        addReverb(_gverbLocal, inputSamples, reverbAloneSamples, numInputSamples,
+        addReverb(_gverb, inputSamples, reverbAloneSamples, numInputSamples,
                   _outputFormat, !_shouldEchoLocally);
     }
     
