@@ -658,6 +658,10 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     if (!_loopbackOutputDevice && _loopbackAudioOutput) {
         // we didn't have the loopback output device going so set that up now
         _loopbackOutputDevice = _loopbackAudioOutput->start();
+        
+        if (!_loopbackOutputDevice) {
+            return;
+        }
     }
     
     // do we need to setup a resampler?
@@ -670,32 +674,31 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         }
     }
     
-    int numInputSamples = inputByteArray.size() / sizeof(int16_t);
-    int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
+    static QByteArray reverbAlone;  // Intermediary for local reverb with no echo
+    static QByteArray loopBackByteArray;
     
-    static QByteArray reverbAlone;
-    reverbAlone.resize(inputByteArray.size());
+    int numInputSamples = inputByteArray.size() / sizeof(int16_t);
+    int numLoopbackSamples = numDestinationSamplesRequired(_inputFormat, _outputFormat, numInputSamples);
+    
+    reverbAlone.resize(numInputSamples * sizeof(int16_t));
+    loopBackByteArray.resize(numLoopbackSamples * sizeof(int16_t));
+    
+    int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
     int16_t* reverbAloneSamples = reinterpret_cast<int16_t*>(reverbAlone.data());
+    int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
     
     if (hasReverb) {
         updateGverbOptions();
         addReverb(_gverb, inputSamples, reverbAloneSamples, numInputSamples,
-                  _outputFormat, !_shouldEchoLocally);
+                  _inputFormat, !_shouldEchoLocally);
     }
     
-    if (_loopbackOutputDevice) {
-        static QByteArray loopBackByteArray;
-        int numLoopbackSamples = numDestinationSamplesRequired(_inputFormat, _outputFormat, numInputSamples);
-        loopBackByteArray.resize(numLoopbackSamples * sizeof(int16_t));
-        
-        possibleResampling(_loopbackResampler,
-                           (_shouldEchoLocally) ? inputSamples : reverbAloneSamples,
-                           reinterpret_cast<int16_t*>(loopBackByteArray.data()),
-                           numInputSamples, numLoopbackSamples,
-                           _inputFormat, _outputFormat);
-        
-        _loopbackOutputDevice->write(loopBackByteArray);
-    }
+    possibleResampling(_loopbackResampler,
+                       (_shouldEchoLocally) ? inputSamples : reverbAloneSamples, loopbackSamples,
+                       numInputSamples, numLoopbackSamples,
+                       _inputFormat, _outputFormat);
+    
+    _loopbackOutputDevice->write(loopBackByteArray);
 }
 
 void AudioClient::handleAudioInput() {
