@@ -309,13 +309,16 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
     
     matchingNode->setLastHeardMicrostamp(usecTimestampNow());
     
-    if (!matchingNode->getLinkedData() && linkedDataCreateCallback) {
+    NodeData* linkedData = matchingNode->getLinkedData();
+    if (!linkedData && linkedDataCreateCallback) {
         linkedDataCreateCallback(matchingNode.data());
     }
-    
-    QMutexLocker linkedDataLocker(&matchingNode->getLinkedData()->getMutex());
-    
-    return matchingNode->getLinkedData()->parseData(packet);
+   
+    if (linkedData) {
+        QMutexLocker linkedDataLocker(&linkedData->getMutex());
+        return linkedData->parseData(packet);
+    }
+    return 0;
 }
 
 int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
