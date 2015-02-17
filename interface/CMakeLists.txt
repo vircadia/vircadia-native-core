@@ -78,7 +78,7 @@ if (APPLE)
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
   
-  if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
     set(ICON_FILENAME "interface.icns")
   else ()
     set(ICON_FILENAME "interface-beta.icns")
