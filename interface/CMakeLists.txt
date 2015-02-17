@@ -239,5 +239,14 @@ else (APPLE)
   endif()
 endif (APPLE)
 
+if (WIN32)
+  # add a post-build command to copy DLLs beside the interface executable
+  add_custom_command(
+    TARGET ${TARGET_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -DBUNDLE_EXECUTABLE=$<TARGET_FILE:${TARGET_NAME}> -P ${HIFI_CMAKE_DIR}/scripts/FixupBundlePostBuild.cmake
+  )
+endif ()
+
 # link any dependencies bubbled up from our linked dependencies
 include_dependency_includes()
