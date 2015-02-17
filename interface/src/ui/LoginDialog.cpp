@@ -41,6 +41,9 @@ LoginDialog::LoginDialog(QWidget* parent) :
             this, &LoginDialog::handleLoginClicked);
     connect(_ui->closeButton, &QPushButton::clicked,
             this, &LoginDialog::close);
+
+    // Initialize toggle connection
+    toggleQAction();
 };
 
 LoginDialog::~LoginDialog() {
