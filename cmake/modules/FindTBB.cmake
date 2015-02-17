@@ -58,7 +58,7 @@ elseif (WIN32)
   set(_TBB_LIB_DIR "lib/${_TBB_ARCH_DIR}/vc12")
   
   find_path(TBB_DLL_PATH tbb_debug.dll PATH_SUFFIXES "bin/${_TBB_ARCH_DIR}/vc12" HINTS ${TBB_SEARCH_DIRS})
-  add_path_to_lib_paths(${TBB_DLL_PATH})
+  
 elseif (ANDROID)
   set(_TBB_DEFAULT_INSTALL_DIR "/tbb")
   set(_TBB_LIB_NAME "tbb")
@@ -80,6 +80,15 @@ include(FindPackageHandleStandardArgs)
 select_library_configurations(TBB)
 select_library_configurations(TBB_MALLOC)
 
-find_package_handle_standard_args(TBB DEFAULT_MSG TBB_LIBRARY TBB_MALLOC_LIBRARY TBB_INCLUDE_DIRS)
+set(TBB_REQUIREMENTS TBB_LIBRARY TBB_MALLOC_LIBRARY TBB_INCLUDE_DIRS)
+if (WIN32)
+  list(APPEND TBB_REQUIREMENTS TBB_DLL_PATH)
+endif ()
+
+find_package_handle_standard_args(TBB DEFAULT_MSG TBB_REQUIREMENTS)
+
+if (WIN32)
+  add_paths_to_lib_paths(${TBB_DLL_PATH})
+endif ()
 
 set(TBB_LIBRARIES ${TBB_LIBRARY} ${TBB_MALLOC_LIBRARY})

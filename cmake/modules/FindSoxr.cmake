@@ -26,7 +26,7 @@ find_library(SOXR_LIBRARIES NAMES soxr PATH_SUFFIXES lib HINTS ${SOXR_SEARCH_DIR
 
 if (WIN32)
   find_path(SOXR_DLL_PATH soxr.dll PATH_SUFFIXES bin HINTS ${SOXR_SEARCH_DIRS})
-  add_path_to_lib_paths(${SOXR_DLL_PATH})
+  add_paths_to_lib_paths(${SOXR_DLL_PATH})
 endif()
 
 include(FindPackageHandleStandardArgs)
