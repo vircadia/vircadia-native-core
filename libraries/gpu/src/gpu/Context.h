@@ -39,9 +39,9 @@ public:
 
     class TransformCamera {
     public:
+        Mat4 _projection;
         Mat4 _view;
         Mat4 _viewInverse;
-        Mat4 _projection;
     };
 
     template< typename T >

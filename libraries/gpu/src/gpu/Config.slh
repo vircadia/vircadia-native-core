@@ -12,7 +12,8 @@
 <@def GPU_CONFIG_SLH@>
 
 <@if GLPROFILE == PC_GL @>
-    <@def VERSION_HEADER #version 330 compatibility@>
+    <@def VERSION_HEADER #version 410 compatibility
+#@>
 
 <@func inputPosition name@>
 layout(location = 0) in vec3 <$name$>;

@@ -18,10 +18,9 @@ struct TransformObject {
 };
 
 struct TransformCamera { 
+    mat4 _projection;
     mat4 _view;
     mat4 _viewInverse;
-    mat4 _projection;
-
 };
 
 vec4 transform(TransformCamera camera, TransformObject object, vec4 pos) {
@@ -29,13 +28,20 @@ vec4 transform(TransformCamera camera, TransformObject object, vec4 pos) {
 }
 
 
-<!
+
 <@if GLPROFILE == PC_GL@>
-uniform transformStateBuffer {
-    TransformState xform;
+uniform transformObjectBuffer {
+    TransformObject object;
 };
-TransformState getTransformState() {
-    return xform;
+TransformObject getTransformObject() {
+    return object;
+}
+
+uniform transformCameraBuffer {
+    TransformCamera camera;
+};
+TransformCamera getTransformCamera() {
+    return camera;
 }
 <@elif GLPROFILE == MAC_GL@>
 uniform vec4 transformStateBuffer[2];
@@ -54,7 +60,6 @@ TransformState getMaterial() {
     return xform;   
 }
 <@endif@>
-!>
 
 
 <@endif@>
