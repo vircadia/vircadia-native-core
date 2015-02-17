@@ -474,7 +474,6 @@ function onOnlineUsersChanged(users) {
             if (last_users.indexOf(users[i]) === -1.0) {
                 createNotification(users[i] + " has joined");
             }
-
         }
 
         for (i = 0; i < last_users.length; i += 1) {
