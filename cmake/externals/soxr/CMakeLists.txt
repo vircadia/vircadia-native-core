@@ -10,7 +10,7 @@ include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   PREFIX ${EXTERNAL_NAME}
-  URL http://hifi-public.s3.amazonaws.com/dependencies/soxr-0.1.1-Source.tar.xz
+  URL http://hifi-public.s3.amazonaws.com/dependencies/soxr-0.1.1-Source.tar.gz
   CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DBUILD_TESTS=0 -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD ON
 )
