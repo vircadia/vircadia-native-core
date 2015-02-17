@@ -56,6 +56,9 @@ elseif (WIN32)
   endif()
   
   set(_TBB_LIB_DIR "lib/${_TBB_ARCH_DIR}/vc12")
+  
+  find_path(TBB_DLL_PATH tbb_debug.dll PATH_SUFFIXES "bin/${_TBB_ARCH_DIR}/vc12" HINTS ${TBB_SEARCH_DIRS})
+  add_path_to_lib_paths(${TBB_DLL_PATH})
 elseif (ANDROID)
   set(_TBB_DEFAULT_INSTALL_DIR "/tbb")
   set(_TBB_LIB_NAME "tbb")
