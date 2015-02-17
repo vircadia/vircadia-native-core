@@ -24,6 +24,11 @@ hifi_library_search_hints("soxr")
 find_path(SOXR_INCLUDE_DIRS soxr.h PATH_SUFFIXES include HINTS ${SOXR_SEARCH_DIRS})
 find_library(SOXR_LIBRARIES NAMES soxr PATH_SUFFIXES lib HINTS ${SOXR_SEARCH_DIRS})
 
+if (NOT DEFINED SOXR_LIB_PATH)
+  get_filename_component(SOXR_LIB_PATH ${SOXR_LIBRARIES} DIRECTORY CACHE)
+  add_path_to_lib_paths(${SOXR_LIB_PATH})
+endif ()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(SOXR DEFAULT_MSG SOXR_INCLUDE_DIRS SOXR_LIBRARIES)
 
