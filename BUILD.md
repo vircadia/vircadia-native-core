@@ -5,9 +5,7 @@
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
-* [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
 * [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
-* [Gverb](https://github.com/highfidelity/gverb/archive/master.zip) (direct download to latest version)
 
 #### CMake External Project Dependencies
 
@@ -15,6 +13,7 @@ The following dependencies will be downloaded, built, linked and included automa
 
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [gverb](https://github.com/highfidelity/gverb)
+* [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
 
 ### OS Specific Build Guides
 * [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.

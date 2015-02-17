@@ -8,8 +8,8 @@ link_hifi_libraries(audio)
 # append audio includes to our list of includes to bubble
 list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${HIFI_LIBRARY_DIR}/audio/src")
 
-# have CMake grab Gverb from git and then set up linking and directory include
-add_dependency_external_project(gverb)
+# have CMake grab externals for us
+add_dependency_external_projects(gverb soxr)
 
 find_package(Gverb REQUIRED)
 

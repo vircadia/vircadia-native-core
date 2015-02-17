@@ -2,7 +2,7 @@ set(TARGET_NAME physics-tests)
 
 setup_hifi_project()
 
-add_dependency_external_project(glm)
+add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 

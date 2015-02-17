@@ -24,7 +24,7 @@ endif ()
 
 include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
 
-add_dependency_external_project(glm)
+add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
