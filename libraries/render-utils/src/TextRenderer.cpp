@@ -513,6 +513,7 @@ TextRenderer::TextRenderer(const char* family, float pointSize, int weight,
         _effectType(effect), _effectThickness(effectThickness), _pointSize(pointSize), _color(color), _font(loadFont(family)) {
     if (!_font) {
         qWarning() << "Unable to load font with family " << family;
+        _font = loadFont("Courier");
     }
     if (1 != _effectThickness) {
         qWarning() << "Effect thickness not current supported";
