@@ -85,7 +85,7 @@ if (WIN32)
   list(APPEND TBB_REQUIREMENTS TBB_DLL_PATH)
 endif ()
 
-find_package_handle_standard_args(TBB DEFAULT_MSG TBB_REQUIREMENTS)
+find_package_handle_standard_args(TBB DEFAULT_MSG ${TBB_REQUIREMENTS})
 
 if (WIN32)
   add_paths_to_lib_paths(${TBB_DLL_PATH})

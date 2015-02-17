@@ -29,7 +29,7 @@ endif ()
 include(SelectLibraryConfigurations)
 select_library_configurations(LEAPMOTION)
 
-set(LEAPMOTION_LIBRARIES "${LEAPMOTION_LIBRARY}")
+set(LEAPMOTION_LIBRARIES ${LEAPMOTION_LIBRARY})
 
 set(LEAPMOTION_REQUIREMENTS LEAPMOTION_INCLUDE_DIRS LEAPMOTION_LIBRARIES)
 if (WIN32)
@@ -37,7 +37,7 @@ if (WIN32)
 endif ()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(LeapMotion DEFAULT_MSG LEAPMOTION_REQUIREMENTS)
+find_package_handle_standard_args(LeapMotion DEFAULT_MSG ${LEAPMOTION_REQUIREMENTS})
 
 if (WIN32)
   add_paths_to_lib_paths(${LEAPMOTION_DLL_PATH})

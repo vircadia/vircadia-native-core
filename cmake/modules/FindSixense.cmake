@@ -48,7 +48,7 @@ endif ()
 set(SIXENSE_LIBRARIES "${SIXENSE_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Sixense DEFAULT_MSG SIXENSE_REQUIREMENTS)
+find_package_handle_standard_args(Sixense DEFAULT_MSG ${SIXENSE_REQUIREMENTS})
 
 if (WIN32)
   add_paths_to_lib_paths(${SIXSENSE_DEBUG_DLL_PATH})
