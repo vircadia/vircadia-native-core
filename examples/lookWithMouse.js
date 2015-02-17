@@ -84,4 +84,5 @@ MyAvatar.bodyYaw = 0;
 MyAvatar.bodyPitch = 0;
 MyAvatar.bodyRoll = 0;
 
-Script.scriptEnding.connect(scriptEnding);
+// would be nice to change to update
+Script.update.connect(update);
