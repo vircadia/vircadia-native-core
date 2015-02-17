@@ -33,6 +33,11 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
+extern "C" {
+    #include <gverb/gverb.h>
+    #include <gverb/gverbdsp.h>
+}
+
 #include <soxr.h>
 
 #include <NodeList.h>
