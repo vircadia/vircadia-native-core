@@ -139,6 +139,7 @@ ApplicationOverlay::ApplicationOverlay() :
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
     _crosshairTexture(0),
+    _magnifier(true),
     _previousBorderWidth(-1),
     _previousBorderHeight(-1),
     _previousMagnifierBottomLeft(),
@@ -559,7 +560,7 @@ void ApplicationOverlay::renderPointers() {
         
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
-        _magActive[MOUSE] = true;
+        _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
     } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
@@ -718,6 +719,9 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
 //Renders a small magnification of the currently bound texture at the coordinates
 void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) {
+    if (!_magnifier) {
+        return;
+    }
     auto glCanvas = DependencyManager::get<GLCanvas>();
     
     const int widgetWidth = glCanvas->width();
