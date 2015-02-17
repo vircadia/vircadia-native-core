@@ -9,9 +9,9 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(ADD_DEPENDENCY_EXTERNAL_PROJECTS _PROJECTS)
+macro(ADD_DEPENDENCY_EXTERNAL_PROJECTS)
   
-  foreach(_PROJ_NAME ${_PROJECTS})
+  foreach(_PROJ_NAME ${ARGN})
     
     string(TOUPPER ${_PROJ_NAME} _PROJ_NAME_UPPER)
   
