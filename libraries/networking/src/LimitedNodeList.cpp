@@ -325,7 +325,7 @@ int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packe
     SharedNodePointer matchingNode = sendingNodeForPacket(packet);
     
     if (matchingNode) {
-        updateNodeWithDataFromPacket(matchingNode, packet);
+        return updateNodeWithDataFromPacket(matchingNode, packet);
     }
     
     // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
