@@ -107,6 +107,7 @@ void XMLHttpRequestClass::abort() {
 }
 
 void XMLHttpRequestClass::setRequestHeader(const QString& name, const QString& value) {
+    _request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     _request.setRawHeader(QByteArray(name.toLatin1()), QByteArray(value.toLatin1()));
 }
 
@@ -206,7 +207,7 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
                 notImplemented();
             }
         } else {
-            if (url.toLower().left(33) == "https://data.highfidelity.io/api/") {
+            if (url.toLower().left(33) == "https://metaverse.highfidelity.io/api/") {
                 AccountManager& accountManager = AccountManager::getInstance();
                 
                 if (accountManager.hasValidAccessToken()) {

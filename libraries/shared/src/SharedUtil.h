@@ -65,7 +65,10 @@ static const quint64 USECS_PER_MSEC = 1000;
 static const quint64 MSECS_PER_SECOND = 1000;
 static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
-const int BITS_IN_BYTE  = 8;
+const int BITS_IN_BYTE = 8;
+
+// Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
+const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelity)";
 
 quint64 usecTimestampNow(bool wantDebug = false);
 void usecTimestampNowForceClockSkew(int clockSkew);

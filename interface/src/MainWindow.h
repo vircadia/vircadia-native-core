@@ -14,12 +14,17 @@
 
 #include <QMainWindow>
 
-class MainWindow : public QMainWindow
-{
+#include <SettingHandle.h>
+
+class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget* parent = NULL);
-
+    
+public slots:
+    void restoreGeometry();
+    void saveGeometry();
+    
 signals:
     void windowGeometryChanged(QRect geometry);
     void windowShown(bool shown);
@@ -30,6 +35,10 @@ protected:
     virtual void showEvent(QShowEvent* event);
     virtual void hideEvent(QHideEvent* event);
     virtual void changeEvent(QEvent* event);
+    
+private:
+    Setting::Handle<QRect> _windowGeometry;
+    Setting::Handle<int> _windowState;
 };
 
 #endif /* defined(__hifi__MainWindow__) */

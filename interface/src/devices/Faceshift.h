@@ -20,6 +20,7 @@
 #endif
 
 #include <DependencyManager.h>
+#include <SettingHandle.h>
 
 #include "FaceTracker.h"
 
@@ -61,6 +62,12 @@ public:
     float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
     float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
+    
+    float getEyeDeflection() { return _eyeDeflection.get(); }
+    void setEyeDeflection(float faceshiftEyeDeflection);
+    
+    QString getHostname() { return _hostname.get(); }
+    void setHostname(const QString& hostname);
 
     void update();
     void reset();
@@ -144,6 +151,9 @@ private:
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
     bool _longTermAverageInitialized;
+    
+    Setting::Handle<float> _eyeDeflection;
+    Setting::Handle<QString> _hostname;
     
 };
 

@@ -1,0 +1,9 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+  <qresource>
+      <file>CourierPrime.sdff</file>
+      <file>InconsolataMedium.sdff</file>
+      <file>Roboto.sdff</file>
+      <file>Timeless.sdff</file>
+  </qresource>
+</RCC>

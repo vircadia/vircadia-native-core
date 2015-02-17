@@ -18,8 +18,7 @@ include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("glm")
 
 # locate header
-find_path(GLM_INCLUDE_DIR "glm/glm.hpp" HINTS ${GLM_SEARCH_DIRS})
-set(GLM_INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
+find_path(GLM_INCLUDE_DIRS "glm/glm.hpp" HINTS ${GLM_SEARCH_DIRS})
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GLM DEFAULT_MSG GLM_INCLUDE_DIRS)

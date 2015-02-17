@@ -21,6 +21,8 @@ public:
     
     void stop();
     
+    bool seek(qint64 pos);
+    
     qint64 readData(char* data, qint64 maxSize);
     qint64 writeData(const char* data, qint64 maxSize) { return 0; }
     

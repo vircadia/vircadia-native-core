@@ -25,6 +25,7 @@
 #include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
 #include <GlowEffect.h>
+#include <LODManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
@@ -35,6 +36,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "AvatarManager.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
@@ -114,8 +116,8 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 float Avatar::getLODDistance() const {
-    return Menu::getInstance()->getAvatarLODDistanceMultiplier() *
-        glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
+    return DependencyManager::get<LODManager>()->getAvatarLODDistanceMultiplier() *
+            glm::distance(qApp->getCamera()->getPosition(), _position) / _scale;
 }
 
 void Avatar::simulate(float deltaTime) {
@@ -271,7 +273,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         _referential->update();
     }
     
-    if (postLighting && glm::distance(Application::getInstance()->getAvatar()->getPosition(), _position) < 10.0f) {
+    if (postLighting &&
+        glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         // render pointing lasers
@@ -301,8 +304,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
                     
-                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
                     
                 } glPopMatrix();
             }
@@ -327,8 +329,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                     float angle = glm::degrees(glm::angle(rotation));
                     glm::vec3 axis = glm::axis(rotation);
                     glRotatef(angle, axis.x, axis.y, axis.z);
-                    glColor3f(laserColor.x, laserColor.y, laserColor.z);
-                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f));
+                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
                     
                 } glPopMatrix();
             }
@@ -352,7 +353,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         const float GLOW_MAX_LOUDNESS = 2500.0f;
         const float MAX_GLOW = 0.5f;
      
-        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
+        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == DependencyManager::get<AvatarManager>()->getMyAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
         if (!Menu::getInstance()->isOptionChecked(MenuOption::GlowWhenSpeaking)) {
@@ -376,7 +377,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             float distance = BASE_LIGHT_DISTANCE * _scale;
             glm::vec3 position = glm::mix(_skeletonModel.getTranslation(), getHead()->getFaceModel().getTranslation(), 0.9f);
             glm::quat orientation = getOrientation();
-            foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
+            foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
                 DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
                     distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,
@@ -404,15 +405,14 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
                 const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
-                const float LOOK_AT_INDICATOR_COLOR[] = { 0.8f, 0.0f, 0.0f, 0.75f };
+                const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
                 glPushMatrix();
-                glColor4fv(LOOK_AT_INDICATOR_COLOR);
                 if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
                     glTranslatef(_position.x, getDisplayNamePosition().y, _position.z);
                 } else {
                     glTranslatef(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
                 }
-                DependencyManager::get<GeometryCache>()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15); 
+                DependencyManager::get<GeometryCache>()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15, LOOK_AT_INDICATOR_COLOR);
                 glPopMatrix();
             }
         }
@@ -436,11 +436,11 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             
             if (renderMode == NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
-                glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE);
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
-                DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15); 
+                DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15,
+                                        glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE));
 
                 glPopMatrix();
             }
@@ -571,15 +571,12 @@ void Avatar::renderBillboard() {
     float size = getBillboardSize();
     glScalef(size, size, size);
     
-    glColor3f(1.0f, 1.0f, 1.0f);
-
     glm::vec2 topLeft(-1.0f, -1.0f);
     glm::vec2 bottomRight(1.0f, 1.0f);
     glm::vec2 texCoordTopLeft(0.0f, 0.0f);
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight);
-
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     
     glPopMatrix();
     
@@ -683,9 +680,7 @@ void Avatar::renderDisplayName() {
     glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
     
     float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
-    glScalef(scaleFactor, scaleFactor, 1.0);
-    
-    glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
+    glScalef(scaleFactor, -scaleFactor, scaleFactor);  // TextRenderer::draw paints the text upside down in y axis
 
     int text_x = -_displayNameBoundingRect.width() / 2;
     int text_y = -_displayNameBoundingRect.height() / 2;
@@ -705,15 +700,15 @@ void Avatar::renderDisplayName() {
     glEnable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(1.0f, 1.0f);
 
-    glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
-    renderBevelCornersRect(left, bottom, right - left, top - bottom, 3);
+    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(left, bottom, right - left, top - bottom, 3,
+            glm::vec4(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA));
    
-    glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+    glm::vec4 color(0.93f, 0.93f, 0.93f, _displayNameAlpha);
     QByteArray ba = _displayName.toLocal8Bit();
     const char* text = ba.data();
     
     glDisable(GL_POLYGON_OFFSET_FILL);
-    textRenderer(DISPLAYNAME)->draw(text_x, text_y, text); 
+    textRenderer(DISPLAYNAME)->draw(text_x, text_y, text, color);
 
     glPopMatrix();
 
@@ -918,7 +913,9 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
-    _displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
+    // FIXME is this a sufficient replacement for tightBoundingRect?
+    glm::vec2 extent = textRenderer(DISPLAYNAME)->computeExtent(displayName);
+    _displayNameBoundingRect = QRect(QPoint(0, 0), QPoint((int)extent.x, (int)extent.y));
 }
 
 void Avatar::setBillboard(const QByteArray& billboard) {
@@ -948,7 +945,8 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
 
 // render a makeshift cone section that serves as a body part connecting joint spheres
-void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2) {
+void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, 
+                                            float radius1, float radius2, const glm::vec4& color) {
    
     auto geometryCache = DependencyManager::get<GeometryCache>();
     
@@ -993,8 +991,8 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         
         // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
         // better if the avatars cached these buffers for each of the joints they are rendering
-        geometryCache->updateVertices(_jointConesID, points);
-        geometryCache->renderVertices(GL_TRIANGLES, _jointConesID);
+        geometryCache->updateVertices(_jointConesID, points, color);
+        geometryCache->renderVertices(gpu::TRIANGLES, _jointConesID);
     }
 }
 
@@ -1052,7 +1050,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
     
     // For myAvatar, the alpha update is not done (called in simulate for other avatars)
-    if (Application::getInstance()->getAvatar() == this) {
+    if (DependencyManager::get<AvatarManager>()->getMyAvatar() == this) {
         if (showDisplayName) {
             _displayNameAlpha = DISPLAYNAME_ALPHA;
         } else {

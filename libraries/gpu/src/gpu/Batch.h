@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "Stream.h"
+#include "Texture.h"
 
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"
@@ -45,7 +46,9 @@ enum Primitive {
     LINE_STRIP,
     TRIANGLES,
     TRIANGLE_STRIP,
+    TRIANGLE_FAN,
     QUADS,
+    QUAD_STRIP,
 
     NUM_PRIMITIVES,
 };
@@ -92,6 +95,10 @@ public:
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
+    void setUniformTexture(uint32 slot, const TexturePointer& view);
+    void setUniformTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
+
+
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -124,16 +131,6 @@ public:
     void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
     void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
-    void _glMatrixMode(GLenum mode); 
-    void _glPushMatrix();
-    void _glPopMatrix();
-    void _glMultMatrixf(const GLfloat *m);
-    void _glLoadMatrixf(const GLfloat *m);
-    void _glLoadIdentity(void);
-    void _glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
-    void _glScalef(GLfloat x, GLfloat y, GLfloat z);
-    void _glTranslatef(GLfloat x, GLfloat y, GLfloat z);
-
     void _glDrawArrays(GLenum mode, GLint first, GLsizei count);
     void _glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices);
 
@@ -147,10 +144,6 @@ public:
     void _glDisableVertexAttribArray(GLint location);
 
     void _glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-
-    void _glMaterialf(GLenum face, GLenum pname, GLfloat param);
-    void _glMaterialfv(GLenum face, GLenum pname, const GLfloat *params);
-
 
     enum Command {
         COMMAND_draw = 0,
@@ -167,6 +160,7 @@ public:
         COMMAND_setProjectionTransform,
 
         COMMAND_setUniformBuffer,
+        COMMAND_setUniformTexture,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -197,16 +191,6 @@ public:
         COMMAND_glUniform4fv,
         COMMAND_glUniformMatrix4fv,
 
-        COMMAND_glMatrixMode,
-        COMMAND_glPushMatrix,
-        COMMAND_glPopMatrix,
-        COMMAND_glMultMatrixf,
-        COMMAND_glLoadMatrixf,
-        COMMAND_glLoadIdentity,
-        COMMAND_glRotatef,
-        COMMAND_glScalef,
-        COMMAND_glTranslatef,
-
         COMMAND_glDrawArrays,
         COMMAND_glDrawRangeElements,
 
@@ -220,9 +204,6 @@ public:
         COMMAND_glDisableVertexAttribArray,
 
         COMMAND_glColor4f,
-
-        COMMAND_glMaterialf,
-        COMMAND_glMaterialfv,
 
         NUM_COMMANDS,
     };
@@ -292,6 +273,7 @@ public:
     };
 
     typedef Cache<BufferPointer>::Vector BufferCaches;
+    typedef Cache<TexturePointer>::Vector TextureCaches;
     typedef Cache<Stream::FormatPointer>::Vector StreamFormatCaches;
     typedef Cache<Transform>::Vector TransformCaches;
 
@@ -330,6 +312,7 @@ public:
     Bytes _data;
 
     BufferCaches _buffers;
+    TextureCaches _textures;
     StreamFormatCaches _streamFormats;
     TransformCaches _transforms;
 

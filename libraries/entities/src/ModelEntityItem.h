@@ -40,7 +40,6 @@ public:
                                     OctreeElement::AppendState& appendState) const;
 
 
-    virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
@@ -49,6 +48,8 @@ public:
     virtual bool needsToCallUpdate() const;
     virtual void debugDump() const;
 
+    void updateShapeType(ShapeType type);
+    virtual ShapeType getShapeType() const { return _shapeType; }
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
@@ -116,8 +117,6 @@ public:
     
 protected:
 
-    /// For reading models from pre V3 bitstreams
-    int oldVersionReadEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     bool isAnimatingSomething() const;
 
     rgbColor _color;
@@ -128,6 +127,7 @@ protected:
     AnimationLoop _animationLoop;
     QString _animationSettings;
     QString _textures;
+    ShapeType _shapeType = SHAPE_TYPE_NONE;
 
     // used on client side
     bool _jointMappingCompleted;

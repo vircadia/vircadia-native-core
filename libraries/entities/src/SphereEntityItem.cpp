@@ -94,19 +94,6 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
 
-void SphereEntityItem::recalculateCollisionShape() {
-    _sphereShape.setTranslation(getCenterInMeters());
-    glm::vec3 dimensionsInMeters = getDimensionsInMeters();
-    float largestDiameter = glm::max(dimensionsInMeters.x, dimensionsInMeters.y, dimensionsInMeters.z);
-    _sphereShape.setRadius(largestDiameter / 2.0f);
-}
-
-void SphereEntityItem::computeShapeInfo(ShapeInfo& info) const {
-    glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
-    // TODO: support ellipsoid shapes
-    info.setSphere(halfExtents.x);
-}
-
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {
@@ -132,3 +119,14 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
     }
     return false;                
 }
+
+
+void SphereEntityItem::debugDump() const {
+    quint64 now = usecTimestampNow();
+    qDebug() << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qDebug() << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qDebug() << "            position:" << debugTreeVector(_position);
+    qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
+    qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
+}
+

@@ -1,6 +1,6 @@
 //
 //  GLBackend.h
-//  interface/src/gpu
+//  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 10/27/2014.
 //  Copyright 2014 High Fidelity, Inc.
@@ -34,7 +34,7 @@ public:
 
     class GLBuffer {
     public:
-        Stamp  _stamp;
+        Stamp _stamp;
         GLuint _buffer;
         GLuint _size;
 
@@ -42,8 +42,20 @@ public:
         ~GLBuffer();
     };
     static void syncGPUObject(const Buffer& buffer);
-
     static GLuint getBufferID(const Buffer& buffer);
+
+    class GLTexture {
+    public:
+        Stamp _storageStamp;
+        Stamp _contentStamp;
+        GLuint _texture;
+        GLuint _size;
+
+        GLTexture();
+        ~GLTexture();
+    };
+    static void syncGPUObject(const Texture& texture);
+    static GLuint getTextureID(const TexturePointer& texture);
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
@@ -124,6 +136,7 @@ protected:
 
     // Shader Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
+    void do_setUniformTexture(Batch& batch, uint32 paramOffset);
  
     void updateShader();
     struct ShaderStageState {
@@ -164,16 +177,6 @@ protected:
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
-    void do_glMatrixMode(Batch& batch, uint32 paramOffset);
-    void do_glPushMatrix(Batch& batch, uint32 paramOffset);
-    void do_glPopMatrix(Batch& batch, uint32 paramOffset);
-    void do_glMultMatrixf(Batch& batch, uint32 paramOffset);
-    void do_glLoadMatrixf(Batch& batch, uint32 paramOffset);
-    void do_glLoadIdentity(Batch& batch, uint32 paramOffset);
-    void do_glRotatef(Batch& batch, uint32 paramOffset);
-    void do_glScalef(Batch& batch, uint32 paramOffset);
-    void do_glTranslatef(Batch& batch, uint32 paramOffset);
-
     void do_glDrawArrays(Batch& batch, uint32 paramOffset);
     void do_glDrawRangeElements(Batch& batch, uint32 paramOffset);
 
@@ -187,9 +190,6 @@ protected:
     void do_glDisableVertexAttribArray(Batch& batch, uint32 paramOffset);
 
     void do_glColor4f(Batch& batch, uint32 paramOffset);
-
-    void do_glMaterialf(Batch& batch, uint32 paramOffset);
-    void do_glMaterialfv(Batch& batch, uint32 paramOffset);
 
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

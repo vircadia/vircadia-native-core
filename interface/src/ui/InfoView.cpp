@@ -10,18 +10,19 @@
 //
 
 #include <QApplication>
-
+#include <QDesktopWidget>
+#include <QFileInfo>
 #include <QtWebKitWidgets/QWebFrame>
 #include <QtWebKit/QWebElement>
-#include <QDesktopWidget>
 
 #include <PathUtils.h>
+#include <SettingHandle.h>
 
-#include "Application.h"
 #include "InfoView.h"
 
-#define SETTINGS_VERSION_KEY "info-version"
-#define MAX_DIALOG_HEIGHT_RATIO 0.9
+static const float MAX_DIALOG_HEIGHT_RATIO = 0.9f;
+
+Setting::Handle<QString> infoVersion("info-version", QString());
 
 InfoView::InfoView(bool forced, QString path) :
     _forced(forced)
@@ -49,20 +50,17 @@ bool InfoView::shouldShow() {
         return true;
     }
     
-    QSettings* settings = Application::getInstance()->lockSettings();
-    
-    QString lastVersion = settings->value(SETTINGS_VERSION_KEY).toString();
+    QString lastVersion = infoVersion.get();
     
     QWebElement versionTag = page()->mainFrame()->findFirstElement("#version");
     QString version = versionTag.attribute("value");
     
     if (version != QString::null && (lastVersion == QString::null || lastVersion != version)) {
-        settings->setValue(SETTINGS_VERSION_KEY, version);
+        infoVersion.set(version);
         shouldShow = true;
     } else {
         shouldShow = false;
     }
-    Application::getInstance()->unlockSettings();
     return shouldShow;
 }
 
@@ -72,7 +70,7 @@ void InfoView::loaded(bool ok) {
         return;
     }
     
-    QDesktopWidget* desktop = Application::getInstance()->desktop();
+    QDesktopWidget* desktop = qApp->desktop();
     QWebFrame* mainFrame = page()->mainFrame();
     
     int height = mainFrame->contentsSize().height() > desktop->height() ?

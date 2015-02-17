@@ -93,7 +93,7 @@ void EntityTree::postAddEntity(EntityItem* entity) {
     emit addingEntity(entity->getEntityItemID());
 }
 
-bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool allowLockChange) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
         qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
@@ -106,21 +106,27 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         return false;
     }
 
-    return updateEntityWithElement(existingEntity, properties, containingElement);
+    return updateEntityWithElement(existingEntity, properties, containingElement, allowLockChange);
 }
 
-bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties) {
+bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
         qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
             << entity->getEntityItemID();
         return false;
     }
-    return updateEntityWithElement(entity, properties, containingElement);
+    return updateEntityWithElement(entity, properties, containingElement, allowLockChange);
 }
 
 bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
-        EntityTreeElement* containingElement) {
+                                         EntityTreeElement* containingElement, bool allowLockChange) {
+
+    if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
+        qDebug() << "Refusing disallowed lock adjustment.";
+        return false;
+    }
+
     // enforce support for locked entities. If an entity is currently locked, then the only
     // property we allow you to change is the locked property.
     if (entity->getLocked()) {
@@ -228,7 +234,24 @@ void EntityTree::setSimulation(EntitySimulation* simulation) {
     _simulation = simulation;
 }
 
-void EntityTree::deleteEntity(const EntityItemID& entityID) {
+void EntityTree::deleteEntity(const EntityItemID& entityID, bool force) {
+    EntityTreeElement* containingElement = getContainingElement(entityID);
+    if (!containingElement) {
+        qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+        return;
+    }
+
+    EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+    if (!existingEntity) {
+        qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. entityID=" << entityID;
+        return;
+    }
+
+    if (existingEntity->getLocked() && !force) {
+        qDebug() << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
+        return;
+    }
+
     emit deletingEntity(entityID);
 
     // NOTE: callers must lock the tree before using this method
@@ -238,18 +261,37 @@ void EntityTree::deleteEntity(const EntityItemID& entityID) {
     _isDirty = true;
 }
 
-void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
+void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force) {
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(this);
     foreach(const EntityItemID& entityID, entityIDs) {
+        EntityTreeElement* containingElement = getContainingElement(entityID);
+        if (!containingElement) {
+            qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+            continue;
+        }
+
+        EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+        if (!existingEntity) {
+            qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. entityID=" << entityID;
+            continue;
+        }
+
+        if (existingEntity->getLocked() && !force) {
+            qDebug() << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
+            continue;
+        }
+
         // tell our delete operator about this entityID
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
     }
 
-    recurseTreeWithOperator(&theOperator);
-    processRemovedEntities(theOperator);
-    _isDirty = true;
+    if (theOperator.getEntities().size() > 0) {
+        recurseTreeWithOperator(&theOperator);
+        processRemovedEntities(theOperator);
+        _isDirty = true;
+    }
 }
 
 void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator) {
@@ -550,7 +592,11 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     
                     // if the EntityItem exists, then update it
                     if (existingEntity) {
-                        updateEntity(entityItemID, properties);
+                        if (wantEditLogging()) {
+                            qDebug() << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
+                            qDebug() << "   properties:" << properties;
+                        }
+                        updateEntity(entityItemID, properties, senderNode->getCanAdjustLocks());
                         existingEntity->markAsChangedOnServer();
                     } else {
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
@@ -631,7 +677,7 @@ void EntityTree::update() {
             foreach (EntityItem* entity, entitiesToDelete) {
                 idsToDelete.insert(entity->getEntityItemID());
             }
-            deleteEntities(idsToDelete);
+            deleteEntities(idsToDelete, true);
         }
         unlock();
     }

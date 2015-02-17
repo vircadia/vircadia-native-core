@@ -96,8 +96,12 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
 
-void BoxEntityItem::computeShapeInfo(ShapeInfo& info) const {
-    glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
-    info.setBox(halfExtents);
+void BoxEntityItem::debugDump() const {
+    quint64 now = usecTimestampNow();
+    qDebug() << "   BOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qDebug() << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qDebug() << "            position:" << debugTreeVector(_position);
+    qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
+    qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 

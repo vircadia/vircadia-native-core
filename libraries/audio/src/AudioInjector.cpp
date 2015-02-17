@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
 
 #include <NodeList.h>
@@ -21,79 +22,77 @@
 
 #include "AudioInjector.h"
 
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in) {
-    return engine->newQObject(in);
-}
-
-void injectorFromScriptValue(const QScriptValue& object, AudioInjector*& out) {
-    out = qobject_cast<AudioInjector*>(object.toQObject());
-}
-
 AudioInjector::AudioInjector(QObject* parent) :
-    QObject(parent),
-    _options(),
-    _shouldStop(false),
-    _loudness(0.0f),
-    _isFinished(false),
-    _currentSendPosition(0),
-    _localBuffer(NULL)
+    QObject(parent)
 {
+    
 }
 
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
     _audioData(sound->getByteArray()),
-    _options(injectorOptions),
-    _shouldStop(false),
-    _loudness(0.0f),
-    _isFinished(false),
-    _currentSendPosition(0),
-    _localBuffer(NULL)
+    _options(injectorOptions)
 {
 }
 
 AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
     _audioData(audioData),
-    _options(injectorOptions),
-    _shouldStop(false),
-    _loudness(0.0f),
-    _isFinished(false),
-    _currentSendPosition(0),
-    _localBuffer(NULL)
+    _options(injectorOptions)
 {
     
 }
 
-AudioInjector::~AudioInjector() {
-    if (_localBuffer) {
-        _localBuffer->stop();
+void AudioInjector::setIsFinished(bool isFinished) {
+    _isFinished = isFinished;
+    
+    if (_isFinished) {
+        emit finished();
+        
+        if (_localBuffer) {
+            _localBuffer->stop();
+            _localBuffer->deleteLater();
+            _localBuffer = NULL;
+        }
+        
+        _isStarted = false;
+        _shouldStop = false;
+        
+        if (_shouldDeleteAfterFinish) {
+            // we've been asked to delete after finishing, trigger a queued deleteLater here
+            qDebug() << "AudioInjector triggering delete from setIsFinished";
+            QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
+        }
     }
-}
-
-void AudioInjector::setOptions(AudioInjectorOptions& options) {
-    _options = options;
-}
-
-float AudioInjector::getLoudness() {
-    return _loudness;
 }
 
 void AudioInjector::injectAudio() {
-    
-    // check if we need to offset the sound by some number of seconds
-    if (_options.secondOffset > 0.0f) {
+    if (!_isStarted) {
+        // check if we need to offset the sound by some number of seconds
+        if (_options.secondOffset > 0.0f) {
+            
+            // convert the offset into a number of bytes
+            int byteOffset = (int) floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+            byteOffset *= sizeof(int16_t);
+            
+            _currentSendPosition = byteOffset;
+        } else {
+            _currentSendPosition = 0;
+        }
         
-        // convert the offset into a number of bytes
-        int byteOffset = (int) floorf(AudioConstants::SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
-        byteOffset *= sizeof(int16_t);
-        
-        _currentSendPosition = byteOffset;
-    }
-    
-    if (_options.localOnly) {
-        injectLocally();
+        if (_options.localOnly) {
+            injectLocally();
+        } else {
+            injectToMixer();
+        }
     } else {
-        injectToMixer();
-    }
+        qDebug() << "AudioInjector::injectAudio called but already started.";
+    }    
+}
+
+void AudioInjector::restart() {
+    qDebug() << "Restarting an AudioInjector by stopping and starting over.";
+    stop();
+    setIsFinished(false);
+    QMetaObject::invokeMethod(this, "injectAudio", Qt::QueuedConnection);
 }
 
 void AudioInjector::injectLocally() {
@@ -102,18 +101,14 @@ void AudioInjector::injectLocally() {
         if (_audioData.size() > 0) {
             
             _localBuffer = new AudioInjectorLocalBuffer(_audioData, this);
+            
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
             
             // give our current send position to the local buffer
             _localBuffer->setCurrentOffset(_currentSendPosition);
             
-            QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
-                                      Qt::BlockingQueuedConnection,
-                                      Q_RETURN_ARG(bool, success),
-                                      Q_ARG(bool, _options.stereo),
-                                      Q_ARG(qreal, _options.volume),
-                                      Q_ARG(AudioInjector*, this));
+            success = _localAudioInterface->outputLocalInjector(_options.stereo, _options.volume, this);
             
             // if we're not looping and the buffer tells us it is empty then emit finished
             connect(_localBuffer, &AudioInjectorLocalBuffer::bufferEmpty, this, &AudioInjector::stop);
@@ -241,6 +236,14 @@ void AudioInjector::injectToMixer() {
             // send two packets before the first sleep so the mixer can start playback right away
             
             if (_currentSendPosition != bytesToCopy && _currentSendPosition < _audioData.size()) {
+                
+                // process events in case we have been told to stop and be deleted
+                QCoreApplication::processEvents();
+                
+                if (_shouldStop) {
+                    break;
+                }
+                
                 // not the first packet and not done
                 // sleep for the appropriate time
                 int usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000;
@@ -256,8 +259,7 @@ void AudioInjector::injectToMixer() {
         }
     }
     
-    _isFinished = true;
-    emit finished();
+    setIsFinished(true);
 }
 
 void AudioInjector::stop() {
@@ -265,7 +267,11 @@ void AudioInjector::stop() {
     
     if (_options.localOnly) {
         // we're only a local injector, so we can say we are finished right away too
-        _isFinished = true;
-        emit finished();
+        setIsFinished(true);
     }
+}
+
+void AudioInjector::stopAndDeleteLater() {
+    stop();
+    QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
 }

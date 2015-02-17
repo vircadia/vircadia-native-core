@@ -20,12 +20,13 @@
 #include <QWinEventNotifier>
 #endif
 
-class SpeechRecognizer : public QObject {
-    Q_OBJECT
-public:
-    SpeechRecognizer();
-    ~SpeechRecognizer();
+#include <DependencyManager.h>
 
+class SpeechRecognizer : public QObject, public Dependency {
+    Q_OBJECT
+    SINGLETON_DEPENDENCY
+    
+public:
     void handleCommandRecognized(const char* command);
     bool getEnabled() const { return _enabled; }
 
@@ -42,6 +43,9 @@ protected:
     void reloadCommands();
 
 private:
+    SpeechRecognizer();
+    virtual ~SpeechRecognizer();
+    
     bool _enabled;
     QSet<QString> _commands;
 #if defined(Q_OS_MAC)

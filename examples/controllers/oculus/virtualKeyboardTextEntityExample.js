@@ -28,7 +28,7 @@ const TEXT_MARGIN_RIGHT = 0.17;
 const TEXT_MARGIN_BOTTOM = 0.17;
 
 var windowDimensions = Controller.getViewportDimensions();
-var cursor = null;
+var cursor = new Cursor();
 var keyboard = new Keyboard();
 var textFontSize = 9;
 var text = null;
@@ -78,7 +78,7 @@ keyboard.onKeyRelease = function(event) {
     // you can cancel a key by releasing its focusing before releasing it
     if (event.focus) {
         if (event.event == 'delete') {
-           deleteChar();
+            deleteChar();
         } else if (event.event == 'submit') {
            print(textText);
 
@@ -91,12 +91,14 @@ keyboard.onKeyRelease = function(event) {
            if (maxLineWidth < usernameWidth) {
                maxLineWidth = usernameWidth;
            } else {
-               var spaceableWidth = maxLineWidth - usernameWidth;
-               var spaceWidth = Overlays.textSize(textSizeMeasureOverlay, " ").width;
-               var numberOfSpaces = Math.floor(spaceableWidth / spaceWidth);
-               for (var i = 0; i < numberOfSpaces; i++) {
-                   usernameLine = " " + usernameLine;
-               }
+                var spaceableWidth = maxLineWidth - usernameWidth;
+                //TODO: WORKAROUND WARNING BELOW Fix this when spaces are not trimmed out of the textsize calculation anymore
+                var spaceWidth = Overlays.textSize(textSizeMeasureOverlay, "| |").width
+                    - Overlays.textSize(textSizeMeasureOverlay, "||").width;
+                var numberOfSpaces = Math.floor(spaceableWidth / spaceWidth);
+                for (var i = 0; i < numberOfSpaces; i++) {
+                    usernameLine = " " + usernameLine;
+                }
            }
            var dimension_x = maxLineWidth + TEXT_MARGIN_RIGHT + TEXT_MARGIN_LEFT;
            if (position.x > 0 && position.y > 0 && position.z > 0) {
@@ -135,7 +137,7 @@ keyboard.onFullyLoaded = function() {
     });
     updateTextOverlay();
     // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
-    cursor = new Cursor();
+    cursor.initialize();
     cursor.onUpdate = function(position) {
         keyboard.setFocusPosition(position.x, position.y);
     };

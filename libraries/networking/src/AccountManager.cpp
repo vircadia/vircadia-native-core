@@ -21,16 +21,19 @@
 #include <QtNetwork/QNetworkRequest>
 #include <qthread.h>
 
+#include <SettingHandle.h>
+
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "RSAKeypairGenerator.h"
+#include "SharedUtil.h"
 
 #include "AccountManager.h"
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
 AccountManager& AccountManager::getInstance(bool forceReset) {
-    static std::auto_ptr<AccountManager> sharedInstance(new AccountManager());
+    static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());
     
     if (forceReset) {
         sharedInstance.reset(new AccountManager());
@@ -76,6 +79,9 @@ AccountManager::AccountManager() :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
+    
+    // once we have a profile in account manager make sure we generate a new keypair
+    connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewKeypair);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
@@ -88,11 +94,9 @@ void AccountManager::logout() {
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
     
     if (_shouldPersistToSettingsFile) {
-        QSettings settings;
-        settings.beginGroup(ACCOUNTS_GROUP);
-        
         QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
-        settings.remove(keyURLString);
+        QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
+        Setting::Handle<DataServerAccountInfo>(path).remove();
         
         qDebug() << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
     } else {
@@ -127,13 +131,13 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         
         if (_shouldPersistToSettingsFile) {
             // check if there are existing access tokens to load from settings
-            QSettings settings;
+            Settings settings;
             settings.beginGroup(ACCOUNTS_GROUP);
             
             foreach(const QString& key, settings.allKeys()) {
                 // take a key copy to perform the double slash replacement
                 QString keyCopy(key);
-                QUrl keyURL(keyCopy.replace("slashslash", "//"));
+                QUrl keyURL(keyCopy.replace(DOUBLE_SLASH_SUBSTITUTE, "//"));
                 
                 if (keyURL == _authURL) {
                     // pull out the stored access token and store it in memory
@@ -197,7 +201,8 @@ void AccountManager::invokedRequest(const QString& path,
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest networkRequest;
-    
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+
     QUrl requestURL = _authURL;
     
     if (path.startsWith("/")) {
@@ -337,10 +342,9 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
 void AccountManager::persistAccountToSettings() {
     if (_shouldPersistToSettingsFile) {
         // store this access token into the local settings
-        QSettings localSettings;
-        localSettings.beginGroup(ACCOUNTS_GROUP);
-        localSettings.setValue(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                               QVariant::fromValue(_accountInfo));
+        QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
+        QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
+        Setting::Handle<QVariant>(path).set(QVariant::fromValue(_accountInfo));
     }
 }
 
@@ -387,6 +391,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest request;
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
 
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
@@ -456,6 +461,7 @@ void AccountManager::requestProfile() {
     profileURL.setPath("/api/v1/user/profile");
     
     QNetworkRequest profileRequest(profileURL);
+    profileRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     profileRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
 
     QNetworkReply* profileReply = networkAccessManager.get(profileRequest);
@@ -494,6 +500,7 @@ void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
 void AccountManager::generateNewKeypair() {
     // setup a new QThread to generate the keypair on, in case it takes a while
     QThread* generateThread = new QThread(this);
+    generateThread->setObjectName("Account Manager Generator Thread");
     
     // setup a keypair generator
     RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator();

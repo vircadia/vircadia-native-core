@@ -39,7 +39,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
-    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::vec4 sphereColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     glDisable(GL_LIGHTING);
     
@@ -62,7 +62,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES, _isSolid); 
+            DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES, sphereColor, _isSolid);
         glPopMatrix();
     glPopMatrix();
     

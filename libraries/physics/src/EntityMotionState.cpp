@@ -14,7 +14,8 @@
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
-#include "SimpleEntityKinematicController.h"
+#include "PhysicsEngine.h"
+#include "PhysicsHelpers.h"
 
 
 QSet<EntityItem*>* _outgoingEntityList;
@@ -33,6 +34,7 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
 
 EntityMotionState::EntityMotionState(EntityItem* entity) 
     :   _entity(entity) {
+    _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
 }
 
@@ -40,8 +42,6 @@ EntityMotionState::~EntityMotionState() {
     assert(_entity);
     _entity->setPhysicsInfo(NULL);
     _entity = NULL;
-    delete _kinematicController;
-    _kinematicController = NULL;
 }
 
 MotionType EntityMotionState::computeMotionType() const {
@@ -51,13 +51,16 @@ MotionType EntityMotionState::computeMotionType() const {
     return _entity->isMoving() ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
 }
 
-void EntityMotionState::addKinematicController() {
-    if (!_kinematicController) {
-        _kinematicController = new SimpleEntityKinematicController(_entity);
-        _kinematicController->start();
-    } else {
-        _kinematicController->start();
-    }
+void EntityMotionState::updateKinematicState(uint32_t substep) {
+    setKinematic(_entity->isMoving(), substep);
+}
+
+void EntityMotionState::stepKinematicSimulation(quint64 now) {
+    assert(_isKinematic);
+    // NOTE: this is non-physical kinematic motion which steps to real run-time (now)
+    // which is different from physical kinematic motion (inside getWorldTransform())
+    // which steps in physics simulation time.
+    _entity->simulate(now);
 }
 
 // This callback is invoked by the physics simulation in two cases:
@@ -66,8 +69,16 @@ void EntityMotionState::addKinematicController() {
 // (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
-    if (_kinematicController && _kinematicController->isRunning()) {
-        _kinematicController->stepForward();
+    if (_isKinematic) {
+        // This is physical kinematic motion which steps strictly by the subframe count
+        // of the physics simulation.
+        uint32_t substep = PhysicsEngine::getNumSubsteps();
+        float dt = (substep - _lastKinematicSubstep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+        _entity->simulateKinematicMotion(dt);
+        _entity->setLastSimulated(usecTimestampNow());
+
+        // bypass const-ness so we can remember the substep
+        const_cast<EntityMotionState*>(this)->_lastKinematicSubstep = substep;
     }
     worldTrans.setOrigin(glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
@@ -87,8 +98,18 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
     _entity->setAngularVelocity(glm::degrees(v));
 
+    _entity->setLastSimulated(usecTimestampNow());
+
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
+
+    #ifdef WANT_DEBUG
+        quint64 now = usecTimestampNow();
+        qDebug() << "EntityMotionState::setWorldTransform()... changed entity:" << _entity->getEntityItemID();
+        qDebug() << "       last edited:" << _entity->getLastEdited() << formatUsecTime(now - _entity->getLastEdited()) << "ago";
+        qDebug() << "    last simulated:" << _entity->getLastSimulated() << formatUsecTime(now - _entity->getLastSimulated()) << "ago";
+        qDebug() << "      last updated:" << _entity->getLastUpdated() << formatUsecTime(now - _entity->getLastUpdated()) << "ago";
+    #endif
 }
 
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
@@ -207,16 +228,34 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         if (_numNonMovingUpdates <= 1) {
             // we only update lastEdited when we're sending new physics data 
             // (i.e. NOT when we just simulate the positions forward, nore when we resend non-moving data)
+            // NOTE: Andrew & Brad to discuss. Let's make sure we're using lastEdited, lastSimulated, and lastUpdated correctly
             quint64 lastSimulated = _entity->getLastSimulated();
             _entity->setLastEdited(lastSimulated);
             properties.setLastEdited(lastSimulated);
+
+            #ifdef WANT_DEBUG
+                quint64 now = usecTimestampNow();
+                qDebug() << "EntityMotionState::sendUpdate()";
+                qDebug() << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
+                qDebug() << "       lastSimulated:" << debugTime(lastSimulated, now);
+            #endif //def WANT_DEBUG
+
         } else {
             properties.setLastEdited(_entity->getLastEdited());
         }
 
-        EntityItemID id(_entity->getID());
-        EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
-        entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        if (EntityItem::getSendPhysicsUpdates()) {
+            EntityItemID id(_entity->getID());
+            EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+            #ifdef WANT_DEBUG
+                qDebug() << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
+            #endif
+            entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        } else {
+            #ifdef WANT_DEBUG
+                qDebug() << "EntityMotionState::sendUpdate()... NOT sending update as requested.";
+            #endif
+        }
 
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
         // to the full set.  These flags may be momentarily cleared by incoming external changes.  
@@ -228,12 +267,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 uint32_t EntityMotionState::getIncomingDirtyFlags() const { 
     uint32_t dirtyFlags = _entity->getDirtyFlags(); 
 
-    // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
-    int bodyFlags = _body->getCollisionFlags();
-    bool isMoving = _entity->isMoving();
-    if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
-            (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
-        dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE; 
+    if (_body) {
+        // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
+        int bodyFlags = _body->getCollisionFlags();
+        bool isMoving = _entity->isMoving();
+        if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
+                (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
+            dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE; 
+        }
     }
     return dirtyFlags;
 }

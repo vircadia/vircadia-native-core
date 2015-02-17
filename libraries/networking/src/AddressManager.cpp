@@ -9,17 +9,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qdebug.h>
-#include <qjsondocument.h>
-#include <qregexp.h>
-#include <qstringlist.h>
+#include <QApplication>
+#include <QClipboard>
+#include <QDebug>
+#include <QJsonDocument>
+#include <QRegExp>
+#include <QStringList>
 
 #include <GLMHelpers.h>
+#include <SettingHandle.h>
 #include <UUID.h>
 
 #include "NodeList.h"
 
 #include "AddressManager.h"
+
+const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
+const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
+
+Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address");
+
 
 AddressManager::AddressManager() :
     _rootPlaceName(),
@@ -27,7 +36,7 @@ AddressManager::AddressManager() :
     _positionGetter(NULL),
     _orientationGetter(NULL)
 {
-    
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &AddressManager::storeCurrentAddress);
 }
 
 bool AddressManager::isConnected() {
@@ -44,25 +53,16 @@ const QUrl AddressManager::currentAddress() const {
     return hifiURL;
 }
 
-const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
-const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
-
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        QSettings settings;
-        settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
-        handleLookupString(settings.value(SETTINGS_CURRENT_ADDRESS_KEY).toString());
+        handleLookupString(currentAddressHandle.get().toString());
     } else {
         handleLookupString(lookupString);
     }
 }
 
 void AddressManager::storeCurrentAddress() {
-    QSettings settings;
-
-    settings.beginGroup(ADDRESS_MANAGER_SETTINGS_GROUP);
-    settings.setValue(SETTINGS_CURRENT_ADDRESS_KEY, currentAddress());
-    settings.endGroup();
+    currentAddressHandle.set(currentAddress());
 }
 
 const QString AddressManager::currentPath(bool withOrientation) const {
@@ -202,14 +202,19 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
             
             if (!domainObject.isEmpty()) {
                 const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
+                const QString DOMAIN_NETWORK_PORT_KEY = "network_port";
                 const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
                 
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
                     
+                    quint16 domainPort = domainObject.contains(DOMAIN_NETWORK_PORT_KEY)
+                        ? domainObject[DOMAIN_NETWORK_PORT_KEY].toUInt()
+                        : DEFAULT_DOMAIN_SERVER_PORT;
+                    
                     qDebug() << "Possible domain change required to connect to" << domainHostname
-                        << "on" << DEFAULT_DOMAIN_SERVER_PORT;
-                    emit possibleDomainChangeRequired(domainHostname, DEFAULT_DOMAIN_SERVER_PORT);
+                        << "on" << domainPort;
+                    emit possibleDomainChangeRequired(domainHostname, domainPort);
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
                     
@@ -429,4 +434,12 @@ void AddressManager::goToUser(const QString& username) {
     AccountManager::getInstance().unauthenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
                                                          QNetworkAccessManager::GetOperation,
                                                          apiCallbackParameters());
+}
+
+void AddressManager::copyAddress() {
+    QApplication::clipboard()->setText(currentAddress().toString());
+}
+
+void AddressManager::copyPath() {
+    QApplication::clipboard()->setText(currentPath());
 }

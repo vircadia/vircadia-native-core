@@ -24,6 +24,7 @@
 #include <QXmlStreamReader>
 
 #include <NetworkAccessManager.h>
+#include <SharedUtil.h>
 
 #include "ModelsBrowser.h"
 
@@ -84,6 +85,7 @@ ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
     
     // Setup and launch update thread
     QThread* thread = new QThread();
+    thread->setObjectName("Models Browser");
     thread->connect(_handler, SIGNAL(destroyed()), SLOT(quit()));
     thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
     _handler->moveToThread(thread);
@@ -226,6 +228,7 @@ void ModelHandler::update() {
         QUrl url(_model.item(i,0)->data(Qt::UserRole).toString());
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest request(url);
+        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         QNetworkReply* reply = networkAccessManager.head(request);
         connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
     }
@@ -277,6 +280,7 @@ void ModelHandler::queryNewFiles(QString marker) {
     url.setQuery(query);
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(request);
     connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
             

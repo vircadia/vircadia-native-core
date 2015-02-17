@@ -55,7 +55,9 @@ var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.st
 var currentDrone = null;
 
 var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.stereo.raw")
+var latinInjector = null;
 var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
+var elevatorInjector = null;
 var currentMuzakInjector = null;
 var currentSound = null;
 
@@ -140,7 +142,11 @@ function drawLobby() {
     
     if (droneSound.downloaded) {
       // start the drone sound
-      currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+      if (!currentDrone) {
+        currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
+      } else {
+        currentDrone.restart();
+      }
     }
     
     // start one of our muzak sounds
@@ -152,7 +158,7 @@ var places = {};
 
 function changeLobbyTextures() {
   var req = new XMLHttpRequest();
-  req.open("GET", "https://data.highfidelity.io/api/v1/places?limit=21", false);
+  req.open("GET", "https://metaverse.highfidelity.io/api/v1/places?limit=21", false);
   req.send();
 
   places = JSON.parse(req.responseText).data.places;
@@ -173,6 +179,26 @@ function changeLobbyTextures() {
 
 var MUZAK_VOLUME = 0.1;
 
+function playCurrentSound(secondOffset) {  
+  if (currentSound == latinSound) {
+    if (!latinInjector) {
+      latinInjector = Audio.playSound(latinSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
+    } else {
+      latinInjector.restart();
+    }
+    
+    currentMuzakInjector = latinInjector;
+  } else if (currentSound == elevatorSound) {
+    if (!elevatorInjector) {
+      elevatorInjector = Audio.playSound(elevatorSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
+    } else {
+      elevatorInjector.restart();
+    }
+    
+    currentMuzakInjector = elevatorInjector;
+  }
+}
+
 function playNextMuzak() {
   if (panelWall) {
     if (currentSound == latinSound) {
@@ -184,8 +210,8 @@ function playNextMuzak() {
         currentSound = latinSound;
       }
     }
-  
-    currentMuzakInjector = Audio.playSound(currentSound, { localOnly: true, volume: MUZAK_VOLUME });
+    
+    playCurrentSound(0);
   }
 }
 
@@ -200,10 +226,11 @@ function playRandomMuzak() {
     currentSound = elevatorSound;
   }
   
-  if (currentSound) {    
+  if (currentSound) {
     // pick a random number of seconds from 0-10 to offset the muzak
     var secondOffset = Math.random() * 10;
-    currentMuzakInjector = Audio.playSound(currentSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
+    
+    playCurrentSound(secondOffset);
   } else {
     currentMuzakInjector = null;
   }
@@ -227,10 +254,9 @@ function cleanupLobby() {
   panelWall = false;
   orbShell = false;
   
-  Audio.stopInjector(currentDrone);
-  currentDrone = null;
+  currentDrone.stop();
+  currentMuzakInjector.stop();
   
-  Audio.stopInjector(currentMuzakInjector);
   currentMuzakInjector = null;
   
   places = {};
@@ -354,7 +380,7 @@ function update(deltaTime) {
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
-    if (currentMuzakInjector && !Audio.isInjectorPlaying(currentMuzakInjector)) {
+    if (currentMuzakInjector && !currentMuzakInjector.isPlaying) {
       playNextMuzak();
     }
   }

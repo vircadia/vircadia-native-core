@@ -686,7 +686,6 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     _renderBatch.clear();
     gpu::Batch& batch = _renderBatch;
-    GLBATCH(glPushMatrix)();
 
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
@@ -812,6 +811,15 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         GLBATCH(glCullFace)(GL_BACK);
     }
 
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 1);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 2);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0 + 3);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+    GLBATCH(glActiveTexture)(GL_TEXTURE0);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+
     // deactivate vertex arrays after drawing
     GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
     GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
@@ -826,12 +834,21 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
     GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
 
-    GLBATCH(glPopMatrix)();
-
     // Render!
     {
         PROFILE_RANGE("render Batch");
+
+        #if defined(ANDROID)
+        #else
+            glPushMatrix();
+        #endif
+
         ::gpu::GLBackend::renderBatch(batch);
+
+        #if defined(ANDROID)
+        #else
+            glPopMatrix();
+        #endif
     }
 
     // restore all the default material settings
@@ -1629,7 +1646,6 @@ void Model::startScene(RenderArgs::RenderSide renderSide) {
 }
 
 void Model::setupBatchTransform(gpu::Batch& batch) {
-    GLBATCH(glPushMatrix)();
     
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
@@ -1768,6 +1784,17 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
             GLBATCH(glCullFace)(GL_BACK);
         }
 
+        
+        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 1);
+        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 2);
+        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 3);
+        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+
+
         // deactivate vertex arrays after drawing
         GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
         GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
@@ -1791,7 +1818,17 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     // Render!
     {
         PROFILE_RANGE("render Batch");
+         #if defined(ANDROID)
+        #else
+            glPushMatrix();
+        #endif
+
         ::gpu::GLBackend::renderBatch(_sceneRenderBatch);
+
+        #if defined(ANDROID)
+        #else
+            glPopMatrix();
+        #endif
     }
 
     // restore all the default material settings
@@ -2224,7 +2261,10 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
     
     GLBATCH(glUseProgram)(activeProgram->programId());
-    GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+
+    if ((activeLocations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
+        GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+    }
 }
 
 int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
@@ -2248,7 +2288,6 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
                 }
                 model->setupBatchTransform(batch);
                 meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations, skinLocations);
-                GLBATCH(glPopMatrix)();
             }
         }
     }
@@ -2348,8 +2387,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
             }
         }
 
-        GLBATCH(glPushMatrix)();
-
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
             GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
@@ -2385,7 +2422,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
             // apply material properties
             if (mode == SHADOW_RENDER_MODE) {
-                GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+             ///   GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
                 
             } else {
                 if (lastMaterialID != part.materialID) {
@@ -2414,9 +2451,10 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
                     static bool showDiffuse = true;
                     if (showDiffuse && diffuseMap) {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
+                        batch.setUniformTexture(0, diffuseMap->getGPUTexture());
+                        
                     } else {
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, textureCache->getWhiteTextureID());
+                        batch.setUniformTexture(0, textureCache->getWhiteTexture());
                     }
 
                     if (locations->texcoordMatrices >= 0) {
@@ -2431,19 +2469,16 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
 
                     if (!mesh.tangents.isEmpty()) {                 
-                        GLBATCH(glActiveTexture)(GL_TEXTURE1);
                         Texture* normalMap = networkPart.normalTexture.data();
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !normalMap ?
-                            textureCache->getBlueTextureID() : normalMap->getID());
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                        batch.setUniformTexture(1, !normalMap ?
+                            textureCache->getBlueTexture() : normalMap->getGPUTexture());
+
                     }
                 
                     if (locations->specularTextureUnit >= 0) {
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
                         Texture* specularMap = networkPart.specularTexture.data();
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !specularMap ?
-                            textureCache->getWhiteTextureID() : specularMap->getID());
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                        batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
+                                                    textureCache->getWhiteTexture() : specularMap->getGPUTexture());
                     }
 
                     if (args) {
@@ -2460,11 +2495,9 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     float emissiveScale = part.emissiveParams.y;
                     GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
 
-                    GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                     Texture* emissiveMap = networkPart.emissiveTexture.data();
-                    GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
-                        textureCache->getWhiteTextureID() : emissiveMap->getID());
-                    GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                        batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
+                                                    textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
                 }
 
                 lastMaterialID = part.materialID;
@@ -2489,27 +2522,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                 args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
             }
         }
-
-        if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
-            GLBATCH(glActiveTexture)(GL_TEXTURE1);
-            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-            GLBATCH(glActiveTexture)(GL_TEXTURE0);
-        }
-
-        if (locations->specularTextureUnit >= 0) {
-            GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
-            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-            GLBATCH(glActiveTexture)(GL_TEXTURE0);
-        }
-
-        if (locations->emissiveTextureUnit >= 0) {
-            GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
-            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-            GLBATCH(glActiveTexture)(GL_TEXTURE0);
-        }
-
-        GLBATCH(glPopMatrix)();
-
     }
 
     return meshPartsRendered;

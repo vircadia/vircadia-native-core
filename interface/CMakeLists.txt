@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "Gverb" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "RSSDK")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -13,10 +13,6 @@ endforeach()
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
-
-
-# As Gverb is currently the only reverb library, it's required.
-find_package(Gverb REQUIRED)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -36,8 +32,6 @@ elseif (WIN32)
   set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/wglew.h>")
 endif ()
 
-# set up the external glm library
-include_glm()
 include_bullet()
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
@@ -83,12 +77,18 @@ if (APPLE)
 
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
-
+  
+  if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
+    set(ICON_FILENAME "interface.icns")
+  else ()
+    set(ICON_FILENAME "interface-beta.icns")
+  endif ()
+  
   # set how the icon shows up in the Info.plist file
-  SET(MACOSX_BUNDLE_ICON_FILE interface.icns)
+  SET(MACOSX_BUNDLE_ICON_FILE "${ICON_FILENAME}")
 
   # set where in the bundle to put the resources file
-  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/interface.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   
   # grab the directories in resources and put them in the right spot in Resources
   file(GLOB RESOURCE_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
@@ -101,14 +101,20 @@ if (APPLE)
     endif()
   endforeach()
 
-  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/interface.icns")
+  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
 endif()
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
+# set up the external glm library
+add_dependency_external_project(glm)
+find_package(GLM REQUIRED)
+target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
+
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars audio animation script-engine physics 
+link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars 
+                    audio audio-client animation script-engine physics 
                     render-utils entities-renderer)
 
 # find any optional and required libraries
@@ -173,13 +179,6 @@ if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
   add_definitions(-DQXMPP_STATIC) 
 endif ()
 
-if (GVERB_FOUND)
-  file(GLOB GVERB_SRCS ${GVERB_SRC_DIRS}/*.c)
-  include_directories(${GVERB_INCLUDE_DIRS})
-  add_library(gverb STATIC ${GVERB_SRCS})
-  target_link_libraries(${TARGET_NAME} gverb)
-endif (GVERB_FOUND)
-
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
@@ -193,12 +192,10 @@ add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
-  find_library(CoreAudio CoreAudio)
-  find_library(CoreFoundation CoreFoundation)
   find_library(OpenGL OpenGL)
   find_library(AppKit AppKit)
 
-  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${OpenGL} ${AppKit})
+  target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
     
   # install command for OS X bundle
   INSTALL(TARGETS ${TARGET_NAME}

@@ -13,7 +13,10 @@
 #define hifi_AnimationsDialog_h
 
 #include <QDialog>
+#include <QDoubleSpinBox>
 #include <QFrame>
+
+#include <SettingHandle.h>
 
 #include "avatar/MyAvatar.h"
 
@@ -30,7 +33,7 @@ class AnimationsDialog : public QDialog {
 
 public:
     
-    AnimationsDialog();
+    AnimationsDialog(QWidget* parent = nullptr);
 
     virtual void setVisible(bool visible);
 
@@ -40,8 +43,8 @@ private slots:
 
 private:
     
-    QVBoxLayout* _animations;
-    QPushButton* _ok;
+    QVBoxLayout* _animations = nullptr;
+    QPushButton* _ok = nullptr;
 };
 
 /// A panel controlling a single animation.
@@ -61,22 +64,24 @@ private slots:
     
 private:
     
-    AnimationsDialog* _dialog;
+    AnimationsDialog* _dialog = nullptr;
     AnimationHandlePointer _handle;
-    QComboBox* _role;
-    QLineEdit* _url;
-    QDoubleSpinBox* _fps;
-    QDoubleSpinBox* _priority;
-    QCheckBox* _loop;
-    QCheckBox* _hold;
-    QCheckBox* _startAutomatically;
-    QDoubleSpinBox* _firstFrame;
-    QDoubleSpinBox* _lastFrame;
-    QLineEdit* _maskedJoints;
-    QPushButton* _chooseMaskedJoints;
-    QPushButton* _start;
-    QPushButton* _stop;
+    QComboBox* _role = nullptr;
+    QLineEdit* _url = nullptr;
+    QDoubleSpinBox* _fps = nullptr;
+    QDoubleSpinBox* _priority = nullptr;
+    QCheckBox* _loop = nullptr;
+    QCheckBox* _hold = nullptr;
+    QCheckBox* _startAutomatically = nullptr;
+    QDoubleSpinBox* _firstFrame = nullptr;
+    QDoubleSpinBox* _lastFrame = nullptr;
+    QLineEdit* _maskedJoints = nullptr;
+    QPushButton* _chooseMaskedJoints = nullptr;
+    QPushButton* _start = nullptr;
+    QPushButton* _stop = nullptr;
     bool _applying;
+    
+    static Setting::Handle<QString> _animationDirectory;
 };
 
 #endif // hifi_AnimationsDialog_h

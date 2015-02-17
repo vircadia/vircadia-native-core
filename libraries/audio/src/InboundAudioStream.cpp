@@ -500,3 +500,4 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     }
     return 0.0f;
 }
+

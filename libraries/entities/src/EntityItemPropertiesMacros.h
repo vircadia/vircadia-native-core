@@ -180,6 +180,15 @@
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
     properties.setProperty(#P, _##P);
 
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S, E) \
+    QScriptValue P = object.property(#P);           \
+    if (P.isValid()) {                              \
+        E newValue = (E)(P.toVariant().toInt());   \
+        if (_defaultSettings || newValue != _##P) { \
+            S(newValue);                            \
+        }                                           \
+    }
+
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(P, S) \
     QScriptValue P = object.property(#P);           \
     if (P.isValid()) {                              \
@@ -312,6 +321,10 @@
         T _##n; \
         bool _##n##Changed;
 
+#define DEBUG_PROPERTY_IF_CHANGED(D, P, N, n, x)                \
+    if (P.n##Changed()) {                                       \
+        D << "  " << #n << ":" << P.get##N() << x << "\n";      \
+    }
 
 
 #endif // hifi_EntityItemPropertiesMacros_h

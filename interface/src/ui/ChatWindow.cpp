@@ -49,7 +49,8 @@ ChatWindow::ChatWindow(QWidget* parent) :
     _mousePressed(false),
     _mouseStartPosition(),
     _trayIcon(parent),
-    _effectPlayer()
+    _effectPlayer(),
+    _usernameMentionTimestamp("MentionTimestamp", QDateTime())
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
 
@@ -377,12 +378,10 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     if (message.body().contains(usernameMention)) {
 
         // Don't show messages already seen in icon tray at start-up.
-        QSettings* settings = Application::getInstance()->lockSettings();
-        bool showMessage = settings->value("usernameMentionTimestamp").toDateTime() < _lastMessageStamp;
+        bool showMessage = _usernameMentionTimestamp.get() < _lastMessageStamp;
         if (showMessage) {
-            settings->setValue("usernameMentionTimestamp", _lastMessageStamp);
+            _usernameMentionTimestamp.set(_lastMessageStamp);
         }
-        Application::getInstance()->unlockSettings();
 
         if (isHidden() && showMessage) {
 

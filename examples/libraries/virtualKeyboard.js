@@ -147,9 +147,13 @@ KeyboardKey = (function(keyboard, keyProperties) {
         return true;
     };
     for (var i = 0; i < this.bounds.length; i++) {
-        var newOverlay = Overlays.cloneOverlay(this.keyboard.background);
         if (THREE_D_MODE) {
-            Overlays.editOverlay(newOverlay, {
+            this.overlays.push(Overlays.addOverlay("billboard", {
+                scale: 1,
+                rotation: MyAvatar.rotation,
+                isFacingAvatar: false,
+                url: KEYBOARD_URL,
+                alpha: 1,
                 position: {
                     x: MyAvatar.position.x,// + this.bounds[i][BOUND_X] * 0.01,// /*+ this.keyboard.getX()*/ + this.bounds[i][BOUND_X] * keyboard.scale,
                     y: MyAvatar.position.y,// - this.bounds[i][BOUND_Y] * 0.01,// /*+ this.keyboard.getY()*/ + this.bounds[i][BOUND_Y] * keyboard.scale,
@@ -160,9 +164,10 @@ KeyboardKey = (function(keyboard, keyProperties) {
                 subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
                 alpha: 1,
                 visible: tthis.keyboard.visible
-            });
+            }));
         } else {
-            Overlays.editOverlay(newOverlay, {
+            this.overlays.push(Overlays.addOverlay("image", {
+                imageURL: KEYBOARD_URL,
                 x: this.keyboard.getX() + this.bounds[i][BOUND_X] * keyboard.scale,
                 y: this.keyboard.getY() + this.bounds[i][BOUND_Y] * keyboard.scale,
                 width: this.bounds[i][BOUND_W] * keyboard.scale,
@@ -170,9 +175,8 @@ KeyboardKey = (function(keyboard, keyProperties) {
                 subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
                 alpha: 1,
                 visible: tthis.keyboard.visible
-            });
+            }));
         }
-        this.overlays.push(newOverlay);
     }
 });
 
@@ -317,6 +321,8 @@ Keyboard = (function(params) {
         for (var i = 0; i < this.keys.length; i++) {
             this.keys[i].remove();
         }
+        // resets the cursor and magnifier
+        this.updateVisibility(false);
     };
 
     this.show = function() {
@@ -336,6 +342,7 @@ Keyboard = (function(params) {
         if (HMD.magnifier == visible) {
             HMD.toggleMagnifier();
         }
+        Window.cursorVisible = !visible;
         Overlays.editOverlay(tthis.background, { visible: tthis.visible });
         for (var i = 0; i < this.keys.length; i++) {
             this.keys[i].updateVisibility();
@@ -440,13 +447,12 @@ Keyboard = (function(params) {
 
         {bounds: [[899, 355, 263, 67]], event: 'submit'}
     ];
-
+    for (var i = 0; i < keyProperties.length; i++) {
+        this.keys.push(new KeyboardKey(this, keyProperties[i]));
+    }
     this.keyboardTextureLoaded = function() {
         if (Overlays.isLoaded(tthis.background)) {
             Script.clearInterval(tthis.keyboardTextureLoaded_timer);
-            for (var i = 0; i < keyProperties.length; i++) {
-                tthis.keys.push(new KeyboardKey(tthis, keyProperties[i]));
-            }
             if (keyboard.onFullyLoaded != null) {
                 tthis.onFullyLoaded();
             }
@@ -510,12 +516,16 @@ Cursor = (function(params) {
                 });
             }
             var editobject = {};
-            if (tthis.x !== HMD.HUDLookAtPosition2D.x) {
-                 tthis.x = HMD.HUDLookAtPosition2D.x;
+            var hudLookatPosition = HMD.getHUDLookAtPosition2D();
+            if (hudLookatPosition === null) {
+                return;
+            }
+            if (tthis.x !== hudLookatPosition.x) {
+                 tthis.x = hudLookatPosition.x;
                  editobject.x = tthis.x - (CURSOR_WIDTH / 2);
             }
-            if (tthis.y !== HMD.HUDLookAtPosition2D.y) {
-                 tthis.y = HMD.HUDLookAtPosition2D.y;
+            if (tthis.y !== hudLookatPosition.y) {
+                 tthis.y = hudLookatPosition.y;
                  editobject.y = tthis.y - (CURSOR_HEIGHT / 2);
             }
             if (Object.keys(editobject).length > 0) {
