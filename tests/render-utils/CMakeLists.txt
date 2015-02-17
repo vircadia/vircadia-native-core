@@ -2,8 +2,6 @@ set(TARGET_NAME render-utils-tests)
  
 setup_hifi_project(Quick Gui OpenGL)
 
-include_glm()
-
 #include_oglplus()
 
 # link in the shared libraries

@@ -56,9 +56,6 @@ The recommended route for CMake to find the external dependencies is to place al
             -> bin
             -> include
             -> lib
-        -> glm
-            -> glm
-                -> glm.hpp
         -> openssl
             -> bin
             -> include
@@ -128,26 +125,6 @@ Add to the PATH: `%HIFI_LIB_DIR%\freeglut\bin`
 Download the binary package: `glew-1.10.0-win32.zip`. Extract to %HIFI_LIB_DIR%\glew (you'll need to rename the default directory name).
 
 Add to the PATH: `%HIFI_LIB_DIR%\glew\bin\Release\Win32`
-
-###GLM
-
-This package contains only headers, so there's nothing to add to the PATH.
-
-Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
-
-###Gverb
-
-1. Go to https://github.com/highfidelity/gverb
-   Or download the sources directly via this link: 
-   https://github.com/highfidelity/gverb/archive/master.zip
-
-2. Extract the archive
-
-3. Place the directories “include” and “src” in interface/external/gverb 
-   (Normally next to this readme)
-
-4. Clear your build directory, run cmake, build and you should be all set.
-
 
 ###Bullet
 
