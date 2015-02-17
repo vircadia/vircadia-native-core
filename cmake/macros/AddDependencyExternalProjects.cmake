@@ -16,8 +16,8 @@ macro(ADD_DEPENDENCY_EXTERNAL_PROJECTS)
     string(TOUPPER ${_PROJ_NAME} _PROJ_NAME_UPPER)
   
     if (NOT DEFINED GET_${_PROJ_NAME_UPPER} OR GET_${_PROJ_NAME_UPPER})
-      if (NOT TARGET ${_PROJ_NAME})    
-        add_subdirectory(${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME} ${CMAKE_BINARY_DIR}/externals/${_PROJ_NAME})
+      if (NOT TARGET ${_PROJ_NAME})
+        add_subdirectory(${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME} ${EXTERNALS_BINARY_DIR}/${_PROJ_NAME})
       endif ()
   
       add_dependencies(${TARGET_NAME} ${_PROJ_NAME})
