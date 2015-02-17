@@ -1,5 +1,5 @@
 # 
-#  AddPathToLibPaths.cmake
+#  AddPathsToLibPaths.cmake
 #  cmake/macros
 # 
 #  Copyright 2015 High Fidelity, Inc.
