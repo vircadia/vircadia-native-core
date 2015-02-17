@@ -127,7 +127,7 @@ var toolBar = (function () {
             height: toolHeight,
             alpha: 0.9,
             visible: true
-        }, true, false);
+        });
 
         browseModelsButton = toolBar.addTool({
             imageURL: toolIconUrl + "list-icon.svg",
