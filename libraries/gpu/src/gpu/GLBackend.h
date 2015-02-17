@@ -27,10 +27,13 @@ public:
     GLBackend();
     ~GLBackend();
 
+    void render(Batch& batch);
+
     static void renderBatch(Batch& batch);
 
     static void checkGLError();
 
+    
 
     class GLBuffer {
     public:
@@ -138,7 +141,7 @@ protected:
             _projection(),
             _invalidModel(true),
             _invalidView(true),
-            _invalidProj(true),
+            _invalidProj(false),
             _lastMode(GL_TEXTURE) {}
     } _transform;
 

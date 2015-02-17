@@ -687,6 +687,12 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     _renderBatch.clear();
     gpu::Batch& batch = _renderBatch;
 
+    if (args) {
+        glm::mat4 proj;
+        args->_viewFrustum->evalProjectionMatrix(proj); 
+        batch.setProjectionTransform(proj);
+    }
+
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
@@ -1659,25 +1665,25 @@ void Model::setupBatchTransform(gpu::Batch& batch) {
 void Model::endScene(RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
-    
+    #if defined(ANDROID)
+    #else
+        glPushMatrix();
+    #endif
+
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
     if (args) {
         renderSide = args->_renderSide;
     }
+
+    gpu::GLBackend backend;
 
     if (args) {
         glm::mat4 proj;
         args->_viewFrustum->evalProjectionMatrix(proj); 
         gpu::Batch batch;
         batch.setProjectionTransform(proj);
-        ::gpu::GLBackend::renderBatch(batch);
-        
+        backend.render(batch);
     }
-
-    _viewState->getViewTransform();
-    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
-    _transforms[0].preTranslate(-_translation);
-
 
     // Do the rendering batch creation for mono or left eye, not for right eye
     if (renderSide != RenderArgs::STEREO_RIGHT) {
@@ -1833,18 +1839,14 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     // Render!
     {
         PROFILE_RANGE("render Batch");
-         #if defined(ANDROID)
-        #else
-            glPushMatrix();
-        #endif
-
-        ::gpu::GLBackend::renderBatch(_sceneRenderBatch);
-
-        #if defined(ANDROID)
-        #else
-            glPopMatrix();
-        #endif
+        backend.render(_sceneRenderBatch);
     }
+
+
+    #if defined(ANDROID)
+    #else
+        glPopMatrix();
+    #endif
 
     // restore all the default material settings
     _viewState->setupWorldLight();

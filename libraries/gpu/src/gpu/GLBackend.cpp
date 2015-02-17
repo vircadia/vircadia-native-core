@@ -80,19 +80,23 @@ GLBackend::~GLBackend() {
 
 }
 
-void GLBackend::renderBatch(Batch& batch) {
+void GLBackend::render(Batch& batch) {
+
     uint32 numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
 
-    GLBackend backend;
-
     for (unsigned int i = 0; i < numCommands; i++) {
         CommandCall call = _commandCalls[(*command)];
-        (backend.*(call))(batch, *offset);
+        (this->*(call))(batch, *offset);
         command++;
         offset++;
     }
+}
+
+void GLBackend::renderBatch(Batch& batch) {
+    GLBackend backend;
+    backend.render(batch);
 }
 
 void GLBackend::checkGLError() {
@@ -416,9 +420,9 @@ void GLBackend::killTransform() {
 #else
 #endif
 }
-
+#define LEGACY_TRANSFORM_PIPELINE 1
 void GLBackend::updateTransform() {
-#define LEGACY_TRANSFORM_PIPELINE
+
 #ifdef LEGACY_TRANSFORM_PIPELINE
     if (_transform._invalidProj) {
         // TODO: implement the projection matrix assignment to gl state
