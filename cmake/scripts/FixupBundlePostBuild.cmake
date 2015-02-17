@@ -10,4 +10,4 @@
 # 
 
 include(BundleUtilities)
-fixup_bundle("${BUNDLE_EXECUTABLE}" "" "")
+fixup_bundle("${BUNDLE_EXECUTABLE}" "" "${LIB_SEARCH_DIRS}")
