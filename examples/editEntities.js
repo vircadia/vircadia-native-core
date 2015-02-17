@@ -262,6 +262,8 @@ var toolBar = (function () {
         toolBar.move(toolsX, toolsY);
     };
 
+    var newModelButtonDown = false;
+    var browseModelsButtonDown = false;
     that.mousePressEvent = function (event) {
         var clickedOverlay,
             url,
@@ -274,19 +276,14 @@ var toolBar = (function () {
             return true;
         }
 
+        // Handle these two buttons in the mouseRelease event handler so that we don't suppress a mouseRelease event from
+        // occurring when showing a modal dialog.
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-            if (url !== null && url !== "") {
-                addModel(url);
-            }
+            newModelButtonDown = true;
             return true;
         }
-
         if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
-            url = Window.s3Browse(".*(fbx|FBX)");
-            if (url !== null && url !== "") {
-                addModel(url);
-            }
+            browseModelsButtonDown = true;
             return true;
         }
 
@@ -348,6 +345,7 @@ var toolBar = (function () {
             return true;
         }
 
+
         if (newTextButton === toolBar.clicked(clickedOverlay)) {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
@@ -367,9 +365,36 @@ var toolBar = (function () {
             return true;
         }
 
-
         return false;
     };
+
+    that.mouseReleaseEvent = function(event) {
+        var handled = false;
+        if (newModelButtonDown) {
+            var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            if (newModelButton === toolBar.clicked(clickedOverlay)) {
+                url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+                if (url !== null && url !== "") {
+                    addModel(url);
+                }
+                handled = true;
+            }
+        } else if (browseModelsButtonDown) {
+            var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
+                url = Window.s3Browse(".*(fbx|FBX)");
+                if (url !== null && url !== "") {
+                    addModel(url);
+                }
+                handled = true;
+            }
+        }
+
+        newModelButtonDown = false;
+        browseModelsButtonDown = false;
+
+        return handled;
+    }
 
     that.cleanup = function () {
         toolBar.cleanup();
@@ -533,6 +558,9 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    if (toolBar.mouseReleaseEvent(event)) {
+        return true;
+    }
     if (placingEntityID) {
         if (isActive) {
             selectionManager.setSelections([placingEntityID]);
