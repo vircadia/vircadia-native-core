@@ -33,6 +33,11 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
+extern "C" {
+    #include <gverb/gverb.h>
+    #include <gverb/gverbdsp.h>
+}
+
 #include <soxr.h>
 
 #include <NodeList.h>
@@ -888,13 +893,14 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
 
 void AudioClient::sendMuteEnvironmentPacket() {
     QByteArray mutePacket = byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
-    QDataStream mutePacketStream(&mutePacket, QIODevice::Append);
+    int headerSize = mutePacket.size();
     
     const float MUTE_RADIUS = 50;
     
     glm::vec3 currentSourcePosition = _positionGetter();
-    mutePacketStream.writeBytes(reinterpret_cast<const char *>(&currentSourcePosition), sizeof(glm::vec3));
-    mutePacketStream.writeBytes(reinterpret_cast<const char *>(&MUTE_RADIUS), sizeof(float));
+    mutePacket.resize(mutePacket.size() + sizeof(glm::vec3) + sizeof(float));
+    memcpy(mutePacket.data() + headerSize, &currentSourcePosition, sizeof(glm::vec3));
+    memcpy(mutePacket.data() + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
     
     // grab our audio mixer from the NodeList, if it exists
     auto nodelist = DependencyManager::get<NodeList>();

@@ -49,14 +49,32 @@ void OctreePersistThread::parseSettings(const QJsonObject& settings) {
         qDebug() << "BACKUP RULES:";
 
         foreach (const QJsonValue& value, backupRules) {
+
             QJsonObject obj = value.toObject();
+
+            int interval = 0;
+            int count = 0;
+            
+            QJsonValue intervalVal = obj["backupInterval"];
+            if (intervalVal.isString()) {
+                interval = intervalVal.toString().toInt();
+            } else {
+                interval = intervalVal.toInt();
+            }
+
+            QJsonValue countVal = obj["maxBackupVersions"];
+            if (countVal.isString()) {
+                count = countVal.toString().toInt();
+            } else {
+                count = countVal.toInt();
+            }
+
             qDebug() << "    Name:" << obj["Name"].toString();
             qDebug() << "        format:" << obj["format"].toString();
-            qDebug() << "        interval:" << obj["backupInterval"].toInt();
-            qDebug() << "        count:" << obj["maxBackupVersions"].toInt();
+            qDebug() << "        interval:" << interval;
+            qDebug() << "        count:" << count;
 
-            BackupRule newRule = { obj["Name"].toString(), obj["backupInterval"].toInt(), 
-                                    obj["format"].toString(), obj["maxBackupVersions"].toInt(), 0};
+            BackupRule newRule = { obj["Name"].toString(), interval, obj["format"].toString(), count, 0};
                                     
             newRule.lastBackup = getMostRecentBackupTimeInUsecs(obj["format"].toString());
             
@@ -213,7 +231,9 @@ void OctreePersistThread::persist() {
         }
         _tree->unlock();
 
+        qDebug() << "persist operation calling backup...";
         backup(); // handle backup if requested        
+        qDebug() << "persist operation DONE with backup...";
 
 
         // create our "lock" file to indicate we're saving.
@@ -319,34 +339,41 @@ bool OctreePersistThread::getMostRecentBackup(const QString& format,
 void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
 
     if (rule.extensionFormat.contains("%N")) {
-        qDebug() << "Rolling old backup versions for rule" << rule.name << "...";
-        for(int n = rule.maxBackupVersions - 1; n > 0; n--) {
-            QString backupExtensionN = rule.extensionFormat;
-            QString backupExtensionNplusOne = rule.extensionFormat;
-            backupExtensionN.replace(QString("%N"), QString::number(n));
-            backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
+        if (rule.maxBackupVersions > 0) {
+            qDebug() << "Rolling old backup versions for rule" << rule.name << "...";
+            for(int n = rule.maxBackupVersions - 1; n > 0; n--) {
+                QString backupExtensionN = rule.extensionFormat;
+                QString backupExtensionNplusOne = rule.extensionFormat;
+                backupExtensionN.replace(QString("%N"), QString::number(n));
+                backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
     
-            QString backupFilenameN = _filename + backupExtensionN;
-            QString backupFilenameNplusOne = _filename + backupExtensionNplusOne;
+                QString backupFilenameN = _filename + backupExtensionN;
+                QString backupFilenameNplusOne = _filename + backupExtensionNplusOne;
 
-            QFile backupFileN(backupFilenameN);
+                QFile backupFileN(backupFilenameN);
 
-            if (backupFileN.exists()) {
-                qDebug() << "rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
-                int result = rename(qPrintable(backupFilenameN), qPrintable(backupFilenameNplusOne));
-                if (result == 0) {
-                    qDebug() << "DONE rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
-                } else {
-                    qDebug() << "ERROR in rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+                if (backupFileN.exists()) {
+                    qDebug() << "rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+                    int result = rename(qPrintable(backupFilenameN), qPrintable(backupFilenameNplusOne));
+                    if (result == 0) {
+                        qDebug() << "DONE rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+                    } else {
+                        qDebug() << "ERROR in rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+                    }
                 }
             }
+            qDebug() << "Done rolling old backup versions...";
+        } else {
+            qDebug() << "Rolling backups for rule" << rule.name << "."
+                     << " Max Rolled Backup Versions less than 1 [" << rule.maxBackupVersions << "]."
+                     << " No need to roll backups...";
         }
-        qDebug() << "Done rolling old backup versions...";
     }
 }
 
 
 void OctreePersistThread::backup() {
+    qDebug() << "backup operation wantBackup:" << _wantBackup;
     if (_wantBackup) {
         quint64 now = usecTimestampNow();
         
@@ -354,10 +381,12 @@ void OctreePersistThread::backup() {
             BackupRule& rule = _backupRules[i];
 
             quint64 sinceLastBackup = now - rule.lastBackup;
-
             quint64 SECS_TO_USECS = 1000 * 1000;
             quint64 intervalToBackup = rule.interval * SECS_TO_USECS;
-        
+
+            qDebug() << "Checking [" << rule.name << "] - Time since last backup [" << sinceLastBackup << "] " << 
+                        "compared to backup interval [" << intervalToBackup << "]...";
+
             if (sinceLastBackup > intervalToBackup) {
                 qDebug() << "Time since last backup [" << sinceLastBackup << "] for rule [" << rule.name 
                                         << "] exceeds backup interval [" << intervalToBackup << "] doing backup now...";
@@ -379,15 +408,28 @@ void OctreePersistThread::backup() {
                 }
 
 
-                qDebug() << "backing up persist file " << _filename << "to" << backupFileName << "...";
-                bool result = QFile::copy(_filename, backupFileName);
-                if (result) {
-                    qDebug() << "DONE backing up persist file...";
+                if (rule.maxBackupVersions > 0) {
+                    QFile persistFile(_filename);
+                    if (persistFile.exists()) {
+                        qDebug() << "backing up persist file " << _filename << "to" << backupFileName << "...";
+                        bool result = QFile::copy(_filename, backupFileName);
+                        if (result) {
+                            qDebug() << "DONE backing up persist file...";
+                            rule.lastBackup = now; // only record successful backup in this case.
+                        } else {
+                            qDebug() << "ERROR in backing up persist file...";
+                        }
+                    } else {
+                        qDebug() << "persist file " << _filename << " does not exist. " << 
+                                    "nothing to backup for this rule ["<< rule.name << "]...";
+                    }
                 } else {
-                    qDebug() << "ERROR in backing up persist file...";
+                    qDebug() << "This backup rule" << rule.name 
+                             << " has Max Rolled Backup Versions less than 1 [" << rule.maxBackupVersions << "]."
+                             << " There are no backups to be done...";
                 }
-            
-                rule.lastBackup = now;
+            } else {
+                qDebug() << "Backup not needed for this rule ["<< rule.name << "]...";
             }
         }
     }
