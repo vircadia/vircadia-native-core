@@ -35,8 +35,10 @@ void scaleWidgetFontSizes(QWidget* widget, float scale) {
     }
     QFont font = widget->font();
     qDebug() << "Pref: " << widget->objectName() << ": " << font.pointSizeF();
-    font.setPointSizeF(font.pointSizeF() * scale);
-    widget->setFont(font);
+    if (font != QFont()) {
+        font.setPointSizeF(font.pointSizeF() * scale);
+        widget->setFont(font);
+    }
 }
 
 PreferencesDialog::PreferencesDialog(QWidget* parent) :
@@ -61,9 +63,11 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
     auto glCanvas = DependencyManager::get<GLCanvas>();
+
+    // All font sizes are based on 72 DPI.
     float dpiScale = 72.0f / glCanvas->logicalDpiX();
 
-    scaleWidgetFontSizes(ui.scrollArea, dpiScale);
+    scaleWidgetFontSizes(this, dpiScale);
 }
 
 
