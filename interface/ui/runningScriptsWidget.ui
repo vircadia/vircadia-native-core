@@ -125,6 +125,12 @@ font: bold 16pt;
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="font">
+         <font>
+          <family>Helvetica,Arial,sans-serif</family>
+          <pointsize>13</pointsize>
+         </font>
+        </property>
         <property name="styleSheet">
          <string notr="true">reloadStopButtonArea { padding: 0 }</string>
         </property>
@@ -143,6 +149,12 @@ font: bold 16pt;
          </property>
          <item>
           <widget class="QPushButton" name="reloadAllButton">
+           <property name="font">
+            <font>
+             <family>Helvetica,Arial,sans-serif</family>
+             <pointsize>13</pointsize>
+            </font>
+           </property>
            <property name="text">
             <string>Reload all</string>
            </property>
@@ -150,6 +162,12 @@ font: bold 16pt;
          </item>
          <item>
           <widget class="QPushButton" name="stopAllButton">
+           <property name="font">
+            <font>
+             <family>Helvetica,Arial,sans-serif</family>
+             <pointsize>13</pointsize>
+            </font>
+           </property>
            <property name="text">
             <string>Stop all</string>
            </property>
@@ -178,6 +196,12 @@ font: bold 16pt;
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Helvetica,Arial,sans-serif</family>
+          <pointsize>13</pointsize>
+         </font>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_8">
          <property name="spacing">
