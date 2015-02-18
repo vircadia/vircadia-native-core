@@ -127,7 +127,7 @@ if (ANDROID)
 endif ()
 
 if (WIN32)
-  add_paths_to_lib_paths("${QT_CMAKE_PREFIX_PATH}/bin")
+  add_paths_to_lib_paths("${QT_CMAKE_PREFIX_PATH}\\..\\..\\bin")
 endif ()
 
 # add subdirectories for all targets

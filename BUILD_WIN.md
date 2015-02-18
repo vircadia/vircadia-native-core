@@ -32,7 +32,7 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 * [Download the offline installer](http://download.qt-project.org/official_releases/qt/5.3/5.3.2/qt-opensource-windows-x86-msvc2013_opengl-5.3.2.exe)
 
 Once Qt is installed, you need to manually configure the following:
-* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.3.2\msvc2013_opengl` directory.
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.3.2\msvc2013_opengl\lib\cmake` directory.
   * You can set an environment variable from Control Panel > System > Advanced System Settings > Environment Variables > New
 
 ###External Libraries
