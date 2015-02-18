@@ -51,7 +51,14 @@ void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
     const float NATIVE_DPI = 96.0f;
 #endif
 
-    float fontScale = (BASE_DPI / NATIVE_DPI) * (glCanvas->logicalDpiX() / NATIVE_DPI);
+    // Scale fonts based on the native dpi.  On Windows, where the native DPI is 96,
+    // the scale will be: 72.0 / 96.0 = 0.75
+    float fontScale = (BASE_DPI / NATIVE_DPI);
+
+    // Scale the font further by the system's DPI settings.  If using a 2x high-dpi screen
+    // on Windows, for example, the font will be further scaled by: 192.0 / 96.0 = 2.0
+    // This would give a final scale of: 0.75 * 2.0 = 1.5
+    fontScale *= (glCanvas->logicalDpiX() / NATIVE_DPI);
 
     internalScaleWidgetFontSizes(widget, fontScale);
 }
