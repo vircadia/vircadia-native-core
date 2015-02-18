@@ -12,10 +12,14 @@
 macro(ADD_PATHS_TO_LIB_PATHS)
   foreach(_PATH ${ARGN})
     set(_TEMP_LIB_PATHS ${LIB_PATHS})
+    message(STATUS "RIGHT NOW LIB_PATHS IS ${LIB_PATHS}")
+    
     list(APPEND _TEMP_LIB_PATHS ${_PATH})
     
     list(REMOVE_DUPLICATES _TEMP_LIB_PATHS)
     
     set(LIB_PATHS ${_TEMP_LIB_PATHS} CACHE TYPE LIST FORCE)
+    
+    message(STATUS "WE JUST SET LIB_PATHS TO ${LIB_PATHS}")
   endforeach()
 endmacro()
