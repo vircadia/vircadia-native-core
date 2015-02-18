@@ -133,7 +133,6 @@
        <property name="font">
         <font>
          <family>Arial</family>
-         <pointsize>14</pointsize>
         </font>
        </property>
        <property name="text">
@@ -194,7 +193,6 @@
        <property name="font">
         <font>
          <family>Arial</family>
-         <pointsize>14</pointsize>
         </font>
        </property>
        <property name="text">
@@ -276,7 +274,6 @@
        <property name="font">
         <font>
          <family>Arial</family>
-         <pointsize>14</pointsize>
         </font>
        </property>
        <property name="text">
@@ -388,7 +385,6 @@
        <property name="font">
         <font>
          <family>Arial</family>
-         <pointsize>13</pointsize>
         </font>
        </property>
        <property name="text">
@@ -508,7 +504,6 @@
        <property name="font">
         <font>
          <family>Arial</family>
-         <pointsize>13</pointsize>
         </font>
        </property>
        <property name="text">
