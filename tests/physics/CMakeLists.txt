@@ -11,3 +11,5 @@ include_bullet()
 link_hifi_libraries(shared physics)
 
 include_dependency_includes()
+
+copy_dlls_beside_windows_executable()

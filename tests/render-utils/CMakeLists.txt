@@ -15,3 +15,4 @@ endif ()
 #link_libraries(animation fbx shared gpu)
 include_dependency_includes()
 
+copy_dlls_beside_windows_executable()
