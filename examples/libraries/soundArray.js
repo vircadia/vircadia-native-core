@@ -20,7 +20,9 @@ SoundArray = function(audioOptions, autoUpdateAudioPosition) {
             if (this.autoUpdateAudioPosition) {
                 this.updateAudioPosition();
             }
-            Audio.playSound(this.sounds[index], this.audioOptions);
+            if (this.sounds[index].downloaded) {
+                Audio.playSound(this.sounds[index], this.audioOptions);
+            }
         } else {
             print("[ERROR] libraries/soundArray.js:play() : Index " + index + " out of range.");
         }
