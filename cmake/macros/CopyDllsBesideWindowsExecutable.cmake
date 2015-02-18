@@ -17,7 +17,7 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
       POST_BUILD
       COMMAND ${CMAKE_COMMAND} 
         -DBUNDLE_EXECUTABLE=$<TARGET_FILE:${TARGET_NAME}> 
-        -DLIB_PATHS=${LIB_PATHS} 
+        -DLIB_PATHS="${LIB_PATHS}"
         -P ${HIFI_CMAKE_DIR}/scripts/FixupBundlePostBuild.cmake
     )
   endif ()
