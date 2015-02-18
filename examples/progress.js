@@ -13,9 +13,13 @@
 
 (function () {
 
-    var progress = 100,                             // %
+    var rawProgress = 100,                          // % raw value.
+        displayProgress = 100,                      // % smoothed value to display.
+        DISPLAY_PROGRESS_MINOR_MAXIMUM = 8,         // % displayed progress bar goes up to while 0% raw progress.
+        DISPLAY_PROGRESS_MINOR_INCREMENT = 0.1,     // % amount to increment display value each update when 0% raw progress.
+        DISPLAY_PROGRESS_MAJOR_INCREMENT = 5,       // % maximum amount to increment display value when >0% raw progress.
         alpha = 0.0,
-        alphaDelta = 0.0,                           // > 0 if fading in; < 0 if fading out/
+        alphaDelta = 0.0,                           // > 0 if fading in; < 0 if fading out.
         ALPHA_DELTA_IN = 0.15,
         ALPHA_DELTA_OUT = -0.02,
         fadeTimer = null,
@@ -23,18 +27,19 @@
         fadeWaitTimer = null,
         FADE_OUT_WAIT = 1000,                       // Wait before starting to fade out after progress 100%.
         visible = false,
-        BAR_WIDTH = 320,                            // Nominal dimension of SVG in pixels of visible portion (half) of the bar.
-        BAR_HEIGHT = 20,
+        BAR_WIDTH = 480,                            // Dimension of SVG in pixels of visible portion (half) of the bar.
+        BAR_HEIGHT = 30,
         BAR_URL = "http://hifi-public.s3.amazonaws.com/images/progress-bar.svg",
-        BACKGROUND_WIDTH = 360,
-        BACKGROUND_HEIGHT = 60,
-        BACKGROUND_URL = "http://hifi-public.s3.amazonaws.com/images/progress-bar-background.svg",
+        BACKGROUND_WIDTH = 540,
+        BACKGROUND_HEIGHT = 90,
+        BACKGROUND_URL = "http://ctrlaltstudio.com/hifi/progress-bar-background.svg",
+        //BACKGROUND_URL = "http://hifi-public.s3.amazonaws.com/images/progress-bar-background.svg",
         isOnHMD = false,
         windowWidth = 0,
         windowHeight = 0,
         background2D = {},
         bar2D = {},
-        SCALE_2D = 0.55,                            // Scale the SVGs for 2D display.
+        SCALE_2D = 0.35,                            // Scale the SVGs for 2D display.
         background3D = {},
         bar3D = {},
         ENABLE_VR_MODE_MENU_ITEM = "Enable VR Mode",
@@ -43,7 +48,7 @@
         PROGRESS_3D_ELEVATION = -0.8,               // Height of top middle of top notification relative to avatar eyes.
         PROGRESS_3D_YAW = 0.0,                      // Degrees relative to notifications direction.
         PROGRESS_3D_PITCH = -60.0,                  // Degrees from vertical.
-        SCALE_3D = 0.0017,                          // Scale the bar SVG for 3D display.
+        SCALE_3D = 0.0011,                          // Scale the bar SVG for 3D display.
         BACKGROUND_3D_SIZE = { x: 0.76, y: 0.08 },  // Match up with the 3D background with those of notifications.js notices.
         BACKGROUND_3D_COLOR = { red: 2, green: 2, blue: 2 },
         BACKGROUND_3D_ALPHA = 0.7;
@@ -89,56 +94,15 @@
     function onDownloadInfoChanged(info) {
         var i;
 
-        // Calculate progress
+        // Update raw progress value
         if (info.downloading.length + info.pending === 0) {
-            progress = 100;
+            rawProgress = 100;
         } else {
-            progress = 0;
+            rawProgress = 0;
             for (i = 0; i < info.downloading.length; i += 1) {
-                progress += info.downloading[i];
+                rawProgress += info.downloading[i];
             }
-            progress = progress / (info.downloading.length + info.pending);
-        }
-
-        // Update state
-        if (!visible) {  // Not visible because no recent downloads
-            if (progress < 100) {  // Have started downloading so fade in
-                visible = true;
-                alphaDelta = ALPHA_DELTA_IN;
-                fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
-            }
-        } else if (alphaDelta !== 0.0) {  // Fading in or out
-            if (alphaDelta > 0) {
-                if (progress === 100) {  // Was donloading but now have finished so fade out
-                    alphaDelta = ALPHA_DELTA_OUT;
-                }
-            } else {
-                if (progress < 100) {  // Was finished downloading but have resumed so fade in
-                    alphaDelta = ALPHA_DELTA_IN;
-                }
-            }
-        } else {  // Fully visible because downloading or recently so
-            if (fadeWaitTimer === null) {
-                if (progress === 100) {  // Was downloading but have finished so fade out soon
-                    fadeWaitTimer = Script.setTimeout(function () {
-                        alphaDelta = ALPHA_DELTA_OUT;
-                        fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
-                        fadeWaitTimer = null;
-                    }, FADE_OUT_WAIT);
-                }
-            } else {
-                if (progress < 100) {  // Was finished and waiting to fade out but have resumed downloading so don't fade out
-                    Script.clearInterval(fadeWaitTimer);
-                    fadeWaitTimer = null;
-                }
-            }
-        }
-
-        // Update progress bar
-        if (visible) {
-            Overlays.editOverlay(isOnHMD ? bar3D.overlay : bar2D.overlay, {
-                subImage: { x: BAR_WIDTH * (1 - progress / 100), y: 0, width: BAR_WIDTH, height: BAR_HEIGHT }
-            });
+            rawProgress = rawProgress / (info.downloading.length + info.pending);
         }
     }
 
@@ -200,7 +164,58 @@
             createOverlays();
         }
 
+        // Calculate progress value to display
+        if (rawProgress === 0 && displayProgress <= DISPLAY_PROGRESS_MINOR_MAXIMUM) {
+            displayProgress = Math.min(displayProgress + DISPLAY_PROGRESS_MINOR_INCREMENT, DISPLAY_PROGRESS_MINOR_MAXIMUM);
+        } else if (rawProgress < displayProgress) {
+            displayProgress = rawProgress;
+        } else if (rawProgress > displayProgress) {
+            displayProgress = Math.min(rawProgress, displayProgress + DISPLAY_PROGRESS_MAJOR_INCREMENT);
+        }  // else (rawProgress === displayProgress); do nothing.
+
+        // Update state
+        if (!visible) {  // Not visible because no recent downloads
+            if (displayProgress < 100) {  // Have started downloading so fade in
+                visible = true;
+                alphaDelta = ALPHA_DELTA_IN;
+                fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
+            }
+        } else if (alphaDelta !== 0.0) {  // Fading in or out
+            if (alphaDelta > 0) {
+                if (displayProgress === 100) {  // Was downloading but now have finished so fade out
+                    alphaDelta = ALPHA_DELTA_OUT;
+                }
+            } else {
+                if (displayProgress < 100) {  // Was finished downloading but have resumed so fade in
+                    alphaDelta = ALPHA_DELTA_IN;
+                }
+            }
+        } else {  // Fully visible because downloading or recently so
+            if (fadeWaitTimer === null) {
+                if (displayProgress === 100) {  // Was downloading but have finished so fade out soon
+                    fadeWaitTimer = Script.setTimeout(function () {
+                        alphaDelta = ALPHA_DELTA_OUT;
+                        fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
+                        fadeWaitTimer = null;
+                    }, FADE_OUT_WAIT);
+                }
+            } else {
+                if (displayProgress < 100) {  // Was finished and waiting to fade out but have resumed so don't fade out
+                    Script.clearInterval(fadeWaitTimer);
+                    fadeWaitTimer = null;
+                }
+            }
+        }
+
         if (visible) {
+
+            // Update progress bar
+            Overlays.editOverlay(isOnHMD ? bar3D.overlay : bar2D.overlay, {
+                visible: visible,
+                subImage: { x: BAR_WIDTH * (1 - displayProgress / 100), y: 0, width: BAR_WIDTH, height: BAR_HEIGHT }
+            });
+
+            // Update position
             if (isOnHMD) {
                 // Update 3D overlays to maintain positions relative to avatar
                 eyePosition = MyAvatar.getDefaultEyePosition();

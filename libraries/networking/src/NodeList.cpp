@@ -347,7 +347,7 @@ void NodeList::handleICEConnectionToDomainServer() {
         qDebug() << "Sending ping packets to establish connectivity with domain-server with ID"
             << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
         
-        // send the ping packet to the local and public sockets for this nodfe
+        // send the ping packet to the local and public sockets for this node
         QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
         writeUnverifiedDatagram(localPingPacket, _domainHandler.getICEPeer().getLocalSocket());
         

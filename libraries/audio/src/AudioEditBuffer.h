@@ -23,8 +23,8 @@ public:
     
     bool getZeroCrossing(uint32_t start, bool direction, float32_t epsilon, uint32_t& zero);
         
-    void linearFade(uint32_t start, uint32_t stop, bool slope);
-    void exponentialFade(uint32_t start, uint32_t stop, bool slope);
+    void linearFade(uint32_t start, uint32_t stop, bool increasing);
+    void exponentialFade(uint32_t start, uint32_t stop, bool increasing);
 };
 
 template< typename T >
@@ -74,7 +74,7 @@ inline bool AudioEditBuffer<T>::getZeroCrossing(uint32_t start, bool direction, 
 }
 
 template< typename T >
-inline void AudioEditBuffer<T>::linearFade(uint32_t start, uint32_t stop, bool slope) {
+inline void AudioEditBuffer<T>::linearFade(uint32_t start, uint32_t stop, bool increasing) {
     
     if (start >= stop || start > this->_frameCount || stop > this->_frameCount ) {
         return;
@@ -84,7 +84,7 @@ inline void AudioEditBuffer<T>::linearFade(uint32_t start, uint32_t stop, bool s
     float32_t delta;
     float32_t gain;
     
-    if (slope) { // 0.0 to 1.0f in delta increments
+    if (increasing) { // 0.0 to 1.0f in delta increments
         delta = 1.0f / (float32_t)count;
         gain = 0.0f;
     } else { // 1.0f to 0.0f in delta increments
@@ -95,13 +95,13 @@ inline void AudioEditBuffer<T>::linearFade(uint32_t start, uint32_t stop, bool s
     for (uint32_t i = start; i < stop; ++i) {
         for (uint32_t j = 0; j < this->_channelCount; ++j) {
             this->_frameBuffer[j][i] *= gain;
-            gain += delta;
         }
+        gain += delta;
     }
 }
 
 template< typename T >
-inline void AudioEditBuffer<T>::exponentialFade(uint32_t start, uint32_t stop, bool slope) {
+inline void AudioEditBuffer<T>::exponentialFade(uint32_t start, uint32_t stop, bool increasing) {
     // TBD
 }
 
