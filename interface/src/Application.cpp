@@ -1603,7 +1603,7 @@ FaceTracker* Application::getActiveFaceTracker() {
 
 void Application::setActiveFaceTracker() {
 #ifdef HAVE_FACESHIFT
-    DependencyManager::get<DdeFaceTracker>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+    DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
 #endif 
     DependencyManager::get<DdeFaceTracker>()->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression));
 #ifdef HAVE_VISAGE
