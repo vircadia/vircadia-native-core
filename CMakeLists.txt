@@ -117,6 +117,8 @@ else ()
   set(EXTERNALS_BINARY_DIR "${EXTERNALS_BINARY_ROOT_DIR}/${CMAKE_GENERATOR}")
 endif ()
 
+set_property(DIRECTORY PROPERTY EP_PREFIX "project")
+
 file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
