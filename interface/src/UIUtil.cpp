@@ -58,7 +58,7 @@ void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
     // Scale the font further by the system's DPI settings.  If using a 2x high-dpi screen
     // on Windows, for example, the font will be further scaled by: 192.0 / 96.0 = 2.0
     // This would give a final scale of: 0.75 * 2.0 = 1.5
-    fontScale *= (glCanvas->logicalDpiX() / NATIVE_DPI);
+    // fontScale *= (glCanvas->logicalDpiX() / NATIVE_DPI);
 
     qDebug() << "Scaling widgets by: " << fontScale;
 
