@@ -203,7 +203,17 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         const float NEAR_CLIP = -10000;
         const float FAR_CLIP = 10000;
         glLoadIdentity();
-        glOrtho(0, glCanvas->width(), glCanvas->height(), 0, NEAR_CLIP, FAR_CLIP);
+
+#ifdef Q_OS_MAC
+        // OSX will take care of scaling for us
+        const float dpiScaleX = 1.0f;
+        const float dpiScaleY = 1.0f;
+#else
+        const float NATIVE_DPI = 96.0f;
+        const float dpiScaleX = NATIVE_DPI / glCanvas->logicalDpiX();
+        const float dpiScaleY = NATIVE_DPI / glCanvas->logicalDpiY();
+#endif
+        glOrtho(0, glCanvas->width() * dpiScaleX, glCanvas->height() * dpiScaleY, 0, NEAR_CLIP, FAR_CLIP);
 
         glMatrixMode(GL_MODELVIEW);
 
