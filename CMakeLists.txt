@@ -86,6 +86,9 @@ else ()
   endif ()
 endif ()
 
+# figure out where the qt dir is
+get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
+
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
 # set our OS X deployment target to
@@ -127,7 +130,7 @@ if (ANDROID)
 endif ()
 
 if (WIN32)
-  add_paths_to_lib_paths("${QT_CMAKE_PREFIX_PATH}\\..\\..\\bin")
+  add_paths_to_lib_paths("${QT_DIR}/bin")
 endif ()
 
 # add subdirectories for all targets

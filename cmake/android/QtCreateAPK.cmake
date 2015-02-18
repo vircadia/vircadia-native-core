@@ -39,9 +39,6 @@ macro(qt_create_apk)
   
   # create "strings.xml"
   configure_file("${ANDROID_THIS_DIRECTORY}/strings.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/strings.xml")
-
-  # figure out where the qt dir is
-  get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
   
   # find androiddeployqt
   find_program(ANDROID_DEPLOY_QT androiddeployqt HINTS "${QT_DIR}/bin")
