@@ -12,6 +12,9 @@
 #include <QStyle>
 #include <QStyleOptionTitleBar>
 
+#include "DependencyManager.h"
+#include "GLCanvas.h"
+
 #include "UIUtil.h"
 
 int UIUtil::getWindowTitleBarHeight(const QWidget* window) {
@@ -26,4 +29,41 @@ int UIUtil::getWindowTitleBarHeight(const QWidget* window) {
 #endif
 
     return titleBarHeight;
+}
+
+// When setting the font size of a widget in points, the rendered text will be larger
+// on Windows and Linux than on Mac OSX.  This is because Windows and Linux use a DPI
+// of 96, while OSX uses 72.
+// In order to get consistent results across platforms, the font sizes need to be scaled
+// based on the system DPI.
+// This function will scale the font size of widget and all
+// of its children recursively.
+void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
+    auto glCanvas = DependencyManager::get<GLCanvas>();
+
+    // This is the base dpi that we are targetting.  This is based on Mac OSXs default DPI,
+    // and is the basis for all font sizes.
+    const float BASE_DPI = 72.0f;
+
+#ifdef Q_OS_MAC
+    const float NATIVE_DPI = 72.0f;
+#else
+    const float NATIVE_DPI = 96.0f;
+#endif
+
+    float fontScale = (BASE_DPI / NATIVE_DPI) * (glCanvas->logicalDpiX() / NATIVE_DPI);
+
+    internalScaleWidgetFontSizes(widget, fontScale);
+}
+
+void UIUtil::internalScaleWidgetFontSizes(QWidget* widget, float scale) {
+    for (auto child : widget->findChildren<QWidget*>()) {
+        if (child->parent() == widget) {
+            internalScaleWidgetFontSizes(child, scale);
+        }
+    }
+
+    QFont font = widget->font();
+    font.setPointSizeF(font.pointSizeF() * scale);
+    widget->setFont(font);
 }
