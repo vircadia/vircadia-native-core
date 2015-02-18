@@ -163,6 +163,8 @@ We recommend you install it to %HIFI_LIB_DIR%\soxr. This will help our FindSoxr 
 
 Extract the soxr archive wherever you like. Then, inside the extracted folder, create a directory called `build`. From that build directory, the following commands will build and then install soxr to `%HIFI_LIB_DIR%`.
 
+(Make sure to run the following inside Visual Studio)
+
 ```
 cmake .. -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=%HIFI_LIB_DIR%/soxr
 nmake
