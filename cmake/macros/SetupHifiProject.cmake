@@ -34,6 +34,4 @@ macro(SETUP_HIFI_PROJECT)
   foreach(QT_MODULE ${${TARGET_NAME}_DEPENDENCY_QT_MODULES})
     target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
   endforeach()
-  
-  copy_dlls_beside_windows_executable()
 endmacro()

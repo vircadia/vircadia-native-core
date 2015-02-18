@@ -88,3 +88,5 @@ if (ANDROID)
   qt_create_apk()
   
 endif (ANDROID)
+
+copy_dlls_beside_windows_executable()

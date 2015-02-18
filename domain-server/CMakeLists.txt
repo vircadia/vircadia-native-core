@@ -53,3 +53,5 @@ include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
 
 include_dependency_includes()
+
+copy_dlls_beside_windows_executable()
