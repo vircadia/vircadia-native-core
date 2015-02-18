@@ -44,58 +44,40 @@ struct Packet{
 };
 
 DdeFaceTracker::DdeFaceTracker() :
-_lastReceiveTimestamp(0),
-_reset(false),
-_leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
-_rightBlinkIndex(1),
-_leftEyeOpenIndex(8),
-_rightEyeOpenIndex(9),
-_browDownLeftIndex(14),
-_browDownRightIndex(15),
-_browUpCenterIndex(16),
-_browUpLeftIndex(17),
-_browUpRightIndex(18),
-_mouthSmileLeftIndex(28),
-_mouthSmileRightIndex(29),
-_jawOpenIndex(21)
+    DdeFaceTracker(QHostAddress::Any, DDE_FEATURE_POINT_SERVER_PORT)
+{
+
+}
+
+DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
+    _lastReceiveTimestamp(0),
+    _reset(false),
+    _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    _rightBlinkIndex(1),
+    _leftEyeOpenIndex(8),
+    _rightEyeOpenIndex(9),
+    _browDownLeftIndex(14),
+    _browDownRightIndex(15),
+    _browUpCenterIndex(16),
+    _browUpLeftIndex(17),
+    _browUpRightIndex(18),
+    _mouthSmileLeftIndex(28),
+    _mouthSmileRightIndex(29),
+    _jawOpenIndex(21),
+    _host(host),
+    _port(port)
 {
     _blendshapeCoefficients.resize(NUM_EXPRESSION);
     
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
     connect(&_udpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SLOT(socketStateChanged(QAbstractSocket::SocketState)));
-    
-    bindTo(DDE_FEATURE_POINT_SERVER_PORT);
-}
-
-DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
-_lastReceiveTimestamp(0),
-_reset(false),
-_leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
-_rightBlinkIndex(1),
-_leftEyeOpenIndex(8),
-_rightEyeOpenIndex(9),
-_browDownLeftIndex(14),
-_browDownRightIndex(15),
-_browUpCenterIndex(16),
-_browUpLeftIndex(17),
-_browUpRightIndex(18),
-_mouthSmileLeftIndex(28),
-_mouthSmileRightIndex(29),
-_jawOpenIndex(21)
-{
-    _blendshapeCoefficients.resize(NUM_EXPRESSION);
-    
-    connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
-    connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
-    connect(&_udpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SIGNAL(socketStateChanged(QAbstractSocket::SocketState)));
-    
-    bindTo(host, port);
 }
 
 DdeFaceTracker::~DdeFaceTracker() {
-    if(_udpSocket.isOpen())
+    if (_udpSocket.isOpen()) {
         _udpSocket.close();
+    }
 }
 
 void DdeFaceTracker::init() {
@@ -110,15 +92,15 @@ void DdeFaceTracker::update() {
     
 }
 
-void DdeFaceTracker::bindTo(quint16 port) {
-    bindTo(QHostAddress::Any, port);
-}
-
-void DdeFaceTracker::bindTo(const QHostAddress& host, quint16 port) {
-    if(_udpSocket.isOpen()) {
+void DdeFaceTracker::setEnabled(bool enabled) {
+    if (enabled) {
+        if (_udpSocket.isOpen()) {
+            _udpSocket.close();
+        }
+        _udpSocket.bind(_host, _port);
+    } else {
         _udpSocket.close();
     }
-    _udpSocket.bind(host, port);
 }
 
 bool DdeFaceTracker::isActive() const {
@@ -135,7 +117,7 @@ void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState
     QString state;
     switch(socketState) {
         case QAbstractSocket::BoundState:
-            state = "Bounded";
+            state = "Bound";
             break;
         case QAbstractSocket::ClosingState:
             state = "Closing";
@@ -156,7 +138,7 @@ void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState
             state = "Unconnected";
             break;
     }
-    qDebug() << "[Info] DDE Face Tracker Socket: " << socketState;
+    qDebug() << "[Info] DDE Face Tracker Socket: " << state;
 }
 
 void DdeFaceTracker::readPendingDatagrams() {

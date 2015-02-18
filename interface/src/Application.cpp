@@ -1728,6 +1728,7 @@ void Application::init() {
 
     // initialize our face trackers after loading the menu settings
     DependencyManager::get<Faceshift>()->init();
+    DependencyManager::get<DdeFaceTracker>()->init();
     DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
