@@ -310,20 +310,23 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
     
     matchingNode->setLastHeardMicrostamp(usecTimestampNow());
     
-    if (!matchingNode->getLinkedData() && linkedDataCreateCallback) {
+    NodeData* linkedData = matchingNode->getLinkedData();
+    if (!linkedData && linkedDataCreateCallback) {
         linkedDataCreateCallback(matchingNode.data());
     }
-    
-    QMutexLocker linkedDataLocker(&matchingNode->getLinkedData()->getMutex());
-    
-    return matchingNode->getLinkedData()->parseData(packet);
+   
+    if (linkedData) {
+        QMutexLocker linkedDataLocker(&linkedData->getMutex());
+        return linkedData->parseData(packet);
+    }
+    return 0;
 }
 
 int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
     SharedNodePointer matchingNode = sendingNodeForPacket(packet);
     
     if (matchingNode) {
-        updateNodeWithDataFromPacket(matchingNode, packet);
+        return updateNodeWithDataFromPacket(matchingNode, packet);
     }
     
     // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
