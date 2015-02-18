@@ -1,11 +1,11 @@
 set(EXTERNAL_NAME tbb)
 
 if (APPLE)
-  set(DOWNLOAD_URL https://www.threadingbuildingblocks.org/sites/default/files/software_releases/mac/tbb43_20150209oss_osx.tgz)
+  set(DOWNLOAD_URL http://www.threadingbuildingblocks.org/sites/default/files/software_releases/mac/tbb43_20150209oss_osx.tgz)
 elseif (WIN32)
-  set(DOWNLOAD_URL https://www.threadingbuildingblocks.org/sites/default/files/software_releases/windows/tbb43_20150209oss_win.zip)
+  set(DOWNLOAD_URL http://www.threadingbuildingblocks.org/sites/default/files/software_releases/windows/tbb43_20150209oss_win.zip)
 else () 
-  set(DOWNLOAD_URL https://www.threadingbuildingblocks.org/sites/default/files/software_releases/linux/tbb43_20150209oss_lin.tgz)
+  set(DOWNLOAD_URL http://www.threadingbuildingblocks.org/sites/default/files/software_releases/linux/tbb43_20150209oss_lin.tgz)
 endif ()
 
 include(ExternalProject)
@@ -46,6 +46,29 @@ elseif (ANDROID)
   set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG ${_TBB_ANDROID_LIB_DIR}/libtbbmalloc_debug.so CACHE TYPE "TBB malloc debug library location")
   set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_RELEASE ${_TBB_ANDROID_LIB_DIR}/libtbbmalloc.so CACHE TYPE "TBB malloc release library location")
 elseif (UNIX)
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(_TBB_ARCH_DIR "intel64")
+  else()
+    set(_TBB_ARCH_DIR "ia32")
+  endif()
+  
+  execute_process(
+    COMMAND ${CMAKE_C_COMPILER} -dumpversion
+    OUTPUT_VARIABLE GCC_VERSION
+  )
+  
+  if (GCC_VERSION VERSION_GREATER 4.4 OR GCC_VERSION VERSION_EQUAL 4.4)
+    set(_TBB_LINUX_LIB_DIR "${SOURCE_DIR}/lib/${_TBB_ARCH_DIR}/gcc4.4")
+  elseif (GCC_VERSION VERSION_GREATER 4.1 OR GCC_VERSION VERSION_EQUAL 4.1)
+    set(_TBB_LINUX_LIB_DIR "${SOURCE_DIR}/lib/${_TBB_ARCH_DIR}/gcc4.1")
+  else ()
+    message(FATAL_ERROR "Could not find a compatible version of Threading Building Blocks library for your compiler.")
+  endif ()
+  
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_LINUX_LIB_DIR}/libtbb_debug.so CACHE TYPE "TBB debug library location")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_TBB_LINUX_LIB_DIR}/libtbb.so CACHE TYPE "TBB release library location")
+  set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG ${_TBB_LINUX_LIB_DIR}/libtbbmalloc_debug.so CACHE TYPE "TBB malloc debug library location")
+  set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_RELEASE ${_TBB_LINUX_LIB_DIR}/libtbbmalloc.so CACHE TYPE "TBB malloc release library location")
   
 else ()
   message(STATUS "Your OS is not handled by our TBB external project CMakeLists.txt. Please install TBB yourself and pass -DGET_TBB=0 when running CMake.")
