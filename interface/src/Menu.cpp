@@ -27,7 +27,7 @@
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
-#include "devices/DDEFaceTracker.h"
+#include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
