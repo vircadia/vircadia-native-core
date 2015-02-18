@@ -11,11 +11,11 @@
 
 macro(ADD_PATHS_TO_LIB_PATHS)
   foreach(_PATH ${ARGN})
-    set(TEMP_LIB_PATHS ${LIB_PATHS})
-    list(APPEND TEMP_LIB_PATHS ${_PATH})
+    set(_TEMP_LIB_PATHS ${LIB_PATHS})
+    list(APPEND _TEMP_LIB_PATHS ${_PATH})
     
     list(REMOVE_DUPLICATES _TEMP_LIB_PATHS)
     
-    set(LIB_PATHS ${TEMP_LIB_PATHS} CACHE TYPE LIST FORCE)
+    set(LIB_PATHS ${_TEMP_LIB_PATHS} CACHE TYPE LIST FORCE)
   endforeach()
 endmacro()
