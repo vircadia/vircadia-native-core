@@ -321,6 +321,10 @@
         T _##n; \
         bool _##n##Changed;
 
+#define DEBUG_PROPERTY_IF_CHANGED(D, P, N, n, x)                \
+    if (P.n##Changed()) {                                       \
+        D << "  " << #n << ":" << P.get##N() << x << "\n";      \
+    }
 
 
 #endif // hifi_EntityItemPropertiesMacros_h

@@ -13,7 +13,9 @@
 
 QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* const& in) {
     // when the script goes down we want to cleanup the injector
-    QObject::connect(engine, &QScriptEngine::destroyed, in, &ScriptAudioInjector::stopInjectorImmediately);
+    
+    QObject::connect(engine, &QScriptEngine::destroyed, in, &ScriptAudioInjector::stopInjectorImmediately,
+                     Qt::DirectConnection);
     
     return engine->newQObject(in, QScriptEngine::ScriptOwnership);
 }
@@ -36,5 +38,6 @@ ScriptAudioInjector::~ScriptAudioInjector() {
 }
 
 void ScriptAudioInjector::stopInjectorImmediately() {
+    qDebug() << "ScriptAudioInjector::stopInjectorImmediately called to stop audio injector immediately.";
     _injector->stopAndDeleteLater();
 }
