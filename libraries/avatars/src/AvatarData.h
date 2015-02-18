@@ -241,7 +241,7 @@ public:
 
     Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
 
-    void setForceFaceshiftConnected(bool connected) { _forceFaceshiftConnected = connected; }
+    void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -357,7 +357,7 @@ protected:
     KeyState _keyState;
 
     bool _isChatCirclingEnabled;
-    bool _forceFaceshiftConnected;
+    bool _forceFaceTrackerConnected;
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
