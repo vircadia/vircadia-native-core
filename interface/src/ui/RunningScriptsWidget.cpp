@@ -64,6 +64,8 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     connect(ui->loadScriptFromURLButton, &QPushButton::clicked,
             Application::getInstance(), &Application::loadScriptURLDialog);
     connect(&_signalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
+
+    UIUtil::scaleWidgetFontSizes(this);
 }
 
 RunningScriptsWidget::~RunningScriptsWidget() {
