@@ -240,6 +240,3 @@ else (APPLE)
 endif (APPLE)
 
 copy_dlls_beside_windows_executable()
-
-# link any dependencies bubbled up from our linked dependencies
-include_dependency_includes()

@@ -10,6 +10,3 @@ target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 include_bullet()
 
 link_hifi_libraries(avatars shared octree gpu model fbx networking animation)
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()

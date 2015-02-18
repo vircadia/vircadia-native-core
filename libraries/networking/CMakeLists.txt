@@ -29,6 +29,3 @@ target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES} ${TBB_LIBRARIES})
 
 # append tbb includes to our list of includes to bubble
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${TBB_INCLUDE_DIRS})
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()

@@ -18,6 +18,3 @@ if (WIN32)
   # we're using static GLEW, so define GLEW_STATIC
   add_definitions(-DGLEW_STATIC)
 endif ()
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()

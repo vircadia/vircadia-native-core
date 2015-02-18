@@ -15,6 +15,3 @@ include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
 
 # add it to our list of libraries to link
 target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()

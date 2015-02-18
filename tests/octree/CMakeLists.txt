@@ -5,6 +5,4 @@ setup_hifi_project(Script Network)
 # link in the shared libraries
 link_hifi_libraries(shared octree gpu model fbx metavoxels networking entities avatars audio animation script-engine physics)
 
-include_dependency_includes()
-
 copy_dlls_beside_windows_executable()

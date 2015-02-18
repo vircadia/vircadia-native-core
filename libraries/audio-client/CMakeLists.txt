@@ -6,7 +6,7 @@ setup_hifi_library(Network Multimedia)
 link_hifi_libraries(audio)
 
 # append audio includes to our list of includes to bubble
-list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${HIFI_LIBRARY_DIR}/audio/src")
+target_include_directories(${TARGET_NAME} PUBLIC "${HIFI_LIBRARY_DIR}/audio/src")
 
 # have CMake grab externals for us
 add_dependency_external_projects(gverb soxr)
@@ -26,6 +26,3 @@ if (APPLE)
   find_library(CoreFoundation CoreFoundation)
   target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation})
 endif ()
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()

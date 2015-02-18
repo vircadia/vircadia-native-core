@@ -12,6 +12,3 @@ link_hifi_libraries(shared gpu model networking octree)
 find_package(ZLIB REQUIRED)
 include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
 target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()

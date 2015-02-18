@@ -17,6 +17,4 @@ if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
-include_dependency_includes()
-
 copy_dlls_beside_windows_executable()

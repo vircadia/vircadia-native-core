@@ -19,8 +19,7 @@ elseif (WIN32)
 
   target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} opengl32.lib)
   
-  # need to bubble up the GLEW_INCLUDE_DIRS
-  list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${GLEW_INCLUDE_DIRS}")
+  target_include_directories(${TARGET_NAME} PUBLIC ${GLEW_INCLUDE_DIRS})
 
   # try to find the Nsight package and add it to the build if we find it
   find_package(NSIGHT)
@@ -40,9 +39,5 @@ else ()
   
   target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
   
-  # need to bubble up the OPENGL_INCLUDE_DIR
-  list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${OPENGL_INCLUDE_DIR}")
+  target_include_directories(${TARGET_NAME} PUBLIC ${OPENGL_INCLUDE_DIR})
 endif (APPLE)
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()
