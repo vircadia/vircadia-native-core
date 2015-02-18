@@ -17,6 +17,7 @@
 
 Script.include("../../libraries/globals.js");
 Script.include("../../libraries/virtualKeyboard.js");
+Script.include("../../libraries/soundArray.js");
 
 const SPAWN_DISTANCE = 1;
 const DEFAULT_TEXT_DIMENSION_Z = 0.02;
@@ -33,6 +34,12 @@ var textFontSize = 9;
 var text = null;
 var textText = "";
 var textSizeMeasureOverlay = Overlays.addOverlay("text3d", {visible: false});
+
+var randomSounds = new SoundArray({}, true);
+var numberOfSounds = 7;
+for (var i = 1; i <= numberOfSounds; i++) {
+    randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/virtualKeyboard-press" + i + ".raw");
+}
 
 function appendChar(char) {
     textText += char;
@@ -58,6 +65,7 @@ function updateTextOverlay() {
 }
 
 keyboard.onKeyPress = function(event) {
+    randomSounds.playRandom();
     if (event.event == 'keypress') {
         appendChar(event.char);
     } else if (event.event == 'enter') {
