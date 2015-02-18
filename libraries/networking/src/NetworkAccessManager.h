@@ -12,7 +12,7 @@
 #ifndef hifi_NetworkAccessManager_h
 #define hifi_NetworkAccessManager_h
 
-#include <QNetworkAccessManager>
+#include <QtNetwork/qnetworkaccessmanager.h>
 
 /// Wrapper around QNetworkAccessManager to restrict at one instance by thread
 class NetworkAccessManager : public QObject {

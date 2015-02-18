@@ -21,7 +21,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <qthread.h>
 
-#include <Settings.h>
+#include <SettingHandle.h>
 
 #include "NodeList.h"
 #include "PacketHeaders.h"
@@ -33,7 +33,7 @@
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
 AccountManager& AccountManager::getInstance(bool forceReset) {
-    static std::auto_ptr<AccountManager> sharedInstance(new AccountManager());
+    static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());
     
     if (forceReset) {
         sharedInstance.reset(new AccountManager());
@@ -79,6 +79,9 @@ AccountManager::AccountManager() :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
+    
+    // once we have a profile in account manager make sure we generate a new keypair
+    connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewKeypair);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
@@ -93,7 +96,7 @@ void AccountManager::logout() {
     if (_shouldPersistToSettingsFile) {
         QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
         QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
-        SettingHandles::SettingHandle<DataServerAccountInfo>(path).remove();
+        Setting::Handle<DataServerAccountInfo>(path).remove();
         
         qDebug() << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
     } else {
@@ -341,7 +344,7 @@ void AccountManager::persistAccountToSettings() {
         // store this access token into the local settings
         QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
         QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
-        SettingHandles::SettingHandle<QVariant>(path).set(QVariant::fromValue(_accountInfo));
+        Setting::Handle<QVariant>(path).set(QVariant::fromValue(_accountInfo));
     }
 }
 
@@ -497,6 +500,7 @@ void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
 void AccountManager::generateNewKeypair() {
     // setup a new QThread to generate the keypair on, in case it takes a while
     QThread* generateThread = new QThread(this);
+    generateThread->setObjectName("Account Manager Generator Thread");
     
     // setup a keypair generator
     RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator();

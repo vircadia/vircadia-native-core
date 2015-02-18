@@ -271,7 +271,12 @@ void GLBackend::syncGPUObject(const Texture& texture) {
 
                 if (texture.isAutogenerateMips()) {
                     glGenerateMipmap(GL_TEXTURE_2D);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
                 }
+
+                // At this point the mip piels have been loaded, we can notify
+                texture.notifyGPULoaded(0);
+
                 glBindTexture(GL_TEXTURE_2D, boundTex);
                 object->_contentStamp = texture.getDataStamp();
             }
@@ -301,6 +306,9 @@ void GLBackend::syncGPUObject(const Texture& texture) {
                 glGenerateMipmap(GL_TEXTURE_2D);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             }
+
+            // At this point the mip piels have been loaded, we can notify
+            texture.notifyGPULoaded(0);
 
             glBindTexture(GL_TEXTURE_2D, boundTex);
             object->_storageStamp = texture.getStamp();

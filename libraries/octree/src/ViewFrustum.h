@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 
 #include "AABox.h"
@@ -27,7 +28,6 @@
 
 const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
-const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = TREE_SCALE;
@@ -52,8 +52,7 @@ public:
     void setOrthographic(bool orthographic) { _orthographic = orthographic; }
     void setWidth(float width) { _width = width; }
     void setHeight(float height) { _height = height; }
-    void setFieldOfView(float f);
-    void setRealWorldFieldOfView(float realWorldFieldOfView);
+    void setFieldOfView(float f) { _fieldOfView = f; }
     void setAspectRatio(float a) { _aspectRatio = a; }
     void setNearClip(float n) { _nearClip = n; }
     void setFarClip(float f) { _farClip = f; }
@@ -66,7 +65,6 @@ public:
     float getWidth() const { return _width; }
     float getHeight() const { return _height; }
     float getFieldOfView() const { return _fieldOfView; }
-    float getRealWorldFieldOfView() const { return _realWorldFieldOfView; }
     float getAspectRatio() const { return _aspectRatio; }
     float getNearClip() const { return _nearClip; }
     float getFarClip() const { return _farClip; }
@@ -158,9 +156,6 @@ private:
     
     // in Degrees, doesn't apply to HMD like Oculus
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
-    //  The actual FOV set by the user's monitor size and view distance
-    float _realWorldFieldOfView = DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES;
-    
 
     // keyhole attributes
     float _keyholeRadius = DEFAULT_KEYHOLE_RADIUS;

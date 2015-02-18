@@ -26,6 +26,13 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
 
+
+bool EntityScriptingInterface::canAdjustLocks() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanAdjustLocks();
+}
+
+
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     // The application will keep track of creatorTokenID
@@ -108,7 +115,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, properties);
+        _entityTree->updateEntity(entityID, properties, canAdjustLocks());
         _entityTree->unlock();
     }
 

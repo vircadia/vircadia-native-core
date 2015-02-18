@@ -41,50 +41,26 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
 }
 
-Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
-	NetworkPeer(uuid, publicSocket, localSocket),
+Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
+           const HifiSockAddr& localSocket, bool canAdjustLocks) :
+    NetworkPeer(uuid, publicSocket, localSocket),
     _type(type),
     _activeSocket(NULL),
     _symmetricSocket(),
     _connectionSecret(),
-    _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
-    _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples
+    _clockSkewMovingPercentile(30, 0.8f),   // moving 80th percentile of 30 samples
+    _canAdjustLocks(canAdjustLocks)
 {
     
 }
 
 Node::~Node() {
     delete _linkedData;
-    delete _bytesReceivedMovingAverage;
-}
-
-void Node::recordBytesReceived(int bytesReceived) {
-    if (!_bytesReceivedMovingAverage) {
-        _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
-    }
-
-    _bytesReceivedMovingAverage->updateAverage((float) bytesReceived);
-}
-
-float Node::getAveragePacketsPerSecond() {
-    if (_bytesReceivedMovingAverage) {
-        return (1 / _bytesReceivedMovingAverage->getEventDeltaAverage());
-    } else {
-        return 0;
-    }
-}
-
-float Node::getAverageKilobitsPerSecond() {
-    if (_bytesReceivedMovingAverage) {
-        return (_bytesReceivedMovingAverage->getAverageSampleValuePerSecond() * (8.0f / 1000));
-    } else {
-        return 0;
-    }
 }
 
 void Node::updateClockSkewUsec(int clockSkewSample) {
@@ -157,6 +133,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._uuid;
     out << node._publicSocket;
     out << node._localSocket;
+    out << node._canAdjustLocks;
     
     return out;
 }
@@ -166,6 +143,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._uuid;
     in >> node._publicSocket;
     in >> node._localSocket;
+    in >> node._canAdjustLocks;
     
     return in;
 }

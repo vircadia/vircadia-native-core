@@ -1,18 +1,26 @@
 ###Dependencies
 
 * [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
-* [Qt](http://qt-project.org/downloads) ~> 5.3.0
-* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
+* [Qt](http://qt-project.org/downloads) ~> 5.3.2
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
+* [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
 * [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
 * [Gverb](https://github.com/highfidelity/gverb/archive/master.zip) (direct download to latest version)
 
+#### CMake External Project Dependencies
+
+The following dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build` directory in each of the subfolders for each external project. These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared.
+
+* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
+* [gverb](https://github.com/highfidelity/gverb)
+
 ### OS Specific Build Guides
-* [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
 * [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
 * [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
+* [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
+* [BUILD_ANDROID.md](BUILD_ANDROID.md) - additional instructions for Android
 
 ###CMake
 Hifi uses CMake to generate build files and project files for your platform.

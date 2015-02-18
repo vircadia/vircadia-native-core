@@ -92,17 +92,7 @@ void TextOverlay::render(RenderArgs* args) {
     
     float alpha = getAlpha();
     glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, alpha };
-    QStringList lines = _text.split("\n");
-    int lineOffset = 0;
-    foreach(QString thisLine, lines) {
-        if (lineOffset == 0) {
-            lineOffset = textRenderer->calculateHeight(qPrintable(thisLine));
-        }
-        lineOffset += textRenderer->draw(x, y + lineOffset, qPrintable(thisLine), textColor);
-
-        const int lineGap = 2;
-        lineOffset += lineGap;
-    }
+    textRenderer->draw(x, y, _text, textColor);
 }
 
 void TextOverlay::setProperties(const QScriptValue& properties) {
@@ -175,19 +165,8 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
 }
 
 QSizeF TextOverlay::textSize(const QString& text) const {
+    auto textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
+    auto extents = textRenderer->computeExtent(text);
 
-    QFont font(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);  // Same font properties as render()
-    QFontMetrics fontMetrics(font);
-    const int TEXT_HEIGHT_ADJUST = -2;  // Experimentally determined for the specified font
-
-    QStringList lines = text.split(QRegExp("\r\n|\r|\n"));
-
-    int width = 0;
-    for (int i = 0; i < lines.count(); i += 1) {
-        width = std::max(width, fontMetrics.width(qPrintable(lines[i])));
-    }
-
-    int height = lines.count() * (fontMetrics.height() + TEXT_HEIGHT_ADJUST);
-
-    return QSizeF(width, height);
+    return QSizeF(extents.x, extents.y);
 }

@@ -19,7 +19,6 @@
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
-#include <AudioInjector.h>
 #include <AvatarData.h>
 #include <Bitstream.h>
 #include <CollisionInfo.h>
@@ -35,6 +34,7 @@
 #include "DataViewClass.h"
 #include "EventTypes.h"
 #include "MenuItemProperties.h"
+#include "ScriptAudioInjector.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
@@ -208,6 +208,8 @@ void ScriptEngine::init() {
     
     _isInitialized = true;
 
+    _entityScriptingInterface.init();
+
     // register various meta-types
     registerMetaTypes(this);
     registerMIDIMetaTypes(this);
@@ -270,8 +272,12 @@ QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* ob
 }
 
 void ScriptEngine::registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments) {
+    registerFunction(globalObject(), name, fun, numArguments);
+}
+
+void ScriptEngine::registerFunction(QScriptValue parent, const QString& name, QScriptEngine::FunctionSignature fun, int numArguments) {
     QScriptValue scriptFun = newFunction(fun, numArguments);
-    globalObject().setProperty(name, scriptFun);
+    parent.setProperty(name, scriptFun);
 }
 
 void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,

@@ -19,6 +19,8 @@
 
 #include "ProgramObject.h"
 
+#include "model/Light.h"
+
 class AbstractViewStateInterface;
 class PostLightingRenderable;
 
@@ -71,25 +73,12 @@ public:
     void prepare();
     void render();
 
-    enum AmbientLightPreset {
-        OLD_TOWN_SQUARE = 0,
-        GRACE_CATHEDRAL,
-        EUCALYPTUS_GROVE,
-        ST_PETERS_BASILICA,
-        UFFIZI_GALLERY,
-        GALILEOS_TOMB,
-        VINE_STREET_KITCHEN,
-        BREEZEWAY,
-        CAMPUS_SUNSET,
-        FUNSTON_BEACH_SUNSET,
-
-        NUM_PRESET,
-    };
-
+    // update global lighting
     void setAmbientLightMode(int preset);
+    void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity);
 
 private:
-    DeferredLightingEffect() { }
+    DeferredLightingEffect() {}
     virtual ~DeferredLightingEffect() { }
 
     class LightLocations {
@@ -102,6 +91,8 @@ private:
         int depthTexCoordScale;
         int radius;
         int ambientSphere;
+        int lightBufferUnit;
+        int invViewMat;
     };
     
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
@@ -146,9 +137,13 @@ private:
         float exponent;
         float cutoff;
     };
-    
-    QVector<PointLight> _pointLights;
-    QVector<SpotLight> _spotLights;
+
+    typedef std::vector< model::LightPointer > Lights;
+
+    Lights _allocatedLights;
+    std::vector<int> _globalLights;
+    std::vector<int> _pointLights;
+    std::vector<int> _spotLights;
     QVector<PostLightingRenderable*> _postLightingRenderables;
     
     AbstractViewStateInterface* _viewState;

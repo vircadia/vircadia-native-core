@@ -3,8 +3,6 @@ set(TARGET_NAME gpu)
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library()
 
-include_glm()
-
 link_hifi_libraries(shared)
 
 if (APPLE)
@@ -31,6 +29,8 @@ elseif (WIN32)
     add_definitions(-DNSIGHT_FOUND)
     target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
   endif ()
+elseif (ANDROID)
+  target_link_libraries(${TARGET_NAME} "-lGLESv3" "-lEGL")
 else ()
   find_package(OpenGL REQUIRED)
   

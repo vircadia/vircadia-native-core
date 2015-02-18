@@ -20,6 +20,7 @@ const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const float DEFAULT_MARGIN = 0.1f;
 const int FIXED_FONT_POINT_SIZE = 40;
+const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;
 
 Text3DOverlay::Text3DOverlay() :
@@ -104,11 +105,9 @@ void Text3DOverlay::render(RenderArgs* args) {
         glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
         
-        const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
-        
         // Same font properties as textSize()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-        float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
+        float maxHeight = (float)textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
         
         float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
 
@@ -118,19 +117,14 @@ void Text3DOverlay::render(RenderArgs* args) {
         glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor, 
                                  (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
-        glScalef(scaleFactor, -scaleFactor, 1.0);
+        glScalef(scaleFactor, -scaleFactor, scaleFactor);
         enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipDimensions.x);
         enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
         enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
-        glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
-        QStringList lines = _text.split("\n");
-        int lineOffset = maxHeight;
-        foreach(QString thisLine, lines) {
-            textRenderer->draw(0, lineOffset, qPrintable(thisLine), textColor);
-            lineOffset += maxHeight;
-        }
+        glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
+        textRenderer->draw(0, 0, _text, textColor);
 
         glDisable(GL_CLIP_PLANE0);
         glDisable(GL_CLIP_PLANE1);
@@ -234,22 +228,12 @@ Text3DOverlay* Text3DOverlay::createClone() const {
 }
 
 QSizeF Text3DOverlay::textSize(const QString& text) const {
+    auto textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    auto extents = textRenderer->computeExtent(text);
 
-    QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
-    QFontMetrics fontMetrics(font);
-    const float TEXT_SCALE_ADJUST = 1.025f;  // Experimentally detemined for the specified font
-    const int TEXT_HEIGHT_ADJUST = -10;
-    float scaleFactor = _lineHeight * TEXT_SCALE_ADJUST * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
+    float maxHeight = (float)textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
+    float pointToWorldScale = (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
 
-    QStringList lines = text.split(QRegExp("\r\n|\r|\n"));
-
-    float width = 0.0f;
-    for (int i = 0; i < lines.count(); i += 1) {
-        width = std::max(width, scaleFactor * (float)fontMetrics.width(qPrintable(lines[i])));
-    }
-
-    float height = lines.count() * scaleFactor * (float)(fontMetrics.height() + TEXT_HEIGHT_ADJUST);
-
-    return QSizeF(width, height);
+    return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }
 

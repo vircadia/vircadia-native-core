@@ -23,7 +23,7 @@
 #include <QtDebug>
 
 #include <GLMHelpers.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
@@ -485,9 +485,7 @@ void QColorEditor::selectColor() {
     }
 }
 
-namespace SettingHandles {
-    const SettingHandle<QStringList> editorURLs("editorURLs");
-}
+Setting::Handle<QStringList> editorURLs("editorURLs");
 
 QUrlEditor::QUrlEditor(QWidget* parent) :
     QComboBox(parent) {
@@ -496,7 +494,7 @@ QUrlEditor::QUrlEditor(QWidget* parent) :
     setInsertPolicy(InsertAtTop);
     
     // populate initial URL list from settings
-    addItems(SettingHandles::editorURLs.get());
+    addItems(editorURLs.get());
     
     connect(this, SIGNAL(activated(const QString&)), SLOT(updateURL(const QString&)));
     connect(model(), SIGNAL(rowsInserted(const QModelIndex&,int,int)), SLOT(updateSettings()));
@@ -516,7 +514,7 @@ void QUrlEditor::updateSettings() {
     for (int i = 0, size = qMin(MAX_STORED_URLS, count()); i < size; i++) {
         urls.append(itemText(i));
     }
-    SettingHandles::editorURLs.set(urls);
+    editorURLs.set(urls);
 }
 
 BaseVec3Editor::BaseVec3Editor(QWidget* parent) : QWidget(parent) {
@@ -665,7 +663,7 @@ void ParameterizedURLEditor::updateURL() {
             QByteArray valuePropertyName = widget->property("valuePropertyName").toByteArray();
             const QMetaObject* widgetMetaObject = widget->metaObject();
             QMetaProperty widgetProperty = widgetMetaObject->property(widgetMetaObject->indexOfProperty(valuePropertyName));
-            parameters.insert(ScriptCache::getInstance()->getEngine()->toStringHandle(
+            parameters.insert(DependencyManager::get<ScriptCache>()->getEngine()->toStringHandle(
                 widget->property("parameterName").toString()), widgetProperty.read(widget));
         }
     }
@@ -679,7 +677,7 @@ void ParameterizedURLEditor::updateParameters() {
     if (_program) {
         _program->disconnect(this);
     }
-    _program = ScriptCache::getInstance()->getProgram(_url.getURL());
+    _program = DependencyManager::get<ScriptCache>()->getProgram(_url.getURL());
     if (_program->isLoaded()) {
         continueUpdatingParameters();
     } else {
@@ -700,7 +698,7 @@ void ParameterizedURLEditor::continueUpdatingParameters() {
         }
         delete form;
     }
-    QSharedPointer<NetworkValue> value = ScriptCache::getInstance()->getValue(_url.getURL());
+    QSharedPointer<NetworkValue> value = DependencyManager::get<ScriptCache>()->getValue(_url.getURL());
     const QList<ParameterInfo>& parameters = static_cast<RootNetworkValue*>(value.data())->getParameterInfo();
     if (parameters.isEmpty()) {
         return;

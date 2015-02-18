@@ -4,7 +4,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
     brew tap highfidelity/homebrew-formulas
-    brew install cmake glm openssl tbb
+    brew install cmake openssl tbb libsoxr
     brew install highfidelity/formulas/qt5
     brew link qt5 --force
 

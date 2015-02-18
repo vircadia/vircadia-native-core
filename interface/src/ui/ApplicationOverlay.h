@@ -37,6 +37,9 @@ public:
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
     
+    bool hasMagnifier() const { return _magnifier; }
+    void toggleMagnifier() { _magnifier = !_magnifier; }
+
     float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
     void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; }
     
@@ -109,7 +112,8 @@ private:
     bool _magActive[NUMBER_OF_RETICLES];
     float _magSizeMult[NUMBER_OF_RETICLES];
     quint64 _lastMouseMove;
-    
+    bool _magnifier;
+
     float _alpha;
     float _oculusUIRadius;
     float _trailingAudioLoudness;

@@ -119,6 +119,7 @@
             var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
             var elLifetime = document.getElementById("property-lifetime");
             var elScriptURL = document.getElementById("property-script-url");
+            var elUserData = document.getElementById("property-user-data");
 
             var elBoxSections = document.querySelectorAll(".box-section");
             var elBoxColorRed = document.getElementById("property-box-red");
@@ -154,6 +155,7 @@
             var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
+            var elModelShapeType = document.getElementById("property-model-shape");
 
             var elTextSections = document.querySelectorAll(".text-section");
             var elTextText = document.getElementById("property-text-text");
@@ -224,6 +226,7 @@
                             elCollisionsWillMove.checked = properties.collisionsWillMove;
                             elLifetime.value = properties.lifetime;
                             elScriptURL.value = properties.script;
+                            elUserData.value = properties.userData;
 
                             if (properties.type != "Box") {
                                 for (var i = 0; i < elBoxSections.length; i++) {
@@ -256,6 +259,7 @@
                                 elModelAnimationSettings.value = properties.animationSettings;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
+                                elModelShapeType.value = properties.shapeType;
                             }
 
                             if (properties.type != "Text") {
@@ -361,6 +365,7 @@
             elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
             elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
+            elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
 
             var boxColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'color', elBoxColorRed, elBoxColorGreen, elBoxColorBlue);
@@ -401,6 +406,7 @@
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
             elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
+            elModelShapeType.addEventListener('change', createEmitNumberPropertyUpdateFunction('shapeType'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -559,13 +565,6 @@
         </div>
 
         <div class="property">
-            <div class="label">Mass</div>
-            <div class="value">
-                <input type='number' id="property-mass"></input>
-            </div>
-        </div>
-
-        <div>
             <div class="label">Density</div>
             <div>
                 <input type='number' id="property-density"></input>
@@ -597,6 +596,13 @@
             <div class="label">Script URL</div>
             <div class="value">
                 <input id="property-script-url" class="url"></input>
+            </div>
+        </div>
+
+        <div class="property">
+            <div class="label">User Data</div>
+            <div class="value">
+                <textarea id="property-user-data"></textarea>
             </div>
         </div>
 
@@ -645,7 +651,7 @@
         <div class="model-section property">
             <div class="label">Animation Settings</div>
             <div class="value">
-                <textarea id="property-model-animation-settings" value='asdfasdf'></textarea>
+                <textarea id="property-model-animation-settings"></textarea>
             </div>
         </div>
         <div class="model-section property">
@@ -658,6 +664,17 @@
             <div class="label">Original Textures</div>
             <div class="value">
                 <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
+            </div>
+        </div>
+
+        <div class="model-section property">
+            <div class="label">Shape Type</div>
+            <div class="value">
+                <select name="SelectShapeType" id="property-model-shape" name="SelectShapeType">
+                    <option value=0>None</option>
+                    <option value=1>Box</option>
+                    <option value=2>Sphere</option>
+                </select> 
             </div>
         </div>
 

@@ -76,9 +76,6 @@ function scriptEnding() {
     if (entity != null) {
         Entities.deleteEntity(entity);
     }
-    if (injector != null) {
-        injector.stop();
-    }
 }
 
 Script.update.connect(update);

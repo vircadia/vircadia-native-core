@@ -18,33 +18,41 @@
 #include <QHideEvent>
 #include <QWindowStateChangeEvent>
 
-#include <Settings.h>
-
 #include "MainWindow.h"
 #include "Menu.h"
 #include "Util.h"
 
-namespace SettingHandles {
-    const SettingHandle<QRect> windowGeometry("WindowGeometry");
-}
-
-
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget* parent) :
+    QMainWindow(parent),
+    _windowGeometry("WindowGeometry"),
+    _windowState("WindowState", 0)
+{
 }
 
 void MainWindow::restoreGeometry() {
     // Did not use setGeometry() on purpose,
     // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
-    QRect geometry = SettingHandles::windowGeometry.get(qApp->desktop()->availableGeometry());
+    QRect geometry = _windowGeometry.get(qApp->desktop()->availableGeometry());
     move(geometry.topLeft());
     resize(geometry.size());
+
+    // Restore to maximized or full screen after restoring to windowed so that going windowed goes to good position and sizes.
+    Qt::WindowStates state = (Qt::WindowStates)_windowState.get(Qt::WindowNoState);
+    if (state != Qt::WindowNoState) {
+        setWindowState(state);
+    }
 }
 
 void MainWindow::saveGeometry() {
     // Did not use geometry() on purpose,
     // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
-    QRect geometry(pos(), size());
-    SettingHandles::windowGeometry.set(geometry);
+    _windowState.set((int)windowState());
+
+    // Save position and size only if windowed so that have good values for windowed after starting maximized or full screen.
+    if (windowState() == Qt::WindowNoState) {
+        QRect geometry(pos(), size());
+        _windowGeometry.set(geometry);
+    }
 }
 
 void MainWindow::moveEvent(QMoveEvent* event) {

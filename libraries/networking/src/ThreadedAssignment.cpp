@@ -83,6 +83,7 @@ void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObje
     auto nodeList = DependencyManager::get<NodeList>();
     
     float packetsPerSecond, bytesPerSecond;
+    // XXX can BandwidthRecorder be used for this?
     nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
     nodeList->resetPacketStats();
     

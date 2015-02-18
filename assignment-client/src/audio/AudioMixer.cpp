@@ -648,6 +648,7 @@ void AudioMixer::run() {
     
     // setup a QThread with us as parent that will house the AudioMixerDatagramProcessor
     _datagramProcessingThread = new QThread(this);
+    _datagramProcessingThread->setObjectName("Datagram Processor Thread");
     
     // create an AudioMixerDatagramProcessor and move it to that thread
     AudioMixerDatagramProcessor* datagramProcessor = new AudioMixerDatagramProcessor(nodeList->getNodeSocket(), thread());

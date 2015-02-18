@@ -80,18 +80,9 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
-// disable the standard application for mouse events
-Controller.captureMouseEvents();
-
-function scriptEnding() {
-    // re-enabled the standard application for mouse events
-    Controller.releaseMouseEvents();
-}
-
 MyAvatar.bodyYaw = 0;
 MyAvatar.bodyPitch = 0;
 MyAvatar.bodyRoll = 0;
 
 // would be nice to change to update
 Script.update.connect(update);
-Script.scriptEnding.connect(scriptEnding);

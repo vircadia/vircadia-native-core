@@ -19,7 +19,9 @@
 
 #include "Rectangle3DOverlay.h"
 
-Rectangle3DOverlay::Rectangle3DOverlay() {
+Rectangle3DOverlay::Rectangle3DOverlay() :
+    _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
+{
 }
 
 Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay) :
@@ -70,16 +72,16 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
             
             // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
             if (getIsSolid()) {
-                glm::vec3 topLeft(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                glm::vec3 bottomRight(halfDimensions.x, 0.0f, halfDimensions.y);
+                glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
                 DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, rectangleColor);
             } else {
                 if (getIsDashedLine()) {
 
-                    glm::vec3 point1(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glm::vec3 point2(halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glm::vec3 point3(halfDimensions.x, 0.0f, halfDimensions.y);
-                    glm::vec3 point4(-halfDimensions.x, 0.0f, halfDimensions.y);
+                    glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                    glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
+                    glm::vec3 point3(halfDimensions.x, halfDimensions.y, 0.0f);
+                    glm::vec3 point4(-halfDimensions.x, halfDimensions.y, 0.0f);
                 
                     geometryCache->renderDashedLine(point1, point2, rectangleColor);
                     geometryCache->renderDashedLine(point2, point3, rectangleColor);
@@ -90,11 +92,11 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                 
                     if (halfDimensions != _previousHalfDimensions) {
                         QVector<glm::vec3> border;
-                        border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                        border << glm::vec3(halfDimensions.x, 0.0f, -halfDimensions.y);
-                        border << glm::vec3(halfDimensions.x, 0.0f, halfDimensions.y);
-                        border << glm::vec3(-halfDimensions.x, 0.0f, halfDimensions.y);
-                        border << glm::vec3(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                        border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                        border << glm::vec3(halfDimensions.x, -halfDimensions.y, 0.0f);
+                        border << glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
+                        border << glm::vec3(-halfDimensions.x, halfDimensions.y, 0.0f);
+                        border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
                         geometryCache->updateVertices(_geometryCacheID, border, rectangleColor);
 
                         _previousHalfDimensions = halfDimensions;

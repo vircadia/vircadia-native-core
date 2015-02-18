@@ -56,9 +56,6 @@ The recommended route for CMake to find the external dependencies is to place al
             -> bin
             -> include
             -> lib
-        -> glm
-            -> glm
-                -> glm.hpp
         -> openssl
             -> bin
             -> include
@@ -129,26 +126,6 @@ Download the binary package: `glew-1.10.0-win32.zip`. Extract to %HIFI_LIB_DIR%\
 
 Add to the PATH: `%HIFI_LIB_DIR%\glew\bin\Release\Win32`
 
-###GLM
-
-This package contains only headers, so there's nothing to add to the PATH.
-
-Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
-
-###Gverb
-
-1. Go to https://github.com/highfidelity/gverb
-   Or download the sources directly via this link: 
-   https://github.com/highfidelity/gverb/archive/master.zip
-
-2. Extract the archive
-
-3. Place the directories “include” and “src” in interface/external/gverb 
-   (Normally next to this readme)
-
-4. Clear your build directory, run cmake, build and you should be all set.
-
-
 ###Bullet
 
 Bullet 2.82 source can be [downloaded here](https://code.google.com/p/bullet/downloads/detail?name=bullet-2.82-r2704.zip). Bullet does not come with prebuilt libraries, you need to make those yourself.
@@ -167,7 +144,7 @@ cmake .. -G "Visual Studio 12"
 msbuild BULLET_PHYSICS.sln /p:Configuration=Debug
 ```
 
-This will create Debug libraries in cmakebuild\lib\Debug you can replace Debug with Release in the msbuild command and that will generate Release libraries in cmakebuild\lib\Release.
+This will create Debug libraries in cmakebuild\lib\Debug. You can replace Debug with Release in the msbuild command and that will generate Release libraries in cmakebuild\lib\Release.
 
 You now have Bullet libraries compiled, now you need to put them in the right place for hifi to find them:
 
@@ -177,6 +154,22 @@ You now have Bullet libraries compiled, now you need to put them in the right pl
 * Copy all the contents inside cmakebuild\lib\ into %HIFI_LIB_DIR\bullet\lib
 
 _Note that the INSTALL target should handle the copying of files into an install directory automatically, however, without modifications to Cmake, the install target didn't work right for me, please update this instructions if you get that working right - Leo &lt;leo@highfidelity.io&gt;_
+
+###Soxr
+
+Download the zip from the [soxr sourceforge page](http://sourceforge.net/projects/soxr/). 
+
+We recommend you install it to %HIFI_LIB_DIR%\soxr. This will help our FindSoxr cmake module find what it needs. You can place it wherever you like on your machine if you specify SOXR_ROOT_DIR as an environment variable or a variable passed when cmake is run.
+
+Extract the soxr archive wherever you like. Then, inside the extracted folder, create a directory called `build`. From that build directory, the following commands will build and then install soxr to `%HIFI_LIB_DIR%`.
+
+(Make sure to run the following inside Visual Studio)
+
+```
+cmake .. -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=%HIFI_LIB_DIR%/soxr
+nmake
+nmake install
+```
 
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.

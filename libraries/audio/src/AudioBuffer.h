@@ -1,6 +1,6 @@
 //
 //  AudioBuffer.h
-//  hifi
+//  libraries/audio/src
 //
 //  Created by Craig Hansen-Sturm on 8/29/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -15,6 +15,8 @@
 #include <typeinfo>
 
 #include <QDebug>
+
+#include "AudioFormat.h"
 
 template< typename T >
 class AudioFrameBuffer {

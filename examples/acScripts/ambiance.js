@@ -33,9 +33,3 @@ Script.update.connect(function() {
     print("Playing: " + injector);
   }
 });
-
-Script.scriptEnding.connect(function() {
-    if (injector !== null) {
-        injector.stop();
-    }
-});

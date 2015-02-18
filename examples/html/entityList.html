@@ -168,14 +168,16 @@
     </script>
 </head>
 <body onload='loaded();'>
-    <div>
+    <div id="entity-list-header">
         <input type="button" id="refresh" value="Refresh"></button>
         <input type="button" id="teleport" value="Teleport"></button>
         <input type="button" id="delete" style="background-color: rgb(244, 64, 64); float: right" value="Delete"></button>
     </div>
 
     <div id="entity-list">
-        <input type="text" class="search" id="filter" placeholder="Filter" />
+        <div id="search-area">
+            <input type="text" class="search" id="filter" placeholder="Filter" />
+        </div>
         <table id="entity-table">
             <thead>
                 <tr>

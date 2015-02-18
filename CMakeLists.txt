@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 2.8.12.2)
 
+if (USE_ANDROID_TOOLCHAIN)
+  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
+  set(ANDROID_NATIVE_API_LEVEL 19)
+endif ()
+
 if (WIN32)
   cmake_policy(SET CMP0020 NEW)
 endif (WIN32)
@@ -35,7 +40,7 @@ if (WIN32)
 elseif (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
   #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fno-strict-aliasing")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fno-strict-aliasing -ggdb")
 endif(WIN32)
 
 if (NOT MSVC12)
@@ -58,8 +63,27 @@ if (APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --stdlib=libc++")
 endif ()
 
-if (NOT QT_CMAKE_PREFIX_PATH)
-  set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+if (NOT ANDROID_LIB_DIR)
+  set(ANDROID_LIB_DIR $ENV{ANDROID_LIB_DIR})
+endif ()
+
+if (ANDROID)  
+  if (NOT ANDROID_QT_CMAKE_PREFIX_PATH)
+    set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.4/android_armv7/lib/cmake)
+  else ()
+    set(QT_CMAKE_PREFIX_PATH ${ANDROID_QT_CMAKE_PREFIX_PATH})
+  endif ()
+  
+  set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+  
+  if (ANDROID_LIB_DIR)
+    list(APPEND CMAKE_FIND_ROOT_PATH ${ANDROID_LIB_DIR})
+  endif ()
+else ()
+  if (NOT QT_CMAKE_PREFIX_PATH)
+    set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+  endif ()
 endif ()
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
@@ -71,6 +95,8 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
+# Instruct CMake to run rcc automatically when needed
+set(CMAKE_AUTORCC ON)
 
 set(HIFI_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries")
 
@@ -78,16 +104,30 @@ set(HIFI_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 set(MACRO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros")
+set(EXTERNAL_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/externals")
 
 file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
 endforeach()
 
-# targets on all platforms
-add_subdirectory(assignment-client)
-add_subdirectory(domain-server)
-add_subdirectory(ice-server)
-add_subdirectory(interface)
-add_subdirectory(tests)
-add_subdirectory(tools)
+if (ANDROID)
+  file(GLOB ANDROID_CUSTOM_MACROS "cmake/android/*.cmake")
+  foreach(CUSTOM_MACRO ${ANDROID_CUSTOM_MACROS})
+    include(${CUSTOM_MACRO})
+  endforeach()
+endif ()
+
+# add subdirectories for all targets
+if (NOT ANDROID)
+  add_subdirectory(assignment-client)
+  add_subdirectory(domain-server)
+  add_subdirectory(ice-server)
+  add_subdirectory(interface)
+  add_subdirectory(tests)
+  add_subdirectory(tools)
+endif ()
+
+if (ANDROID OR DESKTOP_GVR)
+  add_subdirectory(gvr-interface)
+endif ()

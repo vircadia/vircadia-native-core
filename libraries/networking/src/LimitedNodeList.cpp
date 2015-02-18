@@ -36,9 +36,10 @@ const char SOLO_NODE_TYPES[2] = {
     NodeType::AudioMixer
 };
 
-const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
+const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://metaverse.highfidelity.io");
 
 LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
+    linkedDataCreateCallback(NULL),
     _sessionUUID(),
     _nodeHash(),
     _nodeMutex(QReadWriteLock::Recursive),
@@ -47,8 +48,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _localSockAddr(),
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
-    _numCollectedPackets(0),
-    _numCollectedBytes(0),
     _packetStatTimer()
 {
     static bool firstCall = true;
@@ -108,19 +107,6 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
         // DTLS requires that IP_DONTFRAG be set
         // This is not accessible on some platforms (OS X) so we need to make sure DTLS still works without it
         
-#if defined(IP_DONTFRAG) || defined(IP_MTU_DISCOVER)
-        qDebug() << "Making required DTLS changes to LimitedNodeList DTLS socket.";
-        
-        int socketHandle = _dtlsSocket->socketDescriptor();
-#if defined(IP_DONTFRAG)
-        int optValue = 1;
-        setsockopt(socketHandle, IPPROTO_IP, IP_DONTFRAG, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
-#elif defined(IP_MTU_DISCOVER)
-        int optValue = 1;
-        setsockopt(socketHandle, IPPROTO_IP, IP_MTU_DISCOVER, reinterpret_cast<const void*>(&optValue), sizeof(optValue));
-#endif
-#endif
-        
         qDebug() << "LimitedNodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
@@ -141,7 +127,6 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
         }
         int oldBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
         if (oldBufferSize < numBytes) {
-            _nodeSocket.setSocketOption(bufferOpt, numBytes);
             int newBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
             
             qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
@@ -169,6 +154,8 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
+
+            emit packetVersionMismatch();
             
             versionDebugSuppressMap.insert(senderUUID, checkType);
         }
@@ -208,6 +195,21 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     return false;
 }
 
+// qint64 LimitedNodeList::readDatagram(char* data, qint64 maxSize, QHostAddress* address = 0, quint16 * port = 0) {
+
+qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* address = 0, quint16 * port = 0) {
+    qint64 result = getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(), address, port);
+
+    SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
+    if (sendingNode) {
+        emit dataReceived(sendingNode->getType(), incomingPacket.size());
+    } else {
+        emit dataReceived(NodeType::Unassigned, incomingPacket.size());
+    }
+        
+    return result;
+}
+
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
                                       const QUuid& connectionSecret) {
     QByteArray datagramCopy = datagram;
@@ -217,6 +219,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
         replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
     }
     
+    // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
@@ -231,10 +234,11 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
     return bytesWritten;
 }
 
-qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
-                               const HifiSockAddr& overridenSockAddr) {
+qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
+                                      const SharedNodePointer& destinationNode,
+                                      const HifiSockAddr& overridenSockAddr) {
     if (destinationNode) {
-        // if we don't have an ovveriden address, assume they want to send to the node's active socket
+        // if we don't have an overridden address, assume they want to send to the node's active socket
         const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
         if (overridenSockAddr.isNull()) {
             if (destinationNode->getActiveSocket()) {
@@ -245,6 +249,8 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const SharedNo
                 return 0;
             }
         }
+
+        emit dataSent(destinationNode->getType(), datagram.size());
         
         return writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
     }
@@ -303,7 +309,6 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
     QMutexLocker locker(&matchingNode->getMutex());
     
     matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-    matchingNode->recordBytesReceived(packet.size());
     
     if (!matchingNode->getLinkedData() && linkedDataCreateCallback) {
         linkedDataCreateCallback(matchingNode.data());
@@ -393,26 +398,30 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 }
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                                   const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
-    try {
-        SharedNodePointer matchingNode = _nodeHash.at(uuid);
+                                                   const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+                                                   bool canAdjustLocks) {
+    NodeHash::const_iterator it = _nodeHash.find(uuid);
+    
+    if (it != _nodeHash.end()) {
+        SharedNodePointer& matchingNode = it->second;
         
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
+        matchingNode->setCanAdjustLocks(canAdjustLocks);
         
         return matchingNode;
-    } catch (std::out_of_range) {
+    } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
-        SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, canAdjustLocks);
+        SharedNodePointer newNodePointer(newNode);
         
-        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodeSharedPointer));
+        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
         
         qDebug() << "Added" << *newNode;
         
-        emit nodeAdded(newNodeSharedPointer);
+        emit nodeAdded(newNodePointer);
         
-        return newNodeSharedPointer;
+        return newNodePointer;
     }
 }
 

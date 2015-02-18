@@ -19,13 +19,13 @@
 #include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
-#include <AudioScriptingInterface.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
 
 #include "AbstractControllerScriptingInterface.h"
 #include "ArrayBufferClass.h"
+#include "AudioScriptingInterface.h"
 #include "Quat.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
@@ -58,6 +58,8 @@ public:
     void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                               QScriptEngine::FunctionSignature setter, QScriptValue object = QScriptValue::NullValue);
     void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
+    void registerFunction(QScriptValue parent, const QString& name, QScriptEngine::FunctionSignature fun,
+                          int numArguments = -1);
 
     Q_INVOKABLE void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }

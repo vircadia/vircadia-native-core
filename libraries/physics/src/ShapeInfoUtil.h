@@ -17,16 +17,12 @@
 
 #include <ShapeInfo.h>
 
-#include "DoubleHashKey.h"
-
 // translates between ShapeInfo and btShape
 
 namespace ShapeInfoUtil {
     void collectInfoFromShape(const btCollisionShape* shape, ShapeInfo& info);
 
     btCollisionShape* createShapeFromInfo(const ShapeInfo& info);
-
-    DoubleHashKey computeHash(const ShapeInfo& info);
 
     // TODO? just use bullet shape types everywhere?
     int toBulletShapeType(int shapeInfoType);

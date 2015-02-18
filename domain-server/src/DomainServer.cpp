@@ -28,7 +28,7 @@
 #include <HTTPConnection.h>
 #include <LogUtils.h>
 #include <PacketHeaders.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <UUID.h>
@@ -40,6 +40,11 @@
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+
+
+const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
+const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
+
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -638,10 +643,16 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
             // we got a packetUUID we didn't recognize, just add the node
             nodeUUID = QUuid::createUuid();
         }
-        
 
-        SharedNodePointer newNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(nodeUUID, nodeType,
-                                                                                    publicSockAddr, localSockAddr);
+        // if this user is in the editors list (or if the editors list is empty) set the user's node's canAdjustLocks to true
+        const QVariant* allowedEditorsVariant =
+            valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
+        QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
+        bool canAdjustLocks = allowedEditors.isEmpty() || allowedEditors.contains(username);
+
+        SharedNodePointer newNode =
+            DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(nodeUUID, nodeType,
+                                                                       publicSockAddr, localSockAddr, canAdjustLocks);
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
@@ -663,7 +674,6 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     }
 }
 
-const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
 
 bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
@@ -842,6 +852,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // always send the node their own UUID back
     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
     broadcastDataStream << node->getUUID();
+    broadcastDataStream << node->getCanAdjustLocks();
 
     int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
 
@@ -906,10 +917,10 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                 }
             });
         }
-
-        // always write the last broadcastPacket
-        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
     }
+    
+    // always write the last broadcastPacket
+    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
 }
 
 void DomainServer::readAvailableDatagrams() {
@@ -1925,7 +1936,7 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     
     // persist the cookie to settings file so we can get it back on DS relaunch
     QStringList path = QStringList() << DS_SETTINGS_SESSIONS_GROUP << cookieUUID.toString();
-    SettingHandles::SettingHandle<QVariant>(path).set(QVariant::fromValue(sessionData));
+    Setting::Handle<QVariant>(path).set(QVariant::fromValue(sessionData));
     
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);
