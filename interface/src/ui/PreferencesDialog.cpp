@@ -24,22 +24,9 @@
 #include "PreferencesDialog.h"
 #include "Snapshot.h"
 #include "UserActivityLogger.h"
+#include "UIUtil.h"
 
 const int PREFERENCES_HEIGHT_PADDING = 20;
-
-void scaleWidgetFontSizes(QWidget* widget, float scale) {
-    for (auto child : widget->findChildren<QWidget*>()) {
-        if (child->parent() == widget) {
-            scaleWidgetFontSizes(child, scale);
-        }
-    }
-    QFont font = widget->font();
-    qDebug() << "Pref: " << widget->objectName() << ": " << font.pointSizeF();
-    if (font != QFont()) {
-        font.setPointSizeF(font.pointSizeF() * scale);
-        widget->setFont(font);
-    }
-}
 
 PreferencesDialog::PreferencesDialog(QWidget* parent) :
     QDialog(parent) {
@@ -67,7 +54,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     // All font sizes are based on 72 DPI.
     float dpiScale = 72.0f / glCanvas->logicalDpiX();
 
-    scaleWidgetFontSizes(this, dpiScale);
+    UIUtil::scaleWidgetFontSizes(this);
 }
 
 
