@@ -10,6 +10,12 @@
     <height>728</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <family>Helvetica,Arial,sans-serif</family>
+    <pointsize>13</pointsize>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Running Scripts</string>
   </property>
