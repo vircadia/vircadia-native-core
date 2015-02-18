@@ -34,11 +34,14 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 Once Qt is installed, you need to manually configure the following:
 * Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.3.2\msvc2013_opengl` directory.
   * You can set an environment variable from Control Panel > System > Advanced System Settings > Environment Variables > New
+
 ###External Libraries
 
 As it stands, Hifi/Interface is a 32-bit application, so all libraries should also be 32-bit.
 
 CMake will need to know where the headers and libraries for required external dependencies are. 
+
+We use CMake's `fixup_bundle` to find the DLLs all of our exectuable targets require, and then copy them beside the executable in a post-build step. If `fixup_bundle` is having problems finding a DLL, you can fix it manually on your end by adding the folder containing that DLL to your path. Let us know which DLL CMake had trouble finding, as it is possible a tweak to our CMake files is required.
 
 The recommended route for CMake to find the external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
