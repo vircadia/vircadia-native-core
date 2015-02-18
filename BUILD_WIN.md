@@ -6,7 +6,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * (remember that you need all other dependencies listed in [BUILD.md](BUILD.md))
 
-####Visual Studio 2013
+###Visual Studio 2013
 
 You can use the Community or Professional editions of Visual Studio 2013.
 
@@ -32,10 +32,8 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 * [Download the offline installer](http://download.qt-project.org/official_releases/qt/5.3/5.3.2/qt-opensource-windows-x86-msvc2013_opengl-5.3.2.exe)
 
 Once Qt is installed, you need to manually configure the following:
-* Make sure the Qt runtime DLLs are loadable. You must do this before you attempt to build because some tools for the build depend on Qt. E.g., add to the PATH: `Qt\5.3.2\msvc2013_opengl\bin\`. 
-* Go to Control Panel > System > Advanced System Settings > Environment Variables > New ...
 * Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.3.2\msvc2013_opengl` directory.
-
+  * You can set an environment variable from Control Panel > System > Advanced System Settings > Environment Variables > New
 ###External Libraries
 
 As it stands, Hifi/Interface is a 32-bit application, so all libraries should also be 32-bit.
@@ -70,9 +68,7 @@ The recommended route for CMake to find the external dependencies is to place al
 
 For many of the external libraries where precompiled binaries are readily available you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. Otherwise you may need to build from source and install the built product to this directory. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it. From here on, whenever you see %HIFI_LIB_DIR% you should substitute the directory that you chose.
 
-As with the Qt libraries, you will need to make sure that directories containing DLL'S are in your path. Where possible, you can use static builds of the external dependencies to avoid this requirement.
-
-###OpenSSL
+####OpenSSL
 
 Qt will use OpenSSL if it's available, but it doesn't install it, so you must install it separately.
 
@@ -92,13 +88,13 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
-###Intel Threading Building Blocks (TBB)
+####Intel Threading Building Blocks (TBB)
 
 Download the zip from the [TBB website](https://www.threadingbuildingblocks.org/). 
 
 We recommend you extract it to %HIFI_LIB_DIR%\tbb. This will help our FindTBB cmake module find what it needs. You can place it wherever you like on your machine if you specify TBB_ROOT_DIR as an environment variable or a variable passed when cmake is run.
 
-###Zlib
+####Zlib
 
 Download the compiled DLL from the [zlib website](http://www.zlib.net/). Extract to %HIFI_LIB_DIR%\zlib.
 
@@ -114,19 +110,19 @@ Add to the PATH: `%HIFI_LIB_DIR%\zlib`
 Important! This should be added at the beginning of the path, not the end (your 
 system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version). If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
 
-###freeglut
+####freeglut
 
 Download the binary package: `freeglut-MSVC-2.8.1-1.mp.zip`. Extract to %HIFI_LIB_DIR%\freeglut.
 
 Add to the PATH: `%HIFI_LIB_DIR%\freeglut\bin`
 
-###GLEW
+####GLEW
 
 Download the binary package: `glew-1.10.0-win32.zip`. Extract to %HIFI_LIB_DIR%\glew (you'll need to rename the default directory name).
 
 Add to the PATH: `%HIFI_LIB_DIR%\glew\bin\Release\Win32`
 
-###Bullet
+####Bullet
 
 Bullet 2.82 source can be [downloaded here](https://code.google.com/p/bullet/downloads/detail?name=bullet-2.82-r2704.zip). Bullet does not come with prebuilt libraries, you need to make those yourself.
 

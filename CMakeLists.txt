@@ -88,6 +88,10 @@ endif ()
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
+if (WIN32)
+  add_paths_to_lib_paths("${QT_CMAKE_PREFIX_PATH}/bin")
+endif ()
+
 # set our OS X deployment target to
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
 
