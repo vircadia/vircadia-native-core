@@ -86,4 +86,3 @@ MyAvatar.bodyRoll = 0;
 
 // would be nice to change to update
 Script.update.connect(update);
-Script.scriptEnding.connect(scriptEnding);
