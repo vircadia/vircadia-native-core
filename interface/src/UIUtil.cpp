@@ -60,6 +60,8 @@ void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
     // This would give a final scale of: 0.75 * 2.0 = 1.5
     fontScale *= (glCanvas->logicalDpiX() / NATIVE_DPI);
 
+    qDebug() << "Scaling widgets by: " << fontScale;
+
     internalScaleWidgetFontSizes(widget, fontScale);
 }
 
