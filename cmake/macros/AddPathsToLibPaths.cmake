@@ -14,6 +14,8 @@ macro(ADD_PATHS_TO_LIB_PATHS)
     set(TEMP_LIB_PATHS ${LIB_PATHS})
     list(APPEND TEMP_LIB_PATHS ${_PATH})
     
+    list(REMOVE_DUPLICATES _TEMP_LIB_PATHS)
+    
     set(LIB_PATHS ${TEMP_LIB_PATHS} CACHE TYPE LIST FORCE)
   endforeach()
 endmacro()
