@@ -280,8 +280,8 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     const float dpiScaleY = NATIVE_DPI / glCanvas->logicalDpiY();
 #endif
 
-    const float width = glCanvas->width() * dpiScaleX;
-    const float height = glCanvas->height() * dpiScaleY;
+    const float width = glCanvas->width() / dpiScaleX;
+    const float height = glCanvas->height() / dpiScaleY;
 
     return glm::vec2(width, height);
 }
