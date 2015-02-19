@@ -2,7 +2,6 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 ###Windows Specific Dependencies
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
-* [zLib](http://www.zlib.net/) ~> 1.2.8
 * (remember that you need all other dependencies listed in [BUILD.md](BUILD.md))
 
 ###Visual Studio 2013
@@ -79,22 +78,6 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 * Win32 OpenSSL v1.0.1L
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
-
-####Zlib
-
-Download the compiled DLL from the [zlib website](http://www.zlib.net/). Extract to %HIFI_LIB_DIR%\zlib.
-
-Add the following environment variables (remember to substitute your own directory for %HIFI_LIB_DIR%):
-
-    ZLIB_LIBRARY=%HIFI_LIB_DIR%\zlib\lib\zdll.lib
-    ZLIB_INCLUDE_DIR=%HIFI_LIB_DIR%\zlib\include
-
-Add to the PATH: `%HIFI_LIB_DIR%\zlib`
-
-(The PATH environment variable is where Windows looks for its DLL's and executables. There's a great tool for editing these variables with ease, [Rapid Environment Editor](http://www.rapidee.com/en/download))
-
-Important! This should be added at the beginning of the path, not the end (your 
-system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version). If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
 
 ####GLEW
 
