@@ -19,7 +19,7 @@ ExternalProject_Add(
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include CACHE TYPE "Path to bullet include directory")
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include/bullet CACHE TYPE "Path to bullet include directory")
 
 set(BULLET_LIB_DIR "${INSTALL_DIR}/lib")
 
