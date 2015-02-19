@@ -48,10 +48,11 @@ void main(void) {
     // use standard pipeline transform
     //gl_Position = ftransform();
     //gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
- //   TransformObject obj = getTransformObject();
-    TransformCamera cam = getTransformCamera();
+    //gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
+   //TransformCamera cam = getTransformCamera();
+   /*  TransformObject obj = getTransformObject();
  //   gl_Position = transform(cam, obj, gl_Vertex);
-
+ */
     vec4 vPos = gl_ModelViewMatrix * gl_Vertex;
-    gl_Position = cam._projection * vPos; 
+    gl_Position = camera._projection * vPos; 
 }

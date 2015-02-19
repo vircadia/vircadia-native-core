@@ -231,11 +231,11 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
 
     loc = glGetUniformBlockIndex(program.programId(), "transformCameraBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 7);
+        glUniformBlockBinding(program.programId(), loc, 2);
        // locations.materialBufferUnit = 1;
     }
 
-    program.link();
+    //program.link();
     if (!program.isLinked()) {
         program.release();
     }

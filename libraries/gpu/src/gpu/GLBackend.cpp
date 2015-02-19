@@ -492,21 +492,23 @@ void GLBackend::updateTransform() {
     }
      
     if (_transform._invalidView || _transform._invalidProj) {
-        glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformCameraBuffer);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+       glBindBufferBase(GL_UNIFORM_BUFFER, 2, 0);
+       glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         CHECK_GL_ERROR();
    }
 
     if (_transform._invalidView || _transform._invalidModel) {
-        glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformObjectBuffer);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(_transform._transformObject), (const void*) &_transform._transformObject);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 6, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, _transform._transformObjectBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         CHECK_GL_ERROR();
     }
 
-    glBindBufferRange(GL_UNIFORM_BUFFER, 6, _transform._transformObjectBuffer, 0, sizeof(TransformObject));
-    glBindBufferRange(GL_UNIFORM_BUFFER, 7, _transform._transformCameraBuffer, 0, sizeof(TransformCamera));
+    glBindBufferBase(GL_UNIFORM_BUFFER, 6, _transform._transformObjectBuffer);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 2, _transform._transformCameraBuffer);
         CHECK_GL_ERROR();
 
     // Do it again for fixed pipeline unitl we can get rid of it
