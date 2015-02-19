@@ -111,7 +111,7 @@ find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
 find_package(Bullet REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE SYSTEM ${BULLET_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
