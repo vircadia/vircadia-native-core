@@ -32,8 +32,6 @@ elseif (WIN32)
   set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/wglew.h>")
 endif ()
 
-include_bullet()
-
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
@@ -108,9 +106,13 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # set up the external glm library
-add_dependency_external_projects(glm)
+add_dependency_external_projects(glm bullet)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
+
+find_package(Bullet REQUIRED)
+target_include_directories(${TARGET_NAME} PRIVATE SYSTEM ${BULLET_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars 

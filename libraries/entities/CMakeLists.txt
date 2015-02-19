@@ -7,6 +7,10 @@ add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
-include_bullet()
+add_dependency_external_projects(bullet)
+
+find_package(Bullet REQUIRED)
+target_include_directories(${TARGET_NAME} PRIVATE SYSTEM ${BULLET_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 link_hifi_libraries(avatars shared octree gpu model fbx networking animation)

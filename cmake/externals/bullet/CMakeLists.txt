@@ -1,0 +1,36 @@
+set(EXTERNAL_NAME bullet)
+
+if (ANDROID)
+  set(ANDROID_CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DANDROID_NATIVE_API_LEVEL=19")
+endif ()
+
+include(ExternalProject)
+ExternalProject_Add(
+  ${EXTERNAL_NAME}
+  URL http://bullet.googlecode.com/files/bullet-2.82-r2704.tgz
+  URL_MD5 70b3c8d202dee91a0854b4cbc88173e8
+  CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_SHARED_LIBS=1 -DUSE_GLM=0
+  LOG_DOWNLOAD 1
+  LOG_CONFIGURE 1
+  LOG_BUILD 1
+  LOG_INSTALL 1
+)
+
+ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
+
+string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include CACHE TYPE "Path to bullet include directory")
+
+set(BULLET_LIB_DIR "${INSTALL_DIR}/lib")
+
+set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libBulletDynamics.dylib CACHE TYPE "Bullet dynamics release library location")
+set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet dynamics debug library location")
+
+set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libBulletCollision.dylib CACHE TYPE "Bullet collision release library location")
+set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet collision debug library location")
+
+set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libLinearMath.dylib CACHE TYPE "Bullet math release library location")
+set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet math debug library location")
+
+set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libBulletSoftbody.dylib CACHE TYPE "Bullet softbody release library location")
+set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet softbody debug library location")
