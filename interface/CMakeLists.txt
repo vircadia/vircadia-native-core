@@ -106,7 +106,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # set up the external glm library
-add_dependency_external_projects(glm bullet zlib)
+add_dependency_external_projects(glm bullet)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
@@ -118,9 +118,6 @@ target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars 
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer)
-
-# find any optional and required libraries
-find_package(ZLIB REQUIRED)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -185,7 +182,7 @@ endif ()
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
 target_link_libraries(
-  ${TARGET_NAME} ${ZLIB_LIBRARIES}
+  ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
 )
 

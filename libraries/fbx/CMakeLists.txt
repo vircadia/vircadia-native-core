@@ -8,7 +8,3 @@ find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 link_hifi_libraries(shared gpu model networking octree)
-
-find_package(ZLIB REQUIRED)
-include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
-target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})

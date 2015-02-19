@@ -8,11 +8,3 @@ find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 link_hifi_libraries(shared networking)
-
-# find ZLIB
-find_package(ZLIB REQUIRED)
-
-include_directories(SYSTEM "${ZLIB_INCLUDE_DIRS}")
-
-# append ZLIB and OpenSSL to our list of libraries to link
-target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
