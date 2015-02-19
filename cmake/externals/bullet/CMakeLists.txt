@@ -19,7 +19,7 @@ ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL ${DOWNLOAD_URL}
   URL_MD5 ${DOWNLOAD_MD5}
-  CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DBUILD_SHARED_LIBS=1 -DUSE_GLM=0
+  CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DBUILD_SHARED_LIBS=1 -DUSE_GLM=0
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
@@ -39,17 +39,23 @@ if (APPLE OR UNIX OR ANDROID)
     set(SHARED_LIB_EXT "so")
   endif ()
   
-  set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libBulletDynamics.${SHARED_LIB_EXT} CACHE TYPE "Bullet dynamics release library location")
+  set(LIB_PREFIX "lib")
+elseif (WIN32)
+  set(SHARED_LIB_EXT "lib")
+else ()
+  message(STATUS "Your OS is not handled by our Bullet external project CMakeLists.txt. Please install Bullet yourself and pass -DGET_BULLET=0 when running CMake.")
+endif ()
+
+if (DEFINED SHARED_LIB_EXT)
+  set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletDynamics.${SHARED_LIB_EXT} CACHE TYPE "Bullet dynamics release library location")
   set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet dynamics debug library location")
 
-  set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libBulletCollision.${SHARED_LIB_EXT} CACHE TYPE "Bullet collision release library location")
+  set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletCollision.${SHARED_LIB_EXT} CACHE TYPE "Bullet collision release library location")
   set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet collision debug library location")
 
-  set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libLinearMath.${SHARED_LIB_EXT} CACHE TYPE "Bullet math release library location")
+  set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}LinearMath.${SHARED_LIB_EXT} CACHE TYPE "Bullet math release library location")
   set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet math debug library location")
 
-  set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libBulletSoftBody.${SHARED_LIB_EXT} CACHE TYPE "Bullet softbody release library location")
+  set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletSoftBody.${SHARED_LIB_EXT} CACHE TYPE "Bullet softbody release library location")
   set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet softbody debug library location")
-elseif (WIN32)
-  
 endif ()
