@@ -1,11 +1,11 @@
 set(EXTERNAL_NAME tbb)
 
 if (APPLE)
-  set(DOWNLOAD_URL https://www.threadingbuildingblocks.org/sites/default/files/software_releases/mac/tbb43_20150209oss_osx.tgz)
+  set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_osx.tgz)
 elseif (WIN32)
-  set(DOWNLOAD_URL https://www.threadingbuildingblocks.org/sites/default/files/software_releases/windows/tbb43_20150209oss_win.zip)
+  set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_win.zip)
 else () 
-  set(DOWNLOAD_URL https://www.threadingbuildingblocks.org/sites/default/files/software_releases/linux/tbb43_20150209oss_lin.tgz)
+  set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_lin.tgz)
 endif ()
 
 include(ExternalProject)
