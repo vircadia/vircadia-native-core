@@ -9,6 +9,7 @@ if (ANDROID)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL http://hifi-public.s3.amazonaws.com/dependencies/tbb43_20150209oss_src.tgz
+    URL_MD5 f09c9abe8ec74e6558c1f89cebbe2893
     BUILD_COMMAND ${NDK_BUILD_COMMAND} --directory=jni target=android tbb tbbmalloc arch=arm
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
@@ -18,10 +19,13 @@ if (ANDROID)
 else ()
   if (APPLE)
     set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_osx.tgz)
+    set(DOWNLOAD_MD5 3e683c19792582b61382e0d760ea5db2)
   elseif (WIN32)
     set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_win.zip)
+    set(DOWNLOAD_MD5 e19c184f2bb0e944fc5f397f1e34ca84)
   else () 
     set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_lin.tgz)
+    set(DOWNLOAD_MD5 d9c2a6f7807df364be44a8c3c05e8457)
   endif ()
   
   ExternalProject_Add(
