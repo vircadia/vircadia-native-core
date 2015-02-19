@@ -17,7 +17,6 @@ if (ANDROID)
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1
     LOG_BUILD 1
-    LOG_INSTALL 1
   )
 else ()
   if (APPLE)
