@@ -48,7 +48,7 @@ elseif (WIN32)
   set(BULLET_LIB_EXT "lib")
 endif ()
 
-if (DEFINED SHARED_LIB_EXT)
+if (DEFINED BULLET_LIB_EXT)
   set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletDynamics.${BULLET_LIB_EXT} CACHE TYPE "Bullet dynamics release library location")
   set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet dynamics debug library location")
 
