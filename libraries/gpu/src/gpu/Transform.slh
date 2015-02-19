@@ -13,23 +13,38 @@
 struct TransformObject { 
     mat4 _model;
     mat4 _modelInverse;
-    mat4 _modelView;
-    mat4 _modelViewInverseTranspose;
 };
 
 struct TransformCamera { 
     mat4 _projection;
     mat4 _view;
     mat4 _viewInverse;
+    mat4 _projectionViewUntranslated;
 };
 
 vec4 transform(TransformCamera camera, TransformObject object, vec4 pos) {
-    
-    return camera._projection * (object._modelView * pos);
+  /*  vec4 res = object._model * pos;
+    res += pos.w * camera._viewInverse[3];
+    return camera._projectionViewUntranslated * res;
+*/
+    return camera._projectionViewUntranslated * object._model * pos;
+  //  return camera._projection * camera._view * object._model * pos;
 }
 
 vec3 transformDir(TransformCamera camera, TransformObject object, vec3 dir) {
-    return (object._modelViewInverseTranspose * vec4(dir, 0.0)).xyz;
+    vec3 mIr0 = vec3(object._modelInverse[0].x, object._modelInverse[1].x, object._modelInverse[2].x);
+    vec3 mIr1 = vec3(object._modelInverse[0].y, object._modelInverse[1].y, object._modelInverse[2].y);
+    vec3 mIr2 = vec3(object._modelInverse[0].z, object._modelInverse[1].z, object._modelInverse[2].z);
+
+    vec3 mvIc0 = vec3(dot(camera._viewInverse[0].xyz, mIr0), dot(camera._viewInverse[0].xyz, mIr1), dot(camera._viewInverse[0].xyz, mIr2));
+    vec3 mvIc1 = vec3(dot(camera._viewInverse[1].xyz, mIr0), dot(camera._viewInverse[1].xyz, mIr1), dot(camera._viewInverse[1].xyz, mIr2));
+    vec3 mvIc2 = vec3(dot(camera._viewInverse[2].xyz, mIr0), dot(camera._viewInverse[2].xyz, mIr1), dot(camera._viewInverse[2].xyz, mIr2));
+
+    vec3 result = vec3(dot(mvIc0, dir),
+                       dot(mvIc1, dir),
+                       dot(mvIc2, dir));
+                        
+    return result;
 }
 
 <@if GLPROFILE == PC_GL@>

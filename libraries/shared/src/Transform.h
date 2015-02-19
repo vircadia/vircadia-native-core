@@ -92,6 +92,9 @@ public:
     Mat4& getInverseMatrix(Mat4& result) const;
     Mat4& getInverseTransposeMatrix(Mat4& result) const;
 
+    Mat4& getRotationScaleMatrix(Mat4& result) const;
+    Mat4& getRotationScaleMatrixInverse(Mat4& result) const;
+
     Transform& evalInverse(Transform& result) const;
 
     static void evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotationScaleMatrix);
@@ -336,6 +339,17 @@ inline Transform::Mat4& Transform::getInverseTransposeMatrix(Transform::Mat4& re
     return result;
 }
 
+inline Transform::Mat4& Transform::getRotationScaleMatrix(Mat4& result) const {
+    getMatrix(result);
+    result[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    return result;
+}
+
+inline Transform::Mat4& Transform::getRotationScaleMatrixInverse(Mat4& result) const {
+    getInverseMatrix(result);
+    result[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    return result;
+}
 
 inline void Transform::evalFromRawMatrix(const Mat4& matrix) {
     // for now works only in the case of TRS transformation

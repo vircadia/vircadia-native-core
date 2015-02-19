@@ -11,8 +11,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include gpu/Transform.slh@>
 
 void main(void) {
-    // just use standard pipeline transform
-    gl_Position = ftransform();
+    // use standard pipeline transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    gl_Position = transform(cam, obj, gl_Vertex);
 }

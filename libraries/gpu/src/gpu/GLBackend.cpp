@@ -484,11 +484,10 @@ void GLBackend::updateTransform() {
         _transform._model.getInverseMatrix(_transform._transformObject._modelInverse);
     }
 
-    if (_transform._invalidView || _transform._invalidModel) {
-        Transform mvx;
-        Transform::inverseMult(mvx, _transform._view, _transform._model);
-        mvx.getMatrix(_transform._transformObject._modelView);
-        mvx.getInverseTransposeMatrix(_transform._transformObject._modelViewInverseTranspose);
+    if (_transform._invalidView || _transform._invalidProj) {
+        Mat4 viewUntranslated = _transform._transformCamera._view;
+       // viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        _transform._transformCamera._projectionViewUntranslated = _transform._transformCamera._projection * viewUntranslated;
     }
      
     if (_transform._invalidView || _transform._invalidProj) {
@@ -499,7 +498,7 @@ void GLBackend::updateTransform() {
         CHECK_GL_ERROR();
    }
 
-    if (_transform._invalidView || _transform._invalidModel) {
+    if (_transform._invalidModel) {
         glBindBufferBase(GL_UNIFORM_BUFFER, 6, 0);
         glBindBuffer(GL_ARRAY_BUFFER, _transform._transformObjectBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);

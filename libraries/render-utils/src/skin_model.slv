@@ -12,6 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Transform.slh@>
+
 const int MAX_TEXCOORDS = 2;
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
@@ -34,14 +36,19 @@ void main(void) {
         position += clusterMatrix * gl_Vertex * clusterWeight;
         normal += clusterMatrix * vec4(gl_Normal, 0.0) * clusterWeight;
     }
-    
-    normal = normalize(gl_ModelViewMatrix * normal);
-    
+
     // pass along the diffuse color
     gl_FrontColor = gl_Color;
 
     // and the texture coordinates
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
     
-    gl_Position = gl_ModelViewProjectionMatrix * position;
+    // use standard pipeline transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+
+    gl_Position = transform(cam, obj, position);
+    
+    // transform and store the normal for interpolation
+    normal = vec4(normalize(transformDir(cam, obj, normal.xyz)), 0.0);
 }

@@ -33,8 +33,6 @@ public:
     public:
         Mat4 _model;
         Mat4 _modelInverse;
-        Mat4 _modelView;
-        Mat4 _modelViewInverseTranspose;
     };
 
     class TransformCamera {
@@ -42,6 +40,7 @@ public:
         Mat4 _projection;
         Mat4 _view;
         Mat4 _viewInverse;
+        Mat4 _projectionViewUntranslated;
     };
 
     template< typename T >

@@ -12,6 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Transform.slh@>
+
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
 
@@ -27,5 +29,10 @@ void main(void) {
         float clusterWeight = clusterWeights[i];
         position += clusterMatrix * gl_Vertex * clusterWeight;
     }
-    gl_Position = gl_ModelViewProjectionMatrix * position;
+
+    // use standard pipeline transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+
+    gl_Position = transform(cam, obj, position);
 }
