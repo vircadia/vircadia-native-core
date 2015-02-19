@@ -110,17 +110,6 @@ set(HIFI_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(MACRO_DIR "${HIFI_CMAKE_DIR}/macros")
 set(EXTERNAL_PROJECT_DIR "${HIFI_CMAKE_DIR}/externals")
 
-STRING(REGEX REPLACE " " "-" CMAKE_GENERATOR_FOLDER_NAME ${CMAKE_GENERATOR})
-
-set(EXTERNALS_BINARY_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build-externals")
-if (ANDROID)
-  set(EXTERNALS_BINARY_DIR "${EXTERNALS_BINARY_ROOT_DIR}/android/${CMAKE_GENERATOR_FOLDER_NAME}")
-else ()
-  set(EXTERNALS_BINARY_DIR "${EXTERNALS_BINARY_ROOT_DIR}/${CMAKE_GENERATOR_FOLDER_NAME}")
-endif ()
-
-set_property(DIRECTORY PROPERTY EP_PREFIX "project")
-
 file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
@@ -132,6 +121,9 @@ if (ANDROID)
     include(${CUSTOM_MACRO})
   endforeach()
 endif ()
+
+set_property(DIRECTORY PROPERTY EP_PREFIX "project")
+setup_externals_binary_dir()
 
 if (WIN32)
   add_paths_to_lib_paths("${QT_DIR}/bin")
