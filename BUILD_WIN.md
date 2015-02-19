@@ -2,7 +2,6 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 ###Windows Specific Dependencies
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
-* [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * (remember that you need all other dependencies listed in [BUILD.md](BUILD.md))
 
@@ -46,22 +45,12 @@ We use CMake's `fixup_bundle` to find the DLLs all of our exectuable targets req
 The recommended route for CMake to find the external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
     root_lib_dir
-        -> bullet
-            -> include
-            -> lib
-        -> freeglut
-            -> bin
-            -> include
-            -> lib
         -> glew
             -> bin
             -> include
             -> lib
         -> openssl
             -> bin
-            -> include
-            -> lib
-        -> tbb
             -> include
             -> lib
         -> zlib
@@ -106,12 +95,6 @@ Add to the PATH: `%HIFI_LIB_DIR%\zlib`
 
 Important! This should be added at the beginning of the path, not the end (your 
 system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version). If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
-
-####freeglut
-
-Download the binary package: `freeglut-MSVC-2.8.1-1.mp.zip`. Extract to %HIFI_LIB_DIR%\freeglut.
-
-Add to the PATH: `%HIFI_LIB_DIR%\freeglut\bin`
 
 ####GLEW
 
