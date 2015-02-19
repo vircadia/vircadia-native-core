@@ -72,22 +72,6 @@ This should generate libcrypto and libssl in the root of the OpenSSL directory. 
 
 If you have been building other components it is possible that the OpenSSL compile will fail based on the values other cross-compilations (tbb, bullet) have set. Ensure that you are in a new terminal window to avoid compilation errors from previously set environment variables.
 
-####Intel Threading Building Blocks
-
-Download the [Intel Threading Building Blocks source](https://www.threadingbuildingblocks.org/download) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `tbb`.
-
-NOTE: BEFORE YOU ATTEMPT TO CROSS-COMPILE TBB, DISCONNECT ANY DEVICES ADB WOULD DETECT. The tbb build process asks adb for a couple of strings, and if a device is plugged in extra characters get added that will cause ndk-build to fail with an error.
-
-From the tbb directory, execute the following commands. First, we build TBB using `ndk-build`. Then, the compiled libs are copied to a lib folder in the root of tbb directory.
-
-```
-cd jni
-ndk-build target=android tbb tbbmalloc arch=arm
-cd ../
-mkdir lib
-cp `find . -name "*.so"` lib/
-```
-
 ####Oculus Mobile SDK
 
 The Oculus Mobile SDK is optional, for Gear VR support. It is not required to compile gvr-interface.
@@ -110,7 +94,6 @@ Currently the 'vr_dual' mode that would allow us to run a hybrid app has limited
 To put the Gear VR Service into developer mode you need an application with an Oculus Signature File on your device. Generate an Oculus Signature File for your device on the [Oculus osig tool page](https://developer.oculus.com/tools/osig/). Place this file in the gvr-interface/assets directory. Cmake will automatically copy it into your apk in the right place when you execute `make gvr-interface-apk`.
 
 Once the application is on your device, go to `Settings->Application Manager->Gear VR Service->Manage Storage`. Tap on `VR Service Version` six times. It will scan your device to verify that you have an osig file in an application on your device, and then it will let you enable Developer mode.
-
 
 ###CMake
 

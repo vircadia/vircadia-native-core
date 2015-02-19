@@ -4,13 +4,13 @@
 * [Qt](http://qt-project.org/downloads) ~> 5.3.2
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
-* [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
 * [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
 
 #### CMake External Project Dependencies
 
 The following dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build-externals` directory in each of the subfolders for each external project. These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared. Should you want to force a re-download and re-compile of a specific external, you can simply remove that directory from the appropriate subfolder in `build-externals`. Should you want to force a re-download and re-compile of all externals, just remove the `build-externals` folder.
 
+* [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [gverb](https://github.com/highfidelity/gverb)
 * [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
