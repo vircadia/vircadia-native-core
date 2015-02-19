@@ -106,7 +106,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # set up the external glm library
-add_dependency_external_projects(glm bullet)
+add_dependency_external_projects(glm bullet zlib)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 

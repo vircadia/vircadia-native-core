@@ -33,7 +33,6 @@ ExternalProject_Add(
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include/bullet CACHE TYPE "Path to bullet include directory")
 
 set(BULLET_LIB_DIR "${INSTALL_DIR}/lib")
 
@@ -47,8 +46,6 @@ if (APPLE OR UNIX OR ANDROID)
   set(LIB_PREFIX "lib")
 elseif (WIN32)
   set(BULLET_LIB_EXT "lib")
-else ()
-  message(STATUS "Your OS is not handled by our Bullet external project CMakeLists.txt. Please install Bullet yourself and pass -DGET_BULLET=0 when running CMake.")
 endif ()
 
 if (DEFINED SHARED_LIB_EXT)
@@ -63,4 +60,8 @@ if (DEFINED SHARED_LIB_EXT)
 
   set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletSoftBody.${BULLET_LIB_EXT} CACHE TYPE "Bullet softbody release library location")
   set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet softbody debug library location")
+endif ()
+
+if (DEFINED ${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_RELEASE)
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include/bullet CACHE TYPE "Path to bullet include directory")
 endif ()
