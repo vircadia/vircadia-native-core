@@ -11,6 +11,7 @@
 
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QDesktopServices>
 #include <QFileInfo>
 #include <QtWebKitWidgets/QWebFrame>
 #include <QtWebKit/QWebElement>
@@ -31,6 +32,9 @@ InfoView::InfoView(bool forced, QString path) :
         
     QString absPath = QFileInfo(PathUtils::resourcesPath() + path).absoluteFilePath();
     QUrl url = QUrl::fromLocalFile(absPath);
+    
+    page()->setLinkDelegationPolicy(QWebPage::DelegateExternalLinks);
+    connect(this, SIGNAL(linkClicked(QUrl)), this, SLOT(linkClickedInfoView(QUrl)));
     
     load(url);
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(loaded(bool)));
@@ -82,4 +86,9 @@ void InfoView::loaded(bool ok) {
     setWindowTitle(title());
     setAttribute(Qt::WA_DeleteOnClose);
     show();
+}
+
+void InfoView::linkClickedInfoView(QUrl url) {
+    close();
+    QDesktopServices::openUrl(url);
 }
