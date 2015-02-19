@@ -127,11 +127,6 @@ To put the Gear VR Service into developer mode you need an application with an O
 
 Once the application is on your device, go to `Settings->Application Manager->Gear VR Service->Manage Storage`. Tap on `VR Service Version` six times. It will scan your device to verify that you have an osig file in an application on your device, and then it will let you enable Developer mode.
 
-####GLM
-
-GLM is a header only library and technically the same GLM used for desktop builds of hifi could be used for the Android build. However, to avoid conflicts with system installations of Android dependencies, CMake will only look for Android headers and libraries in `ANDROID_LIB_DIR` or in your android-ndk install. 
-
-Download the [glm headers](http://sourceforge.net/projects/ogl-math/files/) from their sourceforge page. The version you download should match the requirement shown in the [general build guide](BUILD.md). Extract the archive into your `ANDROID_LIB_DIR` and rename the extracted folder to `glm`.
 
 ###CMake
 
