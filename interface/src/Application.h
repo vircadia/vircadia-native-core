@@ -368,7 +368,7 @@ public slots:
 
 private slots:
     void clearDomainOctreeDetails();
-    void timer();
+    void checkFPS();
     void idle();
     void aboutToQuit();
     
