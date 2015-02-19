@@ -38,7 +38,7 @@ if (APPLE OR UNIX OR ANDROID)
   set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libLinearMath.${SHARED_LIB_EXT} CACHE TYPE "Bullet math release library location")
   set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet math debug library location")
 
-  set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libBulletSoftbody.${SHARED_LIB_EXT} CACHE TYPE "Bullet softbody release library location")
+  set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_RELEASE ${BULLET_LIB_DIR}/libBulletSoftBody.${SHARED_LIB_EXT} CACHE TYPE "Bullet softbody release library location")
   set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet softbody debug library location")
 elseif (WIN32)
   
