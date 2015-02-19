@@ -12,7 +12,7 @@
 
 struct TransformObject { 
     mat4 _model;
-    mat4 _modelInverseTranspose;
+    mat4 _modelInverse;
     mat4 _modelView;
     mat4 _modelViewInverseTranspose;
 };
@@ -24,10 +24,13 @@ struct TransformCamera {
 };
 
 vec4 transform(TransformCamera camera, TransformObject object, vec4 pos) {
+    
     return camera._projection * (object._modelView * pos);
 }
 
-
+vec3 transformDir(TransformCamera camera, TransformObject object, vec3 dir) {
+    return (object._modelViewInverseTranspose * vec4(dir, 0.0)).xyz;
+}
 
 <@if GLPROFILE == PC_GL@>
 uniform transformObjectBuffer {

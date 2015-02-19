@@ -36,8 +36,6 @@ void main(void) {
 
 
 void main(void) {
-    // transform and store the normal for interpolation
-    normal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
     
     // pass along the diffuse color
     gl_FrontColor = gl_Color;
@@ -49,10 +47,12 @@ void main(void) {
     //gl_Position = ftransform();
     //gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
     //gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
-   //TransformCamera cam = getTransformCamera();
-   /*  TransformObject obj = getTransformObject();
- //   gl_Position = transform(cam, obj, gl_Vertex);
- */
-    vec4 vPos = gl_ModelViewMatrix * gl_Vertex;
-    gl_Position = camera._projection * vPos; 
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+
+    gl_Position = transform(cam, obj, gl_Vertex);
+    
+    // transform and store the normal for interpolation
+    normal = vec4(normalize(transformDir(cam, obj, gl_Normal)), 0.0);
+
 }
