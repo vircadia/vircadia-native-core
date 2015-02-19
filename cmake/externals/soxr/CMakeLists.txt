@@ -13,6 +13,7 @@ ExternalProject_Add(
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
+  BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
 )
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)

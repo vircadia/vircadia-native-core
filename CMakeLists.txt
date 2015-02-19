@@ -122,7 +122,8 @@ if (ANDROID)
   endforeach()
 endif ()
 
-set_property(DIRECTORY PROPERTY EP_PREFIX "project")
+set(EXTERNAL_PROJECT_PREFIX "project")
+set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
 setup_externals_binary_dir()
 
 if (WIN32)

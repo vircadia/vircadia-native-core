@@ -10,6 +10,7 @@ ExternalProject_Add(
   URL http://hifi-public.s3.amazonaws.com/dependencies/gverb-master.zip
   URL_MD5 8b16d586390a2102804e46b87820dfc6
   CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
