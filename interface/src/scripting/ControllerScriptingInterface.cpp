@@ -271,19 +271,7 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     auto glCanvas = DependencyManager::get<GLCanvas>();
-#ifdef Q_OS_MAC
-    const float dpiScaleX = 1.0f;
-    const float dpiScaleY = 1.0f;
-#else
-    const float NATIVE_DPI = 96.0f;
-    const float dpiScaleX = NATIVE_DPI / glCanvas->logicalDpiX();
-    const float dpiScaleY = NATIVE_DPI / glCanvas->logicalDpiY();
-#endif
-
-    const float width = glCanvas->width() / dpiScaleX;
-    const float height = glCanvas->height() / dpiScaleY;
-
-    return glm::vec2(width, height);
+    return glm::vec2(glCanvas->width(), glCanvas->height());
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
