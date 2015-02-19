@@ -36,6 +36,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "AvatarManager.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
@@ -272,7 +273,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         _referential->update();
     }
     
-    if (postLighting && glm::distance(Application::getInstance()->getAvatar()->getPosition(), _position) < 10.0f) {
+    if (postLighting &&
+        glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         // render pointing lasers
@@ -351,7 +353,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         const float GLOW_MAX_LOUDNESS = 2500.0f;
         const float MAX_GLOW = 0.5f;
      
-        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == Application::getInstance()->getAvatar())
+        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == DependencyManager::get<AvatarManager>()->getMyAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
         if (!Menu::getInstance()->isOptionChecked(MenuOption::GlowWhenSpeaking)) {
@@ -375,7 +377,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             float distance = BASE_LIGHT_DISTANCE * _scale;
             glm::vec3 position = glm::mix(_skeletonModel.getTranslation(), getHead()->getFaceModel().getTranslation(), 0.9f);
             glm::quat orientation = getOrientation();
-            foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
+            foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
                 DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
                     distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,
@@ -678,9 +680,7 @@ void Avatar::renderDisplayName() {
     glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
     
     float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
-    glScalef(scaleFactor, scaleFactor, 1.0);
-    
-    glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
+    glScalef(scaleFactor, -scaleFactor, scaleFactor);  // TextRenderer::draw paints the text upside down in y axis
 
     int text_x = -_displayNameBoundingRect.width() / 2;
     int text_y = -_displayNameBoundingRect.height() / 2;
@@ -913,7 +913,9 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
-    _displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
+    // FIXME is this a sufficient replacement for tightBoundingRect?
+    glm::vec2 extent = textRenderer(DISPLAYNAME)->computeExtent(displayName);
+    _displayNameBoundingRect = QRect(QPoint(0, 0), QPoint((int)extent.x, (int)extent.y));
 }
 
 void Avatar::setBillboard(const QByteArray& billboard) {
@@ -1048,7 +1050,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
     
     // For myAvatar, the alpha update is not done (called in simulate for other avatars)
-    if (Application::getInstance()->getAvatar() == this) {
+    if (DependencyManager::get<AvatarManager>()->getMyAvatar() == this) {
         if (showDisplayName) {
             _displayNameAlpha = DISPLAYNAME_ALPHA;
         } else {

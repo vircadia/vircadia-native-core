@@ -1,13 +1,13 @@
-// 
-//  notifications.js 
-//  Version 0.801 
-//  Created by Adrian 
+//
+//  notifications.js
+//  Version 0.801
+//  Created by Adrian
 //
 //  Adrian McCarlie 8-10-14
 //  This script demonstrates on-screen overlay type notifications.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -20,29 +20,29 @@
 //  CTRL/m for mic mute and unmute.
 
 //  System generated notifications:
-//  Displays users online at startup. 
+//  Displays users online at startup.
 //  If Screen is resized.
 //  Triggers notification if @MyUserName is mentioned in chat.
 //  Announces existing user logging out.
 //  Announces new user logging in.
 //  If mic is muted for any reason.
-//  
+//
 //  To add a new System notification type:
 //
-//  1. Set the Event Connector at the bottom of the script. 
-//  example: 
+//  1. Set the Event Connector at the bottom of the script.
+//  example:
 //  GlobalServices.incomingMessage.connect(onIncomingMessage);
 //
-//  2. Create a new function to produce a text string, do not include new line returns. 
+//  2. Create a new function to produce a text string, do not include new line returns.
 //  example:
 //  function onIncomingMessage(user, message) {
-//      //do stuff here; 
+//      //do stuff here;
 //      var text = "This is a notification";
 //      wordWrap(text);
 //  }
 //
 //  This new function must call wordWrap(text) if the length of message is longer than 42 chars or unknown.
-//  wordWrap() will format the text to fit the notifications overlay and send it to createNotification(text). 
+//  wordWrap() will format the text to fit the notifications overlay and send it to createNotification(text).
 //  If the message is 42 chars or less you should bypass wordWrap() and call createNotification() directly.
 
 
@@ -57,6 +57,8 @@
 //        var welcome = "There are " + GlobalServices.onlineUsers.length + " users online now.";
 //        createNotification(welcome);
 //    }
+Script.include("./libraries/globals.js");
+Script.include("./libraries/soundArray.js");
 
 var width = 340.0; //width of notification overlay
 var windowDimensions = Controller.getViewportDimensions(); // get the size of the interface window
@@ -66,7 +68,7 @@ var locationY = 20.0; // position down from top of interface window
 var topMargin = 13.0;
 var leftMargin = 10.0;
 var textColor =  { red: 228, green: 228, blue: 228}; // text color
-var backColor =  { red: 2, green: 2, blue: 2}; // background color was 38,38,38 
+var backColor =  { red: 2, green: 2, blue: 2}; // background color was 38,38,38
 var backgroundAlpha = 0;
 var fontSize = 12.0;
 var PERSIST_TIME_2D = 10.0;  // Time in seconds before notification fades
@@ -81,6 +83,22 @@ var last_users = GlobalServices.onlineUsers;
 var users = [];
 var ctrlIsPressed = false;
 var ready = true;
+
+var randomSounds = new SoundArray({}, true);
+var numberOfSounds = 2;
+for (var i = 1; i <= numberOfSounds; i++) {
+    randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/notification-general" + i + ".raw");
+}
+
+//  When our script shuts down, we should clean up all of our overlays
+function scriptEnding() {
+    for (i = 0; i < notifications.length; i++) {
+        Overlays.deleteOverlay(notifications[i]);
+        Overlays.deleteOverlay(buttons[i]);
+    }
+}
+Script.scriptEnding.connect(scriptEnding);
+
 var notifications = [];
 var buttons = [];
 var times = [];
@@ -192,6 +210,8 @@ function notify(notice, button, height) {
         noticeHeight,
         positions,
         last;
+
+    randomSounds.playRandom();
 
     if (isOnHMD) {
         // Calculate 3D values from 2D overlay properties.
@@ -454,7 +474,6 @@ function onOnlineUsersChanged(users) {
             if (last_users.indexOf(users[i]) === -1.0) {
                 createNotification(users[i] + " has joined");
             }
-
         }
 
         for (i = 0; i < last_users.length; i += 1) {

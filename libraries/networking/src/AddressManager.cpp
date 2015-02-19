@@ -17,7 +17,7 @@
 #include <QStringList>
 
 #include <GLMHelpers.h>
-#include <Settings.h>
+#include <SettingHandle.h>
 #include <UUID.h>
 
 #include "NodeList.h"
@@ -26,11 +26,9 @@
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
-namespace SettingHandles {
-    const SettingHandle<QUrl> currentAddress(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP
-                                             << "address",
-                                             QUrl());
-}
+
+Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address");
+
 
 AddressManager::AddressManager() :
     _rootPlaceName(),
@@ -57,14 +55,14 @@ const QUrl AddressManager::currentAddress() const {
 
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        handleLookupString(SettingHandles::currentAddress.get().toString());
+        handleLookupString(currentAddressHandle.get().toString());
     } else {
         handleLookupString(lookupString);
     }
 }
 
 void AddressManager::storeCurrentAddress() {
-    SettingHandles::currentAddress.set(currentAddress());
+    currentAddressHandle.set(currentAddress());
 }
 
 const QString AddressManager::currentPath(bool withOrientation) const {
@@ -204,14 +202,19 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
             
             if (!domainObject.isEmpty()) {
                 const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
+                const QString DOMAIN_NETWORK_PORT_KEY = "network_port";
                 const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
                 
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
                     
+                    quint16 domainPort = domainObject.contains(DOMAIN_NETWORK_PORT_KEY)
+                        ? domainObject[DOMAIN_NETWORK_PORT_KEY].toUInt()
+                        : DEFAULT_DOMAIN_SERVER_PORT;
+                    
                     qDebug() << "Possible domain change required to connect to" << domainHostname
-                        << "on" << DEFAULT_DOMAIN_SERVER_PORT;
-                    emit possibleDomainChangeRequired(domainHostname, DEFAULT_DOMAIN_SERVER_PORT);
+                        << "on" << domainPort;
+                    emit possibleDomainChangeRequired(domainHostname, domainPort);
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
                     

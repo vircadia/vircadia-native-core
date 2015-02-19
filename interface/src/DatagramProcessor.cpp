@@ -15,7 +15,8 @@
 #include <PerfStat.h>
 
 #include "Application.h"
-#include "Audio.h"
+#include "avatar/AvatarManager.h"
+#include "AudioClient.h"
 #include "Menu.h"
 
 #include "DatagramProcessor.h"
@@ -54,15 +55,15 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeMixedAudio:
                 case PacketTypeSilentAudioFrame: {
                     if (incomingType == PacketTypeAudioStreamStats) {
-                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "parseAudioStreamStatsPacket",
+                        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioStreamStatsPacket",
                                                   Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else if (incomingType == PacketTypeAudioEnvironment) {
-                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "parseAudioEnvironmentData",
+                        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioEnvironmentData",
                                                   Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else {
-                        QMetaObject::invokeMethod(DependencyManager::get<Audio>().data(), "addReceivedAudioToStream",
+                        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "addReceivedAudioToStream",
                                                   Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     }
@@ -107,7 +108,8 @@ void DatagramProcessor::processDatagrams() {
                     
                     if (avatarMixer) {
                         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-                        QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
+                        
+                        QMetaObject::invokeMethod(DependencyManager::get<AvatarManager>().data(), "processAvatarMixerDatagram",
                                                   Q_ARG(const QByteArray&, incomingPacket),
                                                   Q_ARG(const QWeakPointer<Node>&, avatarMixer));
                     }
@@ -123,22 +125,23 @@ void DatagramProcessor::processDatagrams() {
                 }
                 case PacketTypeNoisyMute:
                 case PacketTypeMuteEnvironment: {
-                    bool mute = !DependencyManager::get<Audio>()->isMuted();
+                    bool mute = !DependencyManager::get<AudioClient>()->isMuted();
                     
                     if (incomingType == PacketTypeMuteEnvironment) {
                         glm::vec3 position;
-                        float radius, distance;
+                        float radius;
                         
                         int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
                         memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
                         memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
-                        distance = glm::distance(Application::getInstance()->getAvatar()->getPosition(), position);
+                        float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
+                                                 position);
                         
                         mute = mute && (distance < radius);
                     }
                     
                     if (mute) {
-                        DependencyManager::get<Audio>()->toggleMute();
+                        DependencyManager::get<AudioClient>()->toggleMute();
                         if (incomingType == PacketTypeMuteEnvironment) {
                             AudioScriptingInterface::getInstance().environmentMuted();
                         } else {

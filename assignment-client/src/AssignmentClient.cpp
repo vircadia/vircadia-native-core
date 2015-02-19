@@ -18,6 +18,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
+#include <AvatarHashMap.h>
 #include <HifiConfigVariantMap.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
@@ -55,6 +56,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
+    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32
@@ -134,7 +136,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     
     // Create Singleton objects on main thread
     NetworkAccessManager::getInstance();
-    SoundCache::getInstance();
 }
 
 void AssignmentClient::sendAssignmentRequest() {

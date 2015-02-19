@@ -14,6 +14,7 @@
 #include <typeinfo>
 
 #include <Application.h>
+#include <avatar/AvatarManager.h>
 #include <devices/OculusManager.h>
 #include <LODManager.h>
 
@@ -114,7 +115,7 @@ void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, Re
         return;
     }
     bool myAvatarComputed = false;
-    MyAvatar* avatar = NULL;
+    MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     glm::quat myAvatarRotation;
     glm::vec3 myAvatarPosition(0.0f);
     float angle = 0.0f;
@@ -138,7 +139,6 @@ void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, Re
         switch (thisOverlay->getAnchor()) {
             case Overlay::MY_AVATAR:
                 if (!myAvatarComputed) {
-                    avatar = Application::getInstance()->getAvatar();
                     myAvatarRotation = avatar->getOrientation();
                     myAvatarPosition = avatar->getPosition();
                     angle = glm::degrees(glm::angle(myAvatarRotation));

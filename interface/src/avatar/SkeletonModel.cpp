@@ -760,19 +760,19 @@ void SkeletonModel::buildShapes() {
         Shape::Type type = joint.shapeType;
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1 || radius < EPSILON) {
-            type = SHAPE_TYPE_UNKNOWN;
-        } else if (type == SHAPE_TYPE_CAPSULE && halfHeight < EPSILON) {
+            type = INVALID_SHAPE;
+        } else if (type == CAPSULE_SHAPE && halfHeight < EPSILON) {
             // this shape is forced to be a sphere
-            type = SHAPE_TYPE_SPHERE;
+            type = SPHERE_SHAPE;
         }
         Shape* shape = NULL;
-        if (type == SHAPE_TYPE_SPHERE) {
+        if (type == SPHERE_SHAPE) {
             shape = new VerletSphereShape(radius, &(points[i]));
             shape->setEntity(this);
             float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
             points[i].setMass(mass);
             totalMass += mass;
-        } else if (type == SHAPE_TYPE_CAPSULE) {
+        } else if (type == CAPSULE_SHAPE) {
             assert(parentIndex != -1);
             shape = new VerletCapsuleShape(radius, &(points[parentIndex]), &(points[i]));
             shape->setEntity(this);

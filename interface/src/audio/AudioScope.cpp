@@ -13,10 +13,9 @@
 
 #include <limits>
 
+#include <AudioClient.h>
 #include <AudioConstants.h>
 #include <GeometryCache.h>
-
-#include "Audio.h"
 
 #include "AudioScope.h"
 
@@ -41,14 +40,14 @@ AudioScope::AudioScope() :
     _outputLeftID(DependencyManager::get<GeometryCache>()->allocateID()),
     _outputRightD(DependencyManager::get<GeometryCache>()->allocateID())
 {
-    auto audioIO = DependencyManager::get<Audio>();
+    auto audioIO = DependencyManager::get<AudioClient>();
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedSilence,
             this, &AudioScope::addStereoSilenceToScope);
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade,
             this, &AudioScope::addLastFrameRepeatedWithFadeToScope);
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedStereoSamples,
             this, &AudioScope::addStereoSamplesToScope);
-    connect(audioIO.data(), &Audio::inputReceived, this, &AudioScope::addInputToScope);
+    connect(audioIO.data(), &AudioClient::inputReceived, this, &AudioScope::addInputToScope);
 }
 
 void AudioScope::toggle() {
@@ -231,7 +230,7 @@ int AudioScope::addSilenceToScope(QByteArray* byteArray, int frameOffset, int si
     int samplesToBufferEnd = _samplesPerScope - frameOffset;
     if (silentSamples > samplesToBufferEnd) {
         memset(destination + frameOffset, 0, samplesToBufferEnd * sizeof(int16_t));
-        memset(destination, 0, silentSamples - samplesToBufferEnd * sizeof(int16_t));
+        memset(destination, 0, (silentSamples - samplesToBufferEnd) * sizeof(int16_t));
     } else {
         memset(destination + frameOffset, 0, silentSamples * sizeof(int16_t));
     }

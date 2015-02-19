@@ -26,7 +26,7 @@
 #include <FBXReader.h> // for SittingPoint
 #include <PropertyFlags.h>
 #include <OctreeConstants.h>
-
+#include <ShapeInfo.h>
 
 #include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
@@ -82,8 +82,10 @@ enum EntityPropertyList {
     PROP_TEXTURES,
     PROP_ANIMATION_SETTINGS,
     PROP_USER_DATA,
-
-    PROP_LAST_ITEM = PROP_USER_DATA,
+    PROP_SHAPE_TYPE,
+    
+    // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
+    PROP_LAST_ITEM = PROP_SHAPE_TYPE,
 
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
@@ -179,6 +181,7 @@ public:
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
+    DEFINE_PROPERTY_REF(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
@@ -191,6 +194,7 @@ public:
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
     bool containsPositionChange() const { return _positionChanged; }
     bool containsDimensionsChange() const { return _dimensionsChanged; }
+    bool containsAnimationSettingsChange() const { return _animationSettingsChanged; }
 
     float getGlowLevel() const { return _glowLevel; }
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
@@ -253,12 +257,57 @@ inline void EntityItemProperties::setPosition(const glm::vec3& value)
 
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
-    debug << "EntityItemProperties[" << "\n"
-        << "  position:" << properties.getPosition() << "in meters" << "\n"
-        << "  velocity:" << properties.getVelocity() << "in meters" << "\n"
-        << "  last edited:" << properties.getLastEdited() << "\n"
-        << "  edited ago:" << properties.getEditedAgo() << "\n"
-        << "]";
+    debug << "EntityItemProperties[" << "\n";
+
+    // TODO: figure out why position and animationSettings don't seem to like the macro approach
+    if (properties.containsPositionChange()) {
+        debug << "  position:" << properties.getPosition() << "in meters" << "\n";
+    }
+    if (properties.containsAnimationSettingsChange()) {
+        debug << "  animationSettings:" << properties.getAnimationSettings() << "\n";
+    }
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Visible, visible, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Rotation, rotation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Density, density, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Gravity, gravity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Damping, damping, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationIsPlaying, animationIsPlaying, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, RegistrationPoint, registrationPoint, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularVelocity, angularVelocity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularDamping, angularDamping, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, IgnoreForCollisions, ignoreForCollisions, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionsWillMove, collisionsWillMove, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsSpotlight, isSpotlight, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, DiffuseColor, diffuseColor, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AmbientColor, ambientColor, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpecularColor, specularColor, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ConstantAttenuation, constantAttenuation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LinearAttenuation, linearAttenuation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, QuadraticAttenuation, quadraticAttenuation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Exponent, exponent, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cutoff, cutoff, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Textures, textures, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, UserData, userData, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Text, text, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LineHeight, lineHeight, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, TextColor, textColor, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundColor, backgroundColor, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ShapeType, shapeType, "");
+
+    debug << "  last edited:" << properties.getLastEdited() << "\n";
+    debug << "  edited ago:" << properties.getEditedAgo() << "\n";
+    debug << "]";
 
     return debug;
 }

@@ -23,6 +23,8 @@
 #include <GL/glew.h>
 #include <GL/wglew.h>
 
+#elif defined(ANDROID)
+
 #else
 #include <GL/gl.h>
 #include <GL/glext.h>

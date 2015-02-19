@@ -17,7 +17,9 @@
 #include "Line3DOverlay.h"
 
 
-Line3DOverlay::Line3DOverlay() {
+Line3DOverlay::Line3DOverlay() :
+    _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
+{
 }
 
 Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :

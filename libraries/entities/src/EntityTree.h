@@ -86,13 +86,13 @@ public:
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     // use this method if you only know the entityID
-    bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+    bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool allowLockChange);
 
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
-    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties);
+    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange);
 
-    void deleteEntity(const EntityItemID& entityID);
-    void deleteEntities(QSet<EntityItemID> entityIDs);
+    void deleteEntity(const EntityItemID& entityID, bool force = false);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false);
     void removeEntityFromSimulation(EntityItem* entity);
 
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
@@ -151,6 +151,9 @@ public:
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     void setSimulation(EntitySimulation* simulation);
+    
+    bool wantEditLogging() const { return _wantEditLogging; }
+    void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -162,7 +165,7 @@ private:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
-            EntityTreeElement* containingElement);
+                                 EntityTreeElement* containingElement, bool allowLockChange);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
@@ -180,6 +183,8 @@ private:
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
     EntitySimulation* _simulation;
+    
+    bool _wantEditLogging = false;
 };
 
 #endif // hifi_EntityTree_h

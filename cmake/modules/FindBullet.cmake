@@ -35,27 +35,34 @@ include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("bullet")
 
 macro(_FIND_BULLET_LIBRARY _var)
-  find_library(${_var}
-     NAMES
-        ${ARGN}
+  set(_${_var}_NAMES ${ARGN})
+  find_library(${_var}_LIBRARY_RELEASE
+     NAMES ${_${_var}_NAMES}
      HINTS
         ${BULLET_SEARCH_DIRS}
         $ENV{BULLET_ROOT_DIR}
         ${BULLET_ROOT}
-        ${BULLET_ROOT}/out/release8/libs
-        ${BULLET_ROOT}/out/debug8/libs
-        PATH_SUFFIXES lib lib/Release lib/Debug
+        PATH_SUFFIXES lib lib/Release out/release8/libs
   )
-  mark_as_advanced(${_var})
-endmacro()
-
-macro(_BULLET_APPEND_LIBRARIES _list _release)
-   set(_debug ${_release}_DEBUG)
-   if(${_debug})
-      set(${_list} ${${_list}} optimized ${${_release}} debug ${${_debug}})
-   else()
-      set(${_list} ${${_list}} ${${_release}})
-   endif()
+  
+  foreach(_NAME IN LISTS _${_var}_NAMES)
+    list(APPEND _${_var}_DEBUG_NAMES "${_NAME}_Debug")
+    list(APPEND _${_var}_DEBUG_NAMES "${_NAME}_d")
+  endforeach()
+  
+  find_library(${_var}_LIBRARY_DEBUG
+     NAMES ${_${_var}_DEBUG_NAMES}
+     HINTS
+        ${BULLET_SEARCH_DIRS}
+        $ENV{BULLET_ROOT_DIR}
+        ${BULLET_ROOT}
+        PATH_SUFFIXES lib lib/Debug out/debug8/libs
+  )
+  
+  select_library_configurations(${_var})
+  
+  mark_as_advanced(${_var}_LIBRARY)
+  mark_as_advanced(${_var}_LIBRARY)
 endmacro()
 
 find_path(BULLET_INCLUDE_DIR NAMES btBulletCollisionCommon.h
@@ -69,25 +76,18 @@ find_path(BULLET_INCLUDE_DIR NAMES btBulletCollisionCommon.h
 
 # Find the libraries
 
-_FIND_BULLET_LIBRARY(BULLET_DYNAMICS_LIBRARY        BulletDynamics)
-_FIND_BULLET_LIBRARY(BULLET_DYNAMICS_LIBRARY_DEBUG  BulletDynamics_Debug BulletDynamics_d)
-_FIND_BULLET_LIBRARY(BULLET_COLLISION_LIBRARY       BulletCollision)
-_FIND_BULLET_LIBRARY(BULLET_COLLISION_LIBRARY_DEBUG BulletCollision_Debug BulletCollision_d)
-_FIND_BULLET_LIBRARY(BULLET_MATH_LIBRARY            BulletMath LinearMath)
-_FIND_BULLET_LIBRARY(BULLET_MATH_LIBRARY_DEBUG      BulletMath_Debug BulletMath_d LinearMath_Debug LinearMath_d)
-_FIND_BULLET_LIBRARY(BULLET_SOFTBODY_LIBRARY        BulletSoftBody)
-_FIND_BULLET_LIBRARY(BULLET_SOFTBODY_LIBRARY_DEBUG  BulletSoftBody_Debug BulletSoftBody_d)
+_FIND_BULLET_LIBRARY(BULLET_DYNAMICS BulletDynamics)
+_FIND_BULLET_LIBRARY(BULLET_COLLISION BulletCollision)
+_FIND_BULLET_LIBRARY(BULLET_MATH BulletMath LinearMath)
+_FIND_BULLET_LIBRARY(BULLET_SOFTBODY BulletSoftBody)
 
+set(BULLET_INCLUDE_DIRS ${BULLET_INCLUDE_DIR})
+set(BULLET_LIBRARIES ${BULLET_DYNAMICS_LIBRARY} ${BULLET_COLLISION_LIBRARY} ${BULLET_MATH_LIBRARY} ${BULLET_SOFTBODY_LIBRARY})
 
 find_package_handle_standard_args(Bullet "Could NOT find Bullet, try to set the path to Bullet root folder in the system variable BULLET_ROOT_DIR"
     BULLET_DYNAMICS_LIBRARY BULLET_COLLISION_LIBRARY BULLET_MATH_LIBRARY
-    BULLET_INCLUDE_DIR
+    BULLET_INCLUDE_DIRS
+    BULLET_LIBRARIES
 )
 
-set(BULLET_INCLUDE_DIRS ${BULLET_INCLUDE_DIR})
-if(BULLET_FOUND)
-   _BULLET_APPEND_LIBRARIES(BULLET_LIBRARIES BULLET_DYNAMICS_LIBRARY)
-   _BULLET_APPEND_LIBRARIES(BULLET_LIBRARIES BULLET_COLLISION_LIBRARY)
-   _BULLET_APPEND_LIBRARIES(BULLET_LIBRARIES BULLET_MATH_LIBRARY)
-   _BULLET_APPEND_LIBRARIES(BULLET_LIBRARIES BULLET_SOFTBODY_LIBRARY)
-endif()
+

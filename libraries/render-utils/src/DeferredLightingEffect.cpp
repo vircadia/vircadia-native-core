@@ -25,6 +25,9 @@
 #include "RenderUtil.h"
 #include "TextureCache.h"
 
+#include "gpu/Batch.h"
+#include "gpu/GLBackend.h"
+
 #include "simple_vert.h"
 #include "simple_frag.h"
 
@@ -41,146 +44,6 @@
 
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
-
-class SphericalHarmonics {
-public:
-    glm::vec3 L00    ; float spare0;
-    glm::vec3 L1m1   ; float spare1;
-    glm::vec3 L10    ; float spare2;
-    glm::vec3 L11    ; float spare3;
-    glm::vec3 L2m2   ; float spare4;
-    glm::vec3 L2m1   ; float spare5;
-    glm::vec3 L20    ; float spare6;
-    glm::vec3 L21    ; float spare7;
-    glm::vec3 L22    ; float spare8;
-
-    static const int NUM_COEFFICIENTS = 9;
-
-    void assignPreset(int p) {
-        switch (p) {
-        case DeferredLightingEffect::OLD_TOWN_SQUARE: {
-                L00    = glm::vec3( 0.871297f, 0.875222f, 0.864470f);
-                L1m1   = glm::vec3( 0.175058f, 0.245335f, 0.312891f);
-                L10    = glm::vec3( 0.034675f, 0.036107f, 0.037362f);
-                L11    = glm::vec3(-0.004629f,-0.029448f,-0.048028f);
-                L2m2   = glm::vec3(-0.120535f,-0.121160f,-0.117507f);
-                L2m1   = glm::vec3( 0.003242f, 0.003624f, 0.007511f);
-                L20    = glm::vec3(-0.028667f,-0.024926f,-0.020998f);
-                L21    = glm::vec3(-0.077539f,-0.086325f,-0.091591f);
-                L22    = glm::vec3(-0.161784f,-0.191783f,-0.219152f);
-            }
-            break;
-        case DeferredLightingEffect::GRACE_CATHEDRAL: {
-                L00    = glm::vec3( 0.79f,  0.44f,  0.54f);
-                L1m1   = glm::vec3( 0.39f,  0.35f,  0.60f);
-                L10    = glm::vec3(-0.34f, -0.18f, -0.27f);
-                L11    = glm::vec3(-0.29f, -0.06f,  0.01f);
-                L2m2   = glm::vec3(-0.11f, -0.05f, -0.12f);
-                L2m1   = glm::vec3(-0.26f, -0.22f, -0.47f);
-                L20    = glm::vec3(-0.16f, -0.09f, -0.15f);
-                L21    = glm::vec3( 0.56f,  0.21f,  0.14f);
-                L22    = glm::vec3( 0.21f, -0.05f, -0.30f);
-            }
-            break;
-        case DeferredLightingEffect::EUCALYPTUS_GROVE: {
-                L00    = glm::vec3( 0.38f,  0.43f,  0.45f);
-                L1m1   = glm::vec3( 0.29f,  0.36f,  0.41f);
-                L10    = glm::vec3( 0.04f,  0.03f,  0.01f);
-                L11    = glm::vec3(-0.10f, -0.10f, -0.09f);
-                L2m2   = glm::vec3(-0.06f, -0.06f, -0.04f);
-                L2m1   = glm::vec3( 0.01f, -0.01f, -0.05f);
-                L20    = glm::vec3(-0.09f, -0.13f, -0.15f);
-                L21    = glm::vec3(-0.06f, -0.05f, -0.04f);
-                L22    = glm::vec3( 0.02f,  0.00f, -0.05f);
-            }
-            break;
-        case DeferredLightingEffect::ST_PETERS_BASILICA: {
-                L00    = glm::vec3( 0.36f,  0.26f,  0.23f);
-                L1m1   = glm::vec3( 0.18f,  0.14f,  0.13f);
-                L10    = glm::vec3(-0.02f, -0.01f,  0.00f);
-                L11    = glm::vec3( 0.03f,  0.02f, -0.00f);
-                L2m2   = glm::vec3( 0.02f,  0.01f, -0.00f);
-                L2m1   = glm::vec3(-0.05f, -0.03f, -0.01f);
-                L20    = glm::vec3(-0.09f, -0.08f, -0.07f);
-                L21    = glm::vec3( 0.01f,  0.00f,  0.00f);
-                L22    = glm::vec3(-0.08f, -0.03f, -0.00f);
-            }
-            break;
-        case DeferredLightingEffect::UFFIZI_GALLERY: {
-                L00    = glm::vec3( 0.32f,  0.31f,  0.35f);
-                L1m1   = glm::vec3( 0.37f,  0.37f,  0.43f);
-                L10    = glm::vec3( 0.00f,  0.00f,  0.00f);
-                L11    = glm::vec3(-0.01f, -0.01f, -0.01f);
-                L2m2   = glm::vec3(-0.02f, -0.02f, -0.03f);
-                L2m1   = glm::vec3(-0.01f, -0.01f, -0.01f);
-                L20    = glm::vec3(-0.28f, -0.28f, -0.32f);
-                L21    = glm::vec3( 0.00f,  0.00f,  0.00f);
-                L22    = glm::vec3(-0.24f, -0.24f, -0.28f);
-            }
-            break;
-        case DeferredLightingEffect::GALILEOS_TOMB: {
-                L00    = glm::vec3( 1.04f,  0.76f,  0.71f);
-                L1m1   = glm::vec3( 0.44f,  0.34f,  0.34f);
-                L10    = glm::vec3(-0.22f, -0.18f, -0.17f);
-                L11    = glm::vec3( 0.71f,  0.54f,  0.56f);
-                L2m2   = glm::vec3( 0.64f,  0.50f,  0.52f);
-                L2m1   = glm::vec3(-0.12f, -0.09f, -0.08f);
-                L20    = glm::vec3(-0.37f, -0.28f, -0.32f);
-                L21    = glm::vec3(-0.17f, -0.13f, -0.13f);
-                L22    = glm::vec3( 0.55f,  0.42f,  0.42f);
-            }
-            break;
-        case DeferredLightingEffect::VINE_STREET_KITCHEN: {
-                L00    = glm::vec3( 0.64f,  0.67f,  0.73f);
-                L1m1   = glm::vec3( 0.28f,  0.32f,  0.33f);
-                L10    = glm::vec3( 0.42f,  0.60f,  0.77f);
-                L11    = glm::vec3(-0.05f, -0.04f, -0.02f);
-                L2m2   = glm::vec3(-0.10f, -0.08f, -0.05f);
-                L2m1   = glm::vec3( 0.25f,  0.39f,  0.53f);
-                L20    = glm::vec3( 0.38f,  0.54f,  0.71f);
-                L21    = glm::vec3( 0.06f,  0.01f, -0.02f);
-                L22    = glm::vec3(-0.03f, -0.02f, -0.03f);
-            }
-            break;
-        case DeferredLightingEffect::BREEZEWAY: {
-                L00    = glm::vec3( 0.32f,  0.36f,  0.38f);
-                L1m1   = glm::vec3( 0.37f,  0.41f,  0.45f);
-                L10    = glm::vec3(-0.01f, -0.01f, -0.01f);
-                L11    = glm::vec3(-0.10f, -0.12f, -0.12f);
-                L2m2   = glm::vec3(-0.13f, -0.15f, -0.17f);
-                L2m1   = glm::vec3(-0.01f, -0.02f,  0.02f);
-                L20    = glm::vec3(-0.07f, -0.08f, -0.09f);
-                L21    = glm::vec3( 0.02f,  0.03f,  0.03f);
-                L22    = glm::vec3(-0.29f, -0.32f, -0.36f);
-            }
-            break;
-        case DeferredLightingEffect::CAMPUS_SUNSET: {
-                L00    = glm::vec3( 0.79f,  0.94f,  0.98f);
-                L1m1   = glm::vec3( 0.44f,  0.56f,  0.70f);
-                L10    = glm::vec3(-0.10f, -0.18f, -0.27f);
-                L11    = glm::vec3( 0.45f,  0.38f,  0.20f);
-                L2m2   = glm::vec3( 0.18f,  0.14f,  0.05f);
-                L2m1   = glm::vec3(-0.14f, -0.22f, -0.31f);
-                L20    = glm::vec3(-0.39f, -0.40f, -0.36f);
-                L21    = glm::vec3( 0.09f,  0.07f,  0.04f);
-                L22    = glm::vec3( 0.67f,  0.67f,  0.52f);
-            }
-            break;
-        case DeferredLightingEffect::FUNSTON_BEACH_SUNSET: {
-                L00    = glm::vec3( 0.68f,  0.69f,  0.70f);
-                L1m1   = glm::vec3( 0.32f,  0.37f,  0.44f);
-                L10    = glm::vec3(-0.17f, -0.17f, -0.17f);
-                L11    = glm::vec3(-0.45f, -0.42f, -0.34f);
-                L2m2   = glm::vec3(-0.17f, -0.17f, -0.15f);
-                L2m1   = glm::vec3(-0.08f, -0.09f, -0.10f);
-                L20    = glm::vec3(-0.03f, -0.02f, -0.01f);
-                L21    = glm::vec3( 0.16f,  0.14f,  0.10f);
-                L22    = glm::vec3( 0.37f,  0.31f,  0.20f);
-            }
-            break;
-        }
-    }
-};
 
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     _viewState = viewState;
@@ -206,6 +69,18 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
+
+    // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
+    _globalLights.push_back(0);
+    _allocatedLights.push_back(model::LightPointer(new model::Light()));
+
+    model::LightPointer lp = _allocatedLights[0];
+
+    lp->setDirection(-glm::vec3(1.0f, 1.0f, 1.0f));
+    lp->setColor(glm::vec3(1.0f));
+    lp->setIntensity(1.0f);
+    lp->setType(model::Light::SUN);
+    lp->setAmbientSpherePreset(model::SphericalHarmonics::Preset(_ambientLightMode % model::SphericalHarmonics::NUM_PRESET));
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
@@ -260,30 +135,29 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& ambient,
         const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation, float linearAttenuation,
         float quadraticAttenuation, const glm::vec3& direction, float exponent, float cutoff) {
+    
+    int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
+    if (lightID >= _allocatedLights.size()) {
+        _allocatedLights.push_back(model::LightPointer(new model::Light()));
+    }
+    model::LightPointer lp = _allocatedLights[lightID];
+
+    lp->setPosition(position);
+    lp->setMaximumRadius(radius);
+    lp->setColor(diffuse);
+    lp->setIntensity(1.0f);
+    //lp->setShowContour(quadraticAttenuation);
+
     if (exponent == 0.0f && cutoff == PI) {
-        PointLight light;
-        light.position = glm::vec4(position, 1.0f);
-        light.radius = radius;
-        light.ambient = glm::vec4(ambient, 1.0f);
-        light.diffuse = glm::vec4(diffuse, 1.0f);
-        light.specular = glm::vec4(specular, 1.0f);
-        light.constantAttenuation = constantAttenuation;
-        light.linearAttenuation = linearAttenuation;
-        _pointLights.append(light);
+        lp->setType(model::Light::POINT);
+        _pointLights.push_back(lightID);
         
     } else {
-        SpotLight light;
-        light.position = glm::vec4(position, 1.0f);
-        light.radius = radius;
-        light.ambient = glm::vec4(ambient, 1.0f);
-        light.diffuse = glm::vec4(diffuse, 1.0f);
-        light.specular = glm::vec4(specular, 1.0f);
-        light.constantAttenuation = constantAttenuation;
-        light.linearAttenuation = linearAttenuation;
-        light.direction = direction;
-        light.exponent = exponent;
-        light.cutoff = cutoff;
-        _spotLights.append(light);
+        lp->setDirection(direction);
+        lp->setSpotAngle(cutoff);
+        lp->setSpotExponent(exponent);
+        lp->setType(model::Light::SPOT);
+        _spotLights.push_back(lightID);
     }
 }
 
@@ -317,7 +191,7 @@ void DeferredLightingEffect::render() {
     QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT);
-    glEnable(GL_FRAMEBUFFER_SRGB);
+   // glEnable(GL_FRAMEBUFFER_SRGB);
 
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
     
@@ -342,6 +216,10 @@ void DeferredLightingEffect::render() {
     float tMin = viewport[VIEWPORT_Y_INDEX] / (float)primaryFBO->height();
     float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)primaryFBO->height();
    
+    // Fetch the ViewMatrix;
+    glm::mat4 invViewMat;
+    _viewState->getViewTransform().getMatrix(invViewMat);
+
     ProgramObject* program = &_directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
     bool shadowsEnabled = _viewState->getShadowsEnabled();
@@ -379,19 +257,24 @@ void DeferredLightingEffect::render() {
         program->bind();
     }
 
-    if (locations->ambientSphere >= 0) {
-        SphericalHarmonics sh;
-        if (_ambientLightMode < NUM_PRESET) {
-            sh.assignPreset(_ambientLightMode);
-        } else {
-            sh.assignPreset(0);
-        }
-
-        for (int i =0; i <SphericalHarmonics::NUM_COEFFICIENTS; i++) {
-            program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
-        }
-    }
+    {
+        auto globalLight = _allocatedLights[_globalLights.front()];
     
+        if (locations->ambientSphere >= 0) {
+            auto sh = globalLight->getAmbientSphere();
+            for (int i =0; i <model::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
+                program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
+            }
+        }
+    
+        if (locations->lightBufferUnit >= 0) {
+            gpu::Batch batch;
+            batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
+            gpu::GLBackend::renderBatch(batch);
+        }
+        glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+    }
+
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
     _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
@@ -434,27 +317,27 @@ void DeferredLightingEffect::render() {
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     
-    if (!_pointLights.isEmpty()) {
+    if (!_pointLights.empty()) {
         _pointLight.bind();
         _pointLight.setUniformValue(_pointLightLocations.nearLocation, nearVal);
         _pointLight.setUniformValue(_pointLightLocations.depthScale, depthScale);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         _pointLight.setUniformValue(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
 
-        foreach (const PointLight& light, _pointLights) {
-            _pointLight.setUniformValue(_pointLightLocations.radius, light.radius);
-            glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
-            glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
-            glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
-            glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.0f ? light.constantAttenuation : 0.0f));
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.0f ? light.linearAttenuation : 0.0f));
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.0f ? light.quadraticAttenuation : 0.0f));
-         
+        for (auto lightID : _pointLights) {
+            auto light = _allocatedLights[lightID];
+
+            if (_pointLightLocations.lightBufferUnit >= 0) {
+                gpu::Batch batch;
+                batch.setUniformBuffer(_pointLightLocations.lightBufferUnit, light->getSchemaBuffer());
+                gpu::GLBackend::renderBatch(batch);
+            }
+            glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+
             glPushMatrix();
             
-            float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
-            if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius + nearRadius) {
+            float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
+            if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
                 
@@ -468,7 +351,7 @@ void DeferredLightingEffect::render() {
                 glMatrixMode(GL_MODELVIEW);
                 
             } else {
-                glTranslatef(light.position.x, light.position.y, light.position.z);   
+                glTranslatef(light->getPosition().x, light->getPosition().y, light->getPosition().z);   
                 geometryCache->renderSphere(expandedRadius, 32, 32, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
             }
             
@@ -479,31 +362,28 @@ void DeferredLightingEffect::render() {
         _pointLight.release();
     }
     
-    if (!_spotLights.isEmpty()) {
+    if (!_spotLights.empty()) {
         _spotLight.bind();
         _spotLight.setUniformValue(_spotLightLocations.nearLocation, nearVal);
         _spotLight.setUniformValue(_spotLightLocations.depthScale, depthScale);
         _spotLight.setUniformValue(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         _spotLight.setUniformValue(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
         
-        foreach (const SpotLight& light, _spotLights) {
-            _spotLight.setUniformValue(_spotLightLocations.radius, light.radius);
-            glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
-            glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
-            glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
-            glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.0f ? light.constantAttenuation : 0.0f));
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.0f ? light.linearAttenuation : 0.0f));
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.0f ? light.quadraticAttenuation : 0.0f));
-            glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (const GLfloat*)&light.direction);
-            glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, light.exponent);
-            glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
-            
+        for (auto lightID : _spotLights) {
+            auto light = _allocatedLights[lightID];
+
+            if (_spotLightLocations.lightBufferUnit >= 0) {
+                gpu::Batch batch;
+                batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
+                gpu::GLBackend::renderBatch(batch);
+            }
+            glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
+
             glPushMatrix();
             
-            float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
-            float edgeRadius = expandedRadius / glm::cos(light.cutoff);
-            if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius + nearRadius) {
+            float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
+            float edgeRadius = expandedRadius / glm::cos(light->getSpotAngle());
+            if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < edgeRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
                 
@@ -517,12 +397,12 @@ void DeferredLightingEffect::render() {
                 glMatrixMode(GL_MODELVIEW);
                 
             } else {
-                glTranslatef(light.position.x, light.position.y, light.position.z);
-                glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light.direction);
+                glTranslatef(light->getPosition().x, light->getPosition().y, light->getPosition().z);
+                glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light->getDirection());
                 glm::vec3 axis = glm::axis(spotRotation);
                 glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
-                glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
-                geometryCache->renderCone(expandedRadius * glm::tan(light.cutoff),
+                glTranslatef(0.0f, 0.0f, -light->getMaximumRadius() * (1.0f + SCALE_EXPANSION * 0.5f));  
+                geometryCache->renderCone(expandedRadius * glm::tan(light->getSpotAngle()),
                     expandedRadius, 32, 1);
             }
             
@@ -545,7 +425,7 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     freeFBO->release();
-    glDisable(GL_FRAMEBUFFER_SRGB);
+  //  glDisable(GL_FRAMEBUFFER_SRGB);
     
     glDisable(GL_CULL_FACE);
     
@@ -607,11 +487,46 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     locations.depthTexCoordScale = program.uniformLocation("depthTexCoordScale");
     locations.radius = program.uniformLocation("radius");
     locations.ambientSphere = program.uniformLocation("ambientSphere.L00");
+    locations.invViewMat = program.uniformLocation("invViewMat");
+
+    GLint loc = -1;
+#if defined(Q_OS_MAC)
+    loc = program.uniformLocation("lightBuffer");
+    if (loc >= 0) {
+        locations.lightBufferUnit = loc;
+    } else {
+        locations.lightBufferUnit = -1;
+    }
+#elif defined(Q_OS_WIN)
+    loc = glGetUniformBlockIndex(program.programId(), "lightBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, 0);
+        locations.lightBufferUnit = 0;
+    } else {
+        locations.lightBufferUnit = -1;
+    }
+#else
+    loc = program.uniformLocation("lightBuffer");
+    if (loc >= 0) {
+        locations.lightBufferUnit = loc;
+    } else {
+        locations.lightBufferUnit = -1;
+    }
+#endif
     program.release();
 }
 
 void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= -1) && (preset < NUM_PRESET)) {
+    if ((preset >= -1) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
         _ambientLightMode = preset;
+        auto light = _allocatedLights.front();
+        light->setAmbientSpherePreset(model::SphericalHarmonics::Preset(preset % model::SphericalHarmonics::NUM_PRESET));
     }
+}
+
+void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity) {
+    auto light = _allocatedLights.front();
+    light->setDirection(direction);
+    light->setColor(diffuse);
+    light->setIntensity(intensity);
 }

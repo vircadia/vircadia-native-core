@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <Settings.h>
+#include <SettingHandle.h>
 
 #include "SettingsScriptingInterface.h"
 
@@ -20,7 +20,7 @@ SettingsScriptingInterface* SettingsScriptingInterface::getInstance() {
 }
 
 QVariant SettingsScriptingInterface::getValue(const QString& setting) {
-    QVariant value = SettingHandles::SettingHandle<QVariant>(setting).get();
+    QVariant value = Setting::Handle<QVariant>(setting).get();
     if (!value.isValid()) {
         value = "";
     }
@@ -28,7 +28,7 @@ QVariant SettingsScriptingInterface::getValue(const QString& setting) {
 }
 
 QVariant SettingsScriptingInterface::getValue(const QString& setting, const QVariant& defaultValue) {
-    QVariant value = SettingHandles::SettingHandle<QVariant>(setting, defaultValue).get();
+    QVariant value = Setting::Handle<QVariant>(setting, defaultValue).get();
     if (!value.isValid()) {
         value = "";
     }
@@ -36,5 +36,5 @@ QVariant SettingsScriptingInterface::getValue(const QString& setting, const QVar
 }
 
 void SettingsScriptingInterface::setValue(const QString& setting, const QVariant& value) {
-    SettingHandles::SettingHandle<QVariant>(setting).set(value);
+    Setting::Handle<QVariant>(setting).set(value);
 }

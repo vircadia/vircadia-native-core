@@ -64,7 +64,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 2;
         case PacketTypeDomainList:
         case PacketTypeDomainListRequest:
-            return 3;
+            return 4;
         case PacketTypeCreateAssignment:
         case PacketTypeRequestAssignment:
             return 2;
@@ -72,7 +72,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME;
+            return VERSION_MODEL_ENTITIES_SUPPORT_SHAPE_TYPE;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

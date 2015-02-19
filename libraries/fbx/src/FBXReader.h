@@ -18,11 +18,12 @@
 #include <QVariant>
 #include <QVector>
 
-#include <Extents.h>
-#include <Transform.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+#include <Extents.h>
+#include <Transform.h>
+#include <ShapeInfo.h>
 
 #include <model/Geometry.h>
 #include <model/Material.h>
@@ -31,11 +32,6 @@ class QIODevice;
 class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
-
-/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
-extern const char* FACESHIFT_BLENDSHAPES[];
-/// The size of FACESHIFT_BLENDSHAPES
-extern const int NUM_FACESHIFT_BLENDSHAPES;
 
 /// The names of the joints in the Maya HumanIK rig, terminated with an empty string.
 extern const char* HUMANIK_JOINTS[];
@@ -56,12 +52,6 @@ public:
     QVector<int> indices;
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
-};
-
-enum ShapeType {
-    SHAPE_TYPE_SPHERE = 0,
-    SHAPE_TYPE_CAPSULE = 1,
-    SHAPE_TYPE_UNKNOWN = 2
 };
 
 /// A single joint (transformation node) extracted from an FBX document.
@@ -88,7 +78,7 @@ public:
     QString name;
     glm::vec3 shapePosition;  // in joint frame
     glm::quat shapeRotation;  // in joint frame
-    ShapeType shapeType;
+    quint8 shapeType;
     bool isSkeletonJoint;
 };
 
@@ -179,12 +169,14 @@ public:
     QString name;
     Transform transform;
     float intensity;
+    float fogValue;
     glm::vec3 color;
 
     FBXLight() :
         name(),
         transform(),
         intensity(1.0f),
+        fogValue(0.0f),
         color(1.0f)
     {}
 };

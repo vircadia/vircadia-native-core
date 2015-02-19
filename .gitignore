@@ -39,4 +39,11 @@ interface/resources/visage/*
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/
 
+# ignore audio-client externals 
+libraries/audio-client/external/*/*
+!libraries/audio-client/external/*/readme.txt
+
+gvr-interface/assets/oculussig*
+gvr-interface/libs/*
+
 TAGS

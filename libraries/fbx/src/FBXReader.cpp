@@ -22,9 +22,11 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <FaceshiftConstants.h>
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
 #include <OctalCode.h>
+#include <Shape.h>
 
 #include "FBXReader.h"
 
@@ -610,60 +612,6 @@ QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
 
-const char* FACESHIFT_BLENDSHAPES[] = {
-    "EyeBlink_L",
-    "EyeBlink_R",
-    "EyeSquint_L",
-    "EyeSquint_R",
-    "EyeDown_L",
-    "EyeDown_R",
-    "EyeIn_L",
-    "EyeIn_R",
-    "EyeOpen_L",
-    "EyeOpen_R",
-    "EyeOut_L",
-    "EyeOut_R",
-    "EyeUp_L",
-    "EyeUp_R",
-    "BrowsD_L",
-    "BrowsD_R",
-    "BrowsU_C",
-    "BrowsU_L",
-    "BrowsU_R",
-    "JawFwd",
-    "JawLeft",
-    "JawOpen",
-    "JawChew",
-    "JawRight",
-    "MouthLeft",
-    "MouthRight",
-    "MouthFrown_L",
-    "MouthFrown_R",
-    "MouthSmile_L",
-    "MouthSmile_R",
-    "MouthDimple_L",
-    "MouthDimple_R",
-    "LipsStretch_L",
-    "LipsStretch_R",
-    "LipsUpperClose",
-    "LipsLowerClose",
-    "LipsUpperUp",
-    "LipsLowerDown",
-    "LipsUpperOpen",
-    "LipsLowerOpen",
-    "LipsFunnel",
-    "LipsPucker",
-    "ChinLowerRaise",
-    "ChinUpperRaise",
-    "Sneer",
-    "Puff",
-    "CheekSquint_L",
-    "CheekSquint_R",
-    ""
-};
-
-const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
-
 const char* HUMANIK_JOINTS[] = {
     "RightHand",
     "RightForeArm",
@@ -1179,7 +1127,7 @@ FBXTexture getTexture(const QString& textureID,
         texture.transform.setTranslation(p.translation);
         texture.transform.setRotation(glm::quat(glm::radians(p.rotation)));
         texture.transform.setScale(p.scaling);
-        if ((p.UVSet != "map1") || (p.UVSet != "UVSet0")) {
+        if ((p.UVSet != "map1") && (p.UVSet != "UVSet0")) {
             texture.texcoordSet = 1;
         }
         texture.texcoordSetName = p.UVSet;
@@ -1219,7 +1167,6 @@ int matchTextureUVSetToAttributeChannel(const QString& texUVSetName, const QHash
 
 FBXLight extractLight(const FBXNode& object) {
     FBXLight light;
-
     foreach (const FBXNode& subobject, object.children) {
         QString childname = QString(subobject.name);
         if (subobject.name == "Properties70") {
@@ -1230,6 +1177,8 @@ FBXLight extractLight(const FBXNode& object) {
                     QString propname = property.properties.at(0).toString();
                     if (propname == "Intensity") {
                         light.intensity = 0.01f * property.properties.at(valIndex).value<double>();
+                    } else if (propname == "Color") {
+                        light.color = getVec3(property.properties, valIndex);
                     }
                 }
             }
@@ -1303,6 +1252,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     QString jointRightHandID;
     QString jointLeftToeID;
     QString jointRightToeID;
+
+    float lightmapOffset = 0.0f;
     
     QVector<QString> humanIKJointNames;
     for (int i = 0;; i++) {
@@ -1605,6 +1556,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                     if (property.name == propertyName) {
                                         QString v = property.properties.at(0).toString();
                                         if (property.properties.at(0) == "UVSet") {
+                                            std::string uvName = property.properties.at(index).toString().toStdString();
                                             tex.assign(tex.UVSet, property.properties.at(index).toString());
                                         } else if (property.properties.at(0) == "CurrentTextureBlendMode") {
                                             tex.assign<uint8_t>(tex.currentTextureBlendMode, property.properties.at(index).value<int>());
@@ -1815,6 +1767,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                                 if (lightmapLevel <= 0.0f) {
                                     loadLightmaps = false;
                                 }
+                                lightmapOffset = glm::clamp((*lit).second.color.x, 0.f, 1.f);
                             }
                         }
                     }
@@ -1999,7 +1952,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = model.name;
         joint.shapePosition = glm::vec3(0.0f);
-        joint.shapeType = SHAPE_TYPE_UNKNOWN;
+        joint.shapeType = INVALID_SHAPE;
         
         foreach (const QString& childID, childMap.values(modelID)) {
             QString type = typeFlags.value(childID);
@@ -2123,7 +2076,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 
                 FBXTexture emissiveTexture;
                 glm::vec2 emissiveParams(0.f, 1.f);
+                emissiveParams.x = lightmapOffset;
                 emissiveParams.y = lightmapLevel;
+
                 QString emissiveTextureID = emissiveTextures.value(childID);
                 QString ambientTextureID = ambientTextures.value(childID);
                 if (loadLightmaps && (!emissiveTextureID.isNull() || !ambientTextureID.isNull())) {
@@ -2421,10 +2376,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         if (collideLikeCapsule) {
             joint.shapeRotation = rotationBetween(defaultCapsuleAxis, jointShapeInfo.boneBegin);
             joint.shapePosition = 0.5f * jointShapeInfo.boneBegin;
-            joint.shapeType = SHAPE_TYPE_CAPSULE;
+            joint.shapeType = CAPSULE_SHAPE;
         } else {
             // collide the joint like a sphere
-            joint.shapeType = SHAPE_TYPE_SPHERE;
+            joint.shapeType = SPHERE_SHAPE;
             if (jointShapeInfo.numVertices > 0) {
                 jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
@@ -2444,8 +2399,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             if (distanceFromEnd > joint.distanceToParent && distanceFromBegin > joint.distanceToParent) {
                 // The shape is further from both joint endpoints than the endpoints are from each other
                 // which probably means the model has a bad transform somewhere.  We disable this shape
-                // by setting its type to SHAPE_TYPE_UNKNOWN.
-                joint.shapeType = SHAPE_TYPE_UNKNOWN;
+                // by setting its type to INVALID_SHAPE.
+                joint.shapeType = INVALID_SHAPE;
             }
         }
     }

@@ -16,7 +16,6 @@
 
 #include <glm/glm.hpp>
 
-#include <AACubeShape.h>
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <CollisionInfo.h>
 #include <Octree.h> // for EncodeBitstreamParams class
@@ -150,7 +149,7 @@ public:
     glm::vec3 getPositionInMeters() const { return _position * (float) TREE_SCALE; } /// get position in meters
     
     /// set position in domain scale units (0.0 - 1.0)
-    void setPosition(const glm::vec3& value) { _position = value; recalculateCollisionShape(); }
+    void setPosition(const glm::vec3& value) { _position = value; }
     void setPositionInMeters(const glm::vec3& value) /// set position in meter units (0.0 - TREE_SCALE)
             { setPosition(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
 
@@ -159,17 +158,16 @@ public:
 
     const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
     glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
-    float getDistanceToBottomOfEntity() const; /// get the distance from the position of the entity to its "bottom" in y axis
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
+    virtual void setDimensions(const glm::vec3& value) { _dimensions = value; }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
 
     const glm::quat& getRotation() const { return _rotation; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; recalculateCollisionShape(); }
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
@@ -195,9 +193,6 @@ public:
     void setGravityInMeters(const glm::vec3& value) { _gravity = value / (float) TREE_SCALE; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
     
-    // TODO: this should eventually be updated to support resting on collisions with other surfaces
-    bool isRestingOnSurface() const;
-
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
 
@@ -229,7 +224,7 @@ public:
 
     /// registration point as ratio of entity
     void setRegistrationPoint(const glm::vec3& value) 
-            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); recalculateCollisionShape(); }
+            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); }
 
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
@@ -258,10 +253,11 @@ public:
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
-    void applyHardCollision(const CollisionInfo& collisionInfo);
-    virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     virtual void computeShapeInfo(ShapeInfo& info) const;
+
+    /// return preferred shape type (actual physical shape may differ)
+    virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
@@ -281,6 +277,7 @@ public:
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
+    virtual void updateShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }
@@ -301,7 +298,6 @@ protected:
     static bool _sendPhysicsUpdates;
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
-    virtual void recalculateCollisionShape();
 
     EntityTypes::EntityType _type;
     QUuid _id;
@@ -357,11 +353,9 @@ protected:
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
     void setRadius(float value); 
 
-    AACubeShape _collisionShape;
-
     // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
     // to a non-NULL value when the EntityItem has a representation in the physics engine.
-    void* _physicsInfo; // only set by EntitySimulation
+    void* _physicsInfo = NULL; // only set by EntitySimulation
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation

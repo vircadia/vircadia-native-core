@@ -13,10 +13,11 @@
 
 #include <QOpenGLFramebufferObject>
 
+#include <avatar/AvatarManager.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 
-#include "Audio.h"
+#include "AudioClient.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "audio/AudioToolBox.h"
@@ -138,6 +139,7 @@ ApplicationOverlay::ApplicationOverlay() :
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
     _crosshairTexture(0),
+    _magnifier(true),
     _previousBorderWidth(-1),
     _previousBorderHeight(-1),
     _previousMagnifierBottomLeft(),
@@ -167,8 +169,7 @@ ApplicationOverlay::~ApplicationOverlay() {
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
-    Application* application = Application::getInstance();
-    Overlays& overlays = application->getOverlays();
+    Overlays& overlays = qApp->getOverlays();
     auto glCanvas = DependencyManager::get<GLCanvas>();
     
     _textureFov = glm::radians(_oculusUIAngularSize);
@@ -212,7 +213,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         renderStatsAndLogs();
 
         // give external parties a change to hook in
-        emit application->renderingOverlay();
+        emit qApp->renderingOverlay();
 
         overlays.renderHUD();
 
@@ -284,7 +285,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     
     
     //Update and draw the magnifiers
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const glm::quat& orientation = myAvatar->getOrientation();
     const glm::vec3& position = myAvatar->getDefaultEyePosition();
     const float scale = myAvatar->getScale() * _oculusUIRadius;
@@ -330,8 +331,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
             _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
         }
         _overlays.render();
-        renderPointersOculus(myAvatar->getDefaultEyePosition());
-        
+        if (!Application::getInstance()->isMouseHidden()) {
+            renderPointersOculus(myAvatar->getDefaultEyePosition());
+        }
         glDepthMask(GL_TRUE);
         _overlays.releaseTexture();
         glDisable(GL_TEXTURE_2D);
@@ -347,10 +349,8 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
         return;
     }
     
-    Application* application = Application::getInstance();
-    
-    MyAvatar* myAvatar = application->getAvatar();
-    const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    const glm::vec3& viewMatrixTranslation = qApp->getViewMatrixTranslation();
     
     glActiveTexture(GL_TEXTURE0);
     
@@ -412,8 +412,8 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     const float reticleSize = 40.0f / glCanvas->width() * quadWidth;
     x -= reticleSize / 2.0f;
     y += reticleSize / 2.0f;
-    const float mouseX = (application->getMouseX() / (float)glCanvas->width()) * quadWidth;
-    const float mouseY = (1.0 - (application->getMouseY() / (float)glCanvas->height())) * quadHeight;
+    const float mouseX = (qApp->getMouseX() / (float)glCanvas->width()) * quadWidth;
+    const float mouseY = (1.0 - (qApp->getMouseY() / (float)glCanvas->height())) * quadHeight;
     
     glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
 
@@ -444,22 +444,21 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origi
     const glm::vec3 localDirection = orientation * IDENTITY_FRONT;
 
     //Rotate the UI pick ray by the avatar orientation
-    const MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    const MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     origin = myAvatar->getDefaultEyePosition();
     direction = myAvatar->getOrientation() * localDirection;
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
-    Application* application = Application::getInstance();
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    MyAvatar* myAvatar = application->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
     glm::vec3 eyePos = myAvatar->getHead()->getEyePosition();
     glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
     //direction of ray goes towards camera
-    glm::vec3 dir = invOrientation * glm::normalize(application->getCamera()->getPosition() - tip);
+    glm::vec3 dir = invOrientation * glm::normalize(qApp->getCamera()->getPosition() - tip);
     glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
     QPoint rv;
@@ -493,7 +492,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
         }
     } else {
         glm::dmat4 projection;
-        application->getProjectionMatrix(&projection);
+        qApp->getProjectionMatrix(&projection);
 
         glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
         glm::vec3 ndcSpacePos;
@@ -509,8 +508,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
 
 //Finds the collision point of a world space ray
 bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
-    Application* application = Application::getInstance();
-    MyAvatar* myAvatar = application->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     
     glm::quat orientation = myAvatar->getOrientation();
 
@@ -530,7 +528,6 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
-    Application* application = Application::getInstance();
     auto glCanvas = DependencyManager::get<GLCanvas>();
 
     //lazily load crosshair texture
@@ -542,12 +539,12 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     
-    if (OculusManager::isConnected() && !application->getLastMouseMoveWasSimulated()) {
+    if (OculusManager::isConnected() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
         if (_lastMouseMove == 0) {
             _lastMouseMove = usecTimestampNow();
         }
-        QPoint position = QPoint(application->getTrueMouseX(), application->getTrueMouseY());
+        QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
         
         static const int MAX_IDLE_TIME = 3;
         if (_reticlePosition[MOUSE] != position) {
@@ -563,10 +560,10 @@ void ApplicationOverlay::renderPointers() {
         
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
-        _magActive[MOUSE] = true;
+        _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (application->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         _lastMouseMove = 0;
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
@@ -578,16 +575,15 @@ void ApplicationOverlay::renderPointers() {
 }
 
 void ApplicationOverlay::renderControllerPointers() {
-    Application* application = Application::getInstance();
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    MyAvatar* myAvatar = application->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     //Static variables used for storing controller state
     static quint64 pressedTime[NUMBER_OF_RETICLES] = { 0ULL, 0ULL, 0ULL };
     static bool isPressed[NUMBER_OF_RETICLES] = { false, false, false };
     static bool stateWhenPressed[NUMBER_OF_RETICLES] = { false, false, false };
 
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
 
     for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
         const int index = palmIndex - 1;
@@ -694,7 +690,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
     glMatrixMode(GL_MODELVIEW);
     
     //Controller Pointers
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
 
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
@@ -723,6 +719,9 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
 //Renders a small magnification of the currently bound texture at the coordinates
 void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) {
+    if (!_magnifier) {
+        return;
+    }
     auto glCanvas = DependencyManager::get<GLCanvas>();
     
     const int widgetWidth = glCanvas->width();
@@ -789,17 +788,16 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
 
 void ApplicationOverlay::renderAudioMeter() {
     auto glCanvas = DependencyManager::get<GLCanvas>();
-    auto audio = DependencyManager::get<Audio>();
+    auto audio = DependencyManager::get<AudioClient>();
 
     //  Audio VU Meter and Mute Icon
     const int MUTE_ICON_SIZE = 24;
-    const int AUDIO_METER_INSET = 2;
     const int MUTE_ICON_PADDING = 10;
-    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - AUDIO_METER_INSET - MUTE_ICON_PADDING;
-    const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 * AUDIO_METER_INSET;
+    const int AUDIO_METER_WIDTH = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - MUTE_ICON_PADDING;
+    const int AUDIO_METER_SCALE_WIDTH = AUDIO_METER_WIDTH - 2 ;
     const int AUDIO_METER_HEIGHT = 8;
     const int AUDIO_METER_GAP = 5;
-    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET + AUDIO_METER_GAP;
+    const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_GAP;
 
     int audioMeterY;
     bool smallMirrorVisible = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !OculusManager::isConnected();
@@ -851,8 +849,8 @@ void ApplicationOverlay::renderAudioMeter() {
     audioMeterY += AUDIO_METER_HEIGHT;
 
     //  Draw audio meter background Quad
-    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X, audioMeterY, AUDIO_METER_WIDTH, AUDIO_METER_HEIGHT, 
-                                                            glm::vec4(0, 0, 0, 1));
+    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X, audioMeterY, AUDIO_METER_WIDTH, AUDIO_METER_HEIGHT,
+                                                            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
     if (audioLevel > AUDIO_RED_START) {
         glm::vec4 quadColor;
@@ -862,10 +860,10 @@ void ApplicationOverlay::renderAudioMeter() {
             quadColor = glm::vec4(1, 1, 1, 1);
         }
         // Draw Red Quad
-        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_RED_START, 
-                                                            audioMeterY + AUDIO_METER_INSET, 
+        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_RED_START, 
+                                                            audioMeterY, 
                                                             audioLevel - AUDIO_RED_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
+                                                            AUDIO_METER_HEIGHT, quadColor,
                                                             _audioRedQuad);
         
         audioLevel = AUDIO_RED_START;
@@ -879,30 +877,31 @@ void ApplicationOverlay::renderAudioMeter() {
             quadColor = glm::vec4(1, 1, 1, 1);
         }
         // Draw Green Quad
-        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET + AUDIO_GREEN_START, 
-                                                            audioMeterY + AUDIO_METER_INSET, 
+        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X  + AUDIO_GREEN_START, 
+                                                            audioMeterY, 
                                                             audioLevel - AUDIO_GREEN_START, 
-                                                            AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
+                                                            AUDIO_METER_HEIGHT, quadColor,
                                                             _audioGreenQuad);
 
         audioLevel = AUDIO_GREEN_START;
     }
-    //   Draw Blue Quad
-    glm::vec4 quadColor;
-    if (!isClipping) {
-        quadColor = AUDIO_METER_BLUE;
-    } else {
-        quadColor = glm::vec4(1, 1, 1, 1);
+
+    if (audioLevel >= 0) {
+        glm::vec4 quadColor;
+        if (!isClipping) {
+            quadColor = AUDIO_METER_BLUE;
+        } else {
+            quadColor = glm::vec4(1, 1, 1, 1);
+        }
+        // Draw Blue (low level) quad
+        DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X,
+                                                            audioMeterY,
+                                                            audioLevel, AUDIO_METER_HEIGHT, quadColor,
+                                                            _audioBlueQuad);
     }
-    // Draw Blue (low level) quad
-    DependencyManager::get<GeometryCache>()->renderQuad(AUDIO_METER_X + AUDIO_METER_INSET, 
-                                                        audioMeterY + AUDIO_METER_INSET, 
-                                                        audioLevel, AUDIO_METER_HEIGHT - AUDIO_METER_INSET, quadColor,
-                                                        _audioBlueQuad);
 }
 
 void ApplicationOverlay::renderStatsAndLogs() {
-
     Application* application = Application::getInstance();
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     
@@ -929,14 +928,13 @@ void ApplicationOverlay::renderStatsAndLogs() {
 
     //  Show on-screen msec timer
     if (Menu::getInstance()->isOptionChecked(MenuOption::FrameTimer)) {
-        char frameTimer[10];
         quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
-        sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
+        QString frameTimer = QString("%1\n").arg((int)(mSecsNow % 1000));
         int timerBottom =
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats))
             ? 80 : 20;
         drawText(glCanvas->width() - 100, glCanvas->height() - timerBottom,
-            0.30f, 0.0f, 0, frameTimer, WHITE_TEXT);
+            0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
     }
     nodeBoundsDisplay.drawOverlay();
 }

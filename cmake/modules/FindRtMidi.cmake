@@ -1,5 +1,5 @@
 #
-#  FindRtMidd.cmake
+#  FindRtMidi.cmake
 # 
 #  Try to find the RtMidi library
 #
