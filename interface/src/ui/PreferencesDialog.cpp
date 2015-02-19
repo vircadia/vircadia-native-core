@@ -49,14 +49,8 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
-    auto glCanvas = DependencyManager::get<GLCanvas>();
-
-    // All font sizes are based on 72 DPI.
-    float dpiScale = 72.0f / glCanvas->logicalDpiX();
-
     UIUtil::scaleWidgetFontSizes(this);
 }
-
 
 void PreferencesDialog::accept() {
     savePreferences();

@@ -33,9 +33,8 @@ int UIUtil::getWindowTitleBarHeight(const QWidget* window) {
 
 // When setting the font size of a widget in points, the rendered text will be larger
 // on Windows and Linux than on Mac OSX.  This is because Windows and Linux use a DPI
-// of 96, while OSX uses 72.
-// In order to get consistent results across platforms, the font sizes need to be scaled
-// based on the system DPI.
+// of 96, while OSX uses 72.  In order to get consistent results across platforms, the
+// font sizes need to be scaled based on the system DPI.
 // This function will scale the font size of widget and all
 // of its children recursively.
 void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
@@ -53,14 +52,7 @@ void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
 
     // Scale fonts based on the native dpi.  On Windows, where the native DPI is 96,
     // the scale will be: 72.0 / 96.0 = 0.75
-    float fontScale = (BASE_DPI / NATIVE_DPI);
-
-    // Scale the font further by the system's DPI settings.  If using a 2x high-dpi screen
-    // on Windows, for example, the font will be further scaled by: 192.0 / 96.0 = 2.0
-    // This would give a final scale of: 0.75 * 2.0 = 1.5
-    // fontScale *= (glCanvas->logicalDpiX() / NATIVE_DPI);
-
-    qDebug() << "Scaling widgets by: " << fontScale;
+    float fontScale = BASE_DPI / NATIVE_DPI;
 
     internalScaleWidgetFontSizes(widget, fontScale);
 }
