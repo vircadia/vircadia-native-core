@@ -19,7 +19,7 @@ target_include_directories(${TARGET_NAME} PRIVATE ${GVERB_INCLUDE_DIRS})
 # we use libsoxr for resampling
 find_package(Soxr REQUIRED)
 target_link_libraries(${TARGET_NAME} ${SOXR_LIBRARIES})
-include_directories(SYSTEM ${SOXR_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${SOXR_INCLUDE_DIRS})
 
 if (APPLE)
   find_library(CoreAudio CoreAudio)

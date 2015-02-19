@@ -1,23 +1,38 @@
 set(EXTERNAL_NAME tbb)
 
-if (APPLE)
-  set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_osx.tgz)
-elseif (WIN32)
-  set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_win.zip)
-else () 
-  set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_lin.tgz)
-endif ()
-
 include(ExternalProject)
-ExternalProject_Add(
-  ${EXTERNAL_NAME}
-  URL ${DOWNLOAD_URL}
-  BUILD_COMMAND ""
-  CONFIGURE_COMMAND ""
-  INSTALL_COMMAND ""
-  UPDATE_COMMAND ""
-  LOG_DOWNLOAD ON
-)
+
+if (ANDROID)
+  
+  find_program(NDK_BUILD_COMMAND NAMES ndk-build DOC "Path to the ndk-build command")
+      
+  ExternalProject_Add(
+    ${EXTERNAL_NAME}
+    URL http://hifi-public.s3.amazonaws.com/dependencies/tbb43_20150209oss_src.tgz
+    BUILD_COMMAND ${NDK_BUILD_COMMAND} --directory=jni target=android tbb tbbmalloc arch=arm
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND ""
+    INSTALL_COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/AndroidTBBLibCopy.cmake
+    LOG_DOWNLOAD ON
+  )
+else ()
+  if (APPLE)
+    set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_osx.tgz)
+  elseif (WIN32)
+    set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_win.zip)
+  else () 
+    set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_lin.tgz)
+  endif ()
+  
+  ExternalProject_Add(
+    ${EXTERNAL_NAME}
+    URL ${DOWNLOAD_URL}
+    BUILD_COMMAND ""
+    CONFIGURE_COMMAND ""
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD ON
+  )
+endif ()
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
@@ -34,14 +49,14 @@ if (APPLE)
 elseif (WIN32)
   set(_TBB_WIN_LIB_DIR "${SOURCE_DIR}/lib/ia32/vc12")
   
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_WIN_LIB_DIR}/libtbb_debug.lib CACHE TYPE "TBB debug library location")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_TBB_WIN_LIB_DIR}/libtbb.lib CACHE TYPE "TBB release library location")
-  set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG ${_TBB_WIN_LIB_DIR}/libtbbmalloc_debug.lib CACHE TYPE "TBB malloc debug library location")
-  set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_RELEASE ${_TBB_WIN_LIB_DIR}/libtbbmalloc.lib CACHE TYPE "TBB malloc release library location")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_WIN_LIB_DIR}/tbb_debug.lib CACHE TYPE "TBB debug library location")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_TBB_WIN_LIB_DIR}/tbb.lib CACHE TYPE "TBB release library location")
+  set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG ${_TBB_WIN_LIB_DIR}/tbbmalloc_debug.lib CACHE TYPE "TBB malloc debug library location")
+  set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_RELEASE ${_TBB_WIN_LIB_DIR}/tbbmalloc.lib CACHE TYPE "TBB malloc release library location")
   
   set(${EXTERNAL_NAME_UPPER}_DLL_PATH "${SOURCE_DIR}/bin/ia32/vc12" CACHE TYPE "Path to TBB DLLs")
 elseif (ANDROID)
-  set(_TBB_ANDROID_LIB_DIR "${SOURCE_DIR}/lib/android/x86_64")
+  set(_TBB_ANDROID_LIB_DIR "${SOURCE_DIR}/lib")
   
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_ANDROID_LIB_DIR}/libtbb_debug.so CACHE TYPE "TBB debug library location")
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_TBB_ANDROID_LIB_DIR}/libtbb.so CACHE TYPE "TBB release library location")
