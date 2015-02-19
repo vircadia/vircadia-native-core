@@ -37,6 +37,12 @@ int UIUtil::getWindowTitleBarHeight(const QWidget* window) {
 // font sizes need to be scaled based on the system DPI.
 // This function will scale the font size of widget and all
 // of its children recursively.
+//
+// When creating widgets, if a font size isn't explicitly set Qt will choose a
+// reasonable, but often different font size across platforms.  This means
+// YOU SHOUD EXPLICITLY SET ALL FONT SIZES and call this function OR not use
+// this function at all.  If you mix both you will end up with inconsistent results
+// across platforms.
 void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
     auto glCanvas = DependencyManager::get<GLCanvas>();
 
@@ -57,6 +63,8 @@ void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
     internalScaleWidgetFontSizes(widget, fontScale);
 }
 
+// Depth-first traversal through widget hierarchy.  It is important to do a depth-first
+// traversal because modifying the font size of a parent node can affect children.
 void UIUtil::internalScaleWidgetFontSizes(QWidget* widget, float scale) {
     for (auto child : widget->findChildren<QWidget*>()) {
         if (child->parent() == widget) {
