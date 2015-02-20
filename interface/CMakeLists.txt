@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "RSSDK")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -111,6 +111,11 @@ add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 add_dependency_external_project(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
+
+add_dependency_external_project(LibOVR)
+find_package(LibOVR REQUIRED)
+target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars 
