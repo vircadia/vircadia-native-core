@@ -1083,7 +1083,7 @@ void AudioClient::outputNotify() {
     if (recentUnfulfilled > 0) {
         if (_outputStarveDetectionEnabled.get()) {
             quint64 now = usecTimestampNow() / 1000;
-            quint64 dt = now - _outputStarveDetectionStartTimeMsec;
+            int dt = (int)(now - _outputStarveDetectionStartTimeMsec);
             if (dt > _outputStarveDetectionPeriodMsec.get()) {
                 _outputStarveDetectionStartTimeMsec = now;
                 _outputStarveDetectionCount = 0;
