@@ -56,8 +56,18 @@ static const int NUM_AUDIO_CHANNELS = 2;
 
 static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
 static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
-static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
-static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
+#ifdef _WIN32
+    // WORKAROUND: Some sound devices on Windows (at least 8.1) will get scratchy if their output 
+    // buffer is set too high so we have to limit the number of frames in the buffer.
+    static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 5;
+#else
+    static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
+#endif
+#ifdef Q_OS_ANDROID
+    static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = false;
+#else
+    static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
+#endif
 static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
 static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
 
