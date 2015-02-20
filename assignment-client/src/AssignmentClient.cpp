@@ -193,7 +193,7 @@ void AssignmentClient::sendAssignmentRequest() {
                                                        localAssignmentServerPort)) {
                 if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
                     qDebug() << "Port for local assignment server read from shared memory is"
-                             << localAssignmentServerPort;
+                        << localAssignmentServerPort;
                     
                     _assignmentServerSocket.setPort(localAssignmentServerPort);
                     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
@@ -203,7 +203,7 @@ void AssignmentClient::sendAssignmentRequest() {
                 qDebug () << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
             }
         }
-
+	
         nodeList->sendAssignment(_requestAssignment);
     }
 }
