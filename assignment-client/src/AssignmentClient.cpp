@@ -18,7 +18,6 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
-// #include <AvatarHashMap.h>
 #include <HifiConfigVariantMap.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
@@ -149,26 +148,9 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
 
 
 void AssignmentClient::stopAssignmentClient() {
-
-    // QList<QThread*> threads = QObject::findChildren <QThread*> ();
-    // foreach(QThread *thread, threads) { // or FileUploader* fileuploader, fileUploaders_ ?
-    //     qDebug() << "thread " << thread->currentThreadId();
-    // }
-
     qDebug() << "Exiting.";
-
     _requestTimer.stop();
     _statsTimerACM.stop();
-
-
-    //    DependencyManager::get<NodeList>()->disconnect();
-    //    DependencyManager::get<NodeList>()->disconnectNotify();
-    //    DependencyManager::get<AddressManager>()->disconnect();
-    //    DependencyManager::get<AddressManager>()->disconnectNotify();
-
-    //    DependencyManager::destroy<NodeList>();
-    //    DependencyManager::destroy<AddressManager>();
-
     quit();
 }
 
