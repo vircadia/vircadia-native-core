@@ -57,7 +57,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
-    // auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
 
     // make up a uuid for this child so the parent can tell us apart.  This id will be changed
     // when the domain server hands over an assignment.
@@ -141,8 +140,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     
     // Create Singleton objects on main thread
     NetworkAccessManager::getInstance();
-    // DependencyManager::get<NetworkAccessManager>();
 
+    // Hook up a timer to send this child's status to the Monitor once per second
     setUpStatsToMonitor();
 }
 
