@@ -37,7 +37,7 @@ vec4 transformModelToClipPos(TransformCamera camera, TransformObject object, vec
 
 vec3 transformModelToEyeDir(TransformCamera camera, TransformObject object, vec3 dir) {
 <@if GLPROFILE == MAC_GL@>
-    return (gl_NormalMatrix * vec4(dir, 0.0)).xyz;
+    return gl_NormalMatrix * dir;
 <@elif GLPROFILE == PC_GL@>
     vec3 mIr0 = vec3(object._modelInverse[0].x, object._modelInverse[1].x, object._modelInverse[2].x);
     vec3 mIr1 = vec3(object._modelInverse[0].y, object._modelInverse[1].y, object._modelInverse[2].y);
