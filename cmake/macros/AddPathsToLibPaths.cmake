@@ -17,6 +17,6 @@ macro(ADD_PATHS_TO_LIB_PATHS)
     
     list(REMOVE_DUPLICATES _TEMP_LIB_PATHS)
     
-    set(LIB_PATHS ${_TEMP_LIB_PATHS} CACHE LIST FORCE)
+    set(LIB_PATHS ${_TEMP_LIB_PATHS} CACHE STRING FORCE)
   endforeach()
 endmacro()
