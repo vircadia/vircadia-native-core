@@ -49,19 +49,19 @@ elseif (WIN32)
 endif ()
 
 if (DEFINED BULLET_LIB_EXT)
-  set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletDynamics.${BULLET_LIB_EXT} CACHE TYPE "Bullet dynamics release library location")
-  set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet dynamics debug library location")
+  set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletDynamics.${BULLET_LIB_EXT} CACHE FILEPATH "Bullet dynamics release library location")
+  set(${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_DEBUG NOTFOUND CACHE FILEPATH "Bullet dynamics debug library location")
 
-  set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletCollision.${BULLET_LIB_EXT} CACHE TYPE "Bullet collision release library location")
-  set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet collision debug library location")
+  set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletCollision.${BULLET_LIB_EXT} CACHE FILEPATH "Bullet collision release library location")
+  set(${EXTERNAL_NAME_UPPER}_COLLISION_LIBRARY_DEBUG NOTFOUND CACHE FILEPATH "Bullet collision debug library location")
 
-  set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}LinearMath.${BULLET_LIB_EXT} CACHE TYPE "Bullet math release library location")
-  set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet math debug library location")
+  set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}LinearMath.${BULLET_LIB_EXT} CACHE FILEPATH "Bullet math release library location")
+  set(${EXTERNAL_NAME_UPPER}_MATH_LIBRARY_DEBUG NOTFOUND CACHE FILEPATH "Bullet math debug library location")
 
-  set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletSoftBody.${BULLET_LIB_EXT} CACHE TYPE "Bullet softbody release library location")
-  set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_DEBUG NOTFOUND CACHE TYPE "Bullet softbody debug library location")
+  set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}BulletSoftBody.${BULLET_LIB_EXT} CACHE FILEPATH "Bullet softbody release library location")
+  set(${EXTERNAL_NAME_UPPER}_SOFTBODY_LIBRARY_DEBUG NOTFOUND CACHE FILEPATH "Bullet softbody debug library location")
 endif ()
 
 if (DEFINED ${EXTERNAL_NAME_UPPER}_DYNAMICS_LIBRARY_RELEASE)
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include/bullet CACHE TYPE "Path to bullet include directory")
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include/bullet CACHE PATH "Path to bullet include directory")
 endif ()

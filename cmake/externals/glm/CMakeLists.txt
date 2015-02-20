@@ -16,4 +16,4 @@ ExternalProject_Add(
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE TYPE "List of glm include directories")
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE PATH "List of glm include directories")

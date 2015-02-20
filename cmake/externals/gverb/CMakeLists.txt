@@ -19,10 +19,10 @@ ExternalProject_Add(
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE TYPE "Path to gverb include directory")
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE FILEPATH "Path to gverb include directory")
 
 if (WIN32) 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/gverb.lib CACHE TYPE "List of gverb libraries")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/gverb.lib CACHE FILEPATH "List of gverb libraries")
 else ()
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libgverb.a CACHE TYPE "List of gverb libraries")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libgverb.a CACHE FILEPATH "List of gverb libraries")
 endif ()

@@ -19,13 +19,13 @@ ExternalProject_Add(
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE TYPE "List of soxr include directories")
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE PATH "List of soxr include directories")
 
 if (WIN32) 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/soxr.lib CACHE TYPE "List of soxr libraries")
-  set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${INSTALL_DIR}/bin CACHE TYPE "Path to soxr dll")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/soxr.lib CACHE FILEPATH "List of soxr libraries")
+  set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${INSTALL_DIR}/bin CACHE PATH "Path to soxr dll")
 elseif (APPLE)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libsoxr.dylib CACHE TYPE "List of soxr libraries")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libsoxr.dylib CACHE FILEPATH "List of soxr libraries")
 else ()
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libsoxr.so CACHE TYPE "List of soxr libraries")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${INSTALL_DIR}/lib/libsoxr.so CACHE FILEPATH "List of soxr libraries")
 endif ()

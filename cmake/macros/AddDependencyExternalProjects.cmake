@@ -25,12 +25,12 @@ macro(ADD_DEPENDENCY_EXTERNAL_PROJECTS)
           
           # did we end up adding an external project target?
           if (NOT TARGET ${_PROJ_NAME})
-            set(${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT FALSE CACHE TYPE "Presence of ${_PROJ_NAME} as external target")
+            set(${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT FALSE CACHE BOOL "Presence of ${_PROJ_NAME} as external target")
             
             message(STATUS "${_PROJ_NAME} was not added as an external project target for your OS."
                     " Either your system should already have the external library or you will need to install it separately.")
           else ()
-            set(${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT TRUE CACHE TYPE "Presence of ${_PROJ_NAME} as external target")
+            set(${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT TRUE CACHE BOOL "Presence of ${_PROJ_NAME} as external target")
           endif ()
         endif ()
       
