@@ -126,6 +126,9 @@ set(EXTERNAL_PROJECT_PREFIX "project")
 set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
 setup_externals_binary_dir()
 
+# setup for optional external project dependencies
+option(GET_SDL2 "Download SDL2 as external project" 0)
+
 if (WIN32)
   add_paths_to_lib_paths("${QT_DIR}/bin")
 endif ()

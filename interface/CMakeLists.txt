@@ -119,6 +119,8 @@ link_hifi_libraries(shared octree environment gpu model fbx metavoxels networkin
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer)
 
+add_dependency_external_projects(sdl2)
+
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   

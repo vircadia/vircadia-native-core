@@ -163,48 +163,6 @@ ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
   endif ()
 ENDIF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
-IF(NOT SDL2_BUILDING_LIBRARY)
-	IF(NOT ${SDL2_INCLUDE_DIR} MATCHES ".framework")
-		# Non-OS X framework versions expect you to also dynamically link to
-		# SDL2main. This is mainly for Windows and OS X. Other (Unix) platforms
-		# seem to provide SDL2main for compatibility even though they don't
-		# necessarily need it.
-		# Lookup the 64 bit libs on x64
-		IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
-			FIND_LIBRARY(SDL2MAIN_LIBRARY
-				NAMES SDL2main
-				HINTS
-				${SDL2_SEARCH_DIRS}
-				$ENV{SDL2}
-				PATH_SUFFIXES lib64 lib
-				lib/x64
-				x86_64-w64-mingw32/lib
-				PATHS
-				/sw
-				/opt/local
-				/opt/csw
-				/opt
-				)
-			# On 32bit build find the 32bit libs
-		ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
-			FIND_LIBRARY(SDL2MAIN_LIBRARY
-				NAMES SDL2main
-				HINTS
-				${SDL2_SEARCH_DIRS}
-				$ENV{SDL2}
-				PATH_SUFFIXES lib
-				lib/x86
-				i686-w64-mingw32/lib
-				PATHS
-				/sw
-				/opt/local
-				/opt/csw
-				/opt
-				)
-		ENDIF(CMAKE_SIZEOF_VOID_P EQUAL 8)
-	ENDIF(NOT ${SDL2_INCLUDE_DIR} MATCHES ".framework")
-ENDIF(NOT SDL2_BUILDING_LIBRARY)
-
 # SDL2 may require threads on your system.
 # The Apple build may not need an explicit flag because one of the
 # frameworks may already provide it.
@@ -222,13 +180,6 @@ ENDIF(MINGW)
 
 SET(SDL2_FOUND "NO")
 	IF(SDL2_LIBRARY_TEMP)
-		# For SDL2main
-		IF(NOT SDL2_BUILDING_LIBRARY)
-			IF(SDL2MAIN_LIBRARY)
-				SET(SDL2_LIBRARY_TEMP ${SDL2MAIN_LIBRARY} ${SDL2_LIBRARY_TEMP})
-			ENDIF(SDL2MAIN_LIBRARY)
-		ENDIF(NOT SDL2_BUILDING_LIBRARY)
-
 		# For OS X, SDL2 uses Cocoa as a backend so it must link to Cocoa.
 		# CMake doesn't display the -framework Cocoa string in the UI even
 		# though it actually is there if I modify a pre-used variable.
