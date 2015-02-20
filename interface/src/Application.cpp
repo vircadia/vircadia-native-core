@@ -527,12 +527,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 }
 
 void Application::aboutToQuit() {
+qDebug() << "Application::aboutToQuit()";
     _aboutToQuit = true;
     
     cleanupBeforeQuit();
 }
 
 void Application::cleanupBeforeQuit() {
+    qDebug() << "Application::cleanupBeforeQuit() ------------ START -----------------";
+    
+    // stop entities running scripts
+    _entities.shutdown();
+    
+    // stop all running scripts
+    ScriptEngine::gracefullyStopAllScripts();
+    
+    
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
     locationUpdateTimer->stop();
@@ -572,6 +582,8 @@ void Application::cleanupBeforeQuit() {
     
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
+    
+    qDebug() << "Application::cleanupBeforeQuit() ------------ DONE -----------------";
 }
 
 Application::~Application() {    
@@ -3432,6 +3444,7 @@ void Application::clearScriptsBeforeRunning() {
 }
 
 void Application::saveScripts() {
+qDebug() << "Application::saveScripts()";
     // Saves all currently running user-loaded scripts
     Settings settings;
     settings.beginWriteArray(SETTINGS_KEY);
@@ -3525,7 +3538,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 #endif
 
     QThread* workerThread = new QThread(this);
-    workerThread->setObjectName("Script Engine Thread");
+    QString scriptEngineName = QString("Script Thread:") + scriptEngine->getFilename();
+    workerThread->setObjectName(scriptEngineName);
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
@@ -3599,6 +3613,7 @@ void Application::handleScriptLoadError(const QString& scriptFilename) {
 }
 
 void Application::scriptFinished(const QString& scriptName) {
+    qDebug() << "Application::scriptFinished(), scriptName:" << scriptName;
     const QString& scriptURLString = QUrl(scriptName).toString();
     QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptURLString);
     if (it != _scriptEnginesHash.end()) {
@@ -3609,6 +3624,7 @@ void Application::scriptFinished(const QString& scriptName) {
 }
 
 void Application::stopAllScripts(bool restart) {
+    qDebug() << "Application::stopAllScripts()... restart:" << restart;
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {

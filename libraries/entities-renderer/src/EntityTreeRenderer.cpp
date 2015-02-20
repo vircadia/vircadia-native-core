@@ -97,6 +97,27 @@ void EntityTreeRenderer::init() {
     connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
+void EntityTreeRenderer::shutdown() {
+    _shuttingDown = true;
+    
+    /*
+    if (_entitiesScriptEngine) {
+        _entitiesScriptEngine->stop();
+
+        QEventLoop loop;
+        QObject::connect(_entitiesScriptEngine, &ScriptEngine::doneRunning, &loop, &QEventLoop::quit);
+
+        _entitiesScriptEngine->stop();
+        
+        qDebug() << "waiting on Entities sandbox script to stop... ";
+        loop.exec();
+        qDebug() << "done waiting... ";
+
+    }
+    */
+}
+
+
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
     EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
     return loadEntityScript(entity);
@@ -156,6 +177,10 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 
 
 QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
+    if (_shuttingDown) {
+        return QScriptValue(); // no entity...
+    }
+    
     if (!entity) {
         return QScriptValue(); // no entity...
     }
@@ -235,7 +260,7 @@ void EntityTreeRenderer::setTree(Octree* newTree) {
 }
 
 void EntityTreeRenderer::update() {
-    if (_tree) {
+    if (_tree && !_shuttingDown) {
         EntityTree* tree = static_cast<EntityTree*>(_tree);
         tree->update();
         
@@ -258,7 +283,7 @@ void EntityTreeRenderer::update() {
 }
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
-    if (_tree) {
+    if (_tree && !_shuttingDown) {
         _tree->lockForWrite(); // so that our scripts can do edits if they want
         glm::vec3 avatarPosition = _viewState->getAvatarPosition() / (float) TREE_SCALE;
         
@@ -309,7 +334,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
-    if (_tree) {
+    if (_tree && !_shuttingDown) {
         _tree->lockForWrite(); // so that our scripts can do edits if they want
         
         // for all of our previous containing entities, if they are no longer containing then send them a leave event
@@ -330,7 +355,7 @@ void EntityTreeRenderer::leaveAllEntities() {
     }
 }
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
-    if (_tree) {
+    if (_tree && !_shuttingDown) {
         Model::startScene(renderSide);
         RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
                                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -700,179 +725,193 @@ QScriptValueList EntityTreeRenderer::createEntityArgs(const EntityItemID& entity
 }
 
 void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-    PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
-    PickRay ray = _viewState->computePickRay(event->x(), event->y());
+    if (_tree && !_shuttingDown) {
+        PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
+        PickRay ray = _viewState->computePickRay(event->x(), event->y());
     
-    bool precisionPicking = !_dontDoPrecisionPicking;
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
-    if (rayPickResult.intersects) {
-        //qDebug() << "mousePressEvent over entity:" << rayPickResult.entityID;
-        emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        bool precisionPicking = !_dontDoPrecisionPicking;
+        RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
+        if (rayPickResult.intersects) {
+            //qDebug() << "mousePressEvent over entity:" << rayPickResult.entityID;
+            emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
 
-        QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
-        QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
-        if (entityScript.property("mousePressOnEntity").isValid()) {
-            entityScript.property("mousePressOnEntity").call(entityScript, entityScriptArgs);
-        }
+            QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
+            QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
+            if (entityScript.property("mousePressOnEntity").isValid()) {
+                entityScript.property("mousePressOnEntity").call(entityScript, entityScriptArgs);
+            }
         
-        _currentClickingOnEntityID = rayPickResult.entityID;
-        emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
-        if (entityScript.property("clickDownOnEntity").isValid()) {
-            entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
+            _currentClickingOnEntityID = rayPickResult.entityID;
+            emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
+            if (entityScript.property("clickDownOnEntity").isValid()) {
+                entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
+            }
         }
+        _lastMouseEvent = MouseEvent(*event, deviceID);
+        _lastMouseEventValid = true;
     }
-    _lastMouseEvent = MouseEvent(*event, deviceID);
-    _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
-    PerformanceTimer perfTimer("EntityTreeRenderer::mouseReleaseEvent");
-    PickRay ray = _viewState->computePickRay(event->x(), event->y());
-    bool precisionPicking = !_dontDoPrecisionPicking;
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
-    if (rayPickResult.intersects) {
-        //qDebug() << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
-        emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+    if (_tree && !_shuttingDown) {
+        PerformanceTimer perfTimer("EntityTreeRenderer::mouseReleaseEvent");
+        PickRay ray = _viewState->computePickRay(event->x(), event->y());
+        bool precisionPicking = !_dontDoPrecisionPicking;
+        RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
+        if (rayPickResult.intersects) {
+            //qDebug() << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
+            emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
 
-        QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
-        QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
-        if (entityScript.property("mouseReleaseOnEntity").isValid()) {
-            entityScript.property("mouseReleaseOnEntity").call(entityScript, entityScriptArgs);
+            QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
+            QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
+            if (entityScript.property("mouseReleaseOnEntity").isValid()) {
+                entityScript.property("mouseReleaseOnEntity").call(entityScript, entityScriptArgs);
+            }
         }
-    }
     
-    // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
-    // we're releasing the button, then this is considered a clickOn event
-    if (!_currentClickingOnEntityID.isInvalidID()) {
-        emit clickReleaseOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
+        // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
+        // we're releasing the button, then this is considered a clickOn event
+        if (!_currentClickingOnEntityID.isInvalidID()) {
+            emit clickReleaseOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
 
-        QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, event, deviceID);
-        QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
-        if (currentClickingEntity.property("clickReleaseOnEntity").isValid()) {
-            currentClickingEntity.property("clickReleaseOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
+            QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, event, deviceID);
+            QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
+            if (currentClickingEntity.property("clickReleaseOnEntity").isValid()) {
+                currentClickingEntity.property("clickReleaseOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
+            }
         }
-    }
     
-    // makes it the unknown ID, we just released so we can't be clicking on anything
-    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
-    _lastMouseEvent = MouseEvent(*event, deviceID);
-    _lastMouseEventValid = true;
+        // makes it the unknown ID, we just released so we can't be clicking on anything
+        _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
+        _lastMouseEvent = MouseEvent(*event, deviceID);
+        _lastMouseEventValid = true;
+    }
 }
 
 void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
-    PerformanceTimer perfTimer("EntityTreeRenderer::mouseMoveEvent");
+    if (_tree && !_shuttingDown) {
+        PerformanceTimer perfTimer("EntityTreeRenderer::mouseMoveEvent");
 
-    PickRay ray = _viewState->computePickRay(event->x(), event->y());
+        PickRay ray = _viewState->computePickRay(event->x(), event->y());
     
-    bool precisionPicking = false; // for mouse moves we do not do precision picking
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
-    if (rayPickResult.intersects) {
-        QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
+        bool precisionPicking = false; // for mouse moves we do not do precision picking
+        RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
+        if (rayPickResult.intersects) {
+            QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
 
-        // load the entity script if needed...
-        QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
-        if (entityScript.property("mouseMoveEvent").isValid()) {
-            entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
-        }
+            // load the entity script if needed...
+            QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
+            if (entityScript.property("mouseMoveEvent").isValid()) {
+                entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
+            }
     
-        //qDebug() << "mouseMoveEvent over entity:" << rayPickResult.entityID;
-        emit mouseMoveOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
-        if (entityScript.property("mouseMoveOnEntity").isValid()) {
-            entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
-        }
+            //qDebug() << "mouseMoveEvent over entity:" << rayPickResult.entityID;
+            emit mouseMoveOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+            if (entityScript.property("mouseMoveOnEntity").isValid()) {
+                entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
+            }
         
-        // handle the hover logic...
+            // handle the hover logic...
         
-        // if we were previously hovering over an entity, and this new entity is not the same as our previous entity
-        // then we need to send the hover leave.
-        if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
-            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
+            // if we were previously hovering over an entity, and this new entity is not the same as our previous entity
+            // then we need to send the hover leave.
+            if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
+                emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
 
-            QScriptValueList currentHoverEntityArgs = createMouseEventArgs(_currentHoverOverEntityID, event, deviceID);
+                QScriptValueList currentHoverEntityArgs = createMouseEventArgs(_currentHoverOverEntityID, event, deviceID);
 
-            QScriptValue currentHoverEntity = loadEntityScript(_currentHoverOverEntityID);
-            if (currentHoverEntity.property("hoverLeaveEntity").isValid()) {
-                currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
-            }
-        }
-
-        // If the new hover entity does not match the previous hover entity then we are entering the new one
-        // this is true if the _currentHoverOverEntityID is known or unknown
-        if (rayPickResult.entityID != _currentHoverOverEntityID) {
-            emit hoverEnterEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
-            if (entityScript.property("hoverEnterEntity").isValid()) {
-                entityScript.property("hoverEnterEntity").call(entityScript, entityScriptArgs);
-            }
-        }
-
-        // and finally, no matter what, if we're intersecting an entity then we're definitely hovering over it, and
-        // we should send our hover over event
-        emit hoverOverEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
-        if (entityScript.property("hoverOverEntity").isValid()) {
-            entityScript.property("hoverOverEntity").call(entityScript, entityScriptArgs);
-        }
-
-        // remember what we're hovering over
-        _currentHoverOverEntityID = rayPickResult.entityID;
-
-    } else {
-        // handle the hover logic...
-        // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to 
-        // send the hover leave for our previous entity
-        if (!_currentHoverOverEntityID.isInvalidID()) {
-            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
-
-            QScriptValueList currentHoverEntityArgs = createMouseEventArgs(_currentHoverOverEntityID, event, deviceID);
-
-            QScriptValue currentHoverEntity = loadEntityScript(_currentHoverOverEntityID);
-            if (currentHoverEntity.property("hoverLeaveEntity").isValid()) {
-                currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
+                QScriptValue currentHoverEntity = loadEntityScript(_currentHoverOverEntityID);
+                if (currentHoverEntity.property("hoverLeaveEntity").isValid()) {
+                    currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
+                }
             }
 
-            _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+            // If the new hover entity does not match the previous hover entity then we are entering the new one
+            // this is true if the _currentHoverOverEntityID is known or unknown
+            if (rayPickResult.entityID != _currentHoverOverEntityID) {
+                emit hoverEnterEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+                if (entityScript.property("hoverEnterEntity").isValid()) {
+                    entityScript.property("hoverEnterEntity").call(entityScript, entityScriptArgs);
+                }
+            }
+
+            // and finally, no matter what, if we're intersecting an entity then we're definitely hovering over it, and
+            // we should send our hover over event
+            emit hoverOverEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+            if (entityScript.property("hoverOverEntity").isValid()) {
+                entityScript.property("hoverOverEntity").call(entityScript, entityScriptArgs);
+            }
+
+            // remember what we're hovering over
+            _currentHoverOverEntityID = rayPickResult.entityID;
+
+        } else {
+            // handle the hover logic...
+            // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to 
+            // send the hover leave for our previous entity
+            if (!_currentHoverOverEntityID.isInvalidID()) {
+                emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
+
+                QScriptValueList currentHoverEntityArgs = createMouseEventArgs(_currentHoverOverEntityID, event, deviceID);
+
+                QScriptValue currentHoverEntity = loadEntityScript(_currentHoverOverEntityID);
+                if (currentHoverEntity.property("hoverLeaveEntity").isValid()) {
+                    currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
+                }
+
+                _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+            }
         }
-    }
     
-    // Even if we're no longer intersecting with an entity, if we started clicking on an entity and we have
-    // not yet released the hold then this is still considered a holdingClickOnEntity event
-    if (!_currentClickingOnEntityID.isInvalidID()) {
-        emit holdingClickOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
+        // Even if we're no longer intersecting with an entity, if we started clicking on an entity and we have
+        // not yet released the hold then this is still considered a holdingClickOnEntity event
+        if (!_currentClickingOnEntityID.isInvalidID()) {
+            emit holdingClickOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
 
-        QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, event, deviceID);
+            QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, event, deviceID);
 
-        QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
-        if (currentClickingEntity.property("holdingClickOnEntity").isValid()) {
-            currentClickingEntity.property("holdingClickOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
+            QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
+            if (currentClickingEntity.property("holdingClickOnEntity").isValid()) {
+                currentClickingEntity.property("holdingClickOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
+            }
         }
+        _lastMouseEvent = MouseEvent(*event, deviceID);
+        _lastMouseEventValid = true;
     }
-    _lastMouseEvent = MouseEvent(*event, deviceID);
-    _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-    checkAndCallUnload(entityID);
+    if (_tree && !_shuttingDown) {
+        checkAndCallUnload(entityID);
+    }
     _entityScripts.remove(entityID);
 }
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
-    checkAndCallUnload(entityID);
+    if (_tree && !_shuttingDown) {
+        checkAndCallUnload(entityID);
+    }
     checkAndCallPreload(entityID);
 }
 
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
-    // load the entity script if needed...
-    QScriptValue entityScript = loadEntityScript(entityID);
-    if (entityScript.property("preload").isValid()) {
-        QScriptValueList entityArgs = createEntityArgs(entityID);
-        entityScript.property("preload").call(entityScript, entityArgs);
+    if (_tree && !_shuttingDown) {
+        // load the entity script if needed...
+        QScriptValue entityScript = loadEntityScript(entityID);
+        if (entityScript.property("preload").isValid()) {
+            QScriptValueList entityArgs = createEntityArgs(entityID);
+            entityScript.property("preload").call(entityScript, entityArgs);
+        }
     }
 }
 
 void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
-    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
-    if (entityScript.property("unload").isValid()) {
-        QScriptValueList entityArgs = createEntityArgs(entityID);
-        entityScript.property("unload").call(entityScript, entityArgs);
+    if (_tree && !_shuttingDown) {
+        QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
+        if (entityScript.property("unload").isValid()) {
+            QScriptValueList entityArgs = createEntityArgs(entityID);
+            entityScript.property("unload").call(entityScript, entityArgs);
+        }
     }
 }
 
@@ -887,22 +926,24 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
                                                     const Collision& collision) {
-    QScriptValue entityScriptA = loadEntityScript(idA);
-    if (entityScriptA.property("collisionWithEntity").isValid()) {
-        QScriptValueList args;
-        args << idA.toScriptValue(_entitiesScriptEngine);
-        args << idB.toScriptValue(_entitiesScriptEngine);
-        args << collisionToScriptValue(_entitiesScriptEngine, collision);
-        entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
-    }
+    if (_tree && !_shuttingDown) {
+        QScriptValue entityScriptA = loadEntityScript(idA);
+        if (entityScriptA.property("collisionWithEntity").isValid()) {
+            QScriptValueList args;
+            args << idA.toScriptValue(_entitiesScriptEngine);
+            args << idB.toScriptValue(_entitiesScriptEngine);
+            args << collisionToScriptValue(_entitiesScriptEngine, collision);
+            entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
+        }
 
-    QScriptValue entityScriptB = loadEntityScript(idB);
-    if (entityScriptB.property("collisionWithEntity").isValid()) {
-        QScriptValueList args;
-        args << idB.toScriptValue(_entitiesScriptEngine);
-        args << idA.toScriptValue(_entitiesScriptEngine);
-        args << collisionToScriptValue(_entitiesScriptEngine, collision);
-        entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
+        QScriptValue entityScriptB = loadEntityScript(idB);
+        if (entityScriptB.property("collisionWithEntity").isValid()) {
+            QScriptValueList args;
+            args << idB.toScriptValue(_entitiesScriptEngine);
+            args << idA.toScriptValue(_entitiesScriptEngine);
+            args << collisionToScriptValue(_entitiesScriptEngine, collision);
+            entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
+        }
     }
 }
 

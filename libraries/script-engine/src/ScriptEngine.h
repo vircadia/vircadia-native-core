@@ -43,6 +43,8 @@ public:
                  const QString& fileNameString = QString(""),
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
+    ~ScriptEngine();
+
     /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
 
@@ -88,6 +90,10 @@ public:
     bool isUserLoaded() const { return _isUserLoaded; }
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
+    
+    QString getFilename() const;
+    
+    static void gracefullyStopAllScripts();
 
 public slots:
     void loadURL(const QUrl& scriptURL);
@@ -118,6 +124,7 @@ signals:
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
     void loadScript(const QString& scriptName, bool isUserLoaded);
+    void doneRunning();
 
 protected:
     QString _scriptContents;
@@ -156,6 +163,9 @@ private:
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 private slots:
     void handleScriptDownload();
+
+private:
+    static QSet<ScriptEngine*> _allKnownScriptEngines;
 };
 
 #endif // hifi_ScriptEngine_h

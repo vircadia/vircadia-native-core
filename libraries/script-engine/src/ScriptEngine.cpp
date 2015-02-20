@@ -94,7 +94,44 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
+    _allKnownScriptEngines.insert(this);
 }
+
+ScriptEngine::~ScriptEngine() {
+    qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::~ScriptEngine() " << getFilename();
+    _allKnownScriptEngines.remove(this);
+}
+
+QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
+
+void ScriptEngine::gracefullyStopAllScripts() {
+    qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- START ------------------";
+    foreach(ScriptEngine* scriptEngine, _allKnownScriptEngines) {
+        if (scriptEngine->isRunning()) {
+            qDebug() << "scriptEngine still alive:" << scriptEngine->getFilename() << "[" << scriptEngine << "]";
+
+            QEventLoop loop;
+            QObject::connect(scriptEngine, &ScriptEngine::doneRunning, &loop, &QEventLoop::quit);
+
+            scriptEngine->stop();
+
+            qDebug() << "waiting on script to stop... ";
+            loop.exec();
+            qDebug() << "done waiting... ";
+        }
+    }
+    qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- DONE ------------------";
+}
+
+QString ScriptEngine::getFilename() const { 
+    QStringList fileNameParts = _fileNameString.split("/");
+    QString lastPart;
+    if (!fileNameParts.isEmpty()) {
+        lastPart = fileNameParts.last();
+    }
+    return lastPart; 
+}
+
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
     _isAvatar = isAvatar;
@@ -364,16 +401,18 @@ void ScriptEngine::run() {
         }
 
         if (_isFinished) {
+            qDebug() << "ScriptEngine::run()... while() about to break " << getFilename();
             break;
         }
 
         QCoreApplication::processEvents();
 
         if (_isFinished) {
+            qDebug() << "ScriptEngine::run()... while() about to break " << getFilename();
             break;
         }
 
-        if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+        if (!_isFinished && _entityScriptingInterface.getEntityPacketSender()->serversExist()) {
             // release the queue of edit entity messages.
             _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
 
@@ -383,7 +422,7 @@ void ScriptEngine::run() {
             }
         }
 
-        if (_isAvatar && _avatarData) {
+        if (!_isFinished && _isAvatar && _avatarData) {
 
             const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
                                                            / (1000 * 1000)) + 0.5);
@@ -493,9 +532,13 @@ void ScriptEngine::run() {
             clearExceptions();
         }
 
-        emit update(deltaTime);
+        if (!_isFinished) {
+            //qDebug() << "ScriptEngine::run()... about to emit update() _scriptName:" << _scriptName << "_fileNameString:" << _fileNameString << "_isFinished:" << _isFinished;
+            emit update(deltaTime);
+        }
         lastUpdate = now;
     }
+    qDebug() << "ScriptEngine::run()... about to emit scriptEnding() " << getFilename();
     emit scriptEnding();
 
     // kill the avatar identity timer
@@ -513,16 +556,25 @@ void ScriptEngine::run() {
 
     // If we were on a thread, then wait till it's done
     if (thread()) {
+        qDebug() << "ScriptEngine::run()... about to call thread()->quit() " << getFilename();
         thread()->quit();
     }
 
+    qDebug() << "ScriptEngine::run()... about to emit finished() " << getFilename();
     emit finished(_fileNameString);
 
     _isRunning = false;
+
+    qDebug() << "ScriptEngine::run()... about to emit runningStateChanged() " << getFilename();
     emit runningStateChanged();
+
+    qDebug() << "ScriptEngine::run()... about to emit doneRunning() " << getFilename();
+    emit doneRunning();
+    qDebug() << "ScriptEngine::run()... DONE WITH run()... " << getFilename();
 }
 
 void ScriptEngine::stop() {
+    qDebug() << "ScriptEngine::stop()... " << getFilename();
     _isFinished = true;
     emit runningStateChanged();
 }

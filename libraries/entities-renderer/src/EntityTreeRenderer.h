@@ -46,6 +46,7 @@ public:
     virtual int getBoundaryLevelAdjust() const;
     virtual void setTree(Octree* newTree);
 
+    void shutdown();
     void update();
 
     EntityTree* getTree() { return static_cast<EntityTree*>(_tree); }
@@ -153,6 +154,8 @@ private:
     bool _displayModelBounds;
     bool _displayModelElementProxy;
     bool _dontDoPrecisionPicking;
+    
+    bool _shuttingDown = false;
     
 };
 
