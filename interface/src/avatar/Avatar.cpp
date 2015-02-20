@@ -537,18 +537,13 @@ void Avatar::renderBillboard() {
         return;
     }
     if (!_billboardTexture) {
-        QImage image = QImage::fromData(_billboard);
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-        _billboardTexture.reset(new Texture());
-        glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0,
-            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    
-    } else {
-        glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
+        // Using a unique URL ensures we don't get another avatar's texture from TextureCache
+        QUrl uniqueUrl = QUrl(QUuid::createUuid().toString());
+        _billboardTexture = DependencyManager::get<TextureCache>()->getTexture(
+            uniqueUrl, DEFAULT_TEXTURE, false, _billboard);
+    }
+    if (!_billboardTexture->isLoaded()) {
+        return;
     }
     
     glEnable(GL_ALPHA_TEST);
@@ -556,6 +551,8 @@ void Avatar::renderBillboard() {
     
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_LIGHTING);
+
+    glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
     
     glPushMatrix();
     glTranslatef(_position.x, _position.y, _position.z);
