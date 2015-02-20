@@ -18,6 +18,7 @@
 
 Script.include("../../libraries/globals.js");
 Script.include("../../libraries/virtualKeyboard.js");
+Script.include("../../libraries/soundArray.js");
 
 const MAX_SHOW_INSTRUCTION_TIMES = 2;
 const INSTRUCTIONS_SETTING = "GoToInstructionsShowCounter"
@@ -82,6 +83,12 @@ var textFontSize = 9;
 var text = null;
 var locationURL = "";
 
+var randomSounds = new SoundArray({}, true);
+var numberOfSounds = 7;
+for (var i = 1; i <= numberOfSounds; i++) {
+    randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/virtualKeyboard-press" + i + ".raw");
+}
+
 function appendChar(char) {
     locationURL += char;
     updateTextOverlay();
@@ -107,6 +114,7 @@ function updateTextOverlay() {
 }
 
 keyboard.onKeyPress = function(event) {
+    randomSounds.playRandom();
     if (event.event == 'keypress') {
         appendChar(event.char);
     }

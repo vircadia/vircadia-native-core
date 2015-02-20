@@ -136,7 +136,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     
     // Create Singleton objects on main thread
     NetworkAccessManager::getInstance();
-    auto soundCache = DependencyManager::get<SoundCache>();
 }
 
 void AssignmentClient::sendAssignmentRequest() {
