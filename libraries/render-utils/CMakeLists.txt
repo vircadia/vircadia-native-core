@@ -13,8 +13,3 @@ find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 link_hifi_libraries(animation fbx shared gpu)
-
-if (WIN32)
-  # we're using static GLEW, so define GLEW_STATIC
-  add_definitions(-DGLEW_STATIC)
-endif ()

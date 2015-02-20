@@ -27,13 +27,16 @@ if (WIN32)
   find_library(GLEW_LIBRARY_RELEASE glew32s PATH_SUFFIXES "lib/Release/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
   find_library(GLEW_LIBRARY_DEBUG glew32sd PATH_SUFFIXES "lib/Debug/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
   
+  find_path(GLEW_DLL_PATH glew32.dll PATH_SUFFIXES "bin/Release/Win32" HINTS ${GLEW_SEARCH_DIRS})
+  
   include(SelectLibraryConfigurations)
   select_library_configurations(GLEW)
+  
+  set(GLEW_LIBRARIES ${GLEW_LIBRARY})
+
+  include(FindPackageHandleStandardArgs)
+  find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARIES GLEW_DLL_PATH)
+  
+  add_paths_to_lib_paths(${GLEW_DLL_PATH})
 endif ()
 
-set(GLEW_LIBRARIES ${GLEW_LIBRARY})
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARIES)
-
-mark_as_advanced(GLEW_INCLUDE_DIRS GLEW_LIBRARIES GLEW_SEARCH_DIRS)

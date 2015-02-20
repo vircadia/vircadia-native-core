@@ -1,9 +1,5 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Windows specific instructions are found in this file.
 
-###Windows Specific Dependencies
-* [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
-* (remember that you need all other dependencies listed in [BUILD.md](BUILD.md))
-
 ###Visual Studio 2013
 
 You can use the Community or Professional editions of Visual Studio 2013.
@@ -44,18 +40,10 @@ We use CMake's `fixup_bundle` to find the DLLs all of our exectuable targets req
 The recommended route for CMake to find the external dependencies is to place all of the dependencies in one folder and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
     root_lib_dir
-        -> glew
-            -> bin
-            -> include
-            -> lib
         -> openssl
             -> bin
             -> include
             -> lib
-        -> zlib
-           -> include
-           -> lib
-           -> test
 
 For many of the external libraries where precompiled binaries are readily available you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. Otherwise you may need to build from source and install the built product to this directory. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it. From here on, whenever you see %HIFI_LIB_DIR% you should substitute the directory that you chose.
 
@@ -79,16 +67,10 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
-####GLEW
-
-Download the binary package: `glew-1.10.0-win32.zip`. Extract to %HIFI_LIB_DIR%\glew (you'll need to rename the default directory name).
-
-Add to the PATH: `%HIFI_LIB_DIR%\glew\bin\Release\Win32`
-
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.
 
-    cmake .. -DZLIB_LIBRARY=%ZLIB_LIBRARY% -DZLIB_INCLUDE_DIR=%ZLIB_INCLUDE_DIR% -G "Visual Studio 12"
+    cmake .. -G "Visual Studio 12"
 
 Open %HIFI_DIR%\build\hifi.sln and compile.
 
