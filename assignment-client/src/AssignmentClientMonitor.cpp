@@ -20,6 +20,7 @@
 
 #include "AssignmentClientMonitor.h"
 #include "PacketHeaders.h"
+#include "SharedUtil.h"
 
 const char* NUM_FORKS_PARAMETER = "-n";
 
@@ -70,85 +71,49 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, const u
 
 AssignmentClientMonitor::~AssignmentClientMonitor() {
     stopChildProcesses();
-
-    foreach (AssignmentClientChildData* childStatus, _childStatus) {
-        delete childStatus;
-    }
 }
 
-
-
 void AssignmentClientMonitor::stopChildProcesses() {
-    
-    QList<QPointer<QProcess> >::Iterator it = _childProcesses.begin();
-    while (it != _childProcesses.end()) {
-        if (!it->isNull()) {
-            qDebug() << "Monitor is terminating child process" << it->data();
-            
-            // don't re-spawn this child when it goes down
-            disconnect(it->data(), 0, this, 0);
-            
-            it->data()->terminate();
-            it->data()->waitForFinished();
-        }
-        
-        it = _childProcesses.erase(it);
-    }
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->eachNode([&](const SharedNodePointer& node){
+            qDebug() << "asking child" << node->getUUID() << "to exit.";
+            node->activateLocalSocket();
+            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+            nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
+        });
 }
 
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess *assignmentClient = new QProcess(this);
     
-    _childProcesses.append(QPointer<QProcess>(assignmentClient));
-
-    QUuid childUUID = QUuid::createUuid();
-
-    // create a Node for this child.  this is done so we can idenitfy packets from unknown children
-    DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
-        (childUUID, NodeType::Unassigned, HifiSockAddr("localhost", 0), HifiSockAddr("localhost", 0), false);
-    
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
 
-    QStringList idArgs = QStringList() << "-i" << childUUID.toString();
-    assignmentClient->start(applicationFilePath(), _childArguments + idArgs);
-    
-    // link the child processes' finished slot to our childProcessFinished slot
-    connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this,
-            SLOT(childProcessFinished(int, QProcess::ExitStatus)));
-    
+    assignmentClient->start(applicationFilePath(), _childArguments);
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
 }
 
-void AssignmentClientMonitor::childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
-    qDebug("Replacing dead child assignment client with a new one");
-    
-    // remove the old process from our list of child processes
-    qDebug() << "need to remove" << QPointer<QProcess>(qobject_cast<QProcess*>(sender()));
-    _childProcesses.removeOne(QPointer<QProcess>(qobject_cast<QProcess*>(sender())));
-    
-    spawnChildClient();
-}
-
-
 
 void AssignmentClientMonitor::checkSpares() {
-    qDebug() << "check spares:";
-
-    QString aSpareId = "";
+    auto nodeList = DependencyManager::get<NodeList>();
+    QUuid aSpareId = "";
     unsigned int spareCount = 0;
 
-    QHash<QString, AssignmentClientChildData*>::const_iterator i = _childStatus.constBegin();
-    while (i != _childStatus.constEnd()) {
-        qDebug() << "  " << i.key() << i.value()->getChildType();
-        if (i.value()->getChildType() == "none") {
-            spareCount ++;
-            aSpareId = i.key();
-        }
-        ++i;
-    }
+    nodeList->removeSilentNodes();
 
-    qDebug() << "spare count is" << spareCount;
+    qDebug() << "check spares:";
+
+    nodeList->eachNode([&](const SharedNodePointer& node){
+            AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
+            qDebug() << "  " << node->getUUID() << childData->getChildType();
+            if (childData->getChildType() == "none") {
+                spareCount ++;
+                aSpareId = node->getUUID();
+            }
+        });
+
+    qDebug() << "  spare count is" << spareCount;
 
     if (spareCount < 1) {
         qDebug() << "FORK";
@@ -156,11 +121,14 @@ void AssignmentClientMonitor::checkSpares() {
     }
 
     if (spareCount > 1) {
-        qDebug() << "KILL";
+        // kill aSpareId
+        qDebug() << "asking child" << aSpareId << "to exit.";
+        SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
+        childNode->activateLocalSocket();
+        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+        nodeList->writeUnverifiedDatagram(diePacket, childNode);
     }
 }
-
-
 
 
 void AssignmentClientMonitor::readPendingDatagrams() {
@@ -176,16 +144,21 @@ void AssignmentClientMonitor::readPendingDatagrams() {
 
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             if (packetTypeForPacket(receivedPacket) == PacketTypeNodeJsonStats) {
-
                 QUuid packetUUID = uuidFromPacketHeader(receivedPacket);
-                // qDebug() << "packetUUID = " << packetUUID;
-
                 SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
                 if (!matchingNode) {
-                    qDebug() << "got packet from unknown child, id =" << packetUUID.toString();
-                    // tell unknown assignment-client child to exit.
-                    QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
-                    nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
+                    // XXX only do this if from local machine
+                    if (!packetUUID.isNull()) {
+                        matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
+                            (packetUUID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false);
+                        AssignmentClientChildData *childData = new AssignmentClientChildData("unknown");
+                        matchingNode->setLinkedData(childData);
+                    } else {
+                        // tell unknown assignment-client child to exit.
+                        qDebug() << "asking unknown child to exit.";
+                        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+                        nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
+                    }
                 }
 
                 if (matchingNode) {
@@ -195,25 +168,18 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                     // push past the packet header
                     QDataStream packetStream(receivedPacket);
                     packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
-
+                    // decode json
                     QVariantMap unpackedVariantMap;
-
                     packetStream >> unpackedVariantMap;
-
                     QJsonObject unpackedStatsJSON = QJsonObject::fromVariantMap(unpackedVariantMap);
 
-                    // qDebug() << "ACM got stats packet, id =" << packetUUID.toString()
-                    //          << "type =" << unpackedStatsJSON["assignment_type"];
-
-                    QString key(QString(packetUUID.toString()));
-                    if (_childStatus.contains(key)) {
-                        delete _childStatus[ key ];
-                    }
-
+                    // get child's assignment type out of the decoded json
                     QString childType = unpackedStatsJSON["assignment_type"].toString();
-                    auto childStatus = new AssignmentClientChildData(childType);
-                    _childStatus[ key ] = childStatus;
-
+                    AssignmentClientChildData *childData =
+                        static_cast<AssignmentClientChildData*>(matchingNode->getLinkedData());
+                    childData->setChildType(childType);
+                    // note when this child talked
+                    matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 }
             } else {
                 // have the NodeList attempt to handle it

@@ -11,7 +11,7 @@
 
 #include <QApplication>
 
-class AssignmentClientApp : public QApplication {
+class AssignmentClientApp : public QCoreApplication {
     Q_OBJECT
 public:
     AssignmentClientApp(int argc, char* argv[]);

@@ -21,7 +21,7 @@ class QSharedMemory;
 class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
-    AssignmentClient(int &argc, char **argv, QUuid nodeUUID);
+    AssignmentClient(int &argc, char **argv);
     static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
 
 private slots:
@@ -30,6 +30,7 @@ private slots:
     void assignmentCompleted();
     void handleAuthenticationRequest();
     void sendStatsPacketToACM();
+    void stopAssignmentClient();
 
 private:
     void setUpStatsToMonitor();

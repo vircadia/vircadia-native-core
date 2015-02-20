@@ -18,7 +18,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
-#include <AvatarHashMap.h>
+// #include <AvatarHashMap.h>
 #include <HifiConfigVariantMap.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
@@ -41,7 +41,7 @@ SharedAssignmentPointer AssignmentClient::_currentAssignment;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
-AssignmentClient::AssignmentClient(int &argc, char **argv, QUuid nodeUUID) :
+AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
     _localASPortSharedMem(NULL),
@@ -58,8 +58,11 @@ AssignmentClient::AssignmentClient(int &argc, char **argv, QUuid nodeUUID) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
-    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
+    // auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
 
+    // make up a uuid for this child so the parent can tell us apart.  This id will be changed
+    // when the domain server hands over an assignment.
+    QUuid nodeUUID = QUuid::createUuid();
     nodeList->setSessionUUID(nodeUUID);
     
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
@@ -139,8 +142,34 @@ AssignmentClient::AssignmentClient(int &argc, char **argv, QUuid nodeUUID) :
     
     // Create Singleton objects on main thread
     NetworkAccessManager::getInstance();
+    // DependencyManager::get<NetworkAccessManager>();
 
     setUpStatsToMonitor();
+}
+
+
+void AssignmentClient::stopAssignmentClient() {
+
+    // QList<QThread*> threads = QObject::findChildren <QThread*> ();
+    // foreach(QThread *thread, threads) { // or FileUploader* fileuploader, fileUploaders_ ?
+    //     qDebug() << "thread " << thread->currentThreadId();
+    // }
+
+    qDebug() << "Exiting.";
+
+    _requestTimer.stop();
+    _statsTimerACM.stop();
+
+
+    //    DependencyManager::get<NodeList>()->disconnect();
+    //    DependencyManager::get<NodeList>()->disconnectNotify();
+    //    DependencyManager::get<AddressManager>()->disconnect();
+    //    DependencyManager::get<AddressManager>()->disconnectNotify();
+
+    //    DependencyManager::destroy<NodeList>();
+    //    DependencyManager::destroy<AddressManager>();
+
+    quit();
 }
 
 
@@ -249,15 +278,12 @@ void AssignmentClient::readPendingDatagrams() {
                     qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
                 }
             } else if (packetTypeForPacket(receivedPacket) == PacketTypeStopNode) {
-                qDebug() << "Network told me to exit";
-                quit();
+                qDebug() << "Network told me to exit.";
+                emit stopAssignmentClient();
             } else {
-                qDebug() << "punt";
                 // have the NodeList attempt to handle it
                 nodeList->processNodeData(senderSockAddr, receivedPacket);
             }
-        } else {
-            qDebug() << "packetVersionAndHashMatch said no";
         }
     }
 }

@@ -21,7 +21,7 @@
 
 
 AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
-    QApplication(argc, argv)
+    QCoreApplication(argc, argv)
 {
 #   ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
@@ -40,9 +40,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     const QCommandLineOption numChildsOption("n", "number of children to fork", "child-count");
     parser.addOption(numChildsOption);
 
-    const QCommandLineOption idOption("i", "assignment client id", "uuid");
-    parser.addOption(idOption);
-
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
         parser.showHelp();
@@ -54,27 +51,16 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
-    if (parser.isSet(numChildsOption) && parser.isSet(idOption)) {
-        qCritical() << "using both -i and -n doesn't make sense.";
-        parser.showHelp();
-        Q_UNREACHABLE();
-    }
-
     unsigned int numForks = 0;
     if (parser.isSet(numChildsOption)) {
         numForks = parser.value(numChildsOption).toInt();
-    }
-
-    QUuid nodeUUID = QUuid::createUuid();
-    if (parser.isSet(idOption)) {
-        nodeUUID = QUuid(parser.value(idOption));
     }
 
     if (numForks) {
         AssignmentClientMonitor monitor(argc, argv, numForks);
         monitor.exec();
     } else {
-        AssignmentClient client(argc, argv, nodeUUID);
+        AssignmentClient client(argc, argv);
         client.exec();
     }
 }

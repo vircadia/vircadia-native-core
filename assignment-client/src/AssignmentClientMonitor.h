@@ -15,21 +15,25 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/qpointer.h>
 #include <QtCore/QProcess>
+#include <QtCore/QDateTime>
 
 #include <Assignment.h>
 
 extern const char* NUM_FORKS_PARAMETER;
 
-class AssignmentClientChildData {
+class AssignmentClientChildData : public NodeData {
  public:
     AssignmentClientChildData(QString childType);
     ~AssignmentClientChildData();
 
     QString getChildType() { return _childType; }
+    void setChildType(QString childType) { _childType = childType; }
+
+    // implement parseData to return 0 so we can be a subclass of NodeData
+    int parseData(const QByteArray& packet) { return 0; }
 
  private:
     QString _childType;
-    // ... timestamp
 };
 
 
@@ -41,17 +45,15 @@ public:
     
     void stopChildProcesses();
 private slots:
-    void childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    // void childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void readPendingDatagrams();
     void checkSpares();
 
 private:
     void spawnChildClient();
-    QList<QPointer<QProcess> > _childProcesses;
+    // QList<QPointer<QProcess> > _childProcesses;
     
     QStringList _childArguments;
-    QHash<QString, AssignmentClientChildData*> _childStatus;
-
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 };
 
