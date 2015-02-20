@@ -87,8 +87,10 @@ void AssignmentClientMonitor::spawnChildClient() {
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
     
     assignmentClient->start(applicationFilePath(), _childArguments);
+
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
 }
+
 
 
 void AssignmentClientMonitor::checkSpares() {
@@ -100,7 +102,6 @@ void AssignmentClientMonitor::checkSpares() {
 
     nodeList->eachNode([&](const SharedNodePointer& node){
             AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
-            qDebug() << "  " << node->getUUID() << childData->getChildType();
             if (childData->getChildType() == "none") {
                 spareCount ++;
                 aSpareId = node->getUUID();
@@ -142,17 +143,20 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                 QUuid packetUUID = uuidFromPacketHeader(receivedPacket);
                 SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
                 if (!matchingNode) {
-                    // XXX only do this if from local machine
-                    if (!packetUUID.isNull()) {
-                        matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
-                            (packetUUID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false);
-                        AssignmentClientChildData *childData = new AssignmentClientChildData("unknown");
-                        matchingNode->setLinkedData(childData);
-                    } else {
-                        // tell unknown assignment-client child to exit.
-                        qDebug() << "asking unknown child to exit.";
-                        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
-                        nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
+                    // The parent only expects to be talking with prorams running on this same machine.
+                    if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
+                        senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
+                        if (!packetUUID.isNull()) {
+                            matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
+                                (packetUUID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false);
+                            AssignmentClientChildData *childData = new AssignmentClientChildData("unknown");
+                            matchingNode->setLinkedData(childData);
+                        } else {
+                            // tell unknown assignment-client child to exit.
+                            qDebug() << "asking unknown child to exit.";
+                            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+                            nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
+                        }
                     }
                 }
 

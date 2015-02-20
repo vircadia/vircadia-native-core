@@ -259,8 +259,13 @@ void AssignmentClient::readPendingDatagrams() {
                     qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
                 }
             } else if (packetTypeForPacket(receivedPacket) == PacketTypeStopNode) {
-                qDebug() << "Network told me to exit.";
-                emit stopAssignmentClient();
+                if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
+                    senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
+                    qDebug() << "Network told me to exit.";
+                    emit stopAssignmentClient();
+                } else {
+                    qDebug() << "Got a stop packet from other than localhost.";
+                }
             } else {
                 // have the NodeList attempt to handle it
                 nodeList->processNodeData(senderSockAddr, receivedPacket);
