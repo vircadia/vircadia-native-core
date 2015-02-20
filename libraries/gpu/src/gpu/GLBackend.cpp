@@ -421,55 +421,7 @@ void GLBackend::killTransform() {
 #endif
 }
 void GLBackend::updateTransform() {
-
-#ifdef LEGACY_TRANSFORM_PIPELINE
-    if (_transform._invalidProj) {
-        // TODO: implement the projection matrix assignment to gl state
-        if (_transform._lastMode != GL_PROJECTION) {
-            glMatrixMode(GL_PROJECTION);
-            _transform._lastMode = GL_PROJECTION;
-        }
-        glLoadMatrixf(reinterpret_cast< const GLfloat* >(&_transform._projection));
-
-        CHECK_GL_ERROR();
-    }
-
-    if (_transform._invalidModel || _transform._invalidView) {
-        if (!_transform._model.isIdentity()) {
-            if (_transform._lastMode != GL_MODELVIEW) {
-                glMatrixMode(GL_MODELVIEW);
-                _transform._lastMode = GL_MODELVIEW;
-            }
-            Transform::Mat4 modelView;
-            if (!_transform._view.isIdentity()) {
-                Transform mvx;
-                Transform::inverseMult(mvx, _transform._view, _transform._model);
-                mvx.getMatrix(modelView);
-            } else {
-                _transform._model.getMatrix(modelView);
-            }
-            glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
-        } else {
-            if (!_transform._view.isIdentity()) {
-                if (_transform._lastMode != GL_MODELVIEW) {
-                    glMatrixMode(GL_MODELVIEW);
-                    _transform._lastMode = GL_MODELVIEW;
-                }
-                Transform::Mat4 modelView;
-                _transform._view.getInverseMatrix(modelView);
-                glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
-            } else {
-                // TODO: eventually do something about the matrix when neither view nor model is specified?
-                // glLoadIdentity();
-            }
-        }
-        CHECK_GL_ERROR();
-
-        _transform._invalidModel = false;
-        _transform._invalidView = false;
-    }
-#else
-
+    // Check all the dirty flags and update the state accordingly
     if (_transform._invalidProj) {
         _transform._transformCamera._projection = _transform._projection;
     }
@@ -489,28 +441,39 @@ void GLBackend::updateTransform() {
         viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
         _transform._transformCamera._projectionViewUntranslated = _transform._transformCamera._projection * viewUntranslated;
     }
-     
+ 
     if (_transform._invalidView || _transform._invalidProj) {
-       glBindBufferBase(GL_UNIFORM_BUFFER, 2, 0);
-       glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
+#if defined(Q_OS_MAC)
+#elif defined(Q_OS_WIN)
+        glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         CHECK_GL_ERROR();
+#endif
    }
 
     if (_transform._invalidModel) {
-        glBindBufferBase(GL_UNIFORM_BUFFER, 6, 0);
+#if defined(Q_OS_MAC)
+#elif defined(Q_OS_WIN)
+        glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 0);
         glBindBuffer(GL_ARRAY_BUFFER, _transform._transformObjectBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         CHECK_GL_ERROR();
+#endif
     }
 
-    glBindBufferBase(GL_UNIFORM_BUFFER, 6, _transform._transformObjectBuffer);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 2, _transform._transformCameraBuffer);
-        CHECK_GL_ERROR();
+#if defined(Q_OS_MAC)
+#elif defined(Q_OS_WIN)
+    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._transformObjectBuffer);
+    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _transform._transformCameraBuffer);
+    CHECK_GL_ERROR();
+#endif
 
-    // Do it again for fixed pipeline unitl we can get rid of it
+
+#if defined(Q_OS_MAC)
+    // Do it again for fixed pipeline until we can get rid of it
     if (_transform._invalidProj) {
         if (_transform._lastMode != GL_PROJECTION) {
             glMatrixMode(GL_PROJECTION);
@@ -552,9 +515,10 @@ void GLBackend::updateTransform() {
         }
         CHECK_GL_ERROR();
     }
-
-    _transform._invalidView = _transform._invalidProj = _transform._invalidModel = false;
 #endif
+
+    // Flags are clean
+    _transform._invalidView = _transform._invalidProj = _transform._invalidModel = false;
 }
 
 void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {

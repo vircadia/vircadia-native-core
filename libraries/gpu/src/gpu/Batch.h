@@ -53,6 +53,11 @@ enum Primitive {
     NUM_PRIMITIVES,
 };
 
+enum ReservedSlot {
+    TRANSFORM_OBJECT_SLOT = 6,
+    TRANSFORM_CAMERA_SLOT = 7,
+};
+
 class Batch {
 public:
     typedef Stream::Slot Slot;

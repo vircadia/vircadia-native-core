@@ -225,13 +225,13 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
 
     loc = glGetUniformBlockIndex(program.programId(), "transformObjectBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 6);
+        glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_OBJECT_SLOT);
        // locations.materialBufferUnit = 1;
     }
 
     loc = glGetUniformBlockIndex(program.programId(), "transformCameraBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 2);
+        glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_CAMERA_SLOT);
        // locations.materialBufferUnit = 1;
     }
 
