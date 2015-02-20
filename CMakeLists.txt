@@ -126,8 +126,18 @@ set(EXTERNAL_PROJECT_PREFIX "project")
 set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
 setup_externals_binary_dir()
 
-# setup for optional external project dependencies
-option(GET_SDL2 "Download SDL2 as external project" 0)
+# setup options to grab external project dependencies
+option(GET_BULLET "Get Bullet library automatically as external project" 1)
+option(GET_GLM "Get GLM library automatically as external project" 1)
+option(GET_GVERB "Get Gverb library automatically as external project" 1)
+option(GET_SOXR "Get Soxr library automatically as external project" 1)
+option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
+
+if (WIN32)
+  option(GET_GLEW "Get GLEW library automatically as external project" 1)
+endif ()
+
+option(GET_SDL2 "Get SDL2 library automatically as external project" 0)
 
 if (WIN32)
   add_paths_to_lib_paths("${QT_DIR}/bin")
