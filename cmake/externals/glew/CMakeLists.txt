@@ -1,5 +1,5 @@
 if (WIN32)
-  set(EXTERNAL_NAME glm)
+  set(EXTERNAL_NAME glew)
 
   include(ExternalProject)
   ExternalProject_Add(
