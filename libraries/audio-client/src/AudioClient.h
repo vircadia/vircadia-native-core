@@ -176,7 +176,7 @@ public slots:
 
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
-    void setReverb(bool reverb) { _reverb = reverb; }
+    void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
 
     void outputNotify();
@@ -251,7 +251,6 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    ty_gverb* _gverbLocal;
     ty_gverb* _gverb;
     
     // possible soxr streams needed for resample
@@ -260,9 +259,10 @@ private:
     soxr* _loopbackResampler;
 
     // Adds Reverb
-    void initGverb();
+    ty_gverb* createGverbFilter();
+    void configureGverbFilter(ty_gverb* filter);
     void updateGverbOptions();
-    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
+    void addReverb(ty_gverb* gverb, int16_t* samples, int16_t* reverbAlone, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
