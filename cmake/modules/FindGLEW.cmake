@@ -24,8 +24,8 @@ if (WIN32)
   
   find_path(GLEW_INCLUDE_DIRS GL/glew.h PATH_SUFFIXES include HINTS ${GLEW_SEARCH_DIRS})
   
-  find_library(GLEW_LIBRARY_RELEASE glew32s PATH_SUFFIXES "lib/Release/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
-  find_library(GLEW_LIBRARY_DEBUG glew32sd PATH_SUFFIXES "lib/Debug/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
+  find_library(GLEW_LIBRARY_RELEASE glew32 PATH_SUFFIXES "lib/Release/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
+  find_library(GLEW_LIBRARY_DEBUG glew32d PATH_SUFFIXES "lib/Debug/Win32" "lib" HINTS ${GLEW_SEARCH_DIRS})
   
   find_path(GLEW_DLL_PATH glew32.dll PATH_SUFFIXES "bin/Release/Win32" HINTS ${GLEW_SEARCH_DIRS})
   

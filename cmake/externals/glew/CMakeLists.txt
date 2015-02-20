@@ -19,7 +19,7 @@ if (WIN32)
   
   set(_LIB_DIR ${SOURCE_DIR}/lib/Release/Win32)
   
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_LIB_DIR}/glew32s.lib CACHE FILEPATH "Location of GLEW release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_LIB_DIR}/glew32.lib CACHE FILEPATH "Location of GLEW release library")
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG NOTFOUND CACHE FILEPATH "Location of GLEW debug library")
   
   set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/bin/Release/Win32 CACHE FILEPATH "Location of GLEW DLL")
