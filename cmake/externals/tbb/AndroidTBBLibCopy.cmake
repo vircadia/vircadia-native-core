@@ -1,6 +1,6 @@
 # 
 #  AndroidTBBLibCopy.cmake
-#  cmake/macros
+#  cmake/externals/tbb
 # 
 #  Copyright 2015 High Fidelity, Inc.
 #  Created by Stephen Birarda on February 18, 2014

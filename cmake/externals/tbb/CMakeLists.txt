@@ -48,6 +48,17 @@ if (APPLE)
   set(_TBB_LIB_DIR "${SOURCE_DIR}/lib/libc++")
   set(_LIB_PREFIX "lib")
   set(_LIB_EXT "dylib")
+  
+  ExternalProject_Add_Step(
+    ${EXTERNAL_NAME}
+    change-install-name
+    COMMENT "Calling install_name_tool on TBB libraries to fix install name for dylib linking"
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/OSXTBBInstallNameChange.cmake
+    DEPENDEES install
+    WORKING_DIRECTORY <SOURCE_DIR>
+    LOG 1
+  )
+  
 elseif (WIN32)
   set(_TBB_LIB_DIR "${SOURCE_DIR}/lib/ia32/vc12")
   set(_LIB_EXT "lib")
