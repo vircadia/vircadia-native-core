@@ -62,7 +62,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, const u
     }
 
     connect(&_checkSparesTimer, SIGNAL(timeout()), SLOT(checkSpares()));
-    _checkSparesTimer.start(5000);
+    _checkSparesTimer.start(NODE_SILENCE_THRESHOLD_MSECS * 3);
 }
 
 AssignmentClientMonitor::~AssignmentClientMonitor() {
@@ -109,7 +109,7 @@ void AssignmentClientMonitor::checkSpares() {
         });
 
     if (spareCount != 1) {
-        qDebug() << "  spare count is" << spareCount;
+        qDebug() << "spare count is" << spareCount;
     }
 
     if (spareCount < 1) {
