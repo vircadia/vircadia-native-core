@@ -34,7 +34,7 @@ if (WIN32)
 endif ()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(SOXR DEFAULT_MSG ${SOXR_REQUIREMENTS})
+find_package_handle_standard_args(Soxr DEFAULT_MSG ${SOXR_REQUIREMENTS})
 
 if (WIN32)
   add_paths_to_lib_paths(${SOXR_DLL_PATH})
