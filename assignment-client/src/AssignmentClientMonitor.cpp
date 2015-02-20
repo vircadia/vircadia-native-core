@@ -13,10 +13,7 @@
 
 #include <LogHandler.h>
 #include <ShutdownEventListener.h>
-
-
-#include <AddressManager.h> // XXX need this?
-
+#include <AddressManager.h>
 
 #include "AssignmentClientMonitor.h"
 #include "PacketHeaders.h"
@@ -52,7 +49,6 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, const u
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
-    // auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
     auto nodeList = DependencyManager::set<LimitedNodeList>(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT,
                                                             DEFAULT_ASSIGNMENT_CLIENT_MONITOR_DTLS_PORT);
 
@@ -89,7 +85,7 @@ void AssignmentClientMonitor::spawnChildClient() {
     
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
-
+    
     assignmentClient->start(applicationFilePath(), _childArguments);
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
 }
@@ -102,8 +98,6 @@ void AssignmentClientMonitor::checkSpares() {
 
     nodeList->removeSilentNodes();
 
-    qDebug() << "check spares:";
-
     nodeList->eachNode([&](const SharedNodePointer& node){
             AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
             qDebug() << "  " << node->getUUID() << childData->getChildType();
@@ -113,10 +107,11 @@ void AssignmentClientMonitor::checkSpares() {
             }
         });
 
-    qDebug() << "  spare count is" << spareCount;
+    if (spareCount != 1) {
+        qDebug() << "  spare count is" << spareCount;
+    }
 
     if (spareCount < 1) {
-        qDebug() << "FORK";
         spawnChildClient();
     }
 

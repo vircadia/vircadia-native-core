@@ -25,9 +25,8 @@
 #include <qset.h>
 #include <qsharedpointer.h>
 #include <QtNetwork/qudpsocket.h>
-#include <QSharedMemory>
-
 #include <QtNetwork/qhostaddress.h>
+#include <QSharedMemory>
 
 #include <tbb/concurrent_unordered_map.h>
 

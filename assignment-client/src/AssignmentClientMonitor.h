@@ -45,14 +45,11 @@ public:
     
     void stopChildProcesses();
 private slots:
-    // void childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void readPendingDatagrams();
     void checkSpares();
 
 private:
     void spawnChildClient();
-    // QList<QPointer<QProcess> > _childProcesses;
-    
     QStringList _childArguments;
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 };

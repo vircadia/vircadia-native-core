@@ -244,7 +244,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     populateStaticScriptedAssignmentsFromSettings();
 
     auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
-
+    
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
     nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
     

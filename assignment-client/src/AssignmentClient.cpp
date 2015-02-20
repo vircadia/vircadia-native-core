@@ -203,7 +203,7 @@ void AssignmentClient::sendAssignmentRequest() {
                 qDebug () << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
             }
         }
-	
+        
         nodeList->sendAssignment(_requestAssignment);
     }
 }
