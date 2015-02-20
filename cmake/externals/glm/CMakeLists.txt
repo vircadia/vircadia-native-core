@@ -10,7 +10,6 @@ ExternalProject_Add(
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
-  LOG_INSTALL 1
 )
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
