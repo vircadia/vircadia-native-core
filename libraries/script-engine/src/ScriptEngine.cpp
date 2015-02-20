@@ -106,7 +106,12 @@ QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
 
 void ScriptEngine::gracefullyStopAllScripts() {
     qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- START ------------------";
-    foreach(ScriptEngine* scriptEngine, _allKnownScriptEngines) {
+
+    QSet<ScriptEngine*>::const_iterator i = _allKnownScriptEngines.constBegin();
+    while (i != _allKnownScriptEngines.constEnd()) {
+        ScriptEngine* scriptEngine = *i;
+        qDebug() << scriptEngine;
+ 
         if (scriptEngine->isRunning()) {
             qDebug() << "scriptEngine still alive:" << scriptEngine->getFilename() << "[" << scriptEngine << "]";
 
@@ -119,6 +124,8 @@ void ScriptEngine::gracefullyStopAllScripts() {
             loop.exec();
             qDebug() << "done waiting... ";
         }
+
+        ++i;
     }
     qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- DONE ------------------";
 }
