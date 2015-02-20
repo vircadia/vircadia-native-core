@@ -47,10 +47,9 @@ void main(void) {
     // use standard pipeline transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-
-    gl_Position = transform(cam, obj, gl_Vertex);
+    gl_Position = transformModelToClipPos(cam, obj, gl_Vertex);
     
     // transform and store the normal for interpolation
-    interpolatedNormal = vec4(normalize(transformDir(cam, obj, gl_Normal)), 0.0);
-    interpolatedTangent = vec4(normalize(transformDir(cam, obj, tangent)), 0.0);
+    interpolatedNormal = vec4(normalize(transformModelToEyeDir(cam, obj, gl_Normal)), 0.0);
+    interpolatedTangent = vec4(normalize(transformModelToEyeDir(cam, obj, tangent)), 0.0);
 }

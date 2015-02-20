@@ -33,6 +33,5 @@ void main(void) {
     // use standard pipeline transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-
-    gl_Position = transform(cam, obj, position);
+    gl_Position = transformModelToClipPos(cam, obj, position);
 }

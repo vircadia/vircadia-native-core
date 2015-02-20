@@ -37,10 +37,11 @@ public:
 
     class TransformCamera {
     public:
-        Mat4 _projection;
         Mat4 _view;
         Mat4 _viewInverse;
         Mat4 _projectionViewUntranslated;
+        Mat4 _projection;
+        Vec4 _viewport;
     };
 
     template< typename T >

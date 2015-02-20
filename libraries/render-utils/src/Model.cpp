@@ -700,11 +700,10 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     _renderBatch.clear();
     gpu::Batch& batch = _renderBatch;
 
-    if (args) {
-        glm::mat4 proj;
-        args->_viewFrustum->evalProjectionMatrix(proj); 
-        batch.setProjectionTransform(proj);
-    }
+    // Setup the projection matrix
+    glm::mat4 proj;
+    _viewState->getCurrentViewFrustum()->evalProjectionMatrix(proj); 
+    batch.setProjectionTransform(proj);
 
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {

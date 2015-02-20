@@ -486,7 +486,7 @@ void GLBackend::updateTransform() {
 
     if (_transform._invalidView || _transform._invalidProj) {
         Mat4 viewUntranslated = _transform._transformCamera._view;
-       // viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
         _transform._transformCamera._projectionViewUntranslated = _transform._transformCamera._projection * viewUntranslated;
     }
      
