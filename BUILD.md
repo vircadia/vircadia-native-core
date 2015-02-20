@@ -55,7 +55,7 @@ For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generat
 
 ####Finding Dependencies
 
-The following applies for dependencies we do not grab via CMake ExternalProject (OpenSSL is an example), or for dependencies you have opted not to grab as a CMake ExternalProject (via -DGET_$NAME=0). The list of dependencies we grab by default as external projects can be found in [the CMake External Project Dependencies section](#CMake External Project Dependencies).
+The following applies for dependencies we do not grab via CMake ExternalProject (OpenSSL is an example), or for dependencies you have opted not to grab as a CMake ExternalProject (via -DGET_$NAME=0). The list of dependencies we grab by default as external projects can be found in [the CMake External Project Dependencies section](#cmake-external-project-dependencies).
 
 You can point our [Cmake find modules](cmake/modules/) to the correct version of dependencies by setting one of the three following variables to the location of the correct version of the dependency.
 
