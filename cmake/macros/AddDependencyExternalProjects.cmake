@@ -18,7 +18,7 @@ macro(ADD_DEPENDENCY_EXTERNAL_PROJECTS)
     # has the user told us they specific don't want this as an external project?
     if (NOT DEFINED GET_${_PROJ_NAME_UPPER} OR GET_${_PROJ_NAME_UPPER})
       # have we already detected we can't have this as external project on this OS?
-      if (NOT DEFINED ${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT OR ${EXTERNAL_NAME_UPPER}_EXTERNAL_PROJECT)
+      if (NOT DEFINED ${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT OR ${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT)
         # have we already setup the target?
         if (NOT TARGET ${_PROJ_NAME})
           add_subdirectory(${EXTERNAL_PROJECT_DIR}/${_PROJ_NAME} ${EXTERNALS_BINARY_DIR}/${_PROJ_NAME})
