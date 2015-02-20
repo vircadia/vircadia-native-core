@@ -20,20 +20,39 @@
 
 extern const char* NUM_FORKS_PARAMETER;
 
+class AssignmentClientChildData {
+ public:
+    AssignmentClientChildData(QString childType);
+    ~AssignmentClientChildData();
+
+    QString getChildType() { return _childType; }
+
+ private:
+    QString _childType;
+    // ... timestamp
+};
+
+
 class AssignmentClientMonitor : public QCoreApplication {
     Q_OBJECT
 public:
-    AssignmentClientMonitor(int &argc, char **argv, int numAssignmentClientForks);
+    AssignmentClientMonitor(int &argc, char **argv, const unsigned int numAssignmentClientForks);
     ~AssignmentClientMonitor();
     
     void stopChildProcesses();
 private slots:
     void childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void readPendingDatagrams();
+    void checkSpares();
+
 private:
     void spawnChildClient();
     QList<QPointer<QProcess> > _childProcesses;
     
     QStringList _childArguments;
+    QHash<QString, AssignmentClientChildData*> _childStatus;
+
+    QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 };
 
 #endif // hifi_AssignmentClientMonitor_h

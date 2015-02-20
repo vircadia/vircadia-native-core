@@ -22,6 +22,7 @@
 #include <HifiConfigVariantMap.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
+#include <LimitedNodeList.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -40,10 +41,11 @@ SharedAssignmentPointer AssignmentClient::_currentAssignment;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
-AssignmentClient::AssignmentClient(int &argc, char **argv) :
+AssignmentClient::AssignmentClient(int &argc, char **argv, QUuid nodeUUID) :
     QCoreApplication(argc, argv),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
-    _localASPortSharedMem(NULL)
+    _localASPortSharedMem(NULL),
+    _localACMPortSharedMem(NULL)
 {
     LogUtils::init();
 
@@ -57,6 +59,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
+
+    nodeList->setSessionUUID(nodeUUID);
     
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32
@@ -123,9 +127,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // call a timer function every ASSIGNMENT_REQUEST_INTERVAL_MSECS to ask for assignment, if required
     qDebug() << "Waiting for assignment -" << _requestAssignment;
 
-    QTimer* timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
-    timer->start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
+    connect(&_requestTimer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
+    _requestTimer.start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
 
     // connect our readPendingDatagrams method to the readyRead() signal of the socket
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
@@ -136,6 +139,36 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     
     // Create Singleton objects on main thread
     NetworkAccessManager::getInstance();
+
+    setUpStatsToMonitor();
+}
+
+
+void AssignmentClient::setUpStatsToMonitor() {
+    // Figure out the address to send out stats to
+    quint16 localMonitorServerPort = DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT;
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->getLocalPortFromSharedMemory(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY,
+                                           _localACMPortSharedMem, localMonitorServerPort);
+    _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, localMonitorServerPort, true);
+
+    // send a stats packet every 1 seconds
+    connect(&_statsTimerACM, &QTimer::timeout, this, &AssignmentClient::sendStatsPacketToACM);
+    _statsTimerACM.start(1000);
+}
+
+void AssignmentClient::sendStatsPacketToACM() {
+    // tell the assignment client monitor what this assignment client is doing (if anything)
+    QJsonObject statsObject;
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    if (_currentAssignment) {
+        statsObject["assignment_type"] = _currentAssignment->getTypeName();
+    } else {
+        statsObject["assignment_type"] = "none";
+    }
+    nodeList->sendStats(statsObject, _assignmentClientMonitorSocket);
 }
 
 void AssignmentClient::sendAssignmentRequest() {
@@ -145,34 +178,22 @@ void AssignmentClient::sendAssignmentRequest() {
         
         if (_assignmentServerHostname == "localhost") {
             // we want to check again for the local domain-server port in case the DS has restarted
-            if (!_localASPortSharedMem) {
-                _localASPortSharedMem = new QSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
-                
-                if (!_localASPortSharedMem->attach(QSharedMemory::ReadOnly)) {
-                    qWarning() << "Could not attach to shared memory at key" << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY
-                        << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
-                }
-            }
-            
-            if (_localASPortSharedMem->isAttached()) {
-                _localASPortSharedMem->lock();
-                
-                quint16 localAssignmentServerPort;
-                memcpy(&localAssignmentServerPort, _localASPortSharedMem->data(), sizeof(localAssignmentServerPort));
-                
-                _localASPortSharedMem->unlock();
-                
+            quint16 localAssignmentServerPort;
+            if (nodeList->getLocalPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, _localASPortSharedMem,
+                                                       localAssignmentServerPort)) {
                 if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
                     qDebug() << "Port for local assignment server read from shared memory is"
-                        << localAssignmentServerPort;
+                             << localAssignmentServerPort;
                     
                     _assignmentServerSocket.setPort(localAssignmentServerPort);
                     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
                 }
             }
-            
+            else {
+                qDebug () << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
+            }
         }
-        
+
         nodeList->sendAssignment(_requestAssignment);
     }
 }
@@ -227,10 +248,16 @@ void AssignmentClient::readPendingDatagrams() {
                 } else {
                     qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
                 }
+            } else if (packetTypeForPacket(receivedPacket) == PacketTypeStopNode) {
+                qDebug() << "Network told me to exit";
+                quit();
             } else {
+                qDebug() << "punt";
                 // have the NodeList attempt to handle it
                 nodeList->processNodeData(senderSockAddr, receivedPacket);
             }
+        } else {
+            qDebug() << "packetVersionAndHashMatch said no";
         }
     }
 }
