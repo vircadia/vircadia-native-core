@@ -1,6 +1,7 @@
 (function(){ 
     var teleport;
     var portalDestination;
+    var animationURL;
 
     function playSound() {
       Audio.playSound(teleport, { volume: 0.40, localOnly: true });
@@ -11,6 +12,7 @@
         
         var properties = Entities.getEntityProperties(entityID);
         portalDestination = properties.userData;
+        animationURL = properties.modelURL;
         
         print("The portal destination is " + portalDestination);
     }
@@ -25,7 +27,7 @@
     
     this.leaveEntity = function(entityID) {
       Entities.editEntity(entityID, {
-        animationURL: "http://hifi-public.s3.amazonaws.com/models/content/phonebooth.fbx",
+        animationURL: animationURL,
         animationSettings: '{ "frameIndex": 1, "running": false }'
       });
       
@@ -34,7 +36,7 @@
     
     this.hoverEnterEntity = function(entityID) {
       Entities.editEntity(entityID, {
-        animationURL: "http://hifi-public.s3.amazonaws.com/models/content/phonebooth.fbx",
+        animationURL: animationURL,
         animationSettings: '{ "fps": 24, "firstFrame": 1, "lastFrame": 25, "frameIndex": 1, "running": true, "hold": true }'
       });
     };
