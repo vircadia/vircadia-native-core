@@ -33,13 +33,14 @@ class Text3DOverlay;
 /// Handles interaction with the Oculus Rift.
 class OculusManager {
 public:
+    static void init();
     static void connect();
     static void disconnect();
     static bool isConnected();
     static void recalibrate();
     static void abandonCalibration();
-    static void beginFrameTiming();
-    static void endFrameTiming();
+    //static void beginFrameTiming();
+    //static void endFrameTiming();
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
     static void display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
     static void reset();
@@ -54,58 +55,21 @@ public:
     static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
     
-    static glm::vec3 getLeftEyePosition() { return _leftEyePosition; }
-    static glm::vec3 getRightEyePosition() { return _rightEyePosition; }
+    static glm::vec3 getLeftEyePosition() { return _eyePositions[ovrEye_Left]; }
+    static glm::vec3 getRightEyePosition() { return _eyePositions[ovrEye_Right]; }
     
     static int getHMDScreen();
     
 private:
-#ifdef HAVE_LIBOVR
-    static void generateDistortionMesh();
-    static void renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]);
-
     static bool similarNames(const QString& nameA,const QString& nameB);
 
-    struct DistortionVertex {
-        glm::vec2 pos;
-        glm::vec2 texR;
-        glm::vec2 texG;
-        glm::vec2 texB;
-        struct {
-            GLubyte r;
-            GLubyte g;
-            GLubyte b;
-            GLubyte a;
-        } color;
-    };
-
-    static ProgramObject _program;
-    //Uniforms
-    static int _textureLocation;
-    static int _eyeToSourceUVScaleLocation;
-    static int _eyeToSourceUVOffsetLocation;
-    static int _eyeRotationStartLocation;
-    static int _eyeRotationEndLocation;
-    //Attributes
-    static int _positionAttributeLocation;
-    static int _colorAttributeLocation;
-    static int _texCoord0AttributeLocation;
-    static int _texCoord1AttributeLocation;
-    static int _texCoord2AttributeLocation;
-
-    static bool _isConnected;
+    //static bool _isConnected;
     
     static ovrHmd _ovrHmd;
-    static ovrHmdDesc _ovrHmdDesc;
     static ovrFovPort _eyeFov[ovrEye_Count];
-    static ovrEyeRenderDesc _eyeRenderDesc[ovrEye_Count];
     static ovrVector3f _eyeOffset[ovrEye_Count];
+    static glm::mat4 _eyeProjection[ovrEye_Count];
     static ovrSizei _renderTargetSize;
-    static ovrVector2f _UVScaleOffset[ovrEye_Count][2];
-    static GLuint _vertices[ovrEye_Count];
-    static GLuint _indices[ovrEye_Count];
-    static GLsizei _meshSize[ovrEye_Count];
-    static ovrFrameTiming _hmdFrameTiming;
     static ovrRecti _eyeRenderViewport[ovrEye_Count];
     static unsigned int _frameIndex;
     static bool _frameTimingActive;
@@ -134,12 +98,7 @@ private:
     static quint64 _calibrationStartTime;
     static int _calibrationMessage;
 
-#endif
-    
-    static glm::vec3 _leftEyePosition;
-    static glm::vec3 _rightEyePosition;
-    
-
+    static glm::vec3 _eyePositions[ovrEye_Count];
 };
 
 
