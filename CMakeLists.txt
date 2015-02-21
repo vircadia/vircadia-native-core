@@ -138,6 +138,7 @@ if (WIN32)
 endif ()
 
 option(GET_SDL2 "Get SDL2 library automatically as external project" 0)
+option(GET_QXMPP "GET Qxmpp library automatically as external project" 0)
 
 if (WIN32)
   add_paths_to_lib_paths("${QT_DIR}/bin")
