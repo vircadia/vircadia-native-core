@@ -587,27 +587,51 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {    
-    EntityTree* tree = _entities.getTree();
-    tree->lockForWrite();
-    _entities.getTree()->setSimulation(NULL);
-    tree->unlock();
+    qDebug() << "Application::~Application() ------------ START -----------------";
 
+
+    qDebug() << "Application::~Application() line:" << __LINE__;
+    EntityTree* tree = _entities.getTree();
+    qDebug() << "Application::~Application() line:" << __LINE__;
+    tree->lockForWrite();
+    qDebug() << "Application::~Application() line:" << __LINE__;
+    _entities.getTree()->setSimulation(NULL);
+    qDebug() << "Application::~Application() line:" << __LINE__;
+    tree->unlock();
+    qDebug() << "Application::~Application() line:" << __LINE__;
+
+    qDebug() << "Application::~Application() line:" << __LINE__;
     qInstallMessageHandler(NULL);
+    qDebug() << "Application::~Application() line:" << __LINE__;
 
     // ask the datagram processing thread to quit and wait until it is done
+    qDebug() << "Application::~Application() line:" << __LINE__;
     _nodeThread->quit();
+    qDebug() << "Application::~Application() line:" << __LINE__;
     _nodeThread->wait();
+    qDebug() << "Application::~Application() line:" << __LINE__;
     
+    qDebug() << "Application::~Application() line:" << __LINE__;
     _octreeProcessor.terminate();
+    qDebug() << "Application::~Application() line:" << __LINE__;
     _entityEditSender.terminate();
+    qDebug() << "Application::~Application() line:" << __LINE__;
 
+    qDebug() << "Application::~Application() line:" << __LINE__;
     Menu::getInstance()->deleteLater();
+    qDebug() << "Application::~Application() line:" << __LINE__;
 
+    qDebug() << "Application::~Application() line:" << __LINE__;
     _myAvatar = NULL;
+    qDebug() << "Application::~Application() line:" << __LINE__;
 
+    qDebug() << "Application::~Application() line:" << __LINE__;
     ModelEntityItem::cleanupLoadedAnimations() ;
+    qDebug() << "Application::~Application() line:" << __LINE__;
     
+    qDebug() << "Application::~Application() line:" << __LINE__;
     DependencyManager::destroy<GLCanvas>();
+    qDebug() << "Application::~Application() line:" << __LINE__;
 
     qDebug() << "start destroying ResourceCaches Application::~Application() line:" << __LINE__;
     DependencyManager::destroy<AnimationCache>();
@@ -616,6 +640,7 @@ Application::~Application() {
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
     qDebug() << "done destroying ResourceCaches Application::~Application() line:" << __LINE__;
+    qDebug() << "Application::~Application() ------------ DONE -----------------";
 }
 
 void Application::initializeGL() {
