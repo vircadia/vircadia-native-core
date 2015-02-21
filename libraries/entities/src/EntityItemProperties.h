@@ -183,6 +183,9 @@ public:
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
     DEFINE_PROPERTY_REF(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
 
+    QString getShapeTypeString() const;
+    void setShapeTypeFromString(const QString& shapeName);
+
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
 

@@ -180,15 +180,6 @@
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
     properties.setProperty(#P, _##P);
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S, E) \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        E newValue = (E)(P.toVariant().toInt());   \
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
-    }
-
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(P, S) \
     QScriptValue P = object.property(#P);           \
     if (P.isValid()) {                              \
