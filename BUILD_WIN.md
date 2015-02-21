@@ -67,6 +67,9 @@ The recommended route for CMake to find the external dependencies is to place al
            -> include
            -> lib
            -> test
+		-> vhacd
+           -> include
+           -> lib
 
 For many of the external libraries where precompiled binaries are readily available you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. Otherwise you may need to build from source and install the built product to this directory. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it. From here on, whenever you see %HIFI_LIB_DIR% you should substitute the directory that you chose.
 
@@ -113,6 +116,15 @@ Add to the PATH: `%HIFI_LIB_DIR%\zlib`
 
 Important! This should be added at the beginning of the path, not the end (your 
 system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version). If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
+
+###vhacd
+Download it directly from https://github.com/virneo/v-hacd
+cd src\
+mkdir build
+cd build
+cmake ..
+Build using visual studio 2013. Build ALL_BUILD and INSTALL targets both in Release and Debug. This create a output folder with include and lib directory.
+Either copy that folder to ENV %HIFI_LIB_DIR%/vhacd or create an environment variable VHACD_ROOT_DIR to this output directory.
 
 ###freeglut
 

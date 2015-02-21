@@ -8,7 +8,7 @@
 * [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
 * [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
 * [Gverb](https://github.com/highfidelity/gverb/archive/master.zip) (direct download to latest version)
-
+* [VHACD](https://github.com/virneo/v-hacd)
 #### CMake External Project Dependencies
 
 The following dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build` directory in each of the subfolders for each external project. These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared.
