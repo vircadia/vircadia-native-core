@@ -109,7 +109,7 @@ void ScriptEngine::gracefullyStopAllScripts(QObject* application) {
     qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- START ------------------";
 
 
-    QSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
+    QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
     while (i.hasNext()) {
         ScriptEngine* scriptEngine = i.next();
         qDebug() << (void*)scriptEngine;
@@ -121,7 +121,6 @@ void ScriptEngine::gracefullyStopAllScripts(QObject* application) {
             QObject::connect(scriptEngine, &ScriptEngine::doneRunning, &loop, &QEventLoop::quit);
             
             scriptEngine->disconnect(application);
-
             scriptEngine->stop();
 
             qDebug() << "waiting on script to stop... ";
