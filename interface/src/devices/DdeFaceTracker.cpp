@@ -93,13 +93,10 @@ void DdeFaceTracker::update() {
 }
 
 void DdeFaceTracker::setEnabled(bool enabled) {
+    // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
+    _udpSocket.close();
     if (enabled) {
-        if (_udpSocket.isOpen()) {
-            _udpSocket.close();
-        }
         _udpSocket.bind(_host, _port);
-    } else {
-        _udpSocket.close();
     }
 }
 
