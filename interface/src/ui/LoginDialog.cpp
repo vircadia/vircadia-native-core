@@ -44,6 +44,9 @@ LoginDialog::LoginDialog(QWidget* parent) :
             this, &LoginDialog::close);
 
     UIUtil::scaleWidgetFontSizes(this);
+
+    // Initialize toggle connection
+    toggleQAction();
 };
 
 LoginDialog::~LoginDialog() {

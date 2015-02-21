@@ -65,6 +65,7 @@
 #include <HFBackEvent.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -110,6 +111,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/HMDScriptingInterface.h"
 #include "scripting/JoystickScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
@@ -138,6 +140,12 @@ static unsigned STARFIELD_SEED = 1;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
+static QTimer* locationUpdateTimer = NULL;
+static QTimer* balanceUpdateTimer = NULL;
+static QTimer* silentNodeTimer = NULL;
+static QTimer* identityPacketTimer = NULL;
+static QTimer* billboardPacketTimer = NULL;
+static QTimer* checkFPStimer = NULL;
 static QTimer* idleTimer = NULL;
 
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
@@ -360,7 +368,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
-    QTimer* locationUpdateTimer = new QTimer(this);
+    locationUpdateTimer = new QTimer(this);
     connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
@@ -376,7 +384,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     const qint64 BALANCE_UPDATE_INTERVAL_MSECS = 5 * 1000;
 
-    QTimer* balanceUpdateTimer = new QTimer(this);
+    balanceUpdateTimer = new QTimer(this);
     connect(balanceUpdateTimer, &QTimer::timeout, &accountManager, &AccountManager::updateBalance);
     balanceUpdateTimer->start(BALANCE_UPDATE_INTERVAL_MSECS);
 
@@ -415,18 +423,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
-    QTimer* silentNodeTimer = new QTimer();
+    silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     silentNodeTimer->moveToThread(_nodeThread);
 
     // send the identity packet for our avatar each second to our avatar mixer
-    QTimer* identityPacketTimer = new QTimer();
+    identityPacketTimer = new QTimer();
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
     identityPacketTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
     // send the billboard packet for our avatar every few seconds
-    QTimer* billboardPacketTimer = new QTimer();
+    billboardPacketTimer = new QTimer();
     connect(billboardPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendBillboardPacket);
     billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
 
@@ -525,13 +533,38 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    // first stop all timers directly or by invokeMethod
+    // depending on what thread they run in
+    locationUpdateTimer->stop();
+    balanceUpdateTimer->stop();
+    QMetaObject::invokeMethod(silentNodeTimer, "stop", Qt::BlockingQueuedConnection);
+    identityPacketTimer->stop();
+    billboardPacketTimer->stop();
+    checkFPStimer->stop();
+    idleTimer->stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
+
+    // and then delete those that got created by "new"
+    delete locationUpdateTimer;
+    delete balanceUpdateTimer;
+    delete silentNodeTimer;
+    delete identityPacketTimer;
+    delete billboardPacketTimer;
+    delete checkFPStimer;
+    delete idleTimer;
+    // no need to delete _settingsTimer here as it is no pointer
+
+    // save state
     _settingsThread.quit();
     saveSettings();
+    _window->saveGeometry();
     
     // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
     // an event loop to send the packet?
     UserActivityLogger::getInstance().close();
+
+    // let the avatar mixer know we're out
+    MyAvatar::sendKillAvatar();
     
     // stop the AudioClient
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
@@ -542,16 +575,12 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {    
+    EntityTree* tree = _entities.getTree();
+    tree->lockForWrite();
     _entities.getTree()->setSimulation(NULL);
+    tree->unlock();
+
     qInstallMessageHandler(NULL);
-    
-    _window->saveGeometry();
-    
-    // make sure we don't call the idle timer any more
-    delete idleTimer;
-    
-    // let the avatar mixer know we're out
-    MyAvatar::sendKillAvatar();
 
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
@@ -563,6 +592,8 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
+
+    ModelEntityItem::cleanupLoadedAnimations() ;
     
     DependencyManager::destroy<GLCanvas>();
 
@@ -622,9 +653,9 @@ void Application::initializeGL() {
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
-    QTimer* timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), SLOT(timer()));
-    timer->start(1000);
+    checkFPStimer = new QTimer(this);
+    connect(checkFPStimer, SIGNAL(timeout()), SLOT(checkFPS()));
+    checkFPStimer->start(1000);
 
     // call our idle function whenever we can
     idleTimer = new QTimer(this);
@@ -1420,7 +1451,7 @@ void Application::sendPingPackets() {
 }
 
 //  Every second, check the frame rates and other stuff
-void Application::timer() {
+void Application::checkFPS() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         sendPingPackets();
     }
@@ -3484,6 +3515,10 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, joystickToScriptValue, joystickFromScriptValue);
 
     scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
+
+    QScriptValue hmdInterface = scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
+    scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
+    scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());

@@ -511,6 +511,10 @@ TextRenderer::TextRenderer(const char* family, float pointSize, int weight,
         bool italic, EffectType effect, int effectThickness,
         const QColor& color) :
         _effectType(effect), _effectThickness(effectThickness), _pointSize(pointSize), _color(color), _font(loadFont(family)) {
+    if (!_font) {
+        qWarning() << "Unable to load font with family " << family;
+        _font = loadFont("Courier");
+    }
     if (1 != _effectThickness) {
         qWarning() << "Effect thickness not current supported";
     }
@@ -524,7 +528,10 @@ TextRenderer::~TextRenderer() {
 
 glm::vec2 TextRenderer::computeExtent(const QString & str) const {
     float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
-    return _font->computeExtent(str) * scale;
+    if (_font) {
+        return _font->computeExtent(str) * scale;
+    }
+    return glm::vec2(0.1f,0.1f);
 }
 
 float TextRenderer::draw(float x, float y, const QString & str,
@@ -544,7 +551,9 @@ float TextRenderer::draw(float x, float y, const QString & str,
             // scale at all.
             mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
             // The font does all the OpenGL work
-            result = _font->drawString(x, y, str, actualColor, _effectType, bounds / scale);
+            if (_font) {
+                result = _font->drawString(x, y, str, actualColor, _effectType, bounds / scale);
+            }
         });
     return result.x;
 }

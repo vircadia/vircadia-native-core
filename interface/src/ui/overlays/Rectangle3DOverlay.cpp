@@ -19,7 +19,9 @@
 
 #include "Rectangle3DOverlay.h"
 
-Rectangle3DOverlay::Rectangle3DOverlay() {
+Rectangle3DOverlay::Rectangle3DOverlay() :
+    _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
+{
 }
 
 Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay) :
