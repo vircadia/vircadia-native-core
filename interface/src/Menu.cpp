@@ -369,8 +369,8 @@ Menu::Menu() {
         faceTrackerGroup->addAction(noFaceTracker);
 
 #ifdef HAVE_FACESHIFT
-        QAction* faceshiftFaceTracker = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Faceshift, 
-            0, true,
+        QAction* faceshiftFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Faceshift,
+            0, false,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
@@ -381,7 +381,7 @@ Menu::Menu() {
         faceTrackerGroup->addAction(ddeFaceTracker);
 
 #ifdef HAVE_VISAGE
-        QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Visage, 
+        QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Visage, 
             0, false,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(visageFaceTracker);
