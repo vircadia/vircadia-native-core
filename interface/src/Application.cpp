@@ -540,7 +540,7 @@ void Application::cleanupBeforeQuit() {
     _entities.shutdown();
     
     // stop all running scripts
-    ScriptEngine::gracefullyStopAllScripts();
+    ScriptEngine::gracefullyStopAllScripts(this);
     
     
     // first stop all timers directly or by invokeMethod
@@ -3545,7 +3545,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
 
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
+    connect(scriptEngine, SIGNAL(doneRunning()), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
 
     // when the application is about to quit, stop our script engine so it unwinds properly

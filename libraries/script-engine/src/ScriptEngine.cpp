@@ -94,6 +94,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
+    qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::ScriptEngine() " << getFilename() << "[" << this << "]";
     _allKnownScriptEngines.insert(this);
 }
 
@@ -104,28 +105,31 @@ ScriptEngine::~ScriptEngine() {
 
 QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
 
-void ScriptEngine::gracefullyStopAllScripts() {
+void ScriptEngine::gracefullyStopAllScripts(QObject* application) {
     qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- START ------------------";
 
-    QSet<ScriptEngine*>::const_iterator i = _allKnownScriptEngines.constBegin();
-    while (i != _allKnownScriptEngines.constEnd()) {
-        ScriptEngine* scriptEngine = *i;
-        qDebug() << scriptEngine;
+
+    QSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
+    while (i.hasNext()) {
+        ScriptEngine* scriptEngine = i.next();
+        qDebug() << (void*)scriptEngine;
  
         if (scriptEngine->isRunning()) {
             qDebug() << "scriptEngine still alive:" << scriptEngine->getFilename() << "[" << scriptEngine << "]";
 
             QEventLoop loop;
             QObject::connect(scriptEngine, &ScriptEngine::doneRunning, &loop, &QEventLoop::quit);
+            
+            scriptEngine->disconnect(application);
 
             scriptEngine->stop();
 
             qDebug() << "waiting on script to stop... ";
             loop.exec();
             qDebug() << "done waiting... ";
+        } else {
+            qDebug() << "WARNING! scriptEngine [" << (void*)scriptEngine << "] still in _allKnownScriptEngines but not running??? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
         }
-
-        ++i;
     }
     qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- DONE ------------------";
 }
