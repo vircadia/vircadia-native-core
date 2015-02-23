@@ -37,6 +37,19 @@ ExternalProject_Add(
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
+if (CMAKE_GENERATOR STREQUAL Xcode)
+  find_program(DITTO_COMMAND ditto)
+  
+  ExternalProject_Add_Step(
+    ${EXTERNAL_NAME}
+    copy-from-xcode-install
+    COMMENT "Copying from /tmp/hifi.dst${INSTALL_DIR} to move install to proper location"
+    COMMAND ${DITTO_COMMAND} /tmp/hifi.dst${INSTALL_DIR} ${INSTALL_DIR}
+    DEPENDEES install
+    LOG 1
+  )
+endif ()
+
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE FILEPATH "Path to Qxmpp include directory")
 
