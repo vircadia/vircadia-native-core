@@ -63,6 +63,11 @@ EntityTreeRenderer::~EntityTreeRenderer() {
     // automatically but we do need to delete our sandbox script engine.
     
     if (_sandboxScriptEngine) {
+        // NOTE: is it possible this is a problem? I think that we hook the script engine object up to a deleteLater()
+        // call inside of registerScriptEngineWithApplicationServices() but do we not call that for _sandboxScriptEngine???
+        // this _sandboxScriptEngine implementation is confusing and potentially error prone because it's not a full fledged
+        // ScriptEngine that has been fully connected. We did this so that scripts that were ill-formed could be evaluated
+        // but not execute against the application.
         qDebug() << "EntityTreeRenderer::~EntityTreeRenderer() delete _sandboxScriptEngine!!!!!";
         delete _sandboxScriptEngine;
         _sandboxScriptEngine = NULL;
@@ -103,22 +108,6 @@ void EntityTreeRenderer::init() {
 
 void EntityTreeRenderer::shutdown() {
     _shuttingDown = true;
-    
-    /*
-    if (_entitiesScriptEngine) {
-        _entitiesScriptEngine->stop();
-
-        QEventLoop loop;
-        QObject::connect(_entitiesScriptEngine, &ScriptEngine::doneRunning, &loop, &QEventLoop::quit);
-
-        _entitiesScriptEngine->stop();
-        
-        qDebug() << "waiting on Entities sandbox script to stop... ";
-        loop.exec();
-        qDebug() << "done waiting... ";
-
-    }
-    */
 }
 
 
