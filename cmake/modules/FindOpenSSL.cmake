@@ -98,6 +98,9 @@ if (WIN32 AND NOT CYGWIN)
     select_library_configurations(SSL_EAY)
 
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
+    
+    find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
+    
   elseif (MINGW)
     # same player, for MinGW
     set(LIB_EAY_NAMES libeay32)
@@ -218,11 +221,15 @@ endif ()
 
 include(FindPackageHandleStandardArgs)
 
+set(OPENSSL_REQUIREMENTS OPENSSL_LIBRARIES OPENSSL_INCLUDE_DIR)
+if (WIN32)
+  list(APPEND OPENSSL_REQUIREMENTS OPENSSL_DLL_PATH)
+endif ()
+
 if (OPENSSL_VERSION)
   find_package_handle_standard_args(OpenSSL
     REQUIRED_VARS
-      OPENSSL_LIBRARIES
-      OPENSSL_INCLUDE_DIR
+      ${OPENSSL_REQUIREMENTS}
     VERSION_VAR
       OPENSSL_VERSION
     FAIL_MESSAGE
@@ -230,9 +237,12 @@ if (OPENSSL_VERSION)
   )
 else ()
   find_package_handle_standard_args(OpenSSL "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR"
-    OPENSSL_LIBRARIES
-    OPENSSL_INCLUDE_DIR
+    ${OPENSSL_REQUIREMENTS}
   )
+endif ()
+
+if (WIN32)
+  add_paths_to_lib_paths(${OPENSSL_DLL_PATH})
 endif ()
 
 mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)
