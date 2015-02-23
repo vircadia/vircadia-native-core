@@ -93,7 +93,7 @@ public:
     
     QString getFilename() const;
     
-    static void gracefullyStopAllScripts(QObject* application);
+    static void stopAllScripts(QObject* application);
 
 public slots:
     void loadURL(const QUrl& scriptURL);

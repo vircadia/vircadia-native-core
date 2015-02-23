@@ -68,7 +68,6 @@ EntityTreeRenderer::~EntityTreeRenderer() {
         // this _sandboxScriptEngine implementation is confusing and potentially error prone because it's not a full fledged
         // ScriptEngine that has been fully connected. We did this so that scripts that were ill-formed could be evaluated
         // but not execute against the application.
-        qDebug() << "EntityTreeRenderer::~EntityTreeRenderer() delete _sandboxScriptEngine!!!!!";
         delete _sandboxScriptEngine;
         _sandboxScriptEngine = NULL;
     }
@@ -171,7 +170,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 
 QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     if (_shuttingDown) {
-        return QScriptValue(); // no entity...
+        return QScriptValue(); // since we're shutting down, we don't load any more scripts
     }
     
     if (!entity) {

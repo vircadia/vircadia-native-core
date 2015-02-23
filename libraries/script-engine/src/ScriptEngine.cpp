@@ -94,43 +94,33 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
-    qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::ScriptEngine() " << getFilename() << "[" << this << "]";
     _allKnownScriptEngines.insert(this);
 }
 
 ScriptEngine::~ScriptEngine() {
-    qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::~ScriptEngine() " << getFilename();
     _allKnownScriptEngines.remove(this);
 }
 
 QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
 
-void ScriptEngine::gracefullyStopAllScripts(QObject* application) {
-    qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- START ------------------";
-
-
+void ScriptEngine::stopAllScripts(QObject* application) {
     QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
     while (i.hasNext()) {
         ScriptEngine* scriptEngine = i.next();
-        qDebug() << (void*)scriptEngine;
- 
-        if (scriptEngine->isRunning()) {
-            qDebug() << "scriptEngine still alive:" << scriptEngine->getFilename() << "[" << scriptEngine << "]";
 
+        // NOTE: typically all script engines are running. But there's at least one known exception to this, the
+        // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
+        // them. We don't need to stop scripts that aren't running. 
+        if (scriptEngine->isRunning()) {
             QEventLoop loop;
             QObject::connect(scriptEngine, &ScriptEngine::doneRunning, &loop, &QEventLoop::quit);
             
             scriptEngine->disconnect(application);
             scriptEngine->stop();
 
-            qDebug() << "waiting on script to stop... ";
             loop.exec();
-            qDebug() << "done waiting... ";
-        } else {
-            qDebug() << "WARNING! scriptEngine [" << (void*)scriptEngine << "] still in _allKnownScriptEngines but not running??? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
         }
     }
-    qDebug() << "[" << QThread::currentThread() << "]" << "ScriptEngine::gracefullyStopAllScripts() ----------- DONE ------------------";
 }
 
 QString ScriptEngine::getFilename() const { 
@@ -411,14 +401,12 @@ void ScriptEngine::run() {
         }
 
         if (_isFinished) {
-            qDebug() << "ScriptEngine::run()... while() about to break " << getFilename();
             break;
         }
 
         QCoreApplication::processEvents();
 
         if (_isFinished) {
-            qDebug() << "ScriptEngine::run()... while() about to break " << getFilename();
             break;
         }
 
@@ -548,7 +536,6 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
     }
-    qDebug() << "ScriptEngine::run()... about to emit scriptEnding() " << getFilename();
     emit scriptEnding();
 
     // kill the avatar identity timer
@@ -566,25 +553,19 @@ void ScriptEngine::run() {
 
     // If we were on a thread, then wait till it's done
     if (thread()) {
-        qDebug() << "ScriptEngine::run()... about to call thread()->quit() " << getFilename();
         thread()->quit();
     }
 
-    qDebug() << "ScriptEngine::run()... about to emit finished() " << getFilename();
     emit finished(_fileNameString);
 
     _isRunning = false;
 
-    qDebug() << "ScriptEngine::run()... about to emit runningStateChanged() " << getFilename();
     emit runningStateChanged();
 
-    qDebug() << "ScriptEngine::run()... about to emit doneRunning() " << getFilename();
     emit doneRunning();
-    qDebug() << "ScriptEngine::run()... DONE WITH run()... " << getFilename();
 }
 
 void ScriptEngine::stop() {
-    qDebug() << "ScriptEngine::stop()... " << getFilename();
     _isFinished = true;
     emit runningStateChanged();
 }
@@ -666,12 +647,10 @@ void ScriptEngine::print(const QString& message) {
     emit printedMessage(message);
 }
 
-/**
- * If a callback is specified, the included files will be loaded asynchronously and the callback will be called
- * when all of the files have finished loading.
- * If no callback is specified, the included files will be loaded synchronously and will block execution until
- * all of the files have finished loading.
- */
+// If a callback is specified, the included files will be loaded asynchronously and the callback will be called
+// when all of the files have finished loading.
+// If no callback is specified, the included files will be loaded synchronously and will block execution until
+// all of the files have finished loading.
 void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callback) {
     QList<QUrl> urls;
     for (QString file : includeFiles) {
