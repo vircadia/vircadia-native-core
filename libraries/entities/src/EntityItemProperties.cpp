@@ -173,16 +173,16 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
 
 const char* shapeTypeNames[] = {"none", "box", "sphere"};
 
-QString EntityItemProperties::getShapeTypeString() const {
-    return QString(shapeTypeNames[_shapeType]);
-}
-
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
 void buildStringToShapeTypeLookup() {
     stringToShapeTypeLookup["none"] = SHAPE_TYPE_NONE;
     stringToShapeTypeLookup["box"] = SHAPE_TYPE_BOX;
     stringToShapeTypeLookup["sphere"] = SHAPE_TYPE_SPHERE;
+}
+
+QString EntityItemProperties::getShapeTypeAsString() const {
+    return QString(shapeTypeNames[_shapeType]);
 }
 
 void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
@@ -300,7 +300,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeAsString());
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -378,15 +378,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lineHeight, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(backgroundColor, setBackgroundColor);
-
-    QScriptValue shapeType = object.property("shapeType");
-    if (shapeType.isValid()) {
-        QString newValue = shapeType.toVariant().toString();
-        if (_defaultSettings || newValue != getShapeTypeString()) {
-            setShapeTypeFromString(newValue);
-        }
-    }
-
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
 
     _lastEdited = usecTimestampNow();
 }
