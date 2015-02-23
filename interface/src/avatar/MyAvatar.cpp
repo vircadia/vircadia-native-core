@@ -1085,7 +1085,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -1094,7 +1094,9 @@ void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLe
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     if (!postLighting) {
-        _skeletonModel.render(1.0f, modelRenderMode);
+        RenderArgs args;
+        args._viewFrustum = renderFrustum;
+        _skeletonModel.render(1.0f, modelRenderMode, &args);
         renderAttachments(renderMode);
     }
     
@@ -1102,7 +1104,7 @@ void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLe
     const Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
     if (shouldRenderHead(cameraPos, renderMode)) {
-        getHead()->render(1.0f, modelRenderMode, postLighting);
+        getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
     }
     if (postLighting) {
         getHand()->render(true, modelRenderMode);

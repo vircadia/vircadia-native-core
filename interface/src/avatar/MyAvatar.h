@@ -38,7 +38,7 @@ public:
     void updateFromTrackers(float deltaTime);
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE, bool postLighting = false);
-    void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
+    void renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
     bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
     void renderDebugBodyPoints();
 
