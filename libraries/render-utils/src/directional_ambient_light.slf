@@ -23,13 +23,12 @@ void main(void) {
 
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
-        vec3 color = evalLightmappedColor(
-                        1.0,
-                        frag.normal,
-                        frag.diffuse,
-                        frag.specularVal.xyz);
-
-        gl_FragColor = vec4(color, 1.0);
+        gl_FragColor = vec4(evalLightmappedColor(
+                                1.0,
+                                frag.normal,
+                                frag.diffuse,
+                                frag.specularVal),
+                            1.0);
     } else {
         vec3 color =  evalAmbienSphereGlobalColor(1.0,
                                         frag.position.xyz,
