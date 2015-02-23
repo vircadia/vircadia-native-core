@@ -141,6 +141,7 @@ protected:
     int _numAvatarSoundSentBytes;
 
 private:
+    void stopAllTimers();
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 

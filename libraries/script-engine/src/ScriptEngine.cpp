@@ -535,6 +535,9 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
     }
+    
+    stopAllTimers(); // make sure all our timers are stopped if the script is ending
+
     emit scriptEnding();
 
     // kill the avatar identity timer
@@ -562,6 +565,17 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     emit doneRunning();
+}
+
+// NOTE: This is private because it must be called on the same thread that created the timers, which is why
+// we want to only call it in our own run "shutdown" processing.
+void ScriptEngine::stopAllTimers() {
+    QMutableHashIterator<QTimer*, QScriptValue> i(_timerFunctionMap);
+    while (i.hasNext()) {
+        i.next();
+        QTimer* timer = i.key();
+        stopTimer(timer);
+    }
 }
 
 void ScriptEngine::stop() {
