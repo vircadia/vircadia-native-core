@@ -577,6 +577,10 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
     // compute our dimensions the usual way
     float hheight = _nearClip * tanf(_fieldOfView * 0.5f * RADIANS_PER_DEGREE);
     float hwidth = _aspectRatio * hheight;
+    if (isOrthographic()) {
+        hheight = getHeight();
+        hwidth = getWidth();
+    }
 
     // get our frustum corners in view space
     glm::mat4 eyeMatrix = glm::mat4_cast(glm::inverse(_eyeOffsetOrientation)) * glm::translate(-_eyeOffsetPosition);
@@ -868,18 +872,18 @@ float ViewFrustum::distanceToCamera(const glm::vec3& point) const {
 
 void ViewFrustum::evalProjectionMatrix(glm::mat4& proj) const {
     if (isOrthographic()) {
-        float left, right, bottom, top, near, far;
-        glm::vec4 clip0, clip1;
-        computeOffAxisFrustum(left, right, bottom, top, near, far, clip0, clip1);
+        glm::vec3 frustumCenter = glm::inverse( _orientation) * _position;
 
-        proj = glm::ortho(left, right, bottom, top);
-        proj = glm::ortho(-0.5f * getWidth(), +0.5f * getWidth(), -0.5f * getWidth(), +0.5f * getWidth());
+        proj = glm::ortho(frustumCenter.x -0.5f * getWidth(),
+                            frustumCenter.x +0.5f * getWidth(), 
+                            frustumCenter.y -0.5f * getHeight(), 
+                            frustumCenter.y +0.5f * getHeight(),
+                            -getFarClip(), -getNearClip());
     } else {
         float left, right, bottom, top, near, far;
         glm::vec4 clip0, clip1;
         computeOffAxisFrustum(left, right, bottom, top, near, far, clip0, clip1);
         proj = glm::perspective(glm::radians(getFieldOfView()), getAspectRatio(), getNearClip(), getFarClip());
-       // proj = glm::perspective(getFieldOfView() * 0.5f, getAspectRatio(), getNearClip(), getFarClip());
     }
 }
 

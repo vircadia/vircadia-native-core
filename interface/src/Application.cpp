@@ -2564,7 +2564,9 @@ void Application::updateShadowMap() {
             glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) * glm::mat4_cast(inverseRotation));
 
         // update the shadow view frustum
-        _shadowViewFrustum.setPosition(rotation * ((minima + maxima) * 0.5f));
+      //  glm::vec3 shadowFrustumCenter = glm::vec3((minima.x + maxima.x) * 0.5f, (minima.y + maxima.y) * 0.5f, (minima.z + maxima.z) * 0.5f);
+        glm::vec3 shadowFrustumCenter = rotation * ((minima + maxima) * 0.5f);
+        _shadowViewFrustum.setPosition(shadowFrustumCenter);
         _shadowViewFrustum.setOrientation(rotation);
         _shadowViewFrustum.setOrthographic(true);
         _shadowViewFrustum.setWidth(maxima.x - minima.x);
@@ -2594,7 +2596,9 @@ void Application::updateShadowMap() {
         // this is what is used for rendering the Entities and avatars
         Transform viewTransform;
         viewTransform.setRotation(rotation);
+    //    viewTransform.postTranslate(shadowFrustumCenter);
         setViewTransform(viewTransform);
+
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
