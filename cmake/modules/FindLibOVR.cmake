@@ -29,6 +29,7 @@ if (NOT ANDROID)
     
     find_path(LIBOVR_INCLUDE_DIRS OVR_CAPI.h PATH_SUFFIXES include HINTS ${LIBOVR_SEARCH_DIRS})
     find_library(LIBOVR_LIBRARIES ovr PATH_SUFFIXES lib HINTS ${LIBOVR_SEARCH_DIRS})
+    list(APPEND LIBOVR_LIBRARIES setupapi winmm ws2_32)
 
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES)
