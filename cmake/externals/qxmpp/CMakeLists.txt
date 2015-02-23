@@ -54,6 +54,8 @@ endif ()
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE FILEPATH "Path to Qxmpp include directory")
 
+set(_LIB_DIR ${INSTALL_DIR}/lib)
+
 if (WIN32)
   set(_LIB_EXT "0.lib")
   
@@ -68,5 +70,5 @@ else ()
   set(_LIB_PREFIX "lib")
 endif ()
 
-set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/${_LIB_PREFIX}qxmpp${_LIB_EXT} CACHE FILEPATH "Path to QXmpp release library")
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_LIB_DIR}/${_LIB_PREFIX}qxmpp${_LIB_EXT} CACHE FILEPATH "Path to QXmpp release library")
 set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE FILEPATH "Path to QXmpp debug library")
