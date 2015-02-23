@@ -366,6 +366,8 @@ public slots:
 
     void notifyPacketVersionMismatch();
 
+    void setActiveFaceTracker();
+
 private slots:
     void clearDomainOctreeDetails();
     void checkFPS();

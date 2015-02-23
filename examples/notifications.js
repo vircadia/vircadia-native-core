@@ -84,7 +84,7 @@ var users = [];
 var ctrlIsPressed = false;
 var ready = true;
 
-var randomSounds = new SoundArray({}, true);
+var randomSounds = new SoundArray({ localOnly: true }, true);
 var numberOfSounds = 2;
 for (var i = 1; i <= numberOfSounds; i++) {
     randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/notification-general" + i + ".raw");
