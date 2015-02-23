@@ -190,12 +190,8 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
         buildStringToShapeTypeLookup();
     }
     auto shapeTypeItr = stringToShapeTypeLookup.find(shapeName.toLower());
-    ShapeType newShapeType = SHAPE_TYPE_NONE;
     if (shapeTypeItr != stringToShapeTypeLookup.end()) {
-        newShapeType = shapeTypeItr.value();
-    }
-    if (newShapeType != _shapeType) {
-        _shapeType = newShapeType;
+        _shapeType = shapeTypeItr.value();
         _shapeTypeChanged = true;
     }
 }
