@@ -13,6 +13,13 @@
 * [gverb](https://github.com/highfidelity/gverb)
 * [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
 
+The following external projects are optional dependencies. You can indicate to CMake that you would like to include them by passing -DGET_$NAME=1 when running a clean CMake build. For example, to get CMake to download and compile QXmpp you would pass -DGET_QXMPP=1.
+
+* [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
+  * Enables game controller support in Interface
+* [QXmpp](https://github.com/qxmpp-project/qxmpp) ~> 0.7.6
+  * Enables text chat support in Interface
+
 The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build-ext` directory in each of the subfolders for each external project. 
 
 These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared. Should you want to force a re-download and re-compile of a specific external, you can simply remove that directory from the appropriate subfolder in `build-ext`. Should you want to force a re-download and re-compile of all externals, just remove the `build-ext` folder.
@@ -66,12 +73,6 @@ In the examples below the variable $NAME would be replaced by the name of the de
 * HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder '$name'
 
 ###Optional Components
-
-####QXmpp
-
-You can [find QXmpp here](https://github.com/qxmpp-project/qxmpp), 0.7.6 is the version you want. The inclusion of the QXmpp enables text chat in the Interface client.
-
-OS X users who tap our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) can install QXmpp via homebrew - `brew install highfidelity/formulas/qxmpp`.
 
 ####Devices
 
