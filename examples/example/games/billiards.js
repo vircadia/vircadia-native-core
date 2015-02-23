@@ -105,37 +105,27 @@ function makeTable(pos) {
 }
 
 function makeBalls(pos) {
-	var colors =   [{ red: 255, green: 255, blue: 0},   		//  Yellow
-					{ red: 0, green: 0, blue: 255},     		//  Blue
-					{ red: 255, green: 0, blue: 0},				//  Red 
-					{ red: 128, green: 0, blue: 128},			//  Purple
-					{ red: 255, green: 165, blue: 0},			//  Orange 
-					{ red: 0, green: 255, blue: 0},				//  Green 
-					{ red: 128, green: 0, blue: 0},				//  Maroon
-					{ red: 0, green: 0, blue: 0},				//  Black 
-					{ red: 255, green: 255, blue: 224},     	//  Light Yellow
-					{ red: 173, green: 216, blue: 230},         //  Light Blue
-					{ red: 205, green: 92, blue: 92},           //  Indian Red
-					{ red: 218, green: 112, blue: 214},			//  Orchid
-					{ red: 218, green: 165, blue: 32},			//  GoldenRod
-					{ red: 255, green: 99, blue: 71},			//  Tomato
-					{ red: 128, green: 128, blue: 128}];		//  Gray
-
 	// Object balls 
+    var whichBall = [ 1, 14, 15, 4, 8, 7, 12, 9, 3, 13, 10, 5, 6, 11, 2 ];
+    var ballNumber = 0;
 	var ballPosition = { x: pos.x + (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
 	for (var row = 1; row <= 5; row++) {
 		ballPosition.z = pos.z - ((row - 1.0) / 2.0 * (BALL_SIZE + BALL_GAP) * SCALE); 
 		for (var spot = 0; spot < row; spot++) {
 			balls.push(Entities.addEntity(
-	    	{ type: "Sphere",
+	    	{ type: "Model",
+            modelURL: "https://s3.amazonaws.com/hifi-public/models/props/Pool/ball_" + whichBall[ballNumber].toString() + ".fbx",
 	        position: ballPosition,   
 			dimensions: { x: BALL_SIZE * SCALE, y: BALL_SIZE * SCALE, z: BALL_SIZE * SCALE }, 
-	      	color: colors[balls.length],
+            rotation: Quat.fromPitchYawRollDegrees((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20),
+	      	color: { red: 255, green: 255, blue: 255 },
 	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
 	        ignoreCollisions: false,
 	        damping: 0.50,
+            shapeType: 2,
 	        collisionsWillMove: true }));
 	        ballPosition.z += (BALL_SIZE + BALL_GAP) * SCALE;
+            ballNumber++;
 		}
 		ballPosition.x += (BALL_GAP + Math.sqrt(3.0) / 2.0 * BALL_SIZE) * SCALE;
 	}
@@ -143,7 +133,8 @@ function makeBalls(pos) {
     // Cue Ball 
     cuePosition = { x: pos.x - (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
     cueBall = Entities.addEntity(
-	    	{ type: "Sphere",
+	    	{ type: "Model",
+            modelURL: "https://s3.amazonaws.com/hifi-public/models/props/Pool/cue_ball.fbx",
 	        position: cuePosition,   
 			dimensions: { x: BALL_SIZE * SCALE, y: BALL_SIZE * SCALE, z: BALL_SIZE * SCALE }, 
 	      	color: { red: 255, green: 255, blue: 255 },
@@ -152,6 +143,7 @@ function makeBalls(pos) {
 	      	velocity: {x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        damping: 0.50,
+            shapeType: 2,
 	        collisionsWillMove: true });
 	       
 }
