@@ -54,18 +54,18 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE FILEPATH "Path to Qxmpp include directory")
 
 if (WIN32)
-  set(_LIB_EXT "lib")
+  set(_LIB_EXT "0.lib")
   
   set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${_LIB_DIR} CACHE PATH "Location of QXmpp DLL")
 else ()
   if (APPLE)
     set(_LIB_EXT "dylib")
   else ()
-    set(_LIB_EXT "so")
+    set(_LIB_EXT ".so")
   endif ()
   
   set(_LIB_PREFIX "lib")
 endif ()
 
-set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/${_LIB_PREFIX}qxmpp.${_LIB_EXT} CACHE FILEPATH "Path to QXmpp release library")
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/${_LIB_PREFIX}qxmpp${_LIB_EXT} CACHE FILEPATH "Path to QXmpp release library")
 set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG NOTFOUND CACHE FILEPATH "Path to QXmpp debug library")
