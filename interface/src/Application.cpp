@@ -527,21 +527,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 }
 
 void Application::aboutToQuit() {
-qDebug() << "Application::aboutToQuit()";
     _aboutToQuit = true;
     
     cleanupBeforeQuit();
 }
 
 void Application::cleanupBeforeQuit() {
-    qDebug() << "Application::cleanupBeforeQuit() ------------ START -----------------";
-    
-    // stop entities running scripts
-    _entities.shutdown();
-    
-    // stop all running scripts
-    ScriptEngine::gracefullyStopAllScripts(this);
-    
+
+    _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
     
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -582,65 +576,36 @@ void Application::cleanupBeforeQuit() {
     
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
-    
-    qDebug() << "Application::cleanupBeforeQuit() ------------ DONE -----------------";
 }
 
 Application::~Application() {    
-    qDebug() << "Application::~Application() ------------ START -----------------";
-
-
-    qDebug() << "Application::~Application() line:" << __LINE__;
     EntityTree* tree = _entities.getTree();
-    qDebug() << "Application::~Application() line:" << __LINE__;
     tree->lockForWrite();
-    qDebug() << "Application::~Application() line:" << __LINE__;
     _entities.getTree()->setSimulation(NULL);
-    qDebug() << "Application::~Application() line:" << __LINE__;
     tree->unlock();
-    qDebug() << "Application::~Application() line:" << __LINE__;
 
-    qDebug() << "Application::~Application() line:" << __LINE__;
     qInstallMessageHandler(NULL);
-    qDebug() << "Application::~Application() line:" << __LINE__;
 
     // ask the datagram processing thread to quit and wait until it is done
-    qDebug() << "Application::~Application() line:" << __LINE__;
     _nodeThread->quit();
-    qDebug() << "Application::~Application() line:" << __LINE__;
     _nodeThread->wait();
-    qDebug() << "Application::~Application() line:" << __LINE__;
     
-    qDebug() << "Application::~Application() line:" << __LINE__;
     _octreeProcessor.terminate();
-    qDebug() << "Application::~Application() line:" << __LINE__;
     _entityEditSender.terminate();
-    qDebug() << "Application::~Application() line:" << __LINE__;
 
-    qDebug() << "Application::~Application() line:" << __LINE__;
     Menu::getInstance()->deleteLater();
-    qDebug() << "Application::~Application() line:" << __LINE__;
 
-    qDebug() << "Application::~Application() line:" << __LINE__;
     _myAvatar = NULL;
-    qDebug() << "Application::~Application() line:" << __LINE__;
 
-    qDebug() << "Application::~Application() line:" << __LINE__;
     ModelEntityItem::cleanupLoadedAnimations() ;
-    qDebug() << "Application::~Application() line:" << __LINE__;
     
-    qDebug() << "Application::~Application() line:" << __LINE__;
     DependencyManager::destroy<GLCanvas>();
-    qDebug() << "Application::~Application() line:" << __LINE__;
 
-    qDebug() << "start destroying ResourceCaches Application::~Application() line:" << __LINE__;
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
-    qDebug() << "done destroying ResourceCaches Application::~Application() line:" << __LINE__;
-    qDebug() << "Application::~Application() ------------ DONE -----------------";
 }
 
 void Application::initializeGL() {
@@ -3469,7 +3434,6 @@ void Application::clearScriptsBeforeRunning() {
 }
 
 void Application::saveScripts() {
-qDebug() << "Application::saveScripts()";
     // Saves all currently running user-loaded scripts
     Settings settings;
     settings.beginWriteArray(SETTINGS_KEY);
@@ -3638,7 +3602,6 @@ void Application::handleScriptLoadError(const QString& scriptFilename) {
 }
 
 void Application::scriptFinished(const QString& scriptName) {
-    qDebug() << "Application::scriptFinished(), scriptName:" << scriptName;
     const QString& scriptURLString = QUrl(scriptName).toString();
     QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptURLString);
     if (it != _scriptEnginesHash.end()) {
@@ -3649,7 +3612,6 @@ void Application::scriptFinished(const QString& scriptName) {
 }
 
 void Application::stopAllScripts(bool restart) {
-    qDebug() << "Application::stopAllScripts()... restart:" << restart;
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
