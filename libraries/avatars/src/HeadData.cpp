@@ -31,7 +31,7 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _torsoTwist(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
     _audioLoudness(0.0f),
-    _isFaceshiftConnected(false),
+    _isFaceTrackerConnected(false),
     _leftEyeBlink(0.0f),
     _rightEyeBlink(0.0f),
     _averageLoudness(0.0f),
