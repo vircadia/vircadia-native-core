@@ -21,7 +21,7 @@ if (WIN32)
     set(MSBUILD_CONFIGURATION Release)
   endif ()
   
-  find_program(MSBUILD_COMMAND msbuild)
+  find_program(MSBUILD_COMMAND msbuild PATHS "C:/Program Files (x86)/MSBUILD/12.0/Bin")
   
   ExternalProject_Add(
     ${EXTERNAL_NAME}

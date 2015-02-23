@@ -12,7 +12,8 @@ if (ANDROID)
 endif ()
 
 if (WIN32)
-  find_program(PLATFORM_BUILD_COMMAND nmake)
+  find_program(PLATFORM_BUILD_COMMAND nmake PATHS "C:/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin")
+  
   if (NOT PLATFORM_BUILD_COMMAND)
     message(FATAL_ERROR "You asked CMake to grap QXmpp and build it, but nmake was not found. Please make sure the folder containing nmake.exe is in your PATH.")
   endif ()
