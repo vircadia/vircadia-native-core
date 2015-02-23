@@ -300,7 +300,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
-    properties.setProperty("shapeType", getShapeTypeString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeString());
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
