@@ -21,7 +21,7 @@
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("qxmpp")
 
-find_path(QXMPP_INCLUDE_DIRS QXmppClient.h PATH_SUFFIXES include/qxmpp HINTS ${QXMPP_SEARCH_DIRS})
+find_path(QXMPP_INCLUDE_DIRS qxmpp/QXmppClient.h PATH_SUFFIXES include HINTS ${QXMPP_SEARCH_DIRS})
 
 find_library(QXMPP_LIBRARY_RELEASE NAMES qxmpp PATH_SUFFIXES lib HINTS ${QXMPP_SEARCH_DIRS})
 find_library(QXMPP_LIBRARY_DEBUG NAMES qxmpp_d PATH_SUFFIXES lib HINTS ${QXMPP_SEARCH_DIRS})
