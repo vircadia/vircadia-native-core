@@ -119,11 +119,17 @@ system likely has many copies of zlib1.dll, and you want High Fidelity to use th
 
 ###vhacd
 Download it directly from https://github.com/virneo/v-hacd
-cd src\
-mkdir build
-cd build
-cmake ..
-Build using visual studio 2013. Build ALL_BUILD and INSTALL targets both in Release and Debug. This create a output folder with include and lib directory.
+
+To build it run the following commands
+	1. cd src\
+	2. mkdir build
+	3. cd build
+	4. cmake ..
+	
+Build using visual studio 2013. Build ALL_BUILD and INSTALL targets both in Release and Debug.
+
+This will create an output folder with include and lib directory inside it.
+
 Either copy that folder to ENV %HIFI_LIB_DIR%/vhacd or create an environment variable VHACD_ROOT_DIR to this output directory.
 
 ###freeglut
