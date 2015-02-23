@@ -531,7 +531,6 @@ void ScriptEngine::run() {
         }
 
         if (!_isFinished) {
-            //qDebug() << "ScriptEngine::run()... about to emit update() _scriptName:" << _scriptName << "_fileNameString:" << _fileNameString << "_isFinished:" << _isFinished;
             emit update(deltaTime);
         }
         lastUpdate = now;
