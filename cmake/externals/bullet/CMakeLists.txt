@@ -12,25 +12,40 @@ else ()
   endif()
 endif ()
 
-if (WIN32)
-  set(DOWNLOAD_URL https://bullet.googlecode.com/files/bullet-2.82-r2704.zip)
-  set(DOWNLOAD_MD5 f5e8914fc9064ad32e0d62d19d33d977)
-else ()
-  set(DOWNLOAD_URL http://bullet.googlecode.com/files/bullet-2.82-r2704.tgz)
-  set(DOWNLOAD_MD5 70b3c8d202dee91a0854b4cbc88173e8)
-endif ()
-
 include(ExternalProject)
-ExternalProject_Add(
-  ${EXTERNAL_NAME}
-  URL ${DOWNLOAD_URL}
-  URL_MD5 ${DOWNLOAD_MD5}
-  CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DUSE_GLUT=0
-  LOG_DOWNLOAD 1
-  LOG_CONFIGURE 1
-  LOG_BUILD 1
-  BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
-)
+
+if (WIN32)
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(MSBUILD_CONFIGURATION Debug)
+  else ()
+    set(MSBUILD_CONFIGURATION Release)
+  endif ()
+  
+  find_program(MSBUILD_COMMAND msbuild)
+  
+  ExternalProject_Add(
+    ${EXTERNAL_NAME}
+    URL https://bullet.googlecode.com/files/bullet-2.82-r2704.zip
+    URL_MD5 f5e8914fc9064ad32e0d62d19d33d977
+    CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DUSE_GLUT=0
+    BUILD_COMMAND ${MSBUILD_COMMAND} bullet.vcxproj /t:Build /p:Configuration=${MSBUILD_CONFIGURATION}
+    LOG_DOWNLOAD 1
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
+  )  
+else ()
+  ExternalProject_Add(
+    ${EXTERNAL_NAME}
+    URL http://bullet.googlecode.com/files/bullet-2.82-r2704.tgz
+    URL_MD5 70b3c8d202dee91a0854b4cbc88173e8
+    CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DUSE_GLUT=0
+    LOG_DOWNLOAD 1
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
+  )  
+endif ()
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
