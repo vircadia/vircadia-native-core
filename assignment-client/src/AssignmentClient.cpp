@@ -159,8 +159,8 @@ void AssignmentClient::setUpStatsToMonitor() {
     quint16 localMonitorServerPort = DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT;
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->getLocalPortFromSharedMemory(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY,
-                                           _localACMPortSharedMem, localMonitorServerPort);
+    nodeList->getLocalServerPortFromSharedMemory(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY,
+                                                 _localACMPortSharedMem, localMonitorServerPort);
     _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, localMonitorServerPort, true);
 
     // send a stats packet every 1 seconds
@@ -189,8 +189,8 @@ void AssignmentClient::sendAssignmentRequest() {
         if (_assignmentServerHostname == "localhost") {
             // we want to check again for the local domain-server port in case the DS has restarted
             quint16 localAssignmentServerPort;
-            if (nodeList->getLocalPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, _localASPortSharedMem,
-                                                       localAssignmentServerPort)) {
+            if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, _localASPortSharedMem,
+                                                             localAssignmentServerPort)) {
                 if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
                     qDebug() << "Port for local assignment server read from shared memory is"
                         << localAssignmentServerPort;

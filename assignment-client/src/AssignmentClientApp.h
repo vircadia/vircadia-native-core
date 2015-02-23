@@ -15,5 +15,4 @@ class AssignmentClientApp : public QCoreApplication {
     Q_OBJECT
 public:
     AssignmentClientApp(int argc, char* argv[]);
-    ~AssignmentClientApp();
 };

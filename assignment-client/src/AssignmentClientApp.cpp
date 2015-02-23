@@ -64,7 +64,3 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         client.exec();
     }
 }
-
-
-AssignmentClientApp::~AssignmentClientApp() {
-}

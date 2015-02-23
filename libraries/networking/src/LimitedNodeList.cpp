@@ -688,8 +688,8 @@ void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* p
 }
 
 
-bool LimitedNodeList::getLocalPortFromSharedMemory(const QString key, QSharedMemory* &sharedMem,
-                                                   quint16& localPort) {
+bool LimitedNodeList::getLocalServerPortFromSharedMemory(const QString key, QSharedMemory* &sharedMem,
+                                                         quint16& localPort) {
     if (!sharedMem) {
         sharedMem = new QSharedMemory(key, this);
                 

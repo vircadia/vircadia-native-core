@@ -19,22 +19,9 @@
 
 #include <Assignment.h>
 
+#include "AssignmentClientChildData.h"
+
 extern const char* NUM_FORKS_PARAMETER;
-
-class AssignmentClientChildData : public NodeData {
- public:
-    AssignmentClientChildData(QString childType);
-    ~AssignmentClientChildData();
-
-    QString getChildType() { return _childType; }
-    void setChildType(QString childType) { _childType = childType; }
-
-    // implement parseData to return 0 so we can be a subclass of NodeData
-    int parseData(const QByteArray& packet) { return 0; }
-
- private:
-    QString _childType;
-};
 
 
 class AssignmentClientMonitor : public QCoreApplication {

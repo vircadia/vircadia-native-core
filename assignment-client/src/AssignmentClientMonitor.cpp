@@ -16,6 +16,7 @@
 #include <AddressManager.h>
 
 #include "AssignmentClientMonitor.h"
+#include "AssignmentClientChildData.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
@@ -72,12 +73,12 @@ AssignmentClientMonitor::~AssignmentClientMonitor() {
 void AssignmentClientMonitor::stopChildProcesses() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->eachNode([&](const SharedNodePointer& node){
-            qDebug() << "asking child" << node->getUUID() << "to exit.";
-            node->activateLocalSocket();
-            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
-            nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
-        });
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        qDebug() << "asking child" << node->getUUID() << "to exit.";
+        node->activateLocalSocket();
+        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+        nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
+    });
 }
 
 void AssignmentClientMonitor::spawnChildClient() {
@@ -100,13 +101,13 @@ void AssignmentClientMonitor::checkSpares() {
 
     nodeList->removeSilentNodes();
 
-    nodeList->eachNode([&](const SharedNodePointer& node){
-            AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
-            if (childData->getChildType() == "none") {
-                spareCount ++;
-                aSpareId = node->getUUID();
-            }
-        });
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
+        if (childData->getChildType() == "none") {
+            spareCount ++;
+            aSpareId = node->getUUID();
+        }
+    });
 
     if (spareCount != 1) {
         qDebug() << "spare count is" << spareCount;
@@ -189,10 +190,3 @@ void AssignmentClientMonitor::readPendingDatagrams() {
 }
 
 
-AssignmentClientChildData::AssignmentClientChildData(QString childType) {
-    _childType = childType;
-}
-
-
-AssignmentClientChildData::~AssignmentClientChildData() {
-}
