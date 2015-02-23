@@ -68,4 +68,4 @@ else ()
 endif ()
 
 set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/${_LIB_PREFIX}qxmpp${_LIB_EXT} CACHE FILEPATH "Path to QXmpp release library")
-set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG NOTFOUND CACHE FILEPATH "Path to QXmpp debug library")
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE FILEPATH "Path to QXmpp debug library")
