@@ -175,8 +175,8 @@ if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
   target_link_libraries(${TARGET_NAME} ${CoreMIDI})
 endif ()
 
-if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
-  # assume we're linking a static Qt on windows
+if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32 AND NOT QXMPP_DLL_PATH)
+  # if we have no QXmpp DLL path, assume we're linking a static QXmpp on windows
   add_definitions(-DQXMPP_STATIC) 
 endif ()
 
