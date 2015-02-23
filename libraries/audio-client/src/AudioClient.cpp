@@ -85,16 +85,9 @@ AudioClient::AudioClient() :
     _isStereoInput(false),
     _outputStarveDetectionStartTimeMsec(0),
     _outputStarveDetectionCount(0),
-    _outputBufferSizeFrames("audioOutputBufferSize",
-                            DEFAULT_MAX_FRAMES_OVER_DESIRED),
-#ifdef Q_OS_ANDROID
-    _outputStarveDetectionEnabled("audioOutputStarveDetectionEnabled",
-                                  false),
-#else
+    _outputBufferSizeFrames("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
     _outputStarveDetectionEnabled("audioOutputStarveDetectionEnabled",
                                   DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED),
-#endif
-
     _outputStarveDetectionPeriodMsec("audioOutputStarveDetectionPeriod",
                                      DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD),
     _outputStarveDetectionThreshold("audioOutputStarveDetectionThreshold",
@@ -1090,19 +1083,23 @@ void AudioClient::outputNotify() {
     if (recentUnfulfilled > 0) {
         if (_outputStarveDetectionEnabled.get()) {
             quint64 now = usecTimestampNow() / 1000;
-            quint64 dt = now - _outputStarveDetectionStartTimeMsec;
+            int dt = (int)(now - _outputStarveDetectionStartTimeMsec);
             if (dt > _outputStarveDetectionPeriodMsec.get()) {
                 _outputStarveDetectionStartTimeMsec = now;
                 _outputStarveDetectionCount = 0;
             } else {
                 _outputStarveDetectionCount += recentUnfulfilled;
                 if (_outputStarveDetectionCount > _outputStarveDetectionThreshold.get()) {
-                    int newOutputBufferSizeFrames = _outputBufferSizeFrames.get() + 1;
-                    qDebug() << "Starve detection threshold met, increasing buffer size to " << newOutputBufferSizeFrames;
-                    setOutputBufferSize(newOutputBufferSizeFrames);
-
                     _outputStarveDetectionStartTimeMsec = now;
                     _outputStarveDetectionCount = 0;
+
+                    int oldOutputBufferSizeFrames = _outputBufferSizeFrames.get();
+                    int newOutputBufferSizeFrames = oldOutputBufferSizeFrames + 1;
+                    setOutputBufferSize(newOutputBufferSizeFrames);
+                    newOutputBufferSizeFrames = _outputBufferSizeFrames.get();
+                    if (newOutputBufferSizeFrames > oldOutputBufferSizeFrames) {
+                        qDebug() << "Starve detection threshold met, increasing buffer size to " << newOutputBufferSizeFrames;
+                    }
                 }
             }
         }
