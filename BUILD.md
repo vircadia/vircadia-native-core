@@ -43,7 +43,7 @@ For example, a Qt5 5.3.2 installation to /usr/local/qt5 would require that QT_CM
 The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
 
     export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.3.2/clang_64/lib/cmake/
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.3.2/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/localCellar/qt5/5.3.2/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
 
 ####Generating build files
