@@ -10,9 +10,15 @@ Or you can start a regular command prompt and then run:
 
     "%VS120COMNTOOLS%\vsvars32.bat"
 
-#####Windows SDK 8.1
+####Windows SDK 8.1
 
 If using Visual Studio 2013 and building as a Visual Studio 2013 project you need the Windows 8 SDK which you should already have as part of installing Visual Studio 2013. You should be able to see it at `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`.
+
+####nmake
+
+Some of the external projects may require nmake to build and install. Please ensure that nmake is in your PATH so CMake can find it if required. For a typical Visual Studio installation, nmake.exe is located at the following path.
+
+    C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin
 
 ###Qt
 You can use the online installer or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.
