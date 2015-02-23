@@ -10,7 +10,7 @@
 # 
 
 macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
-  if (WIN32 AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+  if (WIN32 AND NOT UPPER_CMAKE_BUILD_TYPE MATCHES RELEASE)
     
     configure_file(
       ${HIFI_CMAKE_DIR}/templates/FixupBundlePostBuild.cmake.in  
