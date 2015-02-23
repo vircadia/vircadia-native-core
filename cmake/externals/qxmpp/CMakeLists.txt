@@ -14,7 +14,7 @@ endif ()
 if (WIN32)
   find_program(PLATFORM_BUILD_COMMAND nmake)
   if (NOT PLATFORM_BUILD_COMMAND)
-    message(FATAL_ERROR "You asked us to grap QXmpp and build it, but nmake was not found. Please make sure the folder containing nmake.exe is in your PATH.")
+    message(FATAL_ERROR "You asked CMake to grap QXmpp and build it, but nmake was not found. Please make sure the folder containing nmake.exe is in your PATH.")
   endif ()
 else ()
   find_program(PLATFORM_BUILD_COMMAND make)
@@ -29,6 +29,7 @@ ExternalProject_Add(
   PATCH_COMMAND patch -p2 -t -N --verbose < ${CMAKE_CURRENT_SOURCE_DIR}/qxmpp.patch
   CONFIGURE_COMMAND ${QMAKE_COMMAND} PREFIX=<INSTALL_DIR>
   BUILD_COMMAND ${PLATFORM_BUILD_COMMAND}
+  INSTALL_COMMAND ${PLATFORM_BUILD_COMMAND} install
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
