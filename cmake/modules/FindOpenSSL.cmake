@@ -242,7 +242,7 @@ else ()
 endif ()
 
 if (WIN32)
-  add_paths_to_lib_paths(${OPENSSL_DLL_PATH})
+  add_paths_to_fixup_libs(${OPENSSL_DLL_PATH})
 endif ()
 
 mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)

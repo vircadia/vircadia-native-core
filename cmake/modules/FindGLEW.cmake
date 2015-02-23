@@ -37,6 +37,6 @@ if (WIN32)
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARIES GLEW_DLL_PATH)
   
-  add_paths_to_lib_paths(${GLEW_DLL_PATH})
+  add_paths_to_fixup_libs(${GLEW_DLL_PATH})
 endif ()
 

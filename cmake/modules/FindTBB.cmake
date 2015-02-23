@@ -88,7 +88,7 @@ endif ()
 find_package_handle_standard_args(TBB DEFAULT_MSG ${TBB_REQUIREMENTS})
 
 if (WIN32)
-  add_paths_to_lib_paths(${TBB_DLL_PATH})
+  add_paths_to_fixup_libs(${TBB_DLL_PATH})
 endif ()
 
 set(TBB_LIBRARIES ${TBB_LIBRARY} ${TBB_MALLOC_LIBRARY})

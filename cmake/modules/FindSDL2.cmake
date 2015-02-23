@@ -220,5 +220,5 @@ endif ()
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(SDL2 REQUIRED_VARS ${SDL2_REQUIREMENTS})
 
 if (WIN32)
-  add_paths_to_lib_paths(${SDL2_DLL_PATH})
+  add_paths_to_fixup_libs(${SDL2_DLL_PATH})
 endif ()

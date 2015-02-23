@@ -37,7 +37,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Soxr DEFAULT_MSG ${SOXR_REQUIREMENTS})
 
 if (WIN32)
-  add_paths_to_lib_paths(${SOXR_DLL_PATH})
+  add_paths_to_fixup_libs(${SOXR_DLL_PATH})
 endif ()
 
 mark_as_advanced(SOXR_INCLUDE_DIRS SOXR_LIBRARIES SOXR_SEARCH_DIRS)

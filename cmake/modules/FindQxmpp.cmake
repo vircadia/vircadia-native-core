@@ -41,5 +41,5 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(QXmpp DEFAULT_MSG QXMPP_INCLUDE_DIRS QXMPP_LIBRARIES QXMPP_LIBRARY)
 
 if (QXMPP_DLL_PATH)
-  add_paths_to_lib_paths(${QXMPP_DLL_PATH})
+  add_paths_to_fixup_libs(${QXMPP_DLL_PATH})
 endif ()

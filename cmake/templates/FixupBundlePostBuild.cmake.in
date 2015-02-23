@@ -10,5 +10,5 @@
 # 
 
 include(BundleUtilities)
-message(STATUS "LIB_PATHS for fixup_bundle called for bundle ${BUNDLE_EXECUTABLE} are @LIB_PATHS@")
-fixup_bundle("${BUNDLE_EXECUTABLE}" "" "@LIB_PATHS@")
+message(STATUS "FIXUP_LIBS for fixup_bundle called for bundle ${BUNDLE_EXECUTABLE} are @FIXUP_LIBS@")
+fixup_bundle("${BUNDLE_EXECUTABLE}" "" "@FIXUP_LIBS@")

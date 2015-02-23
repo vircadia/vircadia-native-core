@@ -52,7 +52,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Sixense DEFAULT_MSG ${SIXENSE_REQUIREMENTS})
 
 if (WIN32)
-  add_paths_to_lib_paths(${SIXENSE_DEBUG_DLL_PATH} ${SIXENSE_RELEASE_DLL_PATH} ${SIXENSE_DEVICE_DLL_PATH})
+  add_paths_to_fixup_libs(${SIXENSE_DEBUG_DLL_PATH} ${SIXENSE_RELEASE_DLL_PATH} ${SIXENSE_DEVICE_DLL_PATH})
 endif ()
 
 mark_as_advanced(SIXENSE_LIBRARIES SIXENSE_INCLUDE_DIRS SIXENSE_SEARCH_DIRS)
