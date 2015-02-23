@@ -406,7 +406,7 @@
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
             elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
-            elModelShapeType.addEventListener('change', createEmitNumberPropertyUpdateFunction('shapeType'));
+            elModelShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -671,9 +671,9 @@
             <div class="label">Shape Type</div>
             <div class="value">
                 <select name="SelectShapeType" id="property-model-shape" name="SelectShapeType">
-                    <option value=0>None</option>
-                    <option value=1>Box</option>
-                    <option value=2>Sphere</option>
+                    <option value='none'>none</option>
+                    <option value='box'>box</option>
+                    <option value='sphere'>sphere</option>
                 </select> 
             </div>
         </div>

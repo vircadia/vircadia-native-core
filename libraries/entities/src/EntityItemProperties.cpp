@@ -10,6 +10,7 @@
 //
 
 #include <QDebug>
+#include <QHash>
 #include <QObject>
 #include <QtCore/QJsonDocument>
 
@@ -170,6 +171,31 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created; 
 }
 
+const char* shapeTypeNames[] = {"none", "box", "sphere"};
+
+QHash<QString, ShapeType> stringToShapeTypeLookup;
+
+void buildStringToShapeTypeLookup() {
+    stringToShapeTypeLookup["none"] = SHAPE_TYPE_NONE;
+    stringToShapeTypeLookup["box"] = SHAPE_TYPE_BOX;
+    stringToShapeTypeLookup["sphere"] = SHAPE_TYPE_SPHERE;
+}
+
+QString EntityItemProperties::getShapeTypeAsString() const {
+    return QString(shapeTypeNames[_shapeType]);
+}
+
+void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
+    if (stringToShapeTypeLookup.empty()) {
+        buildStringToShapeTypeLookup();
+    }
+    auto shapeTypeItr = stringToShapeTypeLookup.find(shapeName.toLower());
+    if (shapeTypeItr != stringToShapeTypeLookup.end()) {
+        _shapeType = shapeTypeItr.value();
+        _shapeTypeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
     
@@ -270,7 +296,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE(shapeType);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeAsString());
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -303,8 +329,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
 }
 
 void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
-
-
     QScriptValue typeScriptValue = object.property("type");
     if (typeScriptValue.isValid()) {
         setType(typeScriptValue.toVariant().toString());
@@ -350,7 +374,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lineHeight, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(backgroundColor, setBackgroundColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(shapeType, setShapeType, ShapeType);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
 
     _lastEdited = usecTimestampNow();
 }
