@@ -57,13 +57,15 @@ void GLCanvas::initializeGL() {
 void GLCanvas::paintGL() {
     if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
         //Need accurate frame timing for the oculus rift
-        Application::getInstance()->paintGL();
+        if (OculusManager::isConnected()) {
+            OculusManager::beginFrameTiming();
+        }
 
-        // FIXME abstract the functionality of various display modes out 
-        // to enable supporting various HMDs as well as 2D screens through 
-        // a single interface
-        if (!OculusManager::isConnected()) {
-            swapBuffers();
+        Application::getInstance()->paintGL();
+        swapBuffers();
+
+        if (OculusManager::isConnected()) {
+            OculusManager::endFrameTiming();
         }
     }
 }
@@ -124,9 +126,16 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
     if (!Application::getInstance()->getWindow()->isMinimized()) {
+        //Need accurate frame timing for the oculus rift
+        if (OculusManager::isConnected()) {
+            OculusManager::beginFrameTiming();
+        }
+
         Application::getInstance()->paintGL();
-        if (!OculusManager::isConnected()) {
-            swapBuffers();
+        swapBuffers();
+
+        if (OculusManager::isConnected()) {
+            OculusManager::endFrameTiming();
         }
     }
 }

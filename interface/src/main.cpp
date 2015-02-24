@@ -18,8 +18,6 @@
 
 #include "AddressManager.h"
 #include "Application.h"
-#include "devices/OculusManager.h"
-
 
 #ifdef Q_OS_WIN
 static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
@@ -94,10 +92,7 @@ int main(int argc, const char* argv[]) {
         usecTimestampNowForceClockSkew(clockSkew);
         qDebug("clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
-    // Oculus initialization MUST PRECEDE OpenGL context creation.
-    // The nature of the Application constructor means this has to be either here,
-    // or in the main window ctor, before GL startup.
-    OculusManager::init();
+    
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
