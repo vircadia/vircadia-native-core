@@ -110,7 +110,7 @@ void Player::startPlaying() {
         }
         
         // Fake faceshift connection
-        _avatar->setForceFaceshiftConnected(true);
+        _avatar->setForceFaceTrackerConnected(true);
         
         qDebug() << "Recorder::startPlaying()";
         setupAudioThread();
@@ -136,8 +136,8 @@ void Player::stopPlaying() {
     cleanupAudioThread();
     _avatar->clearJointsData();
     
-    // Turn off fake faceshift connection
-    _avatar->setForceFaceshiftConnected(false);
+    // Turn off fake face tracker connection
+    _avatar->setForceFaceTrackerConnected(false);
     
     if (_useAttachments) {
         _avatar->setAttachmentData(_currentContext.attachments);
@@ -255,8 +255,8 @@ void Player::play() {
     
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {
-        // Make sure fake faceshift connection doesn't get turned off
-        _avatar->setForceFaceshiftConnected(true);
+        // Make sure fake face tracker connection doesn't get turned off
+        _avatar->setForceFaceTrackerConnected(true);
         
         QVector<float> blendCoef(currentFrame.getBlendshapeCoefficients().size());
         for (int i = 0; i < currentFrame.getBlendshapeCoefficients().size(); ++i) {

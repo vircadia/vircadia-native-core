@@ -669,3 +669,41 @@ void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSock
     
     writeUnverifiedDatagram(iceRequestByteArray, iceServerSockAddr);
 }
+
+void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* parent) {
+    // save our local port to shared memory so that assignment client children know how to talk to this parent
+    QSharedMemory* sharedPortMem = new QSharedMemory(key, parent);
+    quint16 localPort = getNodeSocket().localPort();
+    
+    // attempt to create the shared memory segment
+    if (sharedPortMem->create(sizeof(localPort)) || sharedPortMem->attach()) {
+        sharedPortMem->lock();
+        memcpy(sharedPortMem->data(), &localPort, sizeof(localPort));
+        sharedPortMem->unlock();
+        
+        qDebug() << "Wrote local listening port" << localPort << "to shared memory at key" << key;
+    } else {
+        qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
+    }
+}
+
+
+bool LimitedNodeList::getLocalServerPortFromSharedMemory(const QString key, QSharedMemory*& sharedMem,
+                                                         quint16& localPort) {
+    if (!sharedMem) {
+        sharedMem = new QSharedMemory(key, this);
+                
+        if (!sharedMem->attach(QSharedMemory::ReadOnly)) {
+            qWarning() << "Could not attach to shared memory at key" << key;
+        }
+    }
+
+    if (sharedMem->isAttached()) {
+        sharedMem->lock();
+        memcpy(&localPort, sharedMem->data(), sizeof(localPort));
+        sharedMem->unlock();
+        return true;
+    }
+
+    return false;
+}
