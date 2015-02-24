@@ -18,13 +18,23 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
       @ONLY
     )
     
-    # add a post-build command to copy DLLs beside the interface executable
+    # add a post-build command to copy DLLs beside the executable
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
       COMMAND ${CMAKE_COMMAND}
         -DBUNDLE_EXECUTABLE=$<TARGET_FILE:${TARGET_NAME}>
         -P ${CMAKE_CURRENT_BINARY_DIR}/FixupBundlePostBuild.cmake
+    )
+    
+    find_program(${WINDEPLOYQT_COMMAND} windeployqt PATHS ${QT_DIR}/bin NO_DEFAULT_PATH)
+    
+    # add a post-build command to call windeployqt to copy Qt plugins
+    add_custom_command(
+      TARGET ${TARGET_NAME}
+      POST_BUILD
+      COMMAND SET PATH=%PATH%;${QT_DIR}/bin
+      COMMAND ${WINDEPLOYQT_COMMAND} --no-libraries --force $<TARGET_FILE:${TARGET_NAME}>
     )
   endif ()
 endmacro()
