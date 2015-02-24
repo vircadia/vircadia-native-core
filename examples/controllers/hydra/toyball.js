@@ -121,7 +121,6 @@ function checkControllerSide(whichSide) {
     if (!ballAlreadyInHand && grabButtonPressed) {
         var closestEntity = Entities.findClosestEntity(palmPosition, targetRadius);
 
-        //if (closestEntity.isKnownID && ((leftHandEntity && (closestEntity.id == leftHandEntity.id)) || (rightHandEntity && (closestEntity.id == rightHandEntity.id)))) {
         if (closestEntity.isKnownID) {
 
             debugPrint(handMessage + " HAND- CAUGHT SOMETHING!!");
