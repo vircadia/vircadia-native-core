@@ -1471,6 +1471,10 @@ void Application::checkFPS() {
 
 void Application::idle() {
     PerformanceTimer perfTimer("idle");
+    
+    if (_aboutToQuit) {
+        return; // bail early, nothing to do here.
+    }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing
