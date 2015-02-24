@@ -90,10 +90,6 @@ private:
     int _mouthSmileRightIndex;
     
     int _jawOpenIndex;
-    
-    float _leftEye[3];
-    float _rightEye[3];
-    
 };
 
 #endif // hifi_DdeFaceTracker_h
