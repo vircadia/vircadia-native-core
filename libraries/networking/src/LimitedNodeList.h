@@ -176,7 +176,7 @@ public:
     }
 
     void putLocalPortIntoSharedMemory(const QString key, QObject* parent);
-    bool getLocalServerPortFromSharedMemory(const QString key, QSharedMemory* &sharedMem, quint16& localPort);
+    bool getLocalServerPortFromSharedMemory(const QString key, QSharedMemory*& sharedMem, quint16& localPort);
     
 public slots:
     void reset();
