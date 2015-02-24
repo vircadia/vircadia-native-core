@@ -8,7 +8,7 @@
 
 #include <iostream>
 #ifdef _WINDOWS
-#include <winsock2.h>
+#include <WS2tcpip.h>
 #else
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -76,7 +76,7 @@ void runSend(const char* addressOption, int port, int gap, int size, int report)
 
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr(addressOption);
+    inet_pton(AF_INET, addressOption, &servaddr.sin_addr);
     servaddr.sin_port = htons(port);
 
     const int SAMPLES_FOR_SECOND = 1000000 / gap;
