@@ -260,6 +260,18 @@ void SixenseManager::update(float deltaTime) {
             float sign = (i == 0) ? -1.0f : 1.0f;
             rotation *= glm::angleAxis(sign * PI/4.0f, glm::vec3(0.0f, 0.0f, 1.0f));
             
+            //  Angular Velocity of Palm
+            glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
+            glm::vec3 angularVelocity(0.0f);
+            float rotationAngle = glm::angle(deltaRotation);
+            if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
+                angularVelocity = glm::normalize(glm::axis(deltaRotation));
+                angularVelocity *= (rotationAngle / deltaTime);
+                palm->setRawAngularVelocity(angularVelocity);
+            } else {
+                palm->setRawAngularVelocity(glm::vec3(0.0f));
+            }
+            
             if (_lowVelocityFilter) {
                 //  Use a velocity sensitive filter to damp small motions and preserve large ones with
                 //  no latency.
