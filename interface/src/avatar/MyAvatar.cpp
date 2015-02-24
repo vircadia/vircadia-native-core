@@ -1097,7 +1097,7 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
         RenderArgs args;
         args._viewFrustum = renderFrustum;
         _skeletonModel.render(1.0f, modelRenderMode, &args);
-        renderAttachments(renderMode);
+        renderAttachments(renderMode, &args);
     }
     
     //  Render head so long as the camera isn't inside it
@@ -1902,9 +1902,9 @@ void MyAvatar::onToggleRagdoll() {
     }
 }
 
-void MyAvatar::renderAttachments(RenderMode renderMode) {
+void MyAvatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
     if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
-        Avatar::renderAttachments(renderMode);
+        Avatar::renderAttachments(renderMode, args);
         return;
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
@@ -1914,7 +1914,7 @@ void MyAvatar::renderAttachments(RenderMode renderMode) {
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, modelRenderMode);        
+            _attachmentModels.at(i)->render(1.0f, modelRenderMode, args);        
         }
     }
 }

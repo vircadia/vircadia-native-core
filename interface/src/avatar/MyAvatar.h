@@ -187,7 +187,7 @@ signals:
     void transformChanged();
 
 protected:
-    virtual void renderAttachments(RenderMode renderMode);
+    virtual void renderAttachments(RenderMode renderMode, RenderArgs* args);
     
 private:
     float _turningKeyPressTime;

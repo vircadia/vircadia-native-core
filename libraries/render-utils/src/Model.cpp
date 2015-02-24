@@ -680,7 +680,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
 
     // render the attachments
     foreach (Model* attachment, _attachments) {
-        attachment->render(alpha, mode);
+        attachment->render(alpha, mode, args);
     }
     if (_meshStates.isEmpty()) {
         return false;

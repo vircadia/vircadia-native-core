@@ -492,7 +492,7 @@ void Avatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool 
             RenderArgs args;
             args._viewFrustum = renderFrustum;
             _skeletonModel.render(1.0f, modelRenderMode, &args);
-            renderAttachments(renderMode);
+            renderAttachments(renderMode, &args);
         }
     }
     getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
@@ -522,11 +522,11 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::renderAttachments(RenderMode renderMode) {
+void Avatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode);
+        model->render(1.0f, modelRenderMode, args);
     }
 }
 
