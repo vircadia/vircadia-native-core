@@ -12,25 +12,7 @@
 <@def GPU_CONFIG_SLH@>
 
 <@if GLPROFILE == PC_GL @>
-    <@def VERSION_HEADER #version 410 compatibility
-#@>
-
-<@func inputPosition name@>
-layout(location = 0) in vec3 <$name$>;
-<@endfunc@>
-
-<@func inputNormal name@>
-layout(location = 1) in vec3 <$name$>;
-<@endfunc@>
-
-<@func inputTexcoord name@>
-layout(location = 4) in vec2 <$name$>;
-<@endfunc@>
-
-<@func inputColor name@>
-layout(location = 4) vec3 <$name$>;
-<@endfunc@>
-
+    <@def VERSION_HEADER #version 330 compatibility@>
 <@elif GLPROFILE == MAC_GL @>
     <@def VERSION_HEADER #version 120@>
 <@else@>
