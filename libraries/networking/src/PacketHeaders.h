@@ -67,7 +67,7 @@ enum PacketType {
     PacketTypeEntityErase,
     PacketTypeEntityAddResponse,
     PacketTypeOctreeDataNack, // 45
-    PacketTypeStopNode,
+    UNUSED_10,
     PacketTypeAudioEnvironment,
     PacketTypeEntityEditNack,
     PacketTypeSignedTransactionPayment,
@@ -86,7 +86,7 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeNodeJsonStats << PacketTypeEntityQuery
     << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
     << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
-    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode;
+    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;

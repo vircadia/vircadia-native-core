@@ -62,17 +62,13 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 }
 
-qint64 NodeList::sendStats(const QJsonObject& statsObject, HifiSockAddr destination) {
+qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
     QByteArray statsPacket = byteArrayWithPopulatedHeader(PacketTypeNodeJsonStats);
     QDataStream statsPacketStream(&statsPacket, QIODevice::Append);
     
     statsPacketStream << statsObject.toVariantMap();
     
-    return writeUnverifiedDatagram(statsPacket, destination);
-}
-
-qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
-    return sendStats(statsObject, _domainHandler.getSockAddr());
+    return writeUnverifiedDatagram(statsPacket, _domainHandler.getSockAddr());
 }
 
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
