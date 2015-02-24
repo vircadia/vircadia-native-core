@@ -149,7 +149,12 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
 }
 
 QDebug operator<<(QDebug debug, const Node &node) {
-    debug.nospace() << NodeType::getNodeTypeName(node.getType()) << " (" << node.getType() << ")";
+    debug.nospace() << NodeType::getNodeTypeName(node.getType());
+    if (node.getType() == NodeType::Unassigned) {
+        debug.nospace() << " (1)";
+    } else {
+        debug.nospace() << " (" << node.getType() << ")";
+    }
     debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
     debug.nospace() << node.getPublicSocket() << "/" << node.getLocalSocket();
     return debug.nospace();

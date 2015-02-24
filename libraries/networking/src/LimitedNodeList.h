@@ -26,6 +26,7 @@
 #include <qsharedpointer.h>
 #include <QtNetwork/qudpsocket.h>
 #include <QtNetwork/qhostaddress.h>
+#include <QSharedMemory>
 
 #include <tbb/concurrent_unordered_map.h>
 
@@ -49,6 +50,11 @@ const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
 const unsigned short STUN_SERVER_PORT = 3478;
 
 const QString DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY = "domain-server.local-port";
+const QString ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY = "assignment-client-monitor.local-port";
+
+const char DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME[] = "localhost";
+const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT = 40104;
+const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_DTLS_PORT = 40105;
 
 class HifiSockAddr;
 
@@ -168,6 +174,9 @@ public:
         
         return SharedNodePointer();
     }
+
+    void putLocalPortIntoSharedMemory(const QString key, QObject* parent);
+    bool getLocalServerPortFromSharedMemory(const QString key, QSharedMemory*& sharedMem, quint16& localPort);
     
 public slots:
     void reset();
