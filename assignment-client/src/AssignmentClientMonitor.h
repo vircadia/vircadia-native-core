@@ -15,30 +15,25 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/qpointer.h>
 #include <QtCore/QProcess>
-#include <QtCore/QDateTime>
 
 #include <Assignment.h>
 
-#include "AssignmentClientChildData.h"
-
 extern const char* NUM_FORKS_PARAMETER;
-
 
 class AssignmentClientMonitor : public QCoreApplication {
     Q_OBJECT
 public:
-    AssignmentClientMonitor(int &argc, char **argv, const unsigned int numAssignmentClientForks);
+    AssignmentClientMonitor(int &argc, char **argv, int numAssignmentClientForks);
     ~AssignmentClientMonitor();
     
     void stopChildProcesses();
 private slots:
-    void readPendingDatagrams();
-    void checkSpares();
-
+    void childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 private:
     void spawnChildClient();
+    QList<QPointer<QProcess> > _childProcesses;
+    
     QStringList _childArguments;
-    QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 };
 
 #endif // hifi_AssignmentClientMonitor_h

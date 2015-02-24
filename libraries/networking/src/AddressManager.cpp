@@ -76,7 +76,7 @@ const QString AddressManager::currentPath(bool withOrientation) const {
                 pathString += "/" + orientationString;
             } else {
                 qDebug() << "Cannot add orientation to path without a getter for position."
-                    << "Call AddressManager::setOrientationGetter to pass a function that will return a glm::quat";
+                    << "Call AdressManager::setOrientationGetter to pass a function that will return a glm::quat";
             }
             
         }
@@ -84,7 +84,7 @@ const QString AddressManager::currentPath(bool withOrientation) const {
         return pathString;
     } else {
         qDebug() << "Cannot create address path without a getter for position."
-            << "Call AddressManager::setPositionGetter to pass a function that will return a const glm::vec3&";
+            << "Call AdressManager::setPositionGetter to pass a function that will return a const glm::vec3&";
         return QString();
     }
 }
