@@ -1624,6 +1624,16 @@ FaceTracker* Application::getActiveFaceTracker() {
              (visage->isActive() ? static_cast<FaceTracker*>(visage.data()) : NULL)));
 }
 
+void Application::setActiveFaceTracker() {
+#ifdef HAVE_FACESHIFT
+    DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+#endif 
+    DependencyManager::get<DdeFaceTracker>()->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression));
+#ifdef HAVE_VISAGE
+    DependencyManager::get<Visage>()->updateEnabled();
+#endif
+}
+
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
@@ -1741,6 +1751,7 @@ void Application::init() {
 
     // initialize our face trackers after loading the menu settings
     DependencyManager::get<Faceshift>()->init();
+    DependencyManager::get<DdeFaceTracker>()->init();
     DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();

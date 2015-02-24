@@ -194,7 +194,7 @@ void Agent::run() {
     
     // setup an Avatar for the script to use
     ScriptableAvatar scriptedAvatar(&_scriptEngine);
-    scriptedAvatar.setForceFaceshiftConnected(true);
+    scriptedAvatar.setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar.setFaceModelURL(QUrl());

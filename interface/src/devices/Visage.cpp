@@ -174,7 +174,8 @@ void Visage::reset() {
 void Visage::updateEnabled() {
     setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Visage) &&
         !(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) &&
-            DependencyManager::get<Faceshift>()->isConnectedOrConnecting()));
+            DependencyManager::get<Faceshift>()->isConnectedOrConnecting()) &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression));
 }
 
 void Visage::setEnabled(bool enabled) {

@@ -10,6 +10,7 @@
 //
 
 #include <QFileDialog>
+#include <QFont>
 
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
@@ -23,6 +24,7 @@
 #include "PreferencesDialog.h"
 #include "Snapshot.h"
 #include "UserActivityLogger.h"
+#include "UIUtil.h"
 
 const int PREFERENCES_HEIGHT_PADDING = 20;
 
@@ -46,6 +48,8 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
+
+    UIUtil::scaleWidgetFontSizes(this);
 }
 
 void PreferencesDialog::accept() {
