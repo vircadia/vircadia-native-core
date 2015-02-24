@@ -85,6 +85,7 @@ public:
 
     bool isFinished() const { return _isFinished; }
     bool isRunning() const { return _isRunning; }
+    bool evaluatePending() const { return _evaluatePending; }
 
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
@@ -131,6 +132,7 @@ protected:
     QString _parentURL;
     bool _isFinished;
     bool _isRunning;
+    bool _evaluatePending = false;
     bool _isInitialized;
     bool _isAvatar;
     QTimer* _avatarIdentityTimer;
@@ -167,6 +169,8 @@ private slots:
 
 private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;
+    static QMutex _allScriptsMutex;
+    static bool _stoppingAllScripts;
 };
 
 #endif // hifi_ScriptEngine_h

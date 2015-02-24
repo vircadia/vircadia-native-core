@@ -3538,7 +3538,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
 
     // when the application is about to quit, stop our script engine so it unwinds properly
-    connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
+    //connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
@@ -3550,7 +3550,14 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-    bool loadScriptFromEditor, bool activateMainWindow) {
+                                        bool loadScriptFromEditor, bool activateMainWindow) {
+
+    qDebug() << "Application::loadScript() " << scriptFilename << "line:" << __LINE__;
+    if (isAboutToQuit()) {
+        qDebug() << "Application::loadScript() WHILE QUITTING.... what to do????" << scriptFilename << "line:" << __LINE__;
+        return NULL;
+    }
+                                        
     QUrl scriptUrl(scriptFilename);
     const QString& scriptURLString = scriptUrl.toString();
     if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor

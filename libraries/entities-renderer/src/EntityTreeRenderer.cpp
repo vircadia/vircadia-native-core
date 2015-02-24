@@ -59,6 +59,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
+    qDebug() << "EntityTreeRenderer::~EntityTreeRenderer() -------- BEGIN -----------";
     // NOTE: we don't need to delete _entitiesScriptEngine because it's owned by the application and gets cleaned up 
     // automatically but we do need to delete our sandbox script engine.
     
@@ -71,6 +72,7 @@ EntityTreeRenderer::~EntityTreeRenderer() {
         delete _sandboxScriptEngine;
         _sandboxScriptEngine = NULL;
     }
+    qDebug() << "EntityTreeRenderer::~EntityTreeRenderer() -------- DONE -----------";
 }
 
 void EntityTreeRenderer::clear() {
