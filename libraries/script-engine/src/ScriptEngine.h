@@ -16,6 +16,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
@@ -85,7 +86,7 @@ public:
 
     bool isFinished() const { return _isFinished; }
     bool isRunning() const { return _isRunning; }
-    bool evaluatePending() const { return _evaluatePending; }
+    bool evaluatePending() const { return _evaluatesPending > 0; }
 
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
@@ -95,6 +96,8 @@ public:
     QString getFilename() const;
     
     static void stopAllScripts(QObject* application);
+    
+    void waitTillDoneRunning();
 
 public slots:
     void loadURL(const QUrl& scriptURL);
@@ -132,7 +135,8 @@ protected:
     QString _parentURL;
     bool _isFinished;
     bool _isRunning;
-    bool _evaluatePending = false;
+    int _evaluatesPending = 0;
+    bool _isWaitingForDoneRunning = false;
     bool _isInitialized;
     bool _isAvatar;
     QTimer* _avatarIdentityTimer;
@@ -171,6 +175,7 @@ private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;
     static QMutex _allScriptsMutex;
     static bool _stoppingAllScripts;
+    static bool _doneRunningThisScript;
 };
 
 #endif // hifi_ScriptEngine_h

@@ -59,10 +59,8 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    qDebug() << "EntityTreeRenderer::~EntityTreeRenderer() -------- BEGIN -----------";
     // NOTE: we don't need to delete _entitiesScriptEngine because it's owned by the application and gets cleaned up 
     // automatically but we do need to delete our sandbox script engine.
-    
     if (_sandboxScriptEngine) {
         // NOTE: is it possible this is a problem? I think that we hook the script engine object up to a deleteLater()
         // call inside of registerScriptEngineWithApplicationServices() but do we not call that for _sandboxScriptEngine???
@@ -72,7 +70,6 @@ EntityTreeRenderer::~EntityTreeRenderer() {
         delete _sandboxScriptEngine;
         _sandboxScriptEngine = NULL;
     }
-    qDebug() << "EntityTreeRenderer::~EntityTreeRenderer() -------- DONE -----------";
 }
 
 void EntityTreeRenderer::clear() {
