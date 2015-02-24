@@ -18,7 +18,10 @@
 class UIUtil {
 public:
     static int getWindowTitleBarHeight(const QWidget* window);
+    static void scaleWidgetFontSizes(QWidget* widget);
 
+private:
+    static void internalScaleWidgetFontSizes(QWidget* widget, float scale);
 };
 
 #endif // hifi_UIUtil_h

@@ -76,7 +76,6 @@ void Light::setSpotAngle(float angle) {
     if (angle <= 0.f) {
         angle = 0.0f;
     }
-    float cosAngle = cos(angle);
     editSchema()._spot.x = cos(angle);
     editSchema()._spot.y = sin(angle);
     editSchema()._spot.z = angle;

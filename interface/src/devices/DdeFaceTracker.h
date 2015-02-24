@@ -28,9 +28,6 @@ public:
     void reset();
     void update();
     
-    //sockets
-    void bindTo(quint16 port);
-    void bindTo(const QHostAddress& host, quint16 port);
     bool isActive() const;
     
     float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
@@ -47,7 +44,10 @@ public:
     float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
     float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
-    
+
+public slots:
+    void setEnabled(bool enabled);
+
 private slots:
     
     //sockets
@@ -59,6 +59,9 @@ private:
     DdeFaceTracker();
     DdeFaceTracker(const QHostAddress& host, quint16 port);
     ~DdeFaceTracker();
+
+    QHostAddress _host;
+    quint16 _port;
     
     float getBlendshapeCoefficient(int index) const;
     void decodePacket(const QByteArray& buffer);
