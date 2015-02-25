@@ -534,6 +534,7 @@ void Application::aboutToQuit() {
 
 void Application::cleanupBeforeQuit() {
 
+    _datagramProcessor.shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
     
@@ -584,8 +585,6 @@ Application::~Application() {
     _entities.getTree()->setSimulation(NULL);
     tree->unlock();
 
-    qInstallMessageHandler(NULL);
-
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
@@ -606,6 +605,8 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+
+    qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
 
 void Application::initializeGL() {
