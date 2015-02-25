@@ -28,7 +28,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::Sphere);
     glm::vec3 position = getPositionInMeters();
     glm::vec3 center = getCenterInMeters();
-    glm::vec3 dimensions = getDimensionsInDomainUnits() * (float)TREE_SCALE;
+    glm::vec3 dimensions = getDimensionsInMeters();
     glm::quat rotation = getRotation();
 
     const float MAX_COLOR = 255.0f;

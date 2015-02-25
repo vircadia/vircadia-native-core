@@ -31,7 +31,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     assert(getType() == EntityTypes::Text);
     glm::vec3 position = getPositionInMeters();
-    glm::vec3 dimensions = getDimensionsInDomainUnits() * (float)TREE_SCALE;
+    glm::vec3 dimensions = getDimensionsInMeters();
     glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
     float leftMargin = 0.1f;

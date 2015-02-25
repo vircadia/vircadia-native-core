@@ -27,7 +27,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLightEntityItem::render");
     assert(getType() == EntityTypes::Light);
     glm::vec3 position = getPositionInMeters();
-    glm::vec3 dimensions = getDimensionsInDomainUnits() * (float)TREE_SCALE;
+    glm::vec3 dimensions = getDimensionsInMeters();
     glm::quat rotation = getRotation();
     float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
 

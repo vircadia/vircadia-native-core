@@ -34,7 +34,7 @@ ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, A
     if (item != NULL) {
         _refScale = item->getLargestDimensionInDomainUnits();
         _refRotation = item->getRotation();
-        _refPosition = item->getPositionInDomainUnits() * (float)TREE_SCALE;
+        _refPosition = item->getPositionInMeters();
         update();
     }
 }
@@ -53,7 +53,7 @@ ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, Avat
     
     _refScale = item->getLargestDimensionInDomainUnits();
     _refRotation = item->getRotation();
-    _refPosition = item->getPositionInDomainUnits() * (float)TREE_SCALE;
+    _refPosition = item->getPositionInMeters();
     
     glm::quat refInvRot = glm::inverse(_refRotation);
     _scale = _avatar->getTargetScale() / _refScale;
