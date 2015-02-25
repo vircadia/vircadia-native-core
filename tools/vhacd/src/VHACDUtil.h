@@ -16,7 +16,7 @@
 #include <iomanip>
 #include <string>
 #include <vector>
-
+#include <chrono> //c++11 feature
 #include <QFile>
 #include <FBXReader.h>
 #include <VHACD.h>

@@ -27,9 +27,14 @@ int main(int argc, char * argv[]){
 	vhacd::ComputeResults results; // results after computing vhacd
 	VHACD::IVHACD::Parameters params;
 	vhacd::ProgressCallback pCallBack;
-	
 
-	QString fname = "F:/models/ship/Sample_Ship.fbx";
+	string filename(argv[1]);
+	if (filename.empty()){
+		cout << "please provide a FBX file as argument\n ";
+		return 1;
+	}
+
+	QString fname = QString::fromStdString(filename);
 
 	//set parameters for V-HACD
 	params.m_callback = &pCallBack; //progress callback
@@ -43,15 +48,23 @@ int main(int argc, char * argv[]){
 	params.m_minVolumePerCH = 0.0001; // controls the adaptive sampling of the generated convex - hulls
 
 	// load the mesh 
+
+	auto begin = std::chrono::high_resolution_clock::now();
 	if (!vUtil.loadFBX(fname, &fbx)){
 		cout << "Error in opening FBX file....";
 		return 1;
 	}
+	auto end = std::chrono::high_resolution_clock::now();
+	auto loadDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
+	//perform vhacd computation
+	begin = std::chrono::high_resolution_clock::now();
 	if (!vUtil.computeVHACD(&fbx, params, &results)){
 		cout << "Compute Failed...";
 		return 1;
 	}
+	end = std::chrono::high_resolution_clock::now();
+	auto computeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
 	int totalVertices = 0;
 	for (int i = 0; i < fbx.meshCount; i++){
@@ -75,6 +88,8 @@ int main(int argc, char * argv[]){
 	cout << "Total vertices     : " << totalVertices << endl;
 	cout << "Total Triangles    : " << totalTriangles << endl;
 	cout << "Total Convex Hulls : " << totalHulls << endl;
+	cout << "Total FBX load time: " << (double)loadDuration / 1000000000.00 << " seconds" << endl;
+	cout << "V-HACD Compute time: " << (double)computeDuration / 1000000000.00 << " seconds" << endl;
 	cout << endl << "Summary per convex hull ........................" << endl <<endl;
 	for (int i = 0; i < results.meshCount; i++){
 		cout << "Mesh : " << i + 1 << endl;
