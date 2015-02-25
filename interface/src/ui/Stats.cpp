@@ -62,7 +62,7 @@ Stats::Stats():
         _metavoxelReceiveProgress(0),
         _metavoxelReceiveTotal(0)
 {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     resetWidth(glCanvas->width(), 0);
 }
 
@@ -73,7 +73,7 @@ void Stats::toggleExpanded() {
 // called on mouse click release
 // check for clicks over stats  in order to expand or contract them
 void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset) {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
 
     if (0 != glm::compMax(glm::abs(glm::ivec2(mouseX - mouseDragStartedX, mouseY - mouseDragStartedY)))) {
         // not worried about dragging on stats
@@ -128,7 +128,7 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
 }
 
 void Stats::resetWidth(int width, int horizontalOffset) {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     int extraSpace = glCanvas->width() - horizontalOffset -2
                    - STATS_GENERAL_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
@@ -202,7 +202,7 @@ void Stats::display(
         int outKbitsPerSecond,
         int voxelPacketsToProcess) 
 {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
 
     unsigned int backgroundColor = 0x33333399;
     int verticalOffset = 0, lines = 0;

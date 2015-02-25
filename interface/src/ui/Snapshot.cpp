@@ -23,6 +23,7 @@
 #include <GLCanvas.h>
 #include <NodeList.h>
 
+#include "Application.h"
 #include "Snapshot.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
@@ -93,7 +94,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot() {
 }
 
 QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     QImage shot = glCanvas->grabFrameBuffer();
     
     Avatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();

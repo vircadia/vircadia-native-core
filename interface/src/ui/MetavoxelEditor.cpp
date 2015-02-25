@@ -140,7 +140,7 @@ MetavoxelEditor::MetavoxelEditor(QWidget* parent) :
     connect(Application::getInstance()->getMetavoxels(), &MetavoxelSystem::rendering,
         this, &MetavoxelEditor::renderPreview);
     
-    DependencyManager::get<GLCanvas>()->installEventFilter(this);
+    Application::getInstance()->getGLWidget()->installEventFilter(this);
     
     show();
     

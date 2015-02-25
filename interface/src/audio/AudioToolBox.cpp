@@ -16,6 +16,7 @@
 #include <PathUtils.h>
 #include <GeometryCache.h>
 
+#include "Application.h"
 #include "AudioToolBox.h"
 
 // Mute icon configration
@@ -37,7 +38,7 @@ bool AudioToolBox::mousePressEvent(int x, int y) {
 void AudioToolBox::render(int x, int y, bool boxed) {
     glEnable(GL_TEXTURE_2D);
     
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     if (_micTextureId == 0) {
         _micTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
     }
