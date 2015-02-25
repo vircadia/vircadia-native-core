@@ -670,10 +670,9 @@ void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSock
     writeUnverifiedDatagram(iceRequestByteArray, iceServerSockAddr);
 }
 
-void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* parent) {
+void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort) {
     // save our local port to shared memory so that assignment client children know how to talk to this parent
     QSharedMemory* sharedPortMem = new QSharedMemory(key, parent);
-    quint16 localPort = getNodeSocket().localPort();
     
     // attempt to create the shared memory segment
     if (sharedPortMem->create(sizeof(localPort)) || sharedPortMem->attach()) {
