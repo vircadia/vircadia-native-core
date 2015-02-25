@@ -39,19 +39,14 @@ SharedAssignmentPointer AssignmentClient::_currentAssignment;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
-AssignmentClient::AssignmentClient(int &argc, char **argv,
-                                   Assignment::Type requestAssignmentType, QString assignmentPool, QUuid walletUUID,
+AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool, QUuid walletUUID,
                                    QString assignmentServerHostname, quint16 assignmentServerPort) :
-    QCoreApplication(argc, argv),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
     _localASPortSharedMem(NULL),
     _localACMPortSharedMem(NULL)
 {
     LogUtils::init();
 
-    setOrganizationName("High Fidelity");
-    setOrganizationDomain("highfidelity.io");
-    setApplicationName("assignment-client");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
     // create a NodeList as an unassigned client
@@ -124,7 +119,7 @@ void AssignmentClient::stopAssignmentClient() {
     qDebug() << "Exiting.";
     _requestTimer.stop();
     _statsTimerACM.stop();
-    quit();
+    QCoreApplication::quit();
 }
 
 

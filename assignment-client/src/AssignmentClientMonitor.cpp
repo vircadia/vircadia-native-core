@@ -25,13 +25,11 @@ const char* NUM_FORKS_PARAMETER = "-n";
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 
-AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv,
-                                                 const unsigned int numAssignmentClientForks,
+AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
                                                  const unsigned int maxAssignmentClientForks,
                                                  QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
                                                  quint16 assignmentServerPort) :
-    QCoreApplication(argc, argv),
     _numAssignmentClientForks(numAssignmentClientForks),
     _minAssignmentClientForks(minAssignmentClientForks),
     _maxAssignmentClientForks(maxAssignmentClientForks),
@@ -109,7 +107,7 @@ void AssignmentClientMonitor::spawnChildClient() {
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
     
-    assignmentClient->start(applicationFilePath(), _childArguments);
+    assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
 
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
 }
@@ -135,7 +133,7 @@ void AssignmentClientMonitor::checkSpares() {
 
     // Spawn or kill children, as needed.  If --min or --max weren't specified, allow the child count
     // to drift up or down as far as needed.
-    if (spareCount < 1) {
+    if (spareCount < 1 || totalCount < _minAssignmentClientForks) {
         if (!_maxAssignmentClientForks || totalCount < _maxAssignmentClientForks) {
             spawnChildClient();
         }

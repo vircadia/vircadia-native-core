@@ -24,13 +24,12 @@
 extern const char* NUM_FORKS_PARAMETER;
 
 
-class AssignmentClientMonitor : public QCoreApplication {
+class AssignmentClientMonitor : public QObject {
     Q_OBJECT
 public:
-    AssignmentClientMonitor(int &argc, char **argv, const unsigned int numAssignmentClientForks,
-                            const unsigned int minAssignmentClientForks, const unsigned int maxAssignmentClientForks,
-                            QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
-                            quint16 assignmentServerPort);
+    AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
+                            const unsigned int maxAssignmentClientForks, QString assignmentPool, QUuid walletUUID,
+                            QString assignmentServerHostname, quint16 assignmentServerPort);
     ~AssignmentClientMonitor();
     
     void stopChildProcesses();

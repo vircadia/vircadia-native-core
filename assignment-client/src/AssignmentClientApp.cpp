@@ -28,6 +28,10 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     setvbuf(stdout, NULL, _IOLBF, 0);
 #   endif
 
+    setOrganizationName("High Fidelity");
+    setOrganizationDomain("highfidelity.io");
+    setApplicationName("assignment-client");
+
     // use the verbose message handler in Logging
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
@@ -97,6 +101,10 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         maxForks = parser.value(maxChildsOption).toInt();
     }
 
+    if (!numForks && minForks) {
+        // if the user specified --min but not -n, set -n to --min
+        numForks = minForks;
+    }
 
     Assignment::Type requestAssignmentType = Assignment::AllTypes;
     if (argumentVariantMap.contains(ASSIGNMENT_TYPE_OVERRIDE_OPTION)) {
@@ -165,12 +173,12 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
 
     if (numForks || minForks || maxForks) {
-        AssignmentClientMonitor monitor(argc, argv, numForks, minForks, maxForks, assignmentPool,
+        AssignmentClientMonitor monitor(numForks, minForks, maxForks, assignmentPool,
                                         walletUUID, assignmentServerHostname, assignmentServerPort);
-        monitor.exec();
+        exec();
     } else {
-        AssignmentClient client(argc, argv, requestAssignmentType, assignmentPool,
+        AssignmentClient client(requestAssignmentType, assignmentPool,
                                 walletUUID, assignmentServerHostname, assignmentServerPort);
-        client.exec();
+        exec();
     }
 }
