@@ -21,6 +21,7 @@
 #include "AccountManager.h"
 #include "ui_loginDialog.h"
 #include "LoginDialog.h"
+#include "UIUtil.h"
 
 const QString FORGOT_PASSWORD_URL = "https://metaverse.highfidelity.io/users/password/new";
 
@@ -41,6 +42,8 @@ LoginDialog::LoginDialog(QWidget* parent) :
             this, &LoginDialog::handleLoginClicked);
     connect(_ui->closeButton, &QPushButton::clicked,
             this, &LoginDialog::close);
+
+    UIUtil::scaleWidgetFontSizes(this);
 
     // Initialize toggle connection
     toggleQAction();

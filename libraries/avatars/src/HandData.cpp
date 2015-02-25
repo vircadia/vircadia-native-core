@@ -67,7 +67,7 @@ PalmData::PalmData(HandData* owningHandData) :
 _rawRotation(0.0f, 0.0f, 0.0f, 1.0f),
 _rawPosition(0.0f),
 _rawVelocity(0.0f),
-_rotationalVelocity(0.0f),
+_rawAngularVelocity(0.0f),
 _totalPenetration(0.0f),
 _controllerButtons(0),
 _isActive(false),

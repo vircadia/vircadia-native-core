@@ -64,6 +64,8 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     connect(ui->loadScriptFromURLButton, &QPushButton::clicked,
             Application::getInstance(), &Application::loadScriptURLDialog);
     connect(&_signalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
+
+    UIUtil::scaleWidgetFontSizes(this);
 }
 
 RunningScriptsWidget::~RunningScriptsWidget() {
@@ -103,6 +105,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
             hash.insert(list.at(i), 1);
         }
         QWidget* row = new QWidget(ui->scriptListWidget);
+        row->setFont(ui->scriptListWidget->font());
         row->setLayout(new QHBoxLayout(row));
 
         QUrl url = QUrl(list.at(i));
