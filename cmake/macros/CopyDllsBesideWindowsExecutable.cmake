@@ -18,7 +18,6 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
   endif ()
   
   if (WIN32)
-    
     configure_file(
       ${HIFI_CMAKE_DIR}/templates/FixupBundlePostBuild.cmake.in  
       ${CMAKE_CURRENT_BINARY_DIR}/FixupBundlePostBuild.cmake
@@ -34,8 +33,7 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
         -P ${CMAKE_CURRENT_BINARY_DIR}/FixupBundlePostBuild.cmake
     )
     
-    if (NOT USES_QT)
-      
+    if (USES_QT)
       find_program(WINDEPLOYQT_COMMAND windeployqt PATHS ${QT_DIR}/bin NO_DEFAULT_PATH)
     
       # add a post-build command to call windeployqt to copy Qt plugins
@@ -46,6 +44,5 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
       )
       
     endif ()
-    
   endif ()
 endmacro()
