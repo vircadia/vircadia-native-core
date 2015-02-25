@@ -214,32 +214,22 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         static const float BROW_UP_SCALE = 3.0f;
         static const float BROW_DOWN_SCALE = 3.0f;
         float browCenter = (packet.expressions[17] + _previousExpressions[17]) / 2.0f;
-        float browDelta = (packet.expressions[24] + _previousExpressions[24] 
-            - packet.expressions[23] - _previousExpressions[23]) / 2.0f;
-        float browLeft = browCenter - browDelta;
-        float browRight = browCenter + browDelta;
-        if (browLeft > 0) {
-            _blendshapeCoefficients[_browUpLeftIndex] = glm::clamp(BROW_UP_SCALE * browLeft, 0.0f, 1.0f);
+        if (browCenter > 0) {
+            float browUp = glm::clamp(BROW_UP_SCALE * browCenter, 0.0f, 1.0f);
+            _blendshapeCoefficients[_browUpCenterIndex] = browUp;
+            _blendshapeCoefficients[_browUpLeftIndex] = browUp;
             _blendshapeCoefficients[_browDownLeftIndex] = 0.0f;
-        } else {
-            _blendshapeCoefficients[_browUpLeftIndex] = 0.0f;
-            _blendshapeCoefficients[_browDownLeftIndex] = glm::clamp(BROW_DOWN_SCALE * -browLeft, 0.0f, 1.0f);
-        }
-        if (browRight > 0) {
-            _blendshapeCoefficients[_browUpRightIndex] = glm::clamp(BROW_UP_SCALE * browRight, 0.0f, 1.0f);
+            _blendshapeCoefficients[_browUpRightIndex] = browUp;
             _blendshapeCoefficients[_browDownRightIndex] = 0.0f;
         } else {
-            _blendshapeCoefficients[_browUpRightIndex] = 0.0f;
-            _blendshapeCoefficients[_browDownRightIndex] = glm::clamp(BROW_DOWN_SCALE * -browRight, 0.0f, 1.0f);
-        }
-        if (browCenter > 0) {
-            _blendshapeCoefficients[_browUpCenterIndex] = glm::clamp(BROW_UP_SCALE * browCenter, 0.0f, 1.0f);
-        } else {
+            float browDown = glm::clamp(BROW_DOWN_SCALE * -browCenter, 0.0f, 1.0f);
             _blendshapeCoefficients[_browUpCenterIndex] = 0.0f;
+            _blendshapeCoefficients[_browUpLeftIndex] = 0.0f;
+            _blendshapeCoefficients[_browDownLeftIndex] = browDown;
+            _blendshapeCoefficients[_browUpRightIndex] = 0.0f;
+            _blendshapeCoefficients[_browDownRightIndex] = browDown;
         }
         _previousExpressions[17] = packet.expressions[17];
-        _previousExpressions[24] = packet.expressions[24];
-        _previousExpressions[23] = packet.expressions[23];
 
         // Mouth blendshapes
         static const float JAW_OPEN_THRESHOLD = 0.16f;
