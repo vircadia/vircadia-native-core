@@ -42,12 +42,6 @@
 #include "MIDIEvent.h"
 
 
-#ifdef WANT_DEBUG_SCRIPT_ENDING
-#define DEBUG_SCRIPT_ENDING(X) X
-#else
-#define DEBUG_SCRIPT_ENDING(x)
-#endif
-
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
@@ -107,7 +101,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 }
 
 ScriptEngine::~ScriptEngine() {
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::~ScriptEngine() ------- BEGIN ------- script:" << getFilename();)
     // If we're not already in the middle of stopping all scripts, then we should remove ourselves
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
@@ -116,7 +109,6 @@ ScriptEngine::~ScriptEngine() {
         _allKnownScriptEngines.remove(this);
         _allScriptsMutex.unlock();
     }
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::~ScriptEngine() ------- END ------- script:" << getFilename();)
 }
 
 QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
@@ -136,8 +128,6 @@ void ScriptEngine::stopAllScripts(QObject* application) {
 
         QString scriptName = scriptEngine->getFilename();
 
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() considering:" << scriptName << "isRunning():" << scriptEngine->isRunning() << "evaluatePending():" << scriptEngine->evaluatePending();)
-
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
         // them. We don't need to stop scripts that aren't running. 
@@ -149,18 +139,14 @@ void ScriptEngine::stopAllScripts(QObject* application) {
                 while (scriptEngine->evaluatePending()) {
                     QEventLoop loop;
                     QObject::connect(scriptEngine, &ScriptEngine::evaluationFinished, &loop, &QEventLoop::quit);
-                    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() while(evaluatePending()) STARTING loop.exec() script:" << scriptName;)
                     loop.exec();
-                    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() while(evaluatePending()) AFTER loop.exec() script:" << scriptName;)
                 }
             }
 
             scriptEngine->disconnect(application);
             scriptEngine->stop();
 
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() -- WAITING for waitTillDoneRunning() script:" << scriptName;)
             scriptEngine->waitTillDoneRunning();
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() -- AFTER waitTillDoneRunning() script:" << scriptName;)
             i.remove();
         } else {
             qDebug() << "ScriptEngine::stopAllScripts() " << scriptName << " - will be freed on it's own.";
@@ -175,10 +161,8 @@ void ScriptEngine::stopAllScripts(QObject* application) {
 
 void ScriptEngine::waitTillDoneRunning() {
     QString scriptName = getFilename();
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::waitTillDoneRunning() ------- BEGIN ------- script:" << scriptName;)
 
     if (_isRunning) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::waitTillDoneRunning() SETTING _doneRunningThisScript = false ################################### line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
         _doneRunningThisScript = false;
         _isWaitingForDoneRunning = true;
 
@@ -191,31 +175,18 @@ void ScriptEngine::waitTillDoneRunning() {
             // and run a QEventLoop???
             QEventLoop loop;
             QObject::connect(this, &ScriptEngine::doneRunning, &loop, &QEventLoop::quit);
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::waitTillDoneRunning() STARTING loop.exec() script:" << scriptName;)
-            DEBUG_SCRIPT_ENDING(qDebug() << "    _doneRunningThisScript:" << _doneRunningThisScript;)
-            DEBUG_SCRIPT_ENDING(qDebug() << "    _isRunning:" << _isRunning;)
-            DEBUG_SCRIPT_ENDING(qDebug() << "    _isWaitingForDoneRunning:" << _isWaitingForDoneRunning;)
-            DEBUG_SCRIPT_ENDING(qDebug() << "    _isFinished:" << _isFinished;)
-            DEBUG_SCRIPT_ENDING(qDebug() << "    _isInitialized:" << _isInitialized;)
-            DEBUG_SCRIPT_ENDING(qDebug() << "    _evaluatesPending:" << _evaluatesPending;)
             loop.exec();
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::waitTillDoneRunning() AFTER loop.exec() script:" << scriptName;)
 
             // process events
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::waitTillDoneRunning() STARTING QCoreApplication::processEvents() script:" << scriptName;)
             QCoreApplication::processEvents();
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::waitTillDoneRunning() AFTER QCoreApplication::processEvents() script:" << scriptName;)
             
             if (_doneRunningThisScript) {
-                DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::waitTillDoneRunning() _doneRunningThisScript after processEvents... breaking!!! script:" << scriptName;)
                 break;
             }
         }
 
         _isWaitingForDoneRunning = false;
     }
-    
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::waitTillDoneRunning() ------- DONE ------- script:" << scriptName;)
 }
 
 QString ScriptEngine::getFilename() const { 
@@ -428,25 +399,20 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
 
 void ScriptEngine::evaluate() {
     if (_stoppingAllScripts) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate() while shutting down is ignored...";)
-        DEBUG_SCRIPT_ENDING(qDebug() << "   parent script:" << getFilename() << "[" << this << "]";)
         return; // bail early
     }
 
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate() -- BEGIN  script:" << getFilename() << "[" << this << "]";)
     if (!_isInitialized) {
         init();
     }
 
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate() -- about to call own evaluate(program)  script:" << getFilename() << "[" << this << "]";)
     QScriptValue result = evaluate(_scriptContents);
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate() -- AFTER own evaluate(program)  script:" << getFilename() << "[" << this << "]";)
 
     // TODO: why do we check this twice? It seems like the call to clearExcpetions() in the lower level evaluate call
     // will cause this code to never actually run...
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
-        DEBUG_SCRIPT_ENDING(qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();)
+        qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
         clearExceptions();
     }
@@ -454,29 +420,18 @@ void ScriptEngine::evaluate() {
 
 QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
     if (_stoppingAllScripts) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) while shutting down is ignored...";)
-        DEBUG_SCRIPT_ENDING(qDebug() << "   parent script:" << getFilename() << "[" << this << "]";)
         return QScriptValue(); // bail early
     }
 
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) -- BEGIN script:" << getFilename() << "_evaluatesPending:" << _evaluatesPending << "[" << this << "]";)
     _evaluatesPending++;
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) -- after _evaluatesPending++ script:" << getFilename() << "_evaluatesPending:" << _evaluatesPending << "[" << this << "]";)
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) -- BEFORE QScriptEngine::evaluate() script:" << getFilename() << "_evaluatesPending:" << _evaluatesPending << "[" << this << "]";)
     QScriptValue result = QScriptEngine::evaluate(program, fileName, lineNumber);
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) -- AFTER QScriptEngine::evaluate() script:" << getFilename() << "_evaluatesPending:" << _evaluatesPending << "[" << this << "]";)
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
     }
     _evaluatesPending--;
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) -- after _evaluatesPending-- script:" << getFilename() << "_evaluatesPending:" << _evaluatesPending << "[" << this << "]";)
-
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) -- ABOUT TO emit evaluationFinished()  script:" << getFilename() << "_evaluatesPending:" << _evaluatesPending << "[" << this << "]";)
     emit evaluationFinished(result, hasUncaughtException());
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) -- AFTER emit evaluationFinished()  script:" << getFilename() << "_evaluatesPending:" << _evaluatesPending << "[" << this << "]";)
     clearExceptions();
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) -- DONE script:" << getFilename() << "_evaluatesPending:" << _evaluatesPending << "[" << this << "]";)
     return result;
 }
 
@@ -496,18 +451,14 @@ void ScriptEngine::run() {
     // TODO: can we add a short circuit for _stoppingAllScripts here? What does it mean to not start running if
     // we're in the process of stopping?
 
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
     if (!_isInitialized) {
         init();
     }
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
     _isRunning = true;
     _isFinished = false;
     emit runningStateChanged();
 
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
     QScriptValue result = evaluate(_scriptContents);
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
 
     QElapsedTimer startTime;
     startTime.start();
@@ -518,35 +469,19 @@ void ScriptEngine::run() {
 
     qint64 lastUpdate = usecTimestampNow();
 
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-
     while (!_isFinished) {
-        if (_isWaitingForDoneRunning) {
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-        }
-    
         int usecToSleep = (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - startTime.nsecsElapsed() / 1000; // nsec to usec
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         }
 
         if (_isFinished) {
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
             break;
-        }
-
-        if (_isWaitingForDoneRunning) {
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
         }
 
         QCoreApplication::processEvents();
 
-        if (_isWaitingForDoneRunning) {
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-        }
-
         if (_isFinished) {
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
             break;
         }
 
@@ -675,36 +610,13 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
         
-        if (_isWaitingForDoneRunning) {
-            DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-        }
-        
     }
 
-    if (_isWaitingForDoneRunning) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-    }
-
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-    
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename();)
-
-    if (_isWaitingForDoneRunning) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-    }
-
     emit scriptEnding();
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
 
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
-
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-
-    if (_isWaitingForDoneRunning) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-    }
 
     if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
@@ -716,44 +628,19 @@ void ScriptEngine::run() {
         }
     }
 
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-
     // If we were on a thread, then wait till it's done
     if (thread()) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
         thread()->quit();
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-    }
-
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-
-    if (_isWaitingForDoneRunning) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
     }
 
     emit finished(_fileNameString);
 
-    if (_isWaitingForDoneRunning) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-    }
-
     _isRunning = false;
     emit runningStateChanged();
 
-    DEBUG_SCRIPT_ENDING(qDebug() << "ABOUT TO emit doneRunning() script:" << getFilename() << "[" << this << "]";)
     emit doneRunning();
-    DEBUG_SCRIPT_ENDING(qDebug() << "AFTER emit doneRunning() script:" << getFilename() << "[" << this << "]";)
 
-    if (_isWaitingForDoneRunning) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-    }
-
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() SETTING _doneRunningThisScript = true ################################### line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
     _doneRunningThisScript = true;
-
-    if (_isWaitingForDoneRunning) {
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::run() ** _isWaitingForDoneRunning == true ** line:" << __LINE__ << " script:" << getFilename() << "[" << this << "]";)
-    }
 }
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
@@ -768,10 +655,8 @@ void ScriptEngine::stopAllTimers() {
 }
 
 void ScriptEngine::stop() {
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stop() -- START -- line:" << __LINE__ << " script:" << getFilename();)
     _isFinished = true;
     emit runningStateChanged();
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stop() -- DONE -- line:" << __LINE__ << " script:" << getFilename();)
 }
 
 void ScriptEngine::timerFired() {
@@ -887,9 +772,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
             if (contents.isNull()) {
                 qDebug() << "Error loading file: " << url;
             } else {
-                DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::include() BEFORE evaluate() line:" << __LINE__ << " parent script:" << getFilename() << "[" << this << "]" << " url:" << url << "_evaluatesPending:" << _evaluatesPending;)
                 QScriptValue result = evaluate(contents, url.toString());
-                DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::include() AFTER evaluate() line:" << __LINE__ << " parent script:" << getFilename() << "[" << this << "]" << " url:" << url << "_evaluatesPending:" << _evaluatesPending;)
             }
         }
 
