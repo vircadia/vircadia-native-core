@@ -242,11 +242,18 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _previousExpressions[23] = packet.expressions[23];
 
         // Mouth blendshapes
+        static const float JAW_OPEN_THRESHOLD = 0.16f;
         static const float JAW_OPEN_SCALE = 1.4f;
-        static const float SMILE_SCALE = 2.5f;
-        _blendshapeCoefficients[_jawOpenIndex] = JAW_OPEN_SCALE * packet.expressions[21];
-        _blendshapeCoefficients[_mouthSmileLeftIndex] = glm::clamp(SMILE_SCALE * packet.expressions[24], 0.0f, 1.0f);
-        _blendshapeCoefficients[_mouthSmileRightIndex] = glm::clamp(SMILE_SCALE * packet.expressions[23], 0.0f, 1.0f);
+        static const float SMILE_THRESHOLD = 0.18f;
+        static const float SMILE_SCALE = 1.5f;
+        float smileLeft = (packet.expressions[24] + _previousExpressions[24]) / 2.0f;
+        float smileRight = (packet.expressions[23] + _previousExpressions[23]) / 2.0f;
+        _blendshapeCoefficients[_jawOpenIndex] = glm::clamp(JAW_OPEN_SCALE * (packet.expressions[21] - JAW_OPEN_THRESHOLD),
+            0.0f, 1.0f);
+        _blendshapeCoefficients[_mouthSmileLeftIndex] = glm::clamp(SMILE_SCALE * (smileLeft - SMILE_THRESHOLD), 0.0f, 1.0f);
+        _blendshapeCoefficients[_mouthSmileRightIndex] = glm::clamp(SMILE_SCALE * (smileRight - SMILE_THRESHOLD), 0.0f, 1.0f);
+        _previousExpressions[24] = packet.expressions[24];
+        _previousExpressions[23] = packet.expressions[23];
 
     } else {
         qDebug() << "[Error] DDE Face Tracker Decode Error";
