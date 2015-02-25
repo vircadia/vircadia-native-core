@@ -209,7 +209,7 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
         float maxSize = glm::max(width, height);
         glm::vec2 dimensions = _scale * glm::vec2(width / maxSize, height / maxSize);
 
-        return findRayRectangleIntersection(origin, direction, rotation, _position, dimensions);
+        return findRayRectangleIntersection(origin, direction, rotation, _position, dimensions, distance);
     }
 
     return false;
