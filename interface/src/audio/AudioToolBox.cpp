@@ -106,8 +106,12 @@ void AudioToolBox::render(int x, int y, bool boxed) {
     glm::vec2 bottomRight(_iconBounds.right(), _iconBounds.bottom());
     glm::vec2 texCoordTopLeft(1,1);
     glm::vec2 texCoordBottomRight(0,0);
+    
+    if (_boxQuadID == GeometryCache::UNKNOWN_ID) {
+        _boxQuadID = DependencyManager::get<GeometryCache>()->allocateID();
+    }
 
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor, _boxQuadID);
     
     glDisable(GL_TEXTURE_2D);
 }
