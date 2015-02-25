@@ -10,9 +10,10 @@
 //
 
 #include "Application.h"
+#include "GeometryUtil.h"
+#include "PlaneShape.h"
 
 #include "BillboardOverlay.h"
-#include <PlaneShape.h>
 
 BillboardOverlay::BillboardOverlay() :
     _fromImage(),
@@ -192,23 +193,6 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
                                                         float& distance, BoxFace& face) {
 
     if (_texture) {
-        // This is taken from Planar3DOverlay.  Although it probably makes more sense for this
-        // overlay type to extend from Planar3DOverlay, the interfaces are different enough (scale vs. dimensions)
-        // that it would break existing scripts and would require other changes to make up for unique
-        // features like `isFacingAvatar`.
-
-        RayIntersectionInfo rayInfo;
-        rayInfo._rayStart = origin;
-        rayInfo._rayDirection = direction;
-        rayInfo._rayLength = std::numeric_limits<float>::max();
-
-        bool isNull = _fromImage.isNull();
-        float width = isNull ? _texture->getWidth() : _fromImage.width();
-        float height = isNull ? _texture->getHeight() : _fromImage.height();
-
-        PlaneShape plane;
-
-        const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
         glm::quat rotation;
         if (_isFacingAvatar) {
             // rotate about vertical to face the camera
@@ -217,27 +201,17 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
         } else {
             rotation = _rotation;
         }
-        glm::vec3 normal = rotation * UNROTATED_NORMAL;
-        plane.setNormal(normal);
-        plane.setPoint(_position); // the position is definitely a point on our plane
 
-        bool intersects = plane.findRayIntersection(rayInfo);
+        // Produce the dimensions of the billboard based on the image's aspect ratio and the overlay's scale.
+        bool isNull = _fromImage.isNull();
+        float width = isNull ? _texture->getWidth() : _fromImage.width();
+        float height = isNull ? _texture->getHeight() : _fromImage.height();
+        float maxSize = glm::max(width, height);
+        glm::vec2 dimensions = _scale * glm::vec2(width / maxSize, height / maxSize);
 
-        if (intersects) {
-            distance = rayInfo._hitDistance;
-
-            glm::vec3 hitPosition = origin + (distance * direction);
-            glm::vec3 localHitPosition = glm::inverse(rotation) * (hitPosition - _position);
-
-            // Produce the dimensions of the billboard based on the image's aspect ratio and the overlay's scale.
-            float maxSize = glm::max(width, height);
-            glm::vec2 halfDimensions = 0.5f * _scale * glm::vec2(width / maxSize, height / maxSize);
-
-            intersects = -halfDimensions.x <= localHitPosition.x && localHitPosition.x <= halfDimensions.x
-                && -halfDimensions.y <= localHitPosition.y && localHitPosition.y <= halfDimensions.y;
-        }
-        return intersects;
+        return findRayRectangleIntersection(origin, direction, rotation, _position, dimensions);
     }
+
     return false;
 }
 
