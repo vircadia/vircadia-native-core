@@ -19,8 +19,7 @@
 using namespace std;
 using namespace VHACD;
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]){
 	vector<int> triangles; // array of indexes
 	vector<float> points;  // array of coordinates 
 	vhacd::VHACDUtil vUtil;
@@ -44,34 +43,29 @@ int main(int argc, char * argv[])
 	params.m_minVolumePerCH = 0.0001; // controls the adaptive sampling of the generated convex - hulls
 
 	// load the mesh 
-	if (!vUtil.loadFBX(fname, &fbx))
-	{
+	if (!vUtil.loadFBX(fname, &fbx)){
 		cout << "Error in opening FBX file....";
 		return 1;
 	}
 
-	if (!vUtil.computeVHACD(&fbx, params, &results))
-	{
+	if (!vUtil.computeVHACD(&fbx, params, &results)){
 		cout << "Compute Failed...";
 		return 1;
 	}
 
 	int totalVertices = 0;
-	for (int i = 0; i < fbx.meshCount; i++)
-	{
+	for (int i = 0; i < fbx.meshCount; i++){
 		totalVertices += fbx.perMeshVertices.at(i).count();
 	}
 
 	int totalTriangles = 0;
-	for (int i = 0; i < fbx.meshCount; i++)
-	{
+	for (int i = 0; i < fbx.meshCount; i++){
 		totalTriangles += fbx.perMeshTriangleIndices.at(i).count();
 	}
 
 	int totalHulls = 0;
 	QVector<int> hullCounts = results.convexHullsCountList;
-	for (int i = 0; i < results.meshCount; i++)
-	{
+	for (int i = 0; i < results.meshCount; i++){
 		totalHulls += hullCounts.at(i);
 	}
 	cout << endl << "Summary of V-HACD Computation..................." << endl;
@@ -82,14 +76,12 @@ int main(int argc, char * argv[])
 	cout << "Total Triangles    : " << totalTriangles << endl;
 	cout << "Total Convex Hulls : " << totalHulls << endl;
 	cout << endl << "Summary per convex hull ........................" << endl <<endl;
-	for (int i = 0; i < results.meshCount; i++)
-	{
+	for (int i = 0; i < results.meshCount; i++){
 		cout << "Mesh : " << i + 1 << endl;
 		QVector<VHACD::IVHACD::ConvexHull> chList = results.convexHullList.at(i);
 		cout << "\t" << "Number Of Hulls : " << chList.count() << endl;
 
-		for (int j = 0; j < results.convexHullList.at(i).count(); j++)
-		{
+		for (int j = 0; j < results.convexHullList.at(i).count(); j++){
 
 			cout << "\tHUll : " << j + 1 << endl;
 			cout << "\t\tNumber Of Points    : " << chList.at(j).m_nPoints << endl;

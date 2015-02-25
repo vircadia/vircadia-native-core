@@ -9,13 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <Qvector>
+#include <QVector>
 #include "VHACDUtil.h"
 
 
 //Read all the meshes from provided FBX file
-bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *results)
-{
+bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *results){
 
 	// open the fbx file
 	QFile fbx(filename);
@@ -29,15 +28,13 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
 	//results->meshCount = geometry.meshes.count();
 	
 	int count = 0;
-	foreach(FBXMesh mesh, geometry.meshes)
-	{
+	foreach(FBXMesh mesh, geometry.meshes)	{
 		//get vertices for each mesh		
 		QVector<glm::vec3> vertices = mesh.vertices;		
 
 		//get the triangle indices for each mesh
 		QVector<int> triangles;
-		foreach(FBXMeshPart part, mesh.parts)
-		{
+		foreach(FBXMeshPart part, mesh.parts)		{
 			QVector<int> indices = part.triangleIndices;
 			triangles += indices;
 		}
@@ -54,15 +51,13 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
 	return true;
 }
 
-bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params, vhacd::ComputeResults *results)const
-{
+bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params, vhacd::ComputeResults *results)const{
 	VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
 	int meshCount = meshes->meshCount;
 	int count = 0;
 	std::cout << "Performing V-HACD computation on " << meshCount  <<" meshes ..... " << std::endl;
 
-	for (int i = 0; i < meshCount; i++)
-	{
+	for (int i = 0; i < meshCount; i++){
 		
 		std::vector<glm::vec3> vertices = meshes->perMeshVertices.at(i).toStdVector();
 		std::vector<int> triangles = meshes->perMeshTriangleIndices.at(i).toStdVector();
@@ -71,8 +66,7 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD
 		std::cout << "Mesh " << i + 1 << " :    ";
 		// compute approximate convex decomposition
 		bool res = interfaceVHACD->Compute(&vertices[0].x, 3, nPoints, &triangles[0], 3, nTriangles, params);
-		if (!res)
-		{
+		if (!res){
 			std::cout << "V-HACD computation failed for Mesh : " << i + 1 << std::endl;
 			continue;
 		}
@@ -84,8 +78,7 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD
 
 		//get all the convex hulls for this mesh
 		QVector<VHACD::IVHACD::ConvexHull> convexHulls;
-		for (unsigned int j = 0; j < nConvexHulls; j++)
-		{
+		for (unsigned int j = 0; j < nConvexHulls; j++){
 			VHACD::IVHACD::ConvexHull hull;
 			interfaceVHACD->GetConvexHull(j, hull);
 			convexHulls.append(hull);
@@ -105,14 +98,12 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD
 		return false;
 }
 
-vhacd::VHACDUtil:: ~VHACDUtil()
-{
+vhacd::VHACDUtil:: ~VHACDUtil(){
 	//nothing to be cleaned
 }
 
 //ProgressClaback implementation
-void vhacd::ProgressCallback::Update(const double  overallProgress, const double  stageProgress, const double operationProgress, const char * const stage, const char * const operation)
-{
+void vhacd::ProgressCallback::Update(const double  overallProgress, const double  stageProgress, const double operationProgress, const char * const stage, const char * const operation){
 	int progress = (int)(overallProgress + 0.5);
 
 	if (progress < 10)

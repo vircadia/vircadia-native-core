@@ -42,8 +42,7 @@ namespace vhacd{
 		~VHACDUtil();
 	};
 
-	class ProgressCallback : public VHACD::IVHACD::IUserCallback
-	{
+	class ProgressCallback : public VHACD::IVHACD::IUserCallback{
 	public:
 		ProgressCallback(void);
 		~ProgressCallback();
