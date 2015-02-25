@@ -18,6 +18,7 @@
 #include <QScrollArea>
 
 #include "Application.h"
+#include "DomainHandler.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ui/ModelsBrowser.h"
@@ -34,6 +35,8 @@ WindowScriptingInterface::WindowScriptingInterface() :
     _nonBlockingFormActive(false),
     _formResult(QDialog::Rejected) 
 {
+    const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::hostnameChanged, this, &WindowScriptingInterface::domainChanged);
 }
 
 WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
