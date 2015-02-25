@@ -125,7 +125,7 @@ bool ScriptEngine::_stoppingAllScripts = false;
 bool ScriptEngine::_doneRunningThisScript = false;
 
 void ScriptEngine::stopAllScripts(QObject* application) {
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() ------- BEGIN -------";)
+    qDebug() << "ScriptEngine::stopAllScripts() ------- BEGIN -------";
 
     _allScriptsMutex.lock();
     _stoppingAllScripts = true;
@@ -136,9 +136,7 @@ void ScriptEngine::stopAllScripts(QObject* application) {
 
         QString scriptName = scriptEngine->getFilename();
 
-        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() considering:" << scriptName 
-                    << "isRunning():" << scriptEngine->isRunning()
-                    << "evaluatePending():" << scriptEngine->evaluatePending();)
+        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() considering:" << scriptName << "isRunning():" << scriptEngine->isRunning() << "evaluatePending():" << scriptEngine->evaluatePending();)
 
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
@@ -165,11 +163,13 @@ void ScriptEngine::stopAllScripts(QObject* application) {
             DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() -- AFTER waitTillDoneRunning() script:" << scriptName;)
             i.remove();
         } else {
+            qDebug() << "ScriptEngine::stopAllScripts() " << scriptName << " - will be freed on it's own.";
         }
     }
     _stoppingAllScripts = false;
     _allScriptsMutex.unlock();
-    DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::stopAllScripts() ------- DONE -------";)
+    qDebug() << "ScriptEngine::stopAllScripts() _allKnownScriptEngines.count:" << _allKnownScriptEngines.count();
+    qDebug() << "ScriptEngine::stopAllScripts() ------- DONE -------";
 }
 
 
@@ -428,8 +428,8 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
 
 void ScriptEngine::evaluate() {
     if (_stoppingAllScripts) {
-        qDebug() << "ScriptEngine::evaluate() while shutting down is ignored...";
-        qDebug() << "   parent script:" << getFilename() << "[" << this << "]";
+        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate() while shutting down is ignored...";)
+        DEBUG_SCRIPT_ENDING(qDebug() << "   parent script:" << getFilename() << "[" << this << "]";)
         return; // bail early
     }
 
@@ -454,8 +454,8 @@ void ScriptEngine::evaluate() {
 
 QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
     if (_stoppingAllScripts) {
-        qDebug() << "ScriptEngine::evaluate(program) while shutting down is ignored...";
-        qDebug() << "   parent script:" << getFilename() << "[" << this << "]";
+        DEBUG_SCRIPT_ENDING(qDebug() << "ScriptEngine::evaluate(program) while shutting down is ignored...";)
+        DEBUG_SCRIPT_ENDING(qDebug() << "   parent script:" << getFilename() << "[" << this << "]";)
         return QScriptValue(); // bail early
     }
 
