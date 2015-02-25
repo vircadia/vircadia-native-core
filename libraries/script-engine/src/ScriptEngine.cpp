@@ -117,8 +117,6 @@ bool ScriptEngine::_stoppingAllScripts = false;
 bool ScriptEngine::_doneRunningThisScript = false;
 
 void ScriptEngine::stopAllScripts(QObject* application) {
-    qDebug() << "ScriptEngine::stopAllScripts() ------- BEGIN -------";
-
     _allScriptsMutex.lock();
     _stoppingAllScripts = true;
     
@@ -148,14 +146,10 @@ void ScriptEngine::stopAllScripts(QObject* application) {
 
             scriptEngine->waitTillDoneRunning();
             i.remove();
-        } else {
-            qDebug() << "ScriptEngine::stopAllScripts() " << scriptName << " - will be freed on it's own.";
         }
     }
     _stoppingAllScripts = false;
     _allScriptsMutex.unlock();
-    qDebug() << "ScriptEngine::stopAllScripts() _allKnownScriptEngines.count:" << _allKnownScriptEngines.count();
-    qDebug() << "ScriptEngine::stopAllScripts() ------- DONE -------";
 }
 
 
@@ -693,8 +687,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
 
 QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.setInterval() while shutting down is ignored...";
-        qDebug() << "   parent script:" << getFilename() << "[" << this << "]";
+        qDebug() << "Script.setInterval() while shutting down is ignored... parent script:" << getFilename();
         return NULL; // bail early
     }
 
@@ -703,8 +696,7 @@ QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS)
 
 QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.setTimeout() while shutting down is ignored...";
-        qDebug() << "   parent script:" << getFilename() << "[" << this << "]";
+        qDebug() << "Script.setTimeout() while shutting down is ignored... parent script:" << getFilename();
         return NULL; // bail early
     }
 
@@ -754,9 +746,8 @@ void ScriptEngine::print(const QString& message) {
 // all of the files have finished loading.
 void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callback) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.include() while shutting down is ignored...";
-        qDebug() << "   includeFiles:" << includeFiles;
-        qDebug() << "   parent script:" << getFilename() << "[" << this << "]";
+        qDebug() << "Script.include() while shutting down is ignored..."
+                 << "includeFiles:" << includeFiles << "parent script:" << getFilename();
         return; // bail early
     }
     QList<QUrl> urls;
@@ -799,9 +790,8 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 
 void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.include() while shutting down is ignored...";
-        qDebug() << "   includeFile:" << includeFile;
-        qDebug() << "   parent script:" << getFilename() << "[" << this << "]";
+        qDebug() << "Script.include() while shutting down is ignored... " 
+                 << "includeFile:" << includeFile << "parent script:" << getFilename();
         return; // bail early
     }
 
@@ -815,9 +805,8 @@ void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
 // the Application or other context will connect to in order to know to actually load the script
 void ScriptEngine::load(const QString& loadFile) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.load() while shutting down is ignored...";
-        qDebug() << "   loadFile:" << loadFile;
-        qDebug() << "   parent script:" << getFilename() << "[" << this << "]";
+        qDebug() << "Script.load() while shutting down is ignored... "
+                 << "loadFile:" << loadFile << "parent script:" << getFilename();
         return; // bail early
     }
 

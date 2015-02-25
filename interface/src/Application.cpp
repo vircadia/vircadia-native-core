@@ -3567,11 +3567,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
                                         bool loadScriptFromEditor, bool activateMainWindow) {
 
-    qDebug() << "Application::loadScript() ---- BEGIN ---- Script:" << scriptFilename;
-
     if (isAboutToQuit()) {
-        qDebug() << "Requests to load scripts while quitting are ignored. Script:" << scriptFilename;
-        qDebug() << "Application::loadScript() ---- END ---- Script:" << scriptFilename;
         return NULL;
     }
                                         
@@ -3580,8 +3576,6 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
         && !_scriptEnginesHash[scriptURLString]->isFinished()) {
 
-        qDebug() << "Application::loadScript() from _scriptEnginesHash[scriptURLString]....  Script:" << scriptFilename;
-        qDebug() << "Application::loadScript() ---- END ---- Script:" << scriptFilename;
         return _scriptEnginesHash[scriptURLString];
     }
 
@@ -3600,7 +3594,6 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
         
         // get the script engine object to load the script at the designated script URL
-        qDebug() << "Application::loadScript() about to call loadURL() scriptUrl:" << scriptUrl;
         scriptEngine->loadURL(scriptUrl);
     }
 
@@ -3608,9 +3601,6 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     if (activateMainWindow && !loadScriptFromEditor) {
         _window->activateWindow();
     }
-
-    qDebug() << "Application::loadScript() newly created scriptEngine....  Script:" << scriptFilename;
-    qDebug() << "Application::loadScript() ---- END ---- Script:" << scriptFilename;
 
     return scriptEngine;
 }
@@ -3771,8 +3761,8 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
         voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
     }
     
-    qDebug() << "Voxel costs are" << satoshisPerVoxel << "per voxel and" << satoshisPerMeterCubed << "per meter cubed";
-    qDebug() << "Destination wallet UUID for voxel payments is" << voxelWalletUUID;
+    qDebug() << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
+    qDebug() << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
 }
 
 QString Application::getPreviousScriptLocation() {
