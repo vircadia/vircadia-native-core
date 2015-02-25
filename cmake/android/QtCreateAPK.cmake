@@ -26,7 +26,7 @@ macro(qt_create_apk)
 		set(ANDROID_APK_THEME "")
 	endif()
   
-	if (CMAKE_BUILD_TYPE MATCHES RELEASE)
+	if (UPPER_CMAKE_BUILD_TYPE MATCHES RELEASE)
 		set(ANDROID_APK_DEBUGGABLE "false")
 		set(ANDROID_APK_RELEASE_LOCAL ${ANDROID_APK_RELEASE})
 	else ()
@@ -39,9 +39,6 @@ macro(qt_create_apk)
   
   # create "strings.xml"
   configure_file("${ANDROID_THIS_DIRECTORY}/strings.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/strings.xml")
-
-  # figure out where the qt dir is
-  get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
   
   # find androiddeployqt
   find_program(ANDROID_DEPLOY_QT androiddeployqt HINTS "${QT_DIR}/bin")
