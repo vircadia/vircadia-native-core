@@ -890,8 +890,8 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
     if (_tree && !_shuttingDown) {
         checkAndCallUnload(entityID);
+        checkAndCallPreload(entityID);
     }
-    checkAndCallPreload(entityID);
 }
 
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
