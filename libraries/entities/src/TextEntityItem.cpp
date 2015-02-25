@@ -40,7 +40,7 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityIte
     setProperties(properties);
 }
 
-void TextEntityItem::setDimensions(const glm::vec3& value) {
+void TextEntityItem::setDimensionsInDomainUnits(const glm::vec3& value) {
     // NOTE: Text Entities always have a "depth" of 1cm.
     float fixedDepth = 0.01f / (float)TREE_SCALE;
     _dimensions = glm::vec3(value.x, value.y, fixedDepth); 
@@ -145,11 +145,11 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
         // now we know the point the ray hit our plane
 
         glm::mat4 rotation = glm::mat4_cast(getRotation());
-        glm::mat4 translation = glm::translate(getPosition());
+        glm::mat4 translation = glm::translate(getPositionInDomainUnits());
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-        glm::vec3 dimensions = getDimensions();
+        glm::vec3 dimensions = getDimensionsInDomainUnits();
         glm::vec3 registrationPoint = getRegistrationPoint();
         glm::vec3 corner = -(dimensions * registrationPoint);
         AABox entityFrameBox(corner, dimensions);

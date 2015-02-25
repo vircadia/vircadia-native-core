@@ -59,7 +59,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     // get the old property value and set it in our properties in order for our bounds
     // calculations to work.
     if (_properties.containsPositionChange() && !_properties.containsDimensionsChange()) {
-        glm::vec3 oldDimensionsInMeters = _existingEntity->getDimensions() * (float)TREE_SCALE;
+        glm::vec3 oldDimensionsInMeters = _existingEntity->getDimensionsInMeters();
         _properties.setDimensions(oldDimensionsInMeters);
 
         if (_wantDebug) {
@@ -68,7 +68,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
 
     }
     if (!_properties.containsPositionChange() && _properties.containsDimensionsChange()) {
-        glm::vec3 oldPositionInMeters = _existingEntity->getPosition() * (float)TREE_SCALE;
+        glm::vec3 oldPositionInMeters = _existingEntity->getPositionInMeters();
         _properties.setPosition(oldPositionInMeters);
 
         if (_wantDebug) {

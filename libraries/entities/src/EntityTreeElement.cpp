@@ -494,11 +494,11 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
             // extents is the entity relative, scaled, centered extents of the entity
             glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-            glm::mat4 translation = glm::translate(entity->getPosition());
+            glm::mat4 translation = glm::translate(entity->getPositionInDomainUnits());
             glm::mat4 entityToWorldMatrix = translation * rotation;
             glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-            glm::vec3 dimensions = entity->getDimensions();
+            glm::vec3 dimensions = entity->getDimensionsInDomainUnits();
             glm::vec3 registrationPoint = entity->getRegistrationPoint();
             glm::vec3 corner = -(dimensions * registrationPoint);
 
@@ -549,7 +549,7 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
     QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
-        glm::vec3 entityCenter = entity->getPosition();
+        glm::vec3 entityCenter = entity->getPositionInDomainUnits();
         float entityRadius = entity->getRadius();
 
         // don't penetrate yourself
@@ -585,7 +585,7 @@ const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const 
     float closestEntityDistance = FLT_MAX;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        float distanceToEntity = glm::distance(position, (*_entityItems)[i]->getPosition());
+        float distanceToEntity = glm::distance(position, (*_entityItems)[i]->getPositionInDomainUnits());
         if (distanceToEntity < closestEntityDistance) {
             closestEntity = (*_entityItems)[i];
         }
@@ -598,7 +598,7 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         const EntityItem* entity = (*_entityItems)[i];
-        float distance = glm::length(entity->getPosition() - searchPosition);
+        float distance = glm::length(entity->getPositionInDomainUnits() - searchPosition);
         if (distance < searchRadius + entity->getRadius()) {
             foundEntities.push_back(entity);
         }
@@ -616,7 +616,7 @@ void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& fou
         // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
         // TODO: decide whether to replace entityCube-cube query with sphere-cube (requires a square root
         // but will be slightly more accurate).
-        entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.0f * radius);
+        entityCube.setBox(entity->getPositionInDomainUnits() - glm::vec3(radius), 2.0f * radius);
         if (entityCube.touches(box)) {
             foundEntities.push_back(entity);
         }

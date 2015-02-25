@@ -145,26 +145,26 @@ public:
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
-    const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
+    const glm::vec3& getPositionInDomainUnits() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
     glm::vec3 getPositionInMeters() const { return _position * (float) TREE_SCALE; } /// get position in meters
     
     /// set position in domain scale units (0.0 - 1.0)
-    void setPosition(const glm::vec3& value) { _position = value; }
+    void setPositionInDomainUnits(const glm::vec3& value) { _position = value; }
     void setPositionInMeters(const glm::vec3& value) /// set position in meter units (0.0 - TREE_SCALE)
-            { setPosition(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
+            { setPositionInDomainUnits(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
 
-    glm::vec3 getCenter() const; /// calculates center of the entity in domain scale units (0.0 - 1.0)
-    glm::vec3 getCenterInMeters() const { return getCenter() * (float) TREE_SCALE; }
+    glm::vec3 getCenterInDomainUnits() const; /// calculates center of the entity in domain scale units (0.0 - 1.0)
+    glm::vec3 getCenterInMeters() const { return getCenterInDomainUnits() * (float) TREE_SCALE; }
 
-    const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
+    const glm::vec3& getDimensionsInDomainUnits() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
     glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
-    float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
+    float getLargestDimensionInDomainUnits() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensions(const glm::vec3& value) { _dimensions = value; }
+    virtual void setDimensionsInDomainUnits(const glm::vec3& value) { _dimensions = value; }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
-    void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
+    void setDimensionsInMeters(const glm::vec3& value) { setDimensionsInDomainUnits(value / (float) TREE_SCALE); }
 
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
@@ -181,15 +181,15 @@ public:
 
     float getDensity() const { return _density; }
 
-    const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    const glm::vec3& getVelocityInDomainUnits() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
-    void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
+    void setVelocityInDomainUnits(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
     bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
 
-    const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
+    const glm::vec3& getGravityInDomainUnits() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
     glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
-    void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
+    void setGravityInDomainUnits(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
     void setGravityInMeters(const glm::vec3& value) { _gravity = value / (float) TREE_SCALE; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
     
@@ -261,17 +261,17 @@ public:
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
-    void updatePosition(const glm::vec3& value);
+    void updatePositionInDomainUnits(const glm::vec3& value);
     void updatePositionInMeters(const glm::vec3& value);
-    void updateDimensions(const glm::vec3& value);
+    void updateDimensionsInDomainUnits(const glm::vec3& value);
     void updateDimensionsInMeters(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);
-    void updateVelocity(const glm::vec3& value);
+    void updateVelocityInDomainUnits(const glm::vec3& value);
     void updateVelocityInMeters(const glm::vec3& value);
     void updateDamping(float value);
-    void updateGravity(const glm::vec3& value);
+    void updateGravityInDomainUnits(const glm::vec3& value);
     void updateGravityInMeters(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
     void updateAngularDamping(float value);

@@ -265,8 +265,8 @@ void ModelEntityItem::update(const quint64& now) {
 void ModelEntityItem::debugDump() const {
     qDebug() << "ModelEntityItem id:" << getEntityItemID();
     qDebug() << "    edited ago:" << getEditedAgo();
-    qDebug() << "    position:" << getPosition() * (float)TREE_SCALE;
-    qDebug() << "    dimensions:" << getDimensions() * (float)TREE_SCALE;
+    qDebug() << "    position:" << getPositionInDomainUnits() * (float)TREE_SCALE;
+    qDebug() << "    dimensions:" << getDimensionsInDomainUnits() * (float)TREE_SCALE;
     qDebug() << "    model URL:" << getModelURL();
 }
 

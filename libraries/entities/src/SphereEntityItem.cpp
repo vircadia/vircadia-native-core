@@ -98,9 +98,9 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {
     // determine the ray in the frame of the entity transformed from a unit sphere
-    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 translation = glm::translate(getPositionInDomainUnits());
     glm::mat4 rotation = glm::mat4_cast(getRotation());
-    glm::mat4 scale = glm::scale(getDimensions());
+    glm::mat4 scale = glm::scale(getDimensionsInDomainUnits());
     glm::mat4 registration = glm::translate(glm::vec3(0.5f, 0.5f, 0.5f) - getRegistrationPoint());
     glm::mat4 entityToWorldMatrix = translation * rotation * scale * registration;
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);

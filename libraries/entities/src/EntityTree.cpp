@@ -433,7 +433,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
 
         // we may have gotten NULL back, meaning no entity was available
         if (thisClosestEntity) {
-            glm::vec3 entityPosition = thisClosestEntity->getPosition();
+            glm::vec3 entityPosition = thisClosestEntity->getPositionInDomainUnits();
             float distanceFromPointToEntity = glm::distance(entityPosition, args->position);
 
             // If we're within our target radius

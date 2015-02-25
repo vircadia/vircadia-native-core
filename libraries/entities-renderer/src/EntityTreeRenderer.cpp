@@ -485,9 +485,9 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glPopMatrix();
 
 
-        glm::vec3 position = entity->getPosition() * (float) TREE_SCALE;
-        glm::vec3 center = entity->getCenter() * (float) TREE_SCALE;
-        glm::vec3 dimensions = entity->getDimensions() * (float) TREE_SCALE;
+        glm::vec3 position = entity->getPositionInDomainUnits() * (float) TREE_SCALE;
+        glm::vec3 center = entity->getCenterInDomainUnits() * (float) TREE_SCALE;
+        glm::vec3 dimensions = entity->getDimensionsInDomainUnits() * (float) TREE_SCALE;
         glm::quat rotation = entity->getRotation();
 
         glPushMatrix();
