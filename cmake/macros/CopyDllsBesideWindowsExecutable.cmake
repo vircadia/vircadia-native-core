@@ -10,6 +10,13 @@
 # 
 
 macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
+  
+  if (NOT ${ARGN})
+    set(USES_QT TRUE)
+  else ()
+    set(USES_QT ${ARGN})
+  endif ()
+  
   if (WIN32)
     
     configure_file(
@@ -27,14 +34,18 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
         -P ${CMAKE_CURRENT_BINARY_DIR}/FixupBundlePostBuild.cmake
     )
     
-    find_program(${WINDEPLOYQT_COMMAND} windeployqt PATHS ${QT_DIR}/bin NO_DEFAULT_PATH)
+    if (NOT USES_QT)
+      
+      find_program(WINDEPLOYQT_COMMAND windeployqt PATHS ${QT_DIR}/bin NO_DEFAULT_PATH)
     
-    # add a post-build command to call windeployqt to copy Qt plugins
-    add_custom_command(
-      TARGET ${TARGET_NAME}
-      POST_BUILD
-      COMMAND SET PATH=%PATH%;${QT_DIR}/bin
-      COMMAND ${WINDEPLOYQT_COMMAND} --no-libraries --force $<TARGET_FILE:${TARGET_NAME}>
-    )
+      # add a post-build command to call windeployqt to copy Qt plugins
+      add_custom_command(
+        TARGET ${TARGET_NAME}
+        POST_BUILD
+        COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} --no-libraries $<TARGET_FILE:${TARGET_NAME}>"
+      )
+      
+    endif ()
+    
   endif ()
 endmacro()
