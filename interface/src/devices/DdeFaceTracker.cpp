@@ -183,53 +183,59 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         // less than this.
 
         // Eye blendshapes
-        static const float RELAXED_EYE_VALUE = 0.1f;
+        static const float RELAXED_EYE_VALUE = 0.2f;
+        static const float EYE_OPEN_SCALE = 4.0f;
+        static const float EYE_BLINK_SCALE = 2.0f;
         float leftEye = packet.expressions[1] - RELAXED_EYE_VALUE;
         float rightEye = packet.expressions[0] - RELAXED_EYE_VALUE;
         if (leftEye > 0.0f) {
-            _blendshapeCoefficients[_leftBlinkIndex] = leftEye;
+            _blendshapeCoefficients[_leftBlinkIndex] = glm::clamp(EYE_BLINK_SCALE * leftEye, 0.0f, 1.0f);
             _blendshapeCoefficients[_leftEyeOpenIndex] = 0.0f;
         } else {
             _blendshapeCoefficients[_leftBlinkIndex] = 0.0f;
-            _blendshapeCoefficients[_leftEyeOpenIndex] = -leftEye;
+            _blendshapeCoefficients[_leftEyeOpenIndex] = glm::clamp(EYE_OPEN_SCALE * -leftEye, 0.0f, 1.0f);
         }
         if (rightEye > 0.0f) {
-            _blendshapeCoefficients[_rightBlinkIndex] = rightEye;
+            _blendshapeCoefficients[_rightBlinkIndex] = glm::clamp(EYE_BLINK_SCALE * rightEye, 0.0f, 1.0f);
             _blendshapeCoefficients[_rightEyeOpenIndex] = 0.0f;
         } else {
             _blendshapeCoefficients[_rightBlinkIndex] = 0.0f;
-            _blendshapeCoefficients[_rightEyeOpenIndex] = -rightEye;
+            _blendshapeCoefficients[_rightEyeOpenIndex] = glm::clamp(EYE_OPEN_SCALE * -rightEye, 0.0f, 1.0f);
         }
 
         // Eyebrow blendshapes
+        static const float BROW_UP_SCALE = 3.0f;
+        static const float BROW_DOWN_SCALE = 3.0f;
         float browCenter = packet.expressions[17];
         float browDelta = packet.expressions[24] - packet.expressions[23];
         float browLeft = browCenter - browDelta;
         float browRight = browCenter + browDelta;
         if (browLeft > 0) {
-            _blendshapeCoefficients[_browUpLeftIndex] = browLeft;
+            _blendshapeCoefficients[_browUpLeftIndex] = glm::clamp(BROW_UP_SCALE * browLeft, 0.0f, 1.0f);
             _blendshapeCoefficients[_browDownLeftIndex] = 0.0f;
         } else {
             _blendshapeCoefficients[_browUpLeftIndex] = 0.0f;
-            _blendshapeCoefficients[_browDownLeftIndex] = -browLeft;
+            _blendshapeCoefficients[_browDownLeftIndex] = glm::clamp(BROW_DOWN_SCALE * -browLeft, 0.0f, 1.0f);
         }
         if (browRight > 0) {
-            _blendshapeCoefficients[_browUpRightIndex] = browRight;
+            _blendshapeCoefficients[_browUpRightIndex] = glm::clamp(BROW_UP_SCALE * browRight, 0.0f, 1.0f);
             _blendshapeCoefficients[_browDownRightIndex] = 0.0f;
         } else {
             _blendshapeCoefficients[_browUpRightIndex] = 0.0f;
-            _blendshapeCoefficients[_browDownRightIndex] = -browRight;
+            _blendshapeCoefficients[_browDownRightIndex] = glm::clamp(BROW_DOWN_SCALE * -browRight, 0.0f, 1.0f);
         }
-        if (browLeft + browRight > 0) {
-            _blendshapeCoefficients[_browUpCenterIndex] = (browLeft + browRight) / 2.0f;
+        if (browCenter > 0) {
+            _blendshapeCoefficients[_browUpCenterIndex] = glm::clamp(BROW_UP_SCALE * browCenter, 0.0f, 1.0f);
         } else {
             _blendshapeCoefficients[_browUpCenterIndex] = 0.0f;
         }
 
         // Mouth blendshapes
-        _blendshapeCoefficients[_jawOpenIndex] = packet.expressions[21];
-        _blendshapeCoefficients[_mouthSmileLeftIndex] = packet.expressions[24];
-        _blendshapeCoefficients[_mouthSmileRightIndex] = packet.expressions[23];
+        static const float JAW_OPEN_SCALE = 1.4f;
+        static const float SMILE_SCALE = 2.0f;
+        _blendshapeCoefficients[_jawOpenIndex] = JAW_OPEN_SCALE * packet.expressions[21];
+        _blendshapeCoefficients[_mouthSmileLeftIndex] = glm::clamp(SMILE_SCALE * packet.expressions[24], 0.0f, 1.0f);
+        _blendshapeCoefficients[_mouthSmileRightIndex] = glm::clamp(SMILE_SCALE * packet.expressions[23], 0.0f, 1.0f);
 
     } else {
         qDebug() << "[Error] DDE Face Tracker Decode Error";
