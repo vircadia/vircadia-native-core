@@ -176,23 +176,14 @@ void ScriptEngine::waitTillDoneRunning() {
 
         _doneRunningThisScript = false; // NOTE: this is static, we serialize our waiting for scripts to finish
         
-        // What can we do here???
-        // we will be calling this on the main Application thread, inside of stopAllScripts()
-        // we want the application thread to continue to process events, because the script will
-        // likely need to marshall messages across to the main thread.
-        while (!_doneRunningThisScript && _isRunning) {
+        // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
+        // we want the application thread to continue to process events, because the scripts will likely need to 
+        // marshall messages across to the main thread. For example if they access Settings or Meny in any of their
+        // shutdown code.
+        while (!_doneRunningThisScript) {
             
-            // and run a QEventLoop???
-            QEventLoop loop;
-            QObject::connect(this, &ScriptEngine::doneRunning, &loop, &QEventLoop::quit);
-            loop.exec();
-
-            // process events
+            // process events for the main application thread, allowing invokeMethod calls to pass between threads
             QCoreApplication::processEvents();
-            
-            if (_doneRunningThisScript) {
-                break;
-            }
         }
     }
 }
