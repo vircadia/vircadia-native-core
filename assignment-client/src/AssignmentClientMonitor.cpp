@@ -133,17 +133,23 @@ void AssignmentClientMonitor::checkSpares() {
         }
     });
 
-    if (spareCount < 1 && totalCount < _maxAssignmentClientForks) {
-        spawnChildClient();
+    // Spawn or kill children, as needed.  If --min or --max weren't specified, allow the child count
+    // to drift up or down as far as needed.
+    if (spareCount < 1) {
+        if (!_maxAssignmentClientForks || totalCount < _maxAssignmentClientForks) {
+            spawnChildClient();
+        }
     }
 
-    if (spareCount > 1 && totalCount > _minAssignmentClientForks) {
-        // kill aSpareId
-        qDebug() << "asking child" << aSpareId << "to exit.";
-        SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
-        childNode->activateLocalSocket();
-        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
-        nodeList->writeUnverifiedDatagram(diePacket, childNode);
+    if (spareCount > 1) {
+        if (!_minAssignmentClientForks || totalCount > _minAssignmentClientForks) {
+            // kill aSpareId
+            qDebug() << "asking child" << aSpareId << "to exit.";
+            SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
+            childNode->activateLocalSocket();
+            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+            nodeList->writeUnverifiedDatagram(diePacket, childNode);
+        }
     }
 }
 
