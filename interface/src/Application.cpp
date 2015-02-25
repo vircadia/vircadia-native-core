@@ -3541,6 +3541,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
 #endif
 
+    // TODO: Consider moving some of this functionality into the ScriptEngine class instead. It seems wrong that this
+    // work is being done in the Application class when really these dependencies are more related to the ScriptEngine's
+    // implementation
     QThread* workerThread = new QThread(this);
     QString scriptEngineName = QString("Script Thread:") + scriptEngine->getFilename();
     workerThread->setObjectName(scriptEngineName);
@@ -3551,9 +3554,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
     connect(scriptEngine, SIGNAL(doneRunning()), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
-
-    // when the application is about to quit, stop our script engine so it unwinds properly
-    //connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);

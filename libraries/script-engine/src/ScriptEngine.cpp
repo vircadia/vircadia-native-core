@@ -135,16 +135,31 @@ void ScriptEngine::stopAllScripts(QObject* application) {
             // complete. After that we can handle the stop process appropriately
             if (scriptEngine->evaluatePending()) {
                 while (scriptEngine->evaluatePending()) {
+                
+                    // This event loop allows any started, but not yet finished evaluate() calls to complete
+                    // we need to let these complete so that we can be guaranteed that the script engine isn't
+                    // in a partially setup state, which can confuse our shutdown unwinding.
                     QEventLoop loop;
                     QObject::connect(scriptEngine, &ScriptEngine::evaluationFinished, &loop, &QEventLoop::quit);
                     loop.exec();
                 }
             }
 
+            // We disconnect any script engine signals from the application because we don't want to do any 
+            // extra stopScript/loadScript processing that the Application normally does when scripts start
+            // and stop. We can safely short circuit this because we know we're in the "quitting" process
             scriptEngine->disconnect(application);
+            
+            // Calling stop on the script engine will set it's internal _isFinished state to true, and result
+            // in the ScriptEngine gracefully ending it's run() method.
             scriptEngine->stop();
 
+            // We need to wait for the engine to be done running before we proceed, because we don't
+            // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
+            // any application state after we leave this stopAllScripts() method
             scriptEngine->waitTillDoneRunning();
+            
+            // If the script is stopped, we can remove it from our set
             i.remove();
         }
     }
@@ -156,10 +171,11 @@ void ScriptEngine::stopAllScripts(QObject* application) {
 void ScriptEngine::waitTillDoneRunning() {
     QString scriptName = getFilename();
 
+    // If the script never started running or finished running before we got here, we don't need to wait for it
     if (_isRunning) {
-        _doneRunningThisScript = false;
-        _isWaitingForDoneRunning = true;
 
+        _doneRunningThisScript = false; // NOTE: this is static, we serialize our waiting for scripts to finish
+        
         // What can we do here???
         // we will be calling this on the main Application thread, inside of stopAllScripts()
         // we want the application thread to continue to process events, because the script will
@@ -178,8 +194,6 @@ void ScriptEngine::waitTillDoneRunning() {
                 break;
             }
         }
-
-        _isWaitingForDoneRunning = false;
     }
 }
 

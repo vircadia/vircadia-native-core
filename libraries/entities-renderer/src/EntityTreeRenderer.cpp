@@ -59,14 +59,14 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    // NOTE: we don't need to delete _entitiesScriptEngine because it's owned by the application and gets cleaned up 
-    // automatically but we do need to delete our sandbox script engine.
+    // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a 
+    // signal tied to call it's deleteLater on doneRunning
     if (_sandboxScriptEngine) {
-        // NOTE: is it possible this is a problem? I think that we hook the script engine object up to a deleteLater()
-        // call inside of registerScriptEngineWithApplicationServices() but do we not call that for _sandboxScriptEngine???
-        // this _sandboxScriptEngine implementation is confusing and potentially error prone because it's not a full fledged
-        // ScriptEngine that has been fully connected. We did this so that scripts that were ill-formed could be evaluated
-        // but not execute against the application.
+        // TODO: consider reworking how _sandboxScriptEngine is managed. It's treated differently than _entitiesScriptEngine
+        // because we don't call registerScriptEngineWithApplicationServices() for it. This implementation is confusing and 
+        // potentially error prone because it's not a full fledged ScriptEngine that has been fully connected to the 
+        // application. We did this so that scripts that were ill-formed could be evaluated but not execute against the 
+        // application services. But this means it's shutdown behavior is different from other ScriptEngines
         delete _sandboxScriptEngine;
         _sandboxScriptEngine = NULL;
     }

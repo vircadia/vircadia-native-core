@@ -136,7 +136,6 @@ protected:
     bool _isFinished;
     bool _isRunning;
     int _evaluatesPending = 0;
-    bool _isWaitingForDoneRunning = false;
     bool _isInitialized;
     bool _isAvatar;
     QTimer* _avatarIdentityTimer;
