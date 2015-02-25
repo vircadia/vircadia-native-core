@@ -18,10 +18,10 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
-#include <AvatarHashMap.h>
 #include <HifiConfigVariantMap.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
+#include <LimitedNodeList.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -43,7 +43,8 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
-    _localASPortSharedMem(NULL)
+    _localASPortSharedMem(NULL),
+    _localACMPortSharedMem(NULL)
 {
     LogUtils::init();
 
@@ -56,7 +57,11 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
-    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
+
+    // make up a uuid for this child so the parent can tell us apart.  This id will be changed
+    // when the domain server hands over an assignment.
+    QUuid nodeUUID = QUuid::createUuid();
+    nodeList->setSessionUUID(nodeUUID);
     
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32
@@ -123,9 +128,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // call a timer function every ASSIGNMENT_REQUEST_INTERVAL_MSECS to ask for assignment, if required
     qDebug() << "Waiting for assignment -" << _requestAssignment;
 
-    QTimer* timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
-    timer->start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
+    connect(&_requestTimer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
+    _requestTimer.start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
 
     // connect our readPendingDatagrams method to the readyRead() signal of the socket
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
@@ -136,6 +140,45 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     
     // Create Singleton objects on main thread
     NetworkAccessManager::getInstance();
+
+    // Hook up a timer to send this child's status to the Monitor once per second
+    setUpStatsToMonitor();
+}
+
+
+void AssignmentClient::stopAssignmentClient() {
+    qDebug() << "Exiting.";
+    _requestTimer.stop();
+    _statsTimerACM.stop();
+    quit();
+}
+
+
+void AssignmentClient::setUpStatsToMonitor() {
+    // Figure out the address to send out stats to
+    quint16 localMonitorServerPort = DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT;
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->getLocalServerPortFromSharedMemory(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY,
+                                                 _localACMPortSharedMem, localMonitorServerPort);
+    _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, localMonitorServerPort, true);
+
+    // send a stats packet every 1 seconds
+    connect(&_statsTimerACM, &QTimer::timeout, this, &AssignmentClient::sendStatsPacketToACM);
+    _statsTimerACM.start(1000);
+}
+
+void AssignmentClient::sendStatsPacketToACM() {
+    // tell the assignment client monitor what this assignment client is doing (if anything)
+    QJsonObject statsObject;
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    if (_currentAssignment) {
+        statsObject["assignment_type"] = _currentAssignment->getTypeName();
+    } else {
+        statsObject["assignment_type"] = "none";
+    }
+    nodeList->sendStats(statsObject, _assignmentClientMonitorSocket);
 }
 
 void AssignmentClient::sendAssignmentRequest() {
@@ -145,23 +188,9 @@ void AssignmentClient::sendAssignmentRequest() {
         
         if (_assignmentServerHostname == "localhost") {
             // we want to check again for the local domain-server port in case the DS has restarted
-            if (!_localASPortSharedMem) {
-                _localASPortSharedMem = new QSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
-                
-                if (!_localASPortSharedMem->attach(QSharedMemory::ReadOnly)) {
-                    qWarning() << "Could not attach to shared memory at key" << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY
-                        << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
-                }
-            }
-            
-            if (_localASPortSharedMem->isAttached()) {
-                _localASPortSharedMem->lock();
-                
-                quint16 localAssignmentServerPort;
-                memcpy(&localAssignmentServerPort, _localASPortSharedMem->data(), sizeof(localAssignmentServerPort));
-                
-                _localASPortSharedMem->unlock();
-                
+            quint16 localAssignmentServerPort;
+            if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, _localASPortSharedMem,
+                                                             localAssignmentServerPort)) {
                 if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
                     qDebug() << "Port for local assignment server read from shared memory is"
                         << localAssignmentServerPort;
@@ -170,7 +199,9 @@ void AssignmentClient::sendAssignmentRequest() {
                     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
                 }
             }
-            
+            else {
+                qDebug () << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
+            }
         }
         
         nodeList->sendAssignment(_requestAssignment);
@@ -226,6 +257,14 @@ void AssignmentClient::readPendingDatagrams() {
                     workerThread->start();
                 } else {
                     qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
+                }
+            } else if (packetTypeForPacket(receivedPacket) == PacketTypeStopNode) {
+                if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
+                    senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
+                    qDebug() << "Network told me to exit.";
+                    emit stopAssignmentClient();
+                } else {
+                    qDebug() << "Got a stop packet from other than localhost.";
                 }
             } else {
                 // have the NodeList attempt to handle it
