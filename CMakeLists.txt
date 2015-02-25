@@ -86,6 +86,9 @@ else ()
   endif ()
 endif ()
 
+# figure out where the qt dir is
+get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
+
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
@@ -112,8 +115,15 @@ set(HIFI_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries")
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
-set(MACRO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros")
-set(EXTERNAL_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/externals")
+if (CMAKE_BUILD_TYPE)
+  string(TOUPPER ${CMAKE_BUILD_TYPE} UPPER_CMAKE_BUILD_TYPE)
+else ()
+  set(UPPER_CMAKE_BUILD_TYPE DEBUG)
+endif ()
+
+set(HIFI_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(MACRO_DIR "${HIFI_CMAKE_DIR}/macros")
+set(EXTERNAL_PROJECT_DIR "${HIFI_CMAKE_DIR}/externals")
 
 file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
@@ -125,6 +135,28 @@ if (ANDROID)
   foreach(CUSTOM_MACRO ${ANDROID_CUSTOM_MACROS})
     include(${CUSTOM_MACRO})
   endforeach()
+endif ()
+
+set(EXTERNAL_PROJECT_PREFIX "project")
+set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
+setup_externals_binary_dir()
+
+# setup options to grab external project dependencies
+option(GET_BULLET "Get Bullet library automatically as external project" 1)
+option(GET_GLM "Get GLM library automatically as external project" 1)
+option(GET_GVERB "Get Gverb library automatically as external project" 1)
+option(GET_SOXR "Get Soxr library automatically as external project" 1)
+option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
+
+if (WIN32)
+  option(GET_GLEW "Get GLEW library automatically as external project" 1)
+endif ()
+
+option(GET_SDL2 "Get SDL2 library automatically as external project" 0)
+option(GET_QXMPP "GET Qxmpp library automatically as external project" 0)
+
+if (WIN32)
+  add_paths_to_fixup_libs("${QT_DIR}/bin")
 endif ()
 
 # add subdirectories for all targets

@@ -21,10 +21,14 @@
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("qxmpp")
 
-find_path(QXMPP_INCLUDE_DIRS QXmppClient.h PATH_SUFFIXES include/qxmpp HINTS ${QXMPP_SEARCH_DIRS})
+find_path(QXMPP_INCLUDE_DIRS qxmpp/QXmppClient.h PATH_SUFFIXES include HINTS ${QXMPP_SEARCH_DIRS})
 
 find_library(QXMPP_LIBRARY_RELEASE NAMES qxmpp PATH_SUFFIXES lib HINTS ${QXMPP_SEARCH_DIRS})
 find_library(QXMPP_LIBRARY_DEBUG NAMES qxmpp_d PATH_SUFFIXES lib HINTS ${QXMPP_SEARCH_DIRS})
+
+if (WIN32)
+  find_path(QXMPP_DLL_PATH NAMES qxmpp.dll PATH_SUFFIXES lib HINTS ${QXMPP_SEARCH_DIRS})
+endif ()
 
 find_package(Qt5 COMPONENTS Xml REQUIRED)
 
@@ -36,4 +40,6 @@ set(QXMPP_LIBRARIES "${QXMPP_LIBRARY}" Qt5::Xml)
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(QXmpp DEFAULT_MSG QXMPP_INCLUDE_DIRS QXMPP_LIBRARIES QXMPP_LIBRARY)
 
-mark_as_advanced(QXMPP_INCLUDE_DIRS QXMPP_LIBRARIES QXMPP_SEARCH_DIRS)
+if (QXMPP_DLL_PATH)
+  add_paths_to_fixup_libs(${QXMPP_DLL_PATH})
+endif ()

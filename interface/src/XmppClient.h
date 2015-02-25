@@ -15,8 +15,8 @@
 #include <QObject>
 
 #ifdef HAVE_QXMPP
-#include <QXmppClient.h>
-#include <QXmppMucManager.h>
+#include <qxmpp/QXmppClient.h>
+#include <qxmpp/QXmppMucManager.h>
 #endif
 
 /// Generalized threaded processor for handling received inbound packets. 
