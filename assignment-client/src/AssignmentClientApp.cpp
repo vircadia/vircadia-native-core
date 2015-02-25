@@ -13,6 +13,7 @@
 
 #include <LogHandler.h>
 #include <SharedUtil.h>
+#include <HifiConfigVariantMap.h>
 
 #include "Assignment.h"
 #include "AssignmentClient.h"
@@ -37,8 +38,34 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     const QCommandLineOption helpOption = parser.addHelpOption();
 
-    const QCommandLineOption numChildsOption("n", "number of children to fork", "child-count");
+    const QCommandLineOption clientTypeOption(ASSIGNMENT_TYPE_OVERRIDE_OPTION,
+                                              "run single assignment client of given type", "type");
+    parser.addOption(clientTypeOption);
+
+    const QCommandLineOption poolOption(ASSIGNMENT_POOL_OPTION, "set assignment pool", "pool-name");
+    parser.addOption(poolOption);
+
+    const QCommandLineOption walletDestinationOption(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION,
+                                                     "set wallet destination", "wallet-uuid");
+    parser.addOption(walletDestinationOption);
+
+    const QCommandLineOption assignmentServerHostnameOption(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION,
+                                                            "set assignment-server hostname", "hostname");
+    parser.addOption(assignmentServerHostnameOption);
+
+    const QCommandLineOption assignmentServerPortOption(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION,
+                                                        "set assignment-server port", "port");
+    parser.addOption(assignmentServerPortOption);
+
+    const QCommandLineOption numChildsOption(ASSIGNMENT_NUM_FORKS_OPTION, "number of children to fork", "child-count");
     parser.addOption(numChildsOption);
+
+    const QCommandLineOption minChildsOption(ASSIGNMENT_MIN_FORKS_OPTION, "minimum number of children", "child-count");
+    parser.addOption(minChildsOption);
+
+    const QCommandLineOption maxChildsOption(ASSIGNMENT_MAX_FORKS_OPTION, "maximum number of children", "child-count");
+    parser.addOption(maxChildsOption);
+
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
@@ -51,16 +78,99 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
+
+    const QVariantMap argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
+
+
     unsigned int numForks = 0;
     if (parser.isSet(numChildsOption)) {
         numForks = parser.value(numChildsOption).toInt();
     }
 
-    if (numForks) {
-        AssignmentClientMonitor monitor(argc, argv, numForks);
+    unsigned int minForks = 0;
+    if (parser.isSet(minChildsOption)) {
+        minForks = parser.value(minChildsOption).toInt();
+    }
+
+    unsigned int maxForks = 0;
+    if (parser.isSet(maxChildsOption)) {
+        maxForks = parser.value(maxChildsOption).toInt();
+    }
+
+
+    Assignment::Type requestAssignmentType = Assignment::AllTypes;
+    if (argumentVariantMap.contains(ASSIGNMENT_TYPE_OVERRIDE_OPTION)) {
+        requestAssignmentType = (Assignment::Type) argumentVariantMap.value(ASSIGNMENT_TYPE_OVERRIDE_OPTION).toInt();
+    }
+    if (parser.isSet(clientTypeOption)) {
+        if (numForks || minForks || maxForks) {
+            qCritical() << "don't use -t with forking mode.";
+            parser.showHelp();
+            Q_UNREACHABLE();
+        }
+        requestAssignmentType = (Assignment::Type) parser.value(clientTypeOption).toInt();
+    }
+
+    QString assignmentPool;
+    // check for an assignment pool passed on the command line or in the config
+    if (argumentVariantMap.contains(ASSIGNMENT_POOL_OPTION)) {
+        assignmentPool = argumentVariantMap.value(ASSIGNMENT_POOL_OPTION).toString();
+    }
+    if (parser.isSet(poolOption)) {
+        assignmentPool = parser.value(poolOption);
+    }
+
+
+    QUuid walletUUID;
+    if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
+        walletUUID = argumentVariantMap.value(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION).toString();
+    }
+    if (parser.isSet(walletDestinationOption)) {
+        walletUUID = parser.value(walletDestinationOption);
+    }
+
+
+    QString assignmentServerHostname;
+    if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
+        assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
+    }
+    if (parser.isSet(assignmentServerHostnameOption)) {
+        assignmentServerHostname = parser.value(assignmentServerHostnameOption);
+    }
+
+
+    // check for an overriden assignment server port
+    quint16 assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
+    if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
+        assignmentServerPort = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toString().toUInt();
+    }
+    if (parser.isSet(assignmentServerPortOption)) {
+        assignmentServerPort = parser.value(assignmentServerPortOption).toInt();
+    }
+
+
+
+    if (parser.isSet(numChildsOption)) {
+        if (minForks && minForks > numForks) {
+            qCritical() << "--min can't be more than -n";
+            parser.showHelp();
+            Q_UNREACHABLE();
+        }
+        if (maxForks && maxForks < numForks) {
+            qCritical() << "--max can't be less than -n";
+            parser.showHelp();
+            Q_UNREACHABLE();
+        }
+    }
+
+
+    if (numForks || minForks || maxForks) {
+        AssignmentClientMonitor monitor(argc, argv, numForks, minForks, maxForks, assignmentPool,
+                                        walletUUID, assignmentServerHostname, assignmentServerPort);
         monitor.exec();
     } else {
-        AssignmentClient client(argc, argv);
+        AssignmentClient client(argc, argv, requestAssignmentType, assignmentPool,
+                                walletUUID, assignmentServerHostname, assignmentServerPort);
         client.exec();
     }
 }

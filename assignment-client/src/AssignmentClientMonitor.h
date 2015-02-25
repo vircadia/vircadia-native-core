@@ -27,7 +27,10 @@ extern const char* NUM_FORKS_PARAMETER;
 class AssignmentClientMonitor : public QCoreApplication {
     Q_OBJECT
 public:
-    AssignmentClientMonitor(int &argc, char **argv, const unsigned int numAssignmentClientForks);
+    AssignmentClientMonitor(int &argc, char **argv, const unsigned int numAssignmentClientForks,
+                            const unsigned int minAssignmentClientForks, const unsigned int maxAssignmentClientForks,
+                            QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
+                            quint16 assignmentServerPort);
     ~AssignmentClientMonitor();
     
     void stopChildProcesses();
@@ -37,8 +40,16 @@ private slots:
 
 private:
     void spawnChildClient();
-    QStringList _childArguments;
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
+
+    const unsigned int _numAssignmentClientForks;
+    const unsigned int _minAssignmentClientForks;
+    const unsigned int _maxAssignmentClientForks;
+
+    QString _assignmentPool;
+    QUuid _walletUUID;
+    QString _assignmentServerHostname;
+    quint16 _assignmentServerPort;
 };
 
 #endif // hifi_AssignmentClientMonitor_h

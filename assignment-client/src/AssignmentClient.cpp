@@ -18,7 +18,6 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
-#include <HifiConfigVariantMap.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
 #include <LimitedNodeList.h>
@@ -40,7 +39,9 @@ SharedAssignmentPointer AssignmentClient::_currentAssignment;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
-AssignmentClient::AssignmentClient(int &argc, char **argv) :
+AssignmentClient::AssignmentClient(int &argc, char **argv,
+                                   Assignment::Type requestAssignmentType, QString assignmentPool, QUuid walletUUID,
+                                   QString assignmentServerHostname, quint16 assignmentServerPort) :
     QCoreApplication(argc, argv),
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
     _localASPortSharedMem(NULL),
@@ -73,51 +74,20 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
-    const QVariantMap argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
-
-    const QString ASSIGNMENT_TYPE_OVERRIDE_OPTION = "t";
-    const QString ASSIGNMENT_POOL_OPTION = "pool";
-    const QString ASSIGNMENT_WALLET_DESTINATION_ID_OPTION = "wallet";
-    const QString CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION = "a";
-    const QString CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION = "p";
-
-    Assignment::Type requestAssignmentType = Assignment::AllTypes;
-
-    // check for an assignment type passed on the command line or in the config
-    if (argumentVariantMap.contains(ASSIGNMENT_TYPE_OVERRIDE_OPTION)) {
-        requestAssignmentType = (Assignment::Type) argumentVariantMap.value(ASSIGNMENT_TYPE_OVERRIDE_OPTION).toInt();
-    }
-
-    QString assignmentPool;
-
-    // check for an assignment pool passed on the command line or in the config
-    if (argumentVariantMap.contains(ASSIGNMENT_POOL_OPTION)) {
-        assignmentPool = argumentVariantMap.value(ASSIGNMENT_POOL_OPTION).toString();
-    }
-
     // setup our _requestAssignment member variable from the passed arguments
     _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, assignmentPool);
 
     // check for a wallet UUID on the command line or in the config
     // this would represent where the user running AC wants funds sent to
-    if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
-        QUuid walletUUID = argumentVariantMap.value(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION).toString();
+    if (!walletUUID.isNull()) {
         qDebug() << "The destination wallet UUID for credits is" << uuidStringWithoutCurlyBraces(walletUUID);
         _requestAssignment.setWalletUUID(walletUUID);
     }
     
-    quint16 assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
-
     // check for an overriden assignment server hostname
-    if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION)) {
+    if (assignmentServerHostname != "") {
         // change the hostname for our assignment server
-        _assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
-    }
-    
-    // check for an overriden assignment server port
-    if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION)) {
-        assignmentServerPort =
-        argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toString().toUInt();
+        _assignmentServerHostname = assignmentServerHostname;
     }
     
     _assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerPort, true);
@@ -127,6 +97,10 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     
     // call a timer function every ASSIGNMENT_REQUEST_INTERVAL_MSECS to ask for assignment, if required
     qDebug() << "Waiting for assignment -" << _requestAssignment;
+
+    if (_assignmentServerHostname != "localhost") {
+        qDebug () << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
+    }
 
     connect(&_requestTimer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
     _requestTimer.start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
@@ -198,9 +172,6 @@ void AssignmentClient::sendAssignmentRequest() {
                     _assignmentServerSocket.setPort(localAssignmentServerPort);
                     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
                 }
-            }
-            else {
-                qDebug () << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
             }
         }
         
