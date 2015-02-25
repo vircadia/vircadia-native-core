@@ -89,14 +89,19 @@ endif ()
 # figure out where the qt dir is
 get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
 
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})                                                 
 
-if (APPLE)
+if (APPLE)                            
   # set our OS X deployment target
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
   
   # find the 10.9 SDK path
-  find_path(_OSX_DESIRED_SDK_PATH NAME MacOSX10.9.sdk HINTS /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/ ${OSX_SDK_PATH})
+  find_path(
+    _OSX_DESIRED_SDK_PATH 
+    NAME MacOSX10.9.sdk 
+    HINTS ${OSX_SDK_PATH}
+    PATHS /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
+  )
   
   if (NOT _OSX_DESIRED_SDK_PATH)
     message(FATAL_ERROR "Could not find OS X 10.9 SDK. Please pass OSX_SDK_PATH to CMake to point us to your SDKs directory.")
