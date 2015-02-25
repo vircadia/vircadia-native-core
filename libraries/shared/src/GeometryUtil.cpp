@@ -12,8 +12,10 @@
 #include <cstring>
 #include <cmath>
 
-#include "SharedUtil.h"
 #include "GeometryUtil.h"
+#include "PlaneShape.h"
+#include "RayIntersectionInfo.h"
+#include "SharedUtil.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
     // compute the projection of the point vector onto the segment vector
@@ -490,4 +492,35 @@ void PolygonClip::copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& len
             vertexArrayA[i] = vertexArrayB[i];
         }
     }
+}
+
+bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::quat& rotation, const glm::vec3& position, const glm::vec2& dimensions) {
+    RayIntersectionInfo rayInfo;
+    rayInfo._rayStart = origin;
+    rayInfo._rayDirection = direction;
+    rayInfo._rayLength = std::numeric_limits<float>::max();
+
+    PlaneShape plane;
+
+    const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
+    glm::vec3 normal = rotation * UNROTATED_NORMAL;
+    plane.setNormal(normal);
+    plane.setPoint(position); // the position is definitely a point on our plane
+
+    bool intersects = plane.findRayIntersection(rayInfo);
+
+    if (intersects) {
+        float distance = rayInfo._hitDistance;
+
+        glm::vec3 hitPosition = origin + (distance * direction);
+        glm::vec3 localHitPosition = glm::inverse(rotation) * (hitPosition - position);
+
+        glm::vec2 halfDimensions = 0.5f * dimensions;
+
+        intersects = -halfDimensions.x <= localHitPosition.x && localHitPosition.x <= halfDimensions.x
+            && -halfDimensions.y <= localHitPosition.y && localHitPosition.y <= halfDimensions.y;
+    }
+
+    return intersects;
 }

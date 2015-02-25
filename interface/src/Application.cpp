@@ -533,6 +533,10 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+
+    _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
+    
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
     locationUpdateTimer->stop();
@@ -597,13 +601,11 @@ Application::~Application() {
     
     DependencyManager::destroy<GLCanvas>();
 
-    qDebug() << "start destroying ResourceCaches Application::~Application() line:" << __LINE__;
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
-    qDebug() << "done destroying ResourceCaches Application::~Application() line:" << __LINE__;
 }
 
 void Application::initializeGL() {
@@ -1469,6 +1471,10 @@ void Application::checkFPS() {
 
 void Application::idle() {
     PerformanceTimer perfTimer("idle");
+    
+    if (_aboutToQuit) {
+        return; // bail early, nothing to do here.
+    }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing
@@ -3535,18 +3541,19 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
 #endif
 
+    // TODO: Consider moving some of this functionality into the ScriptEngine class instead. It seems wrong that this
+    // work is being done in the Application class when really these dependencies are more related to the ScriptEngine's
+    // implementation
     QThread* workerThread = new QThread(this);
-    workerThread->setObjectName("Script Engine Thread");
+    QString scriptEngineName = QString("Script Thread:") + scriptEngine->getFilename();
+    workerThread->setObjectName(scriptEngineName);
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
 
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
+    connect(scriptEngine, SIGNAL(doneRunning()), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
-
-    // when the application is about to quit, stop our script engine so it unwinds properly
-    connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
@@ -3558,7 +3565,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-    bool loadScriptFromEditor, bool activateMainWindow) {
+                                        bool loadScriptFromEditor, bool activateMainWindow) {
+
+    if (isAboutToQuit()) {
+        return NULL;
+    }
+                                        
     QUrl scriptUrl(scriptFilename);
     const QString& scriptURLString = scriptUrl.toString();
     if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
@@ -3749,8 +3761,8 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
         voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
     }
     
-    qDebug() << "Voxel costs are" << satoshisPerVoxel << "per voxel and" << satoshisPerMeterCubed << "per meter cubed";
-    qDebug() << "Destination wallet UUID for voxel payments is" << voxelWalletUUID;
+    qDebug() << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
+    qDebug() << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
 }
 
 QString Application::getPreviousScriptLocation() {

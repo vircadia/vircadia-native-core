@@ -396,6 +396,10 @@ var toolBar = (function () {
         return handled;
     }
 
+    Window.domainChanged.connect(function() {
+        that.setActive(false);
+    });
+
     that.cleanup = function () {
         toolBar.cleanup();
     };

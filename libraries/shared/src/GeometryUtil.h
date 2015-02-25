@@ -76,6 +76,9 @@ bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& directi
 bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direction,
     const glm::vec3& start, const glm::vec3& end, float radius, float& distance);
 
+bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::quat& rotation, const glm::vec3& position, const glm::vec2& dimensions);
+
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction, 
                                     const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance);
 
