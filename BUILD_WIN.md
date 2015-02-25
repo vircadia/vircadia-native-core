@@ -22,7 +22,7 @@ We expect nmake.exe to be located at the following path.
 
     C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin
 
-We exepect msbuild.exe to be located at the following path.
+We expect msbuild.exe to be located at the following path.
 
     C:\Program Files (x86)\MSBUILD\12.0\Bin
 
