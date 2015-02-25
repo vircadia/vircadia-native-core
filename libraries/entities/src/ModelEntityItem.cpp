@@ -163,16 +163,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
 
-// This class/instance will cleanup the animations once unloaded.
-class EntityAnimationsBookkeeper {
-public:
-    ~EntityAnimationsBookkeeper() {
-        ModelEntityItem::cleanupLoadedAnimations();
-    }
-};
-
-EntityAnimationsBookkeeper modelAnimationsBookkeeperInstance;
-
 void ModelEntityItem::cleanupLoadedAnimations() {
     foreach(AnimationPointer animation, _loadedAnimations) {
         animation.clear();

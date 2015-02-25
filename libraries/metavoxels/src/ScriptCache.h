@@ -25,13 +25,11 @@ class NetworkProgram;
 class NetworkValue;
 
 /// Maintains a cache of loaded scripts.
-class ScriptCache : public ResourceCache {
+class ScriptCache : public ResourceCache, public Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
-
-    static ScriptCache* getInstance();
-
     ScriptCache();
     
     void setEngine(QScriptEngine* engine);

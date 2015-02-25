@@ -2,15 +2,31 @@
 
 * [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
 * [Qt](http://qt-project.org/downloads) ~> 5.3.2
-* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
-* [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
-* [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
-* [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
-* [Gverb](https://github.com/highfidelity/gverb/archive/master.zip) (direct download to latest version)
 
-### OS Specific Build Guides
+####CMake External Project Dependencies
+
+* [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
+* [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
+* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
+* [gverb](https://github.com/highfidelity/gverb)
+* [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
+
+The following external projects are optional dependencies. You can indicate to CMake that you would like to include them by passing -DGET_$NAME=1 when running a clean CMake build. For example, to get CMake to download and compile QXmpp you would pass -DGET_QXMPP=1.
+
+* [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
+  * Enables game controller support in Interface
+* [QXmpp](https://github.com/qxmpp-project/qxmpp) ~> 0.7.6
+  * Enables text chat support in Interface
+
+The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build-ext` directory in each of the subfolders for each external project. 
+
+These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared. Should you want to force a re-download and re-compile of a specific external, you can simply remove that directory from the appropriate subfolder in `build-ext`. Should you want to force a re-download and re-compile of all externals, just remove the `build-ext` folder.
+
+If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DGET_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
+
+###OS Specific Build Guides
 * [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
 * [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
 * [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
@@ -45,6 +61,9 @@ For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generat
     cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.3.2/lib/cmake
 
 ####Finding Dependencies
+
+The following applies for dependencies we do not grab via CMake ExternalProject (OpenSSL is an example), or for dependencies you have opted not to grab as a CMake ExternalProject (via -DGET_$NAME=0). The list of dependencies we grab by default as external projects can be found in [the CMake External Project Dependencies section](#cmake-external-project-dependencies).
+
 You can point our [Cmake find modules](cmake/modules/) to the correct version of dependencies by setting one of the three following variables to the location of the correct version of the dependency.
 
 In the examples below the variable $NAME would be replaced by the name of the dependency in uppercase, and $name would be replaced by the name of the dependency in lowercase (ex: OPENSSL_ROOT_DIR, openssl).
@@ -54,12 +73,6 @@ In the examples below the variable $NAME would be replaced by the name of the de
 * HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder '$name'
 
 ###Optional Components
-
-####QXmpp
-
-You can [find QXmpp here](https://github.com/qxmpp-project/qxmpp), 0.7.6 is the version you want. The inclusion of the QXmpp enables text chat in the Interface client.
-
-OS X users who tap our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas) can install QXmpp via homebrew - `brew install highfidelity/formulas/qxmpp`.
 
 ####Devices
 

@@ -133,13 +133,12 @@ namespace MenuOption {
     const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
+    const QString ControlWithSpeech = "Control With Speech";
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
-    const QString ControlWithSpeech = "Control With Speech";
-    const QString DeleteBookmark = "Delete Bookmark...";
-    const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
-    const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
+    const QString DDEFaceRegression = "DDE Face Regression";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
+    const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableLightEntities = "Disable Light Entities";
@@ -152,7 +151,9 @@ namespace MenuOption {
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayTimingDetails = "Display Timing Details";
+    const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DontFadeOnOctreeServerChanges = "Don't Fade In/Out on Octree Server Changes";
+    const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
@@ -192,6 +193,7 @@ namespace MenuOption {
     const QString MuteEnvironment = "Mute Environment";
     const QString NetworkSimulator = "Network Simulator...";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
+    const QString NoFaceTracking = "None";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
     const QString OctreeStats = "Voxel and Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";

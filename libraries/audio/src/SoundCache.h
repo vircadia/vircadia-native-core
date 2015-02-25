@@ -17,11 +17,11 @@
 #include "Sound.h"
 
 /// Scriptable interface for sound loading.
-class SoundCache : public ResourceCache {
+class SoundCache : public ResourceCache, public Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
+
 public:
-    static SoundCache& getInstance();
-    
     Q_INVOKABLE SharedSoundPointer getSound(const QUrl& url);
     
 protected:

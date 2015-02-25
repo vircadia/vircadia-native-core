@@ -465,9 +465,9 @@ void Bitstream::writeRawDelta(const QScriptValue& value, const QScriptValue& ref
     } else if (reference.isArray()) {
         if (value.isArray()) {
             *this << false;
-            int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            int length = value.property(DependencyManager::get<ScriptCache>()->getLengthString()).toInt32();
             *this << length;
-            int referenceLength = reference.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            int referenceLength = reference.property(DependencyManager::get<ScriptCache>()->getLengthString()).toInt32();
             for (int i = 0; i < length; i++) {
                 if (i < referenceLength) {
                     writeDelta(value.property(i), reference.property(i));
@@ -555,7 +555,7 @@ void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference)
         } else {
             QVariant variant;
             readRawDelta(variant, reference.toVariant());
-            value = ScriptCache::getInstance()->getEngine()->newVariant(variant);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newVariant(variant);
         }
     } else if (reference.isQObject()) {
         bool typeChanged;
@@ -566,7 +566,7 @@ void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference)
         } else {
             QObject* object;
             readRawDelta(object, reference.toQObject());
-            value = ScriptCache::getInstance()->getEngine()->newQObject(object, QScriptEngine::ScriptOwnership);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newQObject(object, QScriptEngine::ScriptOwnership);
         }
     } else if (reference.isQMetaObject()) {
         bool typeChanged;
@@ -577,7 +577,7 @@ void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference)
         } else {
             const QMetaObject* metaObject;
             *this >> metaObject;
-            value = ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newQMetaObject(metaObject);
         }
     } else if (reference.isDate()) {
         bool typeChanged;
@@ -588,7 +588,7 @@ void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference)
         } else {
             QDateTime dateTime;
             *this >> dateTime;
-            value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newDate(dateTime);
         }
     } else if (reference.isRegExp()) {
         bool typeChanged;
@@ -599,7 +599,7 @@ void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference)
         } else {
             QRegExp regExp;
             *this >> regExp;
-            value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newRegExp(regExp);
         }
     } else if (reference.isArray()) {
         bool typeChanged;
@@ -610,8 +610,8 @@ void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference)
         } else {
             int length;
             *this >> length;
-            value = ScriptCache::getInstance()->getEngine()->newArray(length);
-            int referenceLength = reference.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newArray(length);
+            int referenceLength = reference.property(DependencyManager::get<ScriptCache>()->getLengthString()).toInt32();
             for (int i = 0; i < length; i++) {
                 QScriptValue element;
                 if (i < referenceLength) {
@@ -630,7 +630,7 @@ void Bitstream::readRawDelta(QScriptValue& value, const QScriptValue& reference)
             
         } else {
             // start by shallow-copying the reference
-            value = ScriptCache::getInstance()->getEngine()->newObject();
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newObject();
             for (QScriptValueIterator it(reference); it.hasNext(); ) {
                 it.next();
                 value.setProperty(it.scriptName(), it.value());
@@ -1036,7 +1036,7 @@ Bitstream& Bitstream::operator<<(const QScriptValue& value) {
     
     } else if (value.isArray()) {
         writeScriptValueType(*this, ARRAY_SCRIPT_VALUE);
-        int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+        int length = value.property(DependencyManager::get<ScriptCache>()->getLengthString()).toInt32();
         *this << length;
         for (int i = 0; i < length; i++) {
             *this << value.property(i);
@@ -1087,37 +1087,37 @@ Bitstream& Bitstream::operator>>(QScriptValue& value) {
         case VARIANT_SCRIPT_VALUE: {
             QVariant variantValue;
             *this >> variantValue;
-            value = ScriptCache::getInstance()->getEngine()->newVariant(variantValue);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newVariant(variantValue);
             break;
         }
         case QOBJECT_SCRIPT_VALUE: {
             QObject* object;
             *this >> object;
-            ScriptCache::getInstance()->getEngine()->newQObject(object, QScriptEngine::ScriptOwnership);
+            DependencyManager::get<ScriptCache>()->getEngine()->newQObject(object, QScriptEngine::ScriptOwnership);
             break;
         }
         case QMETAOBJECT_SCRIPT_VALUE: {
             const QMetaObject* metaObject;
             *this >> metaObject;
-            ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+            DependencyManager::get<ScriptCache>()->getEngine()->newQMetaObject(metaObject);
             break;
         }
         case DATE_SCRIPT_VALUE: {
             QDateTime dateTime;
             *this >> dateTime;
-            value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newDate(dateTime);
             break;
         }
         case REGEXP_SCRIPT_VALUE: {
             QRegExp regExp;
             *this >> regExp;
-            value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newRegExp(regExp);
             break;
         }
         case ARRAY_SCRIPT_VALUE: {
             int length;
             *this >> length;
-            value = ScriptCache::getInstance()->getEngine()->newArray(length);
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newArray(length);
             for (int i = 0; i < length; i++) {
                 QScriptValue element;
                 *this >> element;
@@ -1126,7 +1126,7 @@ Bitstream& Bitstream::operator>>(QScriptValue& value) {
             break;
         }
         case OBJECT_SCRIPT_VALUE: {
-            value = ScriptCache::getInstance()->getEngine()->newObject();
+            value = DependencyManager::get<ScriptCache>()->getEngine()->newObject();
             forever {
                 QScriptString name;
                 *this >> name;
@@ -1477,7 +1477,7 @@ Bitstream& Bitstream::operator>(QScriptString& string) {
     QString rawString;
     *this >> rawString;
     string = (rawString == INVALID_STRING) ? QScriptString() :
-        ScriptCache::getInstance()->getEngine()->toStringHandle(rawString);
+        DependencyManager::get<ScriptCache>()->getEngine()->toStringHandle(rawString);
     return *this;
 }
 
@@ -1828,7 +1828,7 @@ QJsonValue JSONWriter::getData(const QScriptValue& value) {
     } else if (value.isArray()) {
         object.insert("type", QString("ARRAY"));
         QJsonArray array;
-        int length = value.property(ScriptCache::getInstance()->getLengthString()).toInt32();
+        int length = value.property(DependencyManager::get<ScriptCache>()->getLengthString()).toInt32();
         for (int i = 0; i < length; i++) {
             array.append(getData(value.property(i)));
         }
@@ -2209,31 +2209,31 @@ void JSONReader::putData(const QJsonValue& data, QScriptValue& value) {
     } else if (type == "VARIANT") {
         QVariant variant;
         putData(object.value("value"), variant);
-        value = ScriptCache::getInstance()->getEngine()->newVariant(variant);
+        value = DependencyManager::get<ScriptCache>()->getEngine()->newVariant(variant);
         
     } else if (type == "QOBJECT") {
         QObject* qObject;
         putData(object.value("value"), qObject);
-        value = ScriptCache::getInstance()->getEngine()->newQObject(qObject, QScriptEngine::ScriptOwnership);
+        value = DependencyManager::get<ScriptCache>()->getEngine()->newQObject(qObject, QScriptEngine::ScriptOwnership);
     
     } else if (type == "QMETAOBJECT") {
         const QMetaObject* metaObject;
         putData(object.value("value"), metaObject);
-        value = ScriptCache::getInstance()->getEngine()->newQMetaObject(metaObject);
+        value = DependencyManager::get<ScriptCache>()->getEngine()->newQMetaObject(metaObject);
     
     } else if (type == "DATE") {
         QDateTime dateTime;
         putData(object.value("value"), dateTime);
-        value = ScriptCache::getInstance()->getEngine()->newDate(dateTime);
+        value = DependencyManager::get<ScriptCache>()->getEngine()->newDate(dateTime);
     
     } else if (type == "REGEXP") {
         QRegExp regExp;
         putData(object.value("value"), regExp);
-        value = ScriptCache::getInstance()->getEngine()->newRegExp(regExp);
+        value = DependencyManager::get<ScriptCache>()->getEngine()->newRegExp(regExp);
     
     } else if (type == "ARRAY") {
         QJsonArray array = object.value("value").toArray();
-        value = ScriptCache::getInstance()->getEngine()->newArray(array.size());
+        value = DependencyManager::get<ScriptCache>()->getEngine()->newArray(array.size());
         for (int i = 0; i < array.size(); i++) {
             QScriptValue element;
             putData(array.at(i), element);
@@ -2241,7 +2241,7 @@ void JSONReader::putData(const QJsonValue& data, QScriptValue& value) {
         }
     } else if (type == "OBJECT") {
         QJsonObject jsonObject = object.value("value").toObject();
-        value = ScriptCache::getInstance()->getEngine()->newObject();
+        value = DependencyManager::get<ScriptCache>()->getEngine()->newObject();
         for (QJsonObject::const_iterator it = jsonObject.constBegin(); it != jsonObject.constEnd(); it++) {
             QScriptValue element;
             putData(it.value(), element);

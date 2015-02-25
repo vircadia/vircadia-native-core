@@ -136,10 +136,12 @@ public:
 
     glm::vec2 drawString(float x, float y, const QString & str,
             const glm::vec4& color, TextRenderer::EffectType effectType,
-            const glm::vec2& bound) const;
+            const glm::vec2& bound);
 
 private:
     QStringList tokenizeForWrapping(const QString & str) const;
+
+    bool _initialized;
 };
 
 static QHash<QString, Font*> LOADED_FONTS;
@@ -186,7 +188,7 @@ Font* loadFont(const QString& family) {
     return LOADED_FONTS[family];
 }
 
-Font::Font() {
+Font::Font() : _initialized(false) {
     static bool fontResourceInitComplete = false;
     if (!fontResourceInitComplete) {
         Q_INIT_RESOURCE(fonts);
@@ -255,8 +257,6 @@ void Font::read(QIODevice& in) {
         // store in the character to glyph hash
         _glyphs[g.c] = g;
     };
-
-    setupGL();
 }
 
 struct TextureVertex {
@@ -291,6 +291,11 @@ QRectF Glyph::textureBounds(const glm::vec2 & textureSize) const {
 }
 
 void Font::setupGL() {
+    if (_initialized) {
+        return;
+    }
+    _initialized = true;
+
     _texture = TexturePtr(
             new QOpenGLTexture(_image, QOpenGLTexture::GenerateMipMaps));
     _program = ProgramPtr(new QOpenGLShaderProgram());
@@ -411,7 +416,9 @@ glm::vec2 Font::computeExtent(const QString & str) const {
 // even without explicit line feeds.
 glm::vec2 Font::drawString(float x, float y, const QString & str,
         const glm::vec4& color, TextRenderer::EffectType effectType,
-        const glm::vec2& bounds) const {
+        const glm::vec2& bounds) {
+
+    setupGL();
 
     // Stores how far we've moved from the start of the string, in DTP units
     glm::vec2 advance(0, -_rowHeight - _descent);
@@ -481,9 +488,12 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
     }
 
     _vao->release();
+    _texture->release(); // TODO: Brad & Sam, let's discuss this. Without this non-textured quads get their colors borked.
     _program->release();
     // FIXME, needed?
     // glDisable(GL_TEXTURE_2D);
+    
+    
     return advance;
 }
 
@@ -501,6 +511,10 @@ TextRenderer::TextRenderer(const char* family, float pointSize, int weight,
         bool italic, EffectType effect, int effectThickness,
         const QColor& color) :
         _effectType(effect), _effectThickness(effectThickness), _pointSize(pointSize), _color(color), _font(loadFont(family)) {
+    if (!_font) {
+        qWarning() << "Unable to load font with family " << family;
+        _font = loadFont("Courier");
+    }
     if (1 != _effectThickness) {
         qWarning() << "Effect thickness not current supported";
     }
@@ -514,7 +528,10 @@ TextRenderer::~TextRenderer() {
 
 glm::vec2 TextRenderer::computeExtent(const QString & str) const {
     float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
-    return _font->computeExtent(str) * scale;
+    if (_font) {
+        return _font->computeExtent(str) * scale;
+    }
+    return glm::vec2(0.1f,0.1f);
 }
 
 float TextRenderer::draw(float x, float y, const QString & str,
@@ -534,7 +551,9 @@ float TextRenderer::draw(float x, float y, const QString & str,
             // scale at all.
             mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
             // The font does all the OpenGL work
-            result = _font->drawString(x, y, str, actualColor, _effectType, bounds / scale);
+            if (_font) {
+                result = _font->drawString(x, y, str, actualColor, _effectType, bounds / scale);
+            }
         });
     return result.x;
 }

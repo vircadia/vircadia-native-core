@@ -1002,7 +1002,7 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) const {
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;
-const float MIN_ALIGNMENT_DOT = 0.9999f;
+const float MIN_ALIGNMENT_DOT = 0.999999f;
 const float MIN_VELOCITY_DELTA = 0.01f;
 const float MIN_DAMPING_DELTA = 0.001f;
 const float MIN_GRAVITY_DELTA = 0.001f;

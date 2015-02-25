@@ -592,6 +592,10 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     
                     // if the EntityItem exists, then update it
                     if (existingEntity) {
+                        if (wantEditLogging()) {
+                            qDebug() << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
+                            qDebug() << "   properties:" << properties;
+                        }
                         updateEntity(entityItemID, properties, senderNode->getCanAdjustLocks());
                         existingEntity->markAsChangedOnServer();
                     } else {

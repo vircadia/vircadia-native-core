@@ -40,7 +40,7 @@ if (WIN32)
 elseif (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
   #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fno-strict-aliasing")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fno-strict-aliasing -ggdb")
 endif(WIN32)
 
 if (NOT MSVC12)
@@ -86,10 +86,33 @@ else ()
   endif ()
 endif ()
 
+# figure out where the qt dir is
+get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
+
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
-# set our OS X deployment target to
-set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
+if (APPLE)
+  # set our OS X deployment target
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
+  
+  # find the 10.9 SDK path
+  find_path(
+    _OSX_DESIRED_SDK_PATH 
+    NAME MacOSX10.9.sdk 
+    HINTS ${OSX_SDK_PATH}
+    PATHS /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
+          /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
+  )
+  
+  if (NOT _OSX_DESIRED_SDK_PATH)
+    message(FATAL_ERROR "Could not find OS X 10.9 SDK. Please pass OSX_SDK_PATH to CMake to point us to your SDKs directory.")
+  else ()
+    message(STATUS "Found OS X 10.9 SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk")
+  endif ()
+  
+  # set that as the SDK to use
+  set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk)
+endif ()
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -103,7 +126,15 @@ set(HIFI_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries")
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
-set(MACRO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros")
+if (CMAKE_BUILD_TYPE)
+  string(TOUPPER ${CMAKE_BUILD_TYPE} UPPER_CMAKE_BUILD_TYPE)
+else ()
+  set(UPPER_CMAKE_BUILD_TYPE DEBUG)
+endif ()
+
+set(HIFI_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(MACRO_DIR "${HIFI_CMAKE_DIR}/macros")
+set(EXTERNAL_PROJECT_DIR "${HIFI_CMAKE_DIR}/externals")
 
 file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
@@ -117,6 +148,28 @@ if (ANDROID)
   endforeach()
 endif ()
 
+set(EXTERNAL_PROJECT_PREFIX "project")
+set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
+setup_externals_binary_dir()
+
+# setup options to grab external project dependencies
+option(GET_BULLET "Get Bullet library automatically as external project" 1)
+option(GET_GLM "Get GLM library automatically as external project" 1)
+option(GET_GVERB "Get Gverb library automatically as external project" 1)
+option(GET_SOXR "Get Soxr library automatically as external project" 1)
+option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
+
+if (WIN32)
+  option(GET_GLEW "Get GLEW library automatically as external project" 1)
+endif ()
+
+option(GET_SDL2 "Get SDL2 library automatically as external project" 0)
+option(GET_QXMPP "GET Qxmpp library automatically as external project" 0)
+
+if (WIN32)
+  add_paths_to_fixup_libs("${QT_DIR}/bin")
+endif ()
+
 # add subdirectories for all targets
 if (NOT ANDROID)
   add_subdirectory(assignment-client)
@@ -125,6 +178,8 @@ if (NOT ANDROID)
   add_subdirectory(interface)
   add_subdirectory(tests)
   add_subdirectory(tools)
-elseif (ANDROID OR DESKTOP_GVR)
+endif ()
+
+if (ANDROID OR DESKTOP_GVR)
   add_subdirectory(gvr-interface)
 endif ()

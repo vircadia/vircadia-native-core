@@ -13,6 +13,7 @@
 
 #include <gpu/GPUConfig.h>
 
+#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 #include <TextRenderer.h>
@@ -49,7 +50,12 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
 
         glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
         glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
+        
+        // TODO: Determine if we want these entities to have the deferred lighting effect? I think we do, so that the color
+        // used for a sphere, or box have the same look as those used on a text entity.
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, glm::vec4(toGlm(getBackgroundColorX()), alpha));
+        DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
 
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
 

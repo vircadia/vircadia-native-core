@@ -95,7 +95,7 @@ protected:
     glm::vec3 _cameraPosition = glm::vec3(0.0f);
     glm::quat _cameraOrientation = glm::quat();
     float _cameraFov = 0.0f;
-    float _cameraAspectRatio = 0.0f;
+    float _cameraAspectRatio = 1.0f;
     float _cameraNearClip = 0.0f;
     float _cameraFarClip = 0.0f;
     glm::vec3 _cameraEyeOffsetPosition = glm::vec3(0.0f);

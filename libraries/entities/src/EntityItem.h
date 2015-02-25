@@ -253,7 +253,6 @@ public:
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
-    void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     virtual void computeShapeInfo(ShapeInfo& info) const;
 

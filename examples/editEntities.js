@@ -105,15 +105,7 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
-        browseModelsButton,
-        loadURLMenuItem,
-        loadFileMenuItem,
-        menuItemWidth,
-        menuItemOffset,
-        menuItemHeight,
-        menuItemMargin = 5,
-        menuTextColor = { red: 255, green: 255, blue: 255 },
-        menuBackgroundColor = { red: 18, green: 66, blue: 66 };
+        browseModelsButton;
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
@@ -135,7 +127,7 @@ var toolBar = (function () {
             height: toolHeight,
             alpha: 0.9,
             visible: true
-        }, true, false);
+        });
 
         browseModelsButton = toolBar.addTool({
             imageURL: toolIconUrl + "list-icon.svg",
@@ -144,34 +136,6 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: true
         });
-
-        menuItemOffset = toolBar.height / 3 + 2;
-        menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
-
-        loadURLMenuItem = Overlays.addOverlay("text", {
-            height: menuItemHeight,
-            backgroundColor: menuBackgroundColor,
-            topMargin: menuItemMargin,
-            text: "Model URL",
-            alpha: 0.9,
-            backgroundAlpha: 0.9,
-            visible: false
-        });
-
-        loadFileMenuItem = Overlays.addOverlay("text", {
-            height: menuItemHeight,
-            backgroundColor: menuBackgroundColor,
-            topMargin: menuItemMargin,
-            text: "Model File",
-            alpha: 0.9,
-            backgroundAlpha: 0.9,
-            visible: false
-        });
-
-        menuItemWidth = Math.max(Overlays.textSize(loadURLMenuItem, "Model URL").width,
-            Overlays.textSize(loadFileMenuItem, "Model File").width) + 20;
-        Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
-        Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
         newCubeButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-cube.svg",
@@ -211,17 +175,6 @@ var toolBar = (function () {
 
     }
 
-    function toggleNewModelButton(active) {
-        if (active === undefined) {
-            active = !toolBar.toolSelected(newModelButton);
-        }
-        toolBar.selectTool(newModelButton, active);
-
-        Overlays.editOverlay(loadURLMenuItem, { visible: active });
-        Overlays.editOverlay(loadFileMenuItem, { visible: active });
-    }
-
-
     that.setActive = function(active) {
         if (active != isActive) {
             isActive = active;
@@ -237,6 +190,7 @@ var toolBar = (function () {
                 cameraManager.enable();
                 entityListTool.setVisible(true);
                 gridTool.setVisible(true);
+                grid.setEnabled(true);
                 propertiesTool.setVisible(true);
                 Window.setFocus();
             }
@@ -306,11 +260,10 @@ var toolBar = (function () {
         toolsY = (windowDimensions.y - toolBar.height) / 2;
 
         toolBar.move(toolsX, toolsY);
-
-        Overlays.editOverlay(loadURLMenuItem, { x: toolsX - menuItemWidth, y: toolsY + menuItemOffset });
-        Overlays.editOverlay(loadFileMenuItem, { x: toolsX - menuItemWidth, y: toolsY + menuItemOffset + menuItemHeight });
     };
 
+    var newModelButtonDown = false;
+    var browseModelsButtonDown = false;
     that.mousePressEvent = function (event) {
         var clickedOverlay,
             url,
@@ -323,40 +276,14 @@ var toolBar = (function () {
             return true;
         }
 
+        // Handle these two buttons in the mouseRelease event handler so that we don't suppress a mouseRelease event from
+        // occurring when showing a modal dialog.
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            toggleNewModelButton();
+            newModelButtonDown = true;
             return true;
         }
-
-        if (clickedOverlay === loadURLMenuItem) {
-            toggleNewModelButton(false);
-            url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-            if (url !== null && url !== "") {
-                addModel(url);
-            }
-            return true;
-        }
-
-        if (clickedOverlay === loadFileMenuItem) {
-            toggleNewModelButton(false);
-
-            file = Window.browse("Select your model file ...",
-                Settings.getValue("LastModelUploadLocation").path(),
-                "Model files (*.fst *.fbx)");
-                //"Model files (*.fst *.fbx *.svo)");
-            if (file !== null) {
-                Settings.setValue("LastModelUploadLocation", file);
-                modelUploader.upload(file, addModel);
-            }
-            return true;
-        }
-
         if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
-            toggleNewModelButton(false);
-            url = Window.s3Browse(".*(fbx|FBX)");
-            if (url !== null && url !== "") {
-                addModel(url);
-            }
+            browseModelsButtonDown = true;
             return true;
         }
 
@@ -418,6 +345,7 @@ var toolBar = (function () {
             return true;
         }
 
+
         if (newTextButton === toolBar.clicked(clickedOverlay)) {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
@@ -437,14 +365,43 @@ var toolBar = (function () {
             return true;
         }
 
-
         return false;
     };
 
+    that.mouseReleaseEvent = function(event) {
+        var handled = false;
+        if (newModelButtonDown) {
+            var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            if (newModelButton === toolBar.clicked(clickedOverlay)) {
+                url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+                if (url !== null && url !== "") {
+                    addModel(url);
+                }
+                handled = true;
+            }
+        } else if (browseModelsButtonDown) {
+            var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
+                url = Window.s3Browse(".*(fbx|FBX)");
+                if (url !== null && url !== "") {
+                    addModel(url);
+                }
+                handled = true;
+            }
+        }
+
+        newModelButtonDown = false;
+        browseModelsButtonDown = false;
+
+        return handled;
+    }
+
+    Window.domainChanged.connect(function() {
+        that.setActive(false);
+    });
+
     that.cleanup = function () {
         toolBar.cleanup();
-        Overlays.deleteOverlay(loadURLMenuItem);
-        Overlays.deleteOverlay(loadFileMenuItem);
     };
 
     return that;
@@ -605,8 +562,13 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    if (toolBar.mouseReleaseEvent(event)) {
+        return true;
+    }
     if (placingEntityID) {
-        selectionManager.setSelections([placingEntityID]);
+        if (isActive) {
+            selectionManager.setSelections([placingEntityID]);
+        }
         placingEntityID = null;
     }
     if (isActive && selectionManager.hasSelection()) {
@@ -1029,9 +991,18 @@ PropertiesTool = function(opts) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
                         var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
-                        Entities.editEntity(selectionManager.selections[i], {
-                            dimensions: properties.naturalDimensions,
-                        });
+                        var naturalDimensions = properties.naturalDimensions;
+
+                        // If any of the natural dimensions are not 0, resize
+                        if (properties.type == "Model" && naturalDimensions.x == 0
+                                && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
+                            Window.alert("Cannot reset entity to its natural dimensions: Model URL"
+                                         + " is invalid or the model has not yet been loaded.");
+                        } else {
+                            Entities.editEntity(selectionManager.selections[i], {
+                                dimensions: properties.naturalDimensions,
+                            });
+                        }
                     }
                     pushCommandForSelections();
                     selectionManager._update();

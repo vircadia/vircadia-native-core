@@ -47,6 +47,7 @@ Agent::Agent(const QByteArray& packet) :
     _scriptEngine.getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResouceCacheSharedItems>();
+    DependencyManager::set<SoundCache>();
 }
 
 void Agent::readPendingDatagrams() {
@@ -193,7 +194,7 @@ void Agent::run() {
     
     // setup an Avatar for the script to use
     ScriptableAvatar scriptedAvatar(&_scriptEngine);
-    scriptedAvatar.setForceFaceshiftConnected(true);
+    scriptedAvatar.setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar.setFaceModelURL(QUrl());
@@ -208,7 +209,7 @@ void Agent::run() {
 
     _scriptEngine.init(); // must be done before we set up the viewers
     
-    _scriptEngine.registerGlobalObject("SoundCache", &SoundCache::getInstance());
+    _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
     _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
     _entityViewer.setJurisdictionListener(_scriptEngine.getEntityScriptingInterface()->getJurisdictionListener());

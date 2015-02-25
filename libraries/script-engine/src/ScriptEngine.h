@@ -16,16 +16,17 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
-#include <AudioScriptingInterface.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
 
 #include "AbstractControllerScriptingInterface.h"
 #include "ArrayBufferClass.h"
+#include "AudioScriptingInterface.h"
 #include "Quat.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
@@ -43,6 +44,8 @@ public:
                  const QString& fileNameString = QString(""),
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
+    ~ScriptEngine();
+
     /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
 
@@ -58,6 +61,8 @@ public:
     void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                               QScriptEngine::FunctionSignature setter, QScriptValue object = QScriptValue::NullValue);
     void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
+    void registerFunction(QScriptValue parent, const QString& name, QScriptEngine::FunctionSignature fun,
+                          int numArguments = -1);
 
     Q_INVOKABLE void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
@@ -81,11 +86,18 @@ public:
 
     bool isFinished() const { return _isFinished; }
     bool isRunning() const { return _isRunning; }
+    bool evaluatePending() const { return _evaluatesPending > 0; }
 
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
+    
+    QString getFilename() const;
+    
+    static void stopAllScripts(QObject* application);
+    
+    void waitTillDoneRunning();
 
 public slots:
     void loadURL(const QUrl& scriptURL);
@@ -116,12 +128,14 @@ signals:
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
     void loadScript(const QString& scriptName, bool isUserLoaded);
+    void doneRunning();
 
 protected:
     QString _scriptContents;
     QString _parentURL;
     bool _isFinished;
     bool _isRunning;
+    int _evaluatesPending = 0;
     bool _isInitialized;
     bool _isAvatar;
     QTimer* _avatarIdentityTimer;
@@ -132,6 +146,7 @@ protected:
     int _numAvatarSoundSentBytes;
 
 private:
+    void stopAllTimers();
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
@@ -154,6 +169,12 @@ private:
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 private slots:
     void handleScriptDownload();
+
+private:
+    static QSet<ScriptEngine*> _allKnownScriptEngines;
+    static QMutex _allScriptsMutex;
+    static bool _stoppingAllScripts;
+    static bool _doneRunningThisScript;
 };
 
 #endif // hifi_ScriptEngine_h

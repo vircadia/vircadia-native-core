@@ -12,40 +12,29 @@
 #ifndef hifi_AudioScriptingInterface_h
 #define hifi_AudioScriptingInterface_h
 
-#include <qpointer.h>
+#include <AbstractAudioInterface.h>
+#include <AudioInjector.h>
+#include <Sound.h>
 
-#include "AbstractAudioInterface.h"
-#include "AudioInjector.h"
-#include "Sound.h"
+class ScriptAudioInjector;
 
 class AudioScriptingInterface : public QObject {
     Q_OBJECT
 public:
     static AudioScriptingInterface& getInstance();
     
-    void stopAllInjectors();
-    
     void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
-public slots:
-
-    static float getLoudness(AudioInjector* injector);
-
-    AudioInjector* playSound(Sound* sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
     
-    void stopInjector(AudioInjector* injector);
-    bool isInjectorPlaying(AudioInjector* injector);
-    
-    void setInjectorOptions(AudioInjector* injector, const AudioInjectorOptions& injectorOptions);
-    
-    void injectorStopped();
+protected:
+    // this method is protected to stop C++ callers from calling, but invokable from script
+    Q_INVOKABLE ScriptAudioInjector* playSound(Sound* sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
     
 signals:
     void mutedByMixer();
     void environmentMuted();
-    
+
 private:
     AudioScriptingInterface();
-    QList< QPointer<AudioInjector> > _activeInjectors;
     AbstractAudioInterface* _localAudioInterface;
 };
 

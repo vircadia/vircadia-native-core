@@ -65,6 +65,7 @@
 #include <HFBackEvent.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -110,6 +111,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/HMDScriptingInterface.h"
 #include "scripting/JoystickScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
@@ -138,6 +140,12 @@ static unsigned STARFIELD_SEED = 1;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
+static QTimer* locationUpdateTimer = NULL;
+static QTimer* balanceUpdateTimer = NULL;
+static QTimer* silentNodeTimer = NULL;
+static QTimer* identityPacketTimer = NULL;
+static QTimer* billboardPacketTimer = NULL;
+static QTimer* checkFPStimer = NULL;
 static QTimer* idleTimer = NULL;
 
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
@@ -211,6 +219,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
+    auto scriptCache = DependencyManager::set<ScriptCache>();
+    auto soundCache = DependencyManager::set<SoundCache>();
     auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
     auto audio = DependencyManager::set<AudioClient>();
@@ -328,7 +338,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
 
     // put the audio processing on a separate thread
-    QThread* audioThread = new QThread(this);
+    QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
     
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -338,7 +348,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     audioIO->moveToThread(audioThread);
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
-    connect(audioIO.data(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
+    connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
+    connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
 
     audioThread->start();
     
@@ -356,7 +368,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
-    QTimer* locationUpdateTimer = new QTimer(this);
+    locationUpdateTimer = new QTimer(this);
     connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
@@ -372,7 +384,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     const qint64 BALANCE_UPDATE_INTERVAL_MSECS = 5 * 1000;
 
-    QTimer* balanceUpdateTimer = new QTimer(this);
+    balanceUpdateTimer = new QTimer(this);
     connect(balanceUpdateTimer, &QTimer::timeout, &accountManager, &AccountManager::updateBalance);
     balanceUpdateTimer->start(BALANCE_UPDATE_INTERVAL_MSECS);
 
@@ -411,18 +423,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
-    QTimer* silentNodeTimer = new QTimer();
+    silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
     silentNodeTimer->moveToThread(_nodeThread);
 
     // send the identity packet for our avatar each second to our avatar mixer
-    QTimer* identityPacketTimer = new QTimer();
+    identityPacketTimer = new QTimer();
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
     identityPacketTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
     // send the billboard packet for our avatar every few seconds
-    QTimer* billboardPacketTimer = new QTimer();
+    billboardPacketTimer = new QTimer();
     connect(billboardPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendBillboardPacket);
     billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
 
@@ -516,43 +528,67 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     _aboutToQuit = true;
-    setFullscreen(false); // if you exit while in full screen, you'll get bad behavior when you restart.
+    
+    cleanupBeforeQuit();
 }
 
-Application::~Application() {
+void Application::cleanupBeforeQuit() {
+
+    _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
+    
+    // first stop all timers directly or by invokeMethod
+    // depending on what thread they run in
+    locationUpdateTimer->stop();
+    balanceUpdateTimer->stop();
+    QMetaObject::invokeMethod(silentNodeTimer, "stop", Qt::BlockingQueuedConnection);
+    identityPacketTimer->stop();
+    billboardPacketTimer->stop();
+    checkFPStimer->stop();
+    idleTimer->stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
+
+    // and then delete those that got created by "new"
+    delete locationUpdateTimer;
+    delete balanceUpdateTimer;
+    delete silentNodeTimer;
+    delete identityPacketTimer;
+    delete billboardPacketTimer;
+    delete checkFPStimer;
+    delete idleTimer;
+    // no need to delete _settingsTimer here as it is no pointer
+
+    // save state
     _settingsThread.quit();
     saveSettings();
-    
-    _entities.getTree()->setSimulation(NULL);
-    qInstallMessageHandler(NULL);
-    
     _window->saveGeometry();
     
-    int DELAY_TIME = 1000;
-    UserActivityLogger::getInstance().close(DELAY_TIME);
-    
-    // make sure we don't call the idle timer any more
-    delete idleTimer;
-    
+    // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
+    // an event loop to send the packet?
+    UserActivityLogger::getInstance().close();
+
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
+    
+    // stop the AudioClient
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                              "stop", Qt::BlockingQueuedConnection);
+    
+    // destroy the AudioClient so it and its thread have a chance to go down safely
+    DependencyManager::destroy<AudioClient>();
+}
+
+Application::~Application() {    
+    EntityTree* tree = _entities.getTree();
+    tree->lockForWrite();
+    _entities.getTree()->setSimulation(NULL);
+    tree->unlock();
+
+    qInstallMessageHandler(NULL);
 
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
-    
-    // kill any audio injectors that are still around
-    AudioScriptingInterface::getInstance().stopAllInjectors();
-    
-    auto audioIO = DependencyManager::get<AudioClient>();
-
-    // stop the audio process
-    QMetaObject::invokeMethod(audioIO.data(), "stop", Qt::BlockingQueuedConnection);
-    
-    // ask the audio thread to quit and wait until it is done
-    audioIO->thread()->quit();
-    audioIO->thread()->wait();
     
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
@@ -560,8 +596,11 @@ Application::~Application() {
     Menu::getInstance()->deleteLater();
 
     _myAvatar = NULL;
+
+    ModelEntityItem::cleanupLoadedAnimations() ;
     
     DependencyManager::destroy<GLCanvas>();
+
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
@@ -616,9 +655,9 @@ void Application::initializeGL() {
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
-    QTimer* timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), SLOT(timer()));
-    timer->start(1000);
+    checkFPStimer = new QTimer(this);
+    connect(checkFPStimer, SIGNAL(timeout()), SLOT(checkFPS()));
+    checkFPStimer->start(1000);
 
     // call our idle function whenever we can
     idleTimer = new QTimer(this);
@@ -1414,7 +1453,7 @@ void Application::sendPingPackets() {
 }
 
 //  Every second, check the frame rates and other stuff
-void Application::timer() {
+void Application::checkFPS() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         sendPingPackets();
     }
@@ -1432,6 +1471,10 @@ void Application::timer() {
 
 void Application::idle() {
     PerformanceTimer perfTimer("idle");
+    
+    if (_aboutToQuit) {
+        return; // bail early, nothing to do here.
+    }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing
@@ -1587,6 +1630,16 @@ FaceTracker* Application::getActiveFaceTracker() {
              (visage->isActive() ? static_cast<FaceTracker*>(visage.data()) : NULL)));
 }
 
+void Application::setActiveFaceTracker() {
+#ifdef HAVE_FACESHIFT
+    DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+#endif 
+    DependencyManager::get<DdeFaceTracker>()->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression));
+#ifdef HAVE_VISAGE
+    DependencyManager::get<Visage>()->updateEnabled();
+#endif
+}
+
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
@@ -1704,6 +1757,7 @@ void Application::init() {
 
     // initialize our face trackers after loading the menu settings
     DependencyManager::get<Faceshift>()->init();
+    DependencyManager::get<DdeFaceTracker>()->init();
     DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
@@ -2603,6 +2657,9 @@ const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
 const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
 
+const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
+const float GLOBAL_LIGHT_INTENSITY = 1.0f;
+
 void Application::setupWorldLight() {
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
@@ -2617,6 +2674,7 @@ void Application::setupWorldLight() {
     glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
+
 }
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
@@ -2823,7 +2881,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
-
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(-getSunDirection(), GLOBAL_LIGHT_COLOR, GLOBAL_LIGHT_INTENSITY);
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
@@ -3461,7 +3519,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
-    scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
+    scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
 
@@ -3475,22 +3533,27 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
 
+    QScriptValue hmdInterface = scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
+    scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
+    scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
+
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
 #endif
 
+    // TODO: Consider moving some of this functionality into the ScriptEngine class instead. It seems wrong that this
+    // work is being done in the Application class when really these dependencies are more related to the ScriptEngine's
+    // implementation
     QThread* workerThread = new QThread(this);
-    workerThread->setObjectName("Script Engine Thread");
+    QString scriptEngineName = QString("Script Thread:") + scriptEngine->getFilename();
+    workerThread->setObjectName(scriptEngineName);
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
 
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
+    connect(scriptEngine, SIGNAL(doneRunning()), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
-
-    // when the application is about to quit, stop our script engine so it unwinds properly
-    connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
@@ -3502,7 +3565,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-    bool loadScriptFromEditor, bool activateMainWindow) {
+                                        bool loadScriptFromEditor, bool activateMainWindow) {
+
+    if (isAboutToQuit()) {
+        return NULL;
+    }
+                                        
     QUrl scriptUrl(scriptFilename);
     const QString& scriptURLString = scriptUrl.toString();
     if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
@@ -3693,8 +3761,8 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
         voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
     }
     
-    qDebug() << "Voxel costs are" << satoshisPerVoxel << "per voxel and" << satoshisPerMeterCubed << "per meter cubed";
-    qDebug() << "Destination wallet UUID for voxel payments is" << voxelWalletUUID;
+    qDebug() << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
+    qDebug() << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
 }
 
 QString Application::getPreviousScriptLocation() {

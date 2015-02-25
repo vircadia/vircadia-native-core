@@ -47,10 +47,7 @@
 #pragma warning( disable : 4273 )
 #pragma warning( disable : 4305 )
 #endif
-extern "C" {
-    #include <gverb.h>
-    #include <gverbdsp.h>
-}
+
 #ifdef _WIN32
 #pragma warning( pop )
 #endif
@@ -60,7 +57,11 @@ static const int NUM_AUDIO_CHANNELS = 2;
 static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
 static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
 static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
-static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
+#if defined(Q_OS_ANDROID) || defined(Q_OS_WIN) 
+    static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = false;
+#else
+    static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
+#endif
 static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
 static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
 
@@ -68,6 +69,7 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 struct soxr;
+typedef struct ty_gverb ty_gverb;
 
 typedef glm::vec3 (*AudioPositionGetter)();
 typedef glm::quat (*AudioOrientationGetter)();
@@ -168,7 +170,7 @@ public slots:
 
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
-    void setReverb(bool reverb) { _reverb = reverb; }
+    void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
 
     void outputNotify();
@@ -187,6 +189,10 @@ signals:
 protected:
     AudioClient();
     ~AudioClient();
+    
+    virtual void customDeleter() {
+        deleteLater();
+    }
     
 private:
     void outputFormatChanged();
@@ -239,7 +245,6 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    ty_gverb* _gverbLocal;
     ty_gverb* _gverb;
     
     // possible soxr streams needed for resample
@@ -248,9 +253,10 @@ private:
     soxr* _loopbackResampler;
 
     // Adds Reverb
-    void initGverb();
+    ty_gverb* createGverbFilter();
+    void configureGverbFilter(ty_gverb* filter);
     void updateGverbOptions();
-    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
+    void addReverb(ty_gverb* gverb, int16_t* samples, int16_t* reverbAlone, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 

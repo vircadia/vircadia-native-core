@@ -85,10 +85,10 @@ function checkHands(deltaTime) {
 		var chord = Controller.getTriggerValue(chordHand);
 
 		if (volume > 1.0) volume = 1.0;
-		if ((chord > 0.1) && Audio.isInjectorPlaying(soundPlaying)) {
+		if ((chord > 0.1) && soundPlaying.isPlaying) {
 			// If chord finger trigger pulled, stop current chord
 			print("stopped sound");
-			Audio.stopInjector(soundPlaying);
+			soundPlaying.stop();
 		}
 
 		var BUTTON_COUNT = 6;
@@ -132,16 +132,21 @@ function checkHands(deltaTime) {
 }
 
 function playChord(position, volume) {
-	if (Audio.isInjectorPlaying(soundPlaying)) {
+	if (soundPlaying.isPlaying) {
 		print("stopped sound");
-		Audio.stopInjector(soundPlaying);
+		soundPlaying.stop();
 	}
   
 	print("Played sound: " + whichChord + " at volume " + options.volume);
-	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
-	  position: position,
-    volume: volume
-	});	
+  if (!soundPlaying) {
+  	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
+  	  position: position,
+      volume: volume
+  	});	
+  } else {
+    soundPlaying.restart();
+  }
+	
 }
 
 function keyPressEvent(event) {
