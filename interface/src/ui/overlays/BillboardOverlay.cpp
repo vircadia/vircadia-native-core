@@ -10,6 +10,8 @@
 //
 
 #include "Application.h"
+#include "GeometryUtil.h"
+#include "PlaneShape.h"
 
 #include "BillboardOverlay.h"
 
@@ -191,19 +193,25 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
                                                         float& distance, BoxFace& face) {
 
     if (_texture) {
+        glm::quat rotation;
+        if (_isFacingAvatar) {
+            // rotate about vertical to face the camera
+            rotation = Application::getInstance()->getCamera()->getRotation();
+            rotation *= glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+        } else {
+            rotation = _rotation;
+        }
+
+        // Produce the dimensions of the billboard based on the image's aspect ratio and the overlay's scale.
         bool isNull = _fromImage.isNull();
         float width = isNull ? _texture->getWidth() : _fromImage.width();
         float height = isNull ? _texture->getHeight() : _fromImage.height();
-
         float maxSize = glm::max(width, height);
-        float x = width / (2.0f * maxSize);
-        float y = -height / (2.0f * maxSize);
-        float maxDimension = glm::max(x,y);
-        float scaledDimension = maxDimension * _scale;
-        glm::vec3 corner = getCenter() - glm::vec3(scaledDimension, scaledDimension, scaledDimension) ;
-        AACube myCube(corner, scaledDimension * 2.0f);
-        return myCube.findRayIntersection(origin, direction, distance, face);
+        glm::vec2 dimensions = _scale * glm::vec2(width / maxSize, height / maxSize);
+
+        return findRayRectangleIntersection(origin, direction, rotation, _position, dimensions);
     }
+
     return false;
 }
 

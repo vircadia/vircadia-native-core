@@ -88,8 +88,17 @@ endif ()
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
-# set our OS X deployment target to
-set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
+if (APPLE)
+  # set our OS X deployment target
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
+  
+  # find the 10.9 SDK path
+  execute_process(COMMAND xcodebuild -sdk -version OUTPUT_VARIABLE XCODE_SDK_VERSIONS)
+  string(REGEX MATCH \\/.+MacOSX10.9.sdk OSX_SDK_PATH ${XCODE_SDK_VERSIONS})
+  
+  # set that as the SDK to use
+  set(CMAKE_OSX_SYSROOT ${OSX_SDK_PATH})
+endif ()
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
