@@ -494,8 +494,8 @@ void PolygonClip::copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& len
     }
 }
 
-bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::quat& rotation, const glm::vec3& position, const glm::vec2& dimensions) {
+bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::quat& rotation,
+        const glm::vec3& position, const glm::vec2& dimensions, float& distance) {
     RayIntersectionInfo rayInfo;
     rayInfo._rayStart = origin;
     rayInfo._rayDirection = direction;
@@ -511,7 +511,7 @@ bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& dire
     bool intersects = plane.findRayIntersection(rayInfo);
 
     if (intersects) {
-        float distance = rayInfo._hitDistance;
+        distance = rayInfo._hitDistance;
 
         glm::vec3 hitPosition = origin + (distance * direction);
         glm::vec3 localHitPosition = glm::inverse(rotation) * (hitPosition - position);

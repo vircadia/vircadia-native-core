@@ -121,8 +121,7 @@ bool KeyEvent::operator==(const KeyEvent& other) const {
     && other.isControl == isControl
     && other.isMeta == isMeta
     && other.isAlt == isAlt
-    && other.isKeypad == isKeypad
-    && other.isAutoRepeat == isAutoRepeat;
+    && other.isKeypad == isKeypad;
 }
 
 

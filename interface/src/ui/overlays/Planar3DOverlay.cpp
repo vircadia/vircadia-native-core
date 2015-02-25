@@ -95,5 +95,5 @@ QScriptValue Planar3DOverlay::getProperty(const QString& property) {
 
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
-    return findRayRectangleIntersection(origin, direction, _rotation, _position, _dimensions);
+    return findRayRectangleIntersection(origin, direction, _rotation, _position, _dimensions, distance);
 }
