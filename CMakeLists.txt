@@ -101,6 +101,7 @@ if (APPLE)
     NAME MacOSX10.9.sdk 
     HINTS ${OSX_SDK_PATH}
     PATHS /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
+          /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
   )
   
   if (NOT _OSX_DESIRED_SDK_PATH)
