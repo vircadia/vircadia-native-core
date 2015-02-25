@@ -473,7 +473,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     checkVersion();
 
-    _overlays.init(_glWidget); // do this before scripts load
+    _overlays.init(); // do this before scripts load
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
