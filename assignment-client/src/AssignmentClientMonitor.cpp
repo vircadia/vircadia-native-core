@@ -16,6 +16,7 @@
 #include <AddressManager.h>
 
 #include "AssignmentClientMonitor.h"
+#include "AssignmentClientApp.h"
 #include "AssignmentClientChildData.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
@@ -24,8 +25,20 @@ const char* NUM_FORKS_PARAMETER = "-n";
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 
-AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, const unsigned int numAssignmentClientForks) :
-    QCoreApplication(argc, argv)
+AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv,
+                                                 const unsigned int numAssignmentClientForks,
+                                                 const unsigned int minAssignmentClientForks,
+                                                 const unsigned int maxAssignmentClientForks,
+                                                 QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
+                                                 quint16 assignmentServerPort) :
+    QCoreApplication(argc, argv),
+    _numAssignmentClientForks(numAssignmentClientForks),
+    _minAssignmentClientForks(minAssignmentClientForks),
+    _maxAssignmentClientForks(maxAssignmentClientForks),
+    _assignmentPool(assignmentPool),
+    _walletUUID(walletUUID),
+    _assignmentServerHostname(assignmentServerHostname),
+    _assignmentServerPort(assignmentServerPort)
 {    
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
@@ -36,16 +49,6 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, const u
 #else
     ShutdownEventListener::getInstance();
 #endif
-    
-    _childArguments = arguments();
-    
-    // remove the parameter for the number of forks so it isn't passed to the child forked processes
-    int forksParameterIndex = _childArguments.indexOf(NUM_FORKS_PARAMETER);
-    
-    // this removes both the "-n" parameter and the number of forks passed
-    _childArguments.removeAt(forksParameterIndex);
-    _childArguments.removeAt(forksParameterIndex);
-
 
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
@@ -58,7 +61,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, const u
     nodeList->putLocalPortIntoSharedMemory(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY, this);
     
     // use QProcess to fork off a process for each of the child assignment clients
-    for (unsigned int i = 0; i < numAssignmentClientForks; i++) {
+    for (unsigned int i = 0; i < _numAssignmentClientForks; i++) {
         spawnChildClient();
     }
 
@@ -83,7 +86,26 @@ void AssignmentClientMonitor::stopChildProcesses() {
 
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess *assignmentClient = new QProcess(this);
-    
+
+    // unparse the parts of the command-line that the child cares about
+    QStringList _childArguments;
+    if (_assignmentPool != "") {
+        _childArguments.append("--" + ASSIGNMENT_POOL_OPTION);
+        _childArguments.append(_assignmentPool);
+    }
+    if (!_walletUUID.isNull()) {
+        _childArguments.append("--" + ASSIGNMENT_WALLET_DESTINATION_ID_OPTION);
+        _childArguments.append(_walletUUID.toString());
+    }
+    if (_assignmentServerHostname != "") {
+        _childArguments.append("--" + CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION);
+        _childArguments.append(_assignmentServerHostname);
+    }
+    if (_assignmentServerPort != DEFAULT_DOMAIN_SERVER_PORT) {
+        _childArguments.append("--" + CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
+        _childArguments.append(QString::number(_assignmentServerPort));
+    }
+
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
     
@@ -98,26 +120,24 @@ void AssignmentClientMonitor::checkSpares() {
     auto nodeList = DependencyManager::get<NodeList>();
     QUuid aSpareId = "";
     unsigned int spareCount = 0;
+    unsigned int totalCount = 0;
 
     nodeList->removeSilentNodes();
 
     nodeList->eachNode([&](const SharedNodePointer& node) {
         AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
+        totalCount ++;
         if (childData->getChildType() == "none") {
             spareCount ++;
             aSpareId = node->getUUID();
         }
     });
 
-    if (spareCount != 1) {
-        qDebug() << "spare count is" << spareCount;
-    }
-
-    if (spareCount < 1) {
+    if (spareCount < 1 && totalCount < _maxAssignmentClientForks) {
         spawnChildClient();
     }
 
-    if (spareCount > 1) {
+    if (spareCount > 1 && totalCount > _minAssignmentClientForks) {
         // kill aSpareId
         qDebug() << "asking child" << aSpareId << "to exit.";
         SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);

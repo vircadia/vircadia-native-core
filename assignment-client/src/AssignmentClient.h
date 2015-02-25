@@ -21,7 +21,9 @@ class QSharedMemory;
 class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
-    AssignmentClient(int &argc, char **argv);
+
+    AssignmentClient(int &argc, char **argv, Assignment::Type requestAssignmentType, QString assignmentPool,
+                     QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort);
     static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
 
 private slots:
