@@ -11,6 +11,7 @@
 #ifndef hifi_gpu_Context_h
 #define hifi_gpu_Context_h
 
+#include <QDebug>
 #include <assert.h>
 
 #include "Resource.h"
@@ -21,7 +22,7 @@ namespace gpu {
 class GPUObject {
 public:
     GPUObject() {}
-    ~GPUObject() {}
+    virtual ~GPUObject() {}
 };
 
 class Batch;
