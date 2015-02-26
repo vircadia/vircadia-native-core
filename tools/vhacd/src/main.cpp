@@ -27,7 +27,10 @@ int main(int argc, char * argv[]){
 	vhacd::ComputeResults results; // results after computing vhacd
 	VHACD::IVHACD::Parameters params;
 	vhacd::ProgressCallback pCallBack;
-
+	if (argc < 2){
+	    cout << "please provide a FBX file as argument\n ";
+		return 1;
+	}
 	string filename(argv[1]);
 	if (filename.empty()){
 		cout << "please provide a FBX file as argument\n ";

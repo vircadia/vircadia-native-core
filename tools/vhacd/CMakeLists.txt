@@ -18,8 +18,6 @@ if(NOT WIN32)
    endif()
 endif()
 
-add_dependency_external_project(glm)
+add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
-
-include_dependency_includes()
