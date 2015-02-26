@@ -215,7 +215,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     
     // Set dependencies
-    //auto glCanvasGlobal = DependencyManager::set<GLCanvasGlobal>();
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
@@ -532,8 +531,6 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
-    qDebug() << "Application::cleanupBeforeQuit() ------------ BEGIN --------------";
-
     _datagramProcessor.shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
@@ -577,12 +574,9 @@ void Application::cleanupBeforeQuit() {
     
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
-
-    qDebug() << "Application::cleanupBeforeQuit() ------------ END --------------";
 }
 
 Application::~Application() {    
-    qDebug() << "Application::~Application() ------------ BEGIN --------------";
     EntityTree* tree = _entities.getTree();
     tree->lockForWrite();
     _entities.getTree()->setSimulation(NULL);
@@ -601,19 +595,13 @@ Application::~Application() {
 
     ModelEntityItem::cleanupLoadedAnimations() ;
     
-    //DependencyManager::destroy<GLCanvasGlobal>();
-
-    qDebug() << "Application::~Application() ------------ BEGIN CACHE CLEANUP --------------";
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
-    qDebug() << "Application::~Application() ------------ END CACHE CLEANUP --------------";
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
-
-    qDebug() << "Application::~Application() ------------ END --------------";
 }
 
 void Application::initializeGL() {

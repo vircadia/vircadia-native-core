@@ -16,17 +16,12 @@
 #include <QGLWidget>
 #include <QTimer>
 
-//#include <DependencyManager.h>
-
 /// customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
     Q_OBJECT
     
 public:
     GLCanvas();
-    virtual ~GLCanvas() {
-        qDebug() << "Deleting GLCanvas";
-    }
 
     bool isThrottleRendering() const;
     
