@@ -11,7 +11,6 @@
 #ifndef hifi_gpu_Context_h
 #define hifi_gpu_Context_h
 
-#include <QDebug>
 #include <assert.h>
 
 #include "Resource.h"
