@@ -77,7 +77,8 @@ Avatar::Avatar() :
     _moving(false),
     _collisionGroups(0),
     _initialized(false),
-    _shouldRenderBillboard(true)
+    _shouldRenderBillboard(true),
+    _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -439,8 +440,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
+
+                if (_voiceSphereID == GeometryCache::UNKNOWN_ID) {
+                    _voiceSphereID = DependencyManager::get<GeometryCache>()->allocateID();
+                }
                 DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15,
-                                        glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE));
+                    glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE), true,
+                    _voiceSphereID);
 
                 glPopMatrix();
             }
