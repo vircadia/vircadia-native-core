@@ -96,7 +96,7 @@ void EntityTreeRenderer::init() {
 
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.    
-    _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3(1.0f, 1.0f, 1.0f);
+    _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
     connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
@@ -276,19 +276,19 @@ void EntityTreeRenderer::update() {
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree && !_shuttingDown) {
         _tree->lockForWrite(); // so that our scripts can do edits if they want
-        glm::vec3 avatarPosition = _viewState->getAvatarPosition() / (float) TREE_SCALE;
+        glm::vec3 avatarPosition = _viewState->getAvatarPosition();
         
         if (avatarPosition != _lastAvatarPosition) {
-            float radius = 1.0f / (float) TREE_SCALE; // for now, assume 1 meter radius
+            float radius = 1.0f; // for now, assume 1 meter radius
             QVector<const EntityItem*> foundEntities;
             QVector<EntityItemID> entitiesContainingAvatar;
             
             // find the entities near us
-            static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+            static_cast<EntityTree*>(_tree)->findEntitiesInMeters(avatarPosition, radius, foundEntities);
 
             // create a list of entities that actually contain the avatar's position
             foreach(const EntityItem* entity, foundEntities) {
-                if (entity->contains(avatarPosition)) {
+                if (entity->containsInMeters(avatarPosition)) {
                     entitiesContainingAvatar << entity->getEntityItemID();
                 }
             }
@@ -341,7 +341,7 @@ void EntityTreeRenderer::leaveAllEntities() {
         
         // make sure our "last avatar position" is something other than our current position, so that on our
         // first chance, we'll check for enter/leave entity events.    
-        _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3(1.0f, 1.0f, 1.0f);
+        _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
         _tree->unlock();
     }
 }

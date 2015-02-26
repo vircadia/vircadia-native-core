@@ -951,6 +951,12 @@ AACube EntityItem::getMinimumAACube() const {
     return AACube(cornerOfCube, longestSide);
 }
 
+AABox EntityItem::getAABoxInMeters() const {
+    AABox box = getAABox();
+    box *= (float)TREE_SCALE;
+    return box;
+}
+
 AABox EntityItem::getAABox() const { 
 
     // _position represents the position of the registration point.

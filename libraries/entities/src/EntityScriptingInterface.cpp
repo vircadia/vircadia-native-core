@@ -204,7 +204,7 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
     if (_entityTree) {
         _entityTree->lockForRead();
         QVector<const EntityItem*> entities;
-        _entityTree->findEntities(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, entities);
+        _entityTree->findEntitiesInMeters(center, radius, entities);
         _entityTree->unlock();
 
         foreach (const EntityItem* entity, entities) {

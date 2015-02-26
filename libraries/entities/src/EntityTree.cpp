@@ -491,8 +491,9 @@ bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) 
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities) {
-    FindAllNearPointArgs args = { center, radius };
+void EntityTree::findEntitiesInMeters(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities) {
+    // position and targetRadius are in meters, so we need to convert to TreeUnits in FindNearPointArgs
+    FindAllNearPointArgs args = { center / (float)TREE_SCALE, radius / (float)TREE_SCALE };
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInSphereOperation, &args);
 

@@ -215,6 +215,7 @@ public:
     float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
+    AABox getAABoxInMeters() const; /// axis aligned bounding box in world-frame (meters)
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     const QString& getScript() const { return _script; }
@@ -253,6 +254,7 @@ public:
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
+    virtual bool containsInMeters(const glm::vec3& point) const { return getAABoxInMeters().contains(point); }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     virtual void computeShapeInfo(ShapeInfo& info) const;
 

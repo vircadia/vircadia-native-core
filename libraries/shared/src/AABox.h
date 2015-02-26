@@ -75,6 +75,8 @@ public:
     AABox& operator += (const glm::vec3& point);
     AABox& operator += (const AABox& box);
 
+    AABox& operator *= (float multiplier);
+
     bool isInvalid() const { return _corner == glm::vec3(std::numeric_limits<float>::infinity()); }
 
 private:

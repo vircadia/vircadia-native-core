@@ -485,3 +485,9 @@ AABox& AABox::operator += (const AABox& box) {
     }
     return (*this);
 }
+
+AABox& AABox::operator *= (float multiplier) {
+    _corner *= multiplier;
+    _scale *= multiplier;
+    return (*this);
+}
