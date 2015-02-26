@@ -11,9 +11,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QSvgRenderer>
-#include <QPainter>
-#include <QGLWidget>
 #include <SharedUtil.h>
 
 #include "Overlay2D.h"

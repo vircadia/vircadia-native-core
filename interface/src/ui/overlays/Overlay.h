@@ -14,7 +14,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QGLWidget>
 #include <QRect>
 #include <QScriptValue>
 #include <QString>
@@ -38,7 +37,7 @@ public:
     Overlay();
     Overlay(const Overlay* overlay);
     ~Overlay();
-    void init(QGLWidget* parent, QScriptEngine* scriptEngine);
+    void init(QScriptEngine* scriptEngine);
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
 
@@ -85,7 +84,6 @@ public:
 protected:
     float updatePulse();
 
-    QGLWidget* _parent;
     bool _isLoaded;
     float _alpha;
     float _glowLevel;

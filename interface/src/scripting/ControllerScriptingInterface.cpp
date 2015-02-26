@@ -15,6 +15,7 @@
 #include <HandData.h>
 #include <HFBackEvent.h>
 
+#include "Application.h"
 #include "devices/MotionTracker.h"
 #include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
@@ -285,7 +286,7 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 }
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     return glm::vec2(glCanvas->width(), glCanvas->height());
 }
 

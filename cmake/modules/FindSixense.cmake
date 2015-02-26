@@ -32,14 +32,27 @@ elseif (UNIX)
 elseif (WIN32)
   find_library(SIXENSE_LIBRARY_RELEASE lib/win32/release_dll/sixense.lib HINTS ${SIXENSE_SEARCH_DIRS})
   find_library(SIXENSE_LIBRARY_DEBUG lib/win32/debug_dll/sixensed.lib HINTS ${SIXENSE_SEARCH_DIRS})
+  
+  find_path(SIXENSE_DEBUG_DLL_PATH sixensed.dll PATH_SUFFIXES bin/win32/debug_dll HINTS ${SIXENSE_SEARCH_DIRS})
+  find_path(SIXENSE_RELEASE_DLL_PATH sixense.dll PATH_SUFFIXES bin/win32/release_dll HINTS ${SIXENSE_SEARCH_DIRS})
+  find_path(SIXENSE_DEVICE_DLL_PATH DeviceDLL.dll PATH_SUFFIXES samples/win32/sixense_simple3d HINTS ${SIXENSE_SEARCH_DIRS})
 endif ()
 
 include(SelectLibraryConfigurations)
 select_library_configurations(SIXENSE)
 
+set(SIXENSE_REQUIREMENTS SIXENSE_INCLUDE_DIRS SIXENSE_LIBRARIES)
+if (WIN32)
+  list(APPEND SIXENSE_REQUIREMENTS SIXENSE_DEBUG_DLL_PATH SIXENSE_RELEASE_DLL_PATH SIXENSE_DEVICE_DLL_PATH)
+endif ()
+
 set(SIXENSE_LIBRARIES "${SIXENSE_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Sixense DEFAULT_MSG SIXENSE_INCLUDE_DIRS SIXENSE_LIBRARIES)
+find_package_handle_standard_args(Sixense DEFAULT_MSG ${SIXENSE_REQUIREMENTS})
+
+if (WIN32)
+  add_paths_to_fixup_libs(${SIXENSE_DEBUG_DLL_PATH} ${SIXENSE_RELEASE_DLL_PATH} ${SIXENSE_DEVICE_DLL_PATH})
+endif ()
 
 mark_as_advanced(SIXENSE_LIBRARIES SIXENSE_INCLUDE_DIRS SIXENSE_SEARCH_DIRS)

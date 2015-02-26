@@ -51,7 +51,7 @@ class Overlays : public QObject {
 public:
     Overlays();
     ~Overlays();
-    void init(QGLWidget* parent);
+    void init();
     void update(float deltatime);
     void renderWorld(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
                         RenderArgs::RenderSide renderSide = RenderArgs::MONO);
@@ -95,7 +95,6 @@ private:
     QMap<unsigned int, Overlay*> _overlaysWorld;
     QList<Overlay*> _overlaysToDelete;
     unsigned int _nextOverlayID;
-    QGLWidget* _parent;
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
     QScriptEngine* _scriptEngine;
