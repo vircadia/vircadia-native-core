@@ -11,6 +11,8 @@
 #include "Stage.h"
 
 #include <glm/gtx/transform.hpp> 
+#include <math.h>
+
 using namespace model;
 
 
@@ -74,10 +76,10 @@ void EarthSunModel::updateSun() const {
     _surfaceSunDir = glm::normalize(Vec3(lssd.x, lssd.y, lssd.z));
 }
 
-float moduloRange(float val, float minVal, float maxVal) {
-    float range = maxVal - minVal;
-    float rval = (val - minVal) / range;
-    float intval;
+double moduloRange(double val, double minVal, double maxVal) {
+    double range = maxVal - minVal;
+    double rval = (val - minVal) / range;
+    double intval;
     return modf(rval, &intval) * range + minVal;
 }
 
