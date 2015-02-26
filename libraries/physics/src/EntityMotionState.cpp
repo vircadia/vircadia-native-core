@@ -63,6 +63,10 @@ void EntityMotionState::stepKinematicSimulation(quint64 now) {
     _entity->simulate(now);
 }
 
+bool EntityMotionState::isMoving() const {
+    return _entity->isMoving();
+}
+
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
