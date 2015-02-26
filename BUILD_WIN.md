@@ -56,6 +56,9 @@ The recommended route for CMake to find the external dependencies is to place al
             -> bin
             -> include
             -> lib
+        -> glm
+            -> glm
+                -> glm.hpp
         -> openssl
             -> bin
             -> include
@@ -67,9 +70,6 @@ The recommended route for CMake to find the external dependencies is to place al
            -> include
            -> lib
            -> test
-		-> vhacd
-           -> include
-           -> lib
 
 For many of the external libraries where precompiled binaries are readily available you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. Otherwise you may need to build from source and install the built product to this directory. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it. From here on, whenever you see %HIFI_LIB_DIR% you should substitute the directory that you chose.
 
@@ -117,21 +117,6 @@ Add to the PATH: `%HIFI_LIB_DIR%\zlib`
 Important! This should be added at the beginning of the path, not the end (your 
 system likely has many copies of zlib1.dll, and you want High Fidelity to use the correct version). If High Fidelity picks up the wrong zlib1.dll then it might be unable to use it, and that would cause it to fail to start, showing only the cryptic error "The application was unable to start correctly: 0xc0000022".
 
-###vhacd
-Download it directly from https://github.com/virneo/v-hacd
-
-To build it run the following commands
-	1. cd src\
-	2. mkdir build
-	3. cd build
-	4. cmake ..
-	
-Build using visual studio 2013. Build ALL_BUILD and INSTALL targets both in Release and Debug.
-
-This will create an output folder with include and lib directory inside it.
-
-Either copy that folder to ENV %HIFI_LIB_DIR%/vhacd or create an environment variable VHACD_ROOT_DIR to this output directory.
-
 ###freeglut
 
 Download the binary package: `freeglut-MSVC-2.8.1-1.mp.zip`. Extract to %HIFI_LIB_DIR%\freeglut.
@@ -143,6 +128,26 @@ Add to the PATH: `%HIFI_LIB_DIR%\freeglut\bin`
 Download the binary package: `glew-1.10.0-win32.zip`. Extract to %HIFI_LIB_DIR%\glew (you'll need to rename the default directory name).
 
 Add to the PATH: `%HIFI_LIB_DIR%\glew\bin\Release\Win32`
+
+###GLM
+
+This package contains only headers, so there's nothing to add to the PATH.
+
+Be careful with glm. For the folder other libraries would normally call 'include', the folder containing the headers, glm opts to use 'glm'. You will have a glm folder nested inside the top-level glm folder.
+
+###Gverb
+
+1. Go to https://github.com/highfidelity/gverb
+   Or download the sources directly via this link: 
+   https://github.com/highfidelity/gverb/archive/master.zip
+
+2. Extract the archive
+
+3. Place the directories “include” and “src” in interface/external/gverb 
+   (Normally next to this readme)
+
+4. Clear your build directory, run cmake, build and you should be all set.
+
 
 ###Bullet
 
@@ -180,8 +185,6 @@ Download the zip from the [soxr sourceforge page](http://sourceforge.net/project
 We recommend you install it to %HIFI_LIB_DIR%\soxr. This will help our FindSoxr cmake module find what it needs. You can place it wherever you like on your machine if you specify SOXR_ROOT_DIR as an environment variable or a variable passed when cmake is run.
 
 Extract the soxr archive wherever you like. Then, inside the extracted folder, create a directory called `build`. From that build directory, the following commands will build and then install soxr to `%HIFI_LIB_DIR%`.
-
-(Make sure to run the following inside Visual Studio)
 
 ```
 cmake .. -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=%HIFI_LIB_DIR%/soxr
