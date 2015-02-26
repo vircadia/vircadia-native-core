@@ -41,7 +41,6 @@ const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.7f);
 
 Visage::Visage() :
     _enabled(false),
-    _active(false),
     _headOrigin(DEFAULT_HEAD_ORIGIN) {
     
 #ifdef HAVE_VISAGE
@@ -119,19 +118,20 @@ static const QMultiHash<QByteArray, QPair<int, float> >& getActionUnitNameMap() 
 }
 #endif
 
-const float TRANSLATION_SCALE = 20.0f;
 
+#ifdef HAVE_VISAGE
+const float TRANSLATION_SCALE = 20.0f;
 void Visage::init() {
     connect(DependencyManager::get<Faceshift>().data(), SIGNAL(connectionStateChanged()), SLOT(updateEnabled()));
     updateEnabled();
 }
 
 void Visage::update(float deltaTime) {
-#ifdef HAVE_VISAGE
-    _active = (_tracker->getTrackingData(_data) == TRACK_STAT_OK);
-    if (!_active) {
+    if (!isActive()) {
         return;
     }
+    FaceTracker::update(deltaTime);
+    
     _headRotation = glm::quat(glm::vec3(-_data->faceRotation[0], -_data->faceRotation[1], _data->faceRotation[2]));    
     _headTranslation = (glm::vec3(_data->faceTranslation[0], _data->faceTranslation[1], _data->faceTranslation[2]) -
         _headOrigin) * TRANSLATION_SCALE;
@@ -163,12 +163,12 @@ void Visage::update(float deltaTime) {
     }
     _blendshapeCoefficients[leftEyeBlinkIndex] = 1.0f - _data->eyeClosure[1];
     _blendshapeCoefficients[rightEyeBlinkIndex] = 1.0f - _data->eyeClosure[0];
-#endif
 }
 
 void Visage::reset() {
     _headOrigin += _headTranslation / TRANSLATION_SCALE;
 }
+#endif
 
 void Visage::updateEnabled() {
     setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Visage) &&

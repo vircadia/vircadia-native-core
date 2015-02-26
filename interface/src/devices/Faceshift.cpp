@@ -54,6 +54,8 @@ void Faceshift::update(float deltaTime) {
     if (!isActive()) {
         return;
     }
+    FaceTracker::update(deltaTime);
+    
     // get the euler angles relative to the window
     glm::vec3 eulers = glm::degrees(safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
         (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f)))));

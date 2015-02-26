@@ -1158,15 +1158,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         pitch *= DEGREES_PER_RADIAN;
         roll *= DEGREES_PER_RADIAN;
         
-        // Record the angular velocity
-        Head* head = getHead();
-        if (deltaTime > 0.0f) {
-            glm::vec3 angularVelocity(pitch - head->getBasePitch(), yaw - head->getBaseYaw(), roll - head->getBaseRoll());
-            angularVelocity *= 1.0f / deltaTime;
-            head->setAngularVelocity(angularVelocity);
-        }
-        
         //Invert yaw and roll when in mirror mode
+        Head* head = getHead();
         if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
             head->setBaseYaw(-yaw);
             head->setBasePitch(pitch);

@@ -27,11 +27,13 @@ public:
     virtual bool isTracking() const { return false; }
     
     virtual void init() {}
-    virtual void update(float deltaTime) {}
+    virtual void update(float deltaTime);
     virtual void reset() {}
     
-    const glm::vec3& getHeadTranslation() const { return _headTranslation; }
-    const glm::quat& getHeadRotation() const { return _headRotation; }
+    float getFadeCoefficient() const;
+    
+    const glm::vec3 getHeadTranslation() const;
+    const glm::quat getHeadRotation() const;
     
     float getEstimatedEyePitch() const { return _estimatedEyePitch; }
     float getEstimatedEyeYaw() const { return _estimatedEyeYaw; } 
@@ -42,15 +44,13 @@ public:
     float getBlendshapeCoefficient(int index) const;
     
 protected:
-    
-    
     glm::vec3 _headTranslation = glm::vec3(0.0f);
     glm::quat _headRotation = glm::quat();
     float _estimatedEyePitch = 0.0f;
     float _estimatedEyeYaw = 0.0f;
     QVector<float> _blendshapeCoefficients;
     
-    float _fadeCoefficient = 0.0f;
+    float _relaxationStatus = 0.0f; // Between 0.0f and 1.0f
 };
 
 #endif // hifi_FaceTracker_h
