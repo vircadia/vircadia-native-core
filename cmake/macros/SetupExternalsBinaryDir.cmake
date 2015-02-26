@@ -14,10 +14,12 @@ macro(SETUP_EXTERNALS_BINARY_DIR)
   # get a short name for the generator to use in the path
   STRING(REGEX REPLACE " " "-" CMAKE_GENERATOR_FOLDER_NAME ${CMAKE_GENERATOR})
 
-  if (CMAKE_GENERATOR_FOLDER_NAME STREQUAL "Unix-Makefiles")
-    set(CMAKE_GENERATOR_FOLDER_NAME "makefiles")
-  elseif (CMAKE_GENERATOR_FOLDER_NAME STREQUAL "Visual-Studio-12")
-    set(CMAKE_GENERATOR_FOLDER_NAME "vs12")
+  if (MSVC12)
+    set(CMAKE_GENERATOR_FOLDER_NAME "vc12")
+  else ()
+    if (CMAKE_GENERATOR_FOLDER_NAME STREQUAL "Unix-Makefiles")
+      set(CMAKE_GENERATOR_FOLDER_NAME "makefiles")
+    endif ()
   endif ()
 
   set(EXTERNALS_BINARY_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build-ext")

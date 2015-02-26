@@ -16,7 +16,6 @@
 
 #include <glm/glm.hpp>
 
-#include <QGLWidget>
 #include <QScriptValue>
 
 #include "Base3DOverlay.h"

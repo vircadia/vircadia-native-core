@@ -12,7 +12,6 @@
 #include <QStyle>
 #include <QStyleOptionTitleBar>
 
-#include "DependencyManager.h"
 #include "GLCanvas.h"
 
 #include "UIUtil.h"
@@ -44,8 +43,6 @@ int UIUtil::getWindowTitleBarHeight(const QWidget* window) {
 // this function at all.  If you mix both you will end up with inconsistent results
 // across platforms.
 void UIUtil::scaleWidgetFontSizes(QWidget* widget) {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
-
     // This is the base dpi that we are targetting.  This is based on Mac OSXs default DPI,
     // and is the basis for all font sizes.
     const float BASE_DPI = 72.0f;
