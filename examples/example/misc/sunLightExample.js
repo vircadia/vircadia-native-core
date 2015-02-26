@@ -18,7 +18,7 @@ Scene.setDayTime(hour);
 //Scene.setOriginLocation(longitude, latitude, 0.0);
 
 function ticktack() {
-	hour += 0.1;
+    hour += 0.1;
     //Scene.setSunIntensity(Math.cos(time));
     if (hour > 24.0) {
         hour = 0.0;
