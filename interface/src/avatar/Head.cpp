@@ -42,7 +42,6 @@ Head::Head(Avatar* owningAvatar) :
     _mouth2(0.0f),
     _mouth3(0.0f),
     _mouth4(0.0f),
-    _angularVelocity(0,0,0),
     _renderLookatVectors(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
