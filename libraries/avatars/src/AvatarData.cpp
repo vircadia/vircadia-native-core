@@ -44,7 +44,7 @@ AvatarData::AvatarData() :
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
-    _forceFaceshiftConnected(false),
+    _forceFaceTrackerConnected(false),
     _hasNewJointRotations(true),
     _headData(NULL),
     _handData(NULL),
@@ -136,8 +136,8 @@ QByteArray AvatarData::toByteArray() {
     if (!_headData) {
         _headData = new HeadData(this);
     }
-    if (_forceFaceshiftConnected) {
-        _headData->_isFaceshiftConnected = true;
+    if (_forceFaceTrackerConnected) {
+        _headData->_isFaceTrackerConnected = true;
     }
     
     QByteArray avatarDataByteArray;
@@ -191,7 +191,7 @@ QByteArray AvatarData::toByteArray() {
         setAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT);
     }
     // faceshift state
-    if (_headData->_isFaceshiftConnected) {
+    if (_headData->_isFaceTrackerConnected) {
         setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
     }
     if (_isChatCirclingEnabled) {
@@ -208,7 +208,7 @@ QByteArray AvatarData::toByteArray() {
     }
 
     // If it is connected, pack up the data
-    if (_headData->_isFaceshiftConnected) {
+    if (_headData->_isFaceTrackerConnected) {
         memcpy(destinationBuffer, &_headData->_leftEyeBlink, sizeof(float));
         destinationBuffer += sizeof(float);
 
@@ -417,7 +417,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         _handState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT) 
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
         
-        _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        _headData->_isFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
         _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
         
@@ -436,7 +436,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         }
     
     
-        if (_headData->_isFaceshiftConnected) {
+        if (_headData->_isFaceTrackerConnected) {
             float leftEyeBlink, rightEyeBlink, averageLoudness, browAudioLift;
             minPossibleSize += sizeof(leftEyeBlink) + sizeof(rightEyeBlink) + sizeof(averageLoudness) + sizeof(browAudioLift);
             minPossibleSize++; // one byte for blendDataSize

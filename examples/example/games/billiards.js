@@ -122,7 +122,7 @@ function makeBalls(pos) {
 	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
 	        ignoreCollisions: false,
 	        damping: 0.50,
-            shapeType: 2,
+            shapeType: "sphere",
 	        collisionsWillMove: true }));
 	        ballPosition.z += (BALL_SIZE + BALL_GAP) * SCALE;
             ballNumber++;
@@ -143,7 +143,7 @@ function makeBalls(pos) {
 	      	velocity: {x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        damping: 0.50,
-            shapeType: 2,
+            shapeType: "sphere",
 	        collisionsWillMove: true });
 	       
 }

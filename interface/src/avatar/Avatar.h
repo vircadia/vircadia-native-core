@@ -234,7 +234,7 @@ protected:
 private:
 
     bool _initialized;
-    QScopedPointer<Texture> _billboardTexture;
+    NetworkTexturePointer _billboardTexture;
     bool _shouldRenderBillboard;
     bool _isLookAtTarget;
 

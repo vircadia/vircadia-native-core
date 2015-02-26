@@ -1959,7 +1959,7 @@ HeightfieldNode* HeightfieldNode::fillHeight(const glm::vec3& translation, const
     } else {
         colorWidth = innerHeightWidth + HeightfieldData::SHARED_EDGE;
         colorHeight = innerHeightHeight + HeightfieldData::SHARED_EDGE;
-        newColorContents = QByteArray(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFF);
+        newColorContents = QByteArray(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFFu);
     }
     int innerColorWidth = colorWidth - HeightfieldData::SHARED_EDGE;
     int innerColorHeight = colorHeight - HeightfieldData::SHARED_EDGE;
@@ -2185,7 +2185,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
     } else {
         colorWidth = innerHeightWidth + HeightfieldData::SHARED_EDGE;
         colorHeight = innerHeightHeight + HeightfieldData::SHARED_EDGE;
-        newColorContents = QByteArray(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFF);
+        newColorContents = QByteArray(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFFu);
     }
     int innerColorWidth = colorWidth - HeightfieldData::SHARED_EDGE;
     int innerColorHeight = colorHeight - HeightfieldData::SHARED_EDGE;
@@ -2428,7 +2428,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                             }
                         }
                     }
-                    bool nextAlphaY = stackDest->getEntryAlpha(y + 1, voxelHeight);
+                    int nextAlphaY = stackDest->getEntryAlpha(y + 1, voxelHeight);
                     if (nextAlphaY == currentAlpha) {
                         entryDest->hermiteY = 0;
                     
@@ -2447,7 +2447,7 @@ HeightfieldNode* HeightfieldNode::setMaterial(const glm::vec3& translation, cons
                     }
                     int nextStackZ = (int)stackZ + 1;
                     if (nextStackZ <= innerStackHeight) {
-                        bool nextAlphaZ = newStackContents.at(nextStackZ * stackWidth + (int)stackX).getEntryAlpha(
+                        int nextAlphaZ = newStackContents.at(nextStackZ * stackWidth + (int)stackX).getEntryAlpha(
                             y, nextVoxelHeightZ);
                         if (nextAlphaZ == currentAlpha) {
                             entryDest->hermiteZ = 0;
@@ -2828,7 +2828,7 @@ void HeightfieldNode::mergeChildren(bool height, bool colorMaterial) {
         _height.reset();
     }
     if (colorWidth > 0 && colorMaterial) {
-        QByteArray colorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFF);
+        QByteArray colorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFFu);
         for (int i = 0; i < CHILD_COUNT; i++) {
             HeightfieldColorPointer childColor = _children[i]->getColor();
             if (!childColor) {
@@ -3266,7 +3266,7 @@ HeightfieldNode* HeightfieldNode::subdivide(const QVector<quint16>& heightConten
     }
     for (int i = 0; i < CHILD_COUNT; i++) {
         QVector<quint16> childHeightContents(heightWidth * heightHeight);
-        QByteArray childColorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFF);
+        QByteArray childColorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFFu);
         QByteArray childMaterialContents(materialWidth * materialHeight, 0);
         QVector<StackArray> childStackContents(stackWidth * stackHeight);
         

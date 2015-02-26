@@ -181,7 +181,7 @@ public:
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
-    DEFINE_PROPERTY_REF(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
+    DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }

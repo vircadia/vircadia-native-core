@@ -80,15 +80,10 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
             FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            auto dde = DependencyManager::get<DdeFaceTracker>();
-            auto faceshift = DependencyManager::get<Faceshift>();
-            
-            if ((_isFaceshiftConnected = (faceshift == faceTracker))) {
+            _isFaceTrackerConnected = faceTracker != NULL;
+            if (_isFaceTrackerConnected) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-            } else if (dde->isActive()) {
-                faceTracker = dde.data();
-                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-            }            
+            }
         }
         //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
         //  since everyone else will see the full joint rotations for other people.  
@@ -109,7 +104,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
     
-    if (!(_isFaceshiftConnected || billboard)) {
+    if (!(_isFaceTrackerConnected || billboard)) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;

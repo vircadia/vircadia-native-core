@@ -27,6 +27,7 @@
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
+#include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
@@ -357,18 +358,35 @@ Menu::Menu() {
                                   dialogsManager.data(), SLOT(lodTools()));
 
     QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");
+
+    QMenu* faceTrackingMenu = avatarDebugMenu->addMenu("Face Tracking");
+    {
+        QActionGroup* faceTrackerGroup = new QActionGroup(avatarDebugMenu);
+
+        QAction* noFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::NoFaceTracking,
+            0, true,
+            qApp, SLOT(setActiveFaceTracker()));
+        faceTrackerGroup->addAction(noFaceTracker);
+
 #ifdef HAVE_FACESHIFT
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
-                                           MenuOption::Faceshift,
-                                           0,
-                                           true,
-                                           DependencyManager::get<Faceshift>().data(),
-                                           SLOT(setTCPEnabled(bool)));
+        QAction* faceshiftFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Faceshift,
+            0, false,
+            qApp, SLOT(setActiveFaceTracker()));
+        faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
+
+        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFaceRegression, 
+            0, false,
+            qApp, SLOT(setActiveFaceTracker()));
+        faceTrackerGroup->addAction(ddeFaceTracker);
+
 #ifdef HAVE_VISAGE
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Visage, 0, false,
-            DependencyManager::get<Visage>().data(), SLOT(updateEnabled()));
+        QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Visage, 
+            0, false,
+            qApp, SLOT(setActiveFaceTracker()));
+        faceTrackerGroup->addAction(visageFaceTracker);
 #endif
+    }
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderHeadCollisionShapes);

@@ -21,7 +21,7 @@ namespace gpu {
 class GPUObject {
 public:
     GPUObject() {}
-    ~GPUObject() {}
+    virtual ~GPUObject() {}
 };
 
 class Batch;

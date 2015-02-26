@@ -48,7 +48,6 @@ QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* conte
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 result;
-    HMDScriptingInterface* hmdInterface = &HMDScriptingInterface::getInstance();
     if ((&HMDScriptingInterface::getInstance())->getHUDLookAtPosition3D(result)) {
         return qScriptValueFromValue<glm::vec3>(engine, result);
     }

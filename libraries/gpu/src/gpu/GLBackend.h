@@ -35,7 +35,7 @@ public:
 
     
 
-    class GLBuffer {
+    class GLBuffer : public GPUObject {
     public:
         Stamp _stamp;
         GLuint _buffer;

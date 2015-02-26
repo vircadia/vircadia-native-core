@@ -180,15 +180,6 @@
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
     properties.setProperty(#P, _##P);
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S, E) \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        E newValue = (E)(P.toVariant().toInt());   \
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
-    }
-
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(P, S) \
     QScriptValue P = object.property(#P);           \
     if (P.isValid()) {                              \
@@ -280,6 +271,15 @@
             }                                           \
         }                                               \
     }
+
+#define COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(P, S)               \
+    QScriptValue P = object.property(#P);                         \
+    if (P.isValid()) {                                            \
+        QString newValue = P.toVariant().toString();              \
+        if (_defaultSettings || newValue != get##S##AsString()) { \
+            set##S##FromString(newValue);                         \
+        }                                                         \
+    }
     
 #define CONSTRUCT_PROPERTY(n, V)        \
     _##n(V),                            \
@@ -317,6 +317,17 @@
         T get##N() const; \
         void set##N(const T& value); \
         bool n##Changed() const; \
+    private: \
+        T _##n; \
+        bool _##n##Changed;
+
+#define DEFINE_PROPERTY_REF_ENUM(P, N, n, T) \
+    public: \
+        const T& get##N() const { return _##n; } \
+        void set##N(const T& value) { _##n = value; _##n##Changed = true; } \
+        bool n##Changed() const { return _##n##Changed; } \
+        QString get##N##AsString() const; \
+        void set##N##FromString(const QString& name); \
     private: \
         T _##n; \
         bool _##n##Changed;

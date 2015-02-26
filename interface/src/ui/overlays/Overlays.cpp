@@ -58,8 +58,7 @@ Overlays::~Overlays() {
     
 }
 
-void Overlays::init(QGLWidget* parent) {
-    _parent = parent;
+void Overlays::init() {
     _scriptEngine = new QScriptEngine();
 }
 
@@ -202,7 +201,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
 }
 
 unsigned int Overlays::addOverlay(Overlay* overlay) {
-    overlay->init(_parent, _scriptEngine);
+    overlay->init(_scriptEngine);
 
     QWriteLocker lock(&_lock);
     unsigned int thisID = _nextOverlayID;

@@ -10,6 +10,8 @@ if (WIN32)
   target_link_libraries(${TARGET_NAME} ws2_32.lib)
 endif ()
 
+add_dependency_external_projects(tbb)
+
 # find required dependencies
 find_package(OpenSSL REQUIRED)
 find_package(TBB REQUIRED)
@@ -25,8 +27,5 @@ include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 # append OpenSSL to our list of libraries to link
 target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES} ${TBB_LIBRARIES})
 
-# append libcuckoo includes to our list of includes to bubble
-list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${TBB_INCLUDE_DIRS}")
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()
+# append tbb includes to our list of includes to bubble
+target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${TBB_INCLUDE_DIRS})
