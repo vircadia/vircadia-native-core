@@ -26,25 +26,26 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
     QByteArray fbxContents = fbx.readAll();
     FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
     //results->meshCount = geometry.meshes.count();
-    
+
     int count = 0;
-    foreach(FBXMesh mesh, geometry.meshes)	{
+    foreach(FBXMesh mesh, geometry.meshes){
         //get vertices for each mesh		
-        QVector<glm::vec3> vertices = mesh.vertices;		
+        QVector<glm::vec3> vertices = mesh.vertices;
 
         //get the triangle indices for each mesh
         QVector<int> triangles;
-        foreach(FBXMeshPart part, mesh.parts)		{
+        foreach(FBXMeshPart part, mesh.parts){
             QVector<int> indices = part.triangleIndices;
             triangles += indices;
         }
 
         //only read meshes with triangles
-        if (triangles.count() <= 0)
-            continue;
+		if (triangles.count() <= 0){
+			continue;
+		}           
         results->perMeshVertices.append(vertices);
         results->perMeshTriangleIndices.append(triangles);
-        count++;		
+        count++;
     }
 
     results->meshCount = count;
@@ -55,10 +56,10 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD
     VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
     int meshCount = meshes->meshCount;
     int count = 0;
-    std::cout << "Performing V-HACD computation on " << meshCount  <<" meshes ..... " << std::endl;
+    std::cout << "Performing V-HACD computation on " << meshCount << " meshes ..... " << std::endl;
 
     for (int i = 0; i < meshCount; i++){
-        
+
         std::vector<glm::vec3> vertices = meshes->perMeshVertices.at(i).toStdVector();
         std::vector<int> triangles = meshes->perMeshTriangleIndices.at(i).toStdVector();
         int nPoints = (unsigned int)vertices.size();
@@ -92,10 +93,13 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD
     interfaceVHACD->Clean();
     interfaceVHACD->Release();
 
-    if (count > 0)
+    if (count > 0){
         return true;
-    else
+    }        
+    else{
         return false;
+    }
+        
 }
 
 vhacd::VHACDUtil:: ~VHACDUtil(){
@@ -103,19 +107,22 @@ vhacd::VHACDUtil:: ~VHACDUtil(){
 }
 
 //ProgressClaback implementation
-void vhacd::ProgressCallback::Update(const double  overallProgress, const double  stageProgress, const double operationProgress, 
+void vhacd::ProgressCallback::Update(const double  overallProgress, const double  stageProgress, const double operationProgress,
     const char * const stage, const char * const operation){
     int progress = (int)(overallProgress + 0.5);
 
-    if (progress < 10)
+    if (progress < 10){
         std::cout << "\b\b";
-    else
+    }
+    else{
         std::cout << "\b\b\b";
+    }
+
     std::cout << progress << "%";
 
-    if (progress >= 100)
-        std::cout << std::endl;
-
+	if (progress >= 100){
+		std::cout << std::endl;
+	}
 }
 
 vhacd::ProgressCallback::ProgressCallback(void){}
