@@ -11,7 +11,6 @@
 
 #include "FaceTracker.h"
 
-FaceTracker::FaceTracker() :
-    _estimatedEyePitch(0.0f),
-    _estimatedEyeYaw(0.0f) {
+inline float FaceTracker::getBlendshapeCoefficient(int index) const {
+    return isValidBlendshapeIndex(index) ? _blendshapeCoefficients[index] : 0.0f;
 }
