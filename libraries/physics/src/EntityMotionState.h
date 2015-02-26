@@ -36,28 +36,30 @@ public:
     virtual ~EntityMotionState();
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
-    MotionType computeMotionType() const;
+    virtual MotionType computeMotionType() const;
 
-    void updateKinematicState(uint32_t substep);
-    void stepKinematicSimulation(quint64 now);
+    virtual void updateKinematicState(uint32_t substep);
+    virtual void stepKinematicSimulation(quint64 now);
+
+    virtual bool isMoving() const;
 
     // this relays incoming position/rotation to the RigidBody
-    void getWorldTransform(btTransform& worldTrans) const;
+    virtual void getWorldTransform(btTransform& worldTrans) const;
 
     // this relays outgoing position/rotation to the EntityItem
-    void setWorldTransform(const btTransform& worldTrans);
+    virtual void setWorldTransform(const btTransform& worldTrans);
 
     // these relay incoming values to the RigidBody
-    void updateObjectEasy(uint32_t flags, uint32_t frame);
-    void updateObjectVelocities();
+    virtual void updateObjectEasy(uint32_t flags, uint32_t frame);
+    virtual void updateObjectVelocities();
 
-    void computeShapeInfo(ShapeInfo& shapeInfo);
-    float computeMass(const ShapeInfo& shapeInfo) const;
+    virtual void computeShapeInfo(ShapeInfo& shapeInfo);
+    virtual float computeMass(const ShapeInfo& shapeInfo) const;
 
-    void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
+    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
 
-    uint32_t getIncomingDirtyFlags() const;
-    void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
+    virtual uint32_t getIncomingDirtyFlags() const;
+    virtual void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
 
     EntityItem* getEntity() const { return _entity; }
 
