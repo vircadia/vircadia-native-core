@@ -472,7 +472,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
 //Injecting mouse movements and clicks
 void SixenseManager::emulateMouse(PalmData* palm, int index) {
     MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     QPoint pos;
     
     Qt::MouseButton bumperButton;

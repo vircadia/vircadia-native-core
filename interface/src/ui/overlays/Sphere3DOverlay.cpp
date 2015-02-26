@@ -11,8 +11,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QGLWidget>
-
 #include <GlowEffect.h>
 #include <SharedUtil.h>
 

@@ -11,16 +11,12 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QSvgRenderer>
-#include <QPainter>
-#include <QGLWidget>
 #include <SharedUtil.h>
 
 #include "Overlay.h"
 
 
 Overlay::Overlay() :
-    _parent(NULL),
     _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
     _glowLevel(0.0f),
@@ -40,7 +36,6 @@ Overlay::Overlay() :
 }
 
 Overlay::Overlay(const Overlay* overlay) :
-    _parent(NULL),
     _isLoaded(overlay->_isLoaded),
     _alpha(overlay->_alpha),
     _glowLevel(overlay->_glowLevel),
@@ -60,8 +55,7 @@ Overlay::Overlay(const Overlay* overlay) :
 {
 }
 
-void Overlay::init(QGLWidget* parent, QScriptEngine* scriptEngine) {
-    _parent = parent;
+void Overlay::init(QScriptEngine* scriptEngine) {
     _scriptEngine = scriptEngine;
 }
 
