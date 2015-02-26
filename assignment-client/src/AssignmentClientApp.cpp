@@ -14,6 +14,7 @@
 #include <LogHandler.h>
 #include <SharedUtil.h>
 #include <HifiConfigVariantMap.h>
+#include <ShutdownEventListener.h>
 
 #include "Assignment.h"
 #include "AssignmentClient.h"
@@ -173,6 +174,13 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
 
     if (numForks || minForks || maxForks) {
+        // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
+#       ifdef _WIN32
+        installNativeEventFilter(&ShutdownEventListener::getInstance());
+#       else
+        ShutdownEventListener::getInstance();
+#       endif
+
         AssignmentClientMonitor monitor(numForks, minForks, maxForks, assignmentPool,
                                         walletUUID, assignmentServerHostname, assignmentServerPort);
         exec();

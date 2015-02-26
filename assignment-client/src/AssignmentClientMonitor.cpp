@@ -12,7 +12,6 @@
 #include <signal.h>
 
 #include <LogHandler.h>
-#include <ShutdownEventListener.h>
 #include <AddressManager.h>
 
 #include "AssignmentClientMonitor.h"
@@ -40,13 +39,6 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
 {    
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
-    
-    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
-#ifdef _WIN32
-    installNativeEventFilter(&ShutdownEventListener::getInstance());
-#else
-    ShutdownEventListener::getInstance();
-#endif
 
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
