@@ -131,9 +131,6 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
     addSpotLight(position, radius, color, intensity);    
 }
 
-// Remove: ambient, specular, *Attenuation, direction
-// Add: intensity, radius
-// Rename: diffuseColor -> color
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
     float intensity, const glm::quat& orientation, float exponent, float cutoff) {
     
