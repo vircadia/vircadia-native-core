@@ -60,12 +60,8 @@ if (DEFINED BULLET_LIB_EXT)
   set(_BULLET_LIB_PAIRS "DYNAMICS_LIBRARY\;BulletDynamics" "COLLISION_LIBRARY\;BulletCollision" "MATH_LIBRARY\;LinearMath" "SOFTBODY_LIBRARY\;BulletSoftBody")
   
   foreach(_LIB_PAIR ${_BULLET_LIB_PAIRS})
-    
     list(GET _LIB_PAIR 0 _LIB_VAR_NAME)
     list(GET _LIB_PAIR 1 _LIB_NAME)
-    
-    message(STATUS ${_LIB_VAR_NAME})
-    message(STATUS ${_LIB_NAME})
     
     set(${EXTERNAL_NAME_UPPER}_${_LIB_VAR_NAME}_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}${_LIB_NAME}.${BULLET_LIB_EXT} CACHE FILEPATH "${_LIB_NAME} release library location")
     
