@@ -257,3 +257,11 @@ td {
 
         vertical-align: top;
 }
+
+#no-entities {
+    display: none;
+    font-size: 120%;
+    padding: 10pt;
+    font-weight: bold;
+    font-style: italic;
+}
