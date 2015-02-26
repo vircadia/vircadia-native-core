@@ -58,13 +58,6 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     // when the domain server hands over an assignment.
     QUuid nodeUUID = QUuid::createUuid();
     nodeList->setSessionUUID(nodeUUID);
-    
-    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
-#ifdef _WIN32
-    installNativeEventFilter(&ShutdownEventListener::getInstance());
-#else
-    ShutdownEventListener::getInstance();
-#endif
 
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);

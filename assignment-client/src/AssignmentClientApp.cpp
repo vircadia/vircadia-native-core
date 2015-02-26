@@ -29,6 +29,14 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     setvbuf(stdout, NULL, _IOLBF, 0);
 #   endif
 
+
+#   ifdef _WIN32
+    installNativeEventFilter(&ShutdownEventListener::getInstance());
+#   else
+    ShutdownEventListener::getInstance();
+#   endif
+
+
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
@@ -175,16 +183,11 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     if (numForks || minForks || maxForks) {
         // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
-#       ifdef _WIN32
-        installNativeEventFilter(&ShutdownEventListener::getInstance());
-#       else
-        ShutdownEventListener::getInstance();
-#       endif
-
         AssignmentClientMonitor monitor(numForks, minForks, maxForks, assignmentPool,
                                         walletUUID, assignmentServerHostname, assignmentServerPort);
         exec();
     } else {
+    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
         AssignmentClient client(requestAssignmentType, assignmentPool,
                                 walletUUID, assignmentServerHostname, assignmentServerPort);
         exec();
