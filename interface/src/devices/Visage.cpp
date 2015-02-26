@@ -126,13 +126,12 @@ void Visage::init() {
     updateEnabled();
 }
 
-void Visage::update() {
+void Visage::update(float deltaTime) {
 #ifdef HAVE_VISAGE
     _active = (_tracker->getTrackingData(_data) == TRACK_STAT_OK);
     if (!_active) {
         return;
     }
-    PerformanceTimer perfTimer("visage");
     _headRotation = glm::quat(glm::vec3(-_data->faceRotation[0], -_data->faceRotation[1], _data->faceRotation[2]));    
     _headTranslation = (glm::vec3(_data->faceTranslation[0], _data->faceTranslation[1], _data->faceTranslation[2]) -
         _headOrigin) * TRANSLATION_SCALE;

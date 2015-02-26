@@ -31,12 +31,12 @@ class Visage : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    void init();
+    virtual void init();
+    virtual void update(float deltaTime);
+    virtual void reset();
     
-    bool isActive() const { return _active; }
-    
-    void update();
-    void reset();
+    virtual bool isActive() const { return _active; }
+    virtual bool isTracking() const { return isActive(); }
 
 public slots:
 
