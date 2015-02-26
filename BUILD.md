@@ -4,7 +4,7 @@
 * [Qt](http://qt-project.org/downloads) ~> 5.3.2
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
-
+* [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 ####CMake External Project Dependencies
 
 * [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
