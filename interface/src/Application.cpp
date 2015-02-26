@@ -2493,8 +2493,6 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 
 glm::vec3 Application::getSunDirection() {
     // Sun direction is in fact just the location of the sun relative to the origin
-  //  return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()));
-
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
     return skyStage->getSunLight()->getDirection();
 }
@@ -2875,9 +2873,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
-      //  DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(-getSunDirection(), GLOBAL_LIGHT_COLOR, GLOBAL_LIGHT_INTENSITY);
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-//        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(-getSunDirection(), GLOBAL_LIGHT_COLOR, skyStage->_light->getIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity());
 
         PROFILE_RANGE("DeferredLighting"); 

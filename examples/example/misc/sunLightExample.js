@@ -26,7 +26,6 @@ function ticktack() {
 		Scene.setYearTime(day);
 	}
 	Scene.setDayTime(hour);
-
 }
 
 Script.setInterval(ticktack, 41);

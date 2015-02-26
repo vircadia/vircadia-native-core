@@ -22,16 +22,6 @@ typedef glm::mat4 Mat4;
 
 class EarthSunModel {
 public:
-    enum Preset
-    {
-        Toulouse = 0,
-        SanFrancisco,
-        Sydney,
-        Num_Presets,
-    };
-    static const std::string PresetNames[Num_Presets];
-    //void assignPreset( Preset p);
-    //Preset preset() const { return mPreset; }
 
     void setScale(float scale);
     float getScale() const { return _scale; }
@@ -108,46 +98,6 @@ protected:
     static Mat4d evalWorldToGeoLocationMat(double longitude, double latitude, double altitude, double scale);
 };
 
-namespace gpu {
-    class Batch;
-};
-
-class ProgramObject;
-
-class Skybox {
-public:
-    void recordBatch(gpu::Batch& batch, const Transform& viewTransform, const Mat4& projection);
-
-    Skybox();
-    ~Skybox();
-protected:
-    ProgramObject* createSkyProgram(const char* from, int* locations);
-    ProgramObject* _skyFromAtmosphereProgram;
-    ProgramObject* _skyFromSpaceProgram;
-    enum {
-        CAMERA_POS_LOCATION,
-        LIGHT_POS_LOCATION,
-        INV_WAVELENGTH_LOCATION,
-        CAMERA_HEIGHT2_LOCATION,
-        OUTER_RADIUS_LOCATION,
-        OUTER_RADIUS2_LOCATION,
-        INNER_RADIUS_LOCATION,
-        KR_ESUN_LOCATION,
-        KM_ESUN_LOCATION,
-        KR_4PI_LOCATION,
-        KM_4PI_LOCATION,
-        SCALE_LOCATION,
-        SCALE_DEPTH_LOCATION,
-        SCALE_OVER_SCALE_DEPTH_LOCATION,
-        G_LOCATION,
-        G2_LOCATION,
-        LOCATION_COUNT
-    };
-    
-    int _skyFromAtmosphereUniformLocations[LOCATION_COUNT];
-    int _skyFromSpaceUniformLocations[LOCATION_COUNT];
-};
-
 // Sun sky stage generates the rendering primitives to display a scene realistically
 // at the specified location and time around earth
 class SunSkyStage {
@@ -181,9 +131,8 @@ public:
 protected:
     LightPointer _sunLight;
 
-    // default day is 1st of january at noun
-    float _dayTime = 12.0f;
-    int _yearTime = 0;
+    float _dayTime;
+    int _yearTime;
 
     mutable EarthSunModel _earthSunModel;
  

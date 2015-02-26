@@ -21,8 +21,6 @@ void EarthSunModel::updateAll() const {
 }
 
 Mat4d EarthSunModel::evalWorldToGeoLocationMat(double longitude, double latitude, double absAltitude, double scale) {
-
-
     // Longitude is along Z axis but - from east to west
     Mat4d rotLon = glm::rotate(glm::radians(longitude), Vec3d(0.0, 0.0, 1.0));
      
@@ -54,9 +52,7 @@ void EarthSunModel::updateWorldToSurface() const {
     _surfacePos = Vec3d(_surfaceToWorldMat * Vec4d(0.0, 0.0, 0.0, 1.0));
 }
 
-void EarthSunModel::updateSurfaceToEye() const
-{
-
+void EarthSunModel::updateSurfaceToEye() const {
     _surfaceToEyeMat = glm::inverse(_eyeToSurfaceMat);
     _worldToEyeMat = _surfaceToEyeMat * _worldToSurfaceMat;
     _eyeToWorldMat = _surfaceToWorldMat * _eyeToSurfaceMat;
@@ -78,7 +74,6 @@ void EarthSunModel::updateSun() const {
     _surfaceSunDir = glm::normalize(Vec3(lssd.x, lssd.y, lssd.z));
 }
 
-
 float moduloRange(float val, float minVal, float maxVal) {
     float range = maxVal - minVal;
     float rval = (val - minVal) / range;
@@ -86,30 +81,48 @@ float moduloRange(float val, float minVal, float maxVal) {
     return modf(rval, &intval) * range + minVal;
 }
 
+const float MAX_LONGITUDE = 180.0f;
+const float MAX_LATITUDE = 90.0f;
+
+float validateLongitude(float lon) {
+    return moduloRange(lon, -MAX_LONGITUDE, MAX_LONGITUDE);
+}
+
+float validateLatitude(float lat) {
+    return moduloRange(lat, -MAX_LATITUDE, MAX_LATITUDE);
+}
+
+float validateAltitude(float altitude) {
+    const float MIN_ALTITUDE = -1000.0f;
+    const float MAX_ALTITUDE = 100000.0f;
+    return std::min(std::max(altitude, MIN_ALTITUDE), MAX_ALTITUDE);
+}
+
 void EarthSunModel::setLatitude(float lat) {
-    _latitude = moduloRange(lat, -90.0f, 90.0f);
+    _latitude = validateLatitude(lat);
     invalidate();
 }
 void EarthSunModel::setLongitude(float lon) {
-    _longitude = moduloRange(lon, -180.0f, 180.0f);
+    _longitude = validateLongitude(lon);
     invalidate();
 }
 void EarthSunModel::setAltitude(float altitude) {
-    _altitude = moduloRange(altitude, -1000.f, 100000.f);
+    _altitude = validateAltitude(altitude);
     invalidate();
 }
 
 void EarthSunModel::setSunLatitude(float lat) {
-    _sunLatitude = moduloRange(lat, -90.0f, 90.0f);
+    _sunLatitude = validateLatitude(lat);
     invalidate();
 }
 void EarthSunModel::setSunLongitude(float lon) {
-    _sunLongitude = moduloRange(lon, -180.0f, 180.0f);
+    _sunLongitude = validateLongitude(lon);
     invalidate();
 }
 
 const int NUM_DAYS_PER_YEAR = 365;
 const float NUM_HOURS_PER_DAY = 24.0f;
+const float NUM_HOURS_PER_HALF_DAY = NUM_HOURS_PER_DAY * 0.5f;
 
 SunSkyStage::SunSkyStage() :
     _sunLight(new Light())
@@ -119,8 +132,11 @@ SunSkyStage::SunSkyStage() :
     setSunIntensity(1.0f);
     setSunColor(Vec3(1.0f, 1.0f, 1.0f));
 
-   // setOriginLocation(45.0f, 20.0f, 1.0f);
+    // Default origin location is a special place in the world...
+    setOriginLocation(122.407f, 37.777f, 0.03f);
+    // 6pm 
     setDayTime(18.0f);
+    // Begining of march
     setYearTime(60.0f);
 }
 
@@ -151,12 +167,20 @@ void SunSkyStage::setSunIntensity(float intensity) {
     _sunLight->setIntensity(intensity);
 }
 
+// THe sun declinaison calculus is taken from https://en.wikipedia.org/wiki/Position_of_the_Sun
+double evalSunDeclinaison(double dayNumber) {
+    return -(23.0 + 44.0/60.0)*cos(glm::radians((360.0/365.0)*(dayNumber + 10.0)));
+}
+
 void SunSkyStage::updateGraphicsObject() const {
-    // Always update the sunLongitude based on the current dayTIme and the current origin
-    _earthSunModel.setSunLongitude(_earthSunModel.getLongitude() + (-180.0 + 360.0 * _dayTime / NUM_HOURS_PER_DAY));
+    // Always update the sunLongitude based on the current dayTime and the current origin
+    // The day time is supposed to be local at the origin
+    double signedNormalizedDayTime = (_dayTime - NUM_HOURS_PER_HALF_DAY) / NUM_HOURS_PER_HALF_DAY;
+    double sunLongitude = _earthSunModel.getLongitude() + (MAX_LONGITUDE * signedNormalizedDayTime);
+    _earthSunModel.setSunLongitude(sunLongitude);
 
     // And update the sunLAtitude as the declinaison depending of the time of the year
-    _earthSunModel.setSunLatitude(-(23.0 + 44.0/60.0)*cos(glm::radians((360.0/365.0)*(_yearTime + 10)))); 
+    _earthSunModel.setSunLatitude(evalSunDeclinaison(_yearTime)); 
 
     Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();
 
