@@ -39,6 +39,8 @@
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 
+#include "SceneScriptingInterface.h"
+
 #include "MIDIEvent.h"
 
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
@@ -208,6 +210,8 @@ void ScriptEngine::init() {
     
     _isInitialized = true;
 
+    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+
     _entityScriptingInterface.init();
 
     // register various meta-types
@@ -251,6 +255,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));

@@ -32,7 +32,7 @@ public:
     static void checkGLError();
 
 
-    class GLBuffer {
+    class GLBuffer : public GPUObject {
     public:
         Stamp _stamp;
         GLuint _buffer;
@@ -44,7 +44,7 @@ public:
     static void syncGPUObject(const Buffer& buffer);
     static GLuint getBufferID(const Buffer& buffer);
 
-    class GLTexture {
+    class GLTexture : public GPUObject {
     public:
         Stamp _storageStamp;
         Stamp _contentStamp;
