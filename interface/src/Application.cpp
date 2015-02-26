@@ -1859,35 +1859,6 @@ void Application::updateMouseRay() {
     }
 }
 
-void Application::updateFaceshift() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-    auto faceshift = DependencyManager::get<Faceshift>();
-    //  Update faceshift
-    faceshift->update();
-
-    //  Copy angular velocity if measured by faceshift, to the head
-    if (faceshift->isActive()) {
-        _myAvatar->getHead()->setAngularVelocity(faceshift->getHeadAngularVelocity());
-    }
-}
-
-void Application::updateVisage() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateVisage()");
-
-    //  Update Visage
-    DependencyManager::get<Visage>()->update();
-}
-
-void Application::updateDDE() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateDDE()");
-    
-    //  Update Cara
-    DependencyManager::get<DdeFaceTracker>()->update();
-}
-
 void Application::updateMyAvatarLookAtPosition() {
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -2067,12 +2038,13 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
-        updateFaceshift();
-        updateVisage();
+        FaceTracker* tracker = getActiveFaceTracker();
+        if (tracker) {
+            tracker->update(deltaTime);
+        }
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
         _prioVR.update(deltaTime);
-
     }
     
     // Dispatch input events
