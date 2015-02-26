@@ -25,14 +25,17 @@ public:
     int getOutByteCount() const { return _outByteCount; }
     
     void resetCounters() { _inPacketCount = 0; _outPacketCount = 0; _inByteCount = 0; _outByteCount = 0; }
+
+    void shutdown() { _isShuttingDown = true; }
 public slots:
     void processDatagrams();
     
 private:
-    int _inPacketCount;
-    int _outPacketCount;
-    int _inByteCount;
-    int _outByteCount;
+    int _inPacketCount = 0;
+    int _outPacketCount = 0;
+    int _inByteCount = 0;
+    int _outByteCount = 0;
+    bool _isShuttingDown = false;
 };
 
 #endif // hifi_DatagramProcessor_h

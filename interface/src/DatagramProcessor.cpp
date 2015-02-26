@@ -30,6 +30,10 @@ DatagramProcessor::DatagramProcessor(QObject* parent) :
 void DatagramProcessor::processDatagrams() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "DatagramProcessor::processDatagrams()");
+
+    if (_isShuttingDown) {
+        return; // bail early... we're shutting down.
+    }
     
     HifiSockAddr senderSockAddr;
     

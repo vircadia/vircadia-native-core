@@ -44,7 +44,7 @@ WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
-    return DependencyManager::get<GLCanvas>()->hasFocus();
+    return Application::getInstance()->getGLWidget()->hasFocus();
 }
 
 void WindowScriptingInterface::setFocus() {
