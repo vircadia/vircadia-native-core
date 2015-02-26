@@ -31,11 +31,28 @@
 
 #include "Application.h"
 
-#ifdef HAVE_LIBOVR
 #include "OVR_Math.h"
 #include "OVR_Version.h"
 using namespace OVR;
 
+template <typename Function>
+void for_each_eye(Function function) {
+    for (ovrEyeType eye = ovrEyeType::ovrEye_Left;
+        eye < ovrEyeType::ovrEye_Count;
+        eye = static_cast<ovrEyeType>(eye + 1)) {
+        function(eye);
+    }
+}
+
+template <typename Function>
+void for_each_eye(const ovrHmd & hmd, Function function) {
+    for (int i = 0; i < ovrEye_Count; ++i) {
+        ovrEyeType eye = hmd->EyeRenderOrder[i];
+        function(eye);
+    }
+}
+
+#ifdef CLIENT_DISTORTION
 ProgramObject OculusManager::_program;
 int OculusManager::_textureLocation;
 int OculusManager::_eyeToSourceUVScaleLocation;
@@ -47,24 +64,27 @@ int OculusManager::_colorAttributeLocation;
 int OculusManager::_texCoord0AttributeLocation;
 int OculusManager::_texCoord1AttributeLocation;
 int OculusManager::_texCoord2AttributeLocation;
-bool OculusManager::_isConnected = false;
-
-ovrHmd OculusManager::_ovrHmd;
-ovrHmdDesc OculusManager::_ovrHmdDesc;
-ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
-ovrEyeRenderDesc OculusManager::_eyeRenderDesc[ovrEye_Count];
-ovrSizei OculusManager::_renderTargetSize;
 ovrVector2f OculusManager::_UVScaleOffset[ovrEye_Count][2];
 GLuint OculusManager::_vertices[ovrEye_Count] = { 0, 0 };
 GLuint OculusManager::_indices[ovrEye_Count] = { 0, 0 };
 GLsizei OculusManager::_meshSize[ovrEye_Count] = { 0, 0 };
 ovrFrameTiming OculusManager::_hmdFrameTiming;
-ovrRecti OculusManager::_eyeRenderViewport[ovrEye_Count];
+bool OculusManager::_programInitialized = false;
+#else
+#endif
+
+bool OculusManager::_isConnected = false;
+ovrGLTexture OculusManager::_eyeTextures[ovrEye_Count];
+ovrHmd OculusManager::_ovrHmd;
+ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
+ovrVector3f OculusManager::_eyeOffset[ovrEye_Count];
+ovrEyeRenderDesc OculusManager::_eyeRenderDesc[ovrEye_Count];
+ovrSizei OculusManager::_renderTargetSize;
+glm::mat4 OculusManager::_eyeProjection[ovrEye_Count];
 unsigned int OculusManager::_frameIndex = 0;
 bool OculusManager::_frameTimingActive = false;
-bool OculusManager::_programInitialized = false;
 Camera* OculusManager::_camera = NULL;
-int OculusManager::_activeEyeIndex = -1;
+ovrEyeType OculusManager::_activeEye = ovrEye_Count;
 
 float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
 float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.0f * RADIANS_PER_DEGREE;
@@ -77,68 +97,68 @@ glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
 quint64 OculusManager::_calibrationStartTime;
 int OculusManager::_calibrationMessage = NULL;
+glm::vec3 OculusManager::_eyePositions[ovrEye_Count];
 
-#endif
-
-glm::vec3 OculusManager::_leftEyePosition = glm::vec3();
-glm::vec3 OculusManager::_rightEyePosition = glm::vec3();
+void OculusManager::init() {
+    ovr_Initialize();
+    _ovrHmd = ovrHmd_Create(0);
+}
 
 void OculusManager::connect() {
-#ifdef HAVE_LIBOVR
     _calibrationState = UNCALIBRATED;
     qDebug() << "Oculus SDK" << OVR_VERSION_STRING;
-    ovr_Initialize();
-
-    _ovrHmd = ovrHmd_Create(0);
     if (_ovrHmd) {
         if (!_isConnected) {
             UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
         }
         _isConnected = true;
-        
-#if defined(__APPLE__) || defined(_WIN32)
-        _eyeFov[0] = _ovrHmd->DefaultEyeFov[0];
-        _eyeFov[1] = _ovrHmd->DefaultEyeFov[1];
-#else
-        ovrHmd_GetDesc(_ovrHmd, &_ovrHmdDesc);
-        _eyeFov[0] = _ovrHmdDesc.DefaultEyeFov[0];
-        _eyeFov[1] = _ovrHmdDesc.DefaultEyeFov[1];
-#endif
-        //Get texture size
-        ovrSizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left,
-                                                                _eyeFov[0], 1.0f);
-        ovrSizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Right,
-                                                                _eyeFov[1], 1.0f);
-        _renderTargetSize.w = recommendedTex0Size.w + recommendedTex1Size.w;
-        _renderTargetSize.h = recommendedTex0Size.h;
-        if (_renderTargetSize.h < recommendedTex1Size.h) {
-            _renderTargetSize.h = recommendedTex1Size.h;
-        }
 
-        _eyeRenderDesc[0] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Left, _eyeFov[0]);
-        _eyeRenderDesc[1] = ovrHmd_GetRenderDesc(_ovrHmd, ovrEye_Right, _eyeFov[1]);
+        for_each_eye([&](ovrEyeType eye) {
+            _eyeFov[eye] = _ovrHmd->DefaultEyeFov[eye];
+        });
 
-#if defined(__APPLE__) || defined(_WIN32)
+        ovrGLConfig cfg;
+        memset(&cfg, 0, sizeof(cfg));
+        cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
+        cfg.OGL.Header.BackBufferSize = _ovrHmd->Resolution;
+        cfg.OGL.Header.Multisample = 1;
+
+        int distortionCaps = 0
+            | ovrDistortionCap_Chromatic
+            | ovrDistortionCap_Vignette
+            | ovrDistortionCap_Overdrive
+            | ovrDistortionCap_TimeWarp;
+
+        int configResult = ovrHmd_ConfigureRendering(_ovrHmd, &cfg.Config,
+            distortionCaps, _eyeFov, _eyeRenderDesc);
+        assert(configResult);
+
+
+        _renderTargetSize = { 0, 0 };
+        for_each_eye([&](ovrEyeType eye) {
+            //Get texture size
+            ovrSizei recommendedTexSize = ovrHmd_GetFovTextureSize(_ovrHmd, eye, _eyeFov[eye], 1.0f);
+            _eyeTextures[eye].Texture.Header.API = ovrRenderAPI_OpenGL;
+            _eyeTextures[eye].Texture.Header.RenderViewport.Pos = { _renderTargetSize.w, 0 };
+            _eyeTextures[eye].Texture.Header.RenderViewport.Size = recommendedTexSize;
+            _renderTargetSize.w += recommendedTexSize.w;
+            _renderTargetSize.h = std::max(recommendedTexSize.h, _renderTargetSize.h);
+        });
+        for_each_eye([&](ovrEyeType eye) {
+            _eyeTextures[eye].Texture.Header.TextureSize = _renderTargetSize;
+        });
+
         ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence);
-#else
-        ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence | ovrHmdCap_LatencyTest);
-#endif
 
-#if defined(__APPLE__) || defined(_WIN32)
         ovrHmd_ConfigureTracking(_ovrHmd, ovrTrackingCap_Orientation | ovrTrackingCap_Position |
                                  ovrTrackingCap_MagYawCorrection,
                                  ovrTrackingCap_Orientation);
-#else
-        ovrHmd_StartSensor(_ovrHmd, ovrSensorCap_Orientation | ovrSensorCap_YawCorrection |
-                           ovrSensorCap_Position,
-                           ovrSensorCap_Orientation);
-#endif
 
         if (!_camera) {
             _camera = new Camera;
             configureCamera(*_camera, 0, 0); // no need to use screen dimensions; they're ignored
         }
-
+#ifdef CLIENT_DISTORTION
         if (!_programInitialized) {
             // Shader program
             _programInitialized = true;
@@ -163,28 +183,24 @@ void OculusManager::connect() {
 
         //Generate the distortion VBOs
         generateDistortionMesh();
-
+#endif
     } else {
         _isConnected = false;
         
         // we're definitely not in "VR mode" so tell the menu that
         Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
-        
-        ovrHmd_Destroy(_ovrHmd);
-        ovr_Shutdown();
     }
-#endif
 }
 
 //Disconnects and deallocates the OR
 void OculusManager::disconnect() {
-#ifdef HAVE_LIBOVR
     if (_isConnected) {
         _isConnected = false;
-        ovrHmd_Destroy(_ovrHmd);
-        ovr_Shutdown();
+        //ovrHmd_Destroy(_ovrHmd);
+        //ovr_Shutdown();
 
         //Free the distortion mesh data
+#ifdef CLIENT_DISTORTION
         for (int i = 0; i < ovrEye_Count; i++) {
             if (_vertices[i] != 0) {
                 glDeleteBuffers(1, &(_vertices[i]));
@@ -195,11 +211,10 @@ void OculusManager::disconnect() {
                 _indices[i] = 0;
             }
         }
-    }
 #endif
+    }
 }
 
-#ifdef HAVE_LIBOVR
 void OculusManager::positionCalibrationBillboard(Text3DOverlay* billboard) {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     glm::quat headOrientation = myAvatar->getHeadOrientation();
@@ -210,9 +225,7 @@ void OculusManager::positionCalibrationBillboard(Text3DOverlay* billboard) {
         + headOrientation * glm::vec3(0.0f, 0.0f, -CALIBRATION_MESSAGE_DISTANCE));
     billboard->setRotation(headOrientation);
 }
-#endif
 
-#ifdef HAVE_LIBOVR
 void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
     static QString instructionMessage = "Hold still to calibrate";
     static QString progressMessage;
@@ -304,26 +317,21 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
             
     }
 }
-#endif
 
 void OculusManager::recalibrate() {
-#ifdef HAVE_LIBOVR
     _calibrationState = UNCALIBRATED;
-#endif
 }
 
 void OculusManager::abandonCalibration() {
-#ifdef HAVE_LIBOVR
     _calibrationState = CALIBRATED;
     if (_calibrationMessage) {
         qDebug() << "Abandoned HMD calibration";
         Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
         _calibrationMessage = NULL;
     }
-#endif
 }
 
-#ifdef HAVE_LIBOVR
+#ifdef CLIENT_DISTORTION
 void OculusManager::generateDistortionMesh() {
 
     //Check if we already have the distortion mesh
@@ -341,7 +349,7 @@ void OculusManager::generateDistortionMesh() {
     for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
         // Allocate and generate distortion mesh vertices
         ovrDistortionMesh meshData;
-        ovrHmd_CreateDistortionMesh(_ovrHmd, _eyeRenderDesc[eyeNum].Eye, _eyeRenderDesc[eyeNum].Fov, _ovrHmdDesc.DistortionCaps, &meshData);
+        ovrHmd_CreateDistortionMesh(_ovrHmd, _eyeRenderDesc[eyeNum].Eye, _eyeRenderDesc[eyeNum].Fov, _ovrHmd->DistortionCaps, &meshData);
         
         ovrHmd_GetRenderScaleAndOffset(_eyeRenderDesc[eyeNum].Fov, _renderTargetSize, _eyeRenderViewport[eyeNum],
                                        _UVScaleOffset[eyeNum]);
@@ -354,7 +362,6 @@ void OculusManager::generateDistortionMesh() {
         DistortionVertex* v = pVBVerts;
         ovrDistortionVertex* ov = meshData.pVertexData;
         for (unsigned int vertNum = 0; vertNum < meshData.VertexCount; vertNum++) {
-#if defined(__APPLE__) || defined(_WIN32)
             v->pos.x = ov->ScreenPosNDC.x;
             v->pos.y = ov->ScreenPosNDC.y;
             v->texR.x = ov->TanEyeAnglesR.x;
@@ -363,16 +370,6 @@ void OculusManager::generateDistortionMesh() {
             v->texG.y = ov->TanEyeAnglesG.y;
             v->texB.x = ov->TanEyeAnglesB.x;
             v->texB.y = ov->TanEyeAnglesB.y;
-#else
-            v->pos.x = ov->Pos.x;
-            v->pos.y = ov->Pos.y;
-            v->texR.x = ov->TexR.x;
-            v->texR.y = ov->TexR.y;
-            v->texG.x = ov->TexG.x;
-            v->texG.y = ov->TexG.y;
-            v->texB.x = ov->TexB.x;
-            v->texB.y = ov->TexB.y;
-#endif
             v->color.r = v->color.g = v->color.b = (GLubyte)(ov->VignetteFactor * 255.99f);
             v->color.a = (GLubyte)(ov->TimeWarpFactor * 255.99f);
             v++; 
@@ -400,46 +397,57 @@ void OculusManager::generateDistortionMesh() {
 #endif
 
 bool OculusManager::isConnected() {
-#ifdef HAVE_LIBOVR
     return _isConnected && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode);
-#else
-    return false;
-#endif
 }
 
 //Begins the frame timing for oculus prediction purposes
 void OculusManager::beginFrameTiming() {
-#ifdef HAVE_LIBOVR
-
     if (_frameTimingActive) {
         printf("WARNING: Called OculusManager::beginFrameTiming() twice in a row, need to call OculusManager::endFrameTiming().");
     }
 
-   _hmdFrameTiming = ovrHmd_BeginFrameTiming(_ovrHmd, _frameIndex);
-   _frameTimingActive = true;
+#ifdef CLIENT_DISTORTION
+    _hmdFrameTiming = ovrHmd_BeginFrameTiming(_ovrHmd, _frameIndex);
 #endif
+   _frameTimingActive = true;
 }
 
+bool OculusManager::allowSwap() {
+#ifdef CLIENT_DISTORTION 
+    return true;
+#else
+    return false;
+#endif
+
+}
 //Ends frame timing
 void OculusManager::endFrameTiming() {
-#ifdef HAVE_LIBOVR
+#ifdef CLIENT_DISTORTION
     ovrHmd_EndFrameTiming(_ovrHmd);
+#endif
     _frameIndex++;
     _frameTimingActive = false;
-#endif
 }
 
 //Sets the camera FoV and aspect ratio
 void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenHeight) {
-#ifdef HAVE_LIBOVR
     camera.setAspectRatio(_renderTargetSize.w * 0.5f / _renderTargetSize.h);
     camera.setFieldOfView(atan(_eyeFov[0].UpTan) * DEGREES_PER_RADIAN * 2.0f);
-#endif    
 }
 
 //Displays everything for the oculus, frame timing must be active
 void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
-#ifdef HAVE_LIBOVR
+    auto glCanvas = DependencyManager::get<GLCanvas>();
+
+    static bool attached = false;
+    if (!attached) {
+        attached = true;
+        void * nativeWindowHandle = (void*)(size_t)glCanvas->effectiveWinId();
+        if (nullptr != nativeWindowHandle) {
+            ovrHmd_AttachToWindow(_ovrHmd, nativeWindowHandle, nullptr, nullptr);
+        }
+    }
+
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
         printf("WARNING: Called OculusManager::display() without calling OculusManager::beginFrameTiming() first.");
@@ -460,7 +468,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    ovrPosef eyeRenderPose[ovrEye_Count];
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -471,7 +478,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     glm::quat orientation;
     glm::vec3 trackerPosition;
     
-#if defined(__APPLE__) || defined(_WIN32)
     ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     ovrVector3f ovrHeadPosition = ts.HeadPose.ThePose.Position;
     
@@ -484,105 +490,99 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     }
 
     trackerPosition = bodyOrientation * trackerPosition;
-#endif
-    
+    static ovrVector3f eyeOffsets[2] = { { 0, 0, 0 }, { 0, 0, 0 } };
+    ovrPosef eyeRenderPose[ovrEye_Count];
+    ovrHmd_GetEyePoses(_ovrHmd, _frameIndex, eyeOffsets, eyeRenderPose, nullptr);
+    ovrHmd_BeginFrame(_ovrHmd, _frameIndex);
     //Render each eye into an fbo
-    for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
-        _activeEyeIndex = eyeIndex;
-        
-#if defined(__APPLE__) || defined(_WIN32)
-        ovrEyeType eye = _ovrHmd->EyeRenderOrder[eyeIndex];
-#else
-        ovrEyeType eye = _ovrHmdDesc.EyeRenderOrder[eyeIndex];
-#endif
+    for_each_eye(_ovrHmd, [&](ovrEyeType eye){
+        _activeEye = eye;
         // Set the camera rotation for this eye
         eyeRenderPose[eye] = ovrHmd_GetHmdPosePerEye(_ovrHmd, eye);
         orientation.x = eyeRenderPose[eye].Orientation.x;
         orientation.y = eyeRenderPose[eye].Orientation.y;
         orientation.z = eyeRenderPose[eye].Orientation.z;
         orientation.w = eyeRenderPose[eye].Orientation.w;
-        
+
         // Update the application camera with the latest HMD position
         whichCamera.setHmdPosition(trackerPosition);
         whichCamera.setHmdRotation(orientation);
-        
+
         // Update our camera to what the application camera is doing
         _camera->setRotation(whichCamera.getRotation());
         _camera->setPosition(whichCamera.getPosition());
-        
+
         //  Store the latest left and right eye render locations for things that need to know
         glm::vec3 thisEyePosition = position + trackerPosition +
             (bodyOrientation * glm::quat(orientation.x, orientation.y, orientation.z, orientation.w) *
             glm::vec3(_eyeRenderDesc[eye].HmdToEyeViewOffset.x, _eyeRenderDesc[eye].HmdToEyeViewOffset.y, _eyeRenderDesc[eye].HmdToEyeViewOffset.z));
-        
-        RenderArgs::RenderSide renderSide = RenderArgs::STEREO_LEFT;
-        if (eyeIndex == 0) {
-            _leftEyePosition = thisEyePosition;
-        } else {
-            _rightEyePosition = thisEyePosition;
-            renderSide = RenderArgs::STEREO_RIGHT;
-        }
 
+        _eyePositions[eye] = thisEyePosition;
         _camera->update(1.0f / Application::getInstance()->getFps());
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        const ovrFovPort& port = _eyeFov[_activeEyeIndex];
+        const ovrFovPort& port = _eyeFov[_activeEye];
         float nearClip = whichCamera.getNearClip(), farClip = whichCamera.getFarClip();
         glFrustum(-nearClip * port.LeftTan, nearClip * port.RightTan, -nearClip * port.DownTan,
             nearClip * port.UpTan, nearClip, farClip);
-        
-        glViewport(_eyeRenderViewport[eye].Pos.x, _eyeRenderViewport[eye].Pos.y,
-                   _eyeRenderViewport[eye].Size.w, _eyeRenderViewport[eye].Size.h);
 
-      
+        const ovrRecti & vp = _eyeTextures[eye].Texture.Header.RenderViewport;
+        glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
+
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-      
+
         // HACK: instead of passing the stereo eye offset directly in the matrix, pass it in the camera offset
         //glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
-        
+
         _camera->setEyeOffsetPosition(glm::vec3(-_eyeRenderDesc[eye].HmdToEyeViewOffset.x, -_eyeRenderDesc[eye].HmdToEyeViewOffset.y, -_eyeRenderDesc[eye].HmdToEyeViewOffset.z));
         Application::getInstance()->displaySide(*_camera, false, RenderArgs::MONO);
 
         applicationOverlay.displayOverlayTextureOculus(*_camera);
-        _activeEyeIndex = -1;
-    }
-
-    //Wait till time-warp to reduce latency
-    ovr_WaitTillTime(_hmdFrameTiming.TimewarpPointSeconds);
+    });
+    _activeEye = ovrEye_Count;
 
     glPopMatrix();
 
-    //Full texture viewport for glow effect
-    glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
-  
+    QOpenGLFramebufferObject * finalFbo = nullptr;
     //Bind the output texture from the glow shader. If glow effect is disabled, we just grab the texture
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
-        QOpenGLFramebufferObject* fbo = DependencyManager::get<GlowEffect>()->render(true);
-        glBindTexture(GL_TEXTURE_2D, fbo->texture());
+        //Full texture viewport for glow effect
+        glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
+        finalFbo = DependencyManager::get<GlowEffect>()->render(true);
     } else {
-        DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
-        glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->texture());
+        finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject();
+        finalFbo->release();
     }
-
-    // restore our normal viewport
-    auto glCanvas = DependencyManager::get<GLCanvas>();
-    glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
 
+    // restore our normal viewport
+    glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
+
+#ifdef CLIENT_DISTORTION
+    //Wait till time-warp to reduce latency
+    ovr_WaitTillTime(_hmdFrameTiming.TimewarpPointSeconds);
+
+    glBindTexture(GL_TEXTURE_2D, finalFbo->texture());
+
     //Renders the distorted mesh onto the screen
     renderDistortionMesh(eyeRenderPose);
-    
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
+#else
+    for_each_eye([&](ovrEyeType eye) {
+        _eyeTextures[eye].OGL.TexId = finalFbo->texture();
+    });
 
+    ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, &(_eyeTextures[0].Texture));
 #endif
 }
 
-#ifdef HAVE_LIBOVR
+#ifdef CLIENT_DISTORTION
 void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     glLoadIdentity();
@@ -650,32 +650,17 @@ void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
 //Tries to reconnect to the sensors
 void OculusManager::reset() {
-#ifdef HAVE_LIBOVR
     if (_isConnected) {
         ovrHmd_RecenterPose(_ovrHmd);
     }
-#endif
 }
 
 //Gets the current predicted angles from the oculus sensors
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
-#ifdef HAVE_LIBOVR
-#if defined(__APPLE__) || defined(_WIN32)
     ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
-#else
-    ovrSensorState ss = ovrHmd_GetSensorState(_ovrHmd, _hmdFrameTiming.ScanoutMidpointSeconds);
-#endif
-#if defined(__APPLE__) || defined(_WIN32) 
     if (ts.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
-#else
-    if (ss.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
-#endif
         
-#if defined(__APPLE__) || defined(_WIN32)
         ovrPosef headPose = ts.HeadPose.ThePose;
-#else
-        ovrPosef headPose = ss.Predicted.Pose;
-#endif
         Quatf orientation = Quatf(headPose.Orientation);
         orientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     } else {
@@ -683,53 +668,36 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
         pitch = 0.0f;
         roll = 0.0f;
     }
-#else
-    yaw = 0.0f;
-    pitch = 0.0f;
-    roll = 0.0f;
-#endif
 }
 
 glm::vec3 OculusManager::getRelativePosition() {
-#if (defined(__APPLE__) || defined(_WIN32)) && HAVE_LIBOVR
     ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     ovrVector3f headPosition = trackingState.HeadPose.ThePose.Position;
     
     return glm::vec3(headPosition.x, headPosition.y, headPosition.z);
-#else
-    // no positional tracking in Linux yet
-    return glm::vec3(0.0f, 0.0f, 0.0f);
-#endif
 }
 
 //Used to set the size of the glow framebuffers
 QSize OculusManager::getRenderTargetSize() {
-#ifdef HAVE_LIBOVR
     QSize rv;
     rv.setWidth(_renderTargetSize.w);
     rv.setHeight(_renderTargetSize.h);
     return rv;
-#else
-    return QSize(100, 100);
-#endif
 }
 
 void OculusManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) {
-#ifdef HAVE_LIBOVR
-    if (_activeEyeIndex != -1) {
-        const ovrFovPort& port = _eyeFov[_activeEyeIndex];
+    if (_activeEye != ovrEye_Count) {
+        const ovrFovPort& port = _eyeFov[_activeEye];
         right = nearVal * port.RightTan;
         left = -nearVal * port.LeftTan;
         top = nearVal * port.UpTan;
         bottom = -nearVal * port.DownTan;
     }
-#endif
 }
 
 int OculusManager::getHMDScreen() {
     int hmdScreenIndex = -1; // unknown
-#ifdef HAVE_LIBOVR
     // TODO: it might be smarter to handle multiple HMDs connected in this case. but for now,
     // we will simply assume the initialization code that set up _ovrHmd picked the best hmd
 
@@ -778,7 +746,6 @@ int OculusManager::getHMDScreen() {
             screenNumber++;
         }
     }
-#endif
     return hmdScreenIndex;
 }
 
