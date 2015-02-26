@@ -180,8 +180,7 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
     EntityItemID result(UNKNOWN_ENTITY_ID, UNKNOWN_ENTITY_TOKEN, false);
     if (_entityTree) {
         _entityTree->lockForRead();
-        const EntityItem* closestEntity = _entityTree->findClosestEntity(center/(float)TREE_SCALE, 
-                                                                                radius/(float)TREE_SCALE);
+        const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
             result.id = closestEntity->getID();

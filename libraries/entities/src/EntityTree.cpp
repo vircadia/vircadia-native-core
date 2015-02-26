@@ -456,7 +456,8 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
 }
 
 const EntityItem* EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
-    FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
+    // position and targetRadius are in meters, so we need to convert to TreeUnits in FindNearPointArgs
+    FindNearPointArgs args = { position / (float)TREE_SCALE, targetRadius / (float)TREE_SCALE, false, NULL, FLT_MAX };
     lockForRead();
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findNearPointOperation, &args);

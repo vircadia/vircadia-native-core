@@ -95,6 +95,8 @@ public:
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false);
     void removeEntityFromSimulation(EntityItem* entity);
 
+    /// \param position point of query in world-frame (meters)
+    /// \param targetRadius radius of query (meters)
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(const QUuid& id);
     EntityItem* findEntityByEntityItemID(const EntityItemID& entityID);

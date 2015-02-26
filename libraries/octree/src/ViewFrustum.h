@@ -30,7 +30,7 @@ const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
-const float DEFAULT_FAR_CLIP = TREE_SCALE;
+const float DEFAULT_FAR_CLIP = (float)TREE_SCALE;
 
 class ViewFrustum {
 public:
@@ -119,7 +119,6 @@ public:
     OctreeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
     
-    // assumes box is in voxel scale, not TREE_SCALE, will scale view frustum's position accordingly
     void getFurthestPointFromCameraVoxelScale(const AACube& box, glm::vec3& furthestPoint) const;
 
     float distanceToCamera(const glm::vec3& point) const;
@@ -134,7 +133,7 @@ private:
     void calculateOrthographic();
     
     // camera location/orientation attributes
-    glm::vec3 _position = glm::vec3(0.0f); // the position in TREE_SCALE
+    glm::vec3 _position = glm::vec3(0.0f); // the position in world-frame
     glm::vec3 _positionVoxelScale = glm::vec3(0.0f); // the position in voxel scale
     glm::quat _orientation = glm::quat();
 
