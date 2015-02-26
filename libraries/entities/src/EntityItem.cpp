@@ -888,11 +888,6 @@ void EntityItem::recordCreationTime() {
 }
 
 
-// TODO: is this really correct? how do we use size, does it need to handle rotation?
-float EntityItem::getSize() const { 
-    return glm::length(_dimensions);
-}
-
 // TODO: doesn't this need to handle rotation?
 glm::vec3 EntityItem::getCenterInDomainUnits() const {
     return _position + (_dimensions * (glm::vec3(0.5f,0.5f,0.5f) - _registrationPoint));

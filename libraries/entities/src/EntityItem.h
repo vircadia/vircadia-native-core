@@ -212,7 +212,6 @@ public:
     quint64 getExpiry() const;
 
     // position, size, and bounds related helpers
-    float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
     AABox getAABoxInMeters() const; /// axis aligned bounding box in world-frame (meters)

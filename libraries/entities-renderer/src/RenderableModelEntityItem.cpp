@@ -115,8 +115,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     bool drawAsModel = hasModel();
 
     glm::vec3 position = getPositionInMeters();
-    float size = getSize() * (float)TREE_SCALE;
     glm::vec3 dimensions = getDimensionsInMeters();
+    float size = glm::length(dimensions);
     
     if (drawAsModel) {
         remapTextures();
