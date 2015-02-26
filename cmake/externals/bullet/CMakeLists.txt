@@ -66,7 +66,7 @@ if (DEFINED BULLET_LIB_EXT)
     set(${EXTERNAL_NAME_UPPER}_${_LIB_VAR_NAME}_RELEASE ${BULLET_LIB_DIR}/${LIB_PREFIX}${_LIB_NAME}.${BULLET_LIB_EXT} CACHE FILEPATH "${_LIB_NAME} release library location")
     
     if (WIN32)
-      set(${EXTERNAL_NAME_UPPER}_${_LIB_VAR_NAME}_DEBUG ${BULLET_LIB_DIR}/${LIB_PREFIX}${_LIB_NAME}.${BULLET_LIB_EXT} CACHE FILEPATH "${_LIB_NAME} debug library location")
+      set(${EXTERNAL_NAME_UPPER}_${_LIB_VAR_NAME}_DEBUG ${BULLET_LIB_DIR}/${LIB_PREFIX}${_LIB_NAME}_Debug.${BULLET_LIB_EXT} CACHE FILEPATH "${_LIB_NAME} debug library location")
     else ()
       set(${EXTERNAL_NAME_UPPER}_${_LIB_VAR_NAME}_DEBUG "" CACHE FILEPATH "${_LIB_NAME} debug library location")
     endif ()
