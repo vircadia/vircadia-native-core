@@ -126,15 +126,16 @@ void DeferredLightingEffect::renderSolidCone(float base, float height, int slice
     releaseSimpleProgram();
 }
 
-void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& ambient,
-        const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation,
-        float linearAttenuation, float quadraticAttenuation) {
-    addSpotLight(position, radius, ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);    
+void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
+        float intensity) {
+    addSpotLight(position, radius, color, intensity);    
 }
 
-void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& ambient,
-        const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation, float linearAttenuation,
-        float quadraticAttenuation, const glm::vec3& direction, float exponent, float cutoff) {
+// Remove: ambient, specular, *Attenuation, direction
+// Add: intensity, radius
+// Rename: diffuseColor -> color
+void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
+    float intensity, const glm::quat& orientation, float exponent, float cutoff) {
     
     int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
@@ -144,8 +145,8 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
     lp->setPosition(position);
     lp->setMaximumRadius(radius);
-    lp->setColor(diffuse);
-    lp->setIntensity(1.0f);
+    lp->setColor(color);
+    lp->setIntensity(intensity);
     //lp->setShowContour(quadraticAttenuation);
 
     if (exponent == 0.0f && cutoff == PI) {
@@ -153,7 +154,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         _pointLights.push_back(lightID);
         
     } else {
-        lp->setDirection(direction);
+        lp->setOrientation(orientation);
         lp->setSpotAngle(cutoff);
         lp->setSpotExponent(exponent);
         lp->setType(model::Light::SPOT);
