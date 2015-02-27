@@ -248,7 +248,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
     nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, nodeList->getNodeSocket().localPort());
 
-    // store out local http ports in shared memory
+    // store our local http ports in shared memory
     quint16 localHttpPort = DOMAIN_SERVER_HTTP_PORT;
     nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_HTTP_PORT_SMEM_KEY, this, localHttpPort);
     quint16 localHttpsPort = DOMAIN_SERVER_HTTPS_PORT;
