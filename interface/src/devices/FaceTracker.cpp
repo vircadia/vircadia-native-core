@@ -9,10 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <GLMHelpers.h>
+
 #include "FaceTracker.h"
 
 inline float FaceTracker::getBlendshapeCoefficient(int index) const {
-    return isValidBlendshapeIndex(index) ? _blendshapeCoefficients[index] : 0.0f;
+    return isValidBlendshapeIndex(index) ? glm::mix(0.0f, _blendshapeCoefficients[index], getFadeCoefficient())
+                                         : 0.0f;
+}
+
+const QVector<float>& FaceTracker::getBlendshapeCoefficients() const {
+    static QVector<float> blendshapes;
+    float fadeCoefficient = getFadeCoefficient();
+    if (fadeCoefficient == 1.0f) {
+        return _blendshapeCoefficients;
+    } else {
+        blendshapes.resize(_blendshapeCoefficients.size());
+        for (int i = 0; i < _blendshapeCoefficients.size(); i++) {
+            blendshapes[i] = glm::mix(0.0f, _blendshapeCoefficients[i], fadeCoefficient);
+        }
+        return blendshapes;
+    }
 }
 
 float FaceTracker::getFadeCoefficient() const {
@@ -24,7 +41,7 @@ const glm::vec3 FaceTracker::getHeadTranslation() const {
 }
 
 const glm::quat FaceTracker::getHeadRotation() const {
-    return glm::mix(glm::quat(), _headRotation, getFadeCoefficient());
+    return safeMix(glm::quat(), _headRotation, getFadeCoefficient());
 }
 
 void FaceTracker::update(float deltaTime) {
