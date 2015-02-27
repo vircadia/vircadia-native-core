@@ -97,16 +97,16 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, _isSpotlight);
 
         // _diffuseColor has been renamed to _color
-        READ_ENTITY_PROPERTY_COLOR(PROP_DIFFUSE_COLOR, _color);
+        READ_ENTITY_PROPERTY_COLOR(PROP_DIFFUSE_COLOR_UNUSED, _color);
 
-        READ_ENTITY_PROPERTY_COLOR(PROP_AMBIENT_COLOR, ambientColor);
-        READ_ENTITY_PROPERTY_COLOR(PROP_SPECULAR_COLOR, specularColor);
+        READ_ENTITY_PROPERTY_COLOR(PROP_AMBIENT_COLOR_UNUSED, ambientColor);
+        READ_ENTITY_PROPERTY_COLOR(PROP_SPECULAR_COLOR_UNUSED, specularColor);
 
         // _constantAttenuation has been renamed to _intensity
         READ_ENTITY_PROPERTY(PROP_INTENSITY, float, _intensity);
 
-        READ_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, float, attenuation);
-        READ_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, float, attenuation);
+        READ_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION_UNUSED, float, attenuation);
+        READ_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION_UNUSED, float, attenuation);
         READ_ENTITY_PROPERTY(PROP_EXPONENT, float, _exponent);
         READ_ENTITY_PROPERTY(PROP_CUTOFF, float, _cutoff);
     } else {

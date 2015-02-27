@@ -66,12 +66,12 @@ enum EntityPropertyList {
 
     // property used by Light entity
     PROP_IS_SPOTLIGHT,
-    PROP_DIFFUSE_COLOR,
-    PROP_AMBIENT_COLOR,
-    PROP_SPECULAR_COLOR,
+    PROP_DIFFUSE_COLOR_UNUSED,
+    PROP_AMBIENT_COLOR_UNUSED,
+    PROP_SPECULAR_COLOR_UNUSED,
     PROP_INTENSITY, // Previously PROP_CONSTANT_ATTENUATION
-    PROP_LINEAR_ATTENUATION,
-    PROP_QUADRATIC_ATTENUATION,
+    PROP_LINEAR_ATTENUATION_UNUSED,
+    PROP_QUADRATIC_ATTENUATION_UNUSED,
     PROP_EXPONENT,
     PROP_CUTOFF,
 
@@ -165,12 +165,7 @@ public:
     DEFINE_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool);
     DEFINE_PROPERTY(PROP_COLLISIONS_WILL_MOVE, CollisionsWillMove, collisionsWillMove, bool);
     DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
-    DEFINE_PROPERTY_REF(PROP_DIFFUSE_COLOR, DiffuseColor, diffuseColor, xColor);
-    DEFINE_PROPERTY_REF(PROP_AMBIENT_COLOR, AmbientColor, ambientColor, xColor);
-    DEFINE_PROPERTY_REF(PROP_SPECULAR_COLOR, SpecularColor, specularColor, xColor);
     DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float);
-    DEFINE_PROPERTY(PROP_LINEAR_ATTENUATION, LinearAttenuation, linearAttenuation, float);
-    DEFINE_PROPERTY(PROP_QUADRATIC_ATTENUATION, QuadraticAttenuation, quadraticAttenuation, float);
     DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float);
     DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool);
@@ -288,12 +283,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, IgnoreForCollisions, ignoreForCollisions, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionsWillMove, collisionsWillMove, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsSpotlight, isSpotlight, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, DiffuseColor, diffuseColor, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AmbientColor, ambientColor, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpecularColor, specularColor, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Intensity, intensity, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LinearAttenuation, linearAttenuation, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, QuadraticAttenuation, quadraticAttenuation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Exponent, exponent, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cutoff, cutoff, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
