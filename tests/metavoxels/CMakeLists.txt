@@ -7,4 +7,4 @@ setup_hifi_project(Network Script Widgets)
 # link in the shared libraries
 link_hifi_libraries(metavoxels networking shared)
 
-include_dependency_includes()
+copy_dlls_beside_windows_executable()

@@ -171,7 +171,8 @@ public:
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
 
-    bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
+    GLCanvas* getGLWidget() { return _glWidget; }
+    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
 
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -195,8 +196,8 @@ public:
     bool mouseOnScreen() const;
     int getMouseX() const;
     int getMouseY() const;
-    int getTrueMouseX() const { return DependencyManager::get<GLCanvas>()->mapFromGlobal(QCursor::pos()).x(); }
-    int getTrueMouseY() const { return DependencyManager::get<GLCanvas>()->mapFromGlobal(QCursor::pos()).y(); }
+    int getTrueMouseX() const { return _glWidget->mapFromGlobal(QCursor::pos()).x(); }
+    int getTrueMouseY() const { return _glWidget->mapFromGlobal(QCursor::pos()).y(); }
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
@@ -270,8 +271,8 @@ public:
 
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const { return glm::vec2(DependencyManager::get<GLCanvas>()->getDeviceWidth(),
-                                                               DependencyManager::get<GLCanvas>()->getDeviceHeight()); }
+    glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(),
+                                                               _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     void skipVersion(QString latestVersion);
@@ -420,9 +421,6 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateFaceshift();
-    void updateVisage();
-    void updateDDE();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
@@ -593,6 +591,8 @@ private:
     
     QThread _settingsThread;
     QTimer _settingsTimer;
+    
+    GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
 };
 
 #endif // hifi_Application_h

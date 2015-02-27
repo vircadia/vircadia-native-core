@@ -21,8 +21,8 @@
 
 #ifdef HAVE_QXMPP
 
-#include <QXmppClient.h>
-#include <QXmppMessage.h>
+#include <qxmpp/QXmppClient.h>
+#include <qxmpp/QXmppMessage.h>
 
 #endif // HAVE_QXMPP
 

@@ -16,6 +16,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
@@ -42,6 +43,8 @@ public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
                  const QString& fileNameString = QString(""),
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
+
+    ~ScriptEngine();
 
     /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
@@ -83,11 +86,18 @@ public:
 
     bool isFinished() const { return _isFinished; }
     bool isRunning() const { return _isRunning; }
+    bool evaluatePending() const { return _evaluatesPending > 0; }
 
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
+    
+    QString getFilename() const;
+    
+    static void stopAllScripts(QObject* application);
+    
+    void waitTillDoneRunning();
 
 public slots:
     void loadURL(const QUrl& scriptURL);
@@ -118,12 +128,14 @@ signals:
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
     void loadScript(const QString& scriptName, bool isUserLoaded);
+    void doneRunning();
 
 protected:
     QString _scriptContents;
     QString _parentURL;
     bool _isFinished;
     bool _isRunning;
+    int _evaluatesPending = 0;
     bool _isInitialized;
     bool _isAvatar;
     QTimer* _avatarIdentityTimer;
@@ -134,6 +146,7 @@ protected:
     int _numAvatarSoundSentBytes;
 
 private:
+    void stopAllTimers();
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
@@ -156,6 +169,12 @@ private:
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 private slots:
     void handleScriptDownload();
+
+private:
+    static QSet<ScriptEngine*> _allKnownScriptEngines;
+    static QMutex _allScriptsMutex;
+    static bool _stoppingAllScripts;
+    static bool _doneRunningThisScript;
 };
 
 #endif // hifi_ScriptEngine_h

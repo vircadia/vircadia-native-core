@@ -136,10 +136,10 @@ ApplicationOverlay::ApplicationOverlay() :
     _textureFov(glm::radians(DEFAULT_OCULUS_UI_ANGULAR_SIZE)),
     _textureAspectRatio(1.0f),
     _lastMouseMove(0),
+    _magnifier(true),
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
     _crosshairTexture(0),
-    _magnifier(true),
     _previousBorderWidth(-1),
     _previousBorderHeight(-1),
     _previousMagnifierBottomLeft(),
@@ -170,7 +170,7 @@ ApplicationOverlay::~ApplicationOverlay() {
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
     Overlays& overlays = qApp->getOverlays();
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     
     _textureFov = glm::radians(_oculusUIAngularSize);
     _textureAspectRatio = (float)glCanvas->getDeviceWidth() / (float)glCanvas->getDeviceHeight();
@@ -239,7 +239,7 @@ void ApplicationOverlay::displayOverlayTexture() {
     if (_alpha == 0.0f) {
         return;
     }
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
 
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
@@ -401,7 +401,7 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
                                                 glm::vec2(1.0f, 0.0f), glm::vec2(0.0f, 0.0f),
                                                 overlayColor);
     
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     if (_crosshairTexture == 0) {
         _crosshairTexture = glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/sixense-reticle.png"));
     }
@@ -451,7 +451,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origi
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
@@ -528,7 +528,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
 
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
@@ -575,7 +575,7 @@ void ApplicationOverlay::renderPointers() {
 }
 
 void ApplicationOverlay::renderControllerPointers() {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     //Static variables used for storing controller state
@@ -722,7 +722,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
     if (!_magnifier) {
         return;
     }
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     
     const int widgetWidth = glCanvas->width();
     const int widgetHeight = glCanvas->height();
@@ -787,7 +787,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
 }
 
 void ApplicationOverlay::renderAudioMeter() {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     auto audio = DependencyManager::get<AudioClient>();
 
     //  Audio VU Meter and Mute Icon
@@ -905,7 +905,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
     Application* application = Application::getInstance();
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
 
@@ -943,7 +943,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
-        auto glCanvas = DependencyManager::get<GLCanvas>();
+        auto glCanvas = Application::getInstance()->getGLWidget();
         auto geometryCache = DependencyManager::get<GeometryCache>();
         int width = glCanvas->width();
         int height = glCanvas->height();
@@ -1087,7 +1087,7 @@ void ApplicationOverlay::TexturedHemisphere::cleanupVBO() {
 }
 
 void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
-    QSize size = DependencyManager::get<GLCanvas>()->getDeviceSize();
+    QSize size = Application::getInstance()->getGLWidget()->getDeviceSize();
     if (_framebufferObject != NULL && size == _framebufferObject->size()) {
         // Already build
         return;
@@ -1138,7 +1138,7 @@ void ApplicationOverlay::TexturedHemisphere::render() {
 
 
 glm::vec2 ApplicationOverlay::screenToSpherical(glm::vec2 screenPos) const {
-    QSize screenSize = DependencyManager::get<GLCanvas>()->getDeviceSize();
+    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
     float yaw = -(screenPos.x / screenSize.width() - 0.5f) * MOUSE_YAW_RANGE;
     float pitch = (screenPos.y / screenSize.height() - 0.5f) * MOUSE_PITCH_RANGE;
     
@@ -1146,7 +1146,7 @@ glm::vec2 ApplicationOverlay::screenToSpherical(glm::vec2 screenPos) const {
 }
 
 glm::vec2 ApplicationOverlay::sphericalToScreen(glm::vec2 sphericalPos) const {
-    QSize screenSize = DependencyManager::get<GLCanvas>()->getDeviceSize();
+    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
     float x = (-sphericalPos.x / MOUSE_YAW_RANGE + 0.5f) * screenSize.width();
     float y = (sphericalPos.y / MOUSE_PITCH_RANGE + 0.5f) * screenSize.height();
     
@@ -1154,7 +1154,7 @@ glm::vec2 ApplicationOverlay::sphericalToScreen(glm::vec2 sphericalPos) const {
 }
 
 glm::vec2 ApplicationOverlay::sphericalToOverlay(glm::vec2 sphericalPos) const {
-    QSize screenSize = DependencyManager::get<GLCanvas>()->getDeviceSize();
+    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
     float x = (-sphericalPos.x / (_textureFov * _textureAspectRatio) + 0.5f) * screenSize.width();
     float y = (sphericalPos.y / _textureFov + 0.5f) * screenSize.height();
     
@@ -1162,7 +1162,7 @@ glm::vec2 ApplicationOverlay::sphericalToOverlay(glm::vec2 sphericalPos) const {
 }
 
 glm::vec2 ApplicationOverlay::overlayToSpherical(glm::vec2 overlayPos) const {
-    QSize screenSize = DependencyManager::get<GLCanvas>()->getDeviceSize();
+    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
     float yaw = -(overlayPos.x / screenSize.width() - 0.5f) * _textureFov * _textureAspectRatio;
     float pitch = (overlayPos.y / screenSize.height() - 0.5f) * _textureFov;
     

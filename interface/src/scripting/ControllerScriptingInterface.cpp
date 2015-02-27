@@ -15,6 +15,7 @@
 #include <HandData.h>
 #include <HFBackEvent.h>
 
+#include "Application.h"
 #include "devices/MotionTracker.h"
 #include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
@@ -208,6 +209,21 @@ glm::quat ControllerScriptingInterface::getSpatialControlRawRotation(int control
     }
     return glm::quat(); // bad index
 }
+    
+glm::vec3 ControllerScriptingInterface::getSpatialControlRawAngularVelocity(int controlIndex) const {
+    int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    const PalmData* palmData = getActivePalm(palmIndex);
+    if (palmData) {
+        switch (controlOfPalm) {
+            case PALM_SPATIALCONTROL:
+                return palmData->getRawAngularVelocity();
+            case TIP_SPATIALCONTROL:
+                return palmData->getRawAngularVelocity();  //  Tip = palm angular velocity        
+        }
+    }
+    return glm::vec3(0); // bad index
+}
 
 glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex) const {
     int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
@@ -270,7 +286,7 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 }
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
-    auto glCanvas = DependencyManager::get<GLCanvas>();
+    auto glCanvas = Application::getInstance()->getGLWidget();
     return glm::vec2(glCanvas->width(), glCanvas->height());
 }
 

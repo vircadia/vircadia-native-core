@@ -39,7 +39,10 @@
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 
+#include "SceneScriptingInterface.h"
+
 #include "MIDIEvent.h"
+
 
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
@@ -94,7 +97,108 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
+    _allScriptsMutex.lock();
+    _allKnownScriptEngines.insert(this);
+    _allScriptsMutex.unlock();
 }
+
+ScriptEngine::~ScriptEngine() {
+    // If we're not already in the middle of stopping all scripts, then we should remove ourselves
+    // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
+    // because that method removes scripts from its list as it iterates them
+    if (!_stoppingAllScripts) {
+        _allScriptsMutex.lock();
+        _allKnownScriptEngines.remove(this);
+        _allScriptsMutex.unlock();
+    }
+}
+
+QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
+QMutex ScriptEngine::_allScriptsMutex;
+bool ScriptEngine::_stoppingAllScripts = false;
+bool ScriptEngine::_doneRunningThisScript = false;
+
+void ScriptEngine::stopAllScripts(QObject* application) {
+    _allScriptsMutex.lock();
+    _stoppingAllScripts = true;
+    
+    QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
+    while (i.hasNext()) {
+        ScriptEngine* scriptEngine = i.next();
+
+        QString scriptName = scriptEngine->getFilename();
+
+        // NOTE: typically all script engines are running. But there's at least one known exception to this, the
+        // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
+        // them. We don't need to stop scripts that aren't running. 
+        if (scriptEngine->isRunning()) {
+        
+            // If the script is running, but still evaluating then we need to wait for its evaluation step to
+            // complete. After that we can handle the stop process appropriately
+            if (scriptEngine->evaluatePending()) {
+                while (scriptEngine->evaluatePending()) {
+                
+                    // This event loop allows any started, but not yet finished evaluate() calls to complete
+                    // we need to let these complete so that we can be guaranteed that the script engine isn't
+                    // in a partially setup state, which can confuse our shutdown unwinding.
+                    QEventLoop loop;
+                    QObject::connect(scriptEngine, &ScriptEngine::evaluationFinished, &loop, &QEventLoop::quit);
+                    loop.exec();
+                }
+            }
+
+            // We disconnect any script engine signals from the application because we don't want to do any 
+            // extra stopScript/loadScript processing that the Application normally does when scripts start
+            // and stop. We can safely short circuit this because we know we're in the "quitting" process
+            scriptEngine->disconnect(application);
+            
+            // Calling stop on the script engine will set it's internal _isFinished state to true, and result
+            // in the ScriptEngine gracefully ending it's run() method.
+            scriptEngine->stop();
+
+            // We need to wait for the engine to be done running before we proceed, because we don't
+            // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
+            // any application state after we leave this stopAllScripts() method
+            scriptEngine->waitTillDoneRunning();
+            
+            // If the script is stopped, we can remove it from our set
+            i.remove();
+        }
+    }
+    _stoppingAllScripts = false;
+    _allScriptsMutex.unlock();
+}
+
+
+void ScriptEngine::waitTillDoneRunning() {
+    QString scriptName = getFilename();
+
+    // If the script never started running or finished running before we got here, we don't need to wait for it
+    if (_isRunning) {
+
+        _doneRunningThisScript = false; // NOTE: this is static, we serialize our waiting for scripts to finish
+        
+        // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
+        // we want the application thread to continue to process events, because the scripts will likely need to 
+        // marshall messages across to the main thread. For example if they access Settings or Meny in any of their
+        // shutdown code.
+        while (!_doneRunningThisScript) {
+            
+            // process events for the main application thread, allowing invokeMethod calls to pass between threads
+            QCoreApplication::processEvents();
+        }
+    }
+}
+
+QString ScriptEngine::getFilename() const { 
+    QStringList fileNameParts = _fileNameString.split("/");
+    QString lastPart;
+    if (!fileNameParts.isEmpty()) {
+        lastPart = fileNameParts.last();
+    }
+    return lastPart; 
+}
+
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
     _isAvatar = isAvatar;
@@ -208,6 +312,8 @@ void ScriptEngine::init() {
     
     _isInitialized = true;
 
+    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+
     _entityScriptingInterface.init();
 
     // register various meta-types
@@ -251,6 +357,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
@@ -295,12 +402,18 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
 }
 
 void ScriptEngine::evaluate() {
+    if (_stoppingAllScripts) {
+        return; // bail early
+    }
+
     if (!_isInitialized) {
         init();
     }
 
     QScriptValue result = evaluate(_scriptContents);
 
+    // TODO: why do we check this twice? It seems like the call to clearExcpetions() in the lower level evaluate call
+    // will cause this code to never actually run...
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
@@ -310,11 +423,17 @@ void ScriptEngine::evaluate() {
 }
 
 QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
+    if (_stoppingAllScripts) {
+        return QScriptValue(); // bail early
+    }
+
+    _evaluatesPending++;
     QScriptValue result = QScriptEngine::evaluate(program, fileName, lineNumber);
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
     }
+    _evaluatesPending--;
     emit evaluationFinished(result, hasUncaughtException());
     clearExceptions();
     return result;
@@ -333,6 +452,9 @@ void ScriptEngine::sendAvatarBillboardPacket() {
 }
 
 void ScriptEngine::run() {
+    // TODO: can we add a short circuit for _stoppingAllScripts here? What does it mean to not start running if
+    // we're in the process of stopping?
+
     if (!_isInitialized) {
         init();
     }
@@ -341,12 +463,6 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     QScriptValue result = evaluate(_scriptContents);
-    if (hasUncaughtException()) {
-        int line = uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
-        emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
-        clearExceptions();
-    }
 
     QElapsedTimer startTime;
     startTime.start();
@@ -373,7 +489,7 @@ void ScriptEngine::run() {
             break;
         }
 
-        if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+        if (!_isFinished && _entityScriptingInterface.getEntityPacketSender()->serversExist()) {
             // release the queue of edit entity messages.
             _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
 
@@ -383,7 +499,7 @@ void ScriptEngine::run() {
             }
         }
 
-        if (_isAvatar && _avatarData) {
+        if (!_isFinished && _isAvatar && _avatarData) {
 
             const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
                                                            / (1000 * 1000)) + 0.5);
@@ -493,9 +609,14 @@ void ScriptEngine::run() {
             clearExceptions();
         }
 
-        emit update(deltaTime);
+        if (!_isFinished) {
+            emit update(deltaTime);
+        }
         lastUpdate = now;
+        
     }
+
+    stopAllTimers(); // make sure all our timers are stopped if the script is ending
     emit scriptEnding();
 
     // kill the avatar identity timer
@@ -520,6 +641,21 @@ void ScriptEngine::run() {
 
     _isRunning = false;
     emit runningStateChanged();
+
+    emit doneRunning();
+
+    _doneRunningThisScript = true;
+}
+
+// NOTE: This is private because it must be called on the same thread that created the timers, which is why
+// we want to only call it in our own run "shutdown" processing.
+void ScriptEngine::stopAllTimers() {
+    QMutableHashIterator<QTimer*, QScriptValue> i(_timerFunctionMap);
+    while (i.hasNext()) {
+        i.next();
+        QTimer* timer = i.key();
+        stopTimer(timer);
+    }
 }
 
 void ScriptEngine::stop() {
@@ -560,10 +696,20 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
 }
 
 QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
+    if (_stoppingAllScripts) {
+        qDebug() << "Script.setInterval() while shutting down is ignored... parent script:" << getFilename();
+        return NULL; // bail early
+    }
+
     return setupTimerWithInterval(function, intervalMS, false);
 }
 
 QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
+    if (_stoppingAllScripts) {
+        qDebug() << "Script.setTimeout() while shutting down is ignored... parent script:" << getFilename();
+        return NULL; // bail early
+    }
+
     return setupTimerWithInterval(function, timeoutMS, true);
 }
 
@@ -604,13 +750,16 @@ void ScriptEngine::print(const QString& message) {
     emit printedMessage(message);
 }
 
-/**
- * If a callback is specified, the included files will be loaded asynchronously and the callback will be called
- * when all of the files have finished loading.
- * If no callback is specified, the included files will be loaded synchronously and will block execution until
- * all of the files have finished loading.
- */
+// If a callback is specified, the included files will be loaded asynchronously and the callback will be called
+// when all of the files have finished loading.
+// If no callback is specified, the included files will be loaded synchronously and will block execution until
+// all of the files have finished loading.
 void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callback) {
+    if (_stoppingAllScripts) {
+        qDebug() << "Script.include() while shutting down is ignored..."
+                 << "includeFiles:" << includeFiles << "parent script:" << getFilename();
+        return; // bail early
+    }
     QList<QUrl> urls;
     for (QString file : includeFiles) {
         urls.append(resolvePath(file));
@@ -650,12 +799,27 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 }
 
 void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
+    if (_stoppingAllScripts) {
+        qDebug() << "Script.include() while shutting down is ignored... " 
+                 << "includeFile:" << includeFile << "parent script:" << getFilename();
+        return; // bail early
+    }
+
     QStringList urls;
     urls.append(includeFile);
     include(urls, callback);
 }
 
+// NOTE: The load() command is similar to the include() command except that it loads the script
+// as a stand-alone script. To accomplish this, the ScriptEngine class just emits a signal which
+// the Application or other context will connect to in order to know to actually load the script
 void ScriptEngine::load(const QString& loadFile) {
+    if (_stoppingAllScripts) {
+        qDebug() << "Script.load() while shutting down is ignored... "
+                 << "loadFile:" << loadFile << "parent script:" << getFilename();
+        return; // bail early
+    }
+
     QUrl url = resolvePath(loadFile);
     emit loadScript(url.toString(), false);
 }

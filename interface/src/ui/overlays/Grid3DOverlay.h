@@ -17,8 +17,6 @@
 
 #include <glm/glm.hpp>
 
-#include <QGLWidget>
-
 #include <ProgramObject.h>
 #include <SharedUtil.h>
 

@@ -24,8 +24,7 @@
 
 #include "FaceTracker.h"
 
-const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
-const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
+const float STARTING_FACESHIFT_FRAME_TIME = 0.033f;
 
 /// Handles interaction with the Faceshift software, which provides head position/orientation and facial features.
 class Faceshift : public FaceTracker, public Dependency {
@@ -33,11 +32,17 @@ class Faceshift : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    void init();
+#ifdef HAVE_FACESHIFT
+    // If we don't have faceshift, use the base class' methods
+    virtual void init();
+    virtual void update(float deltaTime);
+    virtual void reset();
 
-    bool isConnectedOrConnecting() const; 
+    virtual bool isActive() const;
+    virtual bool isTracking() const;
+#endif
 
-    bool isActive() const;
+    bool isConnectedOrConnecting() const;
 
     const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
 
@@ -68,9 +73,6 @@ public:
     
     QString getHostname() { return _hostname.get(); }
     void setHostname(const QString& hostname);
-
-    void update();
-    void reset();
     
     void updateFakeCoefficients(float leftBlink,
                                 float rightBlink,
@@ -82,15 +84,12 @@ public:
                                 QVector<float>& coefficients) const;
     
 signals:
-
     void connectionStateChanged();
 
 public slots:
-    
     void setTCPEnabled(bool enabled);
     
 private slots:
-
     void connectSocket();
     void noteConnected();
     void noteError(QAbstractSocket::SocketError error);
@@ -100,8 +99,6 @@ private slots:
 private:
     Faceshift();
     virtual ~Faceshift() {}
-    
-    float getBlendshapeCoefficient(int index) const;
     
     void send(const std::string& message);
     void receive(const QByteArray& buffer);
@@ -113,48 +110,48 @@ private:
     fs::fsBinaryStream _stream;
 #endif
     
-    bool _tcpEnabled;
-    int _tcpRetryCount;
-    bool _tracking;
-    quint64 _lastTrackingStateReceived;
-    float _averageFrameTime;
+    bool _tcpEnabled = true;
+    int _tcpRetryCount = 0;
+    bool _tracking = false;
+    quint64 _lastTrackingStateReceived = 0;
+    float _averageFrameTime = STARTING_FACESHIFT_FRAME_TIME;
     
-    glm::vec3 _headAngularVelocity;
-    glm::vec3 _headLinearVelocity;
-    glm::vec3 _lastHeadTranslation;
-    glm::vec3 _filteredHeadTranslation;
-    
-    // degrees
-    float _eyeGazeLeftPitch;
-    float _eyeGazeLeftYaw;
-    float _eyeGazeRightPitch;
-    float _eyeGazeRightYaw;
-    
-    int _leftBlinkIndex;
-    int _rightBlinkIndex;
-    int _leftEyeOpenIndex;
-    int _rightEyeOpenIndex;
-
-    // Brows
-    int _browDownLeftIndex;
-    int _browDownRightIndex;
-    int _browUpCenterIndex;
-    int _browUpLeftIndex;
-    int _browUpRightIndex;
-    
-    int _mouthSmileLeftIndex;
-    int _mouthSmileRightIndex;
-    
-    int _jawOpenIndex;
+    glm::vec3 _headAngularVelocity = glm::vec3(0.0f);
+    glm::vec3 _headLinearVelocity = glm::vec3(0.0f);
+    glm::vec3 _lastHeadTranslation = glm::vec3(0.0f);
+    glm::vec3 _filteredHeadTranslation = glm::vec3(0.0f);
     
     // degrees
-    float _longTermAverageEyePitch;
-    float _longTermAverageEyeYaw;
-    bool _longTermAverageInitialized;
+    float _eyeGazeLeftPitch = 0.0f;
+    float _eyeGazeLeftYaw = 0.0f;
+    float _eyeGazeRightPitch = 0.0f;
+    float _eyeGazeRightYaw = 0.0f;
+    
+    // degrees
+    float _longTermAverageEyePitch = 0.0f;
+    float _longTermAverageEyeYaw = 0.0f;
+    bool _longTermAverageInitialized = false;
     
     Setting::Handle<float> _eyeDeflection;
     Setting::Handle<QString> _hostname;
     
+    // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    int _leftBlinkIndex = 0;
+    int _rightBlinkIndex = 1;
+    int _leftEyeOpenIndex = 8;
+    int _rightEyeOpenIndex = 9;
+    
+    // Brows
+    int _browDownLeftIndex = 14;
+    int _browDownRightIndex = 15;
+    int _browUpCenterIndex = 16;
+    int _browUpLeftIndex = 17;
+    int _browUpRightIndex = 18;
+    
+    int _mouthSmileLeftIndex = 28;
+    int _mouthSmileRightIndex = 29;
+    
+    int _jawOpenIndex = 21;
 };
 
 #endif // hifi_Faceshift_h

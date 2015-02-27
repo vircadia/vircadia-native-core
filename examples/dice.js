@@ -53,8 +53,10 @@ function shootDice(position, velocity) {
           position: position,  
           velocity: velocity, 
           rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
+          angularVelocity: { x: Math.random() * 100, y: Math.random() * 100, z: Math.random() * 100 },
           lifetime: LIFETIME,
           gravity: {  x: 0, y: GRAVITY, z: 0 },
+          shapeType: "box",
           collisionsWillMove: true
       }));
       position = Vec3.sum(position, Vec3.multiply(DIE_SIZE, Vec3.normalize(Quat.getRight(Camera.getOrientation()))));

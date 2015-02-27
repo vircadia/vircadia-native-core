@@ -101,6 +101,8 @@ public:
     void setKinematic(bool kinematic, uint32_t substep);
     virtual void stepKinematicSimulation(quint64 now) = 0;
 
+    virtual bool isMoving() const = 0;
+
     friend class PhysicsEngine;
 protected:
     void setRigidBody(btRigidBody* body);

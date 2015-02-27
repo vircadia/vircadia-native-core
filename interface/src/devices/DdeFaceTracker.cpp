@@ -50,6 +50,8 @@ DdeFaceTracker::DdeFaceTracker() :
 }
 
 DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
+    _host(host),
+    _port(port),
     _lastReceiveTimestamp(0),
     _reset(false),
     _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
@@ -64,8 +66,6 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
     _mouthSmileLeftIndex(28),
     _mouthSmileRightIndex(29),
     _jawOpenIndex(21),
-    _host(host),
-    _port(port),
     _previousTranslation(glm::vec3()),
     _previousRotation(glm::quat())
 {
@@ -81,18 +81,6 @@ DdeFaceTracker::~DdeFaceTracker() {
     if (_udpSocket.isOpen()) {
         _udpSocket.close();
     }
-}
-
-void DdeFaceTracker::init() {
-    
-}
-
-void DdeFaceTracker::reset() {
-    _reset  = true;
-}
-
-void DdeFaceTracker::update() {
-    
 }
 
 void DdeFaceTracker::setEnabled(bool enabled) {
