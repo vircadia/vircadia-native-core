@@ -122,7 +122,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 }
 
 
-bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+bool TextEntityItem::findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {
                      
@@ -136,7 +136,7 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
     glm::vec3 normal = _rotation * UNROTATED_NORMAL;
     plane.setNormal(normal);
-    plane.setPoint(_position); // the position is definitely a point on our plane
+    plane.setPoint(getPositionInMeters()); // the position is definitely a point on our plane
 
     bool intersects = plane.findRayIntersection(rayInfo);
 
@@ -145,11 +145,11 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
         // now we know the point the ray hit our plane
 
         glm::mat4 rotation = glm::mat4_cast(getRotation());
-        glm::mat4 translation = glm::translate(getPositionInDomainUnits());
+        glm::mat4 translation = glm::translate(getPositionInMeters());
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-        glm::vec3 dimensions = getDimensionsInDomainUnits();
+        glm::vec3 dimensions = getDimensionsInMeters();
         glm::vec3 registrationPoint = getRegistrationPoint();
         glm::vec3 corner = -(dimensions * registrationPoint);
         AABox entityFrameBox(corner, dimensions);

@@ -80,7 +80,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
 #endif
 };
 
-bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+bool RenderableLightEntityItem::findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const {
 

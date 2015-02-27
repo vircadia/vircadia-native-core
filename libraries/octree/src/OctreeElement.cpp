@@ -1338,12 +1338,10 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
     keepSearching = true; // assume that we will continue searching after this.
 
     AACube cube = getAACube();
+    cube *= (float)TREE_SCALE;
     float distanceToElementCube = std::numeric_limits<float>::max();
     float distanceToElementDetails = distance;
     BoxFace localFace;
-
-    AACube debugCube = cube;
-    debugCube.scale((float)TREE_SCALE);
 
     // if the ray doesn't intersect with our cube, we can stop searching!
     if (!cube.findRayIntersection(origin, direction, distanceToElementCube, localFace)) {

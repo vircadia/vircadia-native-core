@@ -135,7 +135,7 @@ public:
     virtual bool deleteApproved() const { return !hasEntities(); }
 
     virtual bool canRayIntersect() const { return hasEntities(); }
-    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual bool findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 

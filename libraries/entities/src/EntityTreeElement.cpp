@@ -469,7 +469,7 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+bool EntityTreeElement::findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
@@ -485,7 +485,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
         
-        AABox entityBox = entity->getAABox();
+        AABox entityBox = entity->getAABoxInMeters();
         float localDistance;
         BoxFace localFace;
 
@@ -494,11 +494,11 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
             // extents is the entity relative, scaled, centered extents of the entity
             glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-            glm::mat4 translation = glm::translate(entity->getPositionInDomainUnits());
+            glm::mat4 translation = glm::translate(entity->getPositionInMeters());
             glm::mat4 entityToWorldMatrix = translation * rotation;
             glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-            glm::vec3 dimensions = entity->getDimensionsInDomainUnits();
+            glm::vec3 dimensions = entity->getDimensionsInMeters();
             glm::vec3 registrationPoint = entity->getRegistrationPoint();
             glm::vec3 corner = -(dimensions * registrationPoint);
 
@@ -513,7 +513,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 if (localDistance < distance) {
                     // now ask the entity if we actually intersect
                     if (entity->supportsDetailedRayIntersection()) {
-                        if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance, 
+                        if (entity->findDetailedRayIntersectionInMeters(origin, direction, keepSearching, element, localDistance, 
                                                                     localFace, intersectedObject, precisionPicking)) {
     
                             if (localDistance < distance) {

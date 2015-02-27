@@ -706,7 +706,7 @@ bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     OctreeElement*& element, float& distance, BoxFace& face, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, 
+    RayArgs args = { origin, direction, element, distance, face, 
                         intersectedObject, false, precisionPicking};
     distance = FLT_MAX;
 
@@ -726,10 +726,6 @@ bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
 
     recurseTreeWithOperation(findRayIntersectionOp, &args);
     
-    if (args.found) {
-        args.distance *= (float)(TREE_SCALE); // scale back up to meters
-    }
-
     if (gotLock) {
         unlock();
     }
