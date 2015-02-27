@@ -13,9 +13,11 @@ var day = 0.0;
 var hour = 12.0;
 var longitude = -115.0;
 var latitude = -31.0;
+var stageOrientation = Quat.fromPitchYawRollDegrees(0.0, 180.0, 0.0);
 
-Scene.setDayTime(hour);
-//Scene.setOriginLocation(longitude, latitude, 0.0);
+Scene.setStageDayTime(hour);
+Scene.setStageOrientation(stageOrientation);
+Scene.setStageLocation(longitude, latitude, 0.0);
 
 function ticktack() {
     hour += 0.1;
@@ -23,9 +25,9 @@ function ticktack() {
     if (hour > 24.0) {
         hour = 0.0;
         day++;
-        Scene.setYearTime(day);
+        Scene.setStageYearTime(day);
     }
-    Scene.setDayTime(hour);
+    Scene.setStageDayTime(hour);
 }
 
 Script.setInterval(ticktack, 41);

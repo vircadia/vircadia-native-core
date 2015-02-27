@@ -73,7 +73,17 @@ void EarthSunModel::updateSun() const {
 
     // sun direction is looking up toward Y axis at the specified sun lat, long
     Vec3d lssd = Vec3d(_worldToSurfaceMat * Vec4d(_sunDir.x, _sunDir.y, _sunDir.z, 0.0));
+    
+    // apply surface rotation offset
+    glm::dquat dSurfOrient(_surfaceOrientation);
+    lssd = glm::rotate(dSurfOrient, lssd);
+
     _surfaceSunDir = glm::normalize(Vec3(lssd.x, lssd.y, lssd.z));
+}
+
+void EarthSunModel::setSurfaceOrientation(const Quat& orientation) {
+    _surfaceOrientation = orientation;
+    invalidate();
 }
 
 double moduloRange(double val, double minVal, double maxVal) {
@@ -152,6 +162,11 @@ void SunSkyStage::setDayTime(float hour) {
 
 void SunSkyStage::setYearTime(unsigned int day) {
     _yearTime = day % NUM_DAYS_PER_YEAR;
+    invalidate();
+}
+
+void SunSkyStage::setOriginOrientation(const Quat& orientation) {
+    _earthSunModel.setSurfaceOrientation(orientation);
     invalidate();
 }
 

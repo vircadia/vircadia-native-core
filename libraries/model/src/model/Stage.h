@@ -33,6 +33,10 @@ public:
     void setAltitude(float altitude);
     float getAltitude() const  { return _altitude; }
 
+
+    void setSurfaceOrientation(const Quat& orientation);
+    const Quat& getSurfaceOrientation() const { valid(); return _surfaceOrientation; }
+ 
     const Vec3d& getSurfacePos() const { valid(); return _surfacePos; }
 
     const Mat4d& getSurfaceToWorldMat() const { valid(); return _surfaceToWorldMat; }
@@ -66,6 +70,8 @@ public:
 protected:
     double  _scale = 1000.0; //Km
     double  _earthRadius = 6360.0;
+
+    Quat    _surfaceOrientation;
 
     double  _longitude = 0.0;
     double  _latitude = 0.0;
@@ -113,6 +119,12 @@ public:
     // time of the year expressed in day in the range [0, 365]
     void setYearTime(unsigned int day);
     unsigned int getYearTime() const { return _yearTime; }
+
+    // Origin orientation used to modify the cardinal axis alignement used.
+    // THe default is north along +Z axis and west along +X axis. this orientation gets added
+    // to the transform stack producing the sun light direction.
+    void setOriginOrientation(const Quat& orientation);
+    const Quat& getOriginOrientation() const { return _earthSunModel.getSurfaceOrientation(); }
 
     // Location  used to define the sun & sky is a longitude and latitude [rad] and a earth surface altitude [km]
     void setOriginLocation(float longitude, float latitude, float surfaceAltitude);
