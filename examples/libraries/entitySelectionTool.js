@@ -280,11 +280,11 @@ SelectionDisplay = (function () {
     var originalRoll;
     
 
-    var rotateHandleColor = { red: 0, green: 0, blue: 0 };
-    var rotateHandleAlpha = 0.7;
+    var handleColor = { red: 255, green: 255, blue: 255 };
+    var handleAlpha = 0.7;
 
-    var highlightedHandleColor = { red: 255, green: 0, blue: 0 };
-    var highlightedHandleAlpha = 0.7;
+    var highlightedHandleColor = { red: 120, green: 216, blue: 209 };
+    var highlightedHandleAlpha = 1.0;
     
     var previousHandle = false;
     var previousHandleColor;
@@ -385,9 +385,9 @@ SelectionDisplay = (function () {
                 });
 
     var grabberMoveUp = Overlays.addOverlay("billboard", {
-                    url: HIFI_PUBLIC_BUCKET + "images/up-arrow.png",
+                    url: HIFI_PUBLIC_BUCKET + "images/up-arrow.svg",
                     position: { x:0, y: 0, z: 0},
-                    color: { red: 0, green: 0, blue: 0 },
+                    color: handleColor,
                     alpha: 1.0,
                     visible: false,
                     size: 0.1,
@@ -595,8 +595,8 @@ SelectionDisplay = (function () {
     var yawHandle = Overlays.addOverlay("billboard", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
-                                        color: rotateHandleColor,
-                                        alpha: rotateHandleAlpha,
+                                        color: handleColor,
+                                        alpha: handleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
@@ -608,8 +608,8 @@ SelectionDisplay = (function () {
     var pitchHandle = Overlays.addOverlay("billboard", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
-                                        color: rotateHandleColor,
-                                        alpha: rotateHandleAlpha,
+                                        color: handleColor,
+                                        alpha: handleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
@@ -621,8 +621,8 @@ SelectionDisplay = (function () {
     var rollHandle = Overlays.addOverlay("billboard", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
-                                        color: rotateHandleColor,
-                                        alpha: rotateHandleAlpha,
+                                        color: handleColor,
+                                        alpha: handleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
@@ -2342,14 +2342,14 @@ SelectionDisplay = (function () {
                 case yawHandle:
                 case pitchHandle:
                 case rollHandle:
-                    pickedColor = rotateHandleColor;
-                    pickedAlpha = rotateHandleAlpha;
+                    pickedColor = handleColor;
+                    pickedAlpha = handleAlpha;
                     highlightNeeded = true;
                     break;
                     
                 case grabberMoveUp:
-                    pickedColor = rotateHandleColor;
-                    pickedAlpha = rotateHandleAlpha;
+                    pickedColor = handleColor;
+                    pickedAlpha = handleAlpha;
                     highlightNeeded = true;
                     break;
 
