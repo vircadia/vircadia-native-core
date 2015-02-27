@@ -32,25 +32,19 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
 
     const float MAX_COLOR = 255.0f;
-    float diffuseR = getDiffuseColor()[RED_INDEX] / MAX_COLOR;
-    float diffuseG = getDiffuseColor()[GREEN_INDEX] / MAX_COLOR;
-    float diffuseB = getDiffuseColor()[BLUE_INDEX] / MAX_COLOR;
+    float colorR = getColor()[RED_INDEX] / MAX_COLOR;
+    float colorG = getColor()[GREEN_INDEX] / MAX_COLOR;
+    float colorB = getColor()[BLUE_INDEX] / MAX_COLOR;
 
-    float ambientR = getAmbientColor()[RED_INDEX] / MAX_COLOR;
-    float ambientG = getAmbientColor()[GREEN_INDEX] / MAX_COLOR;
-    float ambientB = getAmbientColor()[BLUE_INDEX] / MAX_COLOR;
+    glm::vec3 color = glm::vec3(colorR, colorG, colorB);
+    glm::vec3 diffuse = color;
+    glm::vec3 ambient = color;
+    glm::vec3 specular = color;
 
-    float specularR = getSpecularColor()[RED_INDEX] / MAX_COLOR;
-    float specularG = getSpecularColor()[GREEN_INDEX] / MAX_COLOR;
-    float specularB = getSpecularColor()[BLUE_INDEX] / MAX_COLOR;
-
-    glm::vec3 ambient = glm::vec3(ambientR, ambientG, ambientB);
-    glm::vec3 diffuse = glm::vec3(diffuseR, diffuseG, diffuseB);
-    glm::vec3 specular = glm::vec3(specularR, specularG, specularB);
     glm::vec3 direction = IDENTITY_FRONT * rotation;
-    float constantAttenuation = getConstantAttenuation();
-    float linearAttenuation = getLinearAttenuation();
-    float quadraticAttenuation = getQuadraticAttenuation();
+    float constantAttenuation = 0.0f;
+    float linearAttenuation = 0.0f;
+    float quadraticAttenuation = 0.0f;
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
 
