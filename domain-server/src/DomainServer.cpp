@@ -32,6 +32,7 @@
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <UUID.h>
+#include <LogHandler.h>
 
 #include "DomainServerNodeData.h"
 
@@ -246,19 +247,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
     
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
-    QSharedMemory* sharedPortMem = new QSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
-    quint16 localPort = nodeList->getNodeSocket().localPort();
-    
-    // attempt to create the shared memory segment
-    if (sharedPortMem->create(sizeof(localPort)) || sharedPortMem->attach()) {
-        sharedPortMem->lock();
-        memcpy(sharedPortMem->data(), &localPort, sizeof(localPort));
-        sharedPortMem->unlock();
-        
-        qDebug() << "Wrote local listening port" << localPort << "to shared memory at key" << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY;
-    } else {
-        qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
-    }
+    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
     
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
@@ -955,8 +944,10 @@ void DomainServer::readAvailableDatagrams() {
 
             if (requestAssignment.getType() != Assignment::AgentType
                 || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
+                static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex
+                    ("Received a request for assignment type [^ ]+ from [^ ]+");
                 qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                    << "from" << senderSockAddr;
+                         << "from" << senderSockAddr;
                 noisyMessageTimer.restart();
             }
 
@@ -986,6 +977,8 @@ void DomainServer::readAvailableDatagrams() {
             } else {
                 if (requestAssignment.getType() != Assignment::AgentType
                     || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
+                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex
+                        ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
                     qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                         << "from" << senderSockAddr;
                     noisyMessageTimer.restart();

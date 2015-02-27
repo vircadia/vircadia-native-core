@@ -189,6 +189,11 @@ input, textarea {
     font-size: 7.5pt;
 }
 
+input:disabled, textarea:disabled {
+    background-color: rgb(102, 102, 102);
+    color: rgb(160, 160, 160);
+}
+
 #properties-list input[type=button] {
     cursor: pointer;
     background-color: rgb(51, 102, 102);
@@ -197,6 +202,11 @@ input, textarea {
     padding: 3.75pt 7.5pt;
     border: 0;
     color: rgb(204, 204, 204);
+}
+
+#properties-list input[type=button]:disabled {
+    background-color: rgb(41, 82, 82);
+    color: rgb(160, 160, 160);
 }
 
 #properties-list .property {
@@ -256,4 +266,12 @@ td {
 
 
         vertical-align: top;
+}
+
+#no-entities {
+    display: none;
+    font-size: 120%;
+    padding: 10pt;
+    font-weight: bold;
+    font-style: italic;
 }

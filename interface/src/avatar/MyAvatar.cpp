@@ -892,13 +892,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     _lookAtTargetAvatar.clear();
     _targetAvatarPosition = glm::vec3(0.0f);
     
-    glm::quat faceRotation = Application::getInstance()->getViewFrustum()->getOrientation();
-    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-    if (tracker) {
-        // If faceshift or other face tracker in use, add on the actual angle of the head
-        faceRotation *= tracker->getHeadRotation();
-    }
-    glm::vec3 lookForward = faceRotation * IDENTITY_FRONT;
+    glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
     
     float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.0f;
@@ -1166,15 +1160,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         pitch *= DEGREES_PER_RADIAN;
         roll *= DEGREES_PER_RADIAN;
         
-        // Record the angular velocity
-        Head* head = getHead();
-        if (deltaTime > 0.0f) {
-            glm::vec3 angularVelocity(pitch - head->getBasePitch(), yaw - head->getBaseYaw(), roll - head->getBaseRoll());
-            angularVelocity *= 1.0f / deltaTime;
-            head->setAngularVelocity(angularVelocity);
-        }
-        
         //Invert yaw and roll when in mirror mode
+        Head* head = getHead();
         if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
             head->setBaseYaw(-yaw);
             head->setBasePitch(pitch);
