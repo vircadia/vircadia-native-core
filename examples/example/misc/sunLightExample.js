@@ -18,7 +18,7 @@ var stageOrientation = Quat.fromPitchYawRollDegrees(0.0, 180.0, 0.0);
 Scene.setStageDayTime(hour);
 Scene.setStageOrientation(stageOrientation);
 Scene.setStageLocation(longitude, latitude, 0.0);
-
+/*
 function ticktack() {
     hour += 0.1;
     //Scene.setSunIntensity(Math.cos(time));
@@ -31,3 +31,4 @@ function ticktack() {
 }
 
 Script.setInterval(ticktack, 41);
+*/
