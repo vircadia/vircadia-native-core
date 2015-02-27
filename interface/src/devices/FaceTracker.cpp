@@ -28,20 +28,25 @@ const glm::quat FaceTracker::getHeadRotation() const {
 }
 
 void FaceTracker::update(float deltaTime) {
-    static const float RELAXATION_TIME = 1.0f; // sec
+    // Based on exponential distributions: http://en.wikipedia.org/wiki/Exponential_distribution
+    static const float EPSILON = 0.02f;
     static const float LAMBDA = 1.5;
+    static const float INVERSE_AT_EPSILON = -std::log(EPSILON) / LAMBDA; // So that f(1) = EPSILON ~ 0
+    static const float RELAXATION_TIME = 0.8f; // sec
     
     if (isTracking()) {
         if (_relaxationStatus == 1.0f) {
+            _fadeCoefficient = 1.0f;
             return;
         }
         _relaxationStatus = glm::clamp(_relaxationStatus + deltaTime / RELAXATION_TIME, 0.0f, 1.0f);
-        _fadeCoefficient = std::exp(-LAMBDA * _relaxationStatus);
+        _fadeCoefficient = 1.0f - std::exp(-LAMBDA * _relaxationStatus * INVERSE_AT_EPSILON);
     } else {
         if (_relaxationStatus == 0.0f) {
+            _fadeCoefficient = 0.0f;
             return;
         }
         _relaxationStatus = glm::clamp(_relaxationStatus - deltaTime / RELAXATION_TIME, 0.0f, 1.0f);
-        _fadeCoefficient = 1.0f - std::exp(-LAMBDA * (1.0f - _relaxationStatus));
+        _fadeCoefficient = std::exp(-LAMBDA * (1.0f - _relaxationStatus) * INVERSE_AT_EPSILON);
     }
 }
