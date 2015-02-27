@@ -29,9 +29,8 @@ const glm::quat FaceTracker::getHeadRotation() const {
 
 void FaceTracker::update(float deltaTime) {
     // Based on exponential distributions: http://en.wikipedia.org/wiki/Exponential_distribution
-    static const float EPSILON = 0.02f;
-    static const float LAMBDA = 1.5;
-    static const float INVERSE_AT_EPSILON = -std::log(EPSILON) / LAMBDA; // So that f(1) = EPSILON ~ 0
+    static const float EPSILON = 0.02f; // MUST BE < 1.0f
+    static const float INVERSE_AT_EPSILON = -std::log(EPSILON); // So that f(1.0f) = EPSILON ~ 0.0f
     static const float RELAXATION_TIME = 0.8f; // sec
     
     if (isTracking()) {
@@ -40,13 +39,13 @@ void FaceTracker::update(float deltaTime) {
             return;
         }
         _relaxationStatus = glm::clamp(_relaxationStatus + deltaTime / RELAXATION_TIME, 0.0f, 1.0f);
-        _fadeCoefficient = 1.0f - std::exp(-LAMBDA * _relaxationStatus * INVERSE_AT_EPSILON);
+        _fadeCoefficient = 1.0f - std::exp(-_relaxationStatus * INVERSE_AT_EPSILON);
     } else {
         if (_relaxationStatus == 0.0f) {
             _fadeCoefficient = 0.0f;
             return;
         }
         _relaxationStatus = glm::clamp(_relaxationStatus - deltaTime / RELAXATION_TIME, 0.0f, 1.0f);
-        _fadeCoefficient = std::exp(-LAMBDA * (1.0f - _relaxationStatus) * INVERSE_AT_EPSILON);
+        _fadeCoefficient = std::exp(-(1.0f - _relaxationStatus) * INVERSE_AT_EPSILON);
     }
 }
