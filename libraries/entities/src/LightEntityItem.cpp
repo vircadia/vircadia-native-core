@@ -88,7 +88,7 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    if (args.bitstreamVersion < VERSION_ENTITIES_LIGHT_HAS_NEW_PROPERTIES) {
+    if (args.bitstreamVersion < VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES) {
         rgbColor diffuseColor;
         rgbColor ambientColor;
         rgbColor specularColor;
