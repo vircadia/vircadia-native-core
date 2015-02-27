@@ -161,12 +161,37 @@
                 EventBridge.scriptEventReceived.connect(function(data) {
                     data = JSON.parse(data);
                     if (data.type == "update") {
-                        if (data.properties === undefined) {
-                            disableChildren(document.getElementById("properties"), 'input');
-                        } else {
-                            var properties = data.properties;
+                        if (data.selections.length == 0) {
+                            elType.innerHTML = "<i>No Selection</i>";
+                            elID.innerHTML = "";
+                            disableChildren(document.getElementById("properties-list"), 'input');
+                        } else if (data.selections.length > 1) {
+                            var selections = data.selections;
 
-                            elID.innerHTML = data.id;
+                            var ids = [];
+                            var types = {};
+
+                            for (var i = 0; i < selections.length; i++) {
+                                ids.push(selections[i].id);
+                                var type = selections[i].properties.type;
+                                if (types[type] === undefined) {
+                                    types[type] = 0;
+                                }
+                                types[type]++;
+                            }
+                            elID.innerHTML = ids.join("<br>");
+
+                            var typeStrs = [];
+                            for (type in types) {
+                                typeStrs.push(type + " (" + types[type] + ")");
+                            }
+                            elType.innerHTML = typeStrs.join(", ");
+
+                            disableChildren(document.getElementById("properties-list"), 'input');
+                        } else {
+                            var properties = data.selections[0].properties;
+
+                            elID.innerHTML = properties.id;
 
                             elType.innerHTML = properties.type;
 
