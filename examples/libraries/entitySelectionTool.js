@@ -242,8 +242,8 @@ SelectionDisplay = (function () {
     var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.18;
     var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.17;
 
-    var ROTATE_ARROW_WEST_NORTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-north.png";
-    var ROTATE_ARROW_WEST_SOUTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-south.png";
+    var ROTATE_ARROW_WEST_NORTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-north.svg";
+    var ROTATE_ARROW_WEST_SOUTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-south.svg";
 
     var showExtendedStretchHandles = false;
     
