@@ -51,6 +51,7 @@ protected:
     QVector<float> _blendshapeCoefficients;
     
     float _relaxationStatus = 0.0f; // Between 0.0f and 1.0f
+    float _fadeCoefficient = 0.0f; // Between 0.0f and 1.0f
 };
 
 #endif // hifi_FaceTracker_h

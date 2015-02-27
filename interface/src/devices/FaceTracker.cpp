@@ -16,8 +16,7 @@ inline float FaceTracker::getBlendshapeCoefficient(int index) const {
 }
 
 float FaceTracker::getFadeCoefficient() const {
-    // TODO: apply exponential relaxation
-    return _relaxationStatus;
+    return _fadeCoefficient;
 }
 
 const glm::vec3 FaceTracker::getHeadTranslation() const {
@@ -29,18 +28,20 @@ const glm::quat FaceTracker::getHeadRotation() const {
 }
 
 void FaceTracker::update(float deltaTime) {
-    static const float RELAXATION_TIME = 0.4; // sec
+    static const float RELAXATION_TIME = 1.0f; // sec
+    static const float LAMBDA = 1.5;
     
     if (isTracking()) {
         if (_relaxationStatus == 1.0f) {
             return;
         }
-        _relaxationStatus += deltaTime / RELAXATION_TIME;
+        _relaxationStatus = glm::clamp(_relaxationStatus + deltaTime / RELAXATION_TIME, 0.0f, 1.0f);
+        _fadeCoefficient = std::exp(-LAMBDA * _relaxationStatus);
     } else {
         if (_relaxationStatus == 0.0f) {
             return;
         }
-        _relaxationStatus -= deltaTime / RELAXATION_TIME;
+        _relaxationStatus = glm::clamp(_relaxationStatus - deltaTime / RELAXATION_TIME, 0.0f, 1.0f);
+        _fadeCoefficient = 1.0f - std::exp(-LAMBDA * (1.0f - _relaxationStatus));
     }
-    _relaxationStatus = glm::clamp(_relaxationStatus, 0.0f, 1.0f);
 }
