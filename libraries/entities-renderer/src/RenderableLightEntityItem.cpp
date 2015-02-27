@@ -37,24 +37,17 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     float colorB = getColor()[BLUE_INDEX] / MAX_COLOR;
 
     glm::vec3 color = glm::vec3(colorR, colorG, colorB);
-    glm::vec3 diffuse = color;
-    glm::vec3 ambient = color;
-    glm::vec3 specular = color;
 
-    glm::vec3 direction = IDENTITY_FRONT * rotation;
-    float constantAttenuation = 0.0f;
-    float linearAttenuation = 0.0f;
-    float quadraticAttenuation = 0.0f;
+    float intensity = getIntensity();
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
 
     if (_isSpotlight) {
-        DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f, 
-            ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation,
-            direction, exponent, cutoff);
+        DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f,
+            color, intensity, rotation, exponent, cutoff);
     } else {
-        DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f, 
-            ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);
+        DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f,
+            color, intensity);
     }
 
 #ifdef WANT_DEBUG

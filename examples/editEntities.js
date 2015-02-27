@@ -934,24 +934,37 @@ PropertiesTool = function(opts) {
         data = {
             type: 'update',
         };
-        if (selectionManager.hasSelection()) {
-            data.id = selectionManager.selections[0].id;
-            data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
-            data.properties.rotation = Quat.safeEulerAngles(data.properties.rotation);
+        var selections = [];
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entity = {};
+            entity.id = selectionManager.selections[i].id;
+            entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
+            entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            selections.push(entity);
         }
+        data.selections = selections;
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
     webView.eventBridge.webEventReceived.connect(function(data) {
-        print(data);
         data = JSON.parse(data);
         if (data.type == "update") {
             selectionManager.saveProperties();
-            if (data.properties.rotation !== undefined) {
-                var rotation = data.properties.rotation;
-                data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+            if (selectionManager.selections.length > 1) {
+                properties = {
+                    locked: data.properties.locked,
+                    visible: data.properties.visible,
+                };
+                for (var i = 0; i < selectionManager.selections.length; i++) {
+                    Entities.editEntity(selectionManager.selections[i], properties);
+                }
+            } else {
+                if (data.properties.rotation !== undefined) {
+                    var rotation = data.properties.rotation;
+                    data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+                }
+                Entities.editEntity(selectionManager.selections[0], data.properties);
             }
-            Entities.editEntity(selectionManager.selections[0], data.properties);
             pushCommandForSelections();
             selectionManager._update();
         } else if (data.type == "action") {

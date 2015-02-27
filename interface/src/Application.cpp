@@ -82,6 +82,8 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
+#include <SceneScriptingInterface.h>
+
 #include "Application.h"
 #include "AudioClient.h"
 #include "InterfaceVersion.h"
@@ -1859,35 +1861,6 @@ void Application::updateMouseRay() {
     }
 }
 
-void Application::updateFaceshift() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
-    auto faceshift = DependencyManager::get<Faceshift>();
-    //  Update faceshift
-    faceshift->update();
-
-    //  Copy angular velocity if measured by faceshift, to the head
-    if (faceshift->isActive()) {
-        _myAvatar->getHead()->setAngularVelocity(faceshift->getHeadAngularVelocity());
-    }
-}
-
-void Application::updateVisage() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateVisage()");
-
-    //  Update Visage
-    DependencyManager::get<Visage>()->update();
-}
-
-void Application::updateDDE() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateDDE()");
-    
-    //  Update Cara
-    DependencyManager::get<DdeFaceTracker>()->update();
-}
-
 void Application::updateMyAvatarLookAtPosition() {
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -2067,12 +2040,13 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
-        updateFaceshift();
-        updateVisage();
+        FaceTracker* tracker = getActiveFaceTracker();
+        if (tracker) {
+            tracker->update(deltaTime);
+        }
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
         _prioVR.update(deltaTime);
-
     }
     
     // Dispatch input events
@@ -2491,7 +2465,8 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 
 glm::vec3 Application::getSunDirection() {
     // Sun direction is in fact just the location of the sun relative to the origin
-    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation(_myCamera.getPosition()));
+    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    return skyStage->getSunLight()->getDirection();
 }
 
 void Application::updateShadowMap() {
@@ -2501,7 +2476,7 @@ void Application::updateShadowMap() {
     glEnable(GL_DEPTH_TEST);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    glm::vec3 lightDirection = -getSunDirection();
+    glm::vec3 lightDirection = getSunDirection();
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
     glm::quat inverseRotation = glm::inverse(rotation);
     
@@ -2870,7 +2845,9 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(-getSunDirection(), GLOBAL_LIGHT_COLOR, GLOBAL_LIGHT_INTENSITY);
+        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity());
+
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
