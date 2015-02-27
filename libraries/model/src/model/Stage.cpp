@@ -136,8 +136,8 @@ SunSkyStage::SunSkyStage() :
 
     // Default origin location is a special place in the world...
     setOriginLocation(122.407f, 37.777f, 0.03f);
-    // 6pm 
-    setDayTime(18.0f);
+    // Noun 
+    setDayTime(12.0f);
     // Begining of march
     setYearTime(60.0f);
 }
@@ -185,7 +185,10 @@ void SunSkyStage::updateGraphicsObject() const {
     _earthSunModel.setSunLatitude(evalSunDeclinaison(_yearTime)); 
 
     Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();
-
     _sunLight->setDirection(Vec3(sunLightDir.x, sunLightDir.y, sunLightDir.z));
+
+    double originAlt = _earthSunModel.getAltitude();
+    _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
+
 }
 
