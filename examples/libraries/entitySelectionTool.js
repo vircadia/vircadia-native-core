@@ -283,8 +283,8 @@ SelectionDisplay = (function () {
     var handleColor = { red: 255, green: 255, blue: 255 };
     var handleAlpha = 0.7;
 
-    var highlightedHandleColor = { red: 120, green: 216, blue: 209 };
-    var highlightedHandleAlpha = 1.0;
+    var highlightedHandleColor = { red: 183, green: 64, blue: 44 };
+    var highlightedHandleAlpha = 0.9;
     
     var previousHandle = false;
     var previousHandleColor;
@@ -388,7 +388,7 @@ SelectionDisplay = (function () {
                     url: HIFI_PUBLIC_BUCKET + "images/up-arrow.svg",
                     position: { x:0, y: 0, z: 0},
                     color: handleColor,
-                    alpha: 1.0,
+                    alpha: handleAlpha,
                     visible: false,
                     size: 0.1,
                     scale: 0.1,
