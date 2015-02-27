@@ -238,9 +238,9 @@ SelectionDisplay = (function () {
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
     var ROTATION_DISPLAY_DISTANCE_MULTIPLIER = 1.2;
-    var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.5;
+    var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.6;
     var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.18;
-    var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.17;
+    var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.14;
 
     var ROTATE_ARROW_WEST_NORTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-north.svg";
     var ROTATE_ARROW_WEST_SOUTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-south.svg";
