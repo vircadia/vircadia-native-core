@@ -1692,7 +1692,7 @@ SelectionDisplay = (function () {
                 y: innerRadius * ROTATION_DISPLAY_SIZE_Y_MULTIPLIER
             },
             lineHeight: innerRadius * ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
-            text: normalizeDegrees(angleFromZero),
+            text: normalizeDegrees(angleFromZero) + "°",
         });
     }
 
