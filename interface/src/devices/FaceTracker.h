@@ -18,29 +18,40 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-/// Base class for face trackers (Faceshift, Visage).
+/// Base class for face trackers (Faceshift, Visage, DDE).
 class FaceTracker : public QObject {
     Q_OBJECT
     
 public:
-    FaceTracker();
-    virtual ~FaceTracker() {}
+    virtual bool isActive() const { return false; }
+    virtual bool isTracking() const { return false; }
     
-    const glm::vec3& getHeadTranslation() const { return _headTranslation; }
-    const glm::quat& getHeadRotation() const { return _headRotation; }
+    virtual void init() {}
+    virtual void update(float deltaTime);
+    virtual void reset() {}
+    
+    float getFadeCoefficient() const;
+    
+    const glm::vec3 getHeadTranslation() const;
+    const glm::quat getHeadRotation() const;
     
     float getEstimatedEyePitch() const { return _estimatedEyePitch; }
     float getEstimatedEyeYaw() const { return _estimatedEyeYaw; } 
     
+    int getNumBlendshapes() const { return _blendshapeCoefficients.size(); }
+    bool isValidBlendshapeIndex(int index) const { return index >= 0 && index < getNumBlendshapes(); }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    float getBlendshapeCoefficient(int index) const;
     
 protected:
-    
-    glm::vec3 _headTranslation;
-    glm::quat _headRotation;
-    float _estimatedEyePitch;
-    float _estimatedEyeYaw;
+    glm::vec3 _headTranslation = glm::vec3(0.0f);
+    glm::quat _headRotation = glm::quat();
+    float _estimatedEyePitch = 0.0f;
+    float _estimatedEyeYaw = 0.0f;
     QVector<float> _blendshapeCoefficients;
+    
+    float _relaxationStatus = 0.0f; // Between 0.0f and 1.0f
+    float _fadeCoefficient = 0.0f; // Between 0.0f and 1.0f
 };
 
 #endif // hifi_FaceTracker_h

@@ -439,6 +439,10 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
             const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
             const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
             body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+            if (!motionState->isMoving()) {
+                // try to initialize this object as inactive
+                body->forceActivationState(ISLAND_SLEEPING);
+            }
             break;
         }
         case MOTION_TYPE_STATIC:

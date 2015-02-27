@@ -14,6 +14,7 @@
 #include <LogHandler.h>
 #include <SharedUtil.h>
 #include <HifiConfigVariantMap.h>
+#include <ShutdownEventListener.h>
 
 #include "Assignment.h"
 #include "AssignmentClient.h"
@@ -26,6 +27,13 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 {
 #   ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
+#   endif
+
+    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
+#   ifdef _WIN32
+    installNativeEventFilter(&ShutdownEventListener::getInstance());
+#   else
+    ShutdownEventListener::getInstance();
 #   endif
 
     setOrganizationName("High Fidelity");
@@ -111,11 +119,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         requestAssignmentType = (Assignment::Type) argumentVariantMap.value(ASSIGNMENT_TYPE_OVERRIDE_OPTION).toInt();
     }
     if (parser.isSet(clientTypeOption)) {
-        if (numForks || minForks || maxForks) {
-            qCritical() << "don't use -t with forking mode.";
-            parser.showHelp();
-            Q_UNREACHABLE();
-        }
         requestAssignmentType = (Assignment::Type) parser.value(clientTypeOption).toInt();
     }
 
@@ -137,7 +140,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         walletUUID = parser.value(walletDestinationOption);
     }
 
-
     QString assignmentServerHostname;
     if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
         assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
@@ -145,7 +147,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     if (parser.isSet(assignmentServerHostnameOption)) {
         assignmentServerHostname = parser.value(assignmentServerHostnameOption);
     }
-
 
     // check for an overriden assignment server port
     quint16 assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
