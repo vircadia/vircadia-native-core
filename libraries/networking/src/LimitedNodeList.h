@@ -54,7 +54,6 @@ const QString ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY = "assignment-client
 
 const char DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME[] = "localhost";
 const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT = 40104;
-const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_DTLS_PORT = 40105;
 
 class HifiSockAddr;
 

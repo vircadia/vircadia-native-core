@@ -43,8 +43,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<LimitedNodeList>(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT,
-                                                            DEFAULT_ASSIGNMENT_CLIENT_MONITOR_DTLS_PORT);
+    auto nodeList = DependencyManager::set<LimitedNodeList>(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT);
 
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClientMonitor::readPendingDatagrams);
 
@@ -55,7 +54,8 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
         spawnChildClient();
     }
 
-    connect(&_checkSparesTimer, SIGNAL(timeout()), SLOT(checkSpares()));
+    connect(&_checkSparesTimer, &QTimer::timeout, this, &AssignmentClientMonitor::checkSpares);
+
     _checkSparesTimer.start(NODE_SILENCE_THRESHOLD_MSECS * 3);
 }
 
