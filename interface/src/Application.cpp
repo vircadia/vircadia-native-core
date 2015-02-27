@@ -771,7 +771,6 @@ void Application::paintGL() {
 
         {
             PerformanceTimer perfTimer("renderOverlay");
-            // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
             _applicationOverlay.renderOverlay(true);
             if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
                 _applicationOverlay.displayOverlayTexture();
@@ -2071,8 +2070,6 @@ void Application::update(float deltaTime) {
         updateVisage();
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
-        _prioVR.update(deltaTime);
-
     }
     
     // Dispatch input events
@@ -3131,7 +3128,6 @@ void Application::resetSensors() {
 
     OculusManager::reset();
 
-    _prioVR.reset();
     //_leapmotion.reset();
 
     QScreen* currentScreen = _window->windowHandle()->screen();

@@ -294,12 +294,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         return;
     }
     
-    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
-        estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
-        estimatedRotation.x *= -1.0f;
-        estimatedRotation.z *= -1.0f;
-
-    } else if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected()) {
         estimatedPosition = OculusManager::getRelativePosition();
         estimatedPosition.x *= -1.0f;
         _trackedHeadPosition = estimatedPosition;
@@ -349,13 +344,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
-    // the priovr can give us exact lean
-    if (Application::getInstance()->getPrioVR()->isActive()) {
-        glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
-        head->setLeanSideways(eulers.z);
-        head->setLeanForward(eulers.x);
-        return;
-    }
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
