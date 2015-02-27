@@ -12,6 +12,7 @@ if (ANDROID)
     URL_MD5 f09c9abe8ec74e6558c1f89cebbe2893
     BUILD_COMMAND ${NDK_BUILD_COMMAND} --directory=jni target=android tbb tbbmalloc arch=arm
     BUILD_IN_SOURCE 1
+    UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
     INSTALL_COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/AndroidTBBLibCopy.cmake
     LOG_DOWNLOAD 1
@@ -33,6 +34,7 @@ else ()
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL ${DOWNLOAD_URL}
+    UPDATE_COMMAND ""
     BUILD_COMMAND ""
     CONFIGURE_COMMAND ""
     INSTALL_COMMAND ""
