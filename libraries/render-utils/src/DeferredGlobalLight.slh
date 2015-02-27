@@ -95,7 +95,8 @@ vec3 evalAmbienSphereGlobalColor(float shadowAttenuation, vec3 position, vec3 no
 vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
     
     Light light = getLight();
-    float diffuseDot = dot(normal, getLightDirection(light));
+    vec3 fragNormal = vec3(invViewMat * vec4(normal, 0.0));
+    float diffuseDot = dot(fragNormal, -getLightDirection(light));
     
     // need to catch normals perpendicular to the projection plane hence the magic number for the threshold
     // it should be just 0, but we have innacurracy so we need to overshoot
