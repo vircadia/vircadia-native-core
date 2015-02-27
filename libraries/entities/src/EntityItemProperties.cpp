@@ -52,7 +52,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(diffuseColor, ),
     CONSTRUCT_PROPERTY(ambientColor, ),
     CONSTRUCT_PROPERTY(specularColor, ),
-    CONSTRUCT_PROPERTY(constantAttenuation, 1.0f),
+    CONSTRUCT_PROPERTY(intensity, 1.0f),
     CONSTRUCT_PROPERTY(linearAttenuation, 0.0f),
     CONSTRUCT_PROPERTY(quadraticAttenuation, 0.0f),
     CONSTRUCT_PROPERTY(exponent, 0.0f),
@@ -225,7 +225,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DIFFUSE_COLOR, diffuseColor);
     CHECK_PROPERTY_CHANGE(PROP_AMBIENT_COLOR, ambientColor);
     CHECK_PROPERTY_CHANGE(PROP_SPECULAR_COLOR, specularColor);
-    CHECK_PROPERTY_CHANGE(PROP_CONSTANT_ATTENUATION, constantAttenuation);
+    CHECK_PROPERTY_CHANGE(PROP_INTENSITY, intensity);
     CHECK_PROPERTY_CHANGE(PROP_LINEAR_ATTENUATION, linearAttenuation);
     CHECK_PROPERTY_CHANGE(PROP_QUADRATIC_ATTENUATION, quadraticAttenuation);
     CHECK_PROPERTY_CHANGE(PROP_EXPONENT, exponent);
@@ -284,7 +284,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(diffuseColor, getDiffuseColor()); 
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(ambientColor, getAmbientColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(specularColor, getSpecularColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE(constantAttenuation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(intensity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(linearAttenuation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(quadraticAttenuation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(exponent);
@@ -362,7 +362,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(diffuseColor, setDiffuseColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(ambientColor, setAmbientColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(specularColor, setSpecularColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(constantAttenuation, setConstantAttenuation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(intensity, setIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(linearAttenuation, setLinearAttenuation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(quadraticAttenuation, setQuadraticAttenuation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(exponent, setExponent);
@@ -546,7 +546,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, appendColor, properties.getDiffuseColor());
                 APPEND_ENTITY_PROPERTY(PROP_AMBIENT_COLOR, appendColor, properties.getAmbientColor());
                 APPEND_ENTITY_PROPERTY(PROP_SPECULAR_COLOR, appendColor, properties.getSpecularColor());
-                APPEND_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, appendValue, properties.getConstantAttenuation());
+                APPEND_ENTITY_PROPERTY(PROP_INTENSITY, appendValue, properties.getIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, appendValue, properties.getLinearAttenuation());
                 APPEND_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, appendValue, properties.getQuadraticAttenuation());
                 APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
@@ -768,7 +768,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_DIFFUSE_COLOR, setDiffuseColor);
         READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_AMBIENT_COLOR, setAmbientColor);
         READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_SPECULAR_COLOR, setSpecularColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CONSTANT_ATTENUATION, float, setConstantAttenuation);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INTENSITY, float, setIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINEAR_ATTENUATION, float, setLinearAttenuation);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUADRATIC_ATTENUATION, float, setQuadraticAttenuation);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
@@ -838,7 +838,7 @@ void EntityItemProperties::markAllChanged() {
     _diffuseColorChanged = true;
     _ambientColorChanged = true;
     _specularColorChanged = true;
-    _constantAttenuationChanged = true;
+    _intensityChanged = true;
     _linearAttenuationChanged = true; 
     _quadraticAttenuationChanged = true;
     _exponentChanged = true;

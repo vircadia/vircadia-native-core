@@ -69,7 +69,7 @@ enum EntityPropertyList {
     PROP_DIFFUSE_COLOR,
     PROP_AMBIENT_COLOR,
     PROP_SPECULAR_COLOR,
-    PROP_CONSTANT_ATTENUATION,
+    PROP_INTENSITY, // Previously PROP_CONSTANT_ATTENUATION
     PROP_LINEAR_ATTENUATION,
     PROP_QUADRATIC_ATTENUATION,
     PROP_EXPONENT,
@@ -168,7 +168,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_DIFFUSE_COLOR, DiffuseColor, diffuseColor, xColor);
     DEFINE_PROPERTY_REF(PROP_AMBIENT_COLOR, AmbientColor, ambientColor, xColor);
     DEFINE_PROPERTY_REF(PROP_SPECULAR_COLOR, SpecularColor, specularColor, xColor);
-    DEFINE_PROPERTY(PROP_CONSTANT_ATTENUATION, ConstantAttenuation, constantAttenuation, float);
+    DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float);
     DEFINE_PROPERTY(PROP_LINEAR_ATTENUATION, LinearAttenuation, linearAttenuation, float);
     DEFINE_PROPERTY(PROP_QUADRATIC_ATTENUATION, QuadraticAttenuation, quadraticAttenuation, float);
     DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float);
@@ -291,7 +291,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, DiffuseColor, diffuseColor, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AmbientColor, ambientColor, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpecularColor, specularColor, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ConstantAttenuation, constantAttenuation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Intensity, intensity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LinearAttenuation, linearAttenuation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, QuadraticAttenuation, quadraticAttenuation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Exponent, exponent, "");
