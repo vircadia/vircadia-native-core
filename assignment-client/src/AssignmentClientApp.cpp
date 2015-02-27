@@ -120,11 +120,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         requestAssignmentType = (Assignment::Type) argumentVariantMap.value(ASSIGNMENT_TYPE_OVERRIDE_OPTION).toInt();
     }
     if (parser.isSet(clientTypeOption)) {
-        if (numForks || minForks || maxForks) {
-            qCritical() << "don't use -t with forking mode.";
-            parser.showHelp();
-            Q_UNREACHABLE();
-        }
         requestAssignmentType = (Assignment::Type) parser.value(clientTypeOption).toInt();
     }
 
