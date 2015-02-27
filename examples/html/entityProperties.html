@@ -128,11 +128,11 @@
 
             var elLightSections = document.querySelectorAll(".light-section");
             var elLightSpotLight = document.getElementById("property-light-spot-light");
-            var elLightDiffuseRed = document.getElementById("property-light-diffuse-red");
-            var elLightDiffuseGreen = document.getElementById("property-light-diffuse-green");
-            var elLightDiffuseBlue = document.getElementById("property-light-diffuse-blue");
+            var elLightColorRed = document.getElementById("property-light-color-red");
+            var elLightColorGreen = document.getElementById("property-light-color-green");
+            var elLightColorBlue = document.getElementById("property-light-color-blue");
 
-            var elLightConstantAttenuation = document.getElementById("property-light-constant-attenuation");
+            var elLightIntensity = document.getElementById("property-light-intensity");
             var elLightExponent = document.getElementById("property-light-exponent");
             var elLightCutoff = document.getElementById("property-light-cutoff");
 
@@ -305,11 +305,11 @@
                                     elLightSections[i].style.display = 'block';
                                 }
 
-                                elLightDiffuseRed.value = properties.diffuseColor.red;
-                                elLightDiffuseGreen.value = properties.diffuseColor.green;
-                                elLightDiffuseBlue.value = properties.diffuseColor.blue;
+                                elLightColorRed.value = properties.color.red;
+                                elLightColorGreen.value = properties.color.green;
+                                elLightColorBlue.value = properties.color.blue;
 
-                                elLightConstantAttenuation.value = properties.constantAttenuation;
+                                elLightIntensity.value = properties.intensity;
                                 elLightExponent.value = properties.exponent;
                                 elLightCutoff.value = properties.cutoff;
                             }
@@ -380,13 +380,13 @@
 
             elLightSpotLight.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isSpotlight'));
 
-            var lightDiffuseChangeFunction = createEmitColorPropertyUpdateFunction(
-                'diffuseColor', elLightDiffuseRed, elLightDiffuseGreen, elLightDiffuseBlue);
-            elLightDiffuseRed.addEventListener('change', lightDiffuseChangeFunction);
-            elLightDiffuseGreen.addEventListener('change', lightDiffuseChangeFunction);
-            elLightDiffuseBlue.addEventListener('change', lightDiffuseChangeFunction);
+            var lightColorChangeFunction = createEmitColorPropertyUpdateFunction(
+                'color', elLightColorRed, elLightColorGreen, elLightColorBlue);
+            elLightColorRed.addEventListener('change', lightColorChangeFunction);
+            elLightColorGreen.addEventListener('change', lightColorChangeFunction);
+            elLightColorBlue.addEventListener('change', lightColorChangeFunction);
 
-            elLightConstantAttenuation.addEventListener('change', createEmitNumberPropertyUpdateFunction('constantAttenuation'));
+            elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity'));
             elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent'));
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
 
@@ -708,15 +708,15 @@
         <div class="light-section property">
             <div class="label">Color</div>
             <div class="value">
-                <div class="input-area">R <input class="coord" type='number' id="property-light-diffuse-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-light-diffuse-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-light-diffuse-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-light-color-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-light-color-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-light-color-blue"></input></div>
             </div>
         </div>
         <div class="light-section property">
             <div class="label">Intensity</div>
             <div class="value">
-                <input class="coord" type='number' id="property-light-constant-attenuation"></input>
+                <input class="coord" type='number' id="property-light-intensity"></input>
             </div>
         </div>
         <div class="light-section property">
