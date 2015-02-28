@@ -251,8 +251,7 @@ void Head::render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mod
     } else {
         RenderArgs args;
         args._viewFrustum = renderFrustum;
-     //   _faceModel._calculatedMeshBoxesValid = false;
-        _faceModel.render(alpha, mode, &args);    
+        _faceModel.render(alpha, mode, &args);
     }
 }
 
