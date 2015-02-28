@@ -238,12 +238,12 @@ SelectionDisplay = (function () {
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
     var ROTATION_DISPLAY_DISTANCE_MULTIPLIER = 1.2;
-    var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.5;
+    var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.6;
     var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.18;
-    var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.17;
+    var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.14;
 
-    var ROTATE_ARROW_WEST_NORTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-north.png";
-    var ROTATE_ARROW_WEST_SOUTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-south.png";
+    var ROTATE_ARROW_WEST_NORTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-north.svg";
+    var ROTATE_ARROW_WEST_SOUTH_URL = HIFI_PUBLIC_BUCKET + "images/rotate-arrow-west-south.svg";
 
     var showExtendedStretchHandles = false;
     
@@ -280,11 +280,11 @@ SelectionDisplay = (function () {
     var originalRoll;
     
 
-    var rotateHandleColor = { red: 0, green: 0, blue: 0 };
-    var rotateHandleAlpha = 0.7;
+    var handleColor = { red: 255, green: 255, blue: 255 };
+    var handleAlpha = 0.7;
 
-    var highlightedHandleColor = { red: 255, green: 0, blue: 0 };
-    var highlightedHandleAlpha = 0.7;
+    var highlightedHandleColor = { red: 183, green: 64, blue: 44 };
+    var highlightedHandleAlpha = 0.9;
     
     var previousHandle = false;
     var previousHandleColor;
@@ -385,10 +385,10 @@ SelectionDisplay = (function () {
                 });
 
     var grabberMoveUp = Overlays.addOverlay("billboard", {
-                    url: HIFI_PUBLIC_BUCKET + "images/up-arrow.png",
+                    url: HIFI_PUBLIC_BUCKET + "images/up-arrow.svg",
                     position: { x:0, y: 0, z: 0},
-                    color: { red: 0, green: 0, blue: 0 },
-                    alpha: 1.0,
+                    color: handleColor,
+                    alpha: handleAlpha,
                     visible: false,
                     size: 0.1,
                     scale: 0.1,
@@ -533,7 +533,7 @@ SelectionDisplay = (function () {
 
     var rotateOverlayTarget = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
-                    size: rotateOverlayTargetSize,
+                    size: rotateOverlayTargetSize * 2,
                     color: { red: 0, green: 0, blue: 0 },
                     alpha: 0.0,
                     solid: true,
@@ -595,8 +595,8 @@ SelectionDisplay = (function () {
     var yawHandle = Overlays.addOverlay("billboard", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
-                                        color: rotateHandleColor,
-                                        alpha: rotateHandleAlpha,
+                                        color: handleColor,
+                                        alpha: handleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
@@ -608,8 +608,8 @@ SelectionDisplay = (function () {
     var pitchHandle = Overlays.addOverlay("billboard", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
-                                        color: rotateHandleColor,
-                                        alpha: rotateHandleAlpha,
+                                        color: handleColor,
+                                        alpha: handleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
@@ -621,8 +621,8 @@ SelectionDisplay = (function () {
     var rollHandle = Overlays.addOverlay("billboard", {
                                         url: ROTATE_ARROW_WEST_NORTH_URL,
                                         position: { x:0, y: 0, z: 0},
-                                        color: rotateHandleColor,
-                                        alpha: rotateHandleAlpha,
+                                        color: handleColor,
+                                        alpha: handleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
@@ -1692,7 +1692,7 @@ SelectionDisplay = (function () {
                 y: innerRadius * ROTATION_DISPLAY_SIZE_Y_MULTIPLIER
             },
             lineHeight: innerRadius * ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
-            text: normalizeDegrees(angleFromZero),
+            text: normalizeDegrees(angleFromZero) + "°",
         });
     }
 
@@ -1713,15 +1713,17 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius,
+                    size: innerRadius * 2,
                     innerRadius: 0.9,
+                    startAt: 0,
+                    endAt: 360,
                     alpha: innerAlpha
                 });
 
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius,
+                    size: outerRadius * 2,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1731,7 +1733,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius,
+                    size: outerRadius * 2,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -1809,13 +1811,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -1840,15 +1842,17 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius,
+                    size: innerRadius * 2,
                     innerRadius: 0.9,
+                    startAt: 0,
+                    endAt: 360,
                     alpha: innerAlpha
                 });
 
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius,
+                    size: outerRadius * 2,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1858,7 +1862,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius,
+                    size: outerRadius * 2,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -1929,13 +1933,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -1959,15 +1963,17 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius,
+                    size: innerRadius * 2,
                     innerRadius: 0.9,
+                    startAt: 0,
+                    endAt: 360,
                     alpha: innerAlpha
                 });
 
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius,
+                    size: outerRadius * 2,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1977,7 +1983,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius,
+                    size: outerRadius * 2,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -2047,13 +2053,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -2342,14 +2348,14 @@ SelectionDisplay = (function () {
                 case yawHandle:
                 case pitchHandle:
                 case rollHandle:
-                    pickedColor = rotateHandleColor;
-                    pickedAlpha = rotateHandleAlpha;
+                    pickedColor = handleColor;
+                    pickedAlpha = handleAlpha;
                     highlightNeeded = true;
                     break;
                     
                 case grabberMoveUp:
-                    pickedColor = rotateHandleColor;
-                    pickedAlpha = rotateHandleAlpha;
+                    pickedColor = handleColor;
+                    pickedAlpha = handleAlpha;
                     highlightNeeded = true;
                     break;
 
