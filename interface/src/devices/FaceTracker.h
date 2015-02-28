@@ -40,7 +40,7 @@ public:
     
     int getNumBlendshapes() const { return _blendshapeCoefficients.size(); }
     bool isValidBlendshapeIndex(int index) const { return index >= 0 && index < getNumBlendshapes(); }
-    const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    const QVector<float>& getBlendshapeCoefficients() const;
     float getBlendshapeCoefficient(int index) const;
     
 protected:

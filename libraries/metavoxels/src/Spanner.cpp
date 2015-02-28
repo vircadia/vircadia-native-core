@@ -648,7 +648,7 @@ void HeightfieldHeightEditor::select() {
         const float CONVERSION_SCALE = 65534.0f / numeric_limits<quint16>::max();
         for (int i = 0; i < rawSize; i++, dest += size) {
             for (quint16* lineDest = dest, *end = dest + rawSize; lineDest != end; lineDest++, src++) {
-                *lineDest = (quint16)(*src * CONVERSION_SCALE) + CONVERSION_OFFSET;
+                *lineDest = (*src == 0) ? 0 : (quint16)(*src * CONVERSION_SCALE) + CONVERSION_OFFSET;
             }
         }
         emit heightChanged(_height = new HeightfieldHeight(size, contents));

@@ -88,10 +88,11 @@ private:
     int _mouthSmileRightIndex;
     
     int _jawOpenIndex;
-    
-    float _leftEye[3];
-    float _rightEye[3];
-    
+
+    // Previous values for simple smoothing
+    glm::vec3 _previousTranslation;
+    glm::quat _previousRotation;
+    QVector<float> _previousExpressions;
 };
 
 #endif // hifi_DdeFaceTracker_h
