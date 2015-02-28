@@ -15,6 +15,7 @@
 
 #include "Resource.h"
 #include "Texture.h"
+#include "Shader.h"
 
 namespace gpu {
 
@@ -46,14 +47,15 @@ public:
 
     template< typename T >
     static void setGPUObject(const Buffer& buffer, T* bo) {
-        buffer.setGPUObject(reinterpret_cast<GPUObject*>(bo));
+       // buffer.setGPUObject(reinterpret_cast<GPUObject*>(bo));
+        buffer.setGPUObject(bo);
     }
     template< typename T >
     static T* getGPUObject(const Buffer& buffer) {
         return reinterpret_cast<T*>(buffer.getGPUObject());
     }
 
-    void syncGPUObject(const Buffer& buffer);
+    //void syncGPUObject(const Buffer& buffer);
 
     template< typename T >
     static void setGPUObject(const Texture& texture, T* to) {
@@ -64,7 +66,19 @@ public:
         return reinterpret_cast<T*>(texture.getGPUObject());
     }
 
-    void syncGPUObject(const Texture& texture);
+    //void syncGPUObject(const Texture& texture);
+
+    
+    template< typename T >
+    static void setGPUObject(const Shader& shader, T* so) {
+        shader.setGPUObject(reinterpret_cast<GPUObject*>(so));
+    }
+    template< typename T >
+    static T* getGPUObject(const Shader& shader) {
+        return reinterpret_cast<T*>(shader.getGPUObject());
+    }
+
+  //  void syncGPUObject(const Shader& shader);
 
 protected:
 

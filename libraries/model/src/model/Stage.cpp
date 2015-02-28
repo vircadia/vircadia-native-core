@@ -13,6 +13,9 @@
 #include <glm/gtx/transform.hpp> 
 #include <math.h>
 
+#include "SkyFromAtmosphere_vert.h"
+#include "SkyFromAtmosphere_frag.h"
+
 using namespace model;
 
 
@@ -150,6 +153,13 @@ SunSkyStage::SunSkyStage() :
     setDayTime(12.0f);
     // Begining of march
     setYearTime(60.0f);
+
+    _skyShader = gpu::ShaderPointer(
+                    gpu::Shader::createProgram(
+                        gpu::ShaderPointer(gpu::Shader::createVertex(std::string(SkyFromAtmosphere_vert))),
+                        gpu::ShaderPointer(gpu::Shader::createPixel(std::string(SkyFromAtmosphere_frag)))
+                    )
+                 );
 }
 
 SunSkyStage::~SunSkyStage() {

@@ -11,6 +11,8 @@
 #ifndef hifi_model_Stage_h
 #define hifi_model_Stage_h
 
+#include "gpu/Shader.h"
+
 #include "Light.h"
 
 namespace model {
@@ -142,6 +144,8 @@ public:
  
 protected:
     LightPointer _sunLight;
+
+    gpu::ShaderPointer _skyShader;
 
     float _dayTime;
     int _yearTime;

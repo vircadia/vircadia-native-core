@@ -60,6 +60,17 @@ public:
     static void syncGPUObject(const Texture& texture);
     static GLuint getTextureID(const TexturePointer& texture);
 
+    class GLShader : public GPUObject {
+    public:
+        GLuint _shader;
+        GLuint _program;
+
+        GLShader();
+        ~GLShader();
+    };
+    static GLShader* syncGPUObject(const Shader& shader);
+    static GLuint getShaderID(const ShaderPointer& shader);
+
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
 
