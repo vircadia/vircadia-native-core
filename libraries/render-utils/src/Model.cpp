@@ -336,6 +336,9 @@ void Model::init() {
         
         _shadowProgram.addShaderFromSourceCode(QGLShader::Vertex, model_shadow_vert);
         _shadowProgram.addShaderFromSourceCode(QGLShader::Fragment, model_shadow_frag);
+        // Shadow program uses the same locations as standard rendering path but we still need to set the bindings
+        Model::Locations tempLoc;
+        initProgram(_shadowProgram, tempLoc);
 
         _skinProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_vert);
         _skinProgram.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
