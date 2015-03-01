@@ -250,8 +250,8 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
     
-    // TODO: We need to get rid of these users of getRadius()... 
-    float getRadius() const;
+    // TODO: get rid of users of getRadius()... 
+    float getRadiusInMeters() const;
     
     virtual bool containsInMeters(const glm::vec3& point) const { return getAABoxInMeters().contains(point); }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }

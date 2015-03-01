@@ -992,8 +992,8 @@ void EntityItem::setRadius(float value) {
 //    ... radius = cornerToCornerLength / 2.0f
 //    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
 //    ... radius = sqrt(3 x maxDimension ^ 2) / 2.0f;
-float EntityItem::getRadius() const { 
-    float length = glm::length(_dimensions);
+float EntityItem::getRadiusInMeters() const { 
+    float length = glm::length(_dimensions) * (float)TREE_SCALE;
     float radius = length / 2.0f;
     return radius;
 }
