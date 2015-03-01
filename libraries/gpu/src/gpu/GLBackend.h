@@ -44,7 +44,7 @@ public:
         GLBuffer();
         ~GLBuffer();
     };
-    static void syncGPUObject(const Buffer& buffer);
+    static GLBuffer* syncGPUObject(const Buffer& buffer);
     static GLuint getBufferID(const Buffer& buffer);
 
     class GLTexture : public GPUObject {
@@ -57,7 +57,7 @@ public:
         GLTexture();
         ~GLTexture();
     };
-    static void syncGPUObject(const Texture& texture);
+    static GLTexture* syncGPUObject(const Texture& texture);
     static GLuint getTextureID(const TexturePointer& texture);
 
     class GLShader : public GPUObject {

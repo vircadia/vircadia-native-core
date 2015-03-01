@@ -1015,11 +1015,11 @@ GLBackend::GLBuffer::~GLBuffer() {
     }
 }
 
-void GLBackend::syncGPUObject(const Buffer& buffer) {
+GLBackend::GLBuffer* GLBackend::syncGPUObject(const Buffer& buffer) {
     GLBuffer* object = Backend::getGPUObject<GLBackend::GLBuffer>(buffer);
 
     if (object && (object->_stamp == buffer.getSysmem().getStamp())) {
-        return;
+        return object;
     }
 
     // need to have a gpu object?
@@ -1040,12 +1040,18 @@ void GLBackend::syncGPUObject(const Buffer& buffer) {
     object->_size = buffer.getSysmem().getSize();
     //}
     CHECK_GL_ERROR();
+
+    return object;
 }
 
 
 
 GLuint GLBackend::getBufferID(const Buffer& buffer) {
-    GLBackend::syncGPUObject(buffer);
-    return Backend::getGPUObject<GLBackend::GLBuffer>(buffer)->_buffer;
+    GLBuffer* bo = GLBackend::syncGPUObject(buffer);
+    if (bo) {
+        return bo->_buffer;
+    } else {
+        return 0;
+    }
 }
 

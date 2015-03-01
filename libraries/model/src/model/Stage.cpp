@@ -15,6 +15,7 @@
 
 #include "SkyFromAtmosphere_vert.h"
 #include "SkyFromAtmosphere_frag.h"
+#include "gpu/GLBackend.h"
 
 using namespace model;
 
@@ -214,6 +215,9 @@ void SunSkyStage::updateGraphicsObject() const {
 
     double originAlt = _earthSunModel.getAltitude();
     _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
+
+    GLuint program = gpu::GLBackend::getShaderID(_skyShader);
+
 
 }
 
