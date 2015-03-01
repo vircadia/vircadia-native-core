@@ -476,8 +476,9 @@ public:
 bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) {
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
-    bool sphereIntersection = element->getAACube().findSpherePenetration(args->position,
-                                                                    args->targetRadius, penetration);
+    AACube cube = element->getAACube();
+    cube *= (float)TREE_SCALE;
+    bool sphereIntersection = cube.findSpherePenetration(args->position, args->targetRadius, penetration);
 
     // If this element contains the point, then search it...
     if (sphereIntersection) {
@@ -493,7 +494,7 @@ bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) 
 // NOTE: assumes caller has handled locking
 void EntityTree::findEntitiesInMeters(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities) {
     // position and targetRadius are in meters, so we need to convert to TreeUnits in FindNearPointArgs
-    FindAllNearPointArgs args = { center / (float)TREE_SCALE, radius / (float)TREE_SCALE };
+    FindAllNearPointArgs args = { center, radius };
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInSphereOperation, &args);
 

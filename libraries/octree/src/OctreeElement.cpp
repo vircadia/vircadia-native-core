@@ -1390,7 +1390,10 @@ bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const g
 
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
-    return _cube.findSpherePenetration(center, radius, penetration);
+    // center and radius are in meters, so we have to scale the _cube into world-frame
+    AACube cube = _cube;
+    cube *= (float)TREE_SCALE;
+    return cube.findSpherePenetration(center, radius, penetration);
 }
 
 // TODO: consider removing this, or switching to using getOrCreateChildElementContaining(const AACube& box)...

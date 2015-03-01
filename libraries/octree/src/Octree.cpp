@@ -748,8 +748,11 @@ public:
 bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
+    // the details in args is in meters (world-frame) so we have to scale the element cube up
+    AACube box = element->getAACube();
+    box *= (float)TREE_SCALE;
+
     // coarse check against bounds
-    const AACube& box = element->getAACube();
     if (!box.expandedContains(args->center, args->radius)) {
         return false;
     }
@@ -758,7 +761,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
         if (element->findSpherePenetration(args->center, args->radius, elementPenetration, &args->penetratedObject)) {
             // NOTE: it is possible for this penetration accumulation algorithm to produce a 
             // final penetration vector with zero length.
-            args->penetration = addPenetrations(args->penetration, elementPenetration * (float)(TREE_SCALE));
+            args->penetration = addPenetrations(args->penetration, elementPenetration);
             args->found = true;
         }
     }
@@ -772,8 +775,8 @@ bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::v
                     void** penetratedObject, Octree::lockType lockType, bool* accurateResult) {
 
     SphereArgs args = {
-        center / (float)(TREE_SCALE),
-        radius / (float)(TREE_SCALE),
+        center,
+        radius,
         penetration,
         false,
         NULL };
