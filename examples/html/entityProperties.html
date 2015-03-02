@@ -439,6 +439,13 @@
                     percentage: parseInt(elRescaleDimensionsPct.value),
                 }));
             });
+
+            window.onblur = function() {
+                // Fake a change event
+                var ev = document.createEvent("HTMLEvents");
+                ev.initEvent("change", true, true);
+                document.activeElement.dispatchEvent(ev);
+            }
         }
     </script>
 </head>
