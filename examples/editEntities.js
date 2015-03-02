@@ -406,13 +406,11 @@ var toolBar = (function () {
         that.setActive(false);
     });
 
-    function checkForPermissionToEdit() {
-        if (isActive && !Entities.canAdjustLocks()) {
+    Entities.canAdjustLocksChanged.connect(function(canAdjustLocks) {
+        if (isActive && !canAdjustLocks) {
             that.setActive(false);
         }
-    }
-
-    Script.setInterval(checkForPermissionToEdit, 1000);
+    });
 
     that.cleanup = function () {
         toolBar.cleanup();
