@@ -89,24 +89,27 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
 
     if (args.bitstreamVersion < VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES) {
-        rgbColor diffuseColor;
-        rgbColor ambientColor;
-        rgbColor specularColor;
-        float attenuation;
+        rgbColor ignoredColor;
+        float ignoredAttenuation;
 
         READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, _isSpotlight);
 
         // _diffuseColor has been renamed to _color
         READ_ENTITY_PROPERTY_COLOR(PROP_DIFFUSE_COLOR_UNUSED, _color);
 
-        READ_ENTITY_PROPERTY_COLOR(PROP_AMBIENT_COLOR_UNUSED, ambientColor);
-        READ_ENTITY_PROPERTY_COLOR(PROP_SPECULAR_COLOR_UNUSED, specularColor);
+        // Ambient and specular color are from an older format and are no longer supported.
+        // Their values will be ignored.
+        READ_ENTITY_PROPERTY_COLOR(PROP_AMBIENT_COLOR_UNUSED, ignoredColor);
+        READ_ENTITY_PROPERTY_COLOR(PROP_SPECULAR_COLOR_UNUSED, ignoredColor);
 
         // _constantAttenuation has been renamed to _intensity
         READ_ENTITY_PROPERTY(PROP_INTENSITY, float, _intensity);
 
-        READ_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION_UNUSED, float, attenuation);
-        READ_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION_UNUSED, float, attenuation);
+        // Linear and quadratic attenuation are from an older format and are no longer supported.
+        // Their values will be ignored.
+        READ_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION_UNUSED, float, ignoredAttenuation);
+        READ_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION_UNUSED, float, ignoredAttenuation);
+
         READ_ENTITY_PROPERTY(PROP_EXPONENT, float, _exponent);
         READ_ENTITY_PROPERTY(PROP_CUTOFF, float, _cutoff);
     } else {
