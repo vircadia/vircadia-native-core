@@ -74,7 +74,7 @@ void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputCon
 }
 
 EntityScriptingInterface* ScriptEngine::getEntityScriptingInterface() {
-    if (ScriptEngine::_entityScriptingInterface == nullptr) {
+    if (!ScriptEngine::_entityScriptingInterface) {
         ScriptEngine::_entityScriptingInterface = new EntityScriptingInterface();
     }
     return ScriptEngine::_entityScriptingInterface;
