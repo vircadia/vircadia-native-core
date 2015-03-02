@@ -111,6 +111,8 @@ public slots:
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
+    void canAdjustLocksChanged(bool canAdjustLocks);
+
     void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
