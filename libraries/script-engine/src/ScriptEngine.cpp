@@ -44,7 +44,7 @@
 #include "MIDIEvent.h"
 
 
-EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
+EntityScriptingInterface* ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
@@ -73,6 +73,13 @@ void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputCon
     out = qobject_cast<AbstractInputController*>(object.toQObject());
 }
 
+EntityScriptingInterface* ScriptEngine::getEntityScriptingInterface() {
+    if (ScriptEngine::_entityScriptingInterface == nullptr) {
+        ScriptEngine::_entityScriptingInterface = new EntityScriptingInterface();
+    }
+    return ScriptEngine::_entityScriptingInterface;
+}
+
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
 
@@ -97,6 +104,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
+    getEntityScriptingInterface();
     _allScriptsMutex.lock();
     _allKnownScriptEngines.insert(this);
     _allScriptsMutex.unlock();
@@ -314,7 +322,7 @@ void ScriptEngine::init() {
 
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
 
-    _entityScriptingInterface.init();
+    _entityScriptingInterface->init();
 
     // register various meta-types
     registerMetaTypes(this);
@@ -352,7 +360,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
     registerGlobalObject("Controller", _controllerScriptingInterface);
-    registerGlobalObject("Entities", &_entityScriptingInterface);
+    registerGlobalObject("Entities", _entityScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
@@ -489,13 +497,13 @@ void ScriptEngine::run() {
             break;
         }
 
-        if (!_isFinished && _entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+        if (!_isFinished && _entityScriptingInterface->getEntityPacketSender()->serversExist()) {
             // release the queue of edit entity messages.
-            _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
+            _entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
 
             // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
-                _entityScriptingInterface.getEntityPacketSender()->process();
+            if (!_entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
+                _entityScriptingInterface->getEntityPacketSender()->process();
             }
         }
 
@@ -622,13 +630,13 @@ void ScriptEngine::run() {
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
 
-    if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+    if (_entityScriptingInterface->getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
-        _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
+        _entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
 
         // since we're in non-threaded mode, call process so that the packets are sent
-        if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
-            _entityScriptingInterface.getEntityPacketSender()->process();
+        if (!_entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
+            _entityScriptingInterface->getEntityPacketSender()->process();
         }
     }
 

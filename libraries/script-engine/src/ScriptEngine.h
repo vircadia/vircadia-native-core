@@ -47,7 +47,7 @@ public:
     ~ScriptEngine();
 
     /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
+    static EntityScriptingInterface* getEntityScriptingInterface();
 
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
     
@@ -153,7 +153,7 @@ private:
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
-    static EntityScriptingInterface _entityScriptingInterface;
+    static EntityScriptingInterface* _entityScriptingInterface;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AvatarData* _avatarData;
