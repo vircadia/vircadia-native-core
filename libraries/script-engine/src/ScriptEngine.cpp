@@ -74,10 +74,10 @@ void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputCon
 }
 
 EntityScriptingInterface* ScriptEngine::getEntityScriptingInterface() {
-    if (!ScriptEngine::_entityScriptingInterface) {
-        ScriptEngine::_entityScriptingInterface = new EntityScriptingInterface();
+    if (!_entityScriptingInterface) {
+        _entityScriptingInterface = new EntityScriptingInterface();
     }
-    return ScriptEngine::_entityScriptingInterface;
+    return _entityScriptingInterface;
 }
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
