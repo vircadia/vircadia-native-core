@@ -34,7 +34,8 @@
 
 using namespace std;
 
-const int STATS_PELS_PER_LINE = 20;
+const int STATS_PELS_PER_LINE = 16;
+const int STATS_PELS_INITIALOFFSET = 12;
 
 const int STATS_GENERAL_MIN_WIDTH = 165; 
 const int STATS_PING_MIN_WIDTH = 190;
@@ -170,7 +171,7 @@ void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int heigh
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
             if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
@@ -231,7 +232,7 @@ void Stats::display(
 
     PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
     
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
 
         columnOneWidth = _generalStatsWidth + _pingStatsWidth + _geoStatsWidth; // 3 columns wide...
         // we will also include room for 1 line per timing record and a header of 4 lines
@@ -239,15 +240,21 @@ void Stats::display(
 
         const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
         QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
+        bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
+        int statsLines = 0;
         while (i.hasNext()) {
             i.next();
             if (includeTimingRecord(i.key())) {
                 lines++;
+                statsLines++;
+                if (onlyDisplayTopTen && statsLines == 10) {
+                    break;
+                }
             }
         }
     }
     
-    drawBackground(backgroundColor, horizontalOffset, 0, columnOneWidth, lines * STATS_PELS_PER_LINE + 10);
+    drawBackground(backgroundColor, horizontalOffset, 0, columnOneWidth, (lines + 1) * STATS_PELS_PER_LINE);
     horizontalOffset += 5;
     
     int columnOneHorizontalOffset = horizontalOffset;
@@ -256,7 +263,7 @@ void Stats::display(
     QString avatarNodes = QString("Avatars: %1").arg(totalAvatars);
     QString framesPerSecond = QString("Framerate: %1 FPS").arg(fps, 3, 'f', 0);
  
-    verticalOffset += STATS_PELS_PER_LINE;
+    verticalOffset = STATS_PELS_INITIALOFFSET; // first one is offset by less than a line
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, serverNodes.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarNodes.toUtf8().constData(), color);
@@ -275,9 +282,10 @@ void Stats::display(
 
     
     // TODO: the display of these timing details should all be moved to JavaScript
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+        bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
         // Timing details...
-        verticalOffset += STATS_PELS_PER_LINE * 6; // skip 6 lines to be under the other columns
+        verticalOffset += STATS_PELS_PER_LINE * 4; // skip 3 lines to be under the other columns
         drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, 
                 "-------------------------------------------------------- Function "
                 "------------------------------------------------------- --msecs- -calls--", color);
@@ -296,6 +304,7 @@ void Stats::display(
             }
         }
 
+        int linesDisplayed = 0;
         QMapIterator<float, QString> j(sortedRecords);
         j.toBack();
         while (j.hasPrevious()) {
@@ -311,11 +320,15 @@ void Stats::display(
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, perfLine.toUtf8().constData(), color);
+            linesDisplayed++;
+            if (onlyDisplayTopTen && linesDisplayed == 10) {
+                break;
+            }
         }
     }
 
 
-    verticalOffset = 0;
+    verticalOffset = STATS_PELS_INITIALOFFSET;
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + 1;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
@@ -351,7 +364,7 @@ void Stats::display(
         
         // only draw our background if column one didn't draw a wide background
         if (columnOneWidth == _generalStatsWidth) {
-            drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+            drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, (lines + 1) * STATS_PELS_PER_LINE);
         }
         horizontalOffset += 5;
 
@@ -377,7 +390,6 @@ void Stats::display(
             voxelAvgPing = QString("Entities avg ping: --");
         }
 
-        verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioPing.toUtf8().constData(), color);
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarPing.toUtf8().constData(), color);
@@ -396,17 +408,17 @@ void Stats::display(
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing.toUtf8().constData(), color);
         }
 
-        verticalOffset = 0;
+        verticalOffset = STATS_PELS_INITIALOFFSET;
         horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + 2;
     }
     
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
 
-    lines = _expanded ? 8 : 3;
+    lines = _expanded ? 7 : 3;
 
     if (columnOneWidth == _generalStatsWidth) {
-        drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+        drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, (lines + 1) * STATS_PELS_PER_LINE);
     }
     horizontalOffset += 5;
 
@@ -418,7 +430,6 @@ void Stats::display(
     QString avatarBodyYaw = QString("Yaw: %1").arg(myAvatar->getBodyYaw(), -1, 'f', 1);
     QString avatarMixerStats;
 
-    verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarPosition.toUtf8().constData(), color);
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, avatarVelocity.toUtf8().constData(), color);
@@ -476,13 +487,13 @@ void Stats::display(
         }
     }
 
-    verticalOffset = 0;
+    verticalOffset = STATS_PELS_INITIALOFFSET;
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3;
 
-    lines = _expanded ? 14 : 3;
+    lines = _expanded ? 10 : 2;
 
     drawBackground(backgroundColor, horizontalOffset, 0, glCanvas->width() - horizontalOffset,
-        lines * STATS_PELS_PER_LINE + 10);
+        (lines + 1) * STATS_PELS_PER_LINE);
     horizontalOffset += 5;
 
     // Model/Entity render details
@@ -491,7 +502,6 @@ void Stats::display(
     octreeStats << "Entity Items rendered: " << entities->getItemsRendered() 
                 << " / Out of view:" << entities->getItemsOutOfView()
                 << " / Too small:" << entities->getItemsTooSmall();
-    verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 
     if (_expanded) {

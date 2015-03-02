@@ -150,7 +150,7 @@ namespace MenuOption {
     const QString DisplayModelTriangles = "Display Model Triangles";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
-    const QString DisplayTimingDetails = "Display Timing Details";
+    const QString DisplayDebugTimingDetails = "Display Timing Details";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DontFadeOnOctreeServerChanges = "Don't Fade In/Out on Octree Server Changes";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
@@ -198,6 +198,7 @@ namespace MenuOption {
     const QString OctreeStats = "Voxel and Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
+    const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString Pair = "Pair";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
