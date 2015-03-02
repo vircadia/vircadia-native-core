@@ -32,13 +32,13 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
 
     const float MAX_COLOR = 255.0f;
-    float diffuseR = getDiffuseColor()[RED_INDEX] / MAX_COLOR;
-    float diffuseG = getDiffuseColor()[GREEN_INDEX] / MAX_COLOR;
-    float diffuseB = getDiffuseColor()[BLUE_INDEX] / MAX_COLOR;
+    float colorR = getColor()[RED_INDEX] / MAX_COLOR;
+    float colorG = getColor()[GREEN_INDEX] / MAX_COLOR;
+    float colorB = getColor()[BLUE_INDEX] / MAX_COLOR;
 
-    glm::vec3 color = glm::vec3(diffuseR, diffuseG, diffuseB);
+    glm::vec3 color = glm::vec3(colorR, colorG, colorB);
 
-    float intensity = getConstantAttenuation();
+    float intensity = getIntensity();
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
 
