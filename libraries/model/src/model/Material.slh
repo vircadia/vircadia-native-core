@@ -8,8 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 !>
-<@if not MATERIAL_SLH@>
-<@def MATERIAL_SLH@>
+<@if not MODEL_MATERIAL_SLH@>
+<@def MODEL_MATERIAL_SLH@>
 
 struct Material { 
     vec4 _diffuse;
@@ -26,10 +26,10 @@ float getMaterialShininess(Material m) { return m._specular.a; }
 
 <@if GLPROFILE == PC_GL@>
 uniform materialBuffer {
-    Material mat;
+    Material _mat;
 };
 Material getMaterial() {
-    return mat;
+    return _mat;
 }
 <@elif GLPROFILE == MAC_GL@>
 uniform vec4 materialBuffer[2];

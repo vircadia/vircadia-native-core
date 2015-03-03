@@ -15,12 +15,21 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
         list(APPEND SHADER_INCLUDE_FILES ${includeFile})
     endforeach()
 
-    #Extract the unique include shader paths
     foreach(SHADER_INCLUDE ${SHADER_INCLUDE_FILES})
         get_filename_component(INCLUDE_DIR ${SHADER_INCLUDE} PATH)
         list(APPEND SHADER_INCLUDES_PATHS ${INCLUDE_DIR})
     endforeach()
+
+
+    #Extract the unique include shader paths
+    set(INCLUDES ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
+	#message(Hifi for includes ${INCLUDES})
+	foreach(EXTRA_SHADER_INCLUDE ${INCLUDES})
+      list(APPEND SHADER_INCLUDES_PATHS ${EXTRA_SHADER_INCLUDE})
+    endforeach()
+
     list(REMOVE_DUPLICATES SHADER_INCLUDES_PATHS)
+	#message(ready for includes ${SHADER_INCLUDES_PATHS})
 
     # make the scribe include arguments
     set(SCRIBE_INCLUDES)
@@ -64,6 +73,17 @@ endfunction()
 
 
 macro(AUTOSCRIBE_SHADER_LIB)
+  
+  file(RELATIVE_PATH RELATIVE_LIBRARY_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR} "${HIFI_LIBRARY_DIR}")
+  foreach(HIFI_LIBRARY ${ARGN})    
+    #if (NOT TARGET ${HIFI_LIBRARY})
+    #  file(GLOB_RECURSE HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}/src/)
+    #endif ()
+  
+    #file(GLOB_RECURSE HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src/*.slh)
+    list(APPEND HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src)
+  endforeach()
+  #message(${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
 
   file(GLOB_RECURSE SHADER_INCLUDE_FILES src/*.slh)
   file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf)

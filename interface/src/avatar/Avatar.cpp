@@ -367,7 +367,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(renderMode, postLighting, glowLevel);
+            renderBody(frustum, renderMode, postLighting, glowLevel);
         }
 
         if (!postLighting && renderMode != SHADOW_RENDER_MODE) {
@@ -477,7 +477,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(RenderMode renderMode, bool postLighting, float glowLevel) {
+void Avatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
                             Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     {
@@ -494,11 +494,13 @@ void Avatar::renderBody(RenderMode renderMode, bool postLighting, float glowLeve
         if (postLighting) {
             getHand()->render(false, modelRenderMode);
         } else {
-            _skeletonModel.render(1.0f, modelRenderMode);
-            renderAttachments(renderMode);
+            RenderArgs args;
+            args._viewFrustum = renderFrustum;
+            _skeletonModel.render(1.0f, modelRenderMode, &args);
+            renderAttachments(renderMode, &args);
         }
     }
-    getHead()->render(1.0f, modelRenderMode, postLighting);
+    getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
@@ -525,11 +527,11 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::renderAttachments(RenderMode renderMode) {
+void Avatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode);
+        model->render(1.0f, modelRenderMode, args);
     }
 }
 

@@ -73,26 +73,30 @@ GLBackend::GLBackend() :
     _input(),
     _transform()
 {
-
+    initTransform();
 }
 
 GLBackend::~GLBackend() {
-
+    killTransform();
 }
 
-void GLBackend::renderBatch(Batch& batch) {
+void GLBackend::render(Batch& batch) {
+
     uint32 numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
 
-    GLBackend backend;
-
     for (unsigned int i = 0; i < numCommands; i++) {
         CommandCall call = _commandCalls[(*command)];
-        (backend.*(call))(batch, *offset);
+        (this->*(call))(batch, *offset);
         command++;
         offset++;
     }
+}
+
+void GLBackend::renderBatch(Batch& batch) {
+    GLBackend backend;
+    backend.render(batch);
 }
 
 void GLBackend::checkGLError() {
@@ -386,18 +390,93 @@ void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
-    _transform._projection = batch._transforms.get(batch._params[paramOffset]._uint);
+    memcpy(&_transform._projection, batch.editData(batch._params[paramOffset]._uint), sizeof(Mat4));
     _transform._invalidProj = true;
 }
 
+void GLBackend::initTransform() {
+#if defined(Q_OS_WIN)
+    glGenBuffers(1, &_transform._transformObjectBuffer);
+    glGenBuffers(1, &_transform._transformCameraBuffer);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformObjectBuffer);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, _transform._transformCameraBuffer);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
+
+
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+#else
+#endif
+}
+
+void GLBackend::killTransform() {
+#if defined(Q_OS_WIN)
+    glDeleteBuffers(1, &_transform._transformObjectBuffer);
+    glDeleteBuffers(1, &_transform._transformCameraBuffer);
+#else
+#endif
+}
 void GLBackend::updateTransform() {
+    // Check all the dirty flags and update the state accordingly
     if (_transform._invalidProj) {
-        // TODO: implement the projection matrix assignment to gl state
-    /*    if (_transform._lastMode != GL_PROJECTION) {
+        _transform._transformCamera._projection = _transform._projection;
+    }
+
+    if (_transform._invalidView) {
+        _transform._view.getInverseMatrix(_transform._transformCamera._view);
+        _transform._view.getMatrix(_transform._transformCamera._viewInverse);
+    }
+
+    if (_transform._invalidModel) {
+        _transform._model.getMatrix(_transform._transformObject._model);
+        _transform._model.getInverseMatrix(_transform._transformObject._modelInverse);
+    }
+
+    if (_transform._invalidView || _transform._invalidProj) {
+        Mat4 viewUntranslated = _transform._transformCamera._view;
+        viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        _transform._transformCamera._projectionViewUntranslated = _transform._transformCamera._projection * viewUntranslated;
+    }
+ 
+    if (_transform._invalidView || _transform._invalidProj) {
+#if defined(Q_OS_WIN)
+        glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        CHECK_GL_ERROR();
+#endif
+   }
+
+    if (_transform._invalidModel) {
+#if defined(Q_OS_WIN)
+        glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, _transform._transformObjectBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        CHECK_GL_ERROR();
+#endif
+    }
+
+#if defined(Q_OS_WIN)
+    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._transformObjectBuffer);
+    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _transform._transformCameraBuffer);
+    CHECK_GL_ERROR();
+#endif
+
+
+#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
+    // Do it again for fixed pipeline until we can get rid of it
+    if (_transform._invalidProj) {
+        if (_transform._lastMode != GL_PROJECTION) {
             glMatrixMode(GL_PROJECTION);
             _transform._lastMode = GL_PROJECTION;
         }
-        CHECK_GL_ERROR();*/
+        glLoadMatrixf(reinterpret_cast< const GLfloat* >(&_transform._projection));
+
+        CHECK_GL_ERROR();
     }
 
     if (_transform._invalidModel || _transform._invalidView) {
@@ -430,10 +509,11 @@ void GLBackend::updateTransform() {
             }
         }
         CHECK_GL_ERROR();
-
-        _transform._invalidModel = false;
-        _transform._invalidView = false;
     }
+#endif
+
+    // Flags are clean
+    _transform._invalidView = _transform._invalidProj = _transform._invalidModel = false;
 }
 
 void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
