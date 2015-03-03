@@ -47,7 +47,7 @@ void MassPropertiesTests::testWithTetrahedron(){
 
     //test if moment of inertia with respect to x axis is correct
     if (abs(inertia_a - (voumeAndInertia.at(1))) > epsilion){
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Moment of inertia with respect to x axis is incorrect : Expected = " << 
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Moment of inertia with respect to x axis is incorrect : Expected = " <<
             inertia_a << " " << ", actual = " << (voumeAndInertia.at(1)) << std::endl;
     }
 
@@ -83,7 +83,7 @@ void MassPropertiesTests::testWithTetrahedron(){
 
 }
 
-void MassPropertiesTests::testWithUnitCube(){
+void MassPropertiesTests::testWithCube(){
     massproperties::Vertex p0(1.0, -1.0, -1.0);
     massproperties::Vertex p1(1.0, -1.0, 1.0);
     massproperties::Vertex p2(-1.0, -1.0, 1.0);
@@ -101,11 +101,11 @@ void MassPropertiesTests::testWithUnitCube(){
     vertices.push_back(p5);
     vertices.push_back(p6);
     vertices.push_back(p7);
-    std::cout << std::setprecision(5);
-    vector<int> triangles = { 1 - 1, 2 - 1, 3 - 1, 1 - 1, 3 - 1, 4 - 1, 5 - 1, 8 - 1, 7 - 1, 5 - 1, 7 - 1, 6 - 1, 1 - 1, 5 - 1, 6 - 1, 1 - 1,
-        6 - 1, 2 - 1, 2 - 1, 6 - 1, 7 - 1, 2 - 1, 7 - 1, 3 - 1, 3 - 1, 7 - 1, 8 - 1, 3 - 1, 8 - 1, 4 - 1, 5 - 1, 1 - 1, 4 - 1, 5 - 1, 4 - 1, 8 - 1 };
+    std::cout << std::setprecision(10);
+    vector<int> triangles = { 0, 1, 2, 0, 2, 3, 4, 7, 6, 4, 6, 5, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 
+        7, 2, 7, 3, 4, 0, 3, 4, 3, 7 };
     glm::vec3 centerOfMass(0.0, 0.0, 0.0);
-    double volume =8.0;
+    double volume = 8.0;
     double side = 2.0;
     double inertia = (volume * side * side) / 6.0; //inertia of a unit cube is (mass * side * side) /6
 
@@ -115,19 +115,118 @@ void MassPropertiesTests::testWithUnitCube(){
     if (abs(centerOfMass.x - massProp1.getCenterOfMass().x) > epsilion || abs(centerOfMass.y - massProp1.getCenterOfMass().y) > epsilion ||
         abs(centerOfMass.z - massProp1.getCenterOfMass().z) > epsilion){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Center of mass is incorrect : Expected = " << centerOfMass.x << " " <<
-            centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp1.getCenterOfMass().x << " " << massProp1.getCenterOfMass().y <<
-            " " << massProp1.getCenterOfMass().z << std::endl;
+            centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp1.getCenterOfMass().x << " " << 
+            massProp1.getCenterOfMass().y << " " << massProp1.getCenterOfMass().z << std::endl;
     }
 
-    if (abs(inertia - (volumeAndInertia1.at(1))) > epsilion || abs(inertia - (volumeAndInertia1.at(2))) > epsilion || 
+    if (abs(volume - volumeAndInertia1.at(0)) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Volume is incorrect : Expected = " << volume <<
+            ", actual = " << volumeAndInertia1.at(0) << std::endl;
+    }
+
+    if (abs(inertia - (volumeAndInertia1.at(1))) > epsilion || abs(inertia - (volumeAndInertia1.at(2))) > epsilion ||
         abs(inertia - (volumeAndInertia1.at(3))) > epsilion){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Moment is incorrect : Expected = " << inertia << " " <<
             inertia << " " << inertia << ", actual = " << (volumeAndInertia1.at(1)) << " " << (volumeAndInertia1.at(2)) <<
             " " << (volumeAndInertia1.at(3)) << std::endl;
     }
+
+    //test with {2,2,2} as reference point
+    massproperties::MassProperties massProp2(&vertices, &triangles, { 2, 2, 2 });
+    vector<double> volumeAndInertia2 = massProp2.getMassProperties();
+    if (abs(centerOfMass.x - massProp2.getCenterOfMass().x) > epsilion || abs(centerOfMass.y - massProp2.getCenterOfMass().y) > epsilion ||
+        abs(centerOfMass.z - massProp2.getCenterOfMass().z) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Center of mass is incorrect : Expected = " << centerOfMass.x << 
+            " " << centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp2.getCenterOfMass().x << " " << 
+            massProp2.getCenterOfMass().y << " " << massProp2.getCenterOfMass().z << std::endl;
+    }
+
+    if (abs(volume - volumeAndInertia2.at(0)) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Volume is incorrect : Expected = " << volume <<
+            ", actual = " << volumeAndInertia2.at(0) << std::endl;
+    }
+
+    if (abs(inertia - (volumeAndInertia2.at(1))) > epsilion || abs(inertia - (volumeAndInertia2.at(2))) > epsilion ||
+        abs(inertia - (volumeAndInertia2.at(3))) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Moment is incorrect : Expected = " << inertia << " " <<
+            inertia << " " << inertia << ", actual = " << (volumeAndInertia2.at(1)) << " " << (volumeAndInertia2.at(2)) <<
+            " " << (volumeAndInertia2.at(3)) << std::endl;
+    }
 }
 
+void MassPropertiesTests::testWithUnitCube()
+{
+    massproperties::Vertex p0(0, 0, 1);
+    massproperties::Vertex p1(1, 0, 1);
+    massproperties::Vertex p2(0, 1, 1);
+    massproperties::Vertex p3(1, 1, 1);
+    massproperties::Vertex p4(0, 0, 0);
+    massproperties::Vertex p5(1, 0, 0);
+    massproperties::Vertex p6(0, 1, 0);
+    massproperties::Vertex p7(1, 1, 0);
+    vector<massproperties::Vertex> vertices;
+    vertices.push_back(p0);
+    vertices.push_back(p1);
+    vertices.push_back(p2);
+    vertices.push_back(p3);
+    vertices.push_back(p4);
+    vertices.push_back(p5);
+    vertices.push_back(p6);
+    vertices.push_back(p7);
+    vector<int> triangles = { 0, 1, 2, 1, 3, 2, 2, 3, 7, 2, 7, 6, 1, 7, 3, 1, 5, 7, 6, 7, 4, 7, 5, 4, 0, 4, 1,
+        1, 4, 5, 2, 6, 4, 0, 2, 4 };
+    glm::vec3 centerOfMass(0.5, 0.5, 0.5);
+    double volume = 1.0;
+    double side = 1.0;
+    double inertia = (volume * side * side) / 6.0; //inertia of a unit cube is (mass * side * side) /6
+    std::cout << std::setprecision(10);
+
+    //test with origin as reference point
+    massproperties::MassProperties massProp1(&vertices, &triangles, {});
+    vector<double> volumeAndInertia1 = massProp1.getMassProperties();
+    if (abs(centerOfMass.x - massProp1.getCenterOfMass().x) > epsilion || abs(centerOfMass.y - massProp1.getCenterOfMass().y) > epsilion ||
+        abs(centerOfMass.z - massProp1.getCenterOfMass().z) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Center of mass is incorrect : Expected = " << centerOfMass.x <<
+            " " << centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp1.getCenterOfMass().x << " " <<
+            massProp1.getCenterOfMass().y << " " << massProp1.getCenterOfMass().z << std::endl;
+    }
+
+    if (abs(volume - volumeAndInertia1.at(0)) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Volume is incorrect : Expected = " << volume <<
+            ", actual = " << volumeAndInertia1.at(0) << std::endl;
+    }
+
+    if (abs(inertia - (volumeAndInertia1.at(1))) > epsilion || abs(inertia - (volumeAndInertia1.at(2))) > epsilion ||
+        abs(inertia - (volumeAndInertia1.at(3))) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Moment is incorrect : Expected = " << inertia << " " <<
+            inertia << " " << inertia << ", actual = " << (volumeAndInertia1.at(1)) << " " << (volumeAndInertia1.at(2)) <<
+            " " << (volumeAndInertia1.at(3)) << std::endl;
+    }
+
+    //test with {2,1,2} as reference point
+    massproperties::MassProperties massProp2(&vertices, &triangles, { 2, 1, 2 });
+    vector<double> volumeAndInertia2 = massProp2.getMassProperties();
+    if (abs(centerOfMass.x - massProp2.getCenterOfMass().x) > epsilion || abs(centerOfMass.y - massProp2.getCenterOfMass().y) > epsilion ||
+        abs(centerOfMass.z - massProp2.getCenterOfMass().z) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Center of mass is incorrect : Expected = " << centerOfMass.x << " " <<
+            centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp2.getCenterOfMass().x << " " <<
+            massProp2.getCenterOfMass().y << " " << massProp2.getCenterOfMass().z << std::endl;
+    }
+
+    if (abs(volume - volumeAndInertia2.at(0)) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Volume is incorrect : Expected = " << volume <<
+            ", actual = " << volumeAndInertia2.at(0) << std::endl;
+    }
+
+    if (abs(inertia - (volumeAndInertia2.at(1))) > epsilion || abs(inertia - (volumeAndInertia2.at(2))) > epsilion ||
+        abs(inertia - (volumeAndInertia2.at(3))) > epsilion){
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Moment is incorrect : Expected = " << inertia << " " <<
+            inertia << " " << inertia << ", actual = " << (volumeAndInertia2.at(1)) << " " << (volumeAndInertia2.at(2)) <<
+            " " << (volumeAndInertia2.at(3)) << std::endl;
+    }
+}
 void MassPropertiesTests::runAllTests(){
     testWithTetrahedron();
     testWithUnitCube();
+    testWithCube();
 }

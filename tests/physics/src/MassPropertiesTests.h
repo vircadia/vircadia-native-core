@@ -15,6 +15,7 @@
 namespace MassPropertiesTests{
     void testWithTetrahedron();
     void testWithUnitCube();
+    void testWithCube();
     void runAllTests();
 }
 #endif // hifi_MassPropertiesTests_h

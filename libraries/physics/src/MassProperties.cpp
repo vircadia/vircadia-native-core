@@ -52,10 +52,10 @@ vector<double> Tetrahedron::getVolumeAndInertia() const{
 }
 
 void Tetrahedron::computeVolume(){
-    glm::mat4 tet = { glm::vec4(_x.x, _y.x, _z.x, _w.x), glm::vec4(_x.y, _y.y, _z.y, _w.y), glm::vec4(_x.z, _y.z, _z.z, _w.z), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) };
+    glm::mat4 tet = { glm::vec4(_x.x, _y.x, _z.x, _w.x), glm::vec4(_x.y, _y.y, _z.y, _w.y), glm::vec4(_x.z, _y.z, _z.z, _w.z), 
+        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) };
     _volume = glm::determinant(tet) / 6.0f;
     _volumeAndInertia.push_back(_volume);
-    std::cout << "volume : " << _volume << std::endl;
 }
 
 void Tetrahedron::computeInertia(){
@@ -128,8 +128,8 @@ void Tetrahedron::computeInertia(){
 }
 
 //class to compute volume, mass, center of mass, and inertia tensor of a mesh.
-//origin is the default reference point for generating the tetrahedron from each triangle of the mesh. We can provide another reference
-//point by passing it as 3rd parameter to the constructor
+//origin is the default reference point for generating the tetrahedron from each triangle of the mesh. We can provide 
+//another reference point by passing it as 3rd parameter to the constructor
 
 MassProperties::MassProperties(vector<Vertex> *vertices, Triangle *triangles, Vertex referencepoint = glm::vec3(0.0,0.0,0.0)):\
 _vertices(vertices), 
@@ -160,7 +160,6 @@ MassProperties::~MassProperties(){
 }
 
 void MassProperties::generateTetrahedra() {
-    std::cout << "apex : " << _referencePoint.x << " " << _referencePoint.y << " " << _referencePoint.z << std::endl;
     for (int i = 0; i < _trianglesCount * 3; i += 3){
         Vertex p1 = _vertices->at(_triangles->at(i));
         Vertex p2 = _vertices->at(_triangles->at(i + 1));
@@ -200,6 +199,8 @@ vector<double> MassProperties::getMassProperties(){
     double inertia_bb = 0.0;
     double inertia_cc = 0.0;
     glm::vec3 centerOfMass;
+    glm::mat3 globalInertia(0.0);
+    glm::mat3 globalProductInertia(0.0);
 
     //Translate accumulated center of mass from each tetrahedron to mesh center of mass using parallel axis theorem
     for each (Tetrahedron tet in _tetrahedra){
@@ -215,20 +216,27 @@ vector<double> MassProperties::getMassProperties(){
     //Translate the moment of inertia from each tetrahedron to mesh center of mass using parallel axis theorem
     for each (Tetrahedron tet in _tetrahedra){
         vector<double> tetMassProperties = tet.getVolumeAndInertia();
-        const double dist = glm::distance(_centerOfMass, tet.getCentroid());
-        inertia_a += tetMassProperties.at(1) + (dist * dist * tetMassProperties.at(0));
-        inertia_b += tetMassProperties.at(2) + (dist * dist * tetMassProperties.at(0));
-        inertia_c += tetMassProperties.at(3) + (dist * dist * tetMassProperties.at(0));
-        inertia_aa += tetMassProperties.at(4) + (dist * dist * tetMassProperties.at(0));
-        inertia_bb += tetMassProperties.at(5) + (dist * dist * tetMassProperties.at(0));
-        inertia_cc += tetMassProperties.at(6) + (dist * dist * tetMassProperties.at(0));
+        glm::mat3 identity;
+        glm::vec3 diff = _centerOfMass - tet.getCentroid();
+        float diffDot = glm::dot(diff, diff);
+        glm::mat3 outerDiff = glm::outerProduct(diff, diff);
+
+        //3x3 of local inertia tensors of each tetrahedron. Inertia tensors are the diagonal elements
+        glm::mat3 localMomentInertia = { Vertex(tetMassProperties.at(1), 0.0f, 0.0f), Vertex(0.0f, tetMassProperties.at(2), 0.0f), 
+            Vertex(0.0f, 0.0f, tetMassProperties.at(3)) };
+        glm::mat3 localProductInertia = { Vertex(tetMassProperties.at(4), 0.0f, 0.0f), Vertex(0.0f, tetMassProperties.at(5), 0.0f), 
+            Vertex(0.0f, 0.0f, tetMassProperties.at(6)) };
+
+        //Parallel axis theorem J = I * m[(R.R)*Identity - RxR] where x is outer cross product
+        globalInertia += localMomentInertia + (float)tetMassProperties.at(0) * ((diffDot*identity) - outerDiff);
+        globalProductInertia += localProductInertia + (float)tetMassProperties.at(0) * ((diffDot * identity) - outerDiff);
     }
     volumeAndInertia.push_back(volume);
-    volumeAndInertia.push_back(inertia_a);
-    volumeAndInertia.push_back(inertia_b);
-    volumeAndInertia.push_back(inertia_c);
-    volumeAndInertia.push_back(inertia_aa);
-    volumeAndInertia.push_back(inertia_bb);
-    volumeAndInertia.push_back(inertia_cc);
+    volumeAndInertia.push_back(globalInertia[0][0]);
+    volumeAndInertia.push_back(globalInertia[1][1]);
+    volumeAndInertia.push_back(globalInertia[2][2]);
+    volumeAndInertia.push_back(globalProductInertia[0][0]);
+    volumeAndInertia.push_back(globalProductInertia[1][1]);
+    volumeAndInertia.push_back(globalProductInertia[2][2]);
     return volumeAndInertia;
 }
