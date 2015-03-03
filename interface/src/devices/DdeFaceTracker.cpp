@@ -17,15 +17,89 @@
 #include <QElapsedTimer>
 
 #include "DdeFaceTracker.h"
+#include "FaceshiftConstants.h"
 
 static const QHostAddress DDE_FEATURE_POINT_SERVER_ADDR("127.0.0.1");
 static const quint16 DDE_FEATURE_POINT_SERVER_PORT = 5555;
 
-static const int NUM_EXPRESSION = 46;
-static const int MIN_PACKET_SIZE = (8 + NUM_EXPRESSION) * sizeof(float) + sizeof(int);
+static const int NUM_EXPRESSIONS = 46;
+static const int MIN_PACKET_SIZE = (8 + NUM_EXPRESSIONS) * sizeof(float) + sizeof(int);
 static const int MAX_NAME_SIZE = 31;
 
-struct Packet{
+// There's almost but not quite a 1-1 correspondence between DDE's 46 and Faceshift 1.3's 48 packets.
+// The best guess at mapping is to:
+// - Swap L and R values
+// - Skip two Faceshift values: JawChew (22) and LipsLowerDown (37)
+static const int DDE_TO_FACESHIFT_MAPPING[] = {
+    1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14,
+    16,
+    18, 17,
+    19,
+    23,
+    21,
+    // Skip JawChew
+    20,
+    25, 24, 27, 26, 29, 28, 31, 30, 33, 32,
+    34, 35, 36,
+    // Skip LipsLowerDown
+    38, 39, 40, 41, 42, 43, 44, 45,
+    47, 46
+};
+
+// The DDE coefficients, overall, range from -0.2 to 1.5 or so. However, individual coefficients typically vary much 
+// less than this.
+static const float DDE_COEFFICIENT_SCALES[] = {
+    4.0f, // EyeBlink_L
+    4.0f, // EyeBlink_R
+    1.0f, // EyeSquint_L
+    1.0f, // EyeSquint_R
+    1.0f, // EyeDown_L
+    1.0f, // EyeDown_R
+    1.0f, // EyeIn_L
+    1.0f, // EyeIn_R
+    4.0f, // EyeOpen_L
+    4.0f, // EyeOpen_R
+    1.0f, // EyeOut_L
+    1.0f, // EyeOut_R
+    1.0f, // EyeUp_L
+    1.0f, // EyeUp_R
+    3.0f, // BrowsD_L
+    3.0f, // BrowsD_R
+    3.0f, // BrowsU_C
+    3.0f, // BrowsU_L
+    3.0f, // BrowsU_R
+    1.0f, // JawFwd
+    1.5f, // JawLeft
+    1.8f, // JawOpen
+    1.0f, // JawChew
+    1.5f, // JawRight
+    1.5f, // MouthLeft
+    1.5f, // MouthRight
+    1.5f, // MouthFrown_L
+    1.5f, // MouthFrown_R
+    1.5f, // MouthSmile_L
+    1.5f, // MouthSmile_R
+    1.0f, // MouthDimple_L
+    1.0f, // MouthDimple_R
+    1.0f, // LipsStretch_L
+    1.0f, // LipsStretch_R
+    1.0f, // LipsUpperClose
+    1.0f, // LipsLowerClose
+    1.0f, // LipsUpperUp
+    1.0f, // LipsLowerDown
+    1.0f, // LipsUpperOpen
+    1.0f, // LipsLowerOpen
+    2.5f, // LipsFunnel
+    2.0f, // LipsPucker
+    1.5f, // ChinLowerRaise
+    1.5f, // ChinUpperRaise
+    1.0f, // Sneer
+    3.0f, // Puff
+    1.0f, // CheekSquint_L
+    1.0f  // CheekSquint_R
+};
+
+struct Packet {
     //roughly in mm
     float focal_length[1];
     float translation[3];
@@ -33,8 +107,9 @@ struct Packet{
     //quaternion
     float rotation[4];
     
-    //blendshape coefficients ranging between -0.2 and 1.5
-    float expressions[NUM_EXPRESSION];
+    // The DDE coefficients, overall, range from -0.2 to 1.5 or so. However, individual coefficients typically vary much 
+    // less than this.
+    float expressions[NUM_EXPRESSIONS];
     
     //avatar id selected on the UI
     int avatar_id;
@@ -69,8 +144,10 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
     _previousTranslation(glm::vec3()),
     _previousRotation(glm::quat())
 {
-    _blendshapeCoefficients.resize(NUM_EXPRESSION);
-    _previousExpressions.resize(NUM_EXPRESSION);
+    _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
+    _previousCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
+
+    _blendshapeCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
     
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
@@ -172,66 +249,56 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _headRotation = (rotation + _previousRotation) / 2.0f;
         _previousRotation = rotation;
 
-        // The DDE coefficients, overall, range from -0.2 to 1.5 or so. However, individual coefficients typically vary much 
-        // less than this.packet.expressions[1]
-
-        // Eye blendshapes
-        static const float RELAXED_EYE_VALUE = 0.2f;
-        static const float EYE_OPEN_SCALE = 4.0f;
-        static const float EYE_BLINK_SCALE = 2.5f;
-        float leftEye = (packet.expressions[1] + _previousExpressions[1]) / 2.0f - RELAXED_EYE_VALUE;
-        float rightEye = (packet.expressions[0] + _previousExpressions[0]) / 2.0f - RELAXED_EYE_VALUE;
-        if (leftEye > 0.0f) {
-            _blendshapeCoefficients[_leftBlinkIndex] = glm::clamp(EYE_BLINK_SCALE * leftEye, 0.0f, 1.0f);
-            _blendshapeCoefficients[_leftEyeOpenIndex] = 0.0f;
-        } else {
-            _blendshapeCoefficients[_leftBlinkIndex] = 0.0f;
-            _blendshapeCoefficients[_leftEyeOpenIndex] = glm::clamp(EYE_OPEN_SCALE * -leftEye, 0.0f, 1.0f);
+        // Translate DDE coefficients to Faceshift compatible coefficients
+        for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
+            _coefficients[DDE_TO_FACESHIFT_MAPPING[i]] = packet.expressions[i];
         }
-        if (rightEye > 0.0f) {
-            _blendshapeCoefficients[_rightBlinkIndex] = glm::clamp(EYE_BLINK_SCALE * rightEye, 0.0f, 1.0f);
-            _blendshapeCoefficients[_rightEyeOpenIndex] = 0.0f;
-        } else {
-            _blendshapeCoefficients[_rightBlinkIndex] = 0.0f;
-            _blendshapeCoefficients[_rightEyeOpenIndex] = glm::clamp(EYE_OPEN_SCALE * -rightEye, 0.0f, 1.0f);
-        }
-        _previousExpressions[1] = packet.expressions[1];
-        _previousExpressions[0] = packet.expressions[0];
 
-        // Eyebrow blendshapes
-        static const float BROW_UP_SCALE = 3.0f;
-        static const float BROW_DOWN_SCALE = 3.0f;
-        float browCenter = (packet.expressions[17] + _previousExpressions[17]) / 2.0f;
-        if (browCenter > 0) {
-            float browUp = glm::clamp(BROW_UP_SCALE * browCenter, 0.0f, 1.0f);
-            _blendshapeCoefficients[_browUpCenterIndex] = browUp;
-            _blendshapeCoefficients[_browUpLeftIndex] = browUp;
+        // Use EyeBlink values to control both EyeBlink and EyeOpen
+        static const float RELAXED_EYE_VALUE = 0.1f;
+        float leftEye = (_coefficients[_leftBlinkIndex] + _previousCoefficients[_leftBlinkIndex]) / 2.0f;
+        float rightEye = (_coefficients[_rightBlinkIndex] + _previousCoefficients[_rightBlinkIndex]) / 2.0f;
+        if (leftEye > RELAXED_EYE_VALUE) {
+            _coefficients[_leftBlinkIndex] = leftEye - RELAXED_EYE_VALUE;
+            _coefficients[_leftEyeOpenIndex] = 0.0f;
+        } else {
+            _coefficients[_leftBlinkIndex] = 0.0f;
+            _coefficients[_leftEyeOpenIndex] = RELAXED_EYE_VALUE - leftEye;
+        }
+        if (rightEye > RELAXED_EYE_VALUE) {
+            _coefficients[_rightBlinkIndex] = rightEye - RELAXED_EYE_VALUE;
+            _coefficients[_rightEyeOpenIndex] = 0.0f;
+        } else {
+            _coefficients[_rightBlinkIndex] = 0.0f;
+            _coefficients[_rightEyeOpenIndex] = RELAXED_EYE_VALUE - rightEye;
+        }
+
+        // Offset jaw open coefficient
+        static const float JAW_OPEN_THRESHOLD = 0.16f;
+        _coefficients[_jawOpenIndex] = _coefficients[_jawOpenIndex] - JAW_OPEN_THRESHOLD;
+
+        // Offset smile coefficients
+        static const float SMILE_THRESHOLD = 0.18f;
+        _coefficients[_mouthSmileLeftIndex] = _coefficients[_mouthSmileLeftIndex] - SMILE_THRESHOLD;
+        _coefficients[_mouthSmileRightIndex] = _coefficients[_mouthSmileRightIndex] - SMILE_THRESHOLD;
+
+
+        // Scale all coefficients
+        for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
+            _blendshapeCoefficients[i]
+                = glm::clamp(DDE_COEFFICIENT_SCALES[i] * (_coefficients[i] + _previousCoefficients[i]) / 2.0f, 0.0f, 1.0f);
+            _previousCoefficients[i] = _coefficients[i];
+        }
+
+        // Postcondition brow coefficients
+        if (_blendshapeCoefficients[_browUpCenterIndex] > 0) {
             _blendshapeCoefficients[_browDownLeftIndex] = 0.0f;
-            _blendshapeCoefficients[_browUpRightIndex] = browUp;
             _blendshapeCoefficients[_browDownRightIndex] = 0.0f;
         } else {
-            float browDown = glm::clamp(BROW_DOWN_SCALE * -browCenter, 0.0f, 1.0f);
             _blendshapeCoefficients[_browUpCenterIndex] = 0.0f;
             _blendshapeCoefficients[_browUpLeftIndex] = 0.0f;
-            _blendshapeCoefficients[_browDownLeftIndex] = browDown;
             _blendshapeCoefficients[_browUpRightIndex] = 0.0f;
-            _blendshapeCoefficients[_browDownRightIndex] = browDown;
         }
-        _previousExpressions[17] = packet.expressions[17];
-
-        // Mouth blendshapes
-        static const float JAW_OPEN_THRESHOLD = 0.16f;
-        static const float JAW_OPEN_SCALE = 1.4f;
-        static const float SMILE_THRESHOLD = 0.18f;
-        static const float SMILE_SCALE = 1.5f;
-        float smileLeft = (packet.expressions[24] + _previousExpressions[24]) / 2.0f;
-        float smileRight = (packet.expressions[23] + _previousExpressions[23]) / 2.0f;
-        _blendshapeCoefficients[_jawOpenIndex] = glm::clamp(JAW_OPEN_SCALE * (packet.expressions[21] - JAW_OPEN_THRESHOLD),
-            0.0f, 1.0f);
-        _blendshapeCoefficients[_mouthSmileLeftIndex] = glm::clamp(SMILE_SCALE * (smileLeft - SMILE_THRESHOLD), 0.0f, 1.0f);
-        _blendshapeCoefficients[_mouthSmileRightIndex] = glm::clamp(SMILE_SCALE * (smileRight - SMILE_THRESHOLD), 0.0f, 1.0f);
-        _previousExpressions[24] = packet.expressions[24];
-        _previousExpressions[23] = packet.expressions[23];
 
     } else {
         qDebug() << "[Error] DDE Face Tracker Decode Error";
