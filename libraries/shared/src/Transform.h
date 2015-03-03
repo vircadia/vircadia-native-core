@@ -90,6 +90,10 @@ public:
 
     Mat4& getMatrix(Mat4& result) const;
     Mat4& getInverseMatrix(Mat4& result) const;
+    Mat4& getInverseTransposeMatrix(Mat4& result) const;
+
+    Mat4& getRotationScaleMatrix(Mat4& result) const;
+    Mat4& getRotationScaleMatrixInverse(Mat4& result) const;
 
     Transform& evalInverse(Transform& result) const;
 
@@ -327,6 +331,24 @@ inline Transform::Mat4& Transform::getInverseMatrix(Transform::Mat4& result) con
     Transform inverse;
     evalInverse(inverse);
     return inverse.getMatrix(result);
+}
+
+inline Transform::Mat4& Transform::getInverseTransposeMatrix(Transform::Mat4& result) const {
+    getInverseMatrix(result);
+    result = glm::transpose(result);
+    return result;
+}
+
+inline Transform::Mat4& Transform::getRotationScaleMatrix(Mat4& result) const {
+    getMatrix(result);
+    result[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    return result;
+}
+
+inline Transform::Mat4& Transform::getRotationScaleMatrixInverse(Mat4& result) const {
+    getInverseMatrix(result);
+    result[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    return result;
 }
 
 inline void Transform::evalFromRawMatrix(const Mat4& matrix) {

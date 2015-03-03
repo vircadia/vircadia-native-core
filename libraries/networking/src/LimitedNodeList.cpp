@@ -96,6 +96,13 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     }
 }
 
+void LimitedNodeList::setThisNodeCanAdjustLocks(bool canAdjustLocks) {
+    if (_thisNodeCanAdjustLocks != canAdjustLocks) {
+        _thisNodeCanAdjustLocks = canAdjustLocks;
+        emit canAdjustLocksChanged(canAdjustLocks);
+    }
+}
+
 QUdpSocket& LimitedNodeList::getDTLSSocket() {
     if (!_dtlsSocket) {
         // DTLS socket getter called but no DTLS socket exists, create it now

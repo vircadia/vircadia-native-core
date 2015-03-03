@@ -243,13 +243,15 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(float alpha, Model::RenderMode mode, bool postLighting) {
+void Head::render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mode, bool postLighting) {
     if (postLighting) {
         if (_renderLookatVectors) {
             renderLookatVectors(_leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
         }
     } else {
-        _faceModel.render(alpha, mode);    
+        RenderArgs args;
+        args._viewFrustum = renderFrustum;
+        _faceModel.render(alpha, mode, &args);
     }
 }
 

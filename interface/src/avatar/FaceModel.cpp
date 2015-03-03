@@ -39,6 +39,8 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
     
+    invalidCalculatedMeshBoxes();
+
     if (isActive()) {
         setOffset(-_geometry->getFBXGeometry().neckPivot);
         Model::simulateInternal(deltaTime);

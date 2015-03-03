@@ -51,7 +51,6 @@
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
-#include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
@@ -182,7 +181,6 @@ public:
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     EntityTreeRenderer* getEntities() { return &_entities; }
     Environment* getEnvironment() { return &_environment; }
-    PrioVR* getPrioVR() { return &_prioVR; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
@@ -489,8 +487,6 @@ private:
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-
-    PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
     Camera _mirrorCamera;              // Cammera for mirror view

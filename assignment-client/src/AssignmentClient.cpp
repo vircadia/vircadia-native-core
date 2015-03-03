@@ -18,6 +18,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
+#include <EntityScriptingInterface.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
 #include <LimitedNodeList.h>
@@ -53,6 +54,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
+    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
 
     // make up a uuid for this child so the parent can tell us apart.  This id will be changed
     // when the domain server hands over an assignment.

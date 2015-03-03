@@ -44,8 +44,6 @@
 #include "MIDIEvent.h"
 
 
-EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
-
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
     QString message = context->argument(0).toString()
@@ -314,7 +312,8 @@ void ScriptEngine::init() {
 
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
 
-    _entityScriptingInterface.init();
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    entityScriptingInterface->init();
 
     // register various meta-types
     registerMetaTypes(this);
@@ -352,7 +351,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
     registerGlobalObject("Controller", _controllerScriptingInterface);
-    registerGlobalObject("Entities", &_entityScriptingInterface);
+    registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
@@ -470,6 +469,7 @@ void ScriptEngine::run() {
     int thisFrame = 0;
 
     auto nodeList = DependencyManager::get<NodeList>();
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     qint64 lastUpdate = usecTimestampNow();
 
@@ -489,13 +489,13 @@ void ScriptEngine::run() {
             break;
         }
 
-        if (!_isFinished && _entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+        if (!_isFinished && entityScriptingInterface->getEntityPacketSender()->serversExist()) {
             // release the queue of edit entity messages.
-            _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
+            entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
 
             // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
-                _entityScriptingInterface.getEntityPacketSender()->process();
+            if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
+                entityScriptingInterface->getEntityPacketSender()->process();
             }
         }
 
@@ -622,13 +622,13 @@ void ScriptEngine::run() {
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
 
-    if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+    if (entityScriptingInterface->getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
-        _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
+        entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
 
         // since we're in non-threaded mode, call process so that the packets are sent
-        if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
-            _entityScriptingInterface.getEntityPacketSender()->process();
+        if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
+            entityScriptingInterface->getEntityPacketSender()->process();
         }
     }
 
