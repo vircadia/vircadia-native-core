@@ -944,7 +944,7 @@ void DomainServer::readAvailableDatagrams() {
 
             if (requestAssignment.getType() != Assignment::AgentType
                 || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-                static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex
+                static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
                     ("Received a request for assignment type [^ ]+ from [^ ]+");
                 qDebug() << "Received a request for assignment type" << requestAssignment.getType()
                          << "from" << senderSockAddr;
@@ -977,7 +977,7 @@ void DomainServer::readAvailableDatagrams() {
             } else {
                 if (requestAssignment.getType() != Assignment::AgentType
                     || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex
+                    static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
                         ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
                     qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                         << "from" << senderSockAddr;
