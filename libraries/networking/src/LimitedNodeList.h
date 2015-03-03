@@ -84,8 +84,8 @@ public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
-    bool getThisNodeCanAdjustLocks() { return _thisNodeCanAdjustLocks; }
-    void setThisNodeCanAdjustLocks(bool canAdjustLocks) { _thisNodeCanAdjustLocks = canAdjustLocks; }
+    bool getThisNodeCanAdjustLocks() const { return _thisNodeCanAdjustLocks; }
+    void setThisNodeCanAdjustLocks(bool canAdjustLocks);
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
@@ -195,6 +195,8 @@ signals:
     
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
+
+    void canAdjustLocksChanged(bool canAdjustLocks);
 
     void dataSent(const quint8 channel_type, const int bytes);
     void dataReceived(const quint8 channel_type, const int bytes);

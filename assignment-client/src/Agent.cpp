@@ -44,7 +44,7 @@ Agent::Agent(const QByteArray& packet) :
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
     
-    _scriptEngine.getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
+    DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResouceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
@@ -68,8 +68,8 @@ void Agent::readPendingDatagrams() {
                     // PacketType_JURISDICTION, first byte is the node type...
                     switch (receivedPacket[headerBytes]) {
                         case NodeType::EntityServer:
-                            _scriptEngine.getEntityScriptingInterface()->getJurisdictionListener()->
-                                                                queueReceivedPacket(matchedNode, receivedPacket);
+                            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
+                                queueReceivedPacket(matchedNode, receivedPacket);
                             break;
                     }
                 }
@@ -211,10 +211,12 @@ void Agent::run() {
     
     _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+
     _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
-    _entityViewer.setJurisdictionListener(_scriptEngine.getEntityScriptingInterface()->getJurisdictionListener());
+    _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
     _entityViewer.init();
-    _scriptEngine.getEntityScriptingInterface()->setEntityTree(_entityViewer.getTree());
+    entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();
