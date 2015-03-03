@@ -12,7 +12,6 @@
 #include <AccountManager.h>
 #include <MainWindow.h>
 #include <PathUtils.h>
-#include <XmppClient.h>
 
 #include "AddressBarDialog.h"
 #include "AnimationsDialog.h"
