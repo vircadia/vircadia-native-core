@@ -115,7 +115,7 @@ target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars 
+link_hifi_libraries(shared octree environment gpu model fbx networking entities avatars 
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer)
 

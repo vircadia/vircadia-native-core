@@ -55,13 +55,7 @@ Stats::Stats():
         _pingStatsWidth(STATS_PING_MIN_WIDTH),
         _geoStatsWidth(STATS_GEO_MIN_WIDTH),
         _octreeStatsWidth(STATS_OCTREE_MIN_WIDTH),
-        _lastHorizontalOffset(0),
-        _metavoxelInternal(0),
-        _metavoxelLeaves(0),
-        _metavoxelSendProgress(0),
-        _metavoxelSendTotal(0),
-        _metavoxelReceiveProgress(0),
-        _metavoxelReceiveTotal(0)
+        _lastHorizontalOffset(0)
 {
     auto glCanvas = Application::getInstance()->getGLWidget();
     resetWidth(glCanvas->width(), 0);
@@ -460,31 +454,6 @@ void Stats::display(
         
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, downloads.str().c_str(), color);
-        
-        QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels()->getUpdater(), "getStats",
-            Q_ARG(QObject*, this), Q_ARG(const QByteArray&, "setMetavoxelStats"));
-        
-        stringstream nodes;
-        nodes << "Metavoxels: " << (_metavoxelInternal + _metavoxelLeaves);
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodes.str().c_str(), color);
-        
-        stringstream nodeTypes;
-        nodeTypes << "Internal: " << _metavoxelInternal << "  Leaves: " << _metavoxelLeaves;
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, nodeTypes.str().c_str(), color);
-        
-        if (_metavoxelSendTotal > 0 || _metavoxelReceiveTotal > 0) {
-            stringstream reliableStats;
-            if (_metavoxelSendTotal > 0) {
-                reliableStats << "Upload: " << (_metavoxelSendProgress * 100LL / _metavoxelSendTotal) << "%  ";
-            }
-            if (_metavoxelReceiveTotal > 0) {
-                reliableStats << "Download: " << (_metavoxelReceiveProgress * 100LL / _metavoxelReceiveTotal) << "%";
-            }
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableStats.str().c_str(), color);
-        }
     }
 
     verticalOffset = STATS_PELS_INITIALOFFSET;
@@ -648,12 +617,3 @@ void Stats::display(
     }
 }
 
-void Stats::setMetavoxelStats(int internal, int leaves, int sendProgress,
-        int sendTotal, int receiveProgress, int receiveTotal) {
-    _metavoxelInternal = internal;
-    _metavoxelLeaves = leaves;
-    _metavoxelSendProgress = sendProgress;
-    _metavoxelSendTotal = sendTotal;
-    _metavoxelReceiveProgress = receiveProgress;
-    _metavoxelReceiveTotal = receiveTotal;
-}

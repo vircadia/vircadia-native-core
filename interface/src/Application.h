@@ -45,7 +45,6 @@
 #include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
-#include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
 #include "Physics.h"
 #include "Stars.h"
@@ -179,7 +178,6 @@ public:
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     EntityTreeRenderer* getEntities() { return &_entities; }
     Environment* getEnvironment() { return &_environment; }
     PrioVR* getPrioVR() { return &_prioVR; }
@@ -423,7 +421,6 @@ private:
     void updateMouseRay();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
-    void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
     void updateCursor(float deltaTime);
@@ -475,8 +472,6 @@ private:
     EntityTreeRenderer _entities;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTree _entityClipboard;
-
-    MetavoxelSystem _metavoxels;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
