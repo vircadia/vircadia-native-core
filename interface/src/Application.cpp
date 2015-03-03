@@ -2045,7 +2045,6 @@ void Application::update(float deltaTime) {
         }
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
-        _prioVR.update(deltaTime);
     }
     
     // Dispatch input events
@@ -3107,7 +3106,6 @@ void Application::resetSensors() {
 
     OculusManager::reset();
 
-    _prioVR.reset();
     //_leapmotion.reset();
 
     QScreen* currentScreen = _window->windowHandle()->screen();
