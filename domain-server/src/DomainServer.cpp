@@ -247,7 +247,14 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
     
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
-    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
+    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, nodeList->getNodeSocket().localPort());
+
+    // store our local http ports in shared memory
+    quint16 localHttpPort = DOMAIN_SERVER_HTTP_PORT;
+    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_HTTP_PORT_SMEM_KEY, this, localHttpPort);
+    quint16 localHttpsPort = DOMAIN_SERVER_HTTPS_PORT;
+    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_HTTPS_PORT_SMEM_KEY, this, localHttpsPort);
+
     
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
@@ -944,7 +951,7 @@ void DomainServer::readAvailableDatagrams() {
 
             if (requestAssignment.getType() != Assignment::AgentType
                 || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-                static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex
+                static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
                     ("Received a request for assignment type [^ ]+ from [^ ]+");
                 qDebug() << "Received a request for assignment type" << requestAssignment.getType()
                          << "from" << senderSockAddr;
@@ -977,7 +984,7 @@ void DomainServer::readAvailableDatagrams() {
             } else {
                 if (requestAssignment.getType() != Assignment::AgentType
                     || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex
+                    static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
                         ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
                     qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                         << "from" << senderSockAddr;

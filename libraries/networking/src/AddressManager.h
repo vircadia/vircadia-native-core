@@ -13,6 +13,7 @@
 #define hifi_AddressManager_h
 
 #include <qobject.h>
+#include <QSharedMemory>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -94,6 +95,8 @@ private:
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
+
+    QSharedMemory* _localDSPortSharedMem; // memory shared with domain server
 };
 
 #endif // hifi_AddressManager_h

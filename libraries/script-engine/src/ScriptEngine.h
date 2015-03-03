@@ -31,8 +31,6 @@
 #include "ScriptUUID.h"
 #include "Vec3.h"
 
-class EntityScriptingInterface;
-
 const QString NO_SCRIPT("");
 
 const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 1000) + 0.5);
@@ -45,9 +43,6 @@ public:
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
-
-    /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
 
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
     
@@ -152,8 +147,6 @@ private:
 
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
-
-    static EntityScriptingInterface _entityScriptingInterface;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AvatarData* _avatarData;
