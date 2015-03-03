@@ -72,10 +72,9 @@ public:
     protected:
     };
 
-    typedef std::shared_ptr<PayloadInterface> PayloadPtr;
+    typedef std::shared_ptr<PayloadInterface> PayloadPointer;
 
-
-    Item(PayloadPtr& payload):
+    Item(PayloadPointer& payload):
         _payload(payload) {}
 
     ~Item() {}
@@ -105,11 +104,14 @@ public:
     void render(Context& context) { _payload->render(context); }
 
 protected:
-    PayloadPtr _payload;
+    PayloadPointer _payload;
     State _state;
 
     friend class Scene;
 };
+
+typedef Item::PayloadInterface ItemData;
+typedef Item::PayloadPointer ItemDataPointer;
 
 class Scene {
 public:
@@ -142,10 +144,10 @@ public:
     ~Scene() {}
 
 
-    ID addItem(Item::PayloadPtr& payload);
+    ID addItem(ItemDataPointer& itemData);
     void removeItem(ID id);
     void moveItem(ID id);
-    
+
 
 protected:
     Items _items;

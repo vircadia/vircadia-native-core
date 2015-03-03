@@ -13,13 +13,14 @@
 using namespace render;
 
 
-Item::ID Scene::addItem(Item::PayloadPtr& payload) {
-	
-    return 0;
+Item::ID Scene::addItem(ItemDataPointer& itemData) {
+    ID id = _items.size();
+    _items.push_back(Item(itemData));
+    return id;
 }
 
-void removeItem(ID id) {
+void Scene::removeItem(ID id) {
 }
 
-void moveItem(ID id) {
+void Scene::moveItem(ID id) {
 }

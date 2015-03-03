@@ -1,6 +1,6 @@
 set(TARGET_NAME render-utils)
 
-AUTOSCRIBE_SHADER_LIB(gpu model)
+AUTOSCRIBE_SHADER_LIB(gpu model render)
 
 # pull in the resources.qrc file
 qt5_add_resources(QT_RESOURCES_FILE "${CMAKE_CURRENT_SOURCE_DIR}/res/fonts/fonts.qrc")
@@ -12,4 +12,4 @@ add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
-link_hifi_libraries(animation fbx shared gpu)
+link_hifi_libraries(animation fbx shared gpu model render)
