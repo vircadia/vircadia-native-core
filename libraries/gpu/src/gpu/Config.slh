@@ -8,8 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 !>
-<@if not CONFIG_SLH@>
-<@def CONFIG_SLH@>
+<@if not GPU_CONFIG_SLH@>
+<@def GPU_CONFIG_SLH@>
 
 <@if GLPROFILE == PC_GL @>
     <@def VERSION_HEADER #version 330 compatibility@>

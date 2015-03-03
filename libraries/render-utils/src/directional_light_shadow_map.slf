@@ -1,4 +1,4 @@
-<@include Config.slh@>
+<@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //

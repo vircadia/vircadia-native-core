@@ -124,6 +124,7 @@ public:
 
     float distanceToCamera(const glm::vec3& point) const;
     
+    void evalProjectionMatrix(glm::mat4& proj) const;
 private:
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;

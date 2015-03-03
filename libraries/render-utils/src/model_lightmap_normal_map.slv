@@ -1,4 +1,4 @@
-<@include Config.slh@>
+<@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
@@ -11,6 +11,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+<@include gpu/Transform.slh@>
 
 const int MAX_TEXCOORDS = 2;
 
@@ -32,8 +34,8 @@ varying vec2 interpolatedTexcoord1;
 
 void main(void) {
     // transform and store the normal and tangent for interpolation
-    interpolatedNormal = gl_ModelViewMatrix * vec4(gl_Normal, 0.0);
-    interpolatedTangent = gl_ModelViewMatrix * vec4(tangent, 0.0);
+    //interpolatedNormal = gl_ModelViewMatrix * vec4(gl_Normal, 0.0);
+    //interpolatedTangent = gl_ModelViewMatrix * vec4(tangent, 0.0);
     
     // pass along the diffuse color
     gl_FrontColor = gl_Color;
@@ -43,5 +45,11 @@ void main(void) {
     interpolatedTexcoord1 = vec2(texcoordMatrices[1] * vec4(texcoord1.xy, 0.0, 1.0)).xy;
    
     // use standard pipeline transform
-    gl_Position = ftransform();
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    gl_Position = transformModelToClipPos(cam, obj, gl_Vertex);
+    
+    // transform and store the normal for interpolation
+    interpolatedNormal = vec4(normalize(transformModelToEyeDir(cam, obj, gl_Normal)), 0.0);
+    interpolatedTangent = vec4(normalize(transformModelToEyeDir(cam, obj, tangent)), 0.0);
 }

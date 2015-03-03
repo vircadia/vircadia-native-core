@@ -1067,7 +1067,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -1076,15 +1076,17 @@ void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLe
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     if (!postLighting) {
-        _skeletonModel.render(1.0f, modelRenderMode);
-        renderAttachments(renderMode);
+        RenderArgs args;
+        args._viewFrustum = renderFrustum;
+        _skeletonModel.render(1.0f, modelRenderMode, &args);
+        renderAttachments(renderMode, &args);
     }
     
     //  Render head so long as the camera isn't inside it
     const Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
     if (shouldRenderHead(cameraPos, renderMode)) {
-        getHead()->render(1.0f, modelRenderMode, postLighting);
+        getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
     }
     if (postLighting) {
         getHand()->render(true, modelRenderMode);
@@ -1875,9 +1877,9 @@ void MyAvatar::onToggleRagdoll() {
     }
 }
 
-void MyAvatar::renderAttachments(RenderMode renderMode) {
+void MyAvatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
     if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
-        Avatar::renderAttachments(renderMode);
+        Avatar::renderAttachments(renderMode, args);
         return;
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
@@ -1887,7 +1889,7 @@ void MyAvatar::renderAttachments(RenderMode renderMode) {
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, modelRenderMode);        
+            _attachmentModels.at(i)->render(1.0f, modelRenderMode, args);        
         }
     }
 }

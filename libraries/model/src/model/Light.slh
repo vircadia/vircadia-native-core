@@ -8,8 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 !>
-<@if not LIGHT_SLH@>
-<@def LIGHT_SLH@>
+<@if not MODEL_LIGHT_SLH@>
+<@def MODEL_LIGHT_SLH@>
 
 struct Light {
     vec4 _position;

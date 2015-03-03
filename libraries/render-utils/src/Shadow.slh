@@ -31,6 +31,8 @@ uniform vec3 shadowDistances;
 // the inverse of the size of the shadow map
 uniform float shadowScale;
 
+uniform mat4 shadowMatrices[4];
+
 vec2 samples[8] = vec2[8](
     vec2(-2.0, -2.0),
     vec2(2.0, -2.0),
