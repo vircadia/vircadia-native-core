@@ -1,7 +1,7 @@
 set(EXTERNAL_NAME qxmpp)
 
 # we need to find qmake inside QT_DIR
-find_program(QMAKE_COMMAND NAME qmake PATHS ${QT_DIR}/bin NO_DEFAULT_PATH)
+find_program(QMAKE_COMMAND NAME qmake PATHS ${QT_DIR}/bin $ENV{QTTOOLDIR} NO_DEFAULT_PATH)
 
 if (NOT QMAKE_COMMAND)
   message(FATAL_ERROR "Could not find qmake. Qxmpp cannot be compiled without qmake.")

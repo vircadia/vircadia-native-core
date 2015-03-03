@@ -34,7 +34,8 @@ AddressManager::AddressManager() :
     _rootPlaceName(),
     _rootPlaceID(),
     _positionGetter(NULL),
-    _orientationGetter(NULL)
+    _orientationGetter(NULL),
+    _localDSPortSharedMem(NULL)
 {
     connect(qApp, &QCoreApplication::aboutToQuit, this, &AddressManager::storeCurrentAddress);
 }
@@ -152,8 +153,15 @@ void AddressManager::handleLookupString(const QString& lookupString) {
         if (!lookupString.startsWith('/')) {
             const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
+
+            quint16 localDomainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
+            if (sanitizedString == "localhost") {
+                auto nodeList = DependencyManager::get<NodeList>();
+                nodeList->getLocalServerPortFromSharedMemory
+                    (DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, _localDSPortSharedMem, localDomainServerPort);
+            }
             
-            lookupURL = QUrl(HIFI_URL_SCHEME + "://" + sanitizedString);
+            lookupURL = QUrl(HIFI_URL_SCHEME + "://" + sanitizedString + ":" + QString::number(localDomainServerPort));
         } else {
             lookupURL = QUrl(lookupString);
         }
