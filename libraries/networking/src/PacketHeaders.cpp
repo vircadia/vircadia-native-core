@@ -70,9 +70,11 @@ PacketVersion versionForPacketType(PacketType type) {
             return 2;
         case PacketTypeOctreeStats:
             return 1;
+        case PacketTypeStopNode:
+            return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_MODEL_ENTITIES_SUPPORT_SHAPE_TYPE;
+            return VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
@@ -124,6 +126,7 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityErase);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeStopNode);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioEnvironment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);

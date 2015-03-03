@@ -419,9 +419,6 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateFaceshift();
-    void updateVisage();
-    void updateDDE();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);

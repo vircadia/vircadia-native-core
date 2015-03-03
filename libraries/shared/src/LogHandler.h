@@ -48,6 +48,7 @@ public:
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
     
     const QString& addRepeatedMessageRegex(const QString& regexString) { return *_repeatedMessageRegexes.insert(regexString); }
+    const QString& addOnlyOnceMessageRegex(const QString& regexString) { return *_onlyOnceMessageRegexes.insert(regexString); }
 private:
     LogHandler();
     
@@ -58,6 +59,9 @@ private:
     QSet<QString> _repeatedMessageRegexes;
     QHash<QString, int> _repeatMessageCountHash;
     QHash<QString, QString> _lastRepeatedMessage;
+
+    QSet<QString> _onlyOnceMessageRegexes;
+    QHash<QString, int> _onlyOnceMessageCountHash;
 };
 
 #endif // hifi_LogHandler_h

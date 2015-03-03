@@ -128,21 +128,11 @@
 
             var elLightSections = document.querySelectorAll(".light-section");
             var elLightSpotLight = document.getElementById("property-light-spot-light");
-            var elLightDiffuseRed = document.getElementById("property-light-diffuse-red");
-            var elLightDiffuseGreen = document.getElementById("property-light-diffuse-green");
-            var elLightDiffuseBlue = document.getElementById("property-light-diffuse-blue");
+            var elLightColorRed = document.getElementById("property-light-color-red");
+            var elLightColorGreen = document.getElementById("property-light-color-green");
+            var elLightColorBlue = document.getElementById("property-light-color-blue");
 
-            var elLightAmbientRed = document.getElementById("property-light-ambient-red");
-            var elLightAmbientGreen = document.getElementById("property-light-ambient-green");
-            var elLightAmbientBlue = document.getElementById("property-light-ambient-blue");
-
-            var elLightSpecularRed = document.getElementById("property-light-specular-red");
-            var elLightSpecularGreen = document.getElementById("property-light-specular-green");
-            var elLightSpecularBlue = document.getElementById("property-light-specular-blue");
-
-            var elLightConstantAttenuation = document.getElementById("property-light-constant-attenuation");
-            var elLightLinearAttenuation = document.getElementById("property-light-linear-attenuation");
-            var elLightQuadraticAttenuation = document.getElementById("property-light-quadratic-attenuation");
+            var elLightIntensity = document.getElementById("property-light-intensity");
             var elLightExponent = document.getElementById("property-light-exponent");
             var elLightCutoff = document.getElementById("property-light-cutoff");
 
@@ -171,12 +161,37 @@
                 EventBridge.scriptEventReceived.connect(function(data) {
                     data = JSON.parse(data);
                     if (data.type == "update") {
-                        if (data.properties === undefined) {
-                            disableChildren(document.getElementById("properties"), 'input');
-                        } else {
-                            var properties = data.properties;
+                        if (data.selections.length == 0) {
+                            elType.innerHTML = "<i>No Selection</i>";
+                            elID.innerHTML = "";
+                            disableChildren(document.getElementById("properties-list"), 'input');
+                        } else if (data.selections.length > 1) {
+                            var selections = data.selections;
 
-                            elID.innerHTML = data.id;
+                            var ids = [];
+                            var types = {};
+
+                            for (var i = 0; i < selections.length; i++) {
+                                ids.push(selections[i].id);
+                                var type = selections[i].properties.type;
+                                if (types[type] === undefined) {
+                                    types[type] = 0;
+                                }
+                                types[type]++;
+                            }
+                            elID.innerHTML = ids.join("<br>");
+
+                            var typeStrs = [];
+                            for (type in types) {
+                                typeStrs.push(type + " (" + types[type] + ")");
+                            }
+                            elType.innerHTML = typeStrs.join(", ");
+
+                            disableChildren(document.getElementById("properties-list"), 'input');
+                        } else {
+                            var properties = data.selections[0].properties;
+
+                            elID.innerHTML = properties.id;
 
                             elType.innerHTML = properties.type;
 
@@ -290,21 +305,11 @@
                                     elLightSections[i].style.display = 'block';
                                 }
 
-                                elLightDiffuseRed.value = properties.diffuseColor.red;
-                                elLightDiffuseGreen.value = properties.diffuseColor.green;
-                                elLightDiffuseBlue.value = properties.diffuseColor.blue;
+                                elLightColorRed.value = properties.color.red;
+                                elLightColorGreen.value = properties.color.green;
+                                elLightColorBlue.value = properties.color.blue;
 
-                                elLightAmbientRed.value = properties.ambientColor.red;
-                                elLightAmbientGreen.value = properties.ambientColor.green;
-                                elLightAmbientBlue.value = properties.ambientColor.blue;
-
-                                elLightSpecularRed.value = properties.specularColor.red;
-                                elLightSpecularGreen.value = properties.specularColor.green;
-                                elLightSpecularBlue.value = properties.specularColor.blue;
-
-                                elLightConstantAttenuation.value = properties.constantAttenuation;
-                                elLightLinearAttenuation.value = properties.linearAttenuation;
-                                elLightQuadraticAttenuation.value = properties.quadraticAttenuation;
+                                elLightIntensity.value = properties.intensity;
                                 elLightExponent.value = properties.exponent;
                                 elLightCutoff.value = properties.cutoff;
                             }
@@ -375,27 +380,13 @@
 
             elLightSpotLight.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isSpotlight'));
 
-            var lightDiffuseChangeFunction = createEmitColorPropertyUpdateFunction(
-                'diffuseColor', elLightDiffuseRed, elLightDiffuseGreen, elLightDiffuseBlue);
-            elLightDiffuseRed.addEventListener('change', lightDiffuseChangeFunction);
-            elLightDiffuseGreen.addEventListener('change', lightDiffuseChangeFunction);
-            elLightDiffuseBlue.addEventListener('change', lightDiffuseChangeFunction);
+            var lightColorChangeFunction = createEmitColorPropertyUpdateFunction(
+                'color', elLightColorRed, elLightColorGreen, elLightColorBlue);
+            elLightColorRed.addEventListener('change', lightColorChangeFunction);
+            elLightColorGreen.addEventListener('change', lightColorChangeFunction);
+            elLightColorBlue.addEventListener('change', lightColorChangeFunction);
 
-            var lightAmbientChangeFunction = createEmitColorPropertyUpdateFunction(
-                'ambientColor', elLightAmbientRed, elLightAmbientGreen, elLightAmbientBlue);
-            elLightAmbientRed.addEventListener('change', lightAmbientChangeFunction);
-            elLightAmbientGreen.addEventListener('change', lightAmbientChangeFunction);
-            elLightAmbientBlue.addEventListener('change', lightAmbientChangeFunction);
-
-            var lightSpecularChangeFunction = createEmitColorPropertyUpdateFunction(
-                'specularColor', elLightSpecularRed, elLightSpecularGreen, elLightSpecularBlue);
-            elLightSpecularRed.addEventListener('change', lightSpecularChangeFunction);
-            elLightSpecularGreen.addEventListener('change', lightSpecularChangeFunction);
-            elLightSpecularBlue.addEventListener('change', lightSpecularChangeFunction);
-
-            elLightConstantAttenuation.addEventListener('change', createEmitNumberPropertyUpdateFunction('constantAttenuation'));
-            elLightLinearAttenuation.addEventListener('change', createEmitNumberPropertyUpdateFunction('linearAttenuation'));
-            elLightQuadraticAttenuation.addEventListener('change', createEmitNumberPropertyUpdateFunction('quadraticAttenuation'));
+            elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity'));
             elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent'));
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
 
@@ -448,6 +439,13 @@
                     percentage: parseInt(elRescaleDimensionsPct.value),
                 }));
             });
+
+            window.onblur = function() {
+                // Fake a change event
+                var ev = document.createEvent("HTMLEvents");
+                ev.initEvent("change", true, true);
+                document.activeElement.dispatchEvent(ev);
+            }
         }
     </script>
 </head>
@@ -715,55 +713,27 @@
             </div>
         </div>
         <div class="light-section property">
-            <div class="label">Diffuse</div>
+            <div class="label">Color</div>
             <div class="value">
-                <div class="input-area">R <input class="coord" type='number' id="property-light-diffuse-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-light-diffuse-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-light-diffuse-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-light-color-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-light-color-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-light-color-blue"></input></div>
             </div>
         </div>
         <div class="light-section property">
-            <div class="label">Ambient</div>
+            <div class="label">Intensity</div>
             <div class="value">
-                <div class="input-area">R <input class="coord" type='number' id="property-light-ambient-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-light-ambient-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-light-ambient-blue"></input></div>
+                <input class="coord" type='number' id="property-light-intensity"></input>
             </div>
         </div>
         <div class="light-section property">
-            <div class="label">Specular</div>
-            <div class="value">
-                <div class="input-area">R <input class="coord" type='number' id="property-light-specular-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-light-specular-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-light-specular-blue"></input></div>
-            </div>
-        </div>
-        <div class="light-section property">
-            <div class="label">Constant Attenuation</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-light-constant-attenuation"></input>
-            </div>
-        </div>
-        <div class="light-section property">
-            <div class="label">Linear Attenuation</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-light-linear-attenuation"></input>
-            </div>
-        </div>
-        <div class="light-section property">
-            <div class="label">Quadratic Attenuation</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-light-quadratic-attenuation"></input>
-            </div>
-        </div>
-        <div class="light-section property">
-            <div class="label">Exponent</div>
+            <div class="label">Spot Light Exponent</div>
             <div class="value">
                 <input class="coord" type='number' id="property-light-exponent"></input>
             </div>
         </div>
         <div class="light-section property">
-            <div class="label">Cutoff (degrees)</div>
+            <div class="label">Spot Light Cutoff (degrees)</div>
             <div class="value">
                 <input class="coord" type='number' id="property-light-cutoff"></input>
             </div>
