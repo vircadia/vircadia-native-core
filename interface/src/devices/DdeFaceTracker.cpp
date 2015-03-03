@@ -273,6 +273,12 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
             _coefficients[_rightEyeOpenIndex] = RELAXED_EYE_VALUE - rightEye;
         }
 
+        // Use BrowsU_C to control both brows' up and down
+        _coefficients[_browDownLeftIndex] = -_coefficients[_browUpCenterIndex];
+        _coefficients[_browDownRightIndex] = -_coefficients[_browUpCenterIndex];
+        _coefficients[_browUpLeftIndex] = _coefficients[_browUpCenterIndex];
+        _coefficients[_browUpRightIndex] = _coefficients[_browUpCenterIndex];
+
         // Offset jaw open coefficient
         static const float JAW_OPEN_THRESHOLD = 0.16f;
         _coefficients[_jawOpenIndex] = _coefficients[_jawOpenIndex] - JAW_OPEN_THRESHOLD;
@@ -288,16 +294,6 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
             _blendshapeCoefficients[i]
                 = glm::clamp(DDE_COEFFICIENT_SCALES[i] * (_coefficients[i] + _previousCoefficients[i]) / 2.0f, 0.0f, 1.0f);
             _previousCoefficients[i] = _coefficients[i];
-        }
-
-        // Postcondition brow coefficients
-        if (_blendshapeCoefficients[_browUpCenterIndex] > 0) {
-            _blendshapeCoefficients[_browDownLeftIndex] = 0.0f;
-            _blendshapeCoefficients[_browDownRightIndex] = 0.0f;
-        } else {
-            _blendshapeCoefficients[_browUpCenterIndex] = 0.0f;
-            _blendshapeCoefficients[_browUpLeftIndex] = 0.0f;
-            _blendshapeCoefficients[_browUpRightIndex] = 0.0f;
         }
 
     } else {
