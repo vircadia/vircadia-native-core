@@ -25,7 +25,6 @@ class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
 class CachesSizeDialog;
-class ChatWindow;
 class BandwidthDialog;
 class LodToolsDialog;
 class LoginDialog;
@@ -34,6 +33,7 @@ class MetavoxelNetworkSimulator;
 class OctreeStatsDialog;
 class PreferencesDialog;
 class ScriptEditorWindow;
+class QMessageBox;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
@@ -60,6 +60,7 @@ public slots:
     void showMetavoxelEditor();
     void showMetavoxelNetworkSimulator();
     void showScriptEditor();
+    void showIRCLink();
 
 private slots:
     void toggleToolWindow();
@@ -87,7 +88,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
-    QPointer<ChatWindow> _chatWindow;
+    QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<LoginDialog> _loginDialog;

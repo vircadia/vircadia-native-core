@@ -161,6 +161,9 @@ Menu::Menu() {
                                                                              SLOT(setEnabled(bool)));
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
+    
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, Qt::Key_Backslash,
+                                  dialogsManager.data(), SLOT(showIRCLink()));
 
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ToolWindow,

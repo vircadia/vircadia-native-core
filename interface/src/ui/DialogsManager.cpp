@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QMessageBox>
+
 #include <AccountManager.h>
 #include <MainWindow.h>
 #include <PathUtils.h>
@@ -159,4 +161,18 @@ void DialogsManager::showMetavoxelNetworkSimulator() {
 void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
     _scriptEditor->raise();
+}
+
+void DialogsManager::showIRCLink() {
+    if (!_ircInfoBox) {
+        _ircInfoBox = new QMessageBox(QMessageBox::NoIcon,
+                                      "High Fidelity IRC",
+                                      "High Fidelity has an IRC channel on irc.freenode.net at #highfidelity.<br/><br/>Web chat is available at <a href='http://webchat.freenode.net/?channels=highfidelity&uio=d4'>http://webchat.freenode.net/?channels=highfidelity&uio=d4</a>",
+                                      QMessageBox::Ok);
+        _ircInfoBox->setTextFormat(Qt::RichText);
+        _ircInfoBox->setAttribute(Qt::WA_DeleteOnClose);
+        _ircInfoBox->show();
+    }
+    
+    _ircInfoBox->raise();
 }
