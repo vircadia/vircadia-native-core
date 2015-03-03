@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -119,7 +119,7 @@ link_hifi_libraries(shared octree environment gpu model fbx metavoxels networkin
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer)
 
-add_dependency_external_projects(sdl2 qxmpp)
+add_dependency_external_projects(sdl2)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -173,16 +173,6 @@ if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
   find_library(CoreMIDI CoreMIDI)
   add_definitions(-D__MACOSX_CORE__)
   target_link_libraries(${TARGET_NAME} ${CoreMIDI})
-endif ()
-
-if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
-  if (NOT QXMPP_DLL_PATH)
-    # if we have no QXmpp DLL path, assume we're linking a static QXmpp on windows
-    add_definitions(-DQXMPP_STATIC)
-  else ()
-    # otherwise assume we are linking a dynamic QXmpp
-    add_definitions(-DQXMPP_SHARED)
-  endif ()
 endif ()
 
 # include headers for interface and InterfaceConfig.

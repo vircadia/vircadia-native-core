@@ -20,7 +20,6 @@
 #include <PathUtils.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
-#include <XmppClient.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -161,12 +160,6 @@ Menu::Menu() {
                                                                              speechRecognizer.data(),
                                                                              SLOT(setEnabled(bool)));
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
-#endif
-
-#ifdef HAVE_QXMPP
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, Qt::Key_Backslash,
-                                  dialogsManager.data(), SLOT(showChat()));
-    dialogsManager->setupChat();
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu,

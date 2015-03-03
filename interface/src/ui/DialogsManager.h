@@ -45,8 +45,6 @@ public:
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
     
-    void setupChat();
-    
 public slots:
     void toggleAddressBar();
     void toggleLoginDialog();
@@ -62,12 +60,10 @@ public slots:
     void showMetavoxelEditor();
     void showMetavoxelNetworkSimulator();
     void showScriptEditor();
-    void showChat();
-    
+
 private slots:
     void toggleToolWindow();
     void hmdToolsClosed();
-    void toggleChat();
     
 private:
     DialogsManager() {}
