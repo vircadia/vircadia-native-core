@@ -13,6 +13,7 @@
 #include "ShapeInfoUtil.h"
 #include "PhysicsHelpers.h"
 #include "ThreadSafeDynamicsWorld.h"
+#include "AvatarData.h"
 
 static uint32_t _numSubsteps;
 
@@ -582,3 +583,45 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     body->activate();
     return true;
 }
+
+
+
+void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
+    btTransform startTransform = btTransform (glmToBullet(avatarData->getOrientation()),
+                                              glmToBullet(avatarData->getPosition()));
+
+    class btPairCachingGhostObject* m_ghostObject = new btPairCachingGhostObject();
+    m_ghostObject->setWorldTransform(startTransform);
+
+    btScalar characterHeight = 1.75;
+    btScalar characterWidth = 1.75;
+    btScalar stepHeight = btScalar(0.35);
+
+    btConvexShape* capsule = new btCapsuleShape(characterWidth, characterHeight);
+    m_ghostObject->setCollisionShape(capsule);
+    m_ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+
+    _characterController = new btKinematicCharacterController(m_ghostObject, capsule, stepHeight);
+
+    // PhysicsSimulation _physicsSimulation
+    // PhysicsEngine --> ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
+    // PhysicsEngine Application::_physicsEngine
+
+    // ThreadSafeDynamicsWorld* dynamicsWorld;
+    // dynamicsWorld = Application::getInstance()->_physicsEngine;
+    _dynamicsWorld->addCollisionObject(m_ghostObject, btBroadphaseProxy::CharacterFilter,
+                                       btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
+    _dynamicsWorld->addAction(_characterController);
+}
+
+
+// void PhysicsEngine::setAvatarMotion(AvatarData *avatarData) {
+    /*
+    float dt = getDeltaTimeMicroseconds() * 0.000001f;
+    btVector3 walkDirection = btVector3(0.0, 0.0, 0.0);
+    btScalar walkVelocity = btScalar(1.1) * 4.0; // 4 km/h -> 1.1 m/s
+    btScalar walkSpeed = walkVelocity * dt;
+
+    _characterController->setWalkDirection(walkDirection*walkSpeed);
+    */
+// }

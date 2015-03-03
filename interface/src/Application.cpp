@@ -1766,6 +1766,8 @@ void Application::init() {
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
 
+    _physicsEngine.setAvatarData(_myAvatar);
+
     connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
 

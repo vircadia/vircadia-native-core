@@ -106,8 +106,6 @@ MyAvatar::MyAvatar() :
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, &MyAvatar::goToLocation);
-
-    setupAvatarCollision();
 }
 
 MyAvatar::~MyAvatar() {
@@ -1979,41 +1977,4 @@ void MyAvatar::clearDriveKeys() {
     for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
         _driveKeys[i] = 0.0f;
     }
-}
-
-
-void MyAvatar::setupAvatarCollision() {
-    btTransform startTransform = btTransform (glmToBullet(getOrientation()), glmToBullet(getPosition()));
-
-    class btPairCachingGhostObject* m_ghostObject = new btPairCachingGhostObject();
-    m_ghostObject->setWorldTransform(startTransform);
-
-    btScalar characterHeight = 1.75;
-    btScalar characterWidth = 1.75;
-    btScalar stepHeight = btScalar(0.35);
-
-    btConvexShape* capsule = new btCapsuleShape(characterWidth, characterHeight);
-    m_ghostObject->setCollisionShape(capsule);
-    m_ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
-
-    _characterController = new btKinematicCharacterController(m_ghostObject, capsule, stepHeight);
-
-    // PhysicsSimulation _physicsSimulation
-    // PhysicsEngine --> ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
-
-    _dynamicsWorld->addCollisionObject(m_ghostObject, btBroadphaseProxy::CharacterFilter,
-                                       btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
-    _dynamicsWorld->addAction(_characterController);
-}
-
-
-void MyAvatar::setAvatarMotion() {
-    /*
-    float dt = getDeltaTimeMicroseconds() * 0.000001f;
-    btVector3 walkDirection = btVector3(0.0, 0.0, 0.0);
-    btScalar walkVelocity = btScalar(1.1) * 4.0; // 4 km/h -> 1.1 m/s
-    btScalar walkSpeed = walkVelocity * dt;
-
-    _characterController->setWalkDirection(walkDirection*walkSpeed);
-    */
 }

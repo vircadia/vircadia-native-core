@@ -16,6 +16,11 @@
 
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
+#include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
+#include <BulletCollision/CollisionDispatch/btGhostObject.h>
+#include <BulletDynamics/Character/btCharacterControllerInterface.h>
+#include <BulletCollision/CollisionShapes/btCapsuleShape.h>
+#include <BulletDynamics/Character/btKinematicCharacterController.h>
 
 #include <EntityItem.h>
 #include <EntitySimulation.h>
@@ -25,6 +30,7 @@
 #include "EntityMotionState.h"
 #include "ShapeManager.h"
 #include "ThreadSafeDynamicsWorld.h"
+#include "AvatarData.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
@@ -82,6 +88,8 @@ public:
     /// process queue of changed from external sources
     void relayIncomingChangesToSimulation();
 
+    void setAvatarData(AvatarData *avatarData);
+
 private:
     /// \param motionState pointer to Object's MotionState
     void removeObjectFromBullet(ObjectMotionState* motionState);
@@ -113,6 +121,9 @@ private:
     ContactMap _contactMap;
     uint32_t _numContactFrames = 0;
     uint32_t _lastNumSubstepsAtUpdateInternal = 0;
+
+    /// character collisions
+    btCharacterControllerInterface* _characterController;
 };
 
 #endif // hifi_PhysicsEngine_h

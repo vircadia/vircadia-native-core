@@ -15,15 +15,6 @@
 #include <PhysicsSimulation.h>
 #include <SettingHandle.h>
 
-
-#include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
-#include <BulletCollision/CollisionDispatch/btGhostObject.h>
-#include <BulletDynamics/Character/btCharacterControllerInterface.h>
-#include <BulletCollision/CollisionShapes/btCapsuleShape.h>
-#include <BulletDynamics/Character/btKinematicCharacterController.h>
-
-
-
 #include "Avatar.h"
 
 class ModelItemID;
@@ -252,11 +243,6 @@ private:
     void updateChatCircle(float deltaTime);
     void maybeUpdateBillboard();
     void setGravity(const glm::vec3& gravity);
-
-    /// character collisions
-    btCharacterControllerInterface* _characterController;
-    void setupAvatarCollision();
-    void setAvatarMotion();
 };
 
 #endif // hifi_MyAvatar_h
