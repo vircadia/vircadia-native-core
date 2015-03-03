@@ -223,17 +223,21 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     }
 #endif
 
+#if defined(Q_OS_WIN)
     loc = glGetUniformBlockIndex(program.programId(), "transformObjectBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_OBJECT_SLOT);
        // locations.materialBufferUnit = 1;
     }
+#endif
 
+#if defined(Q_OS_WIN)
     loc = glGetUniformBlockIndex(program.programId(), "transformCameraBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_CAMERA_SLOT);
        // locations.materialBufferUnit = 1;
     }
+#endif
 
     //program.link();
     if (!program.isLinked()) {
