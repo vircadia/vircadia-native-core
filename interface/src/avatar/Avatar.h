@@ -188,7 +188,7 @@ protected:
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
-    // and are therefor READ-ONLY --> motion control of the Avatar is NOT obtained 
+    // and are therefore READ-ONLY --> motion control of the Avatar is NOT obtained 
     // by setting these values.
     // Floating point error prevents us from accurately measuring velocity using a naive approach 
     // (e.g. vel = (pos - lastPos)/dt) so instead we use _positionDeltaAccumulator.
