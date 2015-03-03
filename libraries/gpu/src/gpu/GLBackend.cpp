@@ -395,8 +395,7 @@ void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::initTransform() {
-#if defined(Q_OS_MAC)
-#elif defined(Q_OS_WIN)
+#if defined(Q_OS_WIN)
     glGenBuffers(1, &_transform._transformObjectBuffer);
     glGenBuffers(1, &_transform._transformCameraBuffer);
 
@@ -413,8 +412,7 @@ void GLBackend::initTransform() {
 }
 
 void GLBackend::killTransform() {
-#if defined(Q_OS_MAC)
-#elif defined(Q_OS_WIN)
+#if defined(Q_OS_WIN)
     glDeleteBuffers(1, &_transform._transformObjectBuffer);
     glDeleteBuffers(1, &_transform._transformCameraBuffer);
 #else
@@ -443,8 +441,7 @@ void GLBackend::updateTransform() {
     }
  
     if (_transform._invalidView || _transform._invalidProj) {
-#if defined(Q_OS_MAC)
-#elif defined(Q_OS_WIN)
+#if defined(Q_OS_WIN)
         glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 0);
         glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
@@ -454,8 +451,7 @@ void GLBackend::updateTransform() {
    }
 
     if (_transform._invalidModel) {
-#if defined(Q_OS_MAC)
-#elif defined(Q_OS_WIN)
+#if defined(Q_OS_WIN)
         glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 0);
         glBindBuffer(GL_ARRAY_BUFFER, _transform._transformObjectBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
@@ -464,15 +460,14 @@ void GLBackend::updateTransform() {
 #endif
     }
 
-#if defined(Q_OS_MAC)
-#elif defined(Q_OS_WIN)
+#if defined(Q_OS_WIN)
     glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._transformObjectBuffer);
     glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _transform._transformCameraBuffer);
     CHECK_GL_ERROR();
 #endif
 
 
-#if defined(Q_OS_MAC)
+#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
     // Do it again for fixed pipeline until we can get rid of it
     if (_transform._invalidProj) {
         if (_transform._lastMode != GL_PROJECTION) {
