@@ -8,17 +8,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <conio.h>
 #include "ShapeColliderTests.h"
 #include "VerletShapeTests.h"
 #include "ShapeInfoTests.h"
 #include "ShapeManagerTests.h"
 #include "BulletUtilTests.h"
+#include "MassPropertiesTests.h"
 
 int main(int argc, char** argv) {
-    ShapeColliderTests::runAllTests();
-    VerletShapeTests::runAllTests();
-    ShapeInfoTests::runAllTests();
-    ShapeManagerTests::runAllTests();
-    BulletUtilTests::runAllTests();
+    //ShapeColliderTests::runAllTests();
+    //VerletShapeTests::runAllTests();
+    //ShapeInfoTests::runAllTests();
+    //ShapeManagerTests::runAllTests();
+   // BulletUtilTests::runAllTests();
+	MassPropertiesTests::runAllTests();
+    getch();
     return 0;
 }
