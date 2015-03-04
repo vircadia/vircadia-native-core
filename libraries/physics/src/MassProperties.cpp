@@ -192,12 +192,6 @@ vector<Tetrahedron> MassProperties::getTetrahedra() const{
 vector<double> MassProperties::getMassProperties(){
     vector<double> volumeAndInertia;
     double volume = 0.0;
-    double inertia_a = 0.0;
-    double inertia_b = 0.0;
-    double inertia_c = 0.0;
-    double inertia_aa = 0.0;
-    double inertia_bb = 0.0;
-    double inertia_cc = 0.0;
     glm::vec3 centerOfMass;
     glm::mat3 globalInertia(0.0);
     glm::mat3 globalProductInertia(0.0);
