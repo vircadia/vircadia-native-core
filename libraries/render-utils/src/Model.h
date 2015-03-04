@@ -269,6 +269,9 @@ protected:
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
     
+    /// Allow sub classes to force invalidating the bboxes
+    void invalidCalculatedMeshBoxes() { _calculatedMeshBoxesValid = false; }
+
 private:
     
     friend class AnimationHandle;

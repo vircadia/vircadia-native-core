@@ -281,6 +281,11 @@ void PhysicsEngine::stepSimulation() {
     // This is step (1).
     relayIncomingChangesToSimulation();
 
+    if (_avatarData->isPhysicsEnabled()) {
+        _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
+                                                          glmToBullet(_avatarData->getPosition())));
+    }
+
     const int MAX_NUM_SUBSTEPS = 4;
     const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * PHYSICS_ENGINE_FIXED_SUBSTEP;
     float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
@@ -303,9 +308,18 @@ void PhysicsEngine::stepSimulation() {
         //
         // TODO: untangle these lock sequences.
         _entityTree->lockForWrite();
+        _avatarData->lockForWrite();
         lock();
         _dynamicsWorld->synchronizeMotionStates();
+
+        if (_avatarData->isPhysicsEnabled()) {
+            const btTransform& avatarTransform = _avatarGhostObject->getWorldTransform();
+            _avatarData->setOrientation(bulletToGLM(avatarTransform.getRotation()));
+            _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()));
+        }
+
         unlock();
+        _avatarData->unlock();
         _entityTree->unlock();
     
         computeCollisionEvents();
@@ -348,6 +362,48 @@ void PhysicsEngine::computeCollisionEvents() {
             }
         }
     }
+
+
+
+    // avatar collisions
+    btManifoldArray manifoldArray;
+    btBroadphasePairArray& pairArray = _avatarGhostObject->getOverlappingPairCache()->getOverlappingPairArray();
+    int numPairs = pairArray.size();
+
+    for (int i=0;i<numPairs;i++) {
+        manifoldArray.clear();
+        const btBroadphasePair& pair = pairArray[i];
+        // unless we manually perform collision detection on this pair, the contacts are in the dynamics world paircache:
+        btBroadphasePair* collisionPair = _dynamicsWorld->getPairCache()->findPair(pair.m_pProxy0, pair.m_pProxy1);
+        if (!collisionPair) {
+            continue;
+        }
+        if (collisionPair->m_algorithm) {
+            collisionPair->m_algorithm->getAllContactManifolds(manifoldArray);
+        }
+
+        for (int j=0;j<manifoldArray.size();j++) {
+            btPersistentManifold* manifold = manifoldArray[j];
+            btScalar directionSign = manifold->getBody0() == _avatarGhostObject ? btScalar(-1.0) : btScalar(1.0);
+            for (int p=0; p<manifold->getNumContacts(); p++) {
+                const btManifoldPoint& pt = manifold->getContactPoint(p);
+                if (pt.getDistance() < 0.f) {
+
+
+                    const btVector3& ptA = pt.getPositionWorldOnA();
+                    const btVector3& ptB = pt.getPositionWorldOnB();
+                    const btVector3& normalOnB = pt.m_normalWorldOnB;
+                    /// work here
+                    qDebug() << "HERE";
+                }
+            }
+        }
+    }
+
+
+
+
+
     
     // We harvest collision callbacks every few frames, which contributes the following effects:
     //
@@ -587,35 +643,33 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
 
 void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
-    btTransform startTransform = btTransform (glmToBullet(avatarData->getOrientation()),
-                                              glmToBullet(avatarData->getPosition()));
-
-    class btPairCachingGhostObject* m_ghostObject = new btPairCachingGhostObject();
-    m_ghostObject->setWorldTransform(startTransform);
+    _avatarData = avatarData;
+    _avatarGhostObject = new btPairCachingGhostObject();
+    _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
+                                                      glmToBullet(_avatarData->getPosition())));
 
     btScalar characterHeight = 1.75;
     btScalar characterWidth = 1.75;
     btScalar stepHeight = btScalar(0.35);
 
     btConvexShape* capsule = new btCapsuleShape(characterWidth, characterHeight);
-    m_ghostObject->setCollisionShape(capsule);
-    m_ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+    _avatarGhostObject->setCollisionShape(capsule);
+    _avatarGhostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 
-    _characterController = new btKinematicCharacterController(m_ghostObject, capsule, stepHeight);
+    _characterController = new btKinematicCharacterController(_avatarGhostObject, capsule, stepHeight);
 
-    // PhysicsSimulation _physicsSimulation
-    // PhysicsEngine --> ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
-    // PhysicsEngine Application::_physicsEngine
-
-    // ThreadSafeDynamicsWorld* dynamicsWorld;
-    // dynamicsWorld = Application::getInstance()->_physicsEngine;
-    _dynamicsWorld->addCollisionObject(m_ghostObject, btBroadphaseProxy::CharacterFilter,
+    _dynamicsWorld->addCollisionObject(_avatarGhostObject, btBroadphaseProxy::CharacterFilter,
                                        btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
     _dynamicsWorld->addAction(_characterController);
+    _characterController->reset (_dynamicsWorld);
+    // _characterController->warp (btVector3(10.210001,-2.0306311,16.576973));
+
+    btGhostPairCallback* ghostPairCallback = new btGhostPairCallback();
+    _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(ghostPairCallback);
 }
 
 
-// void PhysicsEngine::setAvatarMotion(AvatarData *avatarData) {
+// void PhysicsEngine::setAvatarMotion() {
     /*
     float dt = getDeltaTimeMicroseconds() * 0.000001f;
     btVector3 walkDirection = btVector3(0.0, 0.0, 0.0);

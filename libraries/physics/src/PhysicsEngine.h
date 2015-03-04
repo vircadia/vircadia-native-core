@@ -123,7 +123,9 @@ private:
     uint32_t _lastNumSubstepsAtUpdateInternal = 0;
 
     /// character collisions
-    btCharacterControllerInterface* _characterController;
+    btCharacterControllerInterface* _characterController = 0;
+    class btPairCachingGhostObject* _avatarGhostObject = 0;
+    AvatarData *_avatarData = 0;
 };
 
 #endif // hifi_PhysicsEngine_h

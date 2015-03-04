@@ -293,12 +293,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         return;
     }
     
-    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
-        estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
-        estimatedRotation.x *= -1.0f;
-        estimatedRotation.z *= -1.0f;
-
-    } else if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected()) {
         estimatedPosition = OculusManager::getRelativePosition();
         estimatedPosition.x *= -1.0f;
         _trackedHeadPosition = estimatedPosition;
@@ -348,13 +343,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
-    // the priovr can give us exact lean
-    if (Application::getInstance()->getPrioVR()->isActive()) {
-        glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
-        head->setLeanSideways(eulers.z);
-        head->setLeanForward(eulers.x);
-        return;
-    }
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
@@ -1078,7 +1066,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -1087,15 +1075,17 @@ void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLe
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     if (!postLighting) {
-        _skeletonModel.render(1.0f, modelRenderMode);
-        renderAttachments(renderMode);
+        RenderArgs args;
+        args._viewFrustum = renderFrustum;
+        _skeletonModel.render(1.0f, modelRenderMode, &args);
+        renderAttachments(renderMode, &args);
     }
     
     //  Render head so long as the camera isn't inside it
     const Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
     if (shouldRenderHead(cameraPos, renderMode)) {
-        getHead()->render(1.0f, modelRenderMode, postLighting);
+        getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
     }
     if (postLighting) {
         getHand()->render(true, modelRenderMode);
@@ -1886,9 +1876,9 @@ void MyAvatar::onToggleRagdoll() {
     }
 }
 
-void MyAvatar::renderAttachments(RenderMode renderMode) {
+void MyAvatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
     if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
-        Avatar::renderAttachments(renderMode);
+        Avatar::renderAttachments(renderMode, args);
         return;
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
@@ -1898,7 +1888,7 @@ void MyAvatar::renderAttachments(RenderMode renderMode) {
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, modelRenderMode);        
+            _attachmentModels.at(i)->render(1.0f, modelRenderMode, args);        
         }
     }
 }

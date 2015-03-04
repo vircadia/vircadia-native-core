@@ -1,0 +1,95 @@
+<!
+//  gpu/TransformState.slh
+//
+//  Created by Sam Gateau on 2/10/15.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not GPU_TRANSFORM_STATE_SLH@>
+<@def GPU_TRANSFORM_STATE_SLH@>
+
+struct TransformObject { 
+    mat4 _model;
+    mat4 _modelInverse;
+};
+
+struct TransformCamera { 
+    mat4 _view;
+    mat4 _viewInverse;
+    mat4 _projectionViewUntranslated;
+    mat4 _projection;
+    vec4 _viewport;
+};
+
+vec4 transformModelToClipPos(TransformCamera camera, TransformObject object, vec4 pos) {
+<@if GLPROFILE == MAC_GL@>
+    return gl_ModelViewProjectionMatrix * pos;
+<@elif GLPROFILE == PC_GL@>
+    vec4 epos = (object._model * pos) + vec4(-pos.w * camera._viewInverse[3].xyz, 0.0);
+    return camera._projectionViewUntranslated * epos;
+    // Equivalent to the following but hoppefully a bit more accurate
+    // return camera._projection * camera._view * object._model * pos;
+
+<@endif@>
+}
+
+vec3 transformModelToEyeDir(TransformCamera camera, TransformObject object, vec3 dir) {
+<@if GLPROFILE == MAC_GL@>
+    return gl_NormalMatrix * dir;
+<@elif GLPROFILE == PC_GL@>
+    vec3 mr0 = vec3(object._modelInverse[0].x, object._modelInverse[1].x, object._modelInverse[2].x);
+    vec3 mr1 = vec3(object._modelInverse[0].y, object._modelInverse[1].y, object._modelInverse[2].y);
+    vec3 mr2 = vec3(object._modelInverse[0].z, object._modelInverse[1].z, object._modelInverse[2].z);
+
+    vec3 mvc0 = vec3(dot(camera._viewInverse[0].xyz, mr0), dot(camera._viewInverse[0].xyz, mr1), dot(camera._viewInverse[0].xyz, mr2));
+    vec3 mvc1 = vec3(dot(camera._viewInverse[1].xyz, mr0), dot(camera._viewInverse[1].xyz, mr1), dot(camera._viewInverse[1].xyz, mr2));
+    vec3 mvc2 = vec3(dot(camera._viewInverse[2].xyz, mr0), dot(camera._viewInverse[2].xyz, mr1), dot(camera._viewInverse[2].xyz, mr2));
+
+    vec3 result = vec3(dot(mvc0, dir), dot(mvc1, dir), dot(mvc2, dir));
+
+    return result;
+<@endif@>
+}
+
+<@if GLPROFILE == PC_GL@>
+uniform transformObjectBuffer {
+    TransformObject object;
+};
+TransformObject getTransformObject() {
+    return object;
+}
+
+uniform transformCameraBuffer {
+    TransformCamera camera;
+};
+TransformCamera getTransformCamera() {
+    return camera;
+}
+<@elif GLPROFILE == MAC_GL@>
+TransformObject getTransformObject() {
+    TransformObject object;
+    return object;
+}
+
+TransformCamera getTransformCamera() {
+    TransformCamera camera;
+    return camera;
+}
+<@else@>
+
+TransformObject getTransformObject() {
+    TransformObject object;
+    return object;
+}
+
+TransformCamera getTransformCamera() {
+    TransformCamera camera;
+    return camera;
+}
+
+<@endif@>
+
+
+<@endif@>

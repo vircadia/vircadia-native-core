@@ -241,6 +241,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto dialogsManager = DependencyManager::set<DialogsManager>();
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
     auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
+    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -1141,6 +1142,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
                 break;
             }
+
+            case Qt::Key_Comma: {
+                _myAvatar->togglePhysicsEnabled();
+            }
             
             default:
                 event->ignore();
@@ -1766,10 +1771,14 @@ void Application::init() {
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
 
+
     _physicsEngine.setAvatarData(_myAvatar);
 
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+
+
     connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
-            ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
+            entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
@@ -1777,7 +1786,7 @@ void Application::init() {
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
-    _entities.connectSignalsToSlots(ScriptEngine::getEntityScriptingInterface());
+    _entities.connectSignalsToSlots(entityScriptingInterface.data());
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
@@ -2047,7 +2056,6 @@ void Application::update(float deltaTime) {
         }
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
-        _prioVR.update(deltaTime);
     }
     
     // Dispatch input events
@@ -2547,7 +2555,9 @@ void Application::updateShadowMap() {
             glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) * glm::mat4_cast(inverseRotation));
 
         // update the shadow view frustum
-        _shadowViewFrustum.setPosition(rotation * ((minima + maxima) * 0.5f));
+      //  glm::vec3 shadowFrustumCenter = glm::vec3((minima.x + maxima.x) * 0.5f, (minima.y + maxima.y) * 0.5f, (minima.z + maxima.z) * 0.5f);
+        glm::vec3 shadowFrustumCenter = rotation * ((minima + maxima) * 0.5f);
+        _shadowViewFrustum.setPosition(shadowFrustumCenter);
         _shadowViewFrustum.setOrientation(rotation);
         _shadowViewFrustum.setOrthographic(true);
         _shadowViewFrustum.setWidth(maxima.x - minima.x);
@@ -2577,7 +2587,9 @@ void Application::updateShadowMap() {
         // this is what is used for rendering the Entities and avatars
         Transform viewTransform;
         viewTransform.setRotation(rotation);
+    //    viewTransform.postTranslate(shadowFrustumCenter);
         setViewTransform(viewTransform);
+
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
@@ -3109,7 +3121,6 @@ void Application::resetSensors() {
 
     OculusManager::reset();
 
-    _prioVR.reset();
     //_leapmotion.reset();
 
     QScreen* currentScreen = _window->windowHandle()->screen();
@@ -3443,8 +3454,9 @@ void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
-    scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
-    scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    entityScriptingInterface->setPacketSender(&_entityEditSender);
+    entityScriptingInterface->setEntityTree(_entities.getTree());
 
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);

@@ -43,6 +43,7 @@ typedef unsigned long long quint64;
 #include <QVariantMap>
 #include <QVector>
 #include <QtScript/QScriptable>
+#include <QReadWriteLock>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -300,6 +301,17 @@ public:
     
     const Referential* getReferential() const { return _referential; }
 
+    void togglePhysicsEnabled() { _enablePhysics = !_enablePhysics; }
+    bool isPhysicsEnabled() { return _enablePhysics; }
+    void setPhysicsEnabled(bool enablePhysics) { _enablePhysics = enablePhysics; }
+
+    void lockForRead() { _lock.lockForRead(); }
+    bool tryLockForRead() { return _lock.tryLockForRead(); }
+    void lockForWrite() { _lock.lockForWrite(); }
+    bool tryLockForWrite() { return _lock.tryLockForWrite(); }
+    void unlock() { _lock.unlock(); }
+
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -393,6 +405,9 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
+
+    QReadWriteLock _lock;
+    bool _enablePhysics = false; // XXX
 };
 Q_DECLARE_METATYPE(AvatarData*)
 

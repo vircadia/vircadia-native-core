@@ -53,6 +53,11 @@ enum Primitive {
     NUM_PRIMITIVES,
 };
 
+enum ReservedSlot {
+    TRANSFORM_OBJECT_SLOT = 6,
+    TRANSFORM_CAMERA_SLOT = 7,
+};
+
 class Batch {
 public:
     typedef Stream::Slot Slot;
@@ -89,7 +94,7 @@ public:
     // with the ModelTransformu to create the equivalent of the glModelViewMatrix
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
-    void setProjectionTransform(const Transform& proj);
+    void setProjectionTransform(const Mat4& proj);
 
     // Shader Stage
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
