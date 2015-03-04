@@ -17,6 +17,8 @@
 #include <vector>
 #include <map>
 #include <AABox.h>
+#include <atomic>
+#include <mutex>
 
 namespace render {
 
@@ -35,7 +37,7 @@ public:
         VIEW_SPACE,     // Transformed in view space, and not in world space
         DYNAMIC,        // Dynamic and bound will change unlike static item
         DEFORMED,       // Deformed within bound, not solid 
-        UNVISIBLE,      // Visible or not? could be just here to cast shadow
+        INVISIBLE,      // Visible or not? could be just here to cast shadow
         SHADOW_CASTER,  // Item cast shadows
         PICKABLE,       // Item can be picked/selected
     
@@ -92,8 +94,8 @@ public:
     bool isDynamic() const { return _state[DYNAMIC]; }
     bool isDeformed() const { return _state[DEFORMED]; }
  
-    bool isVisible() const { return !_state[UNVISIBLE]; }
-    bool isUnvisible() const { return _state[UNVISIBLE]; }
+    bool isVisible() const { return !_state[INVISIBLE]; }
+    bool isUnvisible() const { return _state[INVISIBLE]; }
 
     bool isShadowCaster() const { return _state[SHADOW_CASTER]; }
 
@@ -112,6 +114,9 @@ protected:
 
 typedef Item::PayloadInterface ItemData;
 typedef Item::PayloadPointer ItemDataPointer;
+typedef std::vector< ItemDataPointer > ItemDataVector;
+
+class Engine;
 
 class Scene {
 public:
@@ -120,39 +125,54 @@ public:
     typedef std::vector<Item::ID> ItemList;
     typedef std::map<Item::State, ItemList> ItemLists;
 
-    enum ChangeType {
-        ADD = 0,
-        REMOVE,
-        MOVE,
-        RESET,
-
-        NUM_CHANGE_TYPES,
-    };
-    typedef ItemList ChangeLists[NUM_CHANGE_TYPES];
-    class ChangePacket {
+    class ChangeBatch {
     public:
-        ChangePacket(int frame) :
-            _frame(frame) {}
-        ~ChangePacket();
+        ChangeBatch() {}
+        ~ChangeBatch();
 
-        int _frame;
-        ChangeLists _changeLists;
+        void resetItem(ID id, ItemDataPointer& itemData);
+        void removeItem(ID id);
+        void moveItem(ID id);
+
+        ItemDataVector _resetItemDatas;
+        ItemList _resetItems; 
+        ItemList _removedItems;
+        ItemList _movedItems;
+
     protected:
     };
+    typedef std::vector<ChangeBatch> ChangeBatchQueue;
 
-    Scene() {}
+    Scene();
     ~Scene() {}
 
+    /// This call is thread safe, can be called from anywhere to allocate a new ID
+    ID allocateID();
 
-    ID addItem(ItemDataPointer& itemData);
+    /// Enqueue change batch to the scene
+    void enqueueChangeBatch(const ChangeBatch& changeBatch);
+
+protected:
+    // Thread safe elements that can be accessed from anywhere
+    std::atomic<unsigned int> _IDAllocator;
+    std::mutex _changeBatchQueueMutex;
+    ChangeBatchQueue _changeBatchQueue;
+
+    // The actual database
+    std::mutex _itemsMutex;
+    Items _items;
+    ItemLists _buckets;
+
+    void processChangeBatchQueue();
+    void resetItem(ID id, ItemDataPointer& itemData);
     void removeItem(ID id);
     void moveItem(ID id);
 
-
-protected:
-    Items _items;
-    ItemLists _buckets;
+    friend class Engine;
 };
+
+typedef std::shared_ptr<Scene> ScenePointer;
+typedef std::vector<ScenePointer> Scenes;
 
 }
 
