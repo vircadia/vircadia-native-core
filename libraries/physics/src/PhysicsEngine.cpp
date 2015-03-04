@@ -370,7 +370,7 @@ void PhysicsEngine::computeCollisionEvents() {
     btBroadphasePairArray& pairArray = _avatarGhostObject->getOverlappingPairCache()->getOverlappingPairArray();
     int numPairs = pairArray.size();
 
-    for (int i=0;i<numPairs;i++) {
+    for (int i = 0; i < numPairs; i++) {
         manifoldArray.clear();
         const btBroadphasePair& pair = pairArray[i];
         // unless we manually perform collision detection on this pair, the contacts are in the dynamics world paircache:
