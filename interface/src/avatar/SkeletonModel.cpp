@@ -721,7 +721,8 @@ void SkeletonModel::buildShapes() {
     }
     
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.joints.isEmpty()) {
+    if (geometry.joints.isEmpty() || geometry.rootJointIndex == -1) {
+        // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }
 
