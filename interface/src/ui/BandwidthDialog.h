@@ -63,11 +63,10 @@ private:
     BandwidthChannelDisplay* _avatarsChannelDisplay;
     BandwidthChannelDisplay* _octreeChannelDisplay;
     BandwidthChannelDisplay* _domainChannelDisplay;
-    BandwidthChannelDisplay* _metavoxelsChannelDisplay;
     BandwidthChannelDisplay* _otherChannelDisplay;
     BandwidthChannelDisplay* _totalChannelDisplay; // sums of all the other channels
 
-    static const unsigned int _CHANNELCOUNT = 7;
+    static const unsigned int _CHANNELCOUNT = 6;
     BandwidthChannelDisplay* _allChannelDisplays[_CHANNELCOUNT];
 
 
