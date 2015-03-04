@@ -153,15 +153,8 @@ void AddressManager::handleLookupString(const QString& lookupString) {
         if (!lookupString.startsWith('/')) {
             const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
-
-            quint16 localDomainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
-            if (sanitizedString == "localhost") {
-                auto nodeList = DependencyManager::get<NodeList>();
-                nodeList->getLocalServerPortFromSharedMemory
-                    (DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, _localDSPortSharedMem, localDomainServerPort);
-            }
             
-            lookupURL = QUrl(HIFI_URL_SCHEME + "://" + sanitizedString + ":" + QString::number(localDomainServerPort));
+            lookupURL = QUrl(HIFI_URL_SCHEME + "://" + sanitizedString);
         } else {
             lookupURL = QUrl(lookupString);
         }
@@ -338,7 +331,15 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     if (hostnameRegex.indexIn(lookupString) != -1) {
         QString domainHostname = hostnameRegex.cap(1);
         
-        qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        
+        if (domainHostname == "localhost") {
+            auto nodeList = DependencyManager::get<NodeList>();
+            nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY,
+                                                         _localDSPortSharedMem,
+                                                         domainPort);
+        }
+        
         if (!hostnameRegex.cap(2).isEmpty()) {
             domainPort = (qint16) hostnameRegex.cap(2).toInt();
         }
