@@ -181,8 +181,8 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("transform");
         updateOrientation(deltaTime);
-        if (_enablePhysics) {
-            updatePhysicsPosition(deltaTime);
+        if (isPhysicsEnabled()) {
+            updatePositionWithPhysics(deltaTime);
         } else {
             updatePosition(deltaTime);
         }
@@ -1396,21 +1396,25 @@ void MyAvatar::updatePosition(float deltaTime) {
 }
 
 
-void MyAvatar::updatePhysicsPosition(float deltaTime) {
-    glm::vec3 velocity = _velocity;
+void MyAvatar::updatePositionWithPhysics(float deltaTime) {
+    // bool pushingUp = (_driveKeys[UP] - _driveKeys[DOWN] > 0.0f) || _scriptedMotorVelocity.y > 0.0f;
 
-    bool pushingUp = (_driveKeys[UP] - _driveKeys[DOWN] > 0.0f) || _scriptedMotorVelocity.y > 0.0f;
-
+    // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
-    glm::vec3 localVelocity = glm::inverse(rotation) * velocity;
+    glm::vec3 localVelocity = glm::inverse(rotation) * _velocity;
 
     bool hasFloor = false;
     glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, hasFloor);
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
-    // rotate back into world-frame
-    velocity = rotation * newLocalVelocity;
+    // cap avatar speed
+    float speed = glm::length(_velocity);
+    if (speed > MAX_AVATAR_SPEED) {
+        _velocity *= MAX_AVATAR_SPEED / speed;
+    }
 
+    // rotate back into world-frame
+    _velocity = rotation * newLocalVelocity;
 }
 
 

@@ -284,6 +284,7 @@ void PhysicsEngine::stepSimulation() {
     if (_avatarData->isPhysicsEnabled()) {
         _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
                                                           glmToBullet(_avatarData->getPosition())));
+        _characterController->setWalkDirection(glmToBullet(_avatarData->getVelocity()));
     }
 
     const int MAX_NUM_SUBSTEPS = 4;
@@ -364,7 +365,7 @@ void PhysicsEngine::computeCollisionEvents() {
     }
 
 
-
+#if 0
     // avatar collisions
     btManifoldArray manifoldArray;
     btBroadphasePairArray& pairArray = _avatarGhostObject->getOverlappingPairCache()->getOverlappingPairArray();
@@ -399,7 +400,7 @@ void PhysicsEngine::computeCollisionEvents() {
             }
         }
     }
-
+#endif
 
 
 
@@ -667,15 +668,3 @@ void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
     btGhostPairCallback* ghostPairCallback = new btGhostPairCallback();
     _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(ghostPairCallback);
 }
-
-
-// void PhysicsEngine::setAvatarMotion() {
-    /*
-    float dt = getDeltaTimeMicroseconds() * 0.000001f;
-    btVector3 walkDirection = btVector3(0.0, 0.0, 0.0);
-    btScalar walkVelocity = btScalar(1.1) * 4.0; // 4 km/h -> 1.1 m/s
-    btScalar walkSpeed = walkVelocity * dt;
-
-    _characterController->setWalkDirection(walkDirection*walkSpeed);
-    */
-// }

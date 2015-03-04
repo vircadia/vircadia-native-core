@@ -166,8 +166,6 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
-    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
-
     void updateMotionBehavior();
     void onToggleRagdoll();
     
@@ -235,7 +233,7 @@ private:
     glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool walkingOnFloor);
     glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
-    void updatePhysicsPosition(float deltaTime);
+    void updatePositionWithPhysics(float deltaTime);
     void updateCollisionWithAvatars(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime, float radius);
     void updateCollisionWithVoxels(float deltaTime, float radius);

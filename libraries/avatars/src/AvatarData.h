@@ -311,6 +311,8 @@ public:
     bool tryLockForWrite() { return _lock.tryLockForWrite(); }
     void unlock() { _lock.unlock(); }
 
+    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
+    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
 
 public slots:
     void sendAvatarDataPacket();
@@ -400,6 +402,8 @@ protected:
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
     void changeReferential(Referential* ref);
+
+    glm::vec3 _velocity;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

@@ -155,7 +155,6 @@ public:
     
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
-    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
     Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
     Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
@@ -183,8 +182,6 @@ protected:
     glm::vec3 _skeletonOffset;
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
-
-    glm::vec3 _velocity;
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
