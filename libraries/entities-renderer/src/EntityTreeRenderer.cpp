@@ -470,7 +470,7 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
 
         AACube maxCube = entity->getMaximumAACube();
         AACube minCube = entity->getMinimumAACube();
-        AABox entityBox = entity->getAABox();
+        AABox entityBox = entity->getAABoxInMeters();
 
         maxCube.scale((float) TREE_SCALE);
         minCube.scale((float) TREE_SCALE);
@@ -542,9 +542,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         
         if (entityItem->isVisible()) {
             // render entityItem 
-            AABox entityBox = entityItem->getAABox();
-
-            entityBox.scale(TREE_SCALE);
+            AABox entityBox = entityItem->getAABoxInMeters();
         
             // TODO: some entity types (like lights) might want to be rendered even
             // when they are outside of the view frustum...

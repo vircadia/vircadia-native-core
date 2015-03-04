@@ -37,7 +37,7 @@ class EntityTreeElementExtraEncodeData;
 
 #define debugTime(T, N) qPrintable(QString("%1 [ %2 ago]").arg(T, 16, 10).arg(formatUsecTime(N - T), 15))
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
-#define debugTreeVector(V) V << "[" << (V * (float)TREE_SCALE) << " in meters ]"
+#define debugTreeVector(V) V << "[" << V << " in meters ]"
 
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
@@ -145,26 +145,26 @@ public:
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
-    const glm::vec3& getPositionInDomainUnits() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
-    glm::vec3 getPositionInMeters() const { return _position * (float) TREE_SCALE; } /// get position in meters
+    glm::vec3 getPositionInDomainUnits() const { return _position / (float)TREE_SCALE; } /// get position in domain scale units (0.0 - 1.0)
+    const glm::vec3& getPositionInMeters() const { return _position; } /// get position in meters
     
     /// set position in domain scale units (0.0 - 1.0)
-    void setPositionInDomainUnits(const glm::vec3& value) { _position = value; }
-    void setPositionInMeters(const glm::vec3& value) /// set position in meter units (0.0 - TREE_SCALE)
-            { setPositionInDomainUnits(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
+    void setPositionInDomainUnits(const glm::vec3& value)
+            { setPositionInMeters(glm::clamp(value, 0.0f, 1.0f) * (float)TREE_SCALE); }
+    void setPositionInMeters(const glm::vec3& value) { _position = value; }
 
-    glm::vec3 getCenterInDomainUnits() const; /// calculates center of the entity in domain scale units (0.0 - 1.0)
-    glm::vec3 getCenterInMeters() const { return getCenterInDomainUnits() * (float) TREE_SCALE; }
+    glm::vec3 getCenterInDomainUnits() const { return getCenterInMeters() / (float) TREE_SCALE; }
+    glm::vec3 getCenterInMeters() const;
 
-    const glm::vec3& getDimensionsInDomainUnits() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
-    glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
+    glm::vec3 getDimensionsInDomainUnits() const { return _dimensions / (float)TREE_SCALE; } /// get dimensions in domain scale units (0.0 - 1.0)
+    const glm::vec3& getDimensionsInMeters() const { return _dimensions; } /// get dimensions in meters
     float getLargestDimensionInDomainUnits() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
-    /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensionsInDomainUnits(const glm::vec3& value) { _dimensions = value; }
+    /// set dimensions in domain scale units (0.0 - 1.0)
+    virtual void setDimensionsInDomainUnits(const glm::vec3& value) { _dimensions = glm::abs(value) * (float)TREE_SCALE; }
 
-    /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
-    void setDimensionsInMeters(const glm::vec3& value) { setDimensionsInDomainUnits(value / (float) TREE_SCALE); }
+    /// set dimensions in meter units (0.0 - TREE_SCALE)
+    virtual void setDimensionsInMeters(const glm::vec3& value) { _dimensions = glm::abs(value); }
 
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
@@ -181,16 +181,16 @@ public:
 
     float getDensity() const { return _density; }
 
-    const glm::vec3& getVelocityInDomainUnits() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
-    glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
-    void setVelocityInDomainUnits(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
-    void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
+    glm::vec3 getVelocityInDomainUnits() const { return _velocity / (float)TREE_SCALE; } /// velocity in domain scale units (0.0-1.0) per second
+    const glm::vec3 getVelocityInMeters() const { return _velocity; } /// get velocity in meters
+    void setVelocityInDomainUnits(const glm::vec3& value) { _velocity = value * (float)TREE_SCALE; } /// velocity in domain scale units (0.0-1.0) per second
+    void setVelocityInMeters(const glm::vec3& value) { _velocity = value; } /// velocity in meters
     bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
 
-    const glm::vec3& getGravityInDomainUnits() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
-    glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
-    void setGravityInDomainUnits(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
-    void setGravityInMeters(const glm::vec3& value) { _gravity = value / (float) TREE_SCALE; } /// gravity in meters
+    glm::vec3 getGravityInDomainUnits() const { return _gravity / (float)TREE_SCALE; } /// gravity in domain scale units (0.0-1.0) per second squared
+    const glm::vec3& getGravityInMeters() const { return _gravity; } /// get gravity in meters
+    void setGravityInDomainUnits(const glm::vec3& value) { _gravity = value * (float)TREE_SCALE; } /// gravity in domain scale units (0.0-1.0) per second squared
+    void setGravityInMeters(const glm::vec3& value) { _gravity = value; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
     
     float getDamping() const { return _damping; }
@@ -215,7 +215,7 @@ public:
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
     AABox getAABoxInMeters() const; /// axis aligned bounding box in world-frame (meters)
-    AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
+    AABox getAABoxInDomainUnits() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
@@ -254,7 +254,7 @@ public:
     float getRadiusInMeters() const;
     
     virtual bool containsInMeters(const glm::vec3& point) const { return getAABoxInMeters().contains(point); }
-    virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+    virtual bool containsInDomainUnits(const glm::vec3& point) const { return getAABoxInDomainUnits().contains(point); }
     virtual void computeShapeInfo(ShapeInfo& info) const;
 
     /// return preferred shape type (actual physical shape may differ)
@@ -319,11 +319,10 @@ protected:
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
-    // NOTE: _volumeMultiplier is used to compute volume:
-    // volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z  =  m^3
-    // DANGER: due to the size of TREE_SCALE the _volumeMultiplier is always a large number, and therefore 
-    // will tend to introduce floating point error.  We must keep this in mind when using it.
-    float _volumeMultiplier = (float)TREE_SCALE * (float)TREE_SCALE * (float)TREE_SCALE;
+    // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class 
+    // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
+    // different way.
+    float _volumeMultiplier = 1.0f;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
     float _damping;

@@ -40,10 +40,16 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityIte
     setProperties(properties);
 }
 
+const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
+
+void TextEntityItem::setDimensionsInMeters(const glm::vec3& value) {
+    // NOTE: Text Entities always have a "depth" of 1cm.
+    _dimensions = glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH); 
+}
+
 void TextEntityItem::setDimensionsInDomainUnits(const glm::vec3& value) {
     // NOTE: Text Entities always have a "depth" of 1cm.
-    float fixedDepth = 0.01f / (float)TREE_SCALE;
-    _dimensions = glm::vec3(value.x, value.y, fixedDepth); 
+    _dimensions = glm::vec3(value.x * (float)TREE_SCALE, value.y * (float)TREE_SCALE, TEXT_ENTITY_ITEM_FIXED_DEPTH); 
 }
 
 EntityItemProperties TextEntityItem::getProperties() const {

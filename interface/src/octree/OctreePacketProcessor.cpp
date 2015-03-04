@@ -59,7 +59,9 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
     PacketVersion expectedVersion = versionForPacketType(voxelPacketType);
     
     // check version of piggyback packet against expected version
-    if (packetVersion != expectedVersion) {
+    if (packetVersion != expectedVersion
+            // TODO: remove the temporary exception below when everyone is using meters instead of DomainUnits
+            && !(PacketTypeEntityData == voxelPacketType && packetVersion < VERSION_ENTITIES_USE_METERS)) {
         static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
         
         QUuid senderUUID = uuidFromPacketHeader(packet);
