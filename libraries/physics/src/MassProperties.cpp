@@ -203,7 +203,7 @@ vector<double> MassProperties::getMassProperties(){
     glm::mat3 globalProductInertia(0.0);
 
     //Translate accumulated center of mass from each tetrahedron to mesh center of mass using parallel axis theorem
-    for each (Tetrahedron tet in _tetrahedra){
+    for(Tetrahedron tet : _tetrahedra){
         vector<double> tetMassProperties = tet.getVolumeAndInertia();
         volume += tetMassProperties.at(0); //volume
         centerOfMass += tet.getCentroid() * (float)tetMassProperties.at(0);
@@ -214,7 +214,7 @@ vector<double> MassProperties::getMassProperties(){
     }
 
     //Translate the moment of inertia from each tetrahedron to mesh center of mass using parallel axis theorem
-    for each (Tetrahedron tet in _tetrahedra){
+    for(Tetrahedron tet : _tetrahedra){
         vector<double> tetMassProperties = tet.getVolumeAndInertia();
         glm::mat3 identity;
         glm::vec3 diff = _centerOfMass - tet.getCentroid();
