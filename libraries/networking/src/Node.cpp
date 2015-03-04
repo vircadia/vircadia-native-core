@@ -29,7 +29,6 @@ namespace NodeType {
 void NodeType::init() {
     TypeNameHash.insert(NodeType::DomainServer, "Domain Server");
     TypeNameHash.insert(NodeType::EntityServer, "Entity Server");
-    TypeNameHash.insert(NodeType::MetavoxelServer, "Metavoxel Server");
     TypeNameHash.insert(NodeType::Agent, "Agent");
     TypeNameHash.insert(NodeType::AudioMixer, "Audio Mixer");
     TypeNameHash.insert(NodeType::AvatarMixer, "Avatar Mixer");

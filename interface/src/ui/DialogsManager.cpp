@@ -23,8 +23,6 @@
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
-#include "MetavoxelEditor.h"
-#include "MetavoxelNetworkSimulator.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
 #include "ScriptEditorWindow.h"
@@ -148,16 +146,6 @@ void DialogsManager::hmdToolsClosed() {
     _hmdToolsDialog->hide();
 }
 
-void DialogsManager::showMetavoxelEditor() {
-    maybeCreateDialog(_metavoxelEditor);
-    _metavoxelEditor->raise();
-}
-
-void DialogsManager::showMetavoxelNetworkSimulator() {
-    maybeCreateDialog(_metavoxelNetworkSimulator);
-    _metavoxelNetworkSimulator->raise();
-}
-
 void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
     _scriptEditor->raise();
@@ -167,7 +155,7 @@ void DialogsManager::showIRCLink() {
     if (!_ircInfoBox) {
         _ircInfoBox = new QMessageBox(QMessageBox::NoIcon,
                                       "High Fidelity IRC",
-                                      "High Fidelity has an IRC channel on irc.freenode.net at #highfidelity.<br/><br/>Web chat is available at <a href='http://webchat.freenode.net/?channels=highfidelity&uio=d4'>http://webchat.freenode.net/?channels=highfidelity&uio=d4</a>",
+                                      "High Fidelity has an IRC channel on irc.freenode.net at #highfidelity.<br/><br/>Web chat is available <a href='http://webchat.freenode.net/?channels=highfidelity&uio=d4'>here</a>.",
                                       QMessageBox::Ok);
         _ircInfoBox->setTextFormat(Qt::RichText);
         _ircInfoBox->setAttribute(Qt::WA_DeleteOnClose);

@@ -89,10 +89,12 @@ private:
     
     int _jawOpenIndex;
 
+    QVector<float> _coefficients;
+
     // Previous values for simple smoothing
     glm::vec3 _previousTranslation;
     glm::quat _previousRotation;
-    QVector<float> _previousExpressions;
+    QVector<float> _previousCoefficients;
 };
 
 #endif // hifi_DdeFaceTracker_h

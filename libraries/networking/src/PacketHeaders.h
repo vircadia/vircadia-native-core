@@ -42,20 +42,20 @@ enum PacketType {
     PacketTypeMuteEnvironment,
     PacketTypeAudioStreamStats,
     PacketTypeDataServerConfirm, // 20
-    UNUSED_5,
-    UNUSED_6,
-    UNUSED_7,
-    UNUSED_8,
-    UNUSED_9, // 25
+    UNUSED_1,
+    UNUSED_2,
+    UNUSED_3,
+    UNUSED_4,
+    UNUSED_5, // 25
     PacketTypeOctreeStats,
     PacketTypeJurisdiction,
     PacketTypeJurisdictionRequest,
-    UNUSED_1,
-    UNUSED_2, // 30
-    UNUSED_3,
-    UNUSED_4,
+    UNUSED_6,
+    UNUSED_7, // 30
+    UNUSED_8,
+    UNUSED_9,
     PacketTypeNoisyMute,
-    PacketTypeMetavoxelData,
+    UNUSED_10,
     PacketTypeAvatarIdentity, // 35
     PacketTypeAvatarBillboard,
     PacketTypeDomainConnectRequest,
