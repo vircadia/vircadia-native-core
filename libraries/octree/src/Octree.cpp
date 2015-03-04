@@ -2083,58 +2083,6 @@ bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraDat
     return true; // keep going
 }
 
-void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destinationTree, bool rebaseToRoot) {
-    OctreeElementBag elementBag;
-    elementBag.insert(startElement);
-    int chopLevels = 0;
-    if (rebaseToRoot) {
-        chopLevels = numberOfThreeBitSectionsInCode(startElement->getOctalCode());
-    }
-
-    EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
-    OctreeElementExtraEncodeData extraEncodeData;
-    params.extraEncodeData = &extraEncodeData;
-
-    OctreePacketData packetData;
-
-    while (!elementBag.isEmpty()) {
-        OctreeElement* subTree = elementBag.extract();
-        packetData.reset(); // reset the packet between usage
-        // ask our tree to write a bitsteam
-        encodeTreeBitstream(subTree, &packetData, elementBag, params);
-        // ask destination tree to read the bitstream
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
-        destinationTree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
-    }
-}
-
-void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinationElement) {
-    OctreeElementBag elementBag;
-    // If we were given a specific element, start from there, otherwise start from root
-    elementBag.insert(sourceTree->_rootElement);
-
-    OctreePacketData packetData;
-
-    EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-    OctreeElementExtraEncodeData extraEncodeData;
-    params.extraEncodeData = &extraEncodeData;
-
-    while (!elementBag.isEmpty()) {
-        OctreeElement* subTree = elementBag.extract();
-
-        packetData.reset(); // reset between usage
-
-        // ask our tree to write a bitsteam
-        sourceTree->encodeTreeBitstream(subTree, &packetData, elementBag, params);
-
-        // ask destination tree to read the bitstream
-        bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationElement, 
-                                            0, SharedNodePointer(), wantImportProgress);
-        readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
-    }
-}
-
 void Octree::cancelImport() {
     _stopImport = true;
 }

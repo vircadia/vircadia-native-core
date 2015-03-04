@@ -323,9 +323,6 @@ public:
 
     unsigned long getOctreeElementsCount();
 
-    void copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destinationTree, bool rebaseToRoot);
-    void copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinationElement);
-
     bool getShouldReaverage() const { return _shouldReaverage; }
 
     void recurseElementWithOperation(OctreeElement* element, RecurseOctreeOperation operation,
