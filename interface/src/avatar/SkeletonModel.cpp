@@ -81,6 +81,8 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
     if (_enableShapes) {
         buildShapes();
     }
+
+    emit skeletonLoaded();
 }
 
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
@@ -1007,3 +1009,6 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
     glPopMatrix();
 }
 
+bool SkeletonModel::hasSkeleton() {
+    return isActive() ? _geometry->getFBXGeometry().rootJointIndex != -1 : false;
+}

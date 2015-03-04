@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <vector>
 
-#include <QMessageBox>
 #include <QBuffer>
 
 #include <glm/gtx/norm.hpp>
