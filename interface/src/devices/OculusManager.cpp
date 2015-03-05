@@ -31,7 +31,6 @@
 
 #include "Application.h"
 
-#include "OVR_Math.h"
 #include "OVR_Version.h"
 using namespace OVR;
 
@@ -659,10 +658,10 @@ void OculusManager::reset() {
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
     ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     if (ts.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
-        
-        ovrPosef headPose = ts.HeadPose.ThePose;
-        Quatf orientation = Quatf(headPose.Orientation);
-        orientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+        glm::vec3 euler = glm::eulerAngles(toGlm(ts.HeadPose.ThePose.Orientation));
+        yaw = euler.y;
+        pitch = euler.x;
+        roll = euler.z;
     } else {
         yaw = 0.0f;
         pitch = 0.0f;

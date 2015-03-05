@@ -21,7 +21,11 @@
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("libovr")
 
+find_library(LIBOVR_LIBRARY_RELEASE ovr PATH_SUFFIXES "lib" HINTS ${LIBOVR_SEARCH_DIRS})
+find_library(LIBOVR_LIBRARY_DEBUG ovr PATH_SUFFIXES "lib" HINTS ${LIBOVR_SEARCH_DIRS})
+
 include(SelectLibraryConfigurations)
+select_library_configurations(LIBOVR)
 
 if (NOT ANDROID)
     include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
@@ -29,10 +33,17 @@ if (NOT ANDROID)
     
     find_path(LIBOVR_INCLUDE_DIRS OVR_CAPI.h PATH_SUFFIXES include HINTS ${LIBOVR_SEARCH_DIRS})
     find_library(LIBOVR_LIBRARIES ovr PATH_SUFFIXES lib HINTS ${LIBOVR_SEARCH_DIRS})
-    list(APPEND LIBOVR_LIBRARIES setupapi winmm ws2_32)
 
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(LIBOVR DEFAULT_MSG LIBOVR_INCLUDE_DIRS LIBOVR_LIBRARIES)
+
+    if (WIN32)
+        list(APPEND LIBOVR_LIBRARIES setupapi winmm ws2_32)
+    elseif(APPLE)
+        find_library(COCOA_LIBRARY Cocoa)
+        find_library(IOKIT_LIBRARY IOKit)
+        list(APPEND LIBOVR_LIBRARIES ${COCOA_LIBRARY} ${IOKIT_LIBRARY})
+    endif()
 
 else (NOT ANDROID)  
   set(_VRLIB_JNI_DIR "VRLib/jni")

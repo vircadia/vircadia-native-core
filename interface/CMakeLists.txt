@@ -2,11 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-<<<<<<< HEAD
-set(OPTIONAL_EXTERNALS "Faceshift" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "RSSDK")
-=======
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
->>>>>>> upstream/master
+set(OPTIONAL_EXTERNALS "Faceshift" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -114,7 +110,7 @@ add_dependency_external_projects(glm bullet)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
-add_dependency_external_project(LibOVR)
+add_dependency_external_projects(LibOVR)
 find_package(LibOVR REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
@@ -229,15 +225,17 @@ else (APPLE)
     find_package(GLEW REQUIRED)
     target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
 
-    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} ${NSIGHT_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
+    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
 
-    # try to find the Nsight package and add it to the build if we find it
-    find_package(NSIGHT)
-    if (NSIGHT_FOUND)
-      include_directories(${NSIGHT_INCLUDE_DIRS})
-      add_definitions(-DNSIGHT_FOUND)
-      target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
-    endif ()
+    if (USE_NSIGHT)
+      # try to find the Nsight package and add it to the build if we find it
+      find_package(NSIGHT)
+      if (NSIGHT_FOUND)
+        include_directories(${NSIGHT_INCLUDE_DIRS})
+        add_definitions(-DNSIGHT_FOUND)
+        target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
+      endif ()
+    endif()
 
   endif()
 endif (APPLE)
