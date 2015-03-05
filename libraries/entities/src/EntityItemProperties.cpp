@@ -49,12 +49,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(ignoreForCollisions, ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
     CONSTRUCT_PROPERTY(collisionsWillMove, ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
     CONSTRUCT_PROPERTY(isSpotlight, false),
-    CONSTRUCT_PROPERTY(diffuseColor, ),
-    CONSTRUCT_PROPERTY(ambientColor, ),
-    CONSTRUCT_PROPERTY(specularColor, ),
-    CONSTRUCT_PROPERTY(constantAttenuation, 1.0f),
-    CONSTRUCT_PROPERTY(linearAttenuation, 0.0f),
-    CONSTRUCT_PROPERTY(quadraticAttenuation, 0.0f),
+    CONSTRUCT_PROPERTY(intensity, 1.0f),
     CONSTRUCT_PROPERTY(exponent, 0.0f),
     CONSTRUCT_PROPERTY(cutoff, PI),
     CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
@@ -222,12 +217,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
     CHECK_PROPERTY_CHANGE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
     CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
-    CHECK_PROPERTY_CHANGE(PROP_DIFFUSE_COLOR, diffuseColor);
-    CHECK_PROPERTY_CHANGE(PROP_AMBIENT_COLOR, ambientColor);
-    CHECK_PROPERTY_CHANGE(PROP_SPECULAR_COLOR, specularColor);
-    CHECK_PROPERTY_CHANGE(PROP_CONSTANT_ATTENUATION, constantAttenuation);
-    CHECK_PROPERTY_CHANGE(PROP_LINEAR_ATTENUATION, linearAttenuation);
-    CHECK_PROPERTY_CHANGE(PROP_QUADRATIC_ATTENUATION, quadraticAttenuation);
+    CHECK_PROPERTY_CHANGE(PROP_INTENSITY, intensity);
     CHECK_PROPERTY_CHANGE(PROP_EXPONENT, exponent);
     CHECK_PROPERTY_CHANGE(PROP_CUTOFF, cutoff);
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
@@ -281,12 +271,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(collisionsWillMove);
     COPY_PROPERTY_TO_QSCRIPTVALUE(isSpotlight);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(diffuseColor, getDiffuseColor()); 
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(ambientColor, getAmbientColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(specularColor, getSpecularColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE(constantAttenuation);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(linearAttenuation);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(quadraticAttenuation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(intensity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(exponent);
     COPY_PROPERTY_TO_QSCRIPTVALUE(cutoff);
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
@@ -359,12 +344,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(collisionsWillMove, setCollisionsWillMove);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(isSpotlight, setIsSpotlight);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(diffuseColor, setDiffuseColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(ambientColor, setAmbientColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(specularColor, setSpecularColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(constantAttenuation, setConstantAttenuation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(linearAttenuation, setLinearAttenuation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(quadraticAttenuation, setQuadraticAttenuation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(intensity, setIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(exponent, setExponent);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(cutoff, setCutoff);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
@@ -543,12 +523,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             if (properties.getType() == EntityTypes::Light) {
                 APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, properties.getIsSpotlight());
-                APPEND_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, appendColor, properties.getDiffuseColor());
-                APPEND_ENTITY_PROPERTY(PROP_AMBIENT_COLOR, appendColor, properties.getAmbientColor());
-                APPEND_ENTITY_PROPERTY(PROP_SPECULAR_COLOR, appendColor, properties.getSpecularColor());
-                APPEND_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, appendValue, properties.getConstantAttenuation());
-                APPEND_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, appendValue, properties.getLinearAttenuation());
-                APPEND_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, appendValue, properties.getQuadraticAttenuation());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_INTENSITY, appendValue, properties.getIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
                 APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
             }
@@ -765,12 +741,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     
     if (properties.getType() == EntityTypes::Light) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_DIFFUSE_COLOR, setDiffuseColor);
-        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_AMBIENT_COLOR, setAmbientColor);
-        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_SPECULAR_COLOR, setSpecularColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CONSTANT_ATTENUATION, float, setConstantAttenuation);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINEAR_ATTENUATION, float, setLinearAttenuation);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUADRATIC_ATTENUATION, float, setQuadraticAttenuation);
+        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_COLOR, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INTENSITY, float, setIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
     }
@@ -835,12 +807,7 @@ void EntityItemProperties::markAllChanged() {
     _ignoreForCollisionsChanged = true;
     _collisionsWillMoveChanged = true;
 
-    _diffuseColorChanged = true;
-    _ambientColorChanged = true;
-    _specularColorChanged = true;
-    _constantAttenuationChanged = true;
-    _linearAttenuationChanged = true; 
-    _quadraticAttenuationChanged = true;
+    _intensityChanged = true;
     _exponentChanged = true;
     _cutoffChanged = true;
     _lockedChanged = true;

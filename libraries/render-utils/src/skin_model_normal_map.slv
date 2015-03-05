@@ -1,4 +1,4 @@
-<@include Config.slh@>
+<@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
@@ -11,6 +11,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+<@include gpu/Transform.slh@>
 
 const int MAX_TEXCOORDS = 2;
 const int MAX_CLUSTERS = 128;
@@ -42,8 +44,8 @@ void main(void) {
         interpolatedNormal += clusterMatrix * vec4(gl_Normal, 0.0) * clusterWeight;
         interpolatedTangent += clusterMatrix * vec4(tangent, 0.0) * clusterWeight;
     }
-    interpolatedNormal = gl_ModelViewMatrix * interpolatedNormal;
-    interpolatedTangent = gl_ModelViewMatrix * interpolatedTangent;
+  //  interpolatedNormal = gl_ModelViewMatrix * interpolatedNormal;
+  //  interpolatedTangent = gl_ModelViewMatrix * interpolatedTangent;
     
     // pass along the diffuse color
     gl_FrontColor = gl_Color;
@@ -52,4 +54,12 @@ void main(void) {
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
     
     gl_Position = gl_ModelViewProjectionMatrix * interpolatedPosition;
+
+    // use standard pipeline transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    gl_Position = transformModelToClipPos(cam, obj, interpolatedPosition);
+
+    interpolatedNormal = vec4(normalize(transformModelToEyeDir(cam, obj, interpolatedNormal.xyz)), 0.0);
+    interpolatedTangent = vec4(normalize(transformModelToEyeDir(cam, obj, interpolatedTangent.xyz)), 0.0);
 }

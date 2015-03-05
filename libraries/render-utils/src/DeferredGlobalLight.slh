@@ -49,7 +49,7 @@ vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
 uniform SphericalHarmonics ambientSphere;
 
 // Everything about light
-<@include Light.slh@>
+<@include model/Light.slh@>
 
 // The view Matrix
 uniform mat4 invViewMat;
@@ -95,12 +95,15 @@ vec3 evalAmbienSphereGlobalColor(float shadowAttenuation, vec3 position, vec3 no
 vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
     
     Light light = getLight();
-    float diffuseDot = dot(normal, getLightDirection(light));
-    
+
+    vec3 fragNormal = vec3(invViewMat * vec4(normal, 0.0));
+    float diffuseDot = dot(fragNormal, -getLightDirection(light));
+
     // need to catch normals perpendicular to the projection plane hence the magic number for the threshold
     // it should be just 0, but we have innacurracy so we need to overshoot
     const float PERPENDICULAR_THRESHOLD = -0.005;
     float facingLight = step(PERPENDICULAR_THRESHOLD, diffuseDot); 
+    //float facingLight = step(PERPENDICULAR_THRESHOLD, diffuseDot); 
         
     // evaluate the shadow test but only relevant for light facing fragments
     float lightAttenuation = (1 - facingLight) + facingLight * shadowAttenuation;

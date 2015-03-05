@@ -77,7 +77,8 @@ Avatar::Avatar() :
     _moving(false),
     _collisionGroups(0),
     _initialized(false),
-    _shouldRenderBillboard(true)
+    _shouldRenderBillboard(true),
+    _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -366,7 +367,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
         
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(renderMode, postLighting, glowLevel);
+            renderBody(frustum, renderMode, postLighting, glowLevel);
         }
 
         if (!postLighting && renderMode != SHADOW_RENDER_MODE) {
@@ -380,8 +381,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
                 DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
-                    distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,
-                    LIGHT_EXPONENT, LIGHT_CUTOFF);
+                    distance * 2.0f, light.color, 0.5f, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
             }
         }
         
@@ -439,8 +439,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
+
+                if (_voiceSphereID == GeometryCache::UNKNOWN_ID) {
+                    _voiceSphereID = DependencyManager::get<GeometryCache>()->allocateID();
+                }
                 DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15,
-                                        glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE));
+                    glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE), true,
+                    _voiceSphereID);
 
                 glPopMatrix();
             }
@@ -472,7 +477,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(RenderMode renderMode, bool postLighting, float glowLevel) {
+void Avatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
                             Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     {
@@ -489,11 +494,13 @@ void Avatar::renderBody(RenderMode renderMode, bool postLighting, float glowLeve
         if (postLighting) {
             getHand()->render(false, modelRenderMode);
         } else {
-            _skeletonModel.render(1.0f, modelRenderMode);
-            renderAttachments(renderMode);
+            RenderArgs args;
+            args._viewFrustum = renderFrustum;
+            _skeletonModel.render(1.0f, modelRenderMode, &args);
+            renderAttachments(renderMode, &args);
         }
     }
-    getHead()->render(1.0f, modelRenderMode, postLighting);
+    getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
 }
 
 bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
@@ -520,11 +527,11 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::renderAttachments(RenderMode renderMode) {
+void Avatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode);
+        model->render(1.0f, modelRenderMode, args);
     }
 }
 
@@ -537,18 +544,13 @@ void Avatar::renderBillboard() {
         return;
     }
     if (!_billboardTexture) {
-        QImage image = QImage::fromData(_billboard);
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-        _billboardTexture.reset(new Texture());
-        glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0,
-            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    
-    } else {
-        glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
+        // Using a unique URL ensures we don't get another avatar's texture from TextureCache
+        QUrl uniqueUrl = QUrl(QUuid::createUuid().toString());
+        _billboardTexture = DependencyManager::get<TextureCache>()->getTexture(
+            uniqueUrl, DEFAULT_TEXTURE, false, _billboard);
+    }
+    if (!_billboardTexture->isLoaded()) {
+        return;
     }
     
     glEnable(GL_ALPHA_TEST);
@@ -556,6 +558,8 @@ void Avatar::renderBillboard() {
     
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_LIGHTING);
+
+    glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
     
     glPushMatrix();
     glTranslatef(_position.x, _position.y, _position.z);

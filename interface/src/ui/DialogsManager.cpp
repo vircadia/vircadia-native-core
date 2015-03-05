@@ -9,22 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QMessageBox>
+
 #include <AccountManager.h>
 #include <MainWindow.h>
 #include <PathUtils.h>
-#include <XmppClient.h>
 
 #include "AddressBarDialog.h"
 #include "AnimationsDialog.h"
 #include "AttachmentsDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
-#include "ChatWindow.h"
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
-#include "MetavoxelEditor.h"
-#include "MetavoxelNetworkSimulator.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
 #include "ScriptEditorWindow.h"
@@ -148,68 +146,21 @@ void DialogsManager::hmdToolsClosed() {
     _hmdToolsDialog->hide();
 }
 
-void DialogsManager::showMetavoxelEditor() {
-    maybeCreateDialog(_metavoxelEditor);
-    _metavoxelEditor->raise();
-}
-
-void DialogsManager::showMetavoxelNetworkSimulator() {
-    maybeCreateDialog(_metavoxelNetworkSimulator);
-    _metavoxelNetworkSimulator->raise();
-}
-
 void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
     _scriptEditor->raise();
 }
 
-void DialogsManager::setupChat() {
-#ifdef HAVE_QXMPP
-    const QXmppClient& xmppClient = XmppClient::getInstance().getXMPPClient();
-    connect(&xmppClient, &QXmppClient::connected, this, &DialogsManager::toggleChat);
-    connect(&xmppClient, &QXmppClient::disconnected, this, &DialogsManager::toggleChat);
-    
-    QDir::setCurrent(PathUtils::resourcesPath());
-    // init chat window to listen chat
-    maybeCreateDialog(_chatWindow);
-#endif
-}
-
-void DialogsManager::showChat() {
-    if (AccountManager::getInstance().isLoggedIn()) {
-        maybeCreateDialog(_chatWindow);
-        
-        if (_chatWindow->isHidden()) {
-            _chatWindow->show();
-        }
-        _chatWindow->raise();
-        _chatWindow->activateWindow();
-        _chatWindow->setFocus();
-    } else {
-        qApp->getTrayIcon()->showMessage("Interface",
-                                         "You need to login to be able to chat with others on this domain.");
+void DialogsManager::showIRCLink() {
+    if (!_ircInfoBox) {
+        _ircInfoBox = new QMessageBox(QMessageBox::NoIcon,
+                                      "High Fidelity IRC",
+                                      "High Fidelity has an IRC channel on irc.freenode.net at #highfidelity.<br/><br/>Web chat is available <a href='http://webchat.freenode.net/?channels=highfidelity&uio=d4'>here</a>.",
+                                      QMessageBox::Ok);
+        _ircInfoBox->setTextFormat(Qt::RichText);
+        _ircInfoBox->setAttribute(Qt::WA_DeleteOnClose);
+        _ircInfoBox->show();
     }
-}
-
-void DialogsManager::toggleChat() {
-#ifdef HAVE_QXMPP
-    QAction* chatAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
-    Q_CHECK_PTR(chatAction);
     
-    chatAction->setEnabled(XmppClient::getInstance().getXMPPClient().isConnected());
-    if (!chatAction->isEnabled() && _chatWindow && AccountManager::getInstance().isLoggedIn()) {
-        if (_chatWindow->isHidden()) {
-            _chatWindow->show();
-            _chatWindow->raise();
-            _chatWindow->activateWindow();
-            _chatWindow->setFocus();
-        } else {
-            _chatWindow->hide();
-        }
-    }
-#endif
+    _ircInfoBox->raise();
 }
-
-
-
-

@@ -13,6 +13,7 @@
 #define hifi_AudioToolBox_h
 
 #include <DependencyManager.h>
+#include <GeometryCache.h>
 
 class AudioToolBox : public Dependency {
     SINGLETON_DEPENDENCY
@@ -26,6 +27,7 @@ private:
     GLuint _micTextureId = 0;
     GLuint _muteTextureId = 0;
     GLuint _boxTextureId = 0;
+    int _boxQuadID = GeometryCache::UNKNOWN_ID;
     QRect _iconBounds;
     qint64 _iconPulseTimeReference = 0;
 };

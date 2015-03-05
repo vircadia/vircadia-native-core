@@ -223,18 +223,18 @@ protected:
 
     float calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD);
     void renderDisplayName();
-    virtual void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
+    virtual void renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
     void simulateAttachments(float deltaTime);
-    virtual void renderAttachments(RenderMode renderMode);
+    virtual void renderAttachments(RenderMode renderMode, RenderArgs* args);
 
     virtual void updateJointMappings();
     
 private:
 
     bool _initialized;
-    QScopedPointer<Texture> _billboardTexture;
+    NetworkTexturePointer _billboardTexture;
     bool _shouldRenderBillboard;
     bool _isLookAtTarget;
 
@@ -243,6 +243,8 @@ private:
     float getBillboardSize() const;
     
     static int _jointConesID;
+
+    int _voiceSphereID;
 };
 
 #endif // hifi_Avatar_h

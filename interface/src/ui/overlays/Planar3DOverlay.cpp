@@ -11,11 +11,12 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QGLWidget>
 #include <PlaneShape.h>
 #include <RayIntersectionInfo.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
+
+#include "GeometryUtil.h"
 
 #include "Planar3DOverlay.h"
 
@@ -93,29 +94,5 @@ QScriptValue Planar3DOverlay::getProperty(const QString& property) {
 
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
-    RayIntersectionInfo rayInfo;
-    rayInfo._rayStart = origin;
-    rayInfo._rayDirection = direction;
-    rayInfo._rayLength = std::numeric_limits<float>::max();
-
-    PlaneShape plane;
-
-    const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
-    glm::vec3 normal = _rotation * UNROTATED_NORMAL;
-    plane.setNormal(normal);
-    plane.setPoint(_position); // the position is definitely a point on our plane
-
-    bool intersects = plane.findRayIntersection(rayInfo);
-
-    if (intersects) {
-        distance = rayInfo._hitDistance;
-
-        glm::vec3 hitPosition = origin + (distance * direction);
-        glm::vec3 localHitPosition = glm::inverse(_rotation) * (hitPosition - _position);
-        glm::vec2 halfDimensions = _dimensions / 2.0f;
-
-        intersects = -halfDimensions.x <= localHitPosition.x && localHitPosition.x <= halfDimensions.x
-            && -halfDimensions.y <= localHitPosition.y && localHitPosition.y <= halfDimensions.y;
-    }
-    return intersects;
+    return findRayRectangleIntersection(origin, direction, _rotation, _position, _dimensions, distance);
 }

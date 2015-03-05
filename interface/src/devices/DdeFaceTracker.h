@@ -23,12 +23,10 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    //initialization
-    void init();
-    void reset();
-    void update();
-    
-    bool isActive() const;
+    virtual void reset() { _reset = true; }
+
+    virtual bool isActive() const;
+    virtual bool isTracking() const { return isActive(); }
     
     float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
     float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
@@ -90,10 +88,13 @@ private:
     int _mouthSmileRightIndex;
     
     int _jawOpenIndex;
-    
-    float _leftEye[3];
-    float _rightEye[3];
-    
+
+    QVector<float> _coefficients;
+
+    // Previous values for simple smoothing
+    glm::vec3 _previousTranslation;
+    glm::quat _previousRotation;
+    QVector<float> _previousCoefficients;
 };
 
 #endif // hifi_DdeFaceTracker_h

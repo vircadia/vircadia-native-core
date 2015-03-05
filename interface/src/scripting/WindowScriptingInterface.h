@@ -57,6 +57,7 @@ public slots:
     QScriptValue peekNonBlockingFormResult(QScriptValue array);
 
 signals:
+    void domainChanged(const QString& domainHostname);
     void inlineButtonClicked(const QString& name);
     void nonBlockingFormClosed();
 

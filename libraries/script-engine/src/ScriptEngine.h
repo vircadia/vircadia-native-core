@@ -16,6 +16,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
@@ -30,8 +31,6 @@
 #include "ScriptUUID.h"
 #include "Vec3.h"
 
-class EntityScriptingInterface;
-
 const QString NO_SCRIPT("");
 
 const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 1000) + 0.5);
@@ -43,8 +42,7 @@ public:
                  const QString& fileNameString = QString(""),
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
-    /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
+    ~ScriptEngine();
 
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
     
@@ -83,11 +81,18 @@ public:
 
     bool isFinished() const { return _isFinished; }
     bool isRunning() const { return _isRunning; }
+    bool evaluatePending() const { return _evaluatesPending > 0; }
 
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
+    
+    QString getFilename() const;
+    
+    static void stopAllScripts(QObject* application);
+    
+    void waitTillDoneRunning();
 
 public slots:
     void loadURL(const QUrl& scriptURL);
@@ -118,12 +123,14 @@ signals:
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
     void loadScript(const QString& scriptName, bool isUserLoaded);
+    void doneRunning();
 
 protected:
     QString _scriptContents;
     QString _parentURL;
     bool _isFinished;
     bool _isRunning;
+    int _evaluatesPending = 0;
     bool _isInitialized;
     bool _isAvatar;
     QTimer* _avatarIdentityTimer;
@@ -134,13 +141,12 @@ protected:
     int _numAvatarSoundSentBytes;
 
 private:
+    void stopAllTimers();
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
-
-    static EntityScriptingInterface _entityScriptingInterface;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AvatarData* _avatarData;
@@ -156,6 +162,12 @@ private:
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 private slots:
     void handleScriptDownload();
+
+private:
+    static QSet<ScriptEngine*> _allKnownScriptEngines;
+    static QMutex _allScriptsMutex;
+    static bool _stoppingAllScripts;
+    static bool _doneRunningThisScript;
 };
 
 #endif // hifi_ScriptEngine_h

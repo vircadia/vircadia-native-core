@@ -59,10 +59,17 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    // NOTE: we don't need to delete _entitiesScriptEngine because it's owned by the application and gets cleaned up 
-    // automatically but we do need to delete our sandbox script engine.
-    delete _sandboxScriptEngine;
-    _sandboxScriptEngine = NULL;
+    // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a 
+    // signal tied to call it's deleteLater on doneRunning
+    if (_sandboxScriptEngine) {
+        // TODO: consider reworking how _sandboxScriptEngine is managed. It's treated differently than _entitiesScriptEngine
+        // because we don't call registerScriptEngineWithApplicationServices() for it. This implementation is confusing and 
+        // potentially error prone because it's not a full fledged ScriptEngine that has been fully connected to the 
+        // application. We did this so that scripts that were ill-formed could be evaluated but not execute against the 
+        // application services. But this means it's shutdown behavior is different from other ScriptEngines
+        delete _sandboxScriptEngine;
+        _sandboxScriptEngine = NULL;
+    }
 }
 
 void EntityTreeRenderer::clear() {
@@ -96,6 +103,11 @@ void EntityTreeRenderer::init() {
     connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging);
     connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
+
+void EntityTreeRenderer::shutdown() {
+    _shuttingDown = true;
+}
+
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
     EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
@@ -156,6 +168,10 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 
 
 QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
+    if (_shuttingDown) {
+        return QScriptValue(); // since we're shutting down, we don't load any more scripts
+    }
+    
     if (!entity) {
         return QScriptValue(); // no entity...
     }
@@ -235,7 +251,7 @@ void EntityTreeRenderer::setTree(Octree* newTree) {
 }
 
 void EntityTreeRenderer::update() {
-    if (_tree) {
+    if (_tree && !_shuttingDown) {
         EntityTree* tree = static_cast<EntityTree*>(_tree);
         tree->update();
         
@@ -258,7 +274,7 @@ void EntityTreeRenderer::update() {
 }
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
-    if (_tree) {
+    if (_tree && !_shuttingDown) {
         _tree->lockForWrite(); // so that our scripts can do edits if they want
         glm::vec3 avatarPosition = _viewState->getAvatarPosition() / (float) TREE_SCALE;
         
@@ -309,7 +325,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
-    if (_tree) {
+    if (_tree && !_shuttingDown) {
         _tree->lockForWrite(); // so that our scripts can do edits if they want
         
         // for all of our previous containing entities, if they are no longer containing then send them a leave event
@@ -330,10 +346,16 @@ void EntityTreeRenderer::leaveAllEntities() {
     }
 }
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
-    if (_tree) {
+    if (_tree && !_shuttingDown) {
         Model::startScene(renderSide);
-        RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
+
+        ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+            _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
+
+        RenderArgs args = { this, frustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
                                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);
 
@@ -700,9 +722,14 @@ QScriptValueList EntityTreeRenderer::createEntityArgs(const EntityItemID& entity
 }
 
 void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+    // If we don't have a tree, or we're in the process of shutting down, then don't
+    // process these events.
+    if (!_tree || _shuttingDown) {
+        return;
+    }
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
-    
+
     bool precisionPicking = !_dontDoPrecisionPicking;
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
@@ -714,7 +741,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
         if (entityScript.property("mousePressOnEntity").isValid()) {
             entityScript.property("mousePressOnEntity").call(entityScript, entityScriptArgs);
         }
-        
+    
         _currentClickingOnEntityID = rayPickResult.entityID;
         emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
         if (entityScript.property("clickDownOnEntity").isValid()) {
@@ -726,6 +753,11 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
 }
 
 void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+    // If we don't have a tree, or we're in the process of shutting down, then don't
+    // process these events.
+    if (!_tree || _shuttingDown) {
+        return;
+    }
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseReleaseEvent");
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     bool precisionPicking = !_dontDoPrecisionPicking;
@@ -740,7 +772,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
             entityScript.property("mouseReleaseOnEntity").call(entityScript, entityScriptArgs);
         }
     }
-    
+
     // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
     // we're releasing the button, then this is considered a clickOn event
     if (!_currentClickingOnEntityID.isInvalidID()) {
@@ -752,7 +784,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
             currentClickingEntity.property("clickReleaseOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
         }
     }
-    
+
     // makes it the unknown ID, we just released so we can't be clicking on anything
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
     _lastMouseEvent = MouseEvent(*event, deviceID);
@@ -760,10 +792,15 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
 }
 
 void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
+    // If we don't have a tree, or we're in the process of shutting down, then don't
+    // process these events.
+    if (!_tree || _shuttingDown) {
+        return;
+    }
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseMoveEvent");
 
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
-    
+
     bool precisionPicking = false; // for mouse moves we do not do precision picking
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
@@ -774,15 +811,15 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
         if (entityScript.property("mouseMoveEvent").isValid()) {
             entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
         }
-    
+
         //qDebug() << "mouseMoveEvent over entity:" << rayPickResult.entityID;
         emit mouseMoveOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
             entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
         }
-        
+    
         // handle the hover logic...
-        
+    
         // if we were previously hovering over an entity, and this new entity is not the same as our previous entity
         // then we need to send the hover leave.
         if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
@@ -832,7 +869,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
             _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
         }
     }
-    
+
     // Even if we're no longer intersecting with an entity, if we started clicking on an entity and we have
     // not yet released the hold then this is still considered a holdingClickOnEntity event
     if (!_currentClickingOnEntityID.isInvalidID()) {
@@ -850,29 +887,37 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-    checkAndCallUnload(entityID);
+    if (_tree && !_shuttingDown) {
+        checkAndCallUnload(entityID);
+    }
     _entityScripts.remove(entityID);
 }
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
-    checkAndCallUnload(entityID);
-    checkAndCallPreload(entityID);
+    if (_tree && !_shuttingDown) {
+        checkAndCallUnload(entityID);
+        checkAndCallPreload(entityID);
+    }
 }
 
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
-    // load the entity script if needed...
-    QScriptValue entityScript = loadEntityScript(entityID);
-    if (entityScript.property("preload").isValid()) {
-        QScriptValueList entityArgs = createEntityArgs(entityID);
-        entityScript.property("preload").call(entityScript, entityArgs);
+    if (_tree && !_shuttingDown) {
+        // load the entity script if needed...
+        QScriptValue entityScript = loadEntityScript(entityID);
+        if (entityScript.property("preload").isValid()) {
+            QScriptValueList entityArgs = createEntityArgs(entityID);
+            entityScript.property("preload").call(entityScript, entityArgs);
+        }
     }
 }
 
 void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
-    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
-    if (entityScript.property("unload").isValid()) {
-        QScriptValueList entityArgs = createEntityArgs(entityID);
-        entityScript.property("unload").call(entityScript, entityArgs);
+    if (_tree && !_shuttingDown) {
+        QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
+        if (entityScript.property("unload").isValid()) {
+            QScriptValueList entityArgs = createEntityArgs(entityID);
+            entityScript.property("unload").call(entityScript, entityArgs);
+        }
     }
 }
 
@@ -887,6 +932,11 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
                                                     const Collision& collision) {
+    // If we don't have a tree, or we're in the process of shutting down, then don't
+    // process these events.
+    if (!_tree || _shuttingDown) {
+        return;
+    }
     QScriptValue entityScriptA = loadEntityScript(idA);
     if (entityScriptA.property("collisionWithEntity").isValid()) {
         QScriptValueList args;
