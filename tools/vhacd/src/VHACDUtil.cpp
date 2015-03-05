@@ -13,6 +13,11 @@
 #include "VHACDUtil.h"
 
 
+
+
+
+
+
 //Read all the meshes from provided FBX file
 bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *results) {
 
@@ -82,6 +87,23 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD
         for (unsigned int j = 0; j < nConvexHulls; j++){
             VHACD::IVHACD::ConvexHull hull;
             interfaceVHACD->GetConvexHull(j, hull);
+
+            double *m_points_copy = new double[hull.m_nPoints * 3];
+            // std::copy(std::begin(hull.m_points), std::end(hull.m_points), std::begin(m_points_copy));
+            for (unsigned int i=0; i<hull.m_nPoints * 3; i++) {
+                m_points_copy[ i ] = hull.m_points[ i ];
+            }
+            hull.m_points = m_points_copy;
+
+
+            int *m_triangles_copy = new int[hull.m_nTriangles * 3];
+            // std::copy(std::begin(hull.m_triangles), std::end(hull.m_triangles), std::begin(m_triangles_copy));
+            for (unsigned int i=0; i<hull.m_nTriangles * 3; i++) {
+                m_triangles_copy[ i ] = hull.m_triangles[ i ];
+            }
+            hull.m_triangles = m_triangles_copy;
+
+
             convexHulls.append(hull);
         }
         results->convexHullList.append(convexHulls);

@@ -21,28 +21,28 @@
 #include <FBXReader.h>
 #include <VHACD.h>
 
-namespace vhacd{
+namespace vhacd {
 
-    typedef struct{
+    typedef struct {
         int meshCount;
         QVector<int> convexHullsCountList;
         QVector<QVector<VHACD::IVHACD::ConvexHull>> convexHullList;
-    }ComputeResults;
+    } ComputeResults;
 
-    typedef struct{
+    typedef struct {
         int meshCount;
         QVector<QVector<glm::vec3>> perMeshVertices;
         QVector<QVector<int>> perMeshTriangleIndices;
-    }LoadFBXResults;
+    } LoadFBXResults;
 
-    class VHACDUtil{
+    class VHACDUtil {
     public:
         bool loadFBX(const QString filename, vhacd::LoadFBXResults *results);
         bool computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params, vhacd::ComputeResults *results)const;
         ~VHACDUtil();
     };
 
-    class ProgressCallback : public VHACD::IVHACD::IUserCallback{
+    class ProgressCallback : public VHACD::IVHACD::IUserCallback {
     public:
         ProgressCallback(void);
         ~ProgressCallback();
