@@ -281,17 +281,18 @@ void PhysicsEngine::stepSimulation() {
     // This is step (1).
     relayIncomingChangesToSimulation();
 
-    if (_avatarData->isPhysicsEnabled()) {
-        _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                          glmToBullet(_avatarData->getPosition())));
-        _characterController->setWalkDirection(glmToBullet(_avatarData->getVelocity()));
-    }
-
     const int MAX_NUM_SUBSTEPS = 4;
     const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * PHYSICS_ENGINE_FIXED_SUBSTEP;
     float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
+
+    if (_avatarData->isPhysicsEnabled()) {
+        _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
+                                                          glmToBullet(_avatarData->getPosition())));
+        // _characterController->setWalkDirection(glmToBullet(_avatarData->getVelocity()));
+        _characterController->setVelocityForTimeInterval(glmToBullet(_avatarData->getVelocity()), timeStep);
+    }
 
     // This is step (2).
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);

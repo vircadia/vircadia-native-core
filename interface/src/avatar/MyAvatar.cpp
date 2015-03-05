@@ -1397,8 +1397,6 @@ void MyAvatar::updatePosition(float deltaTime) {
 
 
 void MyAvatar::updatePositionWithPhysics(float deltaTime) {
-    // bool pushingUp = (_driveKeys[UP] - _driveKeys[DOWN] > 0.0f) || _scriptedMotorVelocity.y > 0.0f;
-
     // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
     glm::vec3 localVelocity = glm::inverse(rotation) * _velocity;
@@ -1408,9 +1406,9 @@ void MyAvatar::updatePositionWithPhysics(float deltaTime) {
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // cap avatar speed
-    float speed = glm::length(_velocity);
-    if (speed > MAX_AVATAR_SPEED) {
-        _velocity *= MAX_AVATAR_SPEED / speed;
+    float speed = glm::length(newLocalVelocity);
+    if (speed > MAX_WALKING_SPEED) {
+        newLocalVelocity *= MAX_WALKING_SPEED / speed;
     }
 
     // rotate back into world-frame
