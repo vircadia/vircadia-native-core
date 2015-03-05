@@ -23,6 +23,7 @@
 #include "ModelEntityItem.h"
 #include "SphereEntityItem.h"
 #include "TextEntityItem.h"
+#include "ParticleEffectEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
@@ -37,6 +38,7 @@ REGISTER_ENTITY_TYPE(Box)
 REGISTER_ENTITY_TYPE(Sphere)
 REGISTER_ENTITY_TYPE(Light)
 REGISTER_ENTITY_TYPE(Text)
+REGISTER_ENTITY_TYPE(ParticleEffect)
 
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
