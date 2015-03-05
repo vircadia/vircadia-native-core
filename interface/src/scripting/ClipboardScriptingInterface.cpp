@@ -14,7 +14,7 @@
 ClipboardScriptingInterface::ClipboardScriptingInterface() {
 }
 
-bool ClipboardScriptingInterface::exportEntities(const QString& filename, QStringList entityIDs) {
+bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     return Application::getInstance()->exportEntities(filename, entityIDs);
 }
 

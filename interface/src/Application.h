@@ -324,7 +324,7 @@ public slots:
     void packetSent(quint64 length);
 
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
-    bool exportEntities(const QString& filename, const QStringList& entityIDs);
+    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& filename);
 

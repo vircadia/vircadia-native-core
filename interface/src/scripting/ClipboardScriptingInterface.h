@@ -23,7 +23,7 @@ signals:
     
 public slots:
     bool importEntities(const QString& filename);
-    bool exportEntities(const QString& filename, QStringList entityIDs);
+    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float s);
     QVector<EntityItemID> pasteEntities(float x, float y, float z, float s);
 };
