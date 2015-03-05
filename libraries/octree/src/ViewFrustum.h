@@ -37,12 +37,11 @@ public:
     ViewFrustum();
     
     // setters for camera attributes
-    void setPosition(const glm::vec3& p) { _position = p; _positionVoxelScale = (p / (float)TREE_SCALE); }
+    void setPosition(const glm::vec3& p) { _position = p; }
     void setOrientation(const glm::quat& orientationAsQuaternion);
 
     // getters for camera attributes
     const glm::vec3& getPosition() const { return _position; }
-    const glm::vec3& getPositionVoxelScale() const { return _positionVoxelScale; }
     const glm::quat& getOrientation() const { return _orientation; }
     const glm::vec3& getDirection() const { return _direction; }
     const glm::vec3& getUp() const { return _up; }
@@ -119,8 +118,6 @@ public:
     OctreeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
     
-    void getFurthestPointFromCameraVoxelScale(const AACube& box, glm::vec3& furthestPoint) const;
-
     float distanceToCamera(const glm::vec3& point) const;
     
 private:
@@ -134,7 +131,6 @@ private:
     
     // camera location/orientation attributes
     glm::vec3 _position = glm::vec3(0.0f); // the position in world-frame
-    glm::vec3 _positionVoxelScale = glm::vec3(0.0f); // the position in voxel scale
     glm::quat _orientation = glm::quat();
 
     // calculated for orientation

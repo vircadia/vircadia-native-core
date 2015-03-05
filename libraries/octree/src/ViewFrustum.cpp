@@ -833,33 +833,6 @@ void ViewFrustum::getFurthestPointFromCamera(const AACube& box, glm::vec3& furth
     }
 }
 
-void ViewFrustum::getFurthestPointFromCameraVoxelScale(const AACube& box, glm::vec3& furthestPoint) const {
-    const glm::vec3& bottomNearRight = box.getCorner();
-    float scale = box.getScale();
-    float halfScale = scale * 0.5f;
-
-    if (_positionVoxelScale.x < bottomNearRight.x + halfScale) {
-        // we are to the right of the center, so the left edge is furthest
-        furthestPoint.x = bottomNearRight.x + scale;
-    } else {
-        furthestPoint.x = bottomNearRight.x;
-    }
-
-    if (_positionVoxelScale.y < bottomNearRight.y + halfScale) {
-        // we are below of the center, so the top edge is furthest
-        furthestPoint.y = bottomNearRight.y + scale;
-    } else {
-        furthestPoint.y = bottomNearRight.y;
-    }
-
-    if (_positionVoxelScale.z < bottomNearRight.z + halfScale) {
-        // we are to the near side of the center, so the far side edge is furthest
-        furthestPoint.z = bottomNearRight.z + scale;
-    } else {
-        furthestPoint.z = bottomNearRight.z;
-    }
-}
-
 float ViewFrustum::distanceToCamera(const glm::vec3& point) const {
     glm::vec3 temp = getPosition() - point;
     float distanceToPoint = sqrtf(glm::dot(temp, temp));
