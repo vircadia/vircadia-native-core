@@ -445,7 +445,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);
-
+    
     ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);

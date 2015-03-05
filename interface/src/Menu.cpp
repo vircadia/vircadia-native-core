@@ -436,6 +436,8 @@ Menu::Menu() {
                                            SLOT(disable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0,
                                   dialogsManager.data(), SLOT(cachesSizeDialog()));
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
+                                  dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
 
     QMenu* timingMenu = developerMenu->addMenu("Timing and Stats");
     QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
