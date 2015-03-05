@@ -22,9 +22,7 @@ Script.include([
     "libraries/progressDialog.js",
 
     "libraries/entitySelectionTool.js",
-    "libraries/ModelImporter.js",
 
-    "libraries/ExportMenu.js",
     "libraries/ToolTip.js",
 
     "libraries/entityPropertyDialogBox.js",
@@ -35,7 +33,6 @@ Script.include([
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
-var modelImporter = new ModelImporter();
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var cameraManager = new CameraManager();
