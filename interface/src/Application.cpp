@@ -1683,8 +1683,8 @@ bool Application::importEntities(const QString& filename) {
     return success;
 }
 
-void Application::pasteEntities(float x, float y, float z) {
-    _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
+QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
+    return _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::initDisplay() {
