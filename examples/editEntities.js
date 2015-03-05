@@ -692,17 +692,16 @@ function setupModelMenus() {
     }
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Entity List...", shortcutKey: "CTRL+META+L", afterItem: "Models" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Entity List..." });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
-                        afterItem: "Paste Models", isCheckable: true, isChecked: true });
+                        afterItem: "Entity List...", isCheckable: true, isChecked: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
                         afterItem: "Allow Selecting of Large Models", isCheckable: true, isChecked: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
                         afterItem: "Allow Selecting of Small Models", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
-    Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
-    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Export Entities", shortcutKey: "CTRL+META+E", afterItem: "Models" });
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities", shortcutKey: "CTRL+META+I", afterItem: "Export Entities" });
 
 
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT, afterItem: MENU_INSPECT_TOOL_ENABLED,
@@ -723,14 +722,13 @@ function cleanupModelMenus() {
     }
 
     Menu.removeMenuItem("Edit", "Entity List...");
-    Menu.removeMenuItem("Edit", "Paste Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
 
     Menu.removeSeparator("File", "Models");
-    Menu.removeMenuItem("File", "Export Models");
-    Menu.removeMenuItem("File", "Import Models");
+    Menu.removeMenuItem("File", "Export Entities");
+    Menu.removeMenuItem("File", "Import Entities");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
@@ -745,7 +743,6 @@ Script.scriptEnding.connect(function() {
     toolBar.cleanup();
     cleanupModelMenus();
     tooltip.cleanup();
-    modelImporter.cleanup();
     selectionDisplay.cleanup();
     Entities.setLightsArePickable(originalLightsArePickable);
 });
@@ -788,9 +785,7 @@ function handeMenuEvent(menuItem) {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem == "Delete") {
         deleteSelectedEntities();
-    } else if (menuItem == "Paste Models") {
-        modelImporter.paste();
-    } else if (menuItem == "Export Models") {
+    } else if (menuItem == "Export Entities") {
         if (!selectionManager.hasSelection()) {
             Window.alert("No entities have been selected.");
         } else {
@@ -803,7 +798,7 @@ function handeMenuEvent(menuItem) {
                 }
             }
         }
-    } else if (menuItem == "Import Models") {
+    } else if (menuItem == "Import Entities") {
         var filename = Window.browse("Select models to import", "", "*.svo")
         if (filename) {
             var success = Clipboard.importEntities(filename);
