@@ -14,7 +14,7 @@
 
 
 //Read all the meshes from provided FBX file
-bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *results){
+bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *results) {
 
     // open the fbx file
     QFile fbx(filename);

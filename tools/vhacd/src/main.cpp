@@ -19,6 +19,22 @@
 using namespace std;
 using namespace VHACD;
 
+
+bool writeOBJ(QString outFileName, QVector<QVector<VHACD::IVHACD::ConvexHull>>& convexHullList) {
+    QFile file(outFileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qDebug() << "Unable to write to " << outFileName;
+        return false;
+    }
+
+    QTextStream out(&file);
+
+    out << "testing\n";
+
+    return true;
+}
+
+
 int main(int argc, char * argv[]){
     vector<int> triangles; // array of indexes
     vector<float> points;  // array of coordinates 
@@ -27,17 +43,23 @@ int main(int argc, char * argv[]){
     vhacd::ComputeResults results; // results after computing vhacd
     VHACD::IVHACD::Parameters params;
     vhacd::ProgressCallback pCallBack;
-    if (argc < 2){
-        cout << "please provide a FBX file as argument\n ";
+    if (argc < 3) {
+        cout << argv[0] << " input-file.fbx output-file.obj\n";
         return 1;
     }
-    string filename(argv[1]);
-    if (filename.empty()){
-        cout << "please provide a FBX file as argument\n ";
+    string inputFilename(argv[1]);
+    if (inputFilename.empty()) {
+        cout << "please provide a FBX file as first argument\n";
+        return 1;
+    }
+    string outputFilename(argv[2]);
+    if (outputFilename.empty()) {
+        cout << "please provide a OBJ file as second argument\n";
         return 1;
     }
 
-    QString fname = QString::fromStdString(filename);
+    QString inFileName = QString::fromStdString(inputFilename);
+    QString outFileName = QString::fromStdString(outputFilename);
 
     //set parameters for V-HACD
     params.m_callback = &pCallBack; //progress callback
@@ -53,7 +75,7 @@ int main(int argc, char * argv[]){
     // load the mesh 
 
     auto begin = std::chrono::high_resolution_clock::now();
-    if (!vUtil.loadFBX(fname, &fbx)){
+    if (!vUtil.loadFBX(inFileName, &fbx)){
         cout << "Error in opening FBX file....";
         return 1;
     }
@@ -85,7 +107,7 @@ int main(int argc, char * argv[]){
         totalHulls += hullCounts.at(i);
     }
     cout << endl << "Summary of V-HACD Computation..................." << endl;
-    cout << "File Path          : " << fname.toStdString() << endl;
+    cout << "File Path          : " << inFileName.toStdString() << endl;
     cout << "Number Of Meshes   : " << fbx.meshCount << endl;
     cout << "Processed Meshes   : " << results.meshCount << endl;
     cout << "Total vertices     : " << totalVertices << endl;
@@ -94,7 +116,7 @@ int main(int argc, char * argv[]){
     cout << "Total FBX load time: " << (double)loadDuration / 1000000000.00 << " seconds" << endl;
     cout << "V-HACD Compute time: " << (double)computeDuration / 1000000000.00 << " seconds" << endl;
     cout << endl << "Summary per convex hull ........................" << endl <<endl;
-    for (int i = 0; i < results.meshCount; i++){
+    for (int i = 0; i < results.meshCount; i++) {
         cout << "Mesh : " << i + 1 << endl;
         QVector<VHACD::IVHACD::ConvexHull> chList = results.convexHullList.at(i);
         cout << "\t" << "Number Of Hulls : " << chList.count() << endl;
@@ -106,6 +128,9 @@ int main(int argc, char * argv[]){
         }
     }
 
-    getchar();
+
+    writeOBJ(outFileName, results.convexHullList);
+
+
     return 0;
 }
