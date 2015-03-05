@@ -425,7 +425,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
 
     glm::vec3 penetration;
     AACube cube = entityTreeElement->getAACube();
-    cube *= (float)TREE_SCALE;
+    cube.scale((float)TREE_SCALE);
     bool sphereIntersection = cube.findSpherePenetration(args->position, args->targetRadius, penetration);
 
     // If this entityTreeElement contains the point, then search it...
@@ -478,7 +478,7 @@ bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) 
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
     AACube cube = element->getAACube();
-    cube *= (float)TREE_SCALE;
+    cube.scale((float)TREE_SCALE);
     bool sphereIntersection = cube.findSpherePenetration(args->position, args->targetRadius, penetration);
 
     // If this element contains the point, then search it...
@@ -516,7 +516,7 @@ public:
 bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
     FindEntitiesInCubeArgs* args = static_cast<FindEntitiesInCubeArgs*>(extraData);
     AACube elementCube = element->getAACube();
-    elementCube *= (float)TREE_SCALE;
+    elementCube.scale((float)TREE_SCALE);
     if (elementCube.touches(args->_cube)) {
         EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
         entityTreeElement->getEntities(args->_cube, args->_foundEntities);

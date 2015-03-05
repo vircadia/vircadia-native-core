@@ -63,8 +63,6 @@ public:
     AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
     AABox clamp(float min, float max) const;
 
-    AACube& operator *= (float scale);
-
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;
@@ -75,12 +73,6 @@ private:
     glm::vec3 _corner;
     float _scale;
 };
-
-inline AACube& AACube::operator *= (float scale) {
-    _corner *= scale;
-    _scale *= scale;
-    return *this;
-}
 
 inline bool operator==(const AACube& a, const AACube& b) {
     return a.getCorner() == b.getCorner() && a.getScale() == b.getScale();

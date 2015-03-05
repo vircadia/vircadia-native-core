@@ -750,7 +750,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
 
     // the details in args is in meters (world-frame) so we have to scale the element cube up
     AACube box = element->getAACube();
-    box *= (float)TREE_SCALE;
+    box.scale((float)TREE_SCALE);
 
     // coarse check against bounds
     if (!box.expandedContains(args->center, args->radius)) {
@@ -837,14 +837,15 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
-    const AACube& box = element->getAACube();
+    AACube box = element->getAACube();
+    box.scale((float)TREE_SCALE);
     if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
     if (element->hasContent()) {
         glm::vec3 nodePenetration;
         if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
-            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)(TREE_SCALE));
+            args->penetration = addPenetrations(args->penetration, nodePenetration);
             args->found = true;
         }
     }
@@ -891,12 +892,7 @@ bool findContentInCubeOp(OctreeElement* element, void* extraData) {
 bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
                     glm::vec3& penetration, Octree::lockType lockType, bool* accurateResult) {
                     
-    CapsuleArgs args = {
-        start / (float)(TREE_SCALE),
-        end / (float)(TREE_SCALE),
-        radius / (float)(TREE_SCALE),
-        penetration,
-        false };
+    CapsuleArgs args = { start, end, radius, penetration, false };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
 
     bool gotLock = false;

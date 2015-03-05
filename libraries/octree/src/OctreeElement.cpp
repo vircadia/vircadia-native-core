@@ -1338,7 +1338,7 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
     keepSearching = true; // assume that we will continue searching after this.
 
     AACube cube = getAACube();
-    cube *= (float)TREE_SCALE;
+    cube.scale((float)TREE_SCALE);
     float distanceToElementCube = std::numeric_limits<float>::max();
     float distanceToElementDetails = distance;
     BoxFace localFace;
@@ -1392,7 +1392,7 @@ bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
     // center and radius are in meters, so we have to scale the _cube into world-frame
     AACube cube = _cube;
-    cube *= (float)TREE_SCALE;
+    cube.scale((float)TREE_SCALE);
     return cube.findSpherePenetration(center, radius, penetration);
 }
 
