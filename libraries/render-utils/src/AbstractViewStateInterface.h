@@ -32,6 +32,9 @@ public:
 
     /// gets the current view frustum for rendering the view state
     virtual ViewFrustum* getCurrentViewFrustum() = 0;
+    
+    /// gets the shadow view frustum for rendering the view state
+    virtual ViewFrustum* getShadowViewFrustum() = 0;
 
     virtual bool getShadowsEnabled() = 0;
     virtual bool getCascadeShadowsEnabled() = 0;

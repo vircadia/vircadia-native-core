@@ -44,6 +44,7 @@ void Light::setPosition(const Vec3& position) {
 }
 
 void Light::setOrientation(const glm::quat& orientation) {
+    setDirection(orientation * glm::vec3(0.0f, 0.0f, -1.0f));
     _transform.setRotation(orientation);
 }
 

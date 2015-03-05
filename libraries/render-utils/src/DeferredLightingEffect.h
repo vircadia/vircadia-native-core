@@ -24,7 +24,7 @@
 class AbstractViewStateInterface;
 class PostLightingRenderable;
 
-/// Handles deferred lighting for the bits that require it (voxels, metavoxels...)
+/// Handles deferred lighting for the bits that require it (voxels...)
 class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
     
@@ -57,15 +57,12 @@ public:
     void renderSolidCone(float base, float height, int slices, int stacks);
     
     /// Adds a point light to render for the current frame.
-    void addPointLight(const glm::vec3& position, float radius, const glm::vec3& ambient = glm::vec3(0.0f, 0.0f, 0.0f),
-        const glm::vec3& diffuse = glm::vec3(1.0f, 1.0f, 1.0f), const glm::vec3& specular = glm::vec3(1.0f, 1.0f, 1.0f),
-        float constantAttenuation = 1.0f, float linearAttenuation = 0.0f, float quadraticAttenuation = 0.0f);
+    void addPointLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(0.0f, 0.0f, 0.0f),
+        float intensity = 0.5f);
         
     /// Adds a spot light to render for the current frame.
-    void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& ambient = glm::vec3(0.0f, 0.0f, 0.0f),
-        const glm::vec3& diffuse = glm::vec3(1.0f, 1.0f, 1.0f), const glm::vec3& specular = glm::vec3(1.0f, 1.0f, 1.0f),
-        float constantAttenuation = 1.0f, float linearAttenuation = 0.0f, float quadraticAttenuation = 0.0f,
-        const glm::vec3& direction = glm::vec3(0.0f, 0.0f, -1.0f), float exponent = 0.0f, float cutoff = PI);
+    void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
+        float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
     /// Adds an object to render after performing the deferred lighting for the current frame (e.g., a translucent object).
     void addPostLightingRenderable(PostLightingRenderable* renderable) { _postLightingRenderables.append(renderable); }

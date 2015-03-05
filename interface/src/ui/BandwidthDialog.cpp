@@ -86,12 +86,10 @@ BandwidthDialog::BandwidthDialog(QWidget* parent) :
         new BandwidthChannelDisplay({NodeType::EntityServer}, form, "Octree", "Kbps", 1.0, COLOR2);
     _allChannelDisplays[3] = _octreeChannelDisplay =
         new BandwidthChannelDisplay({NodeType::DomainServer}, form, "Domain", "Kbps", 1.0, COLOR2);
-    _allChannelDisplays[4] = _metavoxelsChannelDisplay =
-        new BandwidthChannelDisplay({NodeType::MetavoxelServer, NodeType::EnvironmentServer}, form, "Metavoxels", "Kbps", 1.0, COLOR2);
-    _allChannelDisplays[5] = _otherChannelDisplay =
+    _allChannelDisplays[4] = _otherChannelDisplay =
         new BandwidthChannelDisplay({NodeType::Unassigned}, form, "Other", "Kbps", 1.0, COLOR2);
-    _allChannelDisplays[6] = _totalChannelDisplay =
-        new BandwidthChannelDisplay({NodeType::DomainServer, NodeType::EntityServer, NodeType::MetavoxelServer,
+    _allChannelDisplays[5] = _totalChannelDisplay =
+        new BandwidthChannelDisplay({NodeType::DomainServer, NodeType::EntityServer,
                                          NodeType::EnvironmentServer, NodeType::AudioMixer, NodeType::Agent,
                                          NodeType::AvatarMixer, NodeType::Unassigned},
                                     form, "Total", "Kbps", 1.0, COLOR2);

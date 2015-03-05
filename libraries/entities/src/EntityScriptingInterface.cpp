@@ -19,6 +19,8 @@ EntityScriptingInterface::EntityScriptingInterface() :
     _nextCreatorTokenID(0),
     _entityTree(NULL)
 {
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::canAdjustLocksChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,

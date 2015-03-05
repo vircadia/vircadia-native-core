@@ -21,13 +21,28 @@ namespace gpu {
 class GPUObject {
 public:
     GPUObject() {}
-    ~GPUObject() {}
+    virtual ~GPUObject() {}
 };
 
 class Batch;
 
 class Backend {
 public:
+
+    class TransformObject {
+    public:
+        Mat4 _model;
+        Mat4 _modelInverse;
+    };
+
+    class TransformCamera {
+    public:
+        Mat4 _view;
+        Mat4 _viewInverse;
+        Mat4 _projectionViewUntranslated;
+        Mat4 _projection;
+        Vec4 _viewport;
+    };
 
     template< typename T >
     static void setGPUObject(const Buffer& buffer, T* bo) {

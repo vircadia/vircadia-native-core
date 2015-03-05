@@ -31,7 +31,7 @@ public:
         AgentType,
         UNUSED_0,
         UNUSED_1,
-        MetavoxelServerType,
+        UNUSED_2,
         EntityServerType,
         AllTypes
     };

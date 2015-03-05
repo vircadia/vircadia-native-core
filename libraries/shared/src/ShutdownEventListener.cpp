@@ -35,6 +35,7 @@ ShutdownEventListener::ShutdownEventListener(QObject* parent) :
 #ifndef Q_OS_WIN
     // be a signal handler for SIGTERM so we can stop our children when we get it
     signal(SIGTERM, signalHandler);
+    signal(SIGINT, signalHandler);
 #endif
 }
 

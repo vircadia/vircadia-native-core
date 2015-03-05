@@ -31,15 +31,16 @@ class Visage : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    void init();
+#ifdef HAVE_VISAGE
+    virtual void init();
+    virtual void update(float deltaTime);
+    virtual void reset();
     
-    bool isActive() const { return _active; }
-    
-    void update();
-    void reset();
+    virtual bool isActive() const { return _tracker->getTrackingData(_data) == TRACK_STAT_OK; }
+    virtual bool isTracking() const { return isActive(); }
+#endif
 
 public slots:
-
     void updateEnabled();
     
 private:
@@ -55,7 +56,6 @@ private:
     void setEnabled(bool enabled);
     
     bool _enabled;
-    bool _active;
 
     glm::vec3 _headOrigin;
 };

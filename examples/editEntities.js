@@ -81,6 +81,8 @@ var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 
+var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
+
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
@@ -177,25 +179,29 @@ var toolBar = (function () {
 
     that.setActive = function(active) {
         if (active != isActive) {
-            isActive = active;
-            if (!isActive) {
-                entityListTool.setVisible(false);
-                gridTool.setVisible(false);
-                grid.setEnabled(false);
-                propertiesTool.setVisible(false);
-                selectionManager.clearSelections();
-                cameraManager.disable();
+            if (active && !Entities.canAdjustLocks()) {
+                Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
-                hasShownPropertiesTool = false;
-                cameraManager.enable();
-                entityListTool.setVisible(true);
-                gridTool.setVisible(true);
-                grid.setEnabled(true);
-                propertiesTool.setVisible(true);
-                Window.setFocus();
+                isActive = active;
+                if (!isActive) {
+                    entityListTool.setVisible(false);
+                    gridTool.setVisible(false);
+                    grid.setEnabled(false);
+                    propertiesTool.setVisible(false);
+                    selectionManager.clearSelections();
+                    cameraManager.disable();
+                } else {
+                    hasShownPropertiesTool = false;
+                    cameraManager.enable();
+                    entityListTool.setVisible(true);
+                    gridTool.setVisible(true);
+                    grid.setEnabled(true);
+                    propertiesTool.setVisible(true);
+                    Window.setFocus();
+                }
             }
         }
-        toolBar.selectTool(activeButton, active);
+        toolBar.selectTool(activeButton, isActive);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -398,6 +404,12 @@ var toolBar = (function () {
 
     Window.domainChanged.connect(function() {
         that.setActive(false);
+    });
+
+    Entities.canAdjustLocksChanged.connect(function(canAdjustLocks) {
+        if (isActive && !canAdjustLocks) {
+            that.setActive(false);
+        }
     });
 
     that.cleanup = function () {
@@ -934,24 +946,37 @@ PropertiesTool = function(opts) {
         data = {
             type: 'update',
         };
-        if (selectionManager.hasSelection()) {
-            data.id = selectionManager.selections[0].id;
-            data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
-            data.properties.rotation = Quat.safeEulerAngles(data.properties.rotation);
+        var selections = [];
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entity = {};
+            entity.id = selectionManager.selections[i].id;
+            entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
+            entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            selections.push(entity);
         }
+        data.selections = selections;
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
     webView.eventBridge.webEventReceived.connect(function(data) {
-        print(data);
         data = JSON.parse(data);
         if (data.type == "update") {
             selectionManager.saveProperties();
-            if (data.properties.rotation !== undefined) {
-                var rotation = data.properties.rotation;
-                data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+            if (selectionManager.selections.length > 1) {
+                properties = {
+                    locked: data.properties.locked,
+                    visible: data.properties.visible,
+                };
+                for (var i = 0; i < selectionManager.selections.length; i++) {
+                    Entities.editEntity(selectionManager.selections[i], properties);
+                }
+            } else {
+                if (data.properties.rotation !== undefined) {
+                    var rotation = data.properties.rotation;
+                    data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+                }
+                Entities.editEntity(selectionManager.selections[0], data.properties);
             }
-            Entities.editEntity(selectionManager.selections[0], data.properties);
             pushCommandForSelections();
             selectionManager._update();
         } else if (data.type == "action") {

@@ -201,7 +201,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     // construct the instance of the entity
     EntityTypes::EntityType type = properties.getType();
     result = EntityTypes::constructEntityItem(type, entityID, properties);
-
+    
     if (result) {
         if (recordCreationTime) {
             result->recordCreationTime();

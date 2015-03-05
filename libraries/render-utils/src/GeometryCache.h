@@ -134,10 +134,10 @@ public:
 
     void renderCone(float base, float height, int slices, int stacks);
 
-    void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true) 
-                { renderSphere(radius, slices, stacks, glm::vec4(color, 1.0f), solid); }
+    void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
+                { renderSphere(radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
                 
-    void renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid = true);
+    void renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid = true, int id = UNKNOWN_ID);
     void renderGrid(int xDivisions, int yDivisions, const glm::vec4& color);
     void renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
     void renderSolidCube(float size, const glm::vec4& color);
@@ -290,10 +290,15 @@ private:
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
 
     QHash<Vec2Pair, gpu::BufferPointer> _sphereVertices;
+    QHash<int, gpu::BufferPointer> _registeredSphereVertices;
+    QHash<int, Vec2Pair> _lastRegisteredSphereVertices;
     QHash<IntPair, gpu::BufferPointer> _sphereIndices;
+    QHash<int, gpu::BufferPointer> _registeredSphereIndices;
+    QHash<int, IntPair> _lastRegisteredSphereIndices;
     QHash<Vec3Pair, gpu::BufferPointer> _sphereColors;
-    
-    
+    QHash<int, gpu::BufferPointer> _registeredSphereColors;
+    QHash<int, Vec3Pair> _lastRegisteredSphereColors;
+
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
 };
 
