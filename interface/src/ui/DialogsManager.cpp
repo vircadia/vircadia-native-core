@@ -160,6 +160,7 @@ void DialogsManager::showMetavoxelNetworkSimulator() {
 
 void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
+    _scriptEditor->show();
     _scriptEditor->raise();
 }
 
