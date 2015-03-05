@@ -420,8 +420,6 @@ var toolBar = (function () {
 }());
 
 
-var exportMenu = null;
-
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" &&
@@ -749,9 +747,6 @@ Script.scriptEnding.connect(function() {
     tooltip.cleanup();
     modelImporter.cleanup();
     selectionDisplay.cleanup();
-    if (exportMenu) {
-        exportMenu.close();
-    }
     Entities.setLightsArePickable(originalLightsArePickable);
 });
 
@@ -796,15 +791,40 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
     } else if (menuItem == "Export Models") {
-        if (!exportMenu) {
-            exportMenu = new ExportMenu({
-                onClose: function () {
-                    exportMenu = null;
+        if (!selectionManager.hasSelection()) {
+            Window.alert("No entities have been selected.");
+        } else {
+            var filename = "models__" + Window.location.hostname + "__.svo";
+            filename = Window.save("Select where to save", filename, "*.svo")
+            if (filename) {
+                var success = Clipboard.exportEntities(filename, selectionManager.selections);
+                if (!success) {
+                    Window.alert("Export failed.");
                 }
-            });
+            }
         }
     } else if (menuItem == "Import Models") {
-        modelImporter.doImport();
+        var filename = Window.browse("Select models to import", "", "*.svo")
+        if (filename) {
+            var success = Clipboard.importEntities(filename);
+
+            if (success) {
+                var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+                var direction = Quat.getFront(Camera.orientation);
+                var offset = Vec3.multiply(distance, direction);
+                var position = Vec3.sum(Camera.position, offset);
+
+                position.x = Math.max(0, position.x);
+                position.y = Math.max(0, position.y);
+                position.z = Math.max(0, position.z);
+
+                var pastedEntityIDs = Clipboard.pasteEntities(position);
+
+                selectionManager.setSelections(pastedEntityIDs);
+            } else {
+                Window.alert("There was an error importing the entity file.");
+            }
+        }
     } else if (menuItem == "Entity List...") {
         entityListTool.toggleVisible();
     }

@@ -219,6 +219,5 @@ ExportMenu = function (opts) {
         Overlays.deleteOverlay(scaleView);
     };
 
-    print("CONNECTING!");
     Controller.mouseReleaseEvent.connect(this.mouseReleaseEvent);
 };
