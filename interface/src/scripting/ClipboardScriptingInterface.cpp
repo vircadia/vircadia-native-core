@@ -26,6 +26,6 @@ bool ClipboardScriptingInterface::importEntities(const QString& filename) {
     return Application::getInstance()->importEntities(filename);
 }
 
-QVector<EntityItemID> ClipboardScriptingInterface::pasteEntities(float x, float y, float z, float s) {
-    return Application::getInstance()->pasteEntities(x, y, z);
+QVector<EntityItemID> ClipboardScriptingInterface::pasteEntities(glm::vec3 position) {
+    return Application::getInstance()->pasteEntities(position.x, position.y, position.z);
 }
