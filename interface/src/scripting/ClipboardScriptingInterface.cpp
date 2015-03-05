@@ -14,6 +14,10 @@
 ClipboardScriptingInterface::ClipboardScriptingInterface() {
 }
 
+bool ClipboardScriptingInterface::exportEntities(const QString& filename, QStringList entityIDs) {
+    return Application::getInstance()->exportEntities(filename, entityIDs);
+}
+
 bool ClipboardScriptingInterface::exportEntities(const QString& filename, float x, float y, float z, float s) {
     return Application::getInstance()->exportEntities(filename, x, y, z, s);
 }
