@@ -515,7 +515,8 @@ public:
 
 bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
     FindEntitiesInCubeArgs* args = static_cast<FindEntitiesInCubeArgs*>(extraData);
-    const AACube& elementCube = element->getAACube();
+    AACube elementCube = element->getAACube();
+    elementCube *= (float)TREE_SCALE;
     if (elementCube.touches(args->_cube)) {
         EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
         entityTreeElement->getEntities(args->_cube, args->_foundEntities);

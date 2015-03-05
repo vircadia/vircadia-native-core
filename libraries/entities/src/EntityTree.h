@@ -112,7 +112,7 @@ public:
     void findEntitiesInMeters(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
 
     /// finds all entities that touch a cube
-    /// \param cube the query cube
+    /// \param cube the query cube in world-frame (meters)
     /// \param foundEntities[out] vector of non-const EntityItem*
     /// \remark Side effect: any initial contents in entities will be lost
     void findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities);

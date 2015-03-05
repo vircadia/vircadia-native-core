@@ -1642,8 +1642,7 @@ void Application::setActiveFaceTracker() {
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
-    _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
-                                y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), entities);
+    _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
         glm::vec3 root(x, y, z);
