@@ -20,6 +20,7 @@
 #include "AttachmentsDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
+#include "DiskCacheEditor.h"
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
@@ -35,6 +36,11 @@ void DialogsManager::toggleAddressBar() {
     if (!_addressBarDialog->isVisible()) {
         _addressBarDialog->show();
     }
+}
+
+void DialogsManager::toggleDiskCacheEditor() {
+    maybeCreateDialog(_diskCacheEditor);
+    _diskCacheEditor->toggle();
 }
 
 void DialogsManager::toggleLoginDialog() {
@@ -61,7 +67,6 @@ void DialogsManager::octreeStatsDetails() {
 }
 
 void DialogsManager::cachesSizeDialog() {
-    qDebug() << "Caches size:" << _cachesSizeDialog.isNull();
     if (!_cachesSizeDialog) {
         maybeCreateDialog(_cachesSizeDialog);
         
