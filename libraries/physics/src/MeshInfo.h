@@ -16,18 +16,18 @@
 using namespace std;
 namespace meshinfo{
     typedef glm::vec3 Vertex;
-	class MeshInfo{
-	private:
-		inline float getVolume(const Vertex p1, const Vertex p2, const Vertex p3, const Vertex p4) const;
-		vector<float> computeVolumeAndInertia(const Vertex p1, const Vertex p2, const Vertex p3, const Vertex p4) const;
+    class MeshInfo{
+    private:
+        inline float getVolume(const Vertex p1, const Vertex p2, const Vertex p3, const Vertex p4) const;
+        vector<float> computeVolumeAndInertia(const Vertex p1, const Vertex p2, const Vertex p3, const Vertex p4) const;
     public:
-		vector<Vertex> *_vertices;
-		Vertex _centerOfMass;
-		vector<int> *_triangles;
+        vector<Vertex> *_vertices;
+        Vertex _centerOfMass;
+        vector<int> *_triangles;
         MeshInfo(vector<Vertex> *vertices, vector<int> *triangles);
         ~MeshInfo();
-		inline Vertex getCentroid(const Vertex p1, const Vertex p2, const Vertex p3, const Vertex p4) const;
-		Vertex getMeshCentroid() const;
+        inline Vertex getCentroid(const Vertex p1, const Vertex p2, const Vertex p3, const Vertex p4) const;
+        Vertex getMeshCentroid() const;
         vector<float> computeMassProperties();		
     };
 }
