@@ -221,12 +221,12 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
-        APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, getPositionInMeters());
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, getDimensionsInMeters()); // NOTE: PROP_RADIUS obsolete
+        APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, getPosition());
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, getDimensions()); // NOTE: PROP_RADIUS obsolete
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
         APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, getDensity());
-        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocityInMeters());
-        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravityInMeters());
+        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
@@ -503,7 +503,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += propertyFlags.getEncodedLength();
         bool useMeters = (args.bitstreamVersion == VERSION_ENTITIES_USE_METERS);
         if (useMeters) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePositionInMeters);
+            READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePosition);
         } else {
             READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePositionInDomainUnits);
         }
@@ -521,7 +521,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         } else {
             if (useMeters) {
-                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, setDimensionsInMeters);
+                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, setDimensions);
             } else {
                 READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, setDimensionsInDomainUnits);
             }
@@ -530,8 +530,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
         READ_ENTITY_PROPERTY_SETTER(PROP_DENSITY, float, updateDensity);
         if (useMeters) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocityInMeters);
-            READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravityInMeters);
+            READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
+            READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         } else {
             READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
             READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
@@ -726,7 +726,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
 
     if (hasVelocity()) {
         // linear damping
-        glm::vec3 velocity = getVelocityInMeters();
+        glm::vec3 velocity = getVelocity();
         if (_damping > 0.0f) {
             velocity *= powf(1.0f - _damping, timeElapsed);
             #ifdef WANT_DEBUG
@@ -738,7 +738,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         }
 
         // integrate position forward
-        glm::vec3 position = getPositionInMeters();
+        glm::vec3 position = getPosition();
         glm::vec3 newPosition = position + (velocity * timeElapsed);
 
         #ifdef WANT_DEBUG
@@ -758,19 +758,19 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         if (hasGravity()) { 
             // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
             // "ground" plane of the domain, but for now it's what we've got
-            velocity += getGravityInMeters() * timeElapsed;
+            velocity += getGravity() * timeElapsed;
         }
 
         float speed = glm::length(velocity);
         const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
         if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
-            setVelocityInMeters(ENTITY_ITEM_ZERO_VEC3);
+            setVelocity(ENTITY_ITEM_ZERO_VEC3);
             if (speed > 0.0f) {
                 _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
             }
         } else {
-            setPositionInMeters(position);
-            setVelocityInMeters(velocity);
+            setPosition(position);
+            setVelocity(velocity);
         }
 
         #ifdef WANT_DEBUG
@@ -795,7 +795,6 @@ quint64 EntityItem::getExpiry() const {
 }
 
 EntityItemProperties EntityItem::getProperties() const {
-    std::cout << "adebug EntityItem::getProperties" << std::endl;  // adebug
     EntityItemProperties properties;
     properties._id = getID();
     properties._idSet = true;
@@ -803,12 +802,12 @@ EntityItemProperties EntityItem::getProperties() const {
 
     properties._type = getType();
     
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPositionInMeters);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensionsInMeters); // NOTE: radius is obsolete
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPosition);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocityInMeters);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravityInMeters);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
@@ -825,19 +824,18 @@ EntityItemProperties EntityItem::getProperties() const {
 
     properties._defaultSettings = false;
     
-    std::cout << "adebug about to delete properties" << std::endl;  // adebug
     return properties;
 }
 
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePositionInMeters); // this will call recalculate collision shape if needed
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensionsInMeters); // NOTE: radius is obsolete
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePosition); // this will call recalculate collision shape if needed
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensions); // NOTE: radius is obsolete
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, updateDensity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocityInMeters);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -900,7 +898,7 @@ void EntityItem::recordCreationTime() {
 
 
 // TODO: doesn't this need to handle rotation?
-glm::vec3 EntityItem::getCenterInMeters() const {
+glm::vec3 EntityItem::getCenter() const {
     return _position + (_dimensions * (glm::vec3(0.5f,0.5f,0.5f) - _registrationPoint));
 }
 
@@ -957,7 +955,7 @@ AACube EntityItem::getMinimumAACube() const {
     return AACube(cornerOfCube, longestSide);
 }
 
-AABox EntityItem::getAABoxInMeters() const {
+AABox EntityItem::getAABox() const {
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
     
@@ -973,8 +971,8 @@ AABox EntityItem::getAABoxInMeters() const {
 }
 
 AABox EntityItem::getAABoxInDomainUnits() const { 
-    AABox box = getAABoxInMeters();
-    box *= 1.0f / (float)TREE_SCALE;
+    AABox box = getAABox();
+    box.scale(1.0f / (float)TREE_SCALE);
     return box;
 }
 
@@ -1001,12 +999,12 @@ void EntityItem::setRadius(float value) {
 //    ... radius = cornerToCornerLength / 2.0f
 //    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
 //    ... radius = sqrt(3 x maxDimension ^ 2) / 2.0f;
-float EntityItem::getRadiusInMeters() const { 
+float EntityItem::getRadius() const { 
     return 0.5f * glm::length(_dimensions);
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) const {
-    info.setParams(getShapeType(), 0.5f * getDimensionsInMeters());
+    info.setParams(getShapeType(), 0.5f * getDimensions());
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;
@@ -1019,27 +1017,25 @@ const float MIN_SPIN_DELTA = 0.0003f;
 
 void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) { 
     glm::vec3 position = value * (float)TREE_SCALE;
-    updatePositionInMeters(position);
+    updatePosition(position);
 }
 
-void EntityItem::updatePositionInMeters(const glm::vec3& value) { 
+void EntityItem::updatePosition(const glm::vec3& value) { 
     if (glm::distance(_position, value) > MIN_POSITION_DELTA) {
         _position = value;
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
-        std::cout << "adebug updatePositionInMeters = " << _position << std::endl;  // adebug
     }
 }
 
 void EntityItem::updateDimensionsInDomainUnits(const glm::vec3& value) { 
     glm::vec3 dimensions = value * (float)TREE_SCALE;
-    updateDimensionsInMeters(dimensions);
+    updateDimensions(dimensions);
 }
 
-void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
+void EntityItem::updateDimensions(const glm::vec3& value) { 
     if (glm::distance(_dimensions, value) > MIN_DIMENSIONS_DELTA) {
         _dimensions = value;
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
-        std::cout << "adebug updateDimensionsInMeters = " << value << std::endl;  // adebug
     }
 }
 
@@ -1076,10 +1072,10 @@ void EntityItem::updateMass(float mass) {
 
 void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
     glm::vec3 velocity = value * (float)TREE_SCALE;
-    updateVelocityInMeters(velocity);
+    updateVelocity(velocity);
 }
 
-void EntityItem::updateVelocityInMeters(const glm::vec3& value) { 
+void EntityItem::updateVelocity(const glm::vec3& value) { 
     if (glm::distance(_velocity, value) > MIN_VELOCITY_DELTA) {
         if (glm::length(value) < MIN_VELOCITY_DELTA) {
             _velocity = ENTITY_ITEM_ZERO_VEC3;
@@ -1099,10 +1095,10 @@ void EntityItem::updateDamping(float value) {
 
 void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) { 
     glm::vec3 gravity = value * (float) TREE_SCALE;
-    updateGravityInMeters(gravity);
+    updateGravity(gravity);
 }
 
-void EntityItem::updateGravityInMeters(const glm::vec3& value) { 
+void EntityItem::updateGravity(const glm::vec3& value) { 
     if ( glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
         _gravity = value;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;

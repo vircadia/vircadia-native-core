@@ -42,7 +42,7 @@ void OctreeFade::render() {
 
     glDisable(GL_LIGHTING);
     glPushMatrix();
-    glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+    glScalef(1.0f, 1.0f, 1.0f);
     glTranslatef(voxelDetails.x + voxelDetails.s * 0.5f,
                  voxelDetails.y + voxelDetails.s * 0.5f,
                  voxelDetails.z + voxelDetails.s * 0.5f);

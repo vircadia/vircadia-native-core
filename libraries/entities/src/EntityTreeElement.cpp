@@ -22,15 +22,9 @@ EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement()
 };
 
 EntityTreeElement::~EntityTreeElement() {
-    int bar = 0;
     _octreeMemoryUsage -= sizeof(EntityTreeElement);
-    bar = 1;
-    std::cout << "adebug EntityTreeElement " << (void*)(this) << " deletes old entityItems = " << (void*)(_entityItems) << std::endl;  // adebug
     delete _entityItems;
-    bar = 2;
     _entityItems = NULL;
-    bar = 3;
-    std::cout << "adebug bar = " << bar << std::endl;  // adebug
 }
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
@@ -45,7 +39,6 @@ OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
 void EntityTreeElement::init(unsigned char* octalCode) {
     OctreeElement::init(octalCode);
     _entityItems = new QList<EntityItem*>;
-    std::cout << "adebug EntityTreeElement " << (void*)(this) << " gets new entityItems = " << (void*)(_entityItems) << std::endl;  // adebug
     _octreeMemoryUsage += sizeof(EntityTreeElement);
 }
 
@@ -57,7 +50,7 @@ EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
 
 void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) const { 
     qDebug() << "EntityTreeElement::debugExtraEncodeData()... ";
-    qDebug() << "    element:" << getAACube();
+    qDebug() << "    element:" << _cube;
 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
@@ -166,7 +159,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     const bool wantDebug = false;
     
     if (wantDebug) {
-        qDebug() << "EntityTreeElement::elementEncodeComplete() element:" << getAACube();
+        qDebug() << "EntityTreeElement::elementEncodeComplete() element:" << _cube;
     }
 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
@@ -201,7 +194,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
                                 = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement));
                                 
                 if (wantDebug) {
-                    qDebug() << "checking child: " << childElement->getAACube();
+                    qDebug() << "checking child: " << childElement->_cube;
                     qDebug() << "    childElement->isLeaf():" << childElement->isLeaf();
                     qDebug() << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
                     qDebug() << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
@@ -222,7 +215,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     }
 
     if (wantDebug) {
-        qDebug() << "for this element: " << getAACube();
+        qDebug() << "for this element: " << _cube;
         qDebug() << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
         qDebug() << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
     }
@@ -309,7 +302,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 // the entity may not be in view and then in view a frame later, let the client side handle it's view
                 // frustum culling on rendering.
                 AACube entityCube = entity->getMaximumAACube();
-                entityCube.scale(TREE_SCALE);
                 if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                     includeThisEntity = false; // out of view, don't include it
                 }
@@ -448,14 +440,14 @@ bool EntityTreeElement::bestFitBounds(const AABox& bounds) const {
 }
 
 bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
+    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, (float)TREE_SCALE);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, (float)TREE_SCALE);
     return _cube.contains(clampedMin) && _cube.contains(clampedMax);
 }
 
 bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
+    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, (float)TREE_SCALE);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, (float)TREE_SCALE);
 
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         
@@ -476,7 +468,7 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-bool EntityTreeElement::findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
+bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
@@ -492,7 +484,7 @@ bool EntityTreeElement::findDetailedRayIntersectionInMeters(const glm::vec3& ori
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
         
-        AABox entityBox = entity->getAABoxInMeters();
+        AABox entityBox = entity->getAABox();
         float localDistance;
         BoxFace localFace;
 
@@ -501,11 +493,11 @@ bool EntityTreeElement::findDetailedRayIntersectionInMeters(const glm::vec3& ori
 
             // extents is the entity relative, scaled, centered extents of the entity
             glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-            glm::mat4 translation = glm::translate(entity->getPositionInMeters());
+            glm::mat4 translation = glm::translate(entity->getPosition());
             glm::mat4 entityToWorldMatrix = translation * rotation;
             glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-            glm::vec3 dimensions = entity->getDimensionsInMeters();
+            glm::vec3 dimensions = entity->getDimensions();
             glm::vec3 registrationPoint = entity->getRegistrationPoint();
             glm::vec3 corner = -(dimensions * registrationPoint);
 
@@ -520,7 +512,7 @@ bool EntityTreeElement::findDetailedRayIntersectionInMeters(const glm::vec3& ori
                 if (localDistance < distance) {
                     // now ask the entity if we actually intersect
                     if (entity->supportsDetailedRayIntersection()) {
-                        if (entity->findDetailedRayIntersectionInMeters(origin, direction, keepSearching, element, localDistance, 
+                        if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance, 
                                                                     localFace, intersectedObject, precisionPicking)) {
     
                             if (localDistance < distance) {
@@ -556,8 +548,8 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
     QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
-        glm::vec3 entityCenter = entity->getPositionInMeters();
-        float entityRadius = entity->getRadiusInMeters();
+        glm::vec3 entityCenter = entity->getPosition();
+        float entityRadius = entity->getRadius();
 
         // don't penetrate yourself
         if (entityCenter == center && entityRadius == radius) {
@@ -592,7 +584,7 @@ const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const 
     float closestEntityDistance = FLT_MAX;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        float distanceToEntity = glm::distance(position, (*_entityItems)[i]->getPositionInMeters());
+        float distanceToEntity = glm::distance(position, (*_entityItems)[i]->getPosition());
         if (distanceToEntity < closestEntityDistance) {
             closestEntity = (*_entityItems)[i];
         }
@@ -605,8 +597,8 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         const EntityItem* entity = (*_entityItems)[i];
-        float distance = glm::length(entity->getPositionInMeters() - searchPosition);
-        if (distance < searchRadius + entity->getRadiusInMeters()) {
+        float distance = glm::length(entity->getPosition() - searchPosition);
+        if (distance < searchRadius + entity->getRadius()) {
             foundEntities.push_back(entity);
         }
     }
@@ -619,11 +611,11 @@ void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& fou
     AACube entityCube;
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
-        float radius = entity->getRadiusInMeters();
+        float radius = entity->getRadius();
         // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
         // TODO: decide whether to replace entityCube-cube query with sphere-cube (requires a square root
         // but will be slightly more accurate).
-        entityCube.setBox(entity->getPositionInMeters() - glm::vec3(radius), 2.0f * radius);
+        entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.0f * radius);
         if (entityCube.touches(box)) {
             foundEntities.push_back(entity);
         }
@@ -830,9 +822,7 @@ bool EntityTreeElement::pruneChildren() {
 
 void EntityTreeElement::debugDump() {
     qDebug() << "EntityTreeElement...";
-    AACube temp = getAACube();
-    temp.scale((float)TREE_SCALE);
-    qDebug() << "    cube:" << temp;
+    qDebug() << "    cube:" << _cube;
     qDebug() << "    has child elements:" << getChildCount();
     if (_entityItems->size()) {
         qDebug() << "    has entities:" << _entityItems->size();

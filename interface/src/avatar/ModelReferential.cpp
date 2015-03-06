@@ -31,9 +31,9 @@ ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, A
     
     const EntityItem* item = _tree->findEntityByID(_entityID);
     if (item != NULL) {
-        _lastRefDimension = item->getDimensionsInMeters();
+        _lastRefDimension = item->getDimensions();
         _refRotation = item->getRotation();
-        _refPosition = item->getPositionInMeters();
+        _refPosition = item->getPosition();
         update();
     }
 }
@@ -50,9 +50,9 @@ ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, Avat
         return;
     }
     
-    _lastRefDimension = item->getDimensionsInMeters();
+    _lastRefDimension = item->getDimensions();
     _refRotation = item->getRotation();
-    _refPosition = item->getPositionInMeters();
+    _refPosition = item->getPosition();
     
     glm::quat refInvRot = glm::inverse(_refRotation);
     _rotation = refInvRot * _avatar->getOrientation();
@@ -66,9 +66,9 @@ void ModelReferential::update() {
     }
     
     bool somethingChanged = false;
-    if (item->getDimensionsInMeters() != _lastRefDimension) {
+    if (item->getDimensions() != _lastRefDimension) {
         glm::vec3 oldDimension = _lastRefDimension;
-        _lastRefDimension = item->getDimensionsInMeters();
+        _lastRefDimension = item->getDimensions();
         _translation *= _lastRefDimension / oldDimension;
         somethingChanged = true;
     }
@@ -77,8 +77,8 @@ void ModelReferential::update() {
         _avatar->setOrientation(_refRotation * _rotation, true);
         somethingChanged = true;
     }
-    if (item->getPositionInMeters() != _refPosition || somethingChanged) {
-        _refPosition = item->getPositionInMeters();
+    if (item->getPosition() != _refPosition || somethingChanged) {
+        _refPosition = item->getPosition();
         _avatar->setPosition(_refPosition + _refRotation * _translation, true);
     }
 }
@@ -107,7 +107,7 @@ JointReferential::JointReferential(Referential* referential, EntityTree* tree, A
     const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
-        _lastRefDimension = item->getDimensionsInMeters();
+        _lastRefDimension = item->getDimensions();
         model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
         model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
     }
@@ -127,7 +127,7 @@ JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, E
         return;
     }
     
-    _lastRefDimension = item->getDimensionsInMeters();
+    _lastRefDimension = item->getDimensions();
     model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
     model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
     
@@ -145,9 +145,9 @@ void JointReferential::update() {
     }
     
     bool somethingChanged = false;
-    if (item->getDimensionsInMeters() != _lastRefDimension) {
+    if (item->getDimensions() != _lastRefDimension) {
         glm::vec3 oldDimension = _lastRefDimension;
-        _lastRefDimension = item->getDimensionsInMeters();
+        _lastRefDimension = item->getDimensions();
         _translation *= _lastRefDimension / oldDimension;
         somethingChanged = true;
     }
@@ -156,7 +156,7 @@ void JointReferential::update() {
         _avatar->setOrientation(_refRotation * _rotation, true);
         somethingChanged = true;
     }
-    if (item->getPositionInMeters() != _refPosition || somethingChanged) {
+    if (item->getPosition() != _refPosition || somethingChanged) {
         model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
         _avatar->setPosition(_refPosition + _refRotation * _translation, true);
     }

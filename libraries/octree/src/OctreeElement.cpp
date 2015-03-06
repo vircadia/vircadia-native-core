@@ -194,14 +194,14 @@ void OctreeElement::setShouldRender(bool shouldRender) {
 }
 
 void OctreeElement::calculateAACube() {
-    glm::vec3 corner;
-
     // copy corner into cube
-    copyFirstVertexForCode(getOctalCode(),(float*)&corner);
+    glm::vec3 corner;
+    copyFirstVertexForCode(getOctalCode(), (float*)&corner);
 
     // this tells you the "size" of the voxel
-    float voxelScale = 1 / powf(2, numberOfThreeBitSectionsInCode(getOctalCode()));
-    _cube.setBox(corner,voxelScale);
+    float voxelScale = (float)TREE_SCALE / powf(2.0f, numberOfThreeBitSectionsInCode(getOctalCode()));
+    corner *= (float)TREE_SCALE;
+    _cube.setBox(corner, voxelScale);
 }
 
 void OctreeElement::deleteChildAtIndex(int childIndex) {
@@ -1221,9 +1221,7 @@ float OctreeElement::getEnclosingRadius() const {
 }
 
 ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) const {
-    AACube cube = _cube; // use temporary cube so we can scale it
-    cube.scale(TREE_SCALE);
-    return viewFrustum.cubeInFrustum(cube);
+    return viewFrustum.cubeInFrustum(_cube);
 }
 
 // There are two types of nodes for which we want to "render"
@@ -1257,16 +1255,13 @@ bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float 
 // does as much math as possible in voxel scale and then scales up to TREE_SCALE at end
 float OctreeElement::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
     glm::vec3 furthestPoint;
-    AACube cube = getAACube();
-    cube.scale((float)TREE_SCALE);
-    viewFrustum.getFurthestPointFromCamera(cube, furthestPoint);
+    viewFrustum.getFurthestPointFromCamera(_cube, furthestPoint);
     glm::vec3 temp = viewFrustum.getPosition() - furthestPoint;
-    float distanceToFurthestPoint = sqrtf(glm::dot(temp, temp));
-    return distanceToFurthestPoint;
+    return sqrtf(glm::dot(temp, temp));
 }
 
 float OctreeElement::distanceToCamera(const ViewFrustum& viewFrustum) const {
-    glm::vec3 center = _cube.calcCenter() * (float)TREE_SCALE;
+    glm::vec3 center = _cube.calcCenter();
     glm::vec3 temp = viewFrustum.getPosition() - center;
     float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
     return distanceToVoxelCenter;
@@ -1339,14 +1334,12 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 
     keepSearching = true; // assume that we will continue searching after this.
 
-    AACube cube = getAACube();
-    cube.scale((float)TREE_SCALE);
     float distanceToElementCube = std::numeric_limits<float>::max();
     float distanceToElementDetails = distance;
     BoxFace localFace;
 
     // if the ray doesn't intersect with our cube, we can stop searching!
-    if (!cube.findRayIntersection(origin, direction, distanceToElementCube, localFace)) {
+    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace)) {
         keepSearching = false; // no point in continuing to search
         return false; // we did not intersect
     }
@@ -1358,7 +1351,7 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 
     // if the distance to the element cube is not less than the current best distance, then it's not possible
     // for any details inside the cube to be closer so we don't need to consider them.
-    if (cube.contains(origin) || distanceToElementCube < distance) {
+    if (_cube.contains(origin) || distanceToElementCube < distance) {
 
         if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails, 
                                             face, intersectedObject, precisionPicking, distanceToElementCube)) {
@@ -1393,9 +1386,7 @@ bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const g
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
     // center and radius are in meters, so we have to scale the _cube into world-frame
-    AACube cube = _cube;
-    cube.scale((float)TREE_SCALE);
-    return cube.findSpherePenetration(center, radius, penetration);
+    return _cube.findSpherePenetration(center, radius, penetration);
 }
 
 // TODO: consider removing this, or switching to using getOrCreateChildElementContaining(const AACube& box)...
@@ -1532,15 +1523,15 @@ int OctreeElement::getMyChildContaining(const AACube& cube) const {
     if (cubeScale > ourScale) {
         qDebug() << "UNEXPECTED -- OctreeElement::getMyChildContaining() -- (cubeScale > ourScale)";
         qDebug() << "    cube=" << cube;
-        qDebug() << "    elements AACube=" << getAACube();
+        qDebug() << "    elements AACube=" << _cube;
         qDebug() << "    cubeScale=" << cubeScale;
         qDebug() << "    ourScale=" << ourScale;
         assert(false);
     }
 
     // Determine which of our children the minimum and maximum corners of the cube live in...
-    glm::vec3 cubeCornerMinimum = glm::clamp(cube.getCorner(), 0.0f, 1.0f);
-    glm::vec3 cubeCornerMaximum = glm::clamp(cube.calcTopFarLeft(), 0.0f, 1.0f);
+    glm::vec3 cubeCornerMinimum = glm::clamp(cube.getCorner(), 0.0f, (float)TREE_SCALE);
+    glm::vec3 cubeCornerMaximum = glm::clamp(cube.calcTopFarLeft(), 0.0f, (float)TREE_SCALE);
 
     if (_cube.contains(cubeCornerMinimum) && _cube.contains(cubeCornerMaximum)) {
         int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);

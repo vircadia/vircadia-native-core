@@ -22,7 +22,6 @@
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <ShapeInfo.h>
-#include <StreamUtils.h> // adebug
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
@@ -140,34 +139,33 @@ public:
     virtual void debugDump() const;
     
     virtual bool supportsDetailedRayIntersection() const { return false; }
-    virtual bool findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
     glm::vec3 getPositionInDomainUnits() const { return _position / (float)TREE_SCALE; } /// get position in domain scale units (0.0 - 1.0)
-    const glm::vec3& getPositionInMeters() const { return _position; } /// get position in meters
+    const glm::vec3& getPosition() const { return _position; } /// get position in meters
     
     /// set position in domain scale units (0.0 - 1.0)
     void setPositionInDomainUnits(const glm::vec3& value)
-            { setPositionInMeters(glm::clamp(value, 0.0f, 1.0f) * (float)TREE_SCALE); }
-    void setPositionInMeters(const glm::vec3& value) { 
+            { setPosition(glm::clamp(value, 0.0f, 1.0f) * (float)TREE_SCALE); }
+    void setPosition(const glm::vec3& value) { 
         _position = value; 
-        std::cout << "adebug setPosition = " << _position << std::endl;  // adebug
     }
 
-    glm::vec3 getCenterInDomainUnits() const { return getCenterInMeters() / (float) TREE_SCALE; }
-    glm::vec3 getCenterInMeters() const;
+    glm::vec3 getCenterInDomainUnits() const { return getCenter() / (float) TREE_SCALE; }
+    glm::vec3 getCenter() const;
 
     glm::vec3 getDimensionsInDomainUnits() const { return _dimensions / (float)TREE_SCALE; } /// get dimensions in domain scale units (0.0 - 1.0)
-    const glm::vec3& getDimensionsInMeters() const { return _dimensions; } /// get dimensions in meters
+    const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in meters
 
     /// set dimensions in domain scale units (0.0 - 1.0)
     virtual void setDimensionsInDomainUnits(const glm::vec3& value) { _dimensions = glm::abs(value) * (float)TREE_SCALE; }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE)
-    virtual void setDimensionsInMeters(const glm::vec3& value) { _dimensions = glm::abs(value); }
+    virtual void setDimensions(const glm::vec3& value) { _dimensions = glm::abs(value); }
 
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
@@ -185,15 +183,15 @@ public:
     float getDensity() const { return _density; }
 
     glm::vec3 getVelocityInDomainUnits() const { return _velocity / (float)TREE_SCALE; } /// velocity in domain scale units (0.0-1.0) per second
-    const glm::vec3 getVelocityInMeters() const { return _velocity; } /// get velocity in meters
+    const glm::vec3 getVelocity() const { return _velocity; } /// get velocity in meters
     void setVelocityInDomainUnits(const glm::vec3& value) { _velocity = value * (float)TREE_SCALE; } /// velocity in domain scale units (0.0-1.0) per second
-    void setVelocityInMeters(const glm::vec3& value) { _velocity = value; } /// velocity in meters
+    void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in meters
     bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
 
     glm::vec3 getGravityInDomainUnits() const { return _gravity / (float)TREE_SCALE; } /// gravity in domain scale units (0.0-1.0) per second squared
-    const glm::vec3& getGravityInMeters() const { return _gravity; } /// get gravity in meters
+    const glm::vec3& getGravity() const { return _gravity; } /// get gravity in meters
     void setGravityInDomainUnits(const glm::vec3& value) { _gravity = value * (float)TREE_SCALE; } /// gravity in domain scale units (0.0-1.0) per second squared
-    void setGravityInMeters(const glm::vec3& value) { _gravity = value; } /// gravity in meters
+    void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
     
     float getDamping() const { return _damping; }
@@ -217,7 +215,7 @@ public:
     // position, size, and bounds related helpers
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
-    AABox getAABoxInMeters() const; /// axis aligned bounding box in world-frame (meters)
+    AABox getAABox() const; /// axis aligned bounding box in world-frame (meters)
     AABox getAABoxInDomainUnits() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     const QString& getScript() const { return _script; }
@@ -254,9 +252,9 @@ public:
     void setUserData(const QString& value) { _userData = value; }
     
     // TODO: get rid of users of getRadius()... 
-    float getRadiusInMeters() const;
+    float getRadius() const;
     
-    virtual bool containsInMeters(const glm::vec3& point) const { return getAABoxInMeters().contains(point); }
+    virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     virtual bool containsInDomainUnits(const glm::vec3& point) const { return getAABoxInDomainUnits().contains(point); }
     virtual void computeShapeInfo(ShapeInfo& info) const;
 
@@ -265,17 +263,17 @@ public:
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePositionInDomainUnits(const glm::vec3& value);
-    void updatePositionInMeters(const glm::vec3& value);
+    void updatePosition(const glm::vec3& value);
     void updateDimensionsInDomainUnits(const glm::vec3& value);
-    void updateDimensionsInMeters(const glm::vec3& value);
+    void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);
     void updateVelocityInDomainUnits(const glm::vec3& value);
-    void updateVelocityInMeters(const glm::vec3& value);
+    void updateVelocity(const glm::vec3& value);
     void updateDamping(float value);
     void updateGravityInDomainUnits(const glm::vec3& value);
-    void updateGravityInMeters(const glm::vec3& value);
+    void updateGravity(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
     void updateAngularDamping(float value);
     void updateIgnoreForCollisions(bool value);

@@ -42,7 +42,7 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityIte
 
 const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
-void TextEntityItem::setDimensionsInMeters(const glm::vec3& value) {
+void TextEntityItem::setDimensions(const glm::vec3& value) {
     // NOTE: Text Entities always have a "depth" of 1cm.
     _dimensions = glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH); 
 }
@@ -128,7 +128,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 }
 
 
-bool TextEntityItem::findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
+bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {
                      
@@ -142,7 +142,7 @@ bool TextEntityItem::findDetailedRayIntersectionInMeters(const glm::vec3& origin
     const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
     glm::vec3 normal = _rotation * UNROTATED_NORMAL;
     plane.setNormal(normal);
-    plane.setPoint(getPositionInMeters()); // the position is definitely a point on our plane
+    plane.setPoint(getPosition()); // the position is definitely a point on our plane
 
     bool intersects = plane.findRayIntersection(rayInfo);
 
@@ -151,11 +151,11 @@ bool TextEntityItem::findDetailedRayIntersectionInMeters(const glm::vec3& origin
         // now we know the point the ray hit our plane
 
         glm::mat4 rotation = glm::mat4_cast(getRotation());
-        glm::mat4 translation = glm::translate(getPositionInMeters());
+        glm::mat4 translation = glm::translate(getPosition());
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-        glm::vec3 dimensions = getDimensionsInMeters();
+        glm::vec3 dimensions = getDimensions();
         glm::vec3 registrationPoint = getRegistrationPoint();
         glm::vec3 corner = -(dimensions * registrationPoint);
         AABox entityFrameBox(corner, dimensions);

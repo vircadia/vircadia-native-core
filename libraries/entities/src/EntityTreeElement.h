@@ -73,7 +73,6 @@ public:
 class EntityTreeElement : public OctreeElement {
     friend class EntityTree; // to allow createElement to new us...
 
-    EntityTreeElement();
     EntityTreeElement(unsigned char* octalCode = NULL);
 
     virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL);
@@ -136,7 +135,7 @@ public:
     virtual bool deleteApproved() const { return !hasEntities(); }
 
     virtual bool canRayIntersect() const { return hasEntities(); }
-    virtual bool findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 

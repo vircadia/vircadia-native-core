@@ -23,7 +23,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensionsInMeters(const glm::vec3& value);
+    virtual void setDimensions(const glm::vec3& value);
     virtual void setDimensionsInDomainUnits(const glm::vec3& value);
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
     
@@ -47,7 +47,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
     virtual bool supportsDetailedRayIntersection() const { return true; }
-    virtual bool findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
 

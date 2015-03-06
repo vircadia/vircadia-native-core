@@ -25,7 +25,7 @@ AddEntityOperator::AddEntityOperator(EntityTree* tree,
 {
     // caller must have verified existence of newEntity
     assert(_newEntity);
-    _newEntityBox = _newEntity->getMaximumAACube().clamp(0.0f, 1.0f);
+    _newEntityBox = _newEntity->getMaximumAACube().clamp(0.0f, (float)TREE_SCALE);
 }
 
 bool AddEntityOperator::preRecursion(OctreeElement* element) {
@@ -43,7 +43,7 @@ bool AddEntityOperator::preRecursion(OctreeElement* element) {
     if (!_foundNew && element->getAACube().contains(_newEntityBox)) {
 
         // If this element is the best fit for the new entity properties, then add/or update it
-        if (entityTreeElement->bestFitBounds(_newEntityBox)) {
+        if (entityTreeElement->bestFitBoundsInMeters(_newEntityBox)) {
 
             entityTreeElement->addEntityItem(_newEntity);
             _tree->setContainingElement(_newEntity->getEntityItemID(), entityTreeElement);

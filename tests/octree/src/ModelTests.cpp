@@ -66,17 +66,17 @@ void EntityTests::entityTreeTests(bool verbose) {
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenter, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
-        AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+        const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
             qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
             qDebug() << "foundEntityByID=" << foundEntityByID;
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
-                << elementCube.getCorner().x * TREE_SCALE << "," 
-                << elementCube.getCorner().y * TREE_SCALE << ","
-                << elementCube.getCorner().z * TREE_SCALE << ":" 
-                << elementCube.getScale() * TREE_SCALE;
+                << elementCube.getCorner().x << "," 
+                << elementCube.getCorner().y << ","
+                << elementCube.getCorner().z << ":" 
+                << elementCube.getScale();
             qDebug() << "elementCube.getScale()=" << elementCube.getScale();
             //containingElement->printDebugDetails("containingElement");
         }
@@ -109,17 +109,17 @@ void EntityTests::entityTreeTests(bool verbose) {
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionNearOrigin, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
-        AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+        const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
             qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
             qDebug() << "foundEntityByID=" << foundEntityByID;
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
-                << elementCube.getCorner().x * TREE_SCALE << "," 
-                << elementCube.getCorner().y * TREE_SCALE << ","
-                << elementCube.getCorner().z * TREE_SCALE << ":" 
-                << elementCube.getScale() * TREE_SCALE;
+                << elementCube.getCorner().x << "," 
+                << elementCube.getCorner().y << ","
+                << elementCube.getCorner().z << ":" 
+                << elementCube.getScale();
             //containingElement->printDebugDetails("containingElement");
         }
 
@@ -149,17 +149,17 @@ void EntityTests::entityTreeTests(bool verbose) {
         const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenter, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
-        AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+        const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
             qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
             qDebug() << "foundEntityByID=" << foundEntityByID;
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
-                << elementCube.getCorner().x * TREE_SCALE << "," 
-                << elementCube.getCorner().y * TREE_SCALE << ","
-                << elementCube.getCorner().z * TREE_SCALE << ":" 
-                << elementCube.getScale() * TREE_SCALE;
+                << elementCube.getCorner().x << "," 
+                << elementCube.getCorner().y << ","
+                << elementCube.getCorner().z << ":" 
+                << elementCube.getScale();
             //containingElement->printDebugDetails("containingElement");
         }
 
@@ -288,7 +288,7 @@ void EntityTests::entityTreeTests(bool verbose) {
             totalElapsedFind += (endFind - startFind);
 
             EntityTreeElement* containingElement = tree.getContainingElement(entityID);
-            AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+            const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
             
             bool elementIsBestFit = containingElement->bestFitEntityBounds(foundEntityByID);
             
@@ -297,10 +297,10 @@ void EntityTests::entityTreeTests(bool verbose) {
                 qDebug() << "foundEntityByID=" << foundEntityByID;
                 qDebug() << "containingElement=" << containingElement;
                 qDebug() << "containingElement.box=" 
-                    << elementCube.getCorner().x * TREE_SCALE << "," 
-                    << elementCube.getCorner().y * TREE_SCALE << ","
-                    << elementCube.getCorner().z * TREE_SCALE << ":" 
-                    << elementCube.getScale() * TREE_SCALE;
+                    << elementCube.getCorner().x << "," 
+                    << elementCube.getCorner().y << ","
+                    << elementCube.getCorner().z << ":" 
+                    << elementCube.getScale();
                 qDebug() << "elementCube.getScale()=" << elementCube.getScale();
                 //containingElement->printDebugDetails("containingElement");
                 qDebug() << "elementIsBestFit=" << elementIsBestFit;

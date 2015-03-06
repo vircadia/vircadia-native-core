@@ -114,8 +114,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     
     bool drawAsModel = hasModel();
 
-    glm::vec3 position = getPositionInMeters();
-    glm::vec3 dimensions = getDimensionsInMeters();
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
     float size = glm::length(dimensions);
     
     if (drawAsModel) {
@@ -254,13 +254,13 @@ EntityItemProperties RenderableModelEntityItem::getProperties() const {
     return properties;
 }
 
-bool RenderableModelEntityItem::findDetailedRayIntersectionInMeters(const glm::vec3& origin, const glm::vec3& direction,
+bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const {
     if (!_model) {
         return true;
     }
-    //qDebug() << "RenderableModelEntityItem::findDetailedRayIntersectionInMeters() precisionPicking:" << precisionPicking;
+    //qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
     
     QString extraInfo;
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);

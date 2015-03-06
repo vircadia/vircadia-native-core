@@ -46,7 +46,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     // which can handle all potential rotations?
     // the getMaximumAACube is the relaxed form.
     _oldEntityCube = _existingEntity->getMaximumAACube();
-    _oldEntityBox = _oldEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
+    _oldEntityBox = _oldEntityCube.clamp(0.0f, (float)TREE_SCALE); // clamp to domain bounds
 
     // If the old properties doesn't contain the properties required to calculate a bounding box,
     // get them from the existing entity. Registration point is required to correctly calculate
@@ -59,8 +59,8 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     // get the old property value and set it in our properties in order for our bounds
     // calculations to work.
     if (_properties.containsPositionChange() && !_properties.containsDimensionsChange()) {
-        glm::vec3 oldDimensionsInMeters = _existingEntity->getDimensionsInMeters();
-        _properties.setDimensions(oldDimensionsInMeters);
+        glm::vec3 oldDimensions= _existingEntity->getDimensions();
+        _properties.setDimensions(oldDimensions);
 
         if (_wantDebug) {
             qDebug() << "    ** setting properties dimensions - had position change, no dimension change **";
@@ -68,8 +68,8 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
 
     }
     if (!_properties.containsPositionChange() && _properties.containsDimensionsChange()) {
-        glm::vec3 oldPositionInMeters = _existingEntity->getPositionInMeters();
-        _properties.setPosition(oldPositionInMeters);
+        glm::vec3 oldPosition= _existingEntity->getPosition();
+        _properties.setPosition(oldPosition);
 
         if (_wantDebug) {
             qDebug() << "    ** setting properties position - had dimensions change, no position change **";
@@ -114,7 +114,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
         }
 
     } else {
-        _newEntityCube = _properties.getMaximumAACubeInTreeUnits();
+        _newEntityCube = _properties.getMaximumAACube();
         _removeOld = true; // our properties are going to move us, so remember this for later processing
 
         if (_wantDebug) {
@@ -122,7 +122,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
         }
     }
 
-    _newEntityBox = _newEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
+    _newEntityBox = _newEntityCube.clamp(0.0f, (float)TREE_SCALE); // clamp to domain bounds
 
 
     if (_wantDebug) {

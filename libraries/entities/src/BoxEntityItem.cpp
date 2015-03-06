@@ -41,7 +41,6 @@ EntityItemProperties BoxEntityItem::getProperties() const {
     properties._glowLevel = getGlowLevel();
     properties._glowLevelChanged = false;
 
-    std::cout << "adebug end of BoxEntityItem::getProperties()" << std::endl;  // adebug
     return properties;
 }
 

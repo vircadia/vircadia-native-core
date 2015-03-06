@@ -84,19 +84,19 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         // bypass const-ness so we can remember the substep
         const_cast<EntityMotionState*>(this)->_lastKinematicSubstep = substep;
     }
-    worldTrans.setOrigin(glmToBullet(_entity->getPositionInMeters() - ObjectMotionState::getWorldOffset()));
+    worldTrans.setOrigin(glmToBullet(_entity->getPosition() - ObjectMotionState::getWorldOffset()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
 }
 
 // This callback is invoked by the physics simulation at the end of each simulation frame...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
-    _entity->setPositionInMeters(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
+    _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
     glm::vec3 v;
     getVelocity(v);
-    _entity->setVelocityInMeters(v);
+    _entity->setVelocity(v);
 
     getAngularVelocity(v);
     // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
@@ -119,7 +119,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
     if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
         if (flags & EntityItem::DIRTY_POSITION) {
-            _sentPosition = _entity->getPositionInMeters() - ObjectMotionState::getWorldOffset();
+            _sentPosition = _entity->getPosition() - ObjectMotionState::getWorldOffset();
             btTransform worldTrans;
             worldTrans.setOrigin(glmToBullet(_sentPosition));
 
@@ -156,14 +156,14 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
 
 void EntityMotionState::updateObjectVelocities() {
     if (_body) {
-        _sentVelocity = _entity->getVelocityInMeters();
+        _sentVelocity = _entity->getVelocity();
         setVelocity(_sentVelocity);
 
         // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
         _sentAngularVelocity = glm::radians(_entity->getAngularVelocity());
         setAngularVelocity(_sentAngularVelocity);
 
-        _sentAcceleration = _entity->getGravityInMeters();
+        _sentAcceleration = _entity->getGravity();
         setGravity(_sentAcceleration);
 
         _body->setActivationState(ACTIVE_TAG);

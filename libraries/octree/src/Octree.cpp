@@ -274,7 +274,7 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     
     if (destinationElement->getScale() < SCALE_AT_DANGEROUSLY_DEEP_RECURSION) {
         qDebug() << "UNEXPECTED: readElementData() destination element is unreasonably small [" 
-                << destinationElement->getScale() * (float)TREE_SCALE << " meters] "
+                << destinationElement->getScale() << " meters] "
                 << " Discarding " << bytesAvailable << " remaining bytes.";
         return bytesAvailable; // assume we read the entire buffer...
     }
@@ -748,12 +748,8 @@ public:
 bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
-    // the details in args is in meters (world-frame) so we have to scale the element cube up
-    AACube box = element->getAACube();
-    box.scale((float)TREE_SCALE);
-
     // coarse check against bounds
-    if (!box.expandedContains(args->center, args->radius)) {
+    if (!element->getAACube().expandedContains(args->center, args->radius)) {
         return false;
     }
     if (element->hasContent()) {
@@ -837,14 +833,12 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
-    AACube box = element->getAACube();
-    box.scale((float)TREE_SCALE);
-    if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
+    if (!element->getAACube().expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
     if (element->hasContent()) {
         glm::vec3 nodePenetration;
-        if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
+        if (element->getAACube().findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
             args->penetration = addPenetrations(args->penetration, nodePenetration);
             args->found = true;
         }
@@ -872,8 +866,7 @@ bool findContentInCubeOp(OctreeElement* element, void* extraData) {
     ContentArgs* args = static_cast<ContentArgs*>(extraData);
 
     // coarse check against bounds
-    AACube cube = element->getAACube();
-    cube.scale(TREE_SCALE);
+    const AACube& cube = element->getAACube();
     if (!cube.touches(args->cube)) {
         return false;
     }
@@ -940,8 +933,7 @@ public:
 // Find the smallest colored voxel enclosing a point (if there is one)
 bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
-    AACube elementBox = element->getAACube();
-    if (elementBox.contains(args->point)) {
+    if (element->getAACube().contains(args->point)) {
         if (element->hasContent() && element->isLeaf()) {
             // we've reached a solid leaf containing the point, return the element.
             args->element = element;
@@ -1207,9 +1199,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
         if (params.wantOcclusionCulling && !element->isLeaf()) {
-            AACube voxelBox = element->getAACube();
-            voxelBox.scale(TREE_SCALE);
-            OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(voxelBox));
+            OctreeProjectedPolygon* voxelPolygon = 
+                new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(element->getAACube()));
 
             // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
             // culling and proceed as normal
@@ -1360,10 +1351,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
 
-                    AACube voxelBox = childElement->getAACube();
-                    voxelBox.scale(TREE_SCALE);
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
-                                params.viewFrustum->getProjectedPolygon(voxelBox));
+                                params.viewFrustum->getProjectedPolygon(childElement->getAACube()));
 
                     // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we ignore occlusion
                     // culling and proceed as normal

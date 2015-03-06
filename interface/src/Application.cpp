@@ -2262,7 +2262,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverBounds.scale(TREE_SCALE);
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
@@ -2326,7 +2325,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverBounds.scale(TREE_SCALE);
                     
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {

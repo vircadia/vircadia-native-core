@@ -270,6 +270,9 @@ public:
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData = NULL);
     void recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData = NULL);
 
+    /// \param operation type of operation
+    /// \param point point in world-frame (meters)
+    /// \param extraData hook for user data to be interpreted by special context
     void recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation operation,
                                                 const glm::vec3& point, void* extraData = NULL);
 
@@ -308,8 +311,13 @@ public:
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration, 
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
+    /// \param cube query cube in world-frame (meters)
+    /// \param[out] cubes list of cubes (world-frame) of child elements that have content
     bool findContentInCube(const AACube& cube, CubeList& cubes);
 
+    /// \param point query point in world-frame (meters)
+    /// \param lockType how to lock the tree (Lock, TryLock, NoLock)
+    /// \param[out] accurateResult pointer to output result, will be set "true" or "false" if non-null
     OctreeElement* getElementEnclosingPoint(const glm::vec3& point, 
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 

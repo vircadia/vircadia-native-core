@@ -109,7 +109,7 @@ public:
     /// \param radius the radius of the sphere in world-frame (meters)
     /// \param foundEntities[out] vector of const EntityItem*
     /// \remark Side effect: any initial contents in foundEntities will be lost
-    void findEntitiesInMeters(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
+    void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
 
     /// finds all entities that touch a cube
     /// \param cube the query cube in world-frame (meters)

@@ -48,7 +48,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _displayModelElementProxy(false),
     _dontDoPrecisionPicking(false)
 {
-    std::cout << "adebug " << (void*)(this) << " EntityTreeRenderer  ctor" << std::endl;  // adebug
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
@@ -285,11 +284,11 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             QVector<EntityItemID> entitiesContainingAvatar;
             
             // find the entities near us
-            static_cast<EntityTree*>(_tree)->findEntitiesInMeters(avatarPosition, radius, foundEntities);
+            static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
             // create a list of entities that actually contain the avatar's position
             foreach(const EntityItem* entity, foundEntities) {
-                if (entity->containsInMeters(avatarPosition)) {
+                if (entity->contains(avatarPosition)) {
                     entitiesContainingAvatar << entity->getEntityItemID();
                 }
             }
@@ -417,8 +416,8 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
 }
 
 void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement) {
-    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float) TREE_SCALE;
-    float elementSize = entityTreeElement->getScale() * (float) TREE_SCALE;
+    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter();
+    float elementSize = entityTreeElement->getScale();
     glPushMatrix();
         glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
         DependencyManager::get<DeferredLightingEffect>()->renderWireCube(elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
@@ -477,10 +476,7 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
 
         AACube maxCube = entity->getMaximumAACube();
         AACube minCube = entity->getMinimumAACube();
-        AABox entityBox = entity->getAABoxInMeters();
-
-        maxCube.scale((float) TREE_SCALE);
-        minCube.scale((float) TREE_SCALE);
+        AABox entityBox = entity->getAABox();
 
         glm::vec3 maxCenter = maxCube.calcCenter();
         glm::vec3 minCenter = minCube.calcCenter();
@@ -507,9 +503,9 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glPopMatrix();
 
 
-        glm::vec3 position = entity->getPositionInMeters();
-        glm::vec3 center = entity->getCenterInMeters();
-        glm::vec3 dimensions = entity->getDimensionsInMeters();
+        glm::vec3 position = entity->getPosition();
+        glm::vec3 center = entity->getCenter();
+        glm::vec3 dimensions = entity->getDimensions();
         glm::quat rotation = entity->getRotation();
 
         glPushMatrix();
@@ -548,7 +544,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         
         if (entityItem->isVisible()) {
             // render entityItem 
-            AABox entityBox = entityItem->getAABoxInMeters();
+            AABox entityBox = entityItem->getAABox();
         
             // TODO: some entity types (like lights) might want to be rendered even
             // when they are outside of the view frustum...
@@ -672,16 +668,10 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
                                                                 (void**)&intersectedEntity, lockType, &result.accurate, 
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
-            std::cout << "adebug " << (void*)(this) << " EntityTreeRenderer's tree = " << (void*)(_tree) << std::endl;  // adebug
-            int foo = 0;
             result.entityID = intersectedEntity->getEntityItemID();
-            foo = 1;
             result.properties = intersectedEntity->getProperties();
-            foo = 2;
             result.intersection = ray.origin + (ray.direction * result.distance);
-            foo = 3;
             result.entity = intersectedEntity;
-            std::cout << "adebug foo = " << foo << std::endl;  // adebug
         }
     }
     return result;
