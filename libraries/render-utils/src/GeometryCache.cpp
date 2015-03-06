@@ -2101,6 +2101,8 @@ void GeometryReader::run() {
                     lightmapLevel = 3.5f;
                 }
                 fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
+            } else if (_url.path().toLower().endsWith(".obj")) {
+                fbxgeo = readOBJ(_reply, _mapping);
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {

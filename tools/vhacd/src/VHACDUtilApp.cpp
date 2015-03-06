@@ -32,7 +32,7 @@ QString formatFloat(double n) {
 }
 
 
-bool writeOBJ(QString outFileName, QVector<QVector<VHACD::IVHACD::ConvexHull>>& convexHullList, bool outputOneMesh) {
+bool writeOBJ(QString outFileName, QVector<QVector<VHACD::IVHACD::ConvexHull>>& meshList, bool outputOneMesh) {
     QFile file(outFileName);
     if (!file.open(QIODevice::WriteOnly)) {
         qDebug() << "Unable to write to " << outFileName;
@@ -41,52 +41,32 @@ bool writeOBJ(QString outFileName, QVector<QVector<VHACD::IVHACD::ConvexHull>>& 
 
     QTextStream out(&file);
 
+    // if (meshList.size() != 1) {
+    //     qDebug() << "unexpected number of meshes --" << meshList.size();
+    //     exit(1);
+    // }
+    // QVector<VHACD::IVHACD::ConvexHull> hulls = meshList[0];
 
-    if (convexHullList.size() != 1) {
-        qDebug() << "unexpected number of meshes --" << convexHullList.size();
-        exit(1);
-    }
+    unsigned int pointStartOffset = 0;
 
-    QVector<VHACD::IVHACD::ConvexHull> hulls = convexHullList[0];
-
-
-    if (outputOneMesh) {
+    foreach (QVector<VHACD::IVHACD::ConvexHull> hulls, meshList) {
+        unsigned int nth = 0;
         foreach (VHACD::IVHACD::ConvexHull hull, hulls) {
+            out << "g hull-" << nth++ << "\n";
             for (unsigned int i = 0; i < hull.m_nPoints; i++) {
                 out << "v ";
                 out << formatFloat(hull.m_points[i*3]) << " ";
                 out << formatFloat(hull.m_points[i*3+1]) << " ";
                 out << formatFloat(hull.m_points[i*3+2]) << " 1\n";
             }
-        }
-
-        unsigned int pointStartOffset = 0;
-        foreach (VHACD::IVHACD::ConvexHull hull, hulls) {
             for (unsigned int i = 0; i < hull.m_nTriangles; i++) {
                 out << "f ";
                 out << hull.m_triangles[i*3] + 1 + pointStartOffset << " ";
                 out << hull.m_triangles[i*3+1] + 1 + pointStartOffset  << " ";
                 out << hull.m_triangles[i*3+2] + 1 + pointStartOffset  << "\n";
             }
-            pointStartOffset += hull.m_nPoints;
-        }
-    } else {
-        unsigned int nth = 0;
-        foreach (VHACD::IVHACD::ConvexHull hull, hulls) {
-            out << "o hull-" << nth++ << "\n";
-            for (unsigned int i = 0; i < hull.m_nPoints; i++) {
-                out << "v ";
-                out << formatFloat(hull.m_points[i*3]) << " ";
-                out << formatFloat(hull.m_points[i*3+1]) << " ";
-                out << formatFloat(hull.m_points[i*3+2]) << " 1\n";
-            }
-            for (unsigned int i = 0; i < hull.m_nTriangles; i++) {
-                out << "f ";
-                out << hull.m_triangles[i*3] + 1 << " ";
-                out << hull.m_triangles[i*3+1] + 1 << " ";
-                out << hull.m_triangles[i*3+2] + 1 << "\n";
-            }
             out << "\n";
+            pointStartOffset += hull.m_nPoints;
         }
     }
 

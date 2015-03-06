@@ -19,6 +19,7 @@
 #include <chrono> //c++11 feature
 #include <QFile>
 #include <FBXReader.h>
+#include <OBJReader.h>
 #include <VHACD.h>
 
 namespace vhacd {

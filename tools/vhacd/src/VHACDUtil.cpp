@@ -13,11 +13,6 @@
 #include "VHACDUtil.h"
 
 
-
-
-
-
-
 //Read all the meshes from provided FBX file
 bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *results) {
 
@@ -29,13 +24,30 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
     std::cout << "Reading FBX.....\n";
 
     QByteArray fbxContents = fbx.readAll();
-    FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
+
+    
+    FBXGeometry geometry;
+
+    if (filename.toLower().endsWith(".obj")) {
+        geometry = readOBJ(fbxContents, QVariantHash());
+    } else if (filename.toLower().endsWith(".fbx")) {
+        geometry = readFBX(fbxContents, QVariantHash());
+    } else {
+        qDebug() << "unknown file extension";
+        return false;
+    }
+
+
     //results->meshCount = geometry.meshes.count();
 
+    qDebug() << "read in" << geometry.meshes.count() << "meshes";
+
     int count = 0;
-    foreach(FBXMesh mesh, geometry.meshes){
+    foreach(FBXMesh mesh, geometry.meshes) {
         //get vertices for each mesh		
         QVector<glm::vec3> vertices = mesh.vertices;
+
+        qDebug() << "vertex count is" << vertices.count();
 
         //get the triangle indices for each mesh
         QVector<int> triangles;
@@ -45,9 +57,9 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
         }
 
         //only read meshes with triangles
-		if (triangles.count() <= 0){
-			continue;
-		}           
+        if (triangles.count() <= 0){
+            continue;
+        }           
         results->perMeshVertices.append(vertices);
         results->perMeshTriangleIndices.append(triangles);
         count++;
