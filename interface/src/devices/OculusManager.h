@@ -184,7 +184,7 @@ inline ovrVector2f ovrFromGlm(const glm::vec2 & v) {
 }
 
 inline ovrSizei ovrFromGlm(const glm::uvec2 & v) {
-    return{ v.x, v.y };
+    return{ (int)v.x, (int)v.y };
 }
 
 inline ovrQuatf ovrFromGlm(const glm::quat & q) {
