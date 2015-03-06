@@ -34,18 +34,6 @@ Shader::~Shader()
 {
 }
 
-/*
-Program::Program():
-    _storage(),
-    _type(GRAPHICS)
-{
-}
-
-Program::~Program()
-{
-}
-*/
-
 Shader* Shader::createVertex(const Source& source) {
     Shader* shader = new Shader(VERTEX, source);
     return shader;
@@ -64,4 +52,13 @@ Shader* Shader::createProgram(Pointer& vertexShader, Pointer& pixelShader) {
         }
     }
     return nullptr;
+}
+
+void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& buffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {
+    _uniforms = uniforms;
+    _buffers = buffers;
+    _textures = textures;
+    _samplers = samplers;
+    _inputs = inputs;
+    _outputs = outputs;
 }

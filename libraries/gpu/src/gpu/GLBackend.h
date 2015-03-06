@@ -33,6 +33,7 @@ public:
 
     static void checkGLError();
 
+    static bool makeShader(Shader& shader);
     
 
     class GLBuffer : public GPUObject {
@@ -64,6 +65,9 @@ public:
     public:
         GLuint _shader;
         GLuint _program;
+
+        GLuint _transformCameraSlot = -1;
+        GLuint _transformObjectSlot = -1;
 
         GLShader();
         ~GLShader();

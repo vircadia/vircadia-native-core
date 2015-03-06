@@ -299,6 +299,15 @@ void Model::init() {
         _program.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
         initProgram(_program, _locations);
         
+
+        auto defaultShader = gpu::ShaderPointer(
+                gpu::Shader::createProgram(
+                    gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_vert))),
+                    gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_frag)))
+                )
+                );
+        gpu::GLBackend::makeShader(*defaultShader);
+   
         _normalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
         _normalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);
         initProgram(_normalMapProgram, _normalMapLocations);

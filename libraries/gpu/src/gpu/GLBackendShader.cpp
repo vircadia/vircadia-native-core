@@ -10,6 +10,9 @@
 //
 #include "GLBackendShared.h"
 
+#include "Format.h"
+
+using namespace gpu;
 
 GLBackend::GLShader::GLShader() :
     _shader(0),
@@ -22,6 +25,78 @@ GLBackend::GLShader::~GLShader() {
     }
     if (_program != 0) {
         glDeleteProgram(_program);
+    }
+}
+
+
+void makeBindings(GLBackend::GLShader* shader) {
+    if(!shader || !shader->_program) {
+        return;
+    }
+    GLuint glprogram = shader->_program;
+    GLint loc = -1;
+     
+    //Check for gpu specific attribute bindings
+    loc = glGetAttribLocation(glprogram, "position");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
+    }
+
+    loc = glGetAttribLocation(glprogram, "normal");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "normal");
+    }
+
+    loc = glGetAttribLocation(glprogram, "color");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "color");
+    }
+
+    loc = glGetAttribLocation(glprogram, "texcoord");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "texcoord");
+    }
+
+    loc = glGetAttribLocation(glprogram, "tangent");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "tangent");
+    }
+
+    loc = glGetAttribLocation(glprogram, "texcoord1");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "texcoord1");
+    }
+
+    loc = glGetAttribLocation(glprogram, "clusterIndices");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_INDEX, "clusterIndices");
+    }
+
+    loc = glGetAttribLocation(glprogram, "clusterWeights");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "clusterWeights");
+    }
+
+    //Check for gpu specific uniform bindings
+    loc = glGetUniformBlockIndex(glprogram, "transformObjectBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
+        shader->_transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
+    }
+
+    loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
+        shader->_transformCameraSlot = gpu::TRANSFORM_OBJECT_SLOT;
+    }
+
+    // Link again
+    glLinkProgram(glprogram);
+
+    GLint linked = 0;
+    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        qDebug() << "GLShader::makeBindings - failed to link after assigning bindings?";
     }
 }
 
@@ -144,6 +219,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     object->_shader = glshader;
     object->_program = glprogram;
 
+    makeBindings(object);
+
     return object;
 }
 
@@ -220,6 +297,8 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
     object->_shader = 0;
     object->_program = glprogram;
 
+    makeBindings(object);
+
     return object;
 }
 
@@ -265,3 +344,255 @@ GLuint GLBackend::getShaderID(const ShaderPointer& shader) {
     }
 }
 
+Element getFormatFromGLUniform(GLenum gltype) {
+    switch (gltype) {
+    case GL_FLOAT: return Element(SCALAR, gpu::FLOAT, UNIFORM);
+    case GL_FLOAT_VEC2: return Element(VEC2, gpu::FLOAT, UNIFORM);
+    case GL_FLOAT_VEC3: return Element(VEC3, gpu::FLOAT, UNIFORM);
+    case GL_FLOAT_VEC4: return Element(VEC4, gpu::FLOAT, UNIFORM);
+
+    case GL_DOUBLE: return Element(SCALAR, gpu::FLOAT, UNIFORM);
+    case GL_DOUBLE_VEC2: return Element(VEC2, gpu::FLOAT, UNIFORM);
+    case GL_DOUBLE_VEC3: return Element(VEC3, gpu::FLOAT, UNIFORM);
+    case GL_DOUBLE_VEC4: return Element(VEC4, gpu::FLOAT, UNIFORM);
+
+    case GL_INT: return Element(SCALAR, gpu::INT32, UNIFORM);
+    case GL_INT_VEC2: return Element(VEC2, gpu::INT32, UNIFORM);
+    case GL_INT_VEC3: return Element(VEC3, gpu::INT32, UNIFORM);
+    case GL_INT_VEC4: return Element(VEC4, gpu::INT32, UNIFORM);
+
+    case GL_UNSIGNED_INT: return Element(SCALAR, gpu::UINT32, UNIFORM);
+    case GL_UNSIGNED_INT_VEC2: return Element(VEC2, gpu::UINT32, UNIFORM);
+    case GL_UNSIGNED_INT_VEC3: return Element(VEC3, gpu::UINT32, UNIFORM);
+    case GL_UNSIGNED_INT_VEC4: return Element(VEC4, gpu::UINT32, UNIFORM);
+
+    case GL_BOOL: return Element(SCALAR, gpu::BOOL, UNIFORM);
+    case GL_BOOL_VEC2: return Element(VEC2, gpu::BOOL, UNIFORM);
+    case GL_BOOL_VEC3: return Element(VEC3, gpu::BOOL, UNIFORM);
+    case GL_BOOL_VEC4: return Element(VEC4, gpu::BOOL, UNIFORM);
+
+
+    case GL_FLOAT_MAT2: return Element(gpu::MAT2, gpu::FLOAT, UNIFORM);
+    case GL_FLOAT_MAT3: return Element(MAT3, gpu::FLOAT, UNIFORM);
+    case GL_FLOAT_MAT4: return Element(MAT4, gpu::FLOAT, UNIFORM);
+
+/*    {GL_FLOAT_MAT2x3	mat2x3},
+    {GL_FLOAT_MAT2x4	mat2x4},
+    {GL_FLOAT_MAT3x2	mat3x2},
+    {GL_FLOAT_MAT3x4	mat3x4},
+    {GL_FLOAT_MAT4x2	mat4x2},
+    {GL_FLOAT_MAT4x3	mat4x3},
+    {GL_DOUBLE_MAT2	dmat2},
+    {GL_DOUBLE_MAT3	dmat3},
+    {GL_DOUBLE_MAT4	dmat4},
+    {GL_DOUBLE_MAT2x3	dmat2x3},
+    {GL_DOUBLE_MAT2x4	dmat2x4},
+    {GL_DOUBLE_MAT3x2	dmat3x2},
+    {GL_DOUBLE_MAT3x4	dmat3x4},
+    {GL_DOUBLE_MAT4x2	dmat4x2},
+    {GL_DOUBLE_MAT4x3	dmat4x3},
+    */
+
+    case GL_SAMPLER_1D: return Element(SCALAR, gpu::FLOAT, SAMPLER_1D);
+    case GL_SAMPLER_2D: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D);
+    case GL_SAMPLER_2D_MULTISAMPLE: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_MS);
+    case GL_SAMPLER_3D: return Element(SCALAR, gpu::FLOAT, SAMPLER_3D);
+    case GL_SAMPLER_CUBE: return Element(SCALAR, gpu::FLOAT, SAMPLER_CUBE);
+
+    case GL_SAMPLER_1D_ARRAY: return Element(SCALAR, gpu::FLOAT, SAMPLER_1D_ARRAY);
+    case GL_SAMPLER_2D_ARRAY: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_ARRAY);
+    case GL_SAMPLER_2D_MULTISAMPLE_ARRAY: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_MS_ARRAY);
+
+    case GL_SAMPLER_2D_SHADOW: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_SHADOW);
+    case GL_SAMPLER_CUBE_SHADOW: return Element(SCALAR, gpu::FLOAT, SAMPLER_CUBE_SHADOW);
+
+    case GL_SAMPLER_2D_ARRAY_SHADOW: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_SHADOW_ARRAY);
+    
+//    {GL_SAMPLER_1D_SHADOW	sampler1DShadow},
+ //   {GL_SAMPLER_1D_ARRAY_SHADOW	sampler1DArrayShadow},
+
+//    {GL_SAMPLER_BUFFER	samplerBuffer},
+//    {GL_SAMPLER_2D_RECT	sampler2DRect},
+ //   {GL_SAMPLER_2D_RECT_SHADOW	sampler2DRectShadow},
+ 
+    case GL_INT_SAMPLER_1D: return Element(SCALAR, gpu::INT32, SAMPLER_1D);
+    case GL_INT_SAMPLER_2D: return Element(SCALAR, gpu::INT32, SAMPLER_2D);
+    case GL_INT_SAMPLER_2D_MULTISAMPLE: return Element(SCALAR, gpu::INT32, SAMPLER_2D_MS);
+    case GL_INT_SAMPLER_3D: return Element(SCALAR, gpu::INT32, SAMPLER_3D);
+    case GL_INT_SAMPLER_CUBE: return Element(SCALAR, gpu::INT32, SAMPLER_CUBE);
+          
+    case GL_INT_SAMPLER_1D_ARRAY: return Element(SCALAR, gpu::INT32, SAMPLER_1D_ARRAY);
+    case GL_INT_SAMPLER_2D_ARRAY: return Element(SCALAR, gpu::INT32, SAMPLER_2D_ARRAY);
+    case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return Element(SCALAR, gpu::INT32, SAMPLER_2D_MS_ARRAY);
+
+ //   {GL_INT_SAMPLER_BUFFER	isamplerBuffer},
+ //   {GL_INT_SAMPLER_2D_RECT	isampler2DRect},
+
+    case GL_UNSIGNED_INT_SAMPLER_1D: return Element(SCALAR, gpu::UINT32, SAMPLER_1D);
+    case GL_UNSIGNED_INT_SAMPLER_2D: return Element(SCALAR, gpu::UINT32, SAMPLER_2D);
+    case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: return Element(SCALAR, gpu::UINT32, SAMPLER_2D_MS);
+    case GL_UNSIGNED_INT_SAMPLER_3D: return Element(SCALAR, gpu::UINT32, SAMPLER_3D);
+    case GL_UNSIGNED_INT_SAMPLER_CUBE: return Element(SCALAR, gpu::UINT32, SAMPLER_CUBE);
+          
+    case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY: return Element(SCALAR, gpu::UINT32, SAMPLER_1D_ARRAY);
+    case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: return Element(SCALAR, gpu::UINT32, SAMPLER_2D_ARRAY);
+    case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return Element(SCALAR, gpu::UINT32, SAMPLER_2D_MS_ARRAY);
+
+//    {GL_UNSIGNED_INT_SAMPLER_BUFFER	usamplerBuffer},
+//    {GL_UNSIGNED_INT_SAMPLER_2D_RECT	usampler2DRect},
+/*
+    {GL_IMAGE_1D	image1D},
+    {GL_IMAGE_2D	image2D},
+    {GL_IMAGE_3D	image3D},
+    {GL_IMAGE_2D_RECT	image2DRect},
+    {GL_IMAGE_CUBE	imageCube},
+    {GL_IMAGE_BUFFER	imageBuffer},
+    {GL_IMAGE_1D_ARRAY	image1DArray},
+    {GL_IMAGE_2D_ARRAY	image2DArray},
+    {GL_IMAGE_2D_MULTISAMPLE	image2DMS},
+    {GL_IMAGE_2D_MULTISAMPLE_ARRAY	image2DMSArray},
+    {GL_INT_IMAGE_1D	iimage1D},
+    {GL_INT_IMAGE_2D	iimage2D},
+    {GL_INT_IMAGE_3D	iimage3D},
+    {GL_INT_IMAGE_2D_RECT	iimage2DRect},
+    {GL_INT_IMAGE_CUBE	iimageCube},
+    {GL_INT_IMAGE_BUFFER	iimageBuffer},
+    {GL_INT_IMAGE_1D_ARRAY	iimage1DArray},
+    {GL_INT_IMAGE_2D_ARRAY	iimage2DArray},
+    {GL_INT_IMAGE_2D_MULTISAMPLE	iimage2DMS},
+    {GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY	iimage2DMSArray},
+    {GL_UNSIGNED_INT_IMAGE_1D	uimage1D},
+    {GL_UNSIGNED_INT_IMAGE_2D	uimage2D},
+    {GL_UNSIGNED_INT_IMAGE_3D	uimage3D},
+    {GL_UNSIGNED_INT_IMAGE_2D_RECT	uimage2DRect},
+    {GL_UNSIGNED_INT_IMAGE_CUBE	uimageCube},+		[0]	{_name="fInnerRadius" _location=0 _element={_semantic=15 '\xf' _dimension=0 '\0' _type=0 '\0' } }	gpu::Shader::Slot
+
+    {GL_UNSIGNED_INT_IMAGE_BUFFER	uimageBuffer},
+    {GL_UNSIGNED_INT_IMAGE_1D_ARRAY	uimage1DArray},
+    {GL_UNSIGNED_INT_IMAGE_2D_ARRAY	uimage2DArray},
+    {GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE	uimage2DMS},
+    {GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY	uimage2DMSArray},
+    {GL_UNSIGNED_INT_ATOMIC_COUNTER	atomic_uint}
+*/
+    default:
+        return Element();
+    }
+
+};
+
+
+int makeUniformSlots(GLuint glprogram, Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
+    GLint uniformsCount = 0;
+
+    glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
+
+    for (int i = 0; i < uniformsCount; i++) {
+        const GLint NAME_LENGTH = 256;
+        GLchar name[NAME_LENGTH];
+        GLint length = 0;
+        GLint size = 0;
+        GLenum type = 0;
+        glGetActiveUniform(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
+
+        auto element = getFormatFromGLUniform(type);
+        uniforms.insert(Shader::Slot(name, i, element));
+    }
+
+    return uniformsCount;
+}
+
+int makeUniformBlockSlots(GLuint glprogram, Shader::SlotSet& buffers) {
+    GLint buffersCount = 0;
+
+    glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
+
+    for (int i = 0; i < buffersCount; i++) {
+        const GLint NAME_LENGTH = 256;
+        GLchar name[NAME_LENGTH];
+        GLint length = 0;
+        GLint size = 0;
+        GLenum type = 0;
+        GLint binding = -1;
+        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
+        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
+        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
+        glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, name);
+
+        Element element(SCALAR, gpu::FLOAT, BUFFER);
+        buffers.insert(Shader::Slot(name, binding, element));
+    }
+
+    return buffersCount;
+}
+
+int makeInputSlots(GLuint glprogram, Shader::SlotSet& inputs) {
+    GLint inputsCount = 0;
+
+    glGetProgramiv(glprogram, GL_ACTIVE_ATTRIBUTES, &inputsCount);
+
+    for (int i = 0; i < inputsCount; i++) {
+        const GLint NAME_LENGTH = 256;
+        GLchar name[NAME_LENGTH];
+        GLint length = 0;
+        GLint size = 0;
+        GLenum type = 0;
+        glGetActiveAttrib(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
+
+        auto element = getFormatFromGLUniform(type);
+        inputs.insert(Shader::Slot(name, i, element));
+    }
+
+    return inputsCount;
+}
+
+int makeOutputSlots(GLuint glprogram, Shader::SlotSet& outputs) {
+ /*   GLint outputsCount = 0;
+
+    glGetProgramiv(glprogram, GL_ACTIVE_, &outputsCount);
+
+    for (int i = 0; i < inputsCount; i++) {
+        const GLint NAME_LENGTH = 256;
+        GLchar name[NAME_LENGTH];
+        GLint length = 0;
+        GLint size = 0;
+        GLenum type = 0;
+        glGetActiveAttrib(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
+
+        auto element = getFormatFromGLUniform(type);
+        outputs.insert(Shader::Slot(name, i, element));
+    }
+    */
+    return 0; //inputsCount;
+}
+
+bool GLBackend::makeShader(Shader& shader) {
+
+    // First make sure the SHader has been compiled
+    GLShader* object = GLBackend::syncGPUObject(shader);
+    if (!object) {
+        return false;
+    }
+
+    if (object->_program) {
+        Shader::SlotSet uniforms;
+        Shader::SlotSet textures;
+        Shader::SlotSet samplers;
+        makeUniformSlots(object->_program, uniforms, textures, samplers);
+
+        Shader::SlotSet buffers;
+        makeUniformBlockSlots(object->_program, buffers);
+
+        Shader::SlotSet inputs;
+        makeInputSlots(object->_program, inputs);
+
+        Shader::SlotSet outputs;
+        makeOutputSlots(object->_program, outputs);
+
+        shader.defineSlots(uniforms, buffers, textures, samplers, inputs, outputs);
+
+    } else if (object->_shader) {
+
+    }
+
+    return true;
+}

@@ -216,8 +216,13 @@ void SunSkyStage::updateGraphicsObject() const {
     double originAlt = _earthSunModel.getAltitude();
     _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
 
-    GLuint program = gpu::GLBackend::getShaderID(_skyShader);
 
+    GLuint program = gpu::GLBackend::getShaderID(_skyShader);
+    static int firstTime = 0;
+    if (firstTime == 0) {
+        firstTime++;
+        gpu::GLBackend::makeShader(*_skyShader);
+    }
 
 }
 

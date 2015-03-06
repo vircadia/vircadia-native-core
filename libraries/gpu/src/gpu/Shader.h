@@ -13,6 +13,7 @@
 
 #include "Resource.h"
 #include <memory>
+#include <set>
  
 namespace gpu {
 
@@ -40,6 +41,24 @@ public:
         Language _lang = GLSL;
     };
 
+    class Slot {
+    public:
+
+        std::string _name;
+        uint16 _location;
+        Element _element;
+ 
+        Slot(const std::string& name, uint16 location, const Element& element) : _name(name), _location(location), _element(element) {}
+
+
+        class Less {
+        public:
+            bool operator() (const Slot& x, const Slot& y) const { return x._name < y._name; }
+        };
+    };
+    typedef std::set<Slot, Slot::Less> SlotSet;
+
+
     enum Type {
         VERTEX = 0,
         PIXEL,
@@ -65,6 +84,22 @@ public:
 
     const Shaders& getShaders() const { return _shaders; }
 
+    // Access the exposed uniform, input and output slot
+    const SlotSet& getUniforms() const { return _uniforms; }
+    const SlotSet& getBuffers() const { return _buffers; }
+    const SlotSet& getTextures() const { return _textures; }
+    const SlotSet& getSamplers() const { return _samplers; }
+    const SlotSet& getInputs() const { return _inputs; }
+    const SlotSet& getOutputs() const { return _outputs; }
+
+    // Define the list of uniforms, inputs and outputs for the shader
+    // This call is intendend to build the list of exposed slots in order
+    // to correctly bind resource to the shader.
+    // These can be build "manually" from knowledge of the atual shader code
+    // or automatically by calling "Context::makeShader()", this is the preferred way
+    void defineSlots(const SlotSet& uniforms, const SlotSet& buffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs);
+
+
 protected:
     Shader(Type type, const Source& source);
     Shader(Type type, Pointer& vertex, Pointer& pixel);
@@ -77,6 +112,14 @@ protected:
 
     // if shader is composed of sub shaders, here they are
     Shaders _shaders;
+
+    // List of exposed uniform, input and output slots
+    SlotSet _uniforms;
+    SlotSet _buffers;
+    SlotSet _textures;
+    SlotSet _samplers;
+    SlotSet _inputs;
+    SlotSet _outputs;
 
     // The type of the shader, the master key
     Type _type;
@@ -91,35 +134,6 @@ protected:
 typedef Shader::Pointer ShaderPointer;
 typedef std::vector< ShaderPointer > Shaders;
 
-/*
-class Program {
-public:
-
-    enum Type {
-        GRAPHICS = 0,
-
-        NUM_TYPES,
-    };
-
-
-    Program();
-    Program(const Program& program); // deep copy of the sysmem shader
-    Program& operator=(const Program& program); // deep copy of the sysmem texture
-    ~Program();
-
-protected:
-    Shaders _shaders;
-    Type _type;
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = NULL;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-    friend class Backend;
-};
-
-typedef QSharedPointer<Shader> ShaderPointer;
-*/
 };
 
 

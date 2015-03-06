@@ -53,6 +53,8 @@ enum Type {
     NUINT8,
 
     NUM_TYPES,
+
+    BOOL = UINT8,
 };
 // Array providing the size in bytes for a given scalar type
 static const int TYPE_SIZE[NUM_TYPES] = {
@@ -81,9 +83,9 @@ enum Dimension {
     VEC2,
     VEC3,
     VEC4,
+    MAT2,
     MAT3,
     MAT4,
-
     NUM_DIMENSIONS,
 };
 // Count (of scalars) in an Element for a given Dimension
@@ -92,8 +94,9 @@ static const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
     2,
     3,
     4,
+    4,
     9,
-    16
+    16,
 };
 
 // Semantic of an Element
@@ -118,6 +121,27 @@ enum Semantic {
     SRGBA,
     SBGRA,
 
+    UNIFORM,
+
+    TEXTURE,
+    BUFFER,
+
+    SAMPLER_1D,
+    SAMPLER_2D,
+    SAMPLER_2D_MS,
+    SAMPLER_3D,
+    SAMPLER_CUBE,
+    SAMPLER_1D_ARRAY,
+    SAMPLER_2D_ARRAY,
+    SAMPLER_2D_MS_ARRAY,
+    SAMPLER_3D_ARRAY,
+    SAMPLER_CUBE_ARRAY,
+    SAMPLER_2D_SHADOW,
+    SAMPLER_2D_SHADOW_ARRAY,
+    SAMPLER_CUBE_SHADOW,
+    SAMPLER_CUBE_SHADOW_ARRAY,
+  
+ 
     NUM_SEMANTICS,
 };
 
