@@ -459,6 +459,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
+    _fullscreenMenuWidget->setParent(_glWidget);
+
     _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
     _toolWindow->setWindowTitle("Tools");
@@ -1258,6 +1260,18 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
     
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) 
+        && !Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+        // Show/hide menu bar in fullscreen
+        if (event->globalY() > _menuBarHeight) {
+            _fullscreenMenuWidget->setFixedHeight(0);
+            Menu::getInstance()->setFixedHeight(0);
+        } else {
+            _fullscreenMenuWidget->setFixedHeight(_menuBarHeight);
+            Menu::getInstance()->setFixedHeight(_menuBarHeight);
+        }
+    }
+
     _entities.mouseMoveEvent(event, deviceID);
     
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
@@ -1523,14 +1537,47 @@ void Application::setFullscreen(bool fullscreen) {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
-            // Menu show() after hide() doesn't work with Rift VR display so set height instead.
+            // Menu hide() disables menu commands, and show() after hide() doesn't work with Rift VR display.
+            // So set height instead.
             _window->menuBar()->setMaximumHeight(0);
         } else {
             _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
         }
+    } else {
+        if (fullscreen) {
+            // Move menu to a QWidget floating above _glWidget so that show/hide doesn't adjust viewport.
+            _menuBarHeight = Menu::getInstance()->height();
+            Menu::getInstance()->setParent(_fullscreenMenuWidget);
+            Menu::getInstance()->setFixedWidth(_window->windowHandle()->screen()->size().width());
+            _fullscreenMenuWidget->show();
+        } else {
+            // Restore menu to being part of MainWindow.
+            _fullscreenMenuWidget->hide();
+            _window->setMenuBar(Menu::getInstance());
+            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
+        }
     }
-    _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
-        (_window->windowState() & ~Qt::WindowFullScreen));
+
+    // Work around Qt bug that prevents floating menus being shown when in fullscreen mode.
+    // https://bugreports.qt.io/browse/QTBUG-41883
+    // Known issue: Top-level menu items don't highlight when cursor hovers. This is probably a side-effect of the work-around.
+    // TODO: Remove this work-around once the bug has been fixed and restore the following lines.
+    //_window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
+    //    (_window->windowState() & ~Qt::WindowFullScreen));
+    _window->hide();
+    if (fullscreen) {
+        _window->setWindowState(_window->windowState() | Qt::WindowFullScreen);
+        // The next line produces the following warning in the log:
+        // [WARNING][03 / 06 12:17 : 58] QWidget::setMinimumSize: (/ MainWindow) Negative sizes
+        //   (0, -1) are not possible
+        // This is better than the alternative which is to have the window slightly less than fullscreen with a visible line
+        // of pixels for the remainder of the screen.
+        _window->setContentsMargins(0, 0, 0, -1);
+    } else {
+        _window->setWindowState(_window->windowState() & ~Qt::WindowFullScreen);
+        _window->setContentsMargins(0, 0, 0, 0);
+    }
+
     if (!_aboutToQuit) {
         _window->show();
     }
