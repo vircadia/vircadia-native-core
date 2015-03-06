@@ -52,6 +52,7 @@
 #include <QMediaPlayer>
 #include <QMimeData>
 #include <QMessageBox>
+#include <QJsonDocument>
 
 #include <AddressManager.h>
 #include <AccountManager.h>
@@ -75,7 +76,7 @@
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
-#include <ScriptCache.h>
+//#include <ScriptCache.h>
 #include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
@@ -220,7 +221,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
-    auto scriptCache = DependencyManager::set<ScriptCache>();
+    //auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
     auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
@@ -241,6 +242,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto dialogsManager = DependencyManager::set<DialogsManager>();
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
     auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
+    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -416,8 +418,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::EntityServer
-                                                 << NodeType::MetavoxelServer);
+                                                 << NodeType::EntityServer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -600,7 +601,7 @@ Application::~Application() {
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
-    DependencyManager::destroy<ScriptCache>();
+    //DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
@@ -1444,8 +1445,7 @@ void Application::sendPingPackets() {
     QByteArray pingPacket = DependencyManager::get<NodeList>()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
                                << NodeType::EntityServer
-                               << NodeType::AudioMixer << NodeType::AvatarMixer
-                               << NodeType::MetavoxelServer);
+                               << NodeType::AudioMixer << NodeType::AvatarMixer);
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1767,8 +1767,10 @@ void Application::init() {
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
 
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+
     connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
-            ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
+            entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
@@ -1776,13 +1778,11 @@ void Application::init() {
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
-    _entities.connectSignalsToSlots(ScriptEngine::getEntityScriptingInterface());
+    _entities.connectSignalsToSlots(entityScriptingInterface.data());
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
-
-    _metavoxels.init();
 
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect);
 
@@ -1946,16 +1946,6 @@ void Application::updateThreads(float deltaTime) {
     }
 }
 
-void Application::updateMetavoxels(float deltaTime) {
-    PerformanceTimer perfTimer("updateMetavoxels");
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMetavoxels()");
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {
-        _metavoxels.simulate(deltaTime);
-    }
-}
-
 void Application::cameraMenuChanged() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
@@ -2046,7 +2036,6 @@ void Application::update(float deltaTime) {
         }
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
-        _prioVR.update(deltaTime);
     }
     
     // Dispatch input events
@@ -2056,7 +2045,6 @@ void Application::update(float deltaTime) {
     
     DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
 
-    updateMetavoxels(deltaTime); // update metavoxels
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
@@ -2806,14 +2794,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         float originSphereRadius = 0.05f;
         DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         
-        // also, metavoxels
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {
-            PerformanceTimer perfTimer("metavoxels");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... metavoxels...");
-            _metavoxels.render();
-        }
-
         // render models...
         if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
             PerformanceTimer perfTimer("entities");
@@ -3112,7 +3092,6 @@ void Application::resetSensors() {
 
     OculusManager::reset();
 
-    _prioVR.reset();
     //_leapmotion.reset();
 
     QScreen* currentScreen = _window->windowHandle()->screen();
@@ -3446,8 +3425,9 @@ void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
-    scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
-    scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    entityScriptingInterface->setPacketSender(&_entityEditSender);
+    entityScriptingInterface->setEntityTree(_entities.getTree());
 
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
@@ -3490,7 +3470,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
-    scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
 
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine, DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);

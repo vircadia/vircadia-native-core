@@ -31,7 +31,8 @@ vec4 transformModelToClipPos(TransformCamera camera, TransformObject object, vec
     return camera._projectionViewUntranslated * epos;
     // Equivalent to the following but hoppefully a bit more accurate
     // return camera._projection * camera._view * object._model * pos;
-
+<@else@>
+    return gl_ModelViewProjectionMatrix * pos;
 <@endif@>
 }
 
@@ -50,6 +51,8 @@ vec3 transformModelToEyeDir(TransformCamera camera, TransformObject object, vec3
     vec3 result = vec3(dot(mvc0, dir), dot(mvc1, dir), dot(mvc2, dir));
 
     return result;
+<@else@>
+    return gl_NormalMatrix * dir;
 <@endif@>
 }
 

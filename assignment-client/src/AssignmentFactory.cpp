@@ -15,7 +15,6 @@
 #include "AssignmentFactory.h"
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
-#include "metavoxels/MetavoxelServer.h"
 #include "entities/EntityServer.h"
 
 ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet) {
@@ -34,8 +33,6 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet
             return new AvatarMixer(packet);
         case Assignment::AgentType:
             return new Agent(packet);
-        case Assignment::MetavoxelServerType:
-            return new MetavoxelServer(packet);
         case Assignment::EntityServerType:
             return new EntityServer(packet);
         default:

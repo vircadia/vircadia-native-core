@@ -100,9 +100,6 @@ void DatagramProcessor::processDatagrams() {
                     }
                     break;
                 }
-                case PacketTypeMetavoxelData:
-                    nodeList->findNodeAndUpdateWithDataFromPacket(incomingPacket);
-                    break;
                 case PacketTypeBulkAvatarData:
                 case PacketTypeKillAvatar:
                 case PacketTypeAvatarIdentity:

@@ -101,6 +101,22 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
                 }
             }
         }
+
+        // see if this message is one we should only print once
+        foreach(const QString& regexString, getInstance()._onlyOnceMessageRegexes) {
+            QRegExp onlyOnceRegex(regexString);
+            if (onlyOnceRegex.indexIn(message) != -1) {
+                if (!_onlyOnceMessageCountHash.contains(message)) {
+                    // we have a match and haven't yet printed this message.
+                    _onlyOnceMessageCountHash[message] = 1;
+                    // break the foreach so we output the first match
+                    break;
+                } else {
+                    // We've already printed this message, don't print it again.
+                    return QString();
+                }
+            }
+        }
     }
     
     // log prefix is in the following format

@@ -243,6 +243,8 @@ private:
     float getBillboardSize() const;
     
     static int _jointConesID;
+
+    int _voiceSphereID;
 };
 
 #endif // hifi_Avatar_h

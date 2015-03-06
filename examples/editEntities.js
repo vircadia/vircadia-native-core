@@ -81,6 +81,8 @@ var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 
+var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
+
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
@@ -177,25 +179,29 @@ var toolBar = (function () {
 
     that.setActive = function(active) {
         if (active != isActive) {
-            isActive = active;
-            if (!isActive) {
-                entityListTool.setVisible(false);
-                gridTool.setVisible(false);
-                grid.setEnabled(false);
-                propertiesTool.setVisible(false);
-                selectionManager.clearSelections();
-                cameraManager.disable();
+            if (active && !Entities.canAdjustLocks()) {
+                Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
-                hasShownPropertiesTool = false;
-                cameraManager.enable();
-                entityListTool.setVisible(true);
-                gridTool.setVisible(true);
-                grid.setEnabled(true);
-                propertiesTool.setVisible(true);
-                Window.setFocus();
+                isActive = active;
+                if (!isActive) {
+                    entityListTool.setVisible(false);
+                    gridTool.setVisible(false);
+                    grid.setEnabled(false);
+                    propertiesTool.setVisible(false);
+                    selectionManager.clearSelections();
+                    cameraManager.disable();
+                } else {
+                    hasShownPropertiesTool = false;
+                    cameraManager.enable();
+                    entityListTool.setVisible(true);
+                    gridTool.setVisible(true);
+                    grid.setEnabled(true);
+                    propertiesTool.setVisible(true);
+                    Window.setFocus();
+                }
             }
         }
-        toolBar.selectTool(activeButton, active);
+        toolBar.selectTool(activeButton, isActive);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -398,6 +404,12 @@ var toolBar = (function () {
 
     Window.domainChanged.connect(function() {
         that.setActive(false);
+    });
+
+    Entities.canAdjustLocksChanged.connect(function(canAdjustLocks) {
+        if (isActive && !canAdjustLocks) {
+            that.setActive(false);
+        }
     });
 
     that.cleanup = function () {

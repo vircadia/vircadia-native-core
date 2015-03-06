@@ -106,21 +106,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     }
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    PrioVR* prioVR = Application::getInstance()->getPrioVR();
-    if (prioVR->isActive()) {
-        for (int i = 0; i < prioVR->getJointRotations().size(); i++) {
-            int humanIKJointIndex = prioVR->getHumanIKJointIndices().at(i);
-            if (humanIKJointIndex == -1) {
-                continue;
-            }
-            int jointIndex = geometry.humanIKJointIndices.at(humanIKJointIndex);
-            if (jointIndex != -1) {
-                JointState& state = _jointStates[jointIndex];
-                state.setRotationInBindFrame(prioVR->getJointRotations().at(i), PALM_PRIORITY);
-            }
-        }
-        return;
-    }
 
     // find the left and rightmost active palms
     int leftPalmIndex, rightPalmIndex;
@@ -294,7 +279,7 @@ void SkeletonModel::updateJointState(int index) {
 }
 
 void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, JointState& state) {
-    if (!_owningAvatar->isMyAvatar() || Application::getInstance()->getPrioVR()->isActive()) {
+    if (!_owningAvatar->isMyAvatar()) {
         return;
     }
     // get the rotation axes in joint space and use them to adjust the rotation
