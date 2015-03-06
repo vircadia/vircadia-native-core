@@ -1,5 +1,5 @@
 //
-//  MassPropertiesTests.h
+//  MeshInfoTests.h
 //  tests/physics/src
 //
 //  Created by Virendra Singh on 2015.03.02
@@ -9,13 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_MassPropertiesTests_h
-#define hifi_MassPropertiesTests_h
-#define epsilion 0.02
-namespace MassPropertiesTests{
+#ifndef hifi_MeshInfoTests_h
+#define hifi_MeshInfoTests_h
+namespace MeshInfoTests{
     void testWithTetrahedron();
     void testWithUnitCube();
     void testWithCube();
     void runAllTests();
 }
-#endif // hifi_MassPropertiesTests_h
+#endif // hifi_MeshInfoTests_h
