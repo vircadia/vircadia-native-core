@@ -22,7 +22,7 @@ class AssignmentClient : public QObject {
     Q_OBJECT
 public:
 
-    AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
+    AssignmentClient(int ppid, Assignment::Type requestAssignmentType, QString assignmentPool,
                      QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort);
     static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
 
@@ -35,7 +35,7 @@ private slots:
     void stopAssignmentClient();
 
 private:
-    void setUpStatsToMonitor();
+    void setUpStatsToMonitor(int ppid);
     Assignment _requestAssignment;
     static SharedAssignmentPointer _currentAssignment;
     QString _assignmentServerHostname;

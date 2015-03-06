@@ -41,7 +41,6 @@ ScriptEditorWindow::ScriptEditorWindow(QWidget* parent) :
 
     _ScriptEditorWindowUI->setupUi(this);
     this->setWindowFlags(Qt::Tool);
-    show();
     addScriptEditorWidget("New script");
     connect(_loadMenu, &QMenu::aboutToShow, this, &ScriptEditorWindow::loadMenuAboutToShow);
     _ScriptEditorWindowUI->loadButton->setMenu(_loadMenu);
