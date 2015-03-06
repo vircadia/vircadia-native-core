@@ -54,7 +54,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
-	REGISTER_ENTITY_TYPE_WITH_FACTORY(ParticleEffect, RenderableParticleEffectEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(ParticleEffect, RenderableParticleEffectEntityItem::factory)
     
     _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
