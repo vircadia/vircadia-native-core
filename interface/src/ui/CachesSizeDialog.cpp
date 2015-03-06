@@ -16,7 +16,6 @@
 #include <AnimationCache.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
-#include <ScriptCache.h>
 #include <SoundCache.h>
 #include <TextureCache.h>
 
@@ -42,7 +41,6 @@ CachesSizeDialog::CachesSizeDialog(QWidget* parent) :
     
     form->addRow("Animations cache size (MB):", _animations = createDoubleSpinBox(this));
     form->addRow("Geometries cache size (MB):", _geometries = createDoubleSpinBox(this));
-    form->addRow("Scripts cache size (MB):", _scripts = createDoubleSpinBox(this));
     form->addRow("Sounds cache size (MB):", _sounds = createDoubleSpinBox(this));
     form->addRow("Textures cache size (MB):", _textures = createDoubleSpinBox(this));
     
@@ -59,7 +57,6 @@ CachesSizeDialog::CachesSizeDialog(QWidget* parent) :
 void CachesSizeDialog::confirmClicked(bool checked) {
     DependencyManager::get<AnimationCache>()->setUnusedResourceCacheSize(_animations->value() * BYTES_PER_MEGABYTES);
     DependencyManager::get<GeometryCache>()->setUnusedResourceCacheSize(_geometries->value() * BYTES_PER_MEGABYTES);
-    DependencyManager::get<ScriptCache>()->setUnusedResourceCacheSize(_scripts->value() * BYTES_PER_MEGABYTES);
     DependencyManager::get<SoundCache>()->setUnusedResourceCacheSize(_sounds->value() * BYTES_PER_MEGABYTES);
     DependencyManager::get<TextureCache>()->setUnusedResourceCacheSize(_textures->value() * BYTES_PER_MEGABYTES);
     
@@ -69,7 +66,6 @@ void CachesSizeDialog::confirmClicked(bool checked) {
 void CachesSizeDialog::resetClicked(bool checked) {
     _animations->setValue(DependencyManager::get<AnimationCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
     _geometries->setValue(DependencyManager::get<GeometryCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
-    _scripts->setValue(DependencyManager::get<ScriptCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
     _sounds->setValue(DependencyManager::get<SoundCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
     _textures->setValue(DependencyManager::get<TextureCache>()->getUnusedResourceCacheSize() / BYTES_PER_MEGABYTES);
 }

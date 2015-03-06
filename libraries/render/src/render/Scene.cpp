@@ -12,9 +12,9 @@
 
 using namespace render;
 
-void Scene::ChangeBatch::resetItem(ID id, ItemDataPointer& itemData) {
+void Scene::ChangeBatch::resetItem(ID id, PayloadPointer& payload) {
     _resetItems.push_back(id);
-    _resetItemDatas.push_back(itemData);
+    _resetPayloads.push_back(payload);
 }
 
 void Scene::ChangeBatch::removeItem(ID id) {
@@ -23,6 +23,14 @@ void Scene::ChangeBatch::removeItem(ID id) {
 
 void Scene::ChangeBatch::moveItem(ID id) {
     _movedItems.push_back(id);
+}
+
+        
+void Scene::ChangeBatch::mergeBatch(ChangeBatch& newBatch) {
+    _resetItems.insert(_resetItems.end(), newBatch._resetItems.begin(), newBatch._resetItems.end());
+    _resetPayloads.insert(_resetPayloads.end(), newBatch._resetPayloads.begin(), newBatch._resetPayloads.end());
+    _removedItems.insert(_removedItems.end(), newBatch._removedItems.begin(), newBatch._removedItems.end());
+    _movedItems.insert(_movedItems.end(), newBatch._movedItems.begin(), newBatch._movedItems.end());
 }
 
 Scene::Scene() :
@@ -38,26 +46,81 @@ Item::ID Scene::allocateID() {
 /// Enqueue change batch to the scene
 void Scene::enqueueChangeBatch(const ChangeBatch& changeBatch) {
     _changeQueueMutex.lock();
-    _changeQueue.push_back(changeBatch);
+    _changeQueue.push(changeBatch);
     _changeQueueMutex.unlock();
 }
 
+void consolidateChangeQueue(Scene::ChangeBatchQueue& queue, Scene::ChangeBatch& singleBatch) {
+    while (!queue.empty()) {
+        auto changeBatch = queue.front();
+        singleBatch.mergeBatch(changeBatch);
+        queue.pop();
+    };
+}
+ 
 void Scene::processChangeBatchQueue() {
+    _changeQueueMutex.lock();
+    ChangeBatch consolidatedChangeBatch;
+    consolidateChangeQueue(_changeQueue, consolidatedChangeBatch);
+    _changeQueueMutex.unlock();
+    
     _itemsMutex.lock();
-        for (auto changeBatch : _changeQueue) {
-            for (auto reset : 
+        // Here we should be able to check the value of last ID allocated 
+        // and allocate new items accordingly
+        ID maxID = _IDAllocator.load();
+        if (maxID > _items.size()) {
+            _items.resize(maxID + 100); // allocate the maxId and more
         }
+        // Now we know for sure that we have enough items in the array to
+        // capture anything coming from the changeBatch
+        resetItems(consolidatedChangeBatch._resetItems, consolidatedChangeBatch._resetPayloads);
+        removeItems(consolidatedChangeBatch._removedItems);
+        moveItems(consolidatedChangeBatch._movedItems);
+
+     // ready to go back to rendering activities
     _itemsMutex.unlock();
 }
 
-void Scene::resetItem(ID id, ItemDataPointer& itemData) {
-    /*ID id = _items.size();
-    _items.push_back(Item(itemData));
-    */
+void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
+    auto resetID = ids.begin();
+    auto resetPayload = payloads.begin();
+    for (;resetID != ids.end(); resetID++, resetPayload++) {
+        _items[(*resetID)].resetPayload(*resetPayload);
+    }
 }
 
-void Scene::removeItem(ID id) {
+void Scene::removeItems(const ItemIDs& ids) {
+    for (auto removedID :ids) {
+        _items[removedID].kill();
+    }
 }
 
-void Scene::moveItem(ID id) {
+void Scene::moveItems(const ItemIDs& ids) {
+    for (auto movedID :ids) {
+        _items[movedID].move();
+    }
 }
+
+void Scene::registerObserver(ObserverPointer& observer) {
+    // make sure it's a valid observer
+    if (observer && (observer->getScene() == nullptr)) {
+        // Then register the observer
+        _observers.push_back(observer);
+
+        // And let it do what it wants to do
+        observer->registerScene(this);
+    }
+}
+
+void Scene::unregisterObserver(ObserverPointer& observer) {
+    // make sure it's a valid observer currently registered
+    if (observer && (observer->getScene() == this)) {
+        // let it do what it wants to do
+        observer->unregisterScene();
+
+        // Then unregister the observer
+        auto it = std::find(_observers.begin(), _observers.end(), observer);
+        _observers.erase(it);
+    }
+}
+

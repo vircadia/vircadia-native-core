@@ -19,6 +19,7 @@
 #include <AABox.h>
 #include <atomic>
 #include <mutex>
+#include <queue>
 
 namespace render {
 
@@ -76,10 +77,15 @@ public:
 
     typedef std::shared_ptr<PayloadInterface> PayloadPointer;
 
+    Item() {}
     Item(PayloadPointer& payload):
         _payload(payload) {}
 
     ~Item() {}
+
+    void resetPayload(PayloadPointer& payload);
+    void kill();
+    void move();
 
     // Check heuristic flags of the state
     const State& getState() const { return _state; }
@@ -107,41 +113,73 @@ public:
 
 protected:
     PayloadPointer _payload;
-    State _state;
+    State _state = 0;
 
     friend class Scene;
 };
 
-typedef Item::PayloadInterface ItemData;
-typedef Item::PayloadPointer ItemDataPointer;
-typedef std::vector< ItemDataPointer > ItemDataVector;
+typedef Item::PayloadInterface Payload;
+typedef Item::PayloadPointer PayloadPointer;
+typedef std::vector< PayloadPointer > Payloads;
 
 class Engine;
+class Observer;
 
 class Scene {
 public:
     typedef Item::Vector Items;
     typedef Item::ID ID;
-    typedef std::vector<Item::ID> ItemList;
-    typedef std::map<Item::State, ItemList> ItemLists;
+    typedef std::vector<Item::ID> ItemIDs;
+    typedef std::map<Item::State, ItemIDs> ItemLists;
+
+    class Observer {
+    public:
+        Observer(Scene* scene) {
+            
+        }
+        ~Observer() {}
+
+        const Scene* getScene() const { return _scene; }
+        Scene* editScene() { return _scene; }
+
+    protected:
+        Scene* _scene = nullptr;
+        virtual void onRegisterScene() {}
+        virtual void onUnregisterScene() {}
+
+        friend class Scene;
+        void registerScene(Scene* scene) {
+            _scene = scene;
+            onRegisterScene();
+        }
+
+        void unregisterScene() {
+            onUnregisterScene();
+            _scene = 0;
+        }
+    };
+    typedef std::shared_ptr< Observer > ObserverPointer;
+    typedef std::vector< ObserverPointer > Observers;
 
     class ChangeBatch {
     public:
         ChangeBatch() {}
         ~ChangeBatch();
 
-        void resetItem(ID id, ItemDataPointer& itemData);
+        void resetItem(ID id, PayloadPointer& payload);
         void removeItem(ID id);
         void moveItem(ID id);
 
-        ItemDataVector _resetItemDatas;
-        ItemList _resetItems; 
-        ItemList _removedItems;
-        ItemList _movedItems;
+        void mergeBatch(ChangeBatch& newBatch);
+
+        Payloads _resetPayloads;
+        ItemIDs _resetItems; 
+        ItemIDs _removedItems;
+        ItemIDs _movedItems;
 
     protected:
     };
-    typedef std::vector<ChangeBatch> ChangeBatchQueue;
+    typedef std::queue<ChangeBatch> ChangeBatchQueue;
 
     Scene();
     ~Scene() {}
@@ -152,21 +190,29 @@ public:
     /// Enqueue change batch to the scene
     void enqueueChangeBatch(const ChangeBatch& changeBatch);
 
+    /// Scene Observer listen to any change and get notified
+    void registerObserver(ObserverPointer& observer);
+    void unregisterObserver(ObserverPointer& observer);
+
 protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator;
-    std::mutex _changeBatchQueueMutex;
-    ChangeBatchQueue _changeBatchQueue;
+    std::mutex _changeQueueMutex;
+    ChangeBatchQueue _changeQueue;
 
     // The actual database
+    // database of items is protected for editing by a mutex
     std::mutex _itemsMutex;
     Items _items;
     ItemLists _buckets;
 
     void processChangeBatchQueue();
-    void resetItem(ID id, ItemDataPointer& itemData);
-    void removeItem(ID id);
-    void moveItem(ID id);
+    void resetItems(const ItemIDs& ids, Payloads& payloads);
+    void removeItems(const ItemIDs& ids);
+    void moveItems(const ItemIDs& ids);
+
+    // The scene context listening for any change to the database
+    Observers _observers;
 
     friend class Engine;
 };

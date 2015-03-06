@@ -19,13 +19,6 @@
 #include <QString>
 #include <QStringList>
 
-#ifdef HAVE_QXMPP
-
-#include <qxmpp/QXmppClient.h>
-#include <qxmpp/QXmppMessage.h>
-
-#endif // HAVE_QXMPP
-
 class DownloadInfoResult {
 public:
     DownloadInfoResult();
@@ -41,30 +34,20 @@ void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoR
 
 class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool isConnected READ isConnected)
     Q_PROPERTY(QString myUsername READ getMyUsername)
-    Q_PROPERTY(QStringList onlineUsers READ getOnlineUsers)
     GlobalServicesScriptingInterface();
     ~GlobalServicesScriptingInterface();
 public:
     static GlobalServicesScriptingInterface* getInstance();
 
-    bool isConnected();
     QString getMyUsername();
-    QStringList getOnlineUsers();
-
+    
 public slots:
-    QScriptValue chat(const QString& message);
     DownloadInfoResult getDownloadInfo();
     void updateDownloadInfo();
 
 private slots:
     void loggedOut();
-    void onConnected();
-    void participantsChanged();
-#ifdef HAVE_QXMPP
-    void messageReceived(const QXmppMessage& message);
-#endif // HAVE_QXMPP
     void checkDownloadInfo();
 
 signals:
