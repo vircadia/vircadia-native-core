@@ -416,11 +416,11 @@ bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
 }
 
 bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
-    return containsBounds(properties.getMaximumAACubeInTreeUnits());
+    return containsBounds(properties.getMaximumAACube());
 }
 
 bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
-    return bestFitBounds(properties.getMaximumAACubeInTreeUnits());
+    return bestFitBounds(properties.getMaximumAACube());
 }
 
 bool EntityTreeElement::containsBounds(const AACube& bounds) const {
