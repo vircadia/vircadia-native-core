@@ -253,6 +253,8 @@ inline void EntityItemProperties::setPosition(const glm::vec3& value)
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";
+    
+    debug << "    _type:" << properties.getType() << "\n";
 
     // TODO: figure out why position and animationSettings don't seem to like the macro approach
     if (properties.containsPositionChange()) {

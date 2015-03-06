@@ -20,23 +20,26 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
-const char* NUM_FORKS_PARAMETER = "-n";
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
                                                  const unsigned int maxAssignmentClientForks,
-                                                 QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
+                                                 Assignment::Type requestAssignmentType, QString assignmentPool,
+                                                 QUuid walletUUID, QString assignmentServerHostname,
                                                  quint16 assignmentServerPort) :
     _numAssignmentClientForks(numAssignmentClientForks),
     _minAssignmentClientForks(minAssignmentClientForks),
     _maxAssignmentClientForks(maxAssignmentClientForks),
+    _requestAssignmentType(requestAssignmentType),
     _assignmentPool(assignmentPool),
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
     _assignmentServerPort(assignmentServerPort)
 {    
+    qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
+
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
 
@@ -47,8 +50,10 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
 
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClientMonitor::readPendingDatagrams);
 
-    nodeList->putLocalPortIntoSharedMemory(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY, this,
-                                           nodeList->getNodeSocket().localPort());
+    qint64 pid = QCoreApplication::applicationPid ();
+
+    nodeList->putLocalPortIntoSharedMemory(QString(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY) + "-" + QString::number(pid),
+                                           this, nodeList->getNodeSocket().localPort());
     
     // use QProcess to fork off a process for each of the child assignment clients
     for (unsigned int i = 0; i < _numAssignmentClientForks; i++) {
@@ -96,6 +101,15 @@ void AssignmentClientMonitor::spawnChildClient() {
         _childArguments.append("--" + CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
         _childArguments.append(QString::number(_assignmentServerPort));
     }
+    if (_requestAssignmentType != Assignment::AllTypes) {
+        _childArguments.append("--" + ASSIGNMENT_TYPE_OVERRIDE_OPTION);
+        _childArguments.append(QString::number(_requestAssignmentType));
+    }
+
+    // tell children which shared memory key to use
+    qint64 pid = QCoreApplication::applicationPid ();
+    _childArguments.append("--" + PARENT_PID_OPTION);
+    _childArguments.append(QString::number(pid));
 
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
