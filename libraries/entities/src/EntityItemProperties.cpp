@@ -67,13 +67,13 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
     CONSTRUCT_PROPERTY(backgroundColor, TextEntityItem::DEFAULT_BACKGROUND_COLOR),
     CONSTRUCT_PROPERTY(shapeType, SHAPE_TYPE_NONE),
-	CONSTRUCT_PROPERTY(maxParticles, ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES),
-	CONSTRUCT_PROPERTY(lifespan, ParticleEffectEntityItem::DEFAULT_LIFESPAN),
-	CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
-	CONSTRUCT_PROPERTY(emitDirection, ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION),
-	CONSTRUCT_PROPERTY(emitStrength, ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH),
-	CONSTRUCT_PROPERTY(localGravity, ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY),
-	CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
+    CONSTRUCT_PROPERTY(maxParticles, ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES),
+    CONSTRUCT_PROPERTY(lifespan, ParticleEffectEntityItem::DEFAULT_LIFESPAN),
+    CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
+    CONSTRUCT_PROPERTY(emitDirection, ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION),
+    CONSTRUCT_PROPERTY(emitStrength, ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH),
+    CONSTRUCT_PROPERTY(localGravity, ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY),
+    CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -246,13 +246,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
     CHECK_PROPERTY_CHANGE(PROP_SHAPE_TYPE, shapeType);
-	CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
-	CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
-	CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
-	CHECK_PROPERTY_CHANGE(PROP_EMIT_DIRECTION, emitDirection);
-	CHECK_PROPERTY_CHANGE(PROP_EMIT_STRENGTH, emitStrength);
-	CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
-	CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
+    CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
+    CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_DIRECTION, emitDirection);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_STRENGTH, emitStrength);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
+    CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
 
     return changedProperties;
 }
@@ -312,13 +312,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeAsString());
-	COPY_PROPERTY_TO_QSCRIPTVALUE(maxParticles);
-	COPY_PROPERTY_TO_QSCRIPTVALUE(lifespan);
-	COPY_PROPERTY_TO_QSCRIPTVALUE(emitRate);
-	COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(emitDirection);
-	COPY_PROPERTY_TO_QSCRIPTVALUE(emitStrength);
-	COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
-	COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(maxParticles);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(lifespan);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitRate);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(emitDirection);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitStrength);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -397,13 +397,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(backgroundColor, setBackgroundColor);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
-	COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(maxParticles, setMaxParticles);
-	COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lifespan, setLifespan);
-	COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitRate, setEmitRate);
-	COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(emitDirection, setEmitDirection);
-	COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitStrength, setEmitStrength);
-	COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
-	COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(maxParticles, setMaxParticles);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lifespan, setLifespan);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitRate, setEmitRate);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(emitDirection, setEmitDirection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitStrength, setEmitStrength);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
 
     _lastEdited = usecTimestampNow();
 }
@@ -582,15 +582,15 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
             }
 
-			if (properties.getType() == EntityTypes::ParticleEffect) {
-				APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, appendValue, properties.getMaxParticles());
-				APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, appendValue, properties.getLifespan());
-				APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, appendValue, properties.getEmitRate());
-				APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, appendValue, properties.getEmitDirection());
-				APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, appendValue, properties.getEmitStrength());
-				APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, properties.getLocalGravity());
-				APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, properties.getParticleRadius());
-			}
+            if (properties.getType() == EntityTypes::ParticleEffect) {
+                APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, appendValue, properties.getMaxParticles());
+                APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, appendValue, properties.getLifespan());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, appendValue, properties.getEmitRate());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, appendValue, properties.getEmitDirection());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, appendValue, properties.getEmitStrength());
+                APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, properties.getLocalGravity());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, properties.getParticleRadius());
+            }
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -814,15 +814,15 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
     }
 
-	if (properties.getType() == EntityTypes::ParticleEffect) {
-		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
-		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
-		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
-		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
-		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_STRENGTH, float, setEmitStrength);
-		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCAL_GRAVITY, float, setLocalGravity);
-		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-	}
+    if (properties.getType() == EntityTypes::ParticleEffect) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_STRENGTH, float, setEmitStrength);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCAL_GRAVITY, float, setLocalGravity);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+    }
     
     return valid;
 }
@@ -901,13 +901,13 @@ void EntityItemProperties::markAllChanged() {
     _backgroundColorChanged = true;
     _shapeTypeChanged = true;
 
-	_maxParticlesChanged = true;
-	_lifespanChanged = true;
-	_emitRateChanged = true;
-	_emitDirectionChanged = true;
-	_emitStrengthChanged = true;
-	_localGravityChanged = true;
-	_particleRadiusChanged = true;
+    _maxParticlesChanged = true;
+    _lifespanChanged = true;
+    _emitRateChanged = true;
+    _emitDirectionChanged = true;
+    _emitStrengthChanged = true;
+    _localGravityChanged = true;
+    _particleRadiusChanged = true;
 }
 
 AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {

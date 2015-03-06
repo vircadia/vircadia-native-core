@@ -39,141 +39,143 @@
 
 class ParticleEffectEntityItem : public EntityItem {
 public:
-	
-	static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-	ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-	virtual ~ParticleEffectEntityItem();
+    ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    virtual ~ParticleEffectEntityItem();
 
-	ALLOW_INSTANTIATION // This class can be instantiated
-		
-	// methods for getting/setting all properties of this entity
-	virtual EntityItemProperties getProperties() const;
-	virtual bool setProperties(const EntityItemProperties& properties);
+    ALLOW_INSTANTIATION // This class can be instantiated
+        
+    // methods for getting/setting all properties of this entity
+    virtual EntityItemProperties getProperties() const;
+    virtual bool setProperties(const EntityItemProperties& properties);
 
-	virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
-	virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-		EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
-		EntityPropertyFlags& requestedProperties,
-		EntityPropertyFlags& propertyFlags,
-		EntityPropertyFlags& propertiesDidntFit,
-		int& propertyCount,
-		OctreeElement::AppendState& appendState) const;
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+        EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+        EntityPropertyFlags& requestedProperties,
+        EntityPropertyFlags& propertyFlags,
+        EntityPropertyFlags& propertiesDidntFit,
+        int& propertyCount,
+        OctreeElement::AppendState& appendState) const;
 
-	virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
-		ReadBitstreamToTreeParams& args,
-		EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+        ReadBitstreamToTreeParams& args,
+        EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
-	virtual void update(const quint64& now);
-	virtual bool needsToCallUpdate() const;
+    virtual void update(const quint64& now);
+    virtual bool needsToCallUpdate() const;
 
-	const rgbColor& getColor() const { return _color; }
-	xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
+    const rgbColor& getColor() const { return _color; }
+    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
 
-	void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-	void setColor(const xColor& value) {
-		_color[RED_INDEX] = value.red;
-		_color[GREEN_INDEX] = value.green;
-		_color[BLUE_INDEX] = value.blue;
-	}
+    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
+    void setColor(const xColor& value) {
+        _color[RED_INDEX] = value.red;
+        _color[GREEN_INDEX] = value.green;
+        _color[BLUE_INDEX] = value.blue;
+    }
 
-	void updateShapeType(ShapeType type);
-	virtual ShapeType getShapeType() const { return _shapeType; }
+    void updateShapeType(ShapeType type);
+    virtual ShapeType getShapeType() const { return _shapeType; }
 
-	virtual void debugDump() const;
+    virtual void debugDump() const;
 
-	static const float DEFAULT_ANIMATION_FRAME_INDEX;
-	void setAnimationFrameIndex(float value);
-	void setAnimationSettings(const QString& value);
+    static const float DEFAULT_ANIMATION_FRAME_INDEX;
+    void setAnimationFrameIndex(float value);
+    void setAnimationSettings(const QString& value);
 
-	static const bool DEFAULT_ANIMATION_IS_PLAYING;
-	void setAnimationIsPlaying(bool value);
+    static const bool DEFAULT_ANIMATION_IS_PLAYING;
+    void setAnimationIsPlaying(bool value);
 
-	static const float DEFAULT_ANIMATION_FPS;
-	void setAnimationFPS(float value);
+    static const float DEFAULT_ANIMATION_FPS;
+    void setAnimationFPS(float value);
 
-	void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
-	bool getAnimationLoop() const { return _animationLoop.getLoop(); }
+    void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
+    bool getAnimationLoop() const { return _animationLoop.getLoop(); }
 
-	void setAnimationHold(bool hold) { _animationLoop.setHold(hold); }
-	bool getAnimationHold() const { return _animationLoop.getHold(); }
+    void setAnimationHold(bool hold) { _animationLoop.setHold(hold); }
+    bool getAnimationHold() const { return _animationLoop.getHold(); }
 
-	void setAnimationStartAutomatically(bool startAutomatically) { _animationLoop.setStartAutomatically(startAutomatically); }
-	bool getAnimationStartAutomatically() const { return _animationLoop.getStartAutomatically(); }
+    void setAnimationStartAutomatically(bool startAutomatically) { _animationLoop.setStartAutomatically(startAutomatically); }
+    bool getAnimationStartAutomatically() const { return _animationLoop.getStartAutomatically(); }
 
-	void setAnimationFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
-	float getAnimationFirstFrame() const { return _animationLoop.getFirstFrame(); }
+    void setAnimationFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
+    float getAnimationFirstFrame() const { return _animationLoop.getFirstFrame(); }
 
-	void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
-	float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
+    void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
+    float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
 
-	static const quint32 DEFAULT_MAX_PARTICLES;
-	void setMaxParticles(quint32 maxParticles) { _maxParticles = maxParticles; }
-	quint32 getMaxParticles() const { return _maxParticles; }
+    static const quint32 DEFAULT_MAX_PARTICLES;
+    void setMaxParticles(quint32 maxParticles) { _maxParticles = maxParticles; }
+    quint32 getMaxParticles() const { return _maxParticles; }
 
-	static const float DEFAULT_LIFESPAN;
-	void setLifespan(float lifespan) { _lifespan = lifespan; }
-	float getLifespan() const { return _lifespan; }
+    static const float DEFAULT_LIFESPAN;
+    void setLifespan(float lifespan) { _lifespan = lifespan; }
+    float getLifespan() const { return _lifespan; }
 
-	static const float DEFAULT_EMIT_RATE;
-	void setEmitRate(float emitRate) { _emitRate = emitRate; }
-	float getEmitRate() const { return _emitRate; }
+    static const float DEFAULT_EMIT_RATE;
+    void setEmitRate(float emitRate) { _emitRate = emitRate; }
+    float getEmitRate() const { return _emitRate; }
 
-	static const glm::vec3 DEFAULT_EMIT_DIRECTION;
-	void setEmitDirection(glm::vec3 emitDirection) { _emitDirection = emitDirection; }
-	const glm::vec3& getEmitDirection() const { return _emitDirection; }
+    static const glm::vec3 DEFAULT_EMIT_DIRECTION;
+    void setEmitDirection(glm::vec3 emitDirection) { _emitDirection = emitDirection; }
+    const glm::vec3& getEmitDirection() const { return _emitDirection; }
 
-	static const float DEFAULT_EMIT_STRENGTH;
-	void setEmitStrength(float emitStrength) { _emitStrength = emitStrength; }
-	float getEmitStrength() const { return _emitStrength; }
+    static const float DEFAULT_EMIT_STRENGTH;
+    void setEmitStrength(float emitStrength) { _emitStrength = emitStrength; }
+    float getEmitStrength() const { return _emitStrength; }
 
-	static const float DEFAULT_LOCAL_GRAVITY;
-	void setLocalGravity(float localGravity) { _localGravity = localGravity; }
-	float getLocalGravity() const { return _localGravity; }
+    static const float DEFAULT_LOCAL_GRAVITY;
+    void setLocalGravity(float localGravity) { _localGravity = localGravity; }
+    float getLocalGravity() const { return _localGravity; }
 
-	static const float DEFAULT_PARTICLE_RADIUS;
-	void setParticleRadius(float particleRadius) { _particleRadius = particleRadius; }
-	float getParticleRadius() const { return _particleRadius; }
+    static const float DEFAULT_PARTICLE_RADIUS;
+    void setParticleRadius(float particleRadius) { _particleRadius = particleRadius; }
+    float getParticleRadius() const { return _particleRadius; }
 
-	bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
-	float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
-	float getAnimationFPS() const { return _animationLoop.getFPS(); }
-	QString getAnimationSettings() const;
+    bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
+    float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
+    float getAnimationFPS() const { return _animationLoop.getFPS(); }
+    QString getAnimationSettings() const;
 
 protected:
 
-	bool isAnimatingSomething() const;
-	void stepSim(float deltaTime);
-	void resetSim();
+    bool isAnimatingSomething() const;
+    void stepSimulation(float deltaTime);
+    void resetSimulation();
 
-	// the properties of this entity
-	rgbColor _color;
-	quint32 _maxParticles;
-	float _lifespan;
-	float _emitRate;
-	glm::vec3 _emitDirection;
-	float _emitStrength;
-	float _localGravity;
-	float _particleRadius;
-	quint64 _lastAnimated;
-	AnimationLoop _animationLoop;
-	QString _animationSettings;
-	ShapeType _shapeType = SHAPE_TYPE_NONE;
+    // the properties of this entity
+    rgbColor _color;
+    quint32 _maxParticles;
+    float _lifespan;
+    float _emitRate;
+    glm::vec3 _emitDirection;
+    float _emitStrength;
+    float _localGravity;
+    float _particleRadius;
+    quint64 _lastAnimated;
+    AnimationLoop _animationLoop;
+    QString _animationSettings;
+    ShapeType _shapeType = SHAPE_TYPE_NONE;
 
-	// all the internals of running the particle sim
-	float* pa_life;
-	float* pa_position;
-	float* pa_velocity;
-	float partial_emit;
-	quint32 pa_count;
-	quint32 pa_head;
-	float pa_xmin;
-	float pa_xmax;
-	float pa_ymin;
-	float pa_ymax;
-	float pa_zmin;
-	float pa_zmax;
+    // all the internals of running the particle sim
+    const quint32 XYZ_STRIDE = 3;
+    float* _paLife;
+    float* _paPosition;
+    float* _paVelocity;
+    float _partialEmit;
+    quint32 _paCount;
+    quint32 _paHead;
+    float _paXmin;
+    float _paXmax;
+    float _paYmin;
+    float _paYmax;
+    float _paZmin;
+    float _paZmax;
+    unsigned int _randSeed;
 
 };
 

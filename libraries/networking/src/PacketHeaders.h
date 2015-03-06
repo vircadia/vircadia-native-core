@@ -129,5 +129,6 @@ const PacketVersion VERSION_ENTITIES_HAVE_USER_DATA = 6;
 const PacketVersion VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME = 7;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SHAPE_TYPE = 8;
 const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
+const PacketVersion VERSION_ENTITIES_HAS_PARTICLES = 10;
 
 #endif // hifi_PacketHeaders_h

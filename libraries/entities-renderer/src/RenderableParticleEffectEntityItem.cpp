@@ -15,11 +15,17 @@
 #include <DependencyManager.h>
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
+#include <GeometryCache.h>
 
 #include "RenderableParticleEffectEntityItem.h"
 
 EntityItem* RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-	return new RenderableParticleEffectEntityItem(entityID, properties);
+    return new RenderableParticleEffectEntityItem(entityID, properties);
+}
+
+RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+    ParticleEffectEntityItem(entityItemID, properties) {
+    _cacheID = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
@@ -28,11 +34,45 @@ void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
     glm::vec3 position = getPositionInMeters();
     glm::vec3 center = getCenterInMeters();
     glm::quat rotation = getRotation();
-	float pa_rad = getParticleRadius();
+    float pa_rad = getParticleRadius();
 
     const float MAX_COLOR = 255.0f;
-    glm::vec4 sphereColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
+    glm::vec4 paColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
+
+    // Right now we're just iterating over particles and rendering as a cross of four quads.
+    // This is pretty dumb, it was quick enough to code up.  Really, there should be many
+    // rendering modes, including the all-important textured billboards.
+
+    QVector<glm::vec3>* pointVec = new QVector<glm::vec3>(_paCount * VERTS_PER_PARTICLE);
+    quint32 paIter = _paHead;
+    while (_paLife[paIter] > 0.0f) {
+        int j = paIter * XYZ_STRIDE;
+
+        pointVec->append(glm::vec3(_paPosition[j] - pa_rad, _paPosition[j + 1] + pa_rad, _paPosition[j + 2]));
+        pointVec->append(glm::vec3(_paPosition[j] + pa_rad, _paPosition[j + 1] + pa_rad, _paPosition[j + 2]));
+        pointVec->append(glm::vec3(_paPosition[j] + pa_rad, _paPosition[j + 1] - pa_rad, _paPosition[j + 2]));
+        pointVec->append(glm::vec3(_paPosition[j] - pa_rad, _paPosition[j + 1] - pa_rad, _paPosition[j + 2]));
+
+        pointVec->append(glm::vec3(_paPosition[j] + pa_rad, _paPosition[j + 1] + pa_rad, _paPosition[j + 2]));
+        pointVec->append(glm::vec3(_paPosition[j] - pa_rad, _paPosition[j + 1] + pa_rad, _paPosition[j + 2]));
+        pointVec->append(glm::vec3(_paPosition[j] - pa_rad, _paPosition[j + 1] - pa_rad, _paPosition[j + 2]));
+        pointVec->append(glm::vec3(_paPosition[j] + pa_rad, _paPosition[j + 1] - pa_rad, _paPosition[j + 2]));
+
+        pointVec->append(glm::vec3(_paPosition[j], _paPosition[j + 1] + pa_rad, _paPosition[j + 2] - pa_rad));
+        pointVec->append(glm::vec3(_paPosition[j], _paPosition[j + 1] + pa_rad, _paPosition[j + 2] + pa_rad));
+        pointVec->append(glm::vec3(_paPosition[j], _paPosition[j + 1] - pa_rad, _paPosition[j + 2] + pa_rad));
+        pointVec->append(glm::vec3(_paPosition[j], _paPosition[j + 1] - pa_rad, _paPosition[j + 2] - pa_rad));
+
+        pointVec->append(glm::vec3(_paPosition[j], _paPosition[j + 1] + pa_rad, _paPosition[j + 2] + pa_rad));
+        pointVec->append(glm::vec3(_paPosition[j], _paPosition[j + 1] + pa_rad, _paPosition[j + 2] - pa_rad));
+        pointVec->append(glm::vec3(_paPosition[j], _paPosition[j + 1] - pa_rad, _paPosition[j + 2] - pa_rad));
+        pointVec->append(glm::vec3(_paPosition[j], _paPosition[j + 1] - pa_rad, _paPosition[j + 2] + pa_rad));
+
+        paIter = (paIter + 1) % _maxParticles;
+    }
+
+    DependencyManager::get<GeometryCache>()->updateVertices(_cacheID, *pointVec, paColor);
                     
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
@@ -44,45 +84,9 @@ void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             
-            const int SLICES = 8;
-            const int STACKS = 5;
-
-			glBegin(GL_QUADS);
-			glColor4f(sphereColor.r, sphereColor.g, sphereColor.b, sphereColor.a);
-
-			// Right now we're just iterating over particles and rendering as a cross of four quads.
-			// This is pretty dumb, it was quick enough to code up.  Really, there should be many
-			// rendering modes, including the all-important textured billboards.
-			
-			quint32 paiter = pa_head;
-			while (pa_life[paiter] > 0.0f)
-			{
-				int j = paiter * 3;
-
-				glVertex3f(pa_position[j] - pa_rad, pa_position[j + 1] + pa_rad, pa_position[j + 2]);
-				glVertex3f(pa_position[j] + pa_rad, pa_position[j + 1] + pa_rad, pa_position[j + 2]);
-				glVertex3f(pa_position[j] + pa_rad, pa_position[j + 1] - pa_rad, pa_position[j + 2]);
-				glVertex3f(pa_position[j] - pa_rad, pa_position[j + 1] - pa_rad, pa_position[j + 2]);
-
-				glVertex3f(pa_position[j] + pa_rad, pa_position[j + 1] + pa_rad, pa_position[j + 2]);
-				glVertex3f(pa_position[j] - pa_rad, pa_position[j + 1] + pa_rad, pa_position[j + 2]);
-				glVertex3f(pa_position[j] - pa_rad, pa_position[j + 1] - pa_rad, pa_position[j + 2]);
-				glVertex3f(pa_position[j] + pa_rad, pa_position[j + 1] - pa_rad, pa_position[j + 2]);
-
-				glVertex3f(pa_position[j], pa_position[j + 1] + pa_rad, pa_position[j + 2] - pa_rad);
-				glVertex3f(pa_position[j], pa_position[j + 1] + pa_rad, pa_position[j + 2] + pa_rad);
-				glVertex3f(pa_position[j], pa_position[j + 1] - pa_rad, pa_position[j + 2] + pa_rad);
-				glVertex3f(pa_position[j], pa_position[j + 1] - pa_rad, pa_position[j + 2] - pa_rad);
-
-				glVertex3f(pa_position[j], pa_position[j + 1] + pa_rad, pa_position[j + 2] + pa_rad);
-				glVertex3f(pa_position[j], pa_position[j + 1] + pa_rad, pa_position[j + 2] - pa_rad);
-				glVertex3f(pa_position[j], pa_position[j + 1] - pa_rad, pa_position[j + 2] - pa_rad);
-				glVertex3f(pa_position[j], pa_position[j + 1] - pa_rad, pa_position[j + 2] + pa_rad);
-
-				paiter = (paiter + 1) % _maxParticles;
-			}
-
-			glEnd();
+            DependencyManager::get<GeometryCache>()->renderVertices(gpu::QUADS, _cacheID);
         glPopMatrix();
     glPopMatrix();
+
+    delete pointVec;
 };

@@ -16,13 +16,12 @@
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-
-    RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        ParticleEffectEntityItem(entityItemID, properties)
-        { }
-
+    RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual void render(RenderArgs* args);
 
+protected:
+    int _cacheID;
+    const int VERTS_PER_PARTICLE = 16;
 };
 
 
