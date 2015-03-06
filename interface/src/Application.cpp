@@ -772,13 +772,10 @@ void Application::paintGL() {
 
         DependencyManager::get<GlowEffect>()->render();
 
-        {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
             PerformanceTimer perfTimer("renderOverlay");
-            // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
             _applicationOverlay.renderOverlay(true);
-            if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
-                _applicationOverlay.displayOverlayTexture();
-            }
+            _applicationOverlay.displayOverlayTexture();
         }
     }
 
