@@ -80,6 +80,7 @@ EntityItemProperties::EntityItemProperties() :
 }
 
 EntityItemProperties::~EntityItemProperties() { 
+    std::cout << "adebug delete properties" << std::endl;  // adebug
 }
 
 void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sittingPoints) {

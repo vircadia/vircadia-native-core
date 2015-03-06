@@ -795,6 +795,7 @@ quint64 EntityItem::getExpiry() const {
 }
 
 EntityItemProperties EntityItem::getProperties() const {
+    std::cout << "adebug EntityItem::getProperties" << std::endl;  // adebug
     EntityItemProperties properties;
     properties._id = getID();
     properties._idSet = true;
@@ -824,6 +825,7 @@ EntityItemProperties EntityItem::getProperties() const {
 
     properties._defaultSettings = false;
     
+    std::cout << "adebug about to delete properties" << std::endl;  // adebug
     return properties;
 }
 
@@ -1017,31 +1019,27 @@ const float MIN_SPIN_DELTA = 0.0003f;
 
 void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) { 
     glm::vec3 position = value * (float)TREE_SCALE;
-    if (glm::distance(_position, position) > MIN_POSITION_DELTA) {
-        _position = position; 
-        _dirtyFlags |= EntityItem::DIRTY_POSITION;
-    }
+    updatePositionInMeters(position);
 }
 
 void EntityItem::updatePositionInMeters(const glm::vec3& value) { 
     if (glm::distance(_position, value) > MIN_POSITION_DELTA) {
         _position = value;
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
+        std::cout << "adebug updatePositionInMeters = " << _position << std::endl;  // adebug
     }
 }
 
 void EntityItem::updateDimensionsInDomainUnits(const glm::vec3& value) { 
     glm::vec3 dimensions = value * (float)TREE_SCALE;
-    if (glm::distance(_dimensions, dimensions) > MIN_DIMENSIONS_DELTA) {
-        _dimensions = glm::abs(dimensions);
-        _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
-    }
+    updateDimensionsInMeters(dimensions);
 }
 
 void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
     if (glm::distance(_dimensions, value) > MIN_DIMENSIONS_DELTA) {
         _dimensions = value;
         _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
+        std::cout << "adebug updateDimensionsInMeters = " << value << std::endl;  // adebug
     }
 }
 
@@ -1078,14 +1076,7 @@ void EntityItem::updateMass(float mass) {
 
 void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
     glm::vec3 velocity = value * (float)TREE_SCALE;
-    if (glm::distance(_velocity, velocity) > MIN_VELOCITY_DELTA) {
-        if (glm::length(velocity) < MIN_VELOCITY_DELTA) {
-            _velocity = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _velocity = velocity;
-        }
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
-    }
+    updateVelocityInMeters(velocity);
 }
 
 void EntityItem::updateVelocityInMeters(const glm::vec3& value) { 
@@ -1108,10 +1099,7 @@ void EntityItem::updateDamping(float value) {
 
 void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) { 
     glm::vec3 gravity = value * (float) TREE_SCALE;
-    if (glm::distance(_gravity, gravity) > MIN_GRAVITY_DELTA) {
-        _gravity = gravity; 
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
-    }
+    updateGravityInMeters(gravity);
 }
 
 void EntityItem::updateGravityInMeters(const glm::vec3& value) { 

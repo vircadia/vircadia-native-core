@@ -22,6 +22,7 @@
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <ShapeInfo.h>
+#include <StreamUtils.h> // adebug
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
@@ -151,14 +152,16 @@ public:
     /// set position in domain scale units (0.0 - 1.0)
     void setPositionInDomainUnits(const glm::vec3& value)
             { setPositionInMeters(glm::clamp(value, 0.0f, 1.0f) * (float)TREE_SCALE); }
-    void setPositionInMeters(const glm::vec3& value) { _position = value; }
+    void setPositionInMeters(const glm::vec3& value) { 
+        _position = value; 
+        std::cout << "adebug setPosition = " << _position << std::endl;  // adebug
+    }
 
     glm::vec3 getCenterInDomainUnits() const { return getCenterInMeters() / (float) TREE_SCALE; }
     glm::vec3 getCenterInMeters() const;
 
     glm::vec3 getDimensionsInDomainUnits() const { return _dimensions / (float)TREE_SCALE; } /// get dimensions in domain scale units (0.0 - 1.0)
     const glm::vec3& getDimensionsInMeters() const { return _dimensions; } /// get dimensions in meters
-    float getLargestDimensionInDomainUnits() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0)
     virtual void setDimensionsInDomainUnits(const glm::vec3& value) { _dimensions = glm::abs(value) * (float)TREE_SCALE; }

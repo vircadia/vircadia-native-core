@@ -22,11 +22,13 @@ OctreeRenderer::OctreeRenderer() :
     _managedTree(false),
     _viewFrustum(NULL)
 {
+    std::cout << "adebug " << (void*)(this) << "  OctreeRenderer() _tree = " << (void*)(_tree) << std::endl;  // adebug
 }
 
 void OctreeRenderer::init() {
     if (!_tree) {
         _tree = createTree();
+        std::cout << "adebug " << (void*)(this) << "  init _tree = " << (void*)(_tree) << std::endl;  // adebug
         _managedTree = true;
     }
 }
@@ -43,6 +45,7 @@ void OctreeRenderer::setTree(Octree* newTree) {
         _managedTree = false;
     }
     _tree = newTree; 
+    std::cout << "adebug " << (void*)(this) << "  setTree() _tree = " << (void*)(_tree) << std::endl;  // adebug
 }
 
 void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {

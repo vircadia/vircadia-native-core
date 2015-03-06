@@ -22,9 +22,15 @@ EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement()
 };
 
 EntityTreeElement::~EntityTreeElement() {
+    int bar = 0;
     _octreeMemoryUsage -= sizeof(EntityTreeElement);
+    bar = 1;
+    std::cout << "adebug EntityTreeElement " << (void*)(this) << " deletes old entityItems = " << (void*)(_entityItems) << std::endl;  // adebug
     delete _entityItems;
+    bar = 2;
     _entityItems = NULL;
+    bar = 3;
+    std::cout << "adebug bar = " << bar << std::endl;  // adebug
 }
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
@@ -39,6 +45,7 @@ OctreeElement* EntityTreeElement::createNewElement(unsigned char* octalCode) {
 void EntityTreeElement::init(unsigned char* octalCode) {
     OctreeElement::init(octalCode);
     _entityItems = new QList<EntityItem*>;
+    std::cout << "adebug EntityTreeElement " << (void*)(this) << " gets new entityItems = " << (void*)(_entityItems) << std::endl;  // adebug
     _octreeMemoryUsage += sizeof(EntityTreeElement);
 }
 

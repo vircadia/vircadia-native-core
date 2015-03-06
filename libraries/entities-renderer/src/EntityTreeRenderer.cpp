@@ -48,6 +48,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _displayModelElementProxy(false),
     _dontDoPrecisionPicking(false)
 {
+    std::cout << "adebug " << (void*)(this) << " EntityTreeRenderer  ctor" << std::endl;  // adebug
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
@@ -480,7 +481,6 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
 
         maxCube.scale((float) TREE_SCALE);
         minCube.scale((float) TREE_SCALE);
-        entityBox.scale((float) TREE_SCALE);
 
         glm::vec3 maxCenter = maxCube.calcCenter();
         glm::vec3 minCenter = minCube.calcCenter();
@@ -672,10 +672,16 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
                                                                 (void**)&intersectedEntity, lockType, &result.accurate, 
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
+            std::cout << "adebug " << (void*)(this) << " EntityTreeRenderer's tree = " << (void*)(_tree) << std::endl;  // adebug
+            int foo = 0;
             result.entityID = intersectedEntity->getEntityItemID();
+            foo = 1;
             result.properties = intersectedEntity->getProperties();
+            foo = 2;
             result.intersection = ray.origin + (ray.direction * result.distance);
+            foo = 3;
             result.entity = intersectedEntity;
+            std::cout << "adebug foo = " << foo << std::endl;  // adebug
         }
     }
     return result;

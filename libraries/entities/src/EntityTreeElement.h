@@ -73,6 +73,7 @@ public:
 class EntityTreeElement : public OctreeElement {
     friend class EntityTree; // to allow createElement to new us...
 
+    EntityTreeElement();
     EntityTreeElement(unsigned char* octalCode = NULL);
 
     virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL);
