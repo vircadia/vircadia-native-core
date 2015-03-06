@@ -148,6 +148,7 @@ void DialogsManager::hmdToolsClosed() {
 
 void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
+    _scriptEditor->show();
     _scriptEditor->raise();
 }
 
