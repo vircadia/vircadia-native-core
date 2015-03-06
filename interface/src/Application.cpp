@@ -460,6 +460,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _glWidget->setMouseTracking(true);
 
     _fullscreenMenuWidget->setParent(_glWidget);
+    _menuBarHeight = Menu::getInstance()->height();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
+        setFullscreen(true);  // Initialize menu bar show/hide
+    }
 
     _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
