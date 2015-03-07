@@ -501,7 +501,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         EntityPropertyFlags propertyFlags = encodedPropertyFlags;
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
-        bool useMeters = (args.bitstreamVersion == VERSION_ENTITIES_USE_METERS);
+        bool useMeters = (args.bitstreamVersion == VERSION_ENTITIES_USE_METERS_AND_RADIANS);
         if (useMeters) {
             READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePosition);
         } else {
@@ -540,7 +540,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, setScript);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
-        READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+        if (useMeters) {
+            READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+        } else {
+            READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
+        }
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
         READ_ENTITY_PROPERTY_SETTER(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
@@ -683,41 +687,36 @@ void EntityItem::simulate(const quint64& now) {
 void EntityItem::simulateKinematicMotion(float timeElapsed) {
     if (hasAngularVelocity()) {
         // angular damping
-        glm::vec3 angularVelocity = getAngularVelocity();
         if (_angularDamping > 0.0f) {
-            angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
+            _angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
             #ifdef WANT_DEBUG
                 qDebug() << "    angularDamping :" << _angularDamping;
-                qDebug() << "    newAngularVelocity:" << angularVelocity;
+                qDebug() << "    newAngularVelocity:" << _angularVelocity;
             #endif
-            setAngularVelocity(angularVelocity);
         }
 
         float angularSpeed = glm::length(_angularVelocity);
         
-        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.1f; // 
+        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
             if (angularSpeed > 0.0f) {
                 _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
             }
-            setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
+            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
-            // NOTE: angularSpeed is currently in degrees/sec!!!
-            // TODO: Andrew to convert to radians/sec
-            glm::vec3 angularVelocity = glm::radians(_angularVelocity);
             // for improved agreement with the way Bullet integrates rotations we use an approximation 
             // and break the integration into bullet-sized substeps 
             glm::quat rotation = getRotation();
             float dt = timeElapsed;
             while (dt > PHYSICS_ENGINE_FIXED_SUBSTEP) {
-                glm::quat  dQ = computeBulletRotationStep(angularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
+                glm::quat  dQ = computeBulletRotationStep(_angularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
                 rotation = glm::normalize(dQ * rotation);
                 dt -= PHYSICS_ENGINE_FIXED_SUBSTEP;
             }
             // NOTE: this final partial substep can drift away from a real Bullet simulation however 
             // it only becomes significant for rapidly rotating objects
             // (e.g. around PI/4 radians per substep, or 7.5 rotations/sec at 60 substeps/sec).
-            glm::quat  dQ = computeBulletRotationStep(angularVelocity, dt);
+            glm::quat  dQ = computeBulletRotationStep(_angularVelocity, dt);
             rotation = glm::normalize(dQ * rotation);
 
             setRotation(rotation);

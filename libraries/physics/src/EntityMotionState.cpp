@@ -99,8 +99,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     _entity->setVelocity(v);
 
     getAngularVelocity(v);
-    // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
-    _entity->setAngularVelocity(glm::degrees(v));
+    _entity->setAngularVelocity(v);
 
     _entity->setLastSimulated(usecTimestampNow());
 
@@ -159,8 +158,7 @@ void EntityMotionState::updateObjectVelocities() {
         _sentVelocity = _entity->getVelocity();
         setVelocity(_sentVelocity);
 
-        // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
-        _sentAngularVelocity = glm::radians(_entity->getAngularVelocity());
+        _sentAngularVelocity = _entity->getAngularVelocity();
         setAngularVelocity(_sentAngularVelocity);
 
         _sentAcceleration = _entity->getGravity();
@@ -219,8 +217,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setVelocity(_sentVelocity);
             _sentAcceleration = bulletToGLM(_body->getGravity());
             properties.setGravity(_sentAcceleration);
-            // DANGER! EntityItem stores angularVelocity in degrees/sec!!!
-            properties.setAngularVelocity(glm::degrees(_sentAngularVelocity));
+            properties.setAngularVelocity(_sentAngularVelocity);
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
