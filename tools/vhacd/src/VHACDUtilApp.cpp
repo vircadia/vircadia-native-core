@@ -41,12 +41,6 @@ bool writeOBJ(QString outFileName, QVector<QVector<VHACD::IVHACD::ConvexHull>>& 
 
     QTextStream out(&file);
 
-    // if (meshList.size() != 1) {
-    //     qDebug() << "unexpected number of meshes --" << meshList.size();
-    //     exit(1);
-    // }
-    // QVector<VHACD::IVHACD::ConvexHull> hulls = meshList[0];
-
     unsigned int pointStartOffset = 0;
 
     foreach (QVector<VHACD::IVHACD::ConvexHull> hulls, meshList) {
@@ -56,8 +50,9 @@ bool writeOBJ(QString outFileName, QVector<QVector<VHACD::IVHACD::ConvexHull>>& 
             for (unsigned int i = 0; i < hull.m_nPoints; i++) {
                 out << "v ";
                 out << formatFloat(hull.m_points[i*3]) << " ";
+                // swap y and z because up is 3rd value in OBJ
+                out << formatFloat(hull.m_points[i*3+2]) << "\n";
                 out << formatFloat(hull.m_points[i*3+1]) << " ";
-                out << formatFloat(hull.m_points[i*3+2]) << " 1\n";
             }
             for (unsigned int i = 0; i < hull.m_nTriangles; i++) {
                 out << "f ";
