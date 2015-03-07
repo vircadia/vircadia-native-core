@@ -772,13 +772,10 @@ void Application::paintGL() {
 
         DependencyManager::get<GlowEffect>()->render();
 
-        {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
             PerformanceTimer perfTimer("renderOverlay");
-            // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
             _applicationOverlay.renderOverlay(true);
-            if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
-                _applicationOverlay.displayOverlayTexture();
-            }
+            _applicationOverlay.displayOverlayTexture();
         }
     }
 
@@ -1637,6 +1634,47 @@ void Application::setActiveFaceTracker() {
 #endif
 }
 
+bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
+    QVector<EntityItem*> entities;
+
+    auto entityTree = _entities.getTree();
+    EntityTree exportTree;
+
+    glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+    for (auto entityID : entityIDs) {
+        auto entityItem = entityTree->findEntityByEntityItemID(entityID);
+        if (!entityItem) {
+            continue;
+        }
+
+        auto properties = entityItem->getProperties();
+        auto position = properties.getPosition();
+
+        root.x = glm::min(root.x, position.x);
+        root.y = glm::min(root.y, position.y);
+        root.z = glm::min(root.z, position.z);
+
+        entities << entityItem;
+    }
+
+    if (entities.size() == 0) {
+        return false;
+    }
+
+    for (auto entityItem : entities) {
+        auto properties = entityItem->getProperties();
+
+        properties.setPosition(properties.getPosition() - root);
+        exportTree.addEntity(entityItem->getEntityItemID(), properties);
+    }
+
+    exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+
+    // restore the main window's active state
+    _window->activateWindow();
+    return true;
+}
+
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
@@ -1687,8 +1725,8 @@ bool Application::importEntities(const QString& filename) {
     return success;
 }
 
-void Application::pasteEntities(float x, float y, float z) {
-    _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
+QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
+    return _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::initDisplay() {
