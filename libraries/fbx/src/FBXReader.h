@@ -257,6 +257,8 @@ public:
     
     /// given a meshIndex this will return the name of the model that mesh belongs to if known
     QString getModelNameOfMesh(int meshIndex) const;
+    
+    QList<QString> blendshapeChannelNames;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
