@@ -39,15 +39,12 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
 
 
     //results->meshCount = geometry.meshes.count();
-
-    qDebug() << "read in" << geometry.meshes.count() << "meshes";
+    // qDebug() << "read in" << geometry.meshes.count() << "meshes";
 
     int count = 0;
     foreach(FBXMesh mesh, geometry.meshes) {
         //get vertices for each mesh		
         QVector<glm::vec3> vertices = mesh.vertices;
-
-        qDebug() << "vertex count is" << vertices.count();
 
         //get the triangle indices for each mesh
         QVector<int> triangles;
