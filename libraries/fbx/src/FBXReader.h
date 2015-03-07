@@ -152,8 +152,6 @@ public:
     
     bool hasSpecularTexture() const;
     bool hasEmissiveTexture() const;
-
-    model::Mesh _mesh;
 };
 
 /// A single animation frame extracted from an FBX document.
