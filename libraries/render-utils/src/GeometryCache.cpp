@@ -2084,6 +2084,7 @@ void GeometryReader::run() {
         urlValid &= !urlname.isEmpty();
         urlValid &= !_url.path().isEmpty();
         urlValid &= _url.path().toLower().endsWith(".fbx")
+                    || _url.path().toLower().endsWith(".obj")
                     || _url.path().toLower().endsWith(".svo");
 
         if (urlValid) {
