@@ -585,6 +585,8 @@ private:
     QTimer _settingsTimer;
     
     GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
+
+    void checkSkeleton();
 };
 
 #endif // hifi_Application_h

@@ -490,6 +490,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
             bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
 
+    connect(&_myAvatar->getSkeletonModel(), &SkeletonModel::skeletonLoaded, 
+            this, &Application::checkSkeleton, Qt::QueuedConnection);
+
     // check first run...
     if (_firstRun.get()) {
         qDebug() << "This is a first run...";
@@ -4042,5 +4045,21 @@ void Application::notifyPacketVersionMismatch() {
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
+    }
+}
+
+void Application::checkSkeleton() {
+    if (_myAvatar->getSkeletonModel().isActive() && !_myAvatar->getSkeletonModel().hasSkeleton()) {
+        qDebug() << "MyAvatar model has no skeleton";
+    
+        QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+        
+        _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
+        _myAvatar->sendIdentityPacket();
     }
 }
