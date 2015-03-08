@@ -330,14 +330,16 @@ void ModelUploader::populateBasicMapping(QVariantHash& mapping, QString filename
     // mixamo blendshapes - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
     // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
     bool likelyMixamoFile = geometry.applicationName == "mixamo.com" || 
-                            (geometry.blendshapeChannelNames.contains("BrowsDown_Left") && 
+                            (geometry.blendshapeChannelNames.contains("Facial_Blends") && 
                              geometry.blendshapeChannelNames.contains("BrowsDown_Right") && 
                              geometry.blendshapeChannelNames.contains("MouthOpen") && 
-                             geometry.blendshapeChannelNames.contains("TongueUp") && 
-                             geometry.blendshapeChannelNames.contains("MouthWhistle_NarrowAdjust_Left") && 
-                             geometry.blendshapeChannelNames.contains("NoseScrunch_Left") && 
+                             geometry.blendshapeChannelNames.contains("Blink_Left") && 
+                             geometry.blendshapeChannelNames.contains("Blink_Right") && 
                              geometry.blendshapeChannelNames.contains("Squint_Right"));
-    
+
+qDebug() << "likelyMixamoFile:" << likelyMixamoFile;
+qDebug() << "geometry.blendshapeChannelNames:" << geometry.blendshapeChannelNames;
+
     if (!mapping.contains(BLENDSHAPE_FIELD) && likelyMixamoFile) {
         QVariantHash blendshapes;
         blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
