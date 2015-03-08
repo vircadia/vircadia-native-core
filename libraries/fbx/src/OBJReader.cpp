@@ -1,6 +1,13 @@
-
-
-
+//
+//  EntityItemProperties.h
+//  libraries/entities/src
+//
+//  Created by Seth Alves on 3/7/15.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 // http://en.wikipedia.org/wiki/Wavefront_.obj_file
 // http://www.scratchapixel.com/old/lessons/3d-advanced-lessons/obj-file-format/obj-file-format/
 // http://paulbourke.net/dataformats/obj/
@@ -201,28 +208,28 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
         }
 
         geometry.joints.resize(1);
-        geometry.joints[ 0 ].isFree = false;
-        // geometry.joints[ 0 ].freeLineage;
-        geometry.joints[ 0 ].parentIndex = -1;
-        geometry.joints[ 0 ].distanceToParent = 0;
-        geometry.joints[ 0 ].boneRadius = 0;
-        geometry.joints[ 0 ].translation = glm::vec3(0, 0, 0);
-        // geometry.joints[ 0 ].preTransform = ;
-        geometry.joints[ 0 ].preRotation = glm::quat(0, 0, 0, 1);
-        geometry.joints[ 0 ].rotation = glm::quat(0, 0, 0, 1);
-        geometry.joints[ 0 ].postRotation = glm::quat(0, 0, 0, 1);
-        // geometry.joints[ 0 ].postTransform = ;
-        // geometry.joints[ 0 ].transform = ;
-        geometry.joints[ 0 ].rotationMin = glm::vec3(0, 0, 0);
-        geometry.joints[ 0 ].rotationMax = glm::vec3(0, 0, 0);
-        geometry.joints[ 0 ].inverseDefaultRotation = glm::quat(0, 0, 0, 1);
-        geometry.joints[ 0 ].inverseBindRotation = glm::quat(0, 0, 0, 1);
-        // geometry.joints[ 0 ].bindTransform = ;
-        geometry.joints[ 0 ].name = "OBJ";
-        geometry.joints[ 0 ].shapePosition = glm::vec3(0, 0, 0);
-        geometry.joints[ 0 ].shapeRotation = glm::quat(0, 0, 0, 1);
-        geometry.joints[ 0 ].shapeType = SPHERE_SHAPE;
-        geometry.joints[ 0 ].isSkeletonJoint = false;
+        geometry.joints[0].isFree = false;
+        // geometry.joints[0].freeLineage;
+        geometry.joints[0].parentIndex = -1;
+        geometry.joints[0].distanceToParent = 0;
+        geometry.joints[0].boneRadius = 0;
+        geometry.joints[0].translation = glm::vec3(0, 0, 0);
+        // geometry.joints[0].preTransform = ;
+        geometry.joints[0].preRotation = glm::quat(0, 0, 0, 1);
+        geometry.joints[0].rotation = glm::quat(0, 0, 0, 1);
+        geometry.joints[0].postRotation = glm::quat(0, 0, 0, 1);
+        // geometry.joints[0].postTransform = ;
+        // geometry.joints[0].transform = ;
+        geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
+        geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
+        geometry.joints[0].inverseDefaultRotation = glm::quat(0, 0, 0, 1);
+        geometry.joints[0].inverseBindRotation = glm::quat(0, 0, 0, 1);
+        // geometry.joints[0].bindTransform = ;
+        geometry.joints[0].name = "OBJ";
+        geometry.joints[0].shapePosition = glm::vec3(0, 0, 0);
+        geometry.joints[0].shapeRotation = glm::quat(0, 0, 0, 1);
+        geometry.joints[0].shapeType = SPHERE_SHAPE;
+        geometry.joints[0].isSkeletonJoint = false;
 
         // add bogus normal data for this mesh
         mesh.normals.fill(glm::vec3(0,0,0), mesh.vertices.count());
@@ -231,24 +238,24 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
         foreach (FBXMeshPart meshPart, mesh.parts) {
             int triCount = meshPart.triangleIndices.count() / 3;
             for (int i = 0; i < triCount; i++) {
-                int p0Index = meshPart.triangleIndices[ i*3 ];
-                int p1Index = meshPart.triangleIndices[ i*3+1 ];
-                int p2Index = meshPart.triangleIndices[ i*3+2 ];
+                int p0Index = meshPart.triangleIndices[i*3];
+                int p1Index = meshPart.triangleIndices[i*3+1];
+                int p2Index = meshPart.triangleIndices[i*3+2];
 
-                glm::vec3 p0 = mesh.vertices[ p0Index ];
-                glm::vec3 p1 = mesh.vertices[ p1Index ];
-                glm::vec3 p2 = mesh.vertices[ p2Index ];
+                glm::vec3 p0 = mesh.vertices[p0Index];
+                glm::vec3 p1 = mesh.vertices[p1Index];
+                glm::vec3 p2 = mesh.vertices[p2Index];
 
                 glm::vec3 n = glm::cross(p1 - p0, p2 - p0);
                 glm::vec3 t = glm::cross(p2 - p0, n);
 
-                mesh.normals[ p0Index ] = n;
-                mesh.normals[ p1Index ] = n;
-                mesh.normals[ p2Index ] = n;
+                mesh.normals[p0Index] = n;
+                mesh.normals[p1Index] = n;
+                mesh.normals[p2Index] = n;
 
-                mesh.tangents[ p0Index ] = t;
-                mesh.tangents[ p1Index ] = t;
-                mesh.tangents[ p2Index ] = t;
+                mesh.tangents[p0Index] = t;
+                mesh.tangents[p1Index] = t;
+                mesh.tangents[p2Index] = t;
             }
         }
     }
