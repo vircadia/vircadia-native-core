@@ -138,6 +138,7 @@
 
             var elModelSections = document.querySelectorAll(".model-section");
             var elModelURL = document.getElementById("property-model-url");
+            var elCollisionModelURL = document.getElementById("property-collision-model-url");
             var elModelAnimationURL = document.getElementById("property-model-animation-url");
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
@@ -267,6 +268,7 @@
                                 }
 
                                 elModelURL.value = properties.modelURL;
+                                elCollisionModelURL.value = properties.collisionModelURL;
                                 elModelAnimationURL.value = properties.animationURL;
                                 elModelAnimationPlaying.checked = properties.animationIsPlaying;
                                 elModelAnimationFPS.value = properties.animationFPS;
@@ -391,6 +393,7 @@
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
 
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
+            elCollisionModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionModelURL'));
             elModelAnimationURL.addEventListener('change', createEmitTextPropertyUpdateFunction('animationURL'));
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
             elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
@@ -620,6 +623,12 @@
             <div class="label">Model URL</div>
             <div class="value">
                 <input type="text" id="property-model-url" class="url"></input>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Collision Model URL</div>
+            <div class="value">
+                <input type="text" id="property-collision-model-url" class="url"></input>
             </div>
         </div>
         <div class="model-section property">
