@@ -4,6 +4,7 @@
 * [Qt](http://qt-project.org/downloads) ~> 5.3.2
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
+* [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 
 ####CMake External Project Dependencies
 
@@ -13,12 +14,10 @@
 * [gverb](https://github.com/highfidelity/gverb)
 * [Soxr](http://sourceforge.net/projects/soxr/) ~> 0.1.1
 
-The following external projects are optional dependencies. You can indicate to CMake that you would like to include them by passing -DGET_$NAME=1 when running a clean CMake build. For example, to get CMake to download and compile QXmpp you would pass -DGET_QXMPP=1.
+The following external projects are optional dependencies. You can indicate to CMake that you would like to include them by passing -DGET_$NAME=1 when running a clean CMake build. For example, to get CMake to download and compile SDL2 you would pass -DGET_SDL2=1.
 
 * [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
   * Enables game controller support in Interface
-* [QXmpp](https://github.com/qxmpp-project/qxmpp) ~> 0.7.6
-  * Enables text chat support in Interface
 
 The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build-ext` directory in each of the subfolders for each external project. 
 
@@ -76,5 +75,5 @@ In the examples below the variable $NAME would be replaced by the name of the de
 
 ####Devices
 
-You can support external input/output devices such as Oculus Rift, Leap Motion, Faceshift, PrioVR, MIDI, Razr Hydra and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
+You can support external input/output devices such as Oculus Rift, Leap Motion, Faceshift, MIDI, Razr Hydra and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
 

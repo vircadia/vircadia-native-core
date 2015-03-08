@@ -70,6 +70,8 @@ PacketVersion versionForPacketType(PacketType type) {
             return 2;
         case PacketTypeOctreeStats:
             return 1;
+        case PacketTypeStopNode:
+            return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
             return VERSION_ENTITIES_HAS_PARTICLES;
@@ -77,8 +79,6 @@ PacketVersion versionForPacketType(PacketType type) {
             return 2;
         case PacketTypeAudioStreamStats:
             return 1;
-        case PacketTypeMetavoxelData:
-            return 13;
         default:
             return 0;
     }
@@ -112,7 +112,6 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeStats);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdiction);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdictionRequest);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeMetavoxelData);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarIdentity);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarBillboard);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainConnectRequest);
@@ -124,6 +123,7 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityErase);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeStopNode);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioEnvironment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);

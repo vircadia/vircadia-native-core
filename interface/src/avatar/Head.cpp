@@ -42,7 +42,6 @@ Head::Head(Avatar* owningAvatar) :
     _mouth2(0.0f),
     _mouth3(0.0f),
     _mouth4(0.0f),
-    _angularVelocity(0,0,0),
     _renderLookatVectors(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
@@ -244,13 +243,15 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(float alpha, Model::RenderMode mode, bool postLighting) {
+void Head::render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mode, bool postLighting) {
     if (postLighting) {
         if (_renderLookatVectors) {
             renderLookatVectors(_leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
         }
     } else {
-        _faceModel.render(alpha, mode);    
+        RenderArgs args;
+        args._viewFrustum = renderFrustum;
+        _faceModel.render(alpha, mode, &args);
     }
 }
 

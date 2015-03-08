@@ -350,8 +350,14 @@ void EntityTreeRenderer::leaveAllEntities() {
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
     if (_tree && !_shuttingDown) {
         Model::startScene(renderSide);
-        RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
+
+        ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+            _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
+
+        RenderArgs args = { this, frustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
                                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);
 

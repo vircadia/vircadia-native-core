@@ -14,17 +14,13 @@ Or you can start a regular command prompt and then run:
 
 If using Visual Studio 2013 and building as a Visual Studio 2013 project you need the Windows 8 SDK which you should already have as part of installing Visual Studio 2013. You should be able to see it at `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`.
 
-####nmake & msbuild
+####nmake
 
-Some of the external projects may require nmake and msbuild to compile and install. If they are not installed at the locations listed below, please ensure that both are in your PATH so CMake can find them when required. 
+Some of the external projects may require nmake to compile and install. If it is not installed at the location listed below, please ensure that it is in your PATH so CMake can find it when required. 
 
 We expect nmake.exe to be located at the following path.
 
     C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin
-
-We expect msbuild.exe to be located at the following path.
-
-    C:\Program Files (x86)\MSBUILD\12.0\Bin
 
 ###Qt
 You can use the online installer or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.
@@ -78,6 +74,21 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 * Win32 OpenSSL v1.0.1L
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
+
+###vhacd
+Download it directly from https://github.com/virneo/v-hacd
+
+To build it run the following commands
+	1. cd src\
+	2. mkdir build
+	3. cd build
+	4. cmake ..
+	
+Build using visual studio 2013. Build ALL_BUILD and INSTALL targets both in Release and Debug.
+
+This will create an output folder with include and lib directory inside it.
+
+Either copy the contents of output folder to ENV %HIFI_LIB_DIR%/vhacd or create an environment variable VHACD_ROOT_DIR to this output directory.
 
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.

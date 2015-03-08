@@ -17,6 +17,7 @@
 #include <QtCore/QObject>
 
 #include <CollisionInfo.h>
+#include <DependencyManager.h>
 #include <Octree.h>
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
@@ -48,7 +49,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 
 
 /// handles scripting of Entity commands from JS passed to assigned clients
-class EntityScriptingInterface : public OctreeScriptingInterface {
+class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
 public:
     EntityScriptingInterface();
@@ -110,6 +111,8 @@ public slots:
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+
+    void canAdjustLocksChanged(bool canAdjustLocks);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);

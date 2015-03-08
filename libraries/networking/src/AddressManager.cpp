@@ -34,7 +34,8 @@ AddressManager::AddressManager() :
     _rootPlaceName(),
     _rootPlaceID(),
     _positionGetter(NULL),
-    _orientationGetter(NULL)
+    _orientationGetter(NULL),
+    _localDSPortSharedMem(NULL)
 {
     connect(qApp, &QCoreApplication::aboutToQuit, this, &AddressManager::storeCurrentAddress);
 }
@@ -76,7 +77,7 @@ const QString AddressManager::currentPath(bool withOrientation) const {
                 pathString += "/" + orientationString;
             } else {
                 qDebug() << "Cannot add orientation to path without a getter for position."
-                    << "Call AdressManager::setOrientationGetter to pass a function that will return a glm::quat";
+                    << "Call AddressManager::setOrientationGetter to pass a function that will return a glm::quat";
             }
             
         }
@@ -84,7 +85,7 @@ const QString AddressManager::currentPath(bool withOrientation) const {
         return pathString;
     } else {
         qDebug() << "Cannot create address path without a getter for position."
-            << "Call AdressManager::setPositionGetter to pass a function that will return a const glm::vec3&";
+            << "Call AddressManager::setPositionGetter to pass a function that will return a const glm::vec3&";
         return QString();
     }
 }
@@ -330,7 +331,15 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     if (hostnameRegex.indexIn(lookupString) != -1) {
         QString domainHostname = hostnameRegex.cap(1);
         
-        qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        
+        if (domainHostname == "localhost") {
+            auto nodeList = DependencyManager::get<NodeList>();
+            nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY,
+                                                         _localDSPortSharedMem,
+                                                         domainPort);
+        }
+        
         if (!hostnameRegex.cap(2).isEmpty()) {
             domainPort = (qint16) hostnameRegex.cap(2).toInt();
         }

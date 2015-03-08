@@ -26,6 +26,7 @@
 #include <qsharedpointer.h>
 #include <QtNetwork/qudpsocket.h>
 #include <QtNetwork/qhostaddress.h>
+#include <QSharedMemory>
 
 #include <tbb/concurrent_unordered_map.h>
 
@@ -49,6 +50,12 @@ const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
 const unsigned short STUN_SERVER_PORT = 3478;
 
 const QString DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY = "domain-server.local-port";
+const QString DOMAIN_SERVER_LOCAL_HTTP_PORT_SMEM_KEY = "domain-server.local-http-port";
+const QString DOMAIN_SERVER_LOCAL_HTTPS_PORT_SMEM_KEY = "domain-server.local-https-port";
+const QString ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY = "assignment-client-monitor.local-port";
+
+const char DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME[] = "localhost";
+const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT = 40104;
 
 class HifiSockAddr;
 
@@ -77,8 +84,8 @@ public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
-    bool getThisNodeCanAdjustLocks() { return _thisNodeCanAdjustLocks; }
-    void setThisNodeCanAdjustLocks(bool canAdjustLocks) { _thisNodeCanAdjustLocks = canAdjustLocks; }
+    bool getThisNodeCanAdjustLocks() const { return _thisNodeCanAdjustLocks; }
+    void setThisNodeCanAdjustLocks(bool canAdjustLocks);
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
@@ -168,6 +175,9 @@ public:
         
         return SharedNodePointer();
     }
+
+    void putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort);
+    bool getLocalServerPortFromSharedMemory(const QString key, QSharedMemory*& sharedMem, quint16& localPort);
     
 public slots:
     void reset();
@@ -185,6 +195,8 @@ signals:
     
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
+
+    void canAdjustLocksChanged(bool canAdjustLocks);
 
     void dataSent(const quint8 channel_type, const int bytes);
     void dataReceived(const quint8 channel_type, const int bytes);

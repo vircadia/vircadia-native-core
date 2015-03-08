@@ -20,7 +20,6 @@
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
-#include <Bitstream.h>
 #include <CollisionInfo.h>
 #include <EntityScriptingInterface.h>
 #include <NetworkAccessManager.h>
@@ -39,10 +38,10 @@
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 
+#include "SceneScriptingInterface.h"
+
 #include "MIDIEvent.h"
 
-
-EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
@@ -310,7 +309,10 @@ void ScriptEngine::init() {
     
     _isInitialized = true;
 
-    _entityScriptingInterface.init();
+    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    entityScriptingInterface->init();
 
     // register various meta-types
     registerMetaTypes(this);
@@ -320,7 +322,6 @@ void ScriptEngine::init() {
     registerAnimationTypes(this);
     registerAvatarTypes(this);
     registerAudioMetaTypes(this);
-    Bitstream::registerTypes(this);
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
@@ -348,11 +349,12 @@ void ScriptEngine::init() {
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
     registerGlobalObject("Controller", _controllerScriptingInterface);
-    registerGlobalObject("Entities", &_entityScriptingInterface);
+    registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
@@ -465,6 +467,7 @@ void ScriptEngine::run() {
     int thisFrame = 0;
 
     auto nodeList = DependencyManager::get<NodeList>();
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     qint64 lastUpdate = usecTimestampNow();
 
@@ -484,13 +487,13 @@ void ScriptEngine::run() {
             break;
         }
 
-        if (!_isFinished && _entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+        if (!_isFinished && entityScriptingInterface->getEntityPacketSender()->serversExist()) {
             // release the queue of edit entity messages.
-            _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
+            entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
 
             // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
-                _entityScriptingInterface.getEntityPacketSender()->process();
+            if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
+                entityScriptingInterface->getEntityPacketSender()->process();
             }
         }
 
@@ -617,13 +620,13 @@ void ScriptEngine::run() {
     // kill the avatar identity timer
     delete _avatarIdentityTimer;
 
-    if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
+    if (entityScriptingInterface->getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
-        _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
+        entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
 
         // since we're in non-threaded mode, call process so that the packets are sent
-        if (!_entityScriptingInterface.getEntityPacketSender()->isThreaded()) {
-            _entityScriptingInterface.getEntityPacketSender()->process();
+        if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
+            entityScriptingInterface->getEntityPacketSender()->process();
         }
     }
 

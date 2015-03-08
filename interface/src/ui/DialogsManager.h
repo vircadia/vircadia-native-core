@@ -25,15 +25,13 @@ class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
 class CachesSizeDialog;
-class ChatWindow;
 class BandwidthDialog;
 class LodToolsDialog;
 class LoginDialog;
-class MetavoxelEditor;
-class MetavoxelNetworkSimulator;
 class OctreeStatsDialog;
 class PreferencesDialog;
 class ScriptEditorWindow;
+class QMessageBox;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
@@ -44,8 +42,6 @@ public:
     QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
-    
-    void setupChat();
     
 public slots:
     void toggleAddressBar();
@@ -59,15 +55,12 @@ public slots:
     void bandwidthDetails();
     void lodTools();
     void hmdTools(bool showTools);
-    void showMetavoxelEditor();
-    void showMetavoxelNetworkSimulator();
     void showScriptEditor();
-    void showChat();
-    
+    void showIRCLink();
+
 private slots:
     void toggleToolWindow();
     void hmdToolsClosed();
-    void toggleChat();
     
 private:
     DialogsManager() {}
@@ -91,12 +84,10 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
-    QPointer<ChatWindow> _chatWindow;
+    QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<LoginDialog> _loginDialog;
-    QPointer<MetavoxelEditor> _metavoxelEditor;
-    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;

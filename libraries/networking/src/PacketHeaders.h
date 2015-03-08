@@ -42,20 +42,20 @@ enum PacketType {
     PacketTypeMuteEnvironment,
     PacketTypeAudioStreamStats,
     PacketTypeDataServerConfirm, // 20
-    UNUSED_5,
-    UNUSED_6,
-    UNUSED_7,
-    UNUSED_8,
-    UNUSED_9, // 25
+    UNUSED_1,
+    UNUSED_2,
+    UNUSED_3,
+    UNUSED_4,
+    UNUSED_5, // 25
     PacketTypeOctreeStats,
     PacketTypeJurisdiction,
     PacketTypeJurisdictionRequest,
-    UNUSED_1,
-    UNUSED_2, // 30
-    UNUSED_3,
-    UNUSED_4,
+    UNUSED_6,
+    UNUSED_7, // 30
+    UNUSED_8,
+    UNUSED_9,
     PacketTypeNoisyMute,
-    PacketTypeMetavoxelData,
+    UNUSED_10,
     PacketTypeAvatarIdentity, // 35
     PacketTypeAvatarBillboard,
     PacketTypeDomainConnectRequest,
@@ -67,7 +67,7 @@ enum PacketType {
     PacketTypeEntityErase,
     PacketTypeEntityAddResponse,
     PacketTypeOctreeDataNack, // 45
-    UNUSED_10,
+    PacketTypeStopNode,
     PacketTypeAudioEnvironment,
     PacketTypeEntityEditNack,
     PacketTypeSignedTransactionPayment,
@@ -86,7 +86,7 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeNodeJsonStats << PacketTypeEntityQuery
     << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
     << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
-    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply;
+    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
@@ -128,6 +128,7 @@ const PacketVersion VERSION_ENTITIES_MODELS_HAVE_ANIMATION_SETTINGS = 5;
 const PacketVersion VERSION_ENTITIES_HAVE_USER_DATA = 6;
 const PacketVersion VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME = 7;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SHAPE_TYPE = 8;
+const PacketVersion VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES = 9;
 const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
 const PacketVersion VERSION_ENTITIES_HAS_PARTICLES = 10;
 

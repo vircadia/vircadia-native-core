@@ -27,10 +27,13 @@ public:
     GLBackend();
     ~GLBackend();
 
+    void render(Batch& batch);
+
     static void renderBatch(Batch& batch);
 
     static void checkGLError();
 
+    
 
     class GLBuffer : public GPUObject {
     public:
@@ -44,7 +47,7 @@ public:
     static void syncGPUObject(const Buffer& buffer);
     static GLuint getBufferID(const Buffer& buffer);
 
-    class GLTexture {
+    class GLTexture : public GPUObject {
     public:
         Stamp _storageStamp;
         Stamp _contentStamp;
@@ -113,11 +116,17 @@ protected:
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
 
+    void initTransform();
+    void killTransform();
     void updateTransform();
     struct TransformStageState {
+        TransformObject _transformObject;
+        TransformCamera _transformCamera;
+        GLuint _transformObjectBuffer;
+        GLuint _transformCameraBuffer;
         Transform _model;
         Transform _view;
-        Transform _projection;
+        Mat4 _projection;
         bool _invalidModel;
         bool _invalidView;
         bool _invalidProj;
@@ -125,12 +134,14 @@ protected:
         GLenum _lastMode;
 
         TransformStageState() :
+            _transformObjectBuffer(0),
+            _transformCameraBuffer(0),
             _model(),
             _view(),
             _projection(),
             _invalidModel(true),
             _invalidView(true),
-            _invalidProj(true),
+            _invalidProj(false),
             _lastMode(GL_TEXTURE) {}
     } _transform;
 

@@ -223,6 +223,23 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     }
 #endif
 
+#if defined(Q_OS_WIN)
+    loc = glGetUniformBlockIndex(program.programId(), "transformObjectBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_OBJECT_SLOT);
+       // locations.materialBufferUnit = 1;
+    }
+#endif
+
+#if defined(Q_OS_WIN)
+    loc = glGetUniformBlockIndex(program.programId(), "transformCameraBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_CAMERA_SLOT);
+       // locations.materialBufferUnit = 1;
+    }
+#endif
+
+    //program.link();
     if (!program.isLinked()) {
         program.release();
     }
@@ -323,6 +340,9 @@ void Model::init() {
         
         _shadowProgram.addShaderFromSourceCode(QGLShader::Vertex, model_shadow_vert);
         _shadowProgram.addShaderFromSourceCode(QGLShader::Fragment, model_shadow_frag);
+        // Shadow program uses the same locations as standard rendering path but we still need to set the bindings
+        Model::Locations tempLoc;
+        initProgram(_shadowProgram, tempLoc);
 
         _skinProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_vert);
         _skinProgram.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
@@ -667,7 +687,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
 
     // render the attachments
     foreach (Model* attachment, _attachments) {
-        attachment->render(alpha, mode);
+        attachment->render(alpha, mode, args);
     }
     if (_meshStates.isEmpty()) {
         return false;
@@ -686,6 +706,13 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     _renderBatch.clear();
     gpu::Batch& batch = _renderBatch;
+
+    // Setup the projection matrix
+    if (args && args->_viewFrustum) {
+        glm::mat4 proj;
+        args->_viewFrustum->evalProjectionMatrix(proj); 
+        batch.setProjectionTransform(proj);
+    }
 
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
@@ -1659,9 +1686,24 @@ void Model::setupBatchTransform(gpu::Batch& batch) {
 void Model::endScene(RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
+    #if defined(ANDROID)
+    #else
+        glPushMatrix();
+    #endif
+
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
     if (args) {
         renderSide = args->_renderSide;
+    }
+
+    gpu::GLBackend backend;
+
+    if (args) {
+        glm::mat4 proj;
+        args->_viewFrustum->evalProjectionMatrix(proj); 
+        gpu::Batch batch;
+        batch.setProjectionTransform(proj);
+        backend.render(batch);
     }
 
     // Do the rendering batch creation for mono or left eye, not for right eye
@@ -1818,18 +1860,14 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     // Render!
     {
         PROFILE_RANGE("render Batch");
-         #if defined(ANDROID)
-        #else
-            glPushMatrix();
-        #endif
-
-        ::gpu::GLBackend::renderBatch(_sceneRenderBatch);
-
-        #if defined(ANDROID)
-        #else
-            glPopMatrix();
-        #endif
+        backend.render(_sceneRenderBatch);
     }
+
+
+    #if defined(ANDROID)
+    #else
+        glPopMatrix();
+    #endif
 
     // restore all the default material settings
     _viewState->setupWorldLight();

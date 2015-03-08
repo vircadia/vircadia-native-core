@@ -79,7 +79,9 @@ EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const Entity
         factory = _factories[entityType];
     }
     if (factory) {
-        newEntityItem = factory(entityID, properties);
+        EntityItemProperties mutableProperties = properties;
+        mutableProperties.markAllChanged();
+        newEntityItem = factory(entityID, mutableProperties);
     }
     return newEntityItem;
 }
