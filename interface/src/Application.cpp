@@ -3916,8 +3916,8 @@ void Application::takeSnapshot() {
 }
 
 void Application::setVSyncEnabled() {
-    bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
 #if defined(Q_OS_WIN)
+    bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         wglSwapIntervalEXT(vsyncOn);
         int swapInterval = wglGetSwapIntervalEXT();
@@ -3940,7 +3940,6 @@ void Application::setVSyncEnabled() {
 #else
     qDebug("V-Sync is FORCED ON on this system\n");
 #endif
-    vsyncOn = true; // Turns off unused variable warning
 }
 
 bool Application::isVSyncOn() const {
