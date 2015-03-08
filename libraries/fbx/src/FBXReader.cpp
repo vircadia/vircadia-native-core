@@ -1266,6 +1266,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     QVector<QString> humanIKJointIDs(humanIKJointNames.size());
 
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
+    
     QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
     for (int i = 0;; i++) {
         QByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
@@ -1720,12 +1721,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 
                     } else if (object.properties.last() == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
+
                         name = name.left(name.indexOf('\0'));
                         if (!blendshapeIndices.contains(name)) {
                             // try everything after the dot
                             name = name.mid(name.lastIndexOf('.') + 1);
                         }
                         QString id = getID(object.properties);
+                        geometry.blendshapeChannelNames << name;
                         foreach (const WeightedIndex& index, blendshapeIndices.values(name)) {
                             blendshapeChannelIndices.insert(id, index);
                         }

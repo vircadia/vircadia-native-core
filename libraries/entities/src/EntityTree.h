@@ -39,6 +39,7 @@ public:
     glm::vec3 root;
     EntityTree* localTree;
     EntityEditPacketSender* packetSender;
+    QVector<EntityItemID>* newEntityIDs;
 };
 
 
@@ -146,7 +147,7 @@ public:
     virtual void dumpTree();
     virtual void pruneTree();
 
-    void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
+    QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
     void entityChanged(EntityItem* entity);
 
