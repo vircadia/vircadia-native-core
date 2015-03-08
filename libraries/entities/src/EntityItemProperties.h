@@ -83,9 +83,18 @@ enum EntityPropertyList {
     PROP_ANIMATION_SETTINGS,
     PROP_USER_DATA,
     PROP_SHAPE_TYPE,
+
+    // used by ParticleEffect entities
+    PROP_MAX_PARTICLES,
+    PROP_LIFESPAN,
+    PROP_EMIT_RATE,
+    PROP_EMIT_DIRECTION,
+    PROP_EMIT_STRENGTH,
+    PROP_LOCAL_GRAVITY,
+    PROP_PARTICLE_RADIUS,
     
     // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
-    PROP_LAST_ITEM = PROP_SHAPE_TYPE,
+    PROP_LAST_ITEM = PROP_PARTICLE_RADIUS,
 
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
@@ -110,6 +119,7 @@ class EntityItemProperties {
     friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
@@ -177,6 +187,13 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
     DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
+    DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
+    DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float);
+    DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float);
+    DEFINE_PROPERTY_REF(PROP_EMIT_DIRECTION, EmitDirection, emitDirection, glm::vec3);
+    DEFINE_PROPERTY(PROP_EMIT_STRENGTH, EmitStrength, emitStrength, float);
+    DEFINE_PROPERTY(PROP_LOCAL_GRAVITY, LocalGravity, localGravity, float);
+    DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
@@ -296,6 +313,13 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, TextColor, textColor, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundColor, backgroundColor, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ShapeType, shapeType, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, MaxParticles, maxParticles, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifespan, lifespan, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRate, emitRate, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitDirection, emitDirection, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitStrength, emitStrength, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalGravity, localGravity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";
