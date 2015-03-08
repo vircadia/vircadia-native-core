@@ -299,18 +299,93 @@ void Model::initJointTransforms() {
 
 void Model::init() {
     if (!_program.isLinked()) {
+/*
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), 1));
+        slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
+        slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
+        slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
+
+        // Vertex shaders
+        auto modelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_vert)));
+        auto modelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_normal_map_vert)));
+        auto modelLightmapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_lightmap_vert)));
+        auto modelLightmapNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert)));
+        auto modelShadowVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_shadow_vert)));
+        auto skinModelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_vert)));
+        auto skinModelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_normal_map_vert)));
+        auto skinModelShadowVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_shadow_vert)));
+
+        // Pixel shaders
+        auto modelPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_frag)));
+        auto modelNormalMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_normal_map_frag)));
+        auto modelSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_specular_map_frag)));
+        auto modelNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_normal_specular_map_frag)));
+        auto modelTranslucentPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_translucent_frag)));
+        auto modelShadowPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_shadow_frag)));
+        auto modelLightmapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_frag)));
+        auto modelLightmapNormalMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag)));
+        auto modelLightmapSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag)));
+        auto modelLightmapNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag)));
+
+
+        bool makeResult = false;
+
+        // Programs
+        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelPixel));
+        makeResult = gpu::Shader::makeProgram(*program, slotBindings);
+
+        auto normalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelNormalMapVertex, modelNormalMapPixel));
+        makeResult = gpu::Shader::makeProgram(*normalMapProgram, slotBindings);
+
+        auto specularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*specularMapProgram, slotBindings);
+
+        auto normalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelNormalMapVertex, modelNormalSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*normalSpecularMapProgram, slotBindings);
+
+        auto translucentProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelTranslucentPixel));
+        makeResult = gpu::Shader::makeProgram(*translucentProgram, slotBindings);
+        
+        auto shadowProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelShadowVertex, modelShadowPixel));
+        makeResult = gpu::Shader::makeProgram(*shadowProgram, slotBindings);
+
+        auto lightmapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapVertex, modelLightmapPixel));
+        makeResult = gpu::Shader::makeProgram(*lightmapProgram, slotBindings);
+
+        auto lightmapNormalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapNormalMapVertex, modelLightmapNormalMapPixel));
+        makeResult = gpu::Shader::makeProgram(*lightmapNormalMapProgram, slotBindings);
+
+        auto lightmapSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapVertex, modelLightmapSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*lightmapSpecularMapProgram, slotBindings);
+
+        auto lightmapNormalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*lightmapNormalSpecularMapProgram, slotBindings);
+
+        auto skinProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelPixel));
+        makeResult = gpu::Shader::makeProgram(*skinProgram, slotBindings);
+
+        auto skinNormalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelNormalMapVertex, modelNormalMapPixel));
+        makeResult = gpu::Shader::makeProgram(*skinNormalMapProgram, slotBindings);
+
+        auto skinSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*skinSpecularMapProgram, slotBindings);
+
+        auto skinNormalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelNormalMapVertex, modelNormalSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*skinNormalSpecularMapProgram, slotBindings);
+        
+        auto skinShadowProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelShadowVertex, modelShadowPixel));
+        makeResult = gpu::Shader::makeProgram(*skinShadowProgram, slotBindings);
+        
+        auto skinTranslucentProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelTranslucentPixel));
+        makeResult = gpu::Shader::makeProgram(*skinTranslucentProgram, slotBindings);
+*/
+
         _program.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
         _program.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
         initProgram(_program, _locations);
         
-
-        auto defaultShader = gpu::ShaderPointer(
-                gpu::Shader::createProgram(
-                    gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_vert))),
-                    gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_frag)))
-                )
-                );
-        gpu::GLBackend::makeShader(*defaultShader);
    
         _normalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
         _normalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);

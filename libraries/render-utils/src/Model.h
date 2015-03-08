@@ -309,6 +309,7 @@ private:
     int _blendNumber;
     int _appliedBlendNumber;
 
+
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;

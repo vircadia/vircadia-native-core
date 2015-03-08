@@ -28,7 +28,6 @@ GLBackend::GLShader::~GLShader() {
     }
 }
 
-
 void makeBindings(GLBackend::GLShader* shader) {
     if(!shader || !shader->_program) {
         return;
@@ -36,7 +35,7 @@ void makeBindings(GLBackend::GLShader* shader) {
     GLuint glprogram = shader->_program;
     GLint loc = -1;
      
-    //Check for gpu specific attribute bindings
+    //Check for gpu specific attribute slotBindings
     loc = glGetAttribLocation(glprogram, "position");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
@@ -77,7 +76,18 @@ void makeBindings(GLBackend::GLShader* shader) {
         glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "clusterWeights");
     }
 
-    //Check for gpu specific uniform bindings
+    // Link again to take into account the assigned attrib location
+    glLinkProgram(glprogram);
+
+    GLint linked = 0;
+    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        qDebug() << "GLShader::makeBindings - failed to link after assigning slotBindings?";
+    }
+
+    // now assign the ubo binding, then DON't relink!
+
+    //Check for gpu specific uniform slotBindings
     loc = glGetUniformBlockIndex(glprogram, "transformObjectBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
@@ -90,14 +100,6 @@ void makeBindings(GLBackend::GLShader* shader) {
         shader->_transformCameraSlot = gpu::TRANSFORM_OBJECT_SLOT;
     }
 
-    // Link again
-    glLinkProgram(glprogram);
-
-    GLint linked = 0;
-    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
-    if (!linked) {
-        qDebug() << "GLShader::makeBindings - failed to link after assigning bindings?";
-    }
 }
 
 GLBackend::GLShader* compileShader(const Shader& shader) {
@@ -344,37 +346,45 @@ GLuint GLBackend::getShaderID(const ShaderPointer& shader) {
     }
 }
 
-Element getFormatFromGLUniform(GLenum gltype) {
+class ElementResource {
+public:
+    gpu::Element _element;
+    uint16 _resource;
+
+    ElementResource(Element&& elem, uint16 resource) : _element(elem), _resource(resource) {}
+};
+
+ElementResource getFormatFromGLUniform(GLenum gltype) {
     switch (gltype) {
-    case GL_FLOAT: return Element(SCALAR, gpu::FLOAT, UNIFORM);
-    case GL_FLOAT_VEC2: return Element(VEC2, gpu::FLOAT, UNIFORM);
-    case GL_FLOAT_VEC3: return Element(VEC3, gpu::FLOAT, UNIFORM);
-    case GL_FLOAT_VEC4: return Element(VEC4, gpu::FLOAT, UNIFORM);
+    case GL_FLOAT: return ElementResource(Element(SCALAR, gpu::FLOAT, UNIFORM), Resource::BUFFER);
+    case GL_FLOAT_VEC2: return ElementResource(Element(VEC2, gpu::FLOAT, UNIFORM), Resource::BUFFER);
+    case GL_FLOAT_VEC3: return ElementResource(Element(VEC3, gpu::FLOAT, UNIFORM), Resource::BUFFER);
+    case GL_FLOAT_VEC4: return ElementResource(Element(VEC4, gpu::FLOAT, UNIFORM), Resource::BUFFER);
 
-    case GL_DOUBLE: return Element(SCALAR, gpu::FLOAT, UNIFORM);
-    case GL_DOUBLE_VEC2: return Element(VEC2, gpu::FLOAT, UNIFORM);
-    case GL_DOUBLE_VEC3: return Element(VEC3, gpu::FLOAT, UNIFORM);
-    case GL_DOUBLE_VEC4: return Element(VEC4, gpu::FLOAT, UNIFORM);
+    case GL_DOUBLE: return ElementResource(Element(SCALAR, gpu::FLOAT, UNIFORM), Resource::BUFFER);
+    case GL_DOUBLE_VEC2: return ElementResource(Element(VEC2, gpu::FLOAT, UNIFORM), Resource::BUFFER);
+    case GL_DOUBLE_VEC3: return ElementResource(Element(VEC3, gpu::FLOAT, UNIFORM), Resource::BUFFER);
+    case GL_DOUBLE_VEC4: return ElementResource(Element(VEC4, gpu::FLOAT, UNIFORM), Resource::BUFFER);
 
-    case GL_INT: return Element(SCALAR, gpu::INT32, UNIFORM);
-    case GL_INT_VEC2: return Element(VEC2, gpu::INT32, UNIFORM);
-    case GL_INT_VEC3: return Element(VEC3, gpu::INT32, UNIFORM);
-    case GL_INT_VEC4: return Element(VEC4, gpu::INT32, UNIFORM);
+    case GL_INT: return ElementResource(Element(SCALAR, gpu::INT32, UNIFORM), Resource::BUFFER);
+    case GL_INT_VEC2: return ElementResource(Element(VEC2, gpu::INT32, UNIFORM), Resource::BUFFER);
+    case GL_INT_VEC3: return ElementResource(Element(VEC3, gpu::INT32, UNIFORM), Resource::BUFFER);
+    case GL_INT_VEC4: return ElementResource(Element(VEC4, gpu::INT32, UNIFORM), Resource::BUFFER);
 
-    case GL_UNSIGNED_INT: return Element(SCALAR, gpu::UINT32, UNIFORM);
-    case GL_UNSIGNED_INT_VEC2: return Element(VEC2, gpu::UINT32, UNIFORM);
-    case GL_UNSIGNED_INT_VEC3: return Element(VEC3, gpu::UINT32, UNIFORM);
-    case GL_UNSIGNED_INT_VEC4: return Element(VEC4, gpu::UINT32, UNIFORM);
+    case GL_UNSIGNED_INT: return ElementResource(Element(SCALAR, gpu::UINT32, UNIFORM), Resource::BUFFER);
+    case GL_UNSIGNED_INT_VEC2: return ElementResource(Element(VEC2, gpu::UINT32, UNIFORM), Resource::BUFFER);
+    case GL_UNSIGNED_INT_VEC3: return ElementResource(Element(VEC3, gpu::UINT32, UNIFORM), Resource::BUFFER);
+    case GL_UNSIGNED_INT_VEC4: return ElementResource(Element(VEC4, gpu::UINT32, UNIFORM), Resource::BUFFER);
 
-    case GL_BOOL: return Element(SCALAR, gpu::BOOL, UNIFORM);
-    case GL_BOOL_VEC2: return Element(VEC2, gpu::BOOL, UNIFORM);
-    case GL_BOOL_VEC3: return Element(VEC3, gpu::BOOL, UNIFORM);
-    case GL_BOOL_VEC4: return Element(VEC4, gpu::BOOL, UNIFORM);
+    case GL_BOOL: return ElementResource(Element(SCALAR, gpu::BOOL, UNIFORM), Resource::BUFFER);
+    case GL_BOOL_VEC2: return ElementResource(Element(VEC2, gpu::BOOL, UNIFORM), Resource::BUFFER);
+    case GL_BOOL_VEC3: return ElementResource(Element(VEC3, gpu::BOOL, UNIFORM), Resource::BUFFER);
+    case GL_BOOL_VEC4: return ElementResource(Element(VEC4, gpu::BOOL, UNIFORM), Resource::BUFFER);
 
 
-    case GL_FLOAT_MAT2: return Element(gpu::MAT2, gpu::FLOAT, UNIFORM);
-    case GL_FLOAT_MAT3: return Element(MAT3, gpu::FLOAT, UNIFORM);
-    case GL_FLOAT_MAT4: return Element(MAT4, gpu::FLOAT, UNIFORM);
+    case GL_FLOAT_MAT2: return ElementResource(Element(gpu::MAT2, gpu::FLOAT, UNIFORM), Resource::BUFFER);
+    case GL_FLOAT_MAT3: return ElementResource(Element(MAT3, gpu::FLOAT, UNIFORM), Resource::BUFFER);
+    case GL_FLOAT_MAT4: return ElementResource(Element(MAT4, gpu::FLOAT, UNIFORM), Resource::BUFFER);
 
 /*    {GL_FLOAT_MAT2x3	mat2x3},
     {GL_FLOAT_MAT2x4	mat2x4},
@@ -393,20 +403,20 @@ Element getFormatFromGLUniform(GLenum gltype) {
     {GL_DOUBLE_MAT4x3	dmat4x3},
     */
 
-    case GL_SAMPLER_1D: return Element(SCALAR, gpu::FLOAT, SAMPLER_1D);
-    case GL_SAMPLER_2D: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D);
-    case GL_SAMPLER_2D_MULTISAMPLE: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_MS);
-    case GL_SAMPLER_3D: return Element(SCALAR, gpu::FLOAT, SAMPLER_3D);
-    case GL_SAMPLER_CUBE: return Element(SCALAR, gpu::FLOAT, SAMPLER_CUBE);
+    case GL_SAMPLER_1D: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_1D);
+    case GL_SAMPLER_2D: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_2D);
+    case GL_SAMPLER_2D_MULTISAMPLE: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D);
+    case GL_SAMPLER_3D: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_3D);
+    case GL_SAMPLER_CUBE: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_CUBE);
 
-    case GL_SAMPLER_1D_ARRAY: return Element(SCALAR, gpu::FLOAT, SAMPLER_1D_ARRAY);
-    case GL_SAMPLER_2D_ARRAY: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_ARRAY);
-    case GL_SAMPLER_2D_MULTISAMPLE_ARRAY: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_MS_ARRAY);
+    case GL_SAMPLER_1D_ARRAY: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_1D_ARRAY);
+    case GL_SAMPLER_2D_ARRAY: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_2D_ARRAY);
+    case GL_SAMPLER_2D_MULTISAMPLE_ARRAY: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D_ARRAY);
 
-    case GL_SAMPLER_2D_SHADOW: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_SHADOW);
-    case GL_SAMPLER_CUBE_SHADOW: return Element(SCALAR, gpu::FLOAT, SAMPLER_CUBE_SHADOW);
+    case GL_SAMPLER_2D_SHADOW: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_SHADOW), Resource::TEXTURE_2D);
+    case GL_SAMPLER_CUBE_SHADOW: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_SHADOW), Resource::TEXTURE_CUBE);
 
-    case GL_SAMPLER_2D_ARRAY_SHADOW: return Element(SCALAR, gpu::FLOAT, SAMPLER_2D_SHADOW_ARRAY);
+    case GL_SAMPLER_2D_ARRAY_SHADOW: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_SHADOW), Resource::TEXTURE_2D_ARRAY);
     
 //    {GL_SAMPLER_1D_SHADOW	sampler1DShadow},
  //   {GL_SAMPLER_1D_ARRAY_SHADOW	sampler1DArrayShadow},
@@ -415,28 +425,28 @@ Element getFormatFromGLUniform(GLenum gltype) {
 //    {GL_SAMPLER_2D_RECT	sampler2DRect},
  //   {GL_SAMPLER_2D_RECT_SHADOW	sampler2DRectShadow},
  
-    case GL_INT_SAMPLER_1D: return Element(SCALAR, gpu::INT32, SAMPLER_1D);
-    case GL_INT_SAMPLER_2D: return Element(SCALAR, gpu::INT32, SAMPLER_2D);
-    case GL_INT_SAMPLER_2D_MULTISAMPLE: return Element(SCALAR, gpu::INT32, SAMPLER_2D_MS);
-    case GL_INT_SAMPLER_3D: return Element(SCALAR, gpu::INT32, SAMPLER_3D);
-    case GL_INT_SAMPLER_CUBE: return Element(SCALAR, gpu::INT32, SAMPLER_CUBE);
+    case GL_INT_SAMPLER_1D: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER), Resource::TEXTURE_1D);
+    case GL_INT_SAMPLER_2D: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER), Resource::TEXTURE_2D);
+    case GL_INT_SAMPLER_2D_MULTISAMPLE: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D);
+    case GL_INT_SAMPLER_3D: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER), Resource::TEXTURE_3D);
+    case GL_INT_SAMPLER_CUBE: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER), Resource::TEXTURE_CUBE);
           
-    case GL_INT_SAMPLER_1D_ARRAY: return Element(SCALAR, gpu::INT32, SAMPLER_1D_ARRAY);
-    case GL_INT_SAMPLER_2D_ARRAY: return Element(SCALAR, gpu::INT32, SAMPLER_2D_ARRAY);
-    case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return Element(SCALAR, gpu::INT32, SAMPLER_2D_MS_ARRAY);
+    case GL_INT_SAMPLER_1D_ARRAY: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER), Resource::TEXTURE_1D_ARRAY);
+    case GL_INT_SAMPLER_2D_ARRAY: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER), Resource::TEXTURE_2D_ARRAY);
+    case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D_ARRAY);
 
  //   {GL_INT_SAMPLER_BUFFER	isamplerBuffer},
  //   {GL_INT_SAMPLER_2D_RECT	isampler2DRect},
 
-    case GL_UNSIGNED_INT_SAMPLER_1D: return Element(SCALAR, gpu::UINT32, SAMPLER_1D);
-    case GL_UNSIGNED_INT_SAMPLER_2D: return Element(SCALAR, gpu::UINT32, SAMPLER_2D);
-    case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: return Element(SCALAR, gpu::UINT32, SAMPLER_2D_MS);
-    case GL_UNSIGNED_INT_SAMPLER_3D: return Element(SCALAR, gpu::UINT32, SAMPLER_3D);
-    case GL_UNSIGNED_INT_SAMPLER_CUBE: return Element(SCALAR, gpu::UINT32, SAMPLER_CUBE);
+    case GL_UNSIGNED_INT_SAMPLER_1D: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER), Resource::TEXTURE_1D);
+    case GL_UNSIGNED_INT_SAMPLER_2D: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER), Resource::TEXTURE_2D);
+    case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D);
+    case GL_UNSIGNED_INT_SAMPLER_3D: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER), Resource::TEXTURE_3D);
+    case GL_UNSIGNED_INT_SAMPLER_CUBE: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER), Resource::TEXTURE_CUBE);
           
-    case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY: return Element(SCALAR, gpu::UINT32, SAMPLER_1D_ARRAY);
-    case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: return Element(SCALAR, gpu::UINT32, SAMPLER_2D_ARRAY);
-    case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return Element(SCALAR, gpu::UINT32, SAMPLER_2D_MS_ARRAY);
+    case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER), Resource::TEXTURE_1D_ARRAY);
+    case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER), Resource::TEXTURE_2D_ARRAY);
+    case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D_ARRAY);
 
 //    {GL_UNSIGNED_INT_SAMPLER_BUFFER	usamplerBuffer},
 //    {GL_UNSIGNED_INT_SAMPLER_2D_RECT	usampler2DRect},
@@ -475,13 +485,13 @@ Element getFormatFromGLUniform(GLenum gltype) {
     {GL_UNSIGNED_INT_ATOMIC_COUNTER	atomic_uint}
 */
     default:
-        return Element();
+        return ElementResource(Element(), Resource::BUFFER);
     }
 
 };
 
 
-int makeUniformSlots(GLuint glprogram, Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
+int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
     GLint uniformsCount = 0;
 
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
@@ -493,18 +503,55 @@ int makeUniformSlots(GLuint glprogram, Shader::SlotSet& uniforms, Shader::SlotSe
         GLint size = 0;
         GLenum type = 0;
         glGetActiveUniform(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
+        GLint location = glGetUniformLocation(glprogram, name);
+        const GLint INVALID_UNIFORM_LOCATION = -1;
 
-        auto element = getFormatFromGLUniform(type);
-        uniforms.insert(Shader::Slot(name, i, element));
+        // Try to make sense of the gltype
+        auto elementResource = getFormatFromGLUniform(type);
+
+        // The uniform as a standard var type
+        if (location != INVALID_UNIFORM_LOCATION) {
+            if (elementResource._resource == Resource::BUFFER) {
+                uniforms.insert(Shader::Slot(name, location, elementResource._element, elementResource._resource));
+            } else {
+                // For texture/Sampler, the location is the actual binding value
+                GLint binding = -1;
+                glGetUniformiv(glprogram, location, &binding);
+
+                auto requestedBinding = slotBindings.find(std::string(name));
+                if (requestedBinding != slotBindings.end()) {
+                    if (binding != (*requestedBinding)._location) {
+                        binding = (*requestedBinding)._location;
+                        glUniform1i(location, binding);
+                    }
+                }
+
+                textures.insert(Shader::Slot(name, binding, elementResource._element, elementResource._resource));
+                samplers.insert(Shader::Slot(name, binding, elementResource._element, elementResource._resource));
+            }
+        }
     }
 
     return uniformsCount;
 }
 
-int makeUniformBlockSlots(GLuint glprogram, Shader::SlotSet& buffers) {
-    GLint buffersCount = 0;
+const GLint UNUSED_SLOT = -1;
+bool isUnusedSlot(GLint binding) {
+    return (binding == UNUSED_SLOT);
+}
 
+int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
+    GLint buffersCount = 0;
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
+
+    // fast exit
+    if (buffersCount == 0) {
+        return 0;
+    }
+
+    GLint maxNumUniformBufferSlots = 0;
+    glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxNumUniformBufferSlots);
+    std::vector<GLint> uniformBufferSlotMap(maxNumUniformBufferSlots, -1);
 
     for (int i = 0; i < buffersCount; i++) {
         const GLint NAME_LENGTH = 256;
@@ -513,19 +560,46 @@ int makeUniformBlockSlots(GLuint glprogram, Shader::SlotSet& buffers) {
         GLint size = 0;
         GLenum type = 0;
         GLint binding = -1;
-        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
-        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
+
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
         glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, name);
+        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
+        glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
+        
+        GLuint blockIndex = glGetUniformBlockIndex(glprogram, name);
 
-        Element element(SCALAR, gpu::FLOAT, BUFFER);
-        buffers.insert(Shader::Slot(name, binding, element));
+        // CHeck if there is a requested binding for this block
+        auto requestedBinding = slotBindings.find(std::string(name));
+        if (requestedBinding != slotBindings.end()) {
+        // If yes force it
+            if (binding != (*requestedBinding)._location) {
+                binding = (*requestedBinding)._location;
+                glUniformBlockBinding(glprogram, blockIndex, binding);
+            }
+        } else if (binding == 0) {
+        // If no binding was assigned then just do it finding a free slot
+            auto slotIt = std::find_if(uniformBufferSlotMap.begin(), uniformBufferSlotMap.end(), isUnusedSlot); 
+            if (slotIt != uniformBufferSlotMap.end()) {
+                binding = slotIt - uniformBufferSlotMap.begin();
+                glUniformBlockBinding(glprogram, blockIndex, binding);
+            } else {
+                // This should neve happen, an active ubo cannot find an available slot among the max available?!
+                binding = -1;
+            }
+        }
+        // If binding is valid record it
+        if (binding >= 0) {
+            uniformBufferSlotMap[binding] = blockIndex;
+        }
+
+        Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
+        buffers.insert(Shader::Slot(name, binding, element, Resource::BUFFER));
     }
 
     return buffersCount;
 }
 
-int makeInputSlots(GLuint glprogram, Shader::SlotSet& inputs) {
+int makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs) {
     GLint inputsCount = 0;
 
     glGetProgramiv(glprogram, GL_ACTIVE_ATTRIBUTES, &inputsCount);
@@ -538,14 +612,16 @@ int makeInputSlots(GLuint glprogram, Shader::SlotSet& inputs) {
         GLenum type = 0;
         glGetActiveAttrib(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
 
-        auto element = getFormatFromGLUniform(type);
-        inputs.insert(Shader::Slot(name, i, element));
+        GLint binding = glGetAttribLocation(glprogram, name);
+
+        auto elementResource = getFormatFromGLUniform(type);
+        inputs.insert(Shader::Slot(name, binding, elementResource._element, -1));
     }
 
     return inputsCount;
 }
 
-int makeOutputSlots(GLuint glprogram, Shader::SlotSet& outputs) {
+int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs) {
  /*   GLint outputsCount = 0;
 
     glGetProgramiv(glprogram, GL_ACTIVE_, &outputsCount);
@@ -565,28 +641,28 @@ int makeOutputSlots(GLuint glprogram, Shader::SlotSet& outputs) {
     return 0; //inputsCount;
 }
 
-bool GLBackend::makeShader(Shader& shader) {
+bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) {
 
-    // First make sure the SHader has been compiled
+    // First make sure the Shader has been compiled
     GLShader* object = GLBackend::syncGPUObject(shader);
     if (!object) {
         return false;
     }
 
     if (object->_program) {
+        Shader::SlotSet buffers;
+        makeUniformBlockSlots(object->_program, slotBindings, buffers);
+
         Shader::SlotSet uniforms;
         Shader::SlotSet textures;
         Shader::SlotSet samplers;
-        makeUniformSlots(object->_program, uniforms, textures, samplers);
-
-        Shader::SlotSet buffers;
-        makeUniformBlockSlots(object->_program, buffers);
+        makeUniformSlots(object->_program, slotBindings, uniforms, textures, samplers);
 
         Shader::SlotSet inputs;
-        makeInputSlots(object->_program, inputs);
+        makeInputSlots(object->_program, slotBindings, inputs);
 
         Shader::SlotSet outputs;
-        makeOutputSlots(object->_program, outputs);
+        makeOutputSlots(object->_program, slotBindings, outputs);
 
         shader.defineSlots(uniforms, buffers, textures, samplers, inputs, outputs);
 

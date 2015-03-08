@@ -45,18 +45,28 @@ public:
     public:
 
         std::string _name;
-        uint16 _location;
+        uint32 _location;
         Element _element;
+        uint16 _resourceType;
  
-        Slot(const std::string& name, uint16 location, const Element& element) : _name(name), _location(location), _element(element) {}
+        Slot(const std::string& name, uint16 location, const Element& element, uint16 resourceType = Resource::BUFFER) :
+             _name(name), _location(location), _element(element), _resourceType(resourceType) {}
 
-
-        class Less {
-        public:
-            bool operator() (const Slot& x, const Slot& y) const { return x._name < y._name; }
-        };
     };
-    typedef std::set<Slot, Slot::Less> SlotSet;
+
+    class Binding {
+    public:
+        std::string _name;
+        uint32 _location;
+        Binding(const std::string&& name, uint32 loc = 0) : _name(name), _location(loc) {}
+    };
+
+    template <typename T> class Less {
+    public:
+        bool operator() (const T& x, const T& y) const { return x._name < y._name; }
+    };
+    typedef std::set<Slot, Less<Slot>> SlotSet;
+    typedef std::set<Binding, Less<Binding>> BindingSet;
 
 
     enum Type {
@@ -89,6 +99,7 @@ public:
     const SlotSet& getBuffers() const { return _buffers; }
     const SlotSet& getTextures() const { return _textures; }
     const SlotSet& getSamplers() const { return _samplers; }
+
     const SlotSet& getInputs() const { return _inputs; }
     const SlotSet& getOutputs() const { return _outputs; }
 
@@ -96,9 +107,23 @@ public:
     // This call is intendend to build the list of exposed slots in order
     // to correctly bind resource to the shader.
     // These can be build "manually" from knowledge of the atual shader code
-    // or automatically by calling "Context::makeShader()", this is the preferred way
+    // or automatically by calling "makeShader()", this is the preferred way
     void defineSlots(const SlotSet& uniforms, const SlotSet& buffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs);
 
+    // makeProgram(...) make a program shader ready to be used in a Batch.
+    // It compiles the sub shaders, link them and defines the Slots and their bindings.
+    // If the shader passed is not a program, nothing happens. 
+    //
+    // It is possible to provide a set of slot bindings (from the name of the slot to a unit number) allowing
+    // to make sure slots with the same semantics can be always bound on the same location from shader to shader.
+    // For example, the "diffuseMap" can always be bound to texture unit #1 for different shaders by specifying a Binding("diffuseMap", 1)
+    //
+    // As of now (03/2015), the call to makeProgram is in fact calling gpu::Context::makeProgram and does rely
+    // on the underneath gpu::Context::Backend available. Since we only support glsl, this means that it relies
+    //  on a glContext and the driver to compile the glsl shader. 
+    // Hoppefully in a few years the shader compilation will be completely abstracted in a separate shader compiler library
+    // independant of the graphics api in use underneath (looking at you opengl & vulkan).
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
 
 protected:
     Shader(Type type, const Source& source);

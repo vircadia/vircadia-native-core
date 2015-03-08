@@ -15,6 +15,7 @@
 
 #include "SkyFromAtmosphere_vert.h"
 #include "SkyFromAtmosphere_frag.h"
+#include "gpu/Context.h"
 #include "gpu/GLBackend.h"
 
 using namespace model;
@@ -221,7 +222,7 @@ void SunSkyStage::updateGraphicsObject() const {
     static int firstTime = 0;
     if (firstTime == 0) {
         firstTime++;
-        gpu::GLBackend::makeShader(*_skyShader);
+        gpu::Shader::makeProgram(*_skyShader);
     }
 
 }

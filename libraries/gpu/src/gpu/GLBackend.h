@@ -33,7 +33,7 @@ public:
 
     static void checkGLError();
 
-    static bool makeShader(Shader& shader);
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
     
 
     class GLBuffer : public GPUObject {

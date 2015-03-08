@@ -13,6 +13,8 @@
 #include <math.h>
 #include <QDebug>
 
+#include "Context.h"
+
 using namespace gpu;
 
 Shader::Shader(Type type, const Source& source):
@@ -61,4 +63,11 @@ void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& buffers, const 
     _samplers = samplers;
     _inputs = inputs;
     _outputs = outputs;
+}
+
+bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
+    if (shader.isProgram()) {
+        return Context::makeProgram(shader, bindings);
+    }
+    return false;
 }

@@ -92,8 +92,17 @@ public:
 
     void enqueueBatch(Batch& batch);
 
+
+
 protected:
 
+    // This function can only be called by "static Shader::makeProgram()"
+    // makeProgramShader(...) make a program shader ready to be used in a Batch.
+    // It compiles the sub shaders, link them and defines the Slots and their bindings.
+    // If the shader passed is not a program, nothing happens. 
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
+
+    friend class Shader;
 };
 
 
