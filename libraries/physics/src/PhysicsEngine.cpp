@@ -364,48 +364,6 @@ void PhysicsEngine::computeCollisionEvents() {
             }
         }
     }
-
-
-#if 0
-    // avatar collisions
-    btManifoldArray manifoldArray;
-    btBroadphasePairArray& pairArray = _avatarGhostObject->getOverlappingPairCache()->getOverlappingPairArray();
-    int numPairs = pairArray.size();
-
-    for (int i = 0; i < numPairs; i++) {
-        manifoldArray.clear();
-        const btBroadphasePair& pair = pairArray[i];
-        // unless we manually perform collision detection on this pair, the contacts are in the dynamics world paircache:
-        btBroadphasePair* collisionPair = _dynamicsWorld->getPairCache()->findPair(pair.m_pProxy0, pair.m_pProxy1);
-        if (!collisionPair) {
-            continue;
-        }
-        if (collisionPair->m_algorithm) {
-            collisionPair->m_algorithm->getAllContactManifolds(manifoldArray);
-        }
-
-        for (int j=0;j<manifoldArray.size();j++) {
-            btPersistentManifold* manifold = manifoldArray[j];
-            btScalar directionSign = manifold->getBody0() == _avatarGhostObject ? btScalar(-1.0) : btScalar(1.0);
-            for (int p=0; p<manifold->getNumContacts(); p++) {
-                const btManifoldPoint& pt = manifold->getContactPoint(p);
-                if (pt.getDistance() < 0.f) {
-
-
-                    const btVector3& ptA = pt.getPositionWorldOnA();
-                    const btVector3& ptB = pt.getPositionWorldOnB();
-                    const btVector3& normalOnB = pt.m_normalWorldOnB;
-                    /// work here
-                    qDebug() << "HERE";
-                }
-            }
-        }
-    }
-#endif
-
-
-
-
     
     // We harvest collision callbacks every few frames, which contributes the following effects:
     //
