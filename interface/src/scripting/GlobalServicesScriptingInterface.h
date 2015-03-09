@@ -39,7 +39,7 @@ class GlobalServicesScriptingInterface : public QObject {
 public:
     static GlobalServicesScriptingInterface* getInstance();
 
-    const QString& getUsername() const { return AccountManager::getInstance().getAccountInfo().getUsername(); }
+    const QString& getUsername() const;
     
 public slots:
     DownloadInfoResult getDownloadInfo();

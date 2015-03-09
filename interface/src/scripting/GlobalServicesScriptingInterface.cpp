@@ -36,6 +36,10 @@ GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance(
     return &sharedInstance;
 }
 
+const QString& GlobalServicesScriptingInterface::getUsername() const {
+    return AccountManager::getInstance().getAccountInfo().getUsername();
+}
+
 void GlobalServicesScriptingInterface::loggedOut() {
     emit GlobalServicesScriptingInterface::disconnected(QString("logout"));
 }
