@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <vector>
 
-#include <QMessageBox>
 #include <QBuffer>
 
 #include <glm/gtx/norm.hpp>
@@ -198,6 +197,12 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel.simulate(deltaTime);
     }
+
+    if (!_skeletonModel.hasSkeleton()) {
+        // All the simulation that can be done has been done
+        return;
+    }
+
     {
         PerformanceTimer perfTimer("attachments");
         simulateAttachments(deltaTime);

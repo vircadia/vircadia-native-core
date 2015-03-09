@@ -125,7 +125,7 @@ namespace MenuOption {
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
-    const QString CachesSize = "Caches Size";
+    const QString CachesSize = "RAM Caches Size";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
     const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
@@ -143,6 +143,7 @@ namespace MenuOption {
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable NACK Packets";
+    const QString DiskCacheEditor = "Disk Cache Editor";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayModelBounds = "Display Model Bounds";
