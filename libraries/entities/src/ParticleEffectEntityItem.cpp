@@ -268,10 +268,10 @@ void ParticleEffectEntityItem::update(const quint64& now) {
 
     // update the dimensions
     glm::vec3 dims;
-    dims.x = glm::max(glm::abs(_paXmin), glm::abs(_paXmax)) * 2.0;
-    dims.y = glm::max(glm::abs(_paYmin), glm::abs(_paYmax)) * 2.0;
-    dims.z = glm::max(glm::abs(_paZmin), glm::abs(_paZmax)) * 2.0;
-    setDimensionsInMeters(dims);
+    dims.x = glm::max(glm::abs(_paXmin), glm::abs(_paXmax)) * 2.0f;
+    dims.y = glm::max(glm::abs(_paYmin), glm::abs(_paYmax)) * 2.0f;
+    dims.z = glm::max(glm::abs(_paZmin), glm::abs(_paZmax)) * 2.0f;
+    setDimensions(dims);
 
     EntityItem::update(now); // let our base class handle it's updates...
 }
@@ -418,8 +418,8 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
 }
 
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
-    _paXmin = _paYmin = _paZmin = -1.0;
-    _paXmax = _paYmax = _paZmax = 1.0;
+    _paXmin = _paYmin = _paZmin = -1.0f;
+    _paXmax = _paYmax = _paZmax = 1.0f;
 
     // update particles
     quint32 updateIter = _paHead;
@@ -493,8 +493,8 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 }
 
 void ParticleEffectEntityItem::resetSimulation() {
-    for (int i = 0; i < _maxParticles; i++) {
-        int j = i * XYZ_STRIDE;
+    for (quint32 i = 0; i < _maxParticles; i++) {
+        quint32 j = i * XYZ_STRIDE;
         _paLife[i] = -1.0f;
         _paPosition[j] = 0.0f;
         _paPosition[j+1] = 0.0f;
