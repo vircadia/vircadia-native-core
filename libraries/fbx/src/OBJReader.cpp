@@ -121,18 +121,28 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeom
                 break;
             }
             sawG = true;
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) { break; }
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                break;
+            }
             QByteArray groupName = tokenizer.getDatum();
             meshPart.materialID = groupName;
         } else if (token == "v") {
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) { break; }
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                break;
+            }
             float x = std::stof(tokenizer.getDatum().data());
             // notice the order of z and y -- in OBJ files, up is the 3rd value
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) { break; }
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                break;
+            }
             float z = std::stof(tokenizer.getDatum().data());
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) { break; }
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                break;
+            }
             float y = std::stof(tokenizer.getDatum().data());
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) { break; }
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                break;
+            }
             // the spec gets vague here.  might be w, might be a color... chop it off.
             tokenizer.skipLine();
             mesh.vertices.append(glm::vec3(x, y, z));
@@ -199,10 +209,14 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
     geometry.meshExtents.reset();
     geometry.meshes.append(FBXMesh());
 
+
+
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the geometry's single mesh.
-        while (parseOBJGroup(tokenizer, mapping, geometry)) {
+        bool success = true;
+        while (success) {
+            success = parseOBJGroup(tokenizer, mapping, geometry);
         }
 
         FBXMesh &mesh = geometry.meshes[0];

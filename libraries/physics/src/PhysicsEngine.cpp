@@ -608,6 +608,7 @@ void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
     _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
                                                       glmToBullet(_avatarData->getPosition())));
 
+    // XXX these values should be computed from the character model.
     btScalar characterHeight = 1.75;
     btScalar characterWidth = 1.75;
     btScalar stepHeight = btScalar(0.35);
