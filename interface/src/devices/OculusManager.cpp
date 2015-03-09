@@ -29,10 +29,10 @@
 #include <SharedUtil.h>
 #include <UserActivityLogger.h>
 
-#include "Application.h"
+#include <Kernel/OVR_Types.h>
+#include <OVR_CAPI_GL.h>
 
-#include "OVR_Version.h"
-using namespace OVR;
+#include "Application.h"
 
 template <typename Function>
 void for_each_eye(Function function) {
@@ -69,11 +69,10 @@ GLuint OculusManager::_indices[ovrEye_Count] = { 0, 0 };
 GLsizei OculusManager::_meshSize[ovrEye_Count] = { 0, 0 };
 ovrFrameTiming OculusManager::_hmdFrameTiming;
 bool OculusManager::_programInitialized = false;
-#else
 #endif
 
+ovrTexture OculusManager::_eyeTextures[ovrEye_Count];
 bool OculusManager::_isConnected = false;
-ovrGLTexture OculusManager::_eyeTextures[ovrEye_Count];
 ovrHmd OculusManager::_ovrHmd;
 ovrFovPort OculusManager::_eyeFov[ovrEye_Count];
 ovrVector3f OculusManager::_eyeOffset[ovrEye_Count];
@@ -101,6 +100,9 @@ glm::vec3 OculusManager::_eyePositions[ovrEye_Count];
 void OculusManager::init() {
     ovr_Initialize();
     _ovrHmd = ovrHmd_Create(0);
+    if (!_ovrHmd) {
+      _ovrHmd = ovrHmd_CreateDebug(ovrHmd_DK2);
+    }
 }
 
 void OculusManager::connect() {
@@ -137,16 +139,16 @@ void OculusManager::connect() {
         for_each_eye([&](ovrEyeType eye) {
             //Get texture size
             ovrSizei recommendedTexSize = ovrHmd_GetFovTextureSize(_ovrHmd, eye, _eyeFov[eye], 1.0f);
-            _eyeTextures[eye].Texture.Header.API = ovrRenderAPI_OpenGL;
-            _eyeTextures[eye].Texture.Header.RenderViewport.Pos = { _renderTargetSize.w, 0 };
-            _eyeTextures[eye].Texture.Header.RenderViewport.Size = recommendedTexSize;
+            _eyeTextures[eye].Header.API = ovrRenderAPI_OpenGL;
+            _eyeTextures[eye].Header.RenderViewport.Pos = { _renderTargetSize.w, 0 };
+            _eyeTextures[eye].Header.RenderViewport.Size = recommendedTexSize;
             _renderTargetSize.w += recommendedTexSize.w;
             _renderTargetSize.h = std::max(recommendedTexSize.h, _renderTargetSize.h);
         });
         for_each_eye([&](ovrEyeType eye) {
-            _eyeTextures[eye].Texture.Header.TextureSize = _renderTargetSize;
+            _eyeTextures[eye].Header.TextureSize = _renderTargetSize;
         });
-
+      
         ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence);
 
         ovrHmd_ConfigureTracking(_ovrHmd, ovrTrackingCap_Orientation | ovrTrackingCap_Position |
@@ -339,22 +341,16 @@ void OculusManager::generateDistortionMesh() {
         return;
     }
 
-    //Viewport for the render target for each eye
-    _eyeRenderViewport[0].Pos = Vector2i(0, 0);
-    _eyeRenderViewport[0].Size = Sizei(_renderTargetSize.w / 2, _renderTargetSize.h);
-    _eyeRenderViewport[1].Pos = Vector2i((_renderTargetSize.w + 1) / 2, 0);
-    _eyeRenderViewport[1].Size = _eyeRenderViewport[0].Size;
-
     for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
         // Allocate and generate distortion mesh vertices
         ovrDistortionMesh meshData;
         ovrHmd_CreateDistortionMesh(_ovrHmd, _eyeRenderDesc[eyeNum].Eye, _eyeRenderDesc[eyeNum].Fov, _ovrHmd->DistortionCaps, &meshData);
         
-        ovrHmd_GetRenderScaleAndOffset(_eyeRenderDesc[eyeNum].Fov, _renderTargetSize, _eyeRenderViewport[eyeNum],
+        ovrHmd_GetRenderScaleAndOffset(_eyeRenderDesc[eyeNum].Fov, _renderTargetSize, _eyeTextures[eyeNum].Header.RenderViewport,
                                        _UVScaleOffset[eyeNum]);
 
         // Parse the vertex data and create a render ready vertex buffer
-        DistortionVertex* pVBVerts = (DistortionVertex*)OVR_ALLOC(sizeof(DistortionVertex) * meshData.VertexCount);
+        DistortionVertex* pVBVerts = new DistortionVertex[meshData.VertexCount];
         _meshSize[eyeNum] = meshData.IndexCount;
 
         // Convert the oculus vertex data to the DistortionVertex format.
@@ -388,7 +384,7 @@ void OculusManager::generateDistortionMesh() {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
         //Now that we have the VBOs we can get rid of the mesh data
-        OVR_FREE(pVBVerts);
+        delete [] pVBVerts;
         ovrHmd_DestroyDistortionMesh(&meshData);
     }
 
@@ -497,7 +493,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     for_each_eye(_ovrHmd, [&](ovrEyeType eye){
         _activeEye = eye;
         // Set the camera rotation for this eye
-        eyeRenderPose[eye] = ovrHmd_GetHmdPosePerEye(_ovrHmd, eye);
         orientation.x = eyeRenderPose[eye].Orientation.x;
         orientation.y = eyeRenderPose[eye].Orientation.y;
         orientation.z = eyeRenderPose[eye].Orientation.z;
@@ -526,7 +521,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         glFrustum(-nearClip * port.LeftTan, nearClip * port.RightTan, -nearClip * port.DownTan,
             nearClip * port.UpTan, nearClip, farClip);
 
-        const ovrRecti & vp = _eyeTextures[eye].Texture.Header.RenderViewport;
+        const ovrRecti & vp = _eyeTextures[eye].Header.RenderViewport;
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
         glMatrixMode(GL_MODELVIEW);
@@ -574,10 +569,11 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
 #else
     for_each_eye([&](ovrEyeType eye) {
-        _eyeTextures[eye].OGL.TexId = finalFbo->texture();
+        ovrGLTexture & glEyeTexture = reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]);
+        glEyeTexture.OGL.TexId = finalFbo->texture();
     });
 
-    ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, &(_eyeTextures[0].Texture));
+    ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
 #endif
 }
 
@@ -608,18 +604,15 @@ void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
         _program.setUniformValueArray(_eyeToSourceUVOffsetLocation, uvOffset, 1, 2);
 
         ovrMatrix4f timeWarpMatrices[2];
-        Matrix4f transposeMatrices[2];
+        glm::mat4 transposeMatrices[2];
         //Grabs the timewarp matrices to be used in the shader
         ovrHmd_GetEyeTimewarpMatrices(_ovrHmd, (ovrEyeType)eyeNum, eyeRenderPose[eyeNum], timeWarpMatrices);
-        transposeMatrices[0] = Matrix4f(timeWarpMatrices[0]);
-        transposeMatrices[1] = Matrix4f(timeWarpMatrices[1]);
-
         //Have to transpose the matrices before using them
-        transposeMatrices[0].Transpose();
-        transposeMatrices[1].Transpose();
+        transposeMatrices[0] = glm::transpose(toGlm(timeWarpMatrices[0]));
+        transposeMatrices[1] = glm::transpose(toGlm(timeWarpMatrices[1]));
 
-        glUniformMatrix4fv(_eyeRotationStartLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[0].M);
-        glUniformMatrix4fv(_eyeRotationEndLocation, 1, GL_FALSE, (GLfloat *)transposeMatrices[1].M);
+        glUniformMatrix4fv(_eyeRotationStartLocation, 1, GL_FALSE, (GLfloat *)&transposeMatrices[0][0][0]);
+        glUniformMatrix4fv(_eyeRotationEndLocation, 1, GL_FALSE, (GLfloat *)&transposeMatrices[1][0][0]);
 
         glBindBuffer(GL_ARRAY_BUFFER, _vertices[eyeNum]);
 

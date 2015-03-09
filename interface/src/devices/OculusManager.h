@@ -14,9 +14,7 @@
 #define hifi_OculusManager_h
 
 #include <OVR_Version.h>
-#include <OVR_Types.h>
 #include <OVR_CAPI.h>
-#include <OVR_CAPI_GL.h>
 
 #include <ProgramObject.h>
 #include <glm/glm.hpp>
@@ -96,11 +94,9 @@ private:
     static GLsizei _meshSize[ovrEye_Count];
     static ovrFrameTiming _hmdFrameTiming;
     static bool _programInitialized;
-    static ovrRecti _eyeRenderViewport[ovrEye_Count];
-#else
-    static ovrGLTexture _eyeTextures[ovrEye_Count];
 #endif
 
+    static ovrTexture _eyeTextures[ovrEye_Count];
     static bool _isConnected;
     static glm::vec3 _eyePositions[ovrEye_Count];
     static ovrHmd _ovrHmd;
