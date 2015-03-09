@@ -80,6 +80,8 @@ public:
             _backgroundColor[BLUE_INDEX] = value.blue;
     }
 
+    void writeSubTypeToMap(QVariantMap& map);
+
 protected:
     QString _text;
     float _lineHeight;

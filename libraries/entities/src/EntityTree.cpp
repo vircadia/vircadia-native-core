@@ -983,6 +983,43 @@ void EntityTree::dumpTree() {
     recurseTreeWithOperator(&theOperator);
 }
 
+
+
+
+class ToMapOperator : public RecurseOctreeOperator {
+public:
+    ToMapOperator(QVariantMap& map) : RecurseOctreeOperator(), _map(map) {};
+    bool preRecursion(OctreeElement* element) {return true;}
+    bool postRecursion(OctreeElement* element) {
+        qDebug() << "  in ToMapOperator::preRecursion";
+        EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+        const QList<EntityItem*>& entities = entityTreeElement->getEntities();
+        if (!_map.contains("Entities")) {
+            _map["Entities"] = QVariantList();
+        }
+        // XXX is this causing a lot of copying?
+        QVariantList entitiesQList = qvariant_cast<QVariantList>(_map["Entities"]);
+        foreach (EntityItem* entityItem, entities) {
+            entitiesQList << entityItem->writeToMap();
+        }
+        _map["Entities"] = entitiesQList;
+        return true;
+    }
+ private:
+    QVariantMap& _map;
+};
+
+
+
+bool EntityTree::writeToMap(QVariantMap& entityDescription) {
+    ToMapOperator theOperator(entityDescription);
+    recurseTreeWithOperator(&theOperator);
+    return true;
+}
+
+
+
+
 class PruneOperator : public RecurseOctreeOperator {
 public:
     virtual bool preRecursion(OctreeElement* element) { return true; }

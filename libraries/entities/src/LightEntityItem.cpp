@@ -150,3 +150,7 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, getExponent());
     APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, getCutoff());
 }
+
+void LightEntityItem::writeSubTypeToMap(QVariantMap& map) {
+    map["type"] = QString("light");
+}

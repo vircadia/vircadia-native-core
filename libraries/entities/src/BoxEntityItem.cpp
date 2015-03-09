@@ -105,3 +105,8 @@ void BoxEntityItem::debugDump() const {
     qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
+
+
+void BoxEntityItem::writeSubTypeToMap(QVariantMap& map) {
+    map["type"] = QString("box");
+}

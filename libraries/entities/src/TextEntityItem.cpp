@@ -164,3 +164,7 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     }
     return intersects;
 }
+
+void TextEntityItem::writeSubTypeToMap(QVariantMap& map) {
+    map["type"] = QString("text");
+}

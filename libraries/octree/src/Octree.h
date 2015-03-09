@@ -211,6 +211,7 @@ public:
     {}
 };
 
+
 class Octree : public QObject {
     Q_OBJECT
 public:
@@ -319,7 +320,8 @@ public:
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
     bool readFromSVOFile(const char* filename);
-    
+
+    virtual bool writeToMap(QVariantMap& entityDescription) { return true; }
 
     unsigned long getOctreeElementsCount();
 
@@ -352,6 +354,7 @@ public:
     
     virtual void dumpTree() { };
     virtual void pruneTree() { };
+
 
 signals:
     void importSize(float x, float y, float z);

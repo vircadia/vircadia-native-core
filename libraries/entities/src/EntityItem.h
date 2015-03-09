@@ -292,6 +292,8 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
+    QVariantMap writeToMap();
+    virtual void writeSubTypeToMap(QVariantMap& map) = 0;
 
 protected:
 

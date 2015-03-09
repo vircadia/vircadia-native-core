@@ -1152,3 +1152,10 @@ void EntityItem::updateLifetime(float value) {
     }
 }
 
+
+QVariantMap BoxEntityItem::writeToMap() {
+    QVariantMap result;
+    result["id"] = getID().toString();
+    writeSubTypeToMap(result);
+    return result;
+}

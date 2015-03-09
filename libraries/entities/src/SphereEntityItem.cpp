@@ -130,3 +130,7 @@ void SphereEntityItem::debugDump() const {
     qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
+
+void SphereEntityItem::writeSubTypeToMap(QVariantMap& map) {
+    map["type"] = QString("sphere");
+}

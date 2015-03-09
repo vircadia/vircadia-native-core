@@ -55,6 +55,8 @@ public:
 
     virtual void debugDump() const;
 
+    void writeSubTypeToMap(QVariantMap& map);
+
 protected:
     rgbColor _color;
 };

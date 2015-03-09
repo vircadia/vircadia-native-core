@@ -155,6 +155,8 @@ public:
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
+    bool writeToMap(QVariantMap& entityDescription);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);

@@ -20,6 +20,7 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QJsonDocument>
 
 #include <PerfStat.h>
 #include <SharedUtil.h>
@@ -243,7 +244,17 @@ void OctreePersistThread::persist() {
             qDebug() << "saving Octree lock file created at:" << lockFileName;
 
             qDebug() << "saving Octree to file " << _filename << "...";
-            
+
+
+            QFile persistFile("/tmp/ok.json");
+            QVariantMap entityDescription;
+            bool entityDescriptionSuccess = _tree->writeToMap(entityDescription);
+            if (entityDescriptionSuccess && persistFile.open(QIODevice::WriteOnly)) {
+                persistFile.write(QJsonDocument::fromVariant(entityDescription).toJson());
+            } else {
+                qCritical("Could not write to JSON description of entities.");
+            }
+
             _tree->writeToSVOFile(qPrintable(_filename));
             time(&_lastPersistTime);
             _tree->clearDirtyBit(); // tree is clean after saving

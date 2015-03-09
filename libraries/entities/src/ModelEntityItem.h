@@ -114,6 +114,8 @@ public:
     void setTextures(const QString& textures) { _textures = textures; }
     
     static void cleanupLoadedAnimations();
+
+    void writeSubTypeToMap(QVariantMap& map);
     
 protected:
 
