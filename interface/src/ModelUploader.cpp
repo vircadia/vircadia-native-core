@@ -178,6 +178,7 @@ bool ModelUploader::zip() {
     QByteArray fbxContents = fbx.readAll();
     FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
 
+    #if 0 /// Temporarily remove this check until CtrlAltDavid can come up with a fix.
     // Make sure that a skeleton model has a skeleton
     if (_modelType == SKELETON_MODEL) {
         if (geometry.rootJointIndex == -1) {
@@ -193,6 +194,7 @@ bool ModelUploader::zip() {
             return false;
         }
     }
+    #endif
     
     // make sure we have some basic mappings
     populateBasicMapping(mapping, filename, geometry);
