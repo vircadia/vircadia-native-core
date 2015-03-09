@@ -87,6 +87,7 @@
 
 #include "Application.h"
 #include "AudioClient.h"
+#include "DiscoverabilityManager.h"
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
@@ -367,11 +368,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, &DomainHandler::hostnameChanged,
             DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
-    // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
+    // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
     locationUpdateTimer = new QTimer(this);
-    connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
+    auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
+    connect(locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
@@ -3185,45 +3187,6 @@ void Application::updateWindowTitle(){
     qDebug("Application title set to: %s", title.toStdString().c_str());
 #endif
     _window->setWindowTitle(title);
-}
-
-void Application::updateLocationInServer() {
-
-    AccountManager& accountManager = AccountManager::getInstance();
-    auto addressManager = DependencyManager::get<AddressManager>();
-    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    
-    if (accountManager.isLoggedIn() && domainHandler.isConnected()
-        && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
-
-        // construct a QJsonObject given the user's current address information
-        QJsonObject rootObject;
-
-        QJsonObject locationObject;
-        
-        QString pathString = addressManager->currentPath();
-       
-        const QString LOCATION_KEY_IN_ROOT = "location";
-        
-        const QString PATH_KEY_IN_LOCATION = "path";
-        locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        
-        if (!addressManager->getRootPlaceID().isNull()) {
-            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
-            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
-                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
-            
-        } else {
-            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
-            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
-                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
-        }
-
-        rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
-
-        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
-     }
 }
 
 void Application::clearDomainOctreeDetails() {
