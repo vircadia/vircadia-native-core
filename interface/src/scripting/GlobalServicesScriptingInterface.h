@@ -44,8 +44,6 @@ public:
 public slots:
     DownloadInfoResult getDownloadInfo();
     void updateDownloadInfo();
-    
-    void setDiscoverability(const QString& discoverability);
 
 private slots:
     void loggedOut();
