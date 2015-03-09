@@ -26,8 +26,8 @@ EntityItem* RenderableLightEntityItem::factory(const EntityItemID& entityID, con
 void RenderableLightEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLightEntityItem::render");
     assert(getType() == EntityTypes::Light);
-    glm::vec3 position = getPositionInMeters();
-    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
     float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
 
