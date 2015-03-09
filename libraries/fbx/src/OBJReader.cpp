@@ -1,6 +1,6 @@
 //
-//  EntityItemProperties.h
-//  libraries/entities/src
+//  OBJReader.cpp
+//  libraries/fbx/src/
 //
 //  Created by Seth Alves on 3/7/15.
 //  Copyright 2013 High Fidelity, Inc.

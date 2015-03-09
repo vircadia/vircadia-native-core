@@ -91,7 +91,8 @@ MyAvatar::MyAvatar() :
     _physicsSimulation(),
     _feetTouchFloor(true),
     _isLookingAtLeftEye(true),
-    _realWorldFieldOfView("realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES)
+    _realWorldFieldOfView("realWorldFieldOfView",
+                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES)
 {
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -1400,7 +1401,6 @@ void MyAvatar::updatePosition(float deltaTime) {
     measureMotionDerivatives(deltaTime);
 }
 
-
 void MyAvatar::updatePositionWithPhysics(float deltaTime) {
     // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
@@ -1419,8 +1419,6 @@ void MyAvatar::updatePositionWithPhysics(float deltaTime) {
     // rotate back into world-frame
     _velocity = rotation * newLocalVelocity;
 }
-
-
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     glm::vec3 up = getBodyUpDirection();

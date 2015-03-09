@@ -1817,7 +1817,6 @@ void Application::init() {
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-
     connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
             entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
 

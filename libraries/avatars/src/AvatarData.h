@@ -411,7 +411,7 @@ private:
     AvatarData& operator= (const AvatarData&);
 
     QReadWriteLock _lock;
-    bool _enablePhysics = false; // XXX
+    bool _enablePhysics = false;
 };
 Q_DECLARE_METATYPE(AvatarData*)
 

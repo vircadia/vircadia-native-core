@@ -19,8 +19,6 @@
 
 class ModelItemID;
 
-
-
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
