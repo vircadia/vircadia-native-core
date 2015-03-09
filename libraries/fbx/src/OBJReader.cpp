@@ -24,7 +24,11 @@
 class OBJTokenizer {
 public:
     OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) { }
-    enum SpecialToken { DATUM_TOKEN = 0x100 };
+    enum SpecialToken {
+        NO_TOKEN = -1,
+        NO_PUSHBACKED_TOKEN = -1,
+        DATUM_TOKEN = 0x100
+    };
     int nextToken();
     const QByteArray& getDatum() const { return _datum; }
     void skipLine() { _device->readLine(); }
@@ -39,9 +43,9 @@ private:
 
 
 int OBJTokenizer::nextToken() {
-    if (_pushedBackToken != -1) {
+    if (_pushedBackToken != NO_PUSHBACKED_TOKEN) {
         int token = _pushedBackToken;
-        _pushedBackToken = -1;
+        _pushedBackToken = NO_PUSHBACKED_TOKEN;
         return token;
     }
 
@@ -84,7 +88,7 @@ int OBJTokenizer::nextToken() {
                 return DATUM_TOKEN;
         }
     }
-    return -1;
+    return NO_TOKEN;
 }
 
 
@@ -196,6 +200,8 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
     geometry.meshes.append(FBXMesh());
 
     try {
+        // call parseOBJGroup as long as it's returning true.  Each successful call will
+        // add a new meshPart to the geometry's single mesh.
         while (parseOBJGroup(tokenizer, mapping, geometry)) {
         }
 

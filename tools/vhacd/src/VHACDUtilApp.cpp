@@ -143,25 +143,23 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
     //set parameters for V-HACD
     params.m_callback = &pCallBack; //progress callback
-    params.m_resolution              = 100000; // 100000
-    params.m_depth                   = 20; // 20
-    params.m_concavity               = 0.001; // 0.001
-    params.m_delta                   = 0.01; // 0.05
-    params.m_planeDownsampling       = 4; // 4
-    params.m_convexhullDownsampling  = 4; // 4
-    params.m_alpha                   = 0.05; // 0.05  // controls the bias toward clipping along symmetry planes
-    params.m_beta                    = 0.05; // 0.05
-    params.m_gamma                   = 0.0005; // 0.0005
-    params.m_pca                     = 0; // 0  enable/disable normalizing the mesh before applying the convex decomposition
-    params.m_mode                    = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
-    params.m_maxNumVerticesPerCH     = 64; // 64
-    params.m_minVolumePerCH          = 0.00001; // 0.0001
-    params.m_callback                = 0; // 0
-    params.m_logger                  = 0; // 0
+    params.m_resolution = 100000; // 100000
+    params.m_depth = 20; // 20
+    params.m_concavity = 0.001; // 0.001
+    params.m_delta = 0.01; // 0.05
+    params.m_planeDownsampling = 4; // 4
+    params.m_convexhullDownsampling = 4; // 4
+    params.m_alpha = 0.05; // 0.05  // controls the bias toward clipping along symmetry planes
+    params.m_beta = 0.05; // 0.05
+    params.m_gamma = 0.0005; // 0.0005
+    params.m_pca = 0; // 0  enable/disable normalizing the mesh before applying the convex decomposition
+    params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
+    params.m_maxNumVerticesPerCH = 64; // 64
+    params.m_minVolumePerCH = 0.00001; // 0.0001
+    params.m_callback = 0; // 0
+    params.m_logger = 0; // 0
     params.m_convexhullApproximation = true; // true
-    params.m_oclAcceleration         = true; // true
-
-
+    params.m_oclAcceleration = true; // true
 
     // load the mesh 
 
