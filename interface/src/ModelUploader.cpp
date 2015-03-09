@@ -179,21 +179,20 @@ bool ModelUploader::zip() {
     FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
 
     // Make sure that a skeleton model has a skeleton
-    if (_modelType == SKELETON_MODEL) {
-        if (geometry.rootJointIndex == -1) {
-
-            QString message = "Your selected skeleton model has no skeleton.\n\nThe upload will be canceled.";
-            QMessageBox msgBox;
-            msgBox.setWindowTitle("Model Upload");
-            msgBox.setText(message);
-            msgBox.setStandardButtons(QMessageBox::Ok);
-            msgBox.setIcon(QMessageBox::Warning);
-            msgBox.exec();
-
-            return false;
-        }
-    }
+    if (_modelType == SKELETON_MODEL && !geometry.getJointNames().contains("Hips")) {
+        qDebug() << QString("[Warning] %1 does not contain a skeleton.").arg(filename);
     
+        QString message = "Your selected skeleton model has no skeleton.\n\nThe upload will be canceled.";
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Model Upload");
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+
+        return false;
+    }
+
     // make sure we have some basic mappings
     populateBasicMapping(mapping, filename, geometry);
     
