@@ -114,7 +114,7 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
         distance = glm::distance(origin,hitAt);
         return true;
     }
-    return false;                
+    return false;
 }
 
 
