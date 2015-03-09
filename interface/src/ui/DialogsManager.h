@@ -24,8 +24,9 @@ class QAction;
 class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
-class CachesSizeDialog;
 class BandwidthDialog;
+class CachesSizeDialog;
+class DiskCacheEditor;
 class LodToolsDialog;
 class LoginDialog;
 class OctreeStatsDialog;
@@ -45,6 +46,7 @@ public:
     
 public slots:
     void toggleAddressBar();
+    void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();
     void octreeStatsDetails();
@@ -73,7 +75,7 @@ private:
             member = new T(parent);
             Q_CHECK_PTR(member);
             
-            if (_hmdToolsDialog) {
+            if (_hmdToolsDialog && member->windowHandle()) {
                 _hmdToolsDialog->watchWindow(member->windowHandle());
             }
         }
@@ -84,6 +86,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
+    QPointer<DiskCacheEditor> _diskCacheEditor;
     QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;

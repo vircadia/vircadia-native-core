@@ -51,7 +51,7 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 
 void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACube& newCube) {
     EntityTreeElement* oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
-    AABox newCubeClamped = newCube.clamp(0.0f, 1.0f);
+    AABox newCubeClamped = newCube.clamp(0.0f, (float)TREE_SCALE);
 
     if (_wantDebug) {
         qDebug() << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
@@ -114,7 +114,7 @@ bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElement* element) {
     // If we don't have an old entity, then we don't contain the entity, otherwise
     // check the bounds
     if (_entitiesToMove.size() > 0) {
-        AACube elementCube = element->getAACube();
+        const AACube& elementCube = element->getAACube();
         int detailIndex = 0;
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
 

@@ -323,7 +323,8 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
-    void pasteEntities(float x, float y, float z);
+    QVector<EntityItemID> pasteEntities(float x, float y, float z);
+    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& filename);
 
@@ -584,6 +585,8 @@ private:
     QTimer _settingsTimer;
     
     GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
+
+    void checkSkeleton();
 };
 
 #endif // hifi_Application_h

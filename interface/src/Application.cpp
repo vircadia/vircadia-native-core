@@ -141,7 +141,7 @@ using namespace std;
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
 
-const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
@@ -151,7 +151,7 @@ static QTimer* billboardPacketTimer = NULL;
 static QTimer* checkFPStimer = NULL;
 static QTimer* idleTimer = NULL;
 
-const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
+const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
@@ -445,7 +445,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);
-
+    
     ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);
@@ -489,6 +489,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             bandwidthRecorder.data(), SLOT(updateOutboundData(const quint8, const int)));
     connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
             bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
+
+    connect(&_myAvatar->getSkeletonModel(), &SkeletonModel::skeletonLoaded, 
+            this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // check first run...
     if (_firstRun.get()) {
@@ -772,13 +775,10 @@ void Application::paintGL() {
 
         DependencyManager::get<GlowEffect>()->render();
 
-        {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
             PerformanceTimer perfTimer("renderOverlay");
-            // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
             _applicationOverlay.renderOverlay(true);
-            if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
-                _applicationOverlay.displayOverlayTexture();
-            }
+            _applicationOverlay.displayOverlayTexture();
         }
     }
 
@@ -1633,10 +1633,50 @@ void Application::setActiveFaceTracker() {
 #endif
 }
 
+bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
+    QVector<EntityItem*> entities;
+
+    auto entityTree = _entities.getTree();
+    EntityTree exportTree;
+
+    glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+    for (auto entityID : entityIDs) {
+        auto entityItem = entityTree->findEntityByEntityItemID(entityID);
+        if (!entityItem) {
+            continue;
+        }
+
+        auto properties = entityItem->getProperties();
+        auto position = properties.getPosition();
+
+        root.x = glm::min(root.x, position.x);
+        root.y = glm::min(root.y, position.y);
+        root.z = glm::min(root.z, position.z);
+
+        entities << entityItem;
+    }
+
+    if (entities.size() == 0) {
+        return false;
+    }
+
+    for (auto entityItem : entities) {
+        auto properties = entityItem->getProperties();
+
+        properties.setPosition(properties.getPosition() - root);
+        exportTree.addEntity(entityItem->getEntityItemID(), properties);
+    }
+
+    exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+
+    // restore the main window's active state
+    _window->activateWindow();
+    return true;
+}
+
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
-    _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
-                                y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), entities);
+    _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
         glm::vec3 root(x, y, z);
@@ -1683,8 +1723,8 @@ bool Application::importEntities(const QString& filename) {
     return success;
 }
 
-void Application::pasteEntities(float x, float y, float z) {
-    _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
+QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
+    return _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::initDisplay() {
@@ -2263,7 +2303,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverBounds.scale(TREE_SCALE);
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
@@ -2327,7 +2366,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverBounds.scale(TREE_SCALE);
                     
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
@@ -4004,5 +4042,21 @@ void Application::notifyPacketVersionMismatch() {
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
+    }
+}
+
+void Application::checkSkeleton() {
+    if (_myAvatar->getSkeletonModel().isActive() && !_myAvatar->getSkeletonModel().hasSkeleton()) {
+        qDebug() << "MyAvatar model has no skeleton";
+    
+        QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+        
+        _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
+        _myAvatar->sendIdentityPacket();
     }
 }
