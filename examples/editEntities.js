@@ -385,7 +385,7 @@ var toolBar = (function () {
         } else if (browseModelsButtonDown) {
             var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
             if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
-                url = Window.s3Browse(".*(fbx|FBX)");
+                url = Window.s3Browse(".*(fbx|FBX|obj|OBJ)");
                 if (url !== null && url !== "") {
                     addModel(url);
                 }
