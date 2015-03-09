@@ -1,4 +1,4 @@
-/Merge branch 'master' of ssh://github.com/highfidelity/hifi into isentropic/
+//Merge branch 'master' of ssh://github.com/highfidelity/hifi into isentropic/
 //  OctreePacketProcessor.cpp
 //  interface/src/octree
 //
