@@ -141,7 +141,7 @@ using namespace std;
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
 
-const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
@@ -445,7 +445,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);
-
+    
     ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);
@@ -489,6 +489,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             bandwidthRecorder.data(), SLOT(updateOutboundData(const quint8, const int)));
     connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
             bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
+
+    connect(&_myAvatar->getSkeletonModel(), &SkeletonModel::skeletonLoaded, 
+            this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // check first run...
     if (_firstRun.get()) {
@@ -4042,5 +4045,21 @@ void Application::notifyPacketVersionMismatch() {
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
+    }
+}
+
+void Application::checkSkeleton() {
+    if (_myAvatar->getSkeletonModel().isActive() && !_myAvatar->getSkeletonModel().hasSkeleton()) {
+        qDebug() << "MyAvatar model has no skeleton";
+    
+        QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+        
+        _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
+        _myAvatar->sendIdentityPacket();
     }
 }

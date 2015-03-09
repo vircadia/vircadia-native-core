@@ -81,6 +81,8 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
     if (_enableShapes) {
         buildShapes();
     }
+
+    emit skeletonLoaded();
 }
 
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
@@ -721,7 +723,8 @@ void SkeletonModel::buildShapes() {
     }
     
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.joints.isEmpty()) {
+    if (geometry.joints.isEmpty() || geometry.rootJointIndex == -1) {
+        // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }
 
@@ -1006,3 +1009,6 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
     glPopMatrix();
 }
 
+bool SkeletonModel::hasSkeleton() {
+    return isActive() ? _geometry->getFBXGeometry().rootJointIndex != -1 : false;
+}

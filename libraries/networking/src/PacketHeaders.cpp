@@ -74,7 +74,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES;
+            return VERSION_ENTITIES_HAS_PARTICLES;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

@@ -12,9 +12,10 @@
 #include <cfloat>
 #include <cmath>
 
+#include <QDebug>
+#include <QNetworkDiskCache>
 #include <QThread>
 #include <QTimer>
-#include <QtDebug>
 
 #include <SharedUtil.h>
 
@@ -314,13 +315,51 @@ void Resource::handleReplyTimeout() {
         "received" << _bytesReceived << "total" << _bytesTotal);
 }
 
+void Resource::maybeRefresh() {
+    if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
+        QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+        QVariant variant = reply->header(QNetworkRequest::LastModifiedHeader);
+        QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
+        if (variant.isValid() && variant.canConvert<QDateTime>() && metaData.isValid()) {
+            QDateTime lastModified = variant.value<QDateTime>();
+            QDateTime lastModifiedOld = metaData.lastModified();
+            if (lastModified.isValid() && lastModifiedOld.isValid() &&
+                lastModifiedOld == lastModified) {
+                // We don't need to update, return
+                return;
+            }
+        }
+        qDebug() << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
+        refresh();
+    }
+}
+
 void Resource::makeRequest() {
     _reply = NetworkAccessManager::getInstance().get(_request);
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
     connect(_reply, SIGNAL(finished()), SLOT(handleReplyFinished()));
-
+    
+    if (_reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool()) {
+        // If the file as been updated since it was cached, refresh it
+        QNetworkRequest request(_request);
+        request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+        request.setAttribute(QNetworkRequest::CacheSaveControlAttribute, false);
+        QNetworkReply* reply = NetworkAccessManager::getInstance().head(request);
+        connect(reply, &QNetworkReply::finished, this, &Resource::maybeRefresh);
+    } else {
+        if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
+            QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
+            if (metaData.expirationDate().isNull() || metaData.expirationDate() <= QDateTime::currentDateTime()) {
+                // If the expiration date is NULL or in the past,
+                // put one far enough away that it won't be an issue.
+                metaData.setExpirationDate(QDateTime::currentDateTime().addYears(100));
+                NetworkAccessManager::getInstance().cache()->updateMetaData(metaData);
+            }
+        }
+    }
+    
     _replyTimer = new QTimer(this);
     connect(_replyTimer, SIGNAL(timeout()), SLOT(handleReplyTimeout()));
     _replyTimer->setSingleShot(true);
