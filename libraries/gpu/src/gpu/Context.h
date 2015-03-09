@@ -16,6 +16,7 @@
 #include "Resource.h"
 #include "Texture.h"
 #include "Shader.h"
+#include "Pipeline.h"
 
 namespace gpu {
 
@@ -47,7 +48,6 @@ public:
 
     template< typename T >
     static void setGPUObject(const Buffer& buffer, T* bo) {
-       // buffer.setGPUObject(reinterpret_cast<GPUObject*>(bo));
         buffer.setGPUObject(bo);
     }
     template< typename T >
@@ -55,30 +55,32 @@ public:
         return reinterpret_cast<T*>(buffer.getGPUObject());
     }
 
-    //void syncGPUObject(const Buffer& buffer);
-
     template< typename T >
     static void setGPUObject(const Texture& texture, T* to) {
-        texture.setGPUObject(reinterpret_cast<GPUObject*>(to));
+        texture.setGPUObject(to);
     }
     template< typename T >
     static T* getGPUObject(const Texture& texture) {
         return reinterpret_cast<T*>(texture.getGPUObject());
     }
-
-    //void syncGPUObject(const Texture& texture);
-
     
     template< typename T >
     static void setGPUObject(const Shader& shader, T* so) {
-        shader.setGPUObject(reinterpret_cast<GPUObject*>(so));
+        shader.setGPUObject(so);
     }
     template< typename T >
     static T* getGPUObject(const Shader& shader) {
         return reinterpret_cast<T*>(shader.getGPUObject());
     }
 
-  //  void syncGPUObject(const Shader& shader);
+    template< typename T >
+    static void setGPUObject(const Pipeline& pipeline, T* po) {
+        pipeline.setGPUObject(po);
+    }
+    template< typename T >
+    static T* getGPUObject(const Pipeline& pipeline) {
+        return reinterpret_cast<T*>(pipeline.getGPUObject());
+    }
 
 protected:
 

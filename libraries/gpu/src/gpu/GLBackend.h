@@ -75,6 +75,16 @@ public:
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
 
+
+    class GLPipeline : public GPUObject {
+    public:
+        GLShader* _program;
+
+        GLPipeline();
+        ~GLPipeline();
+    };
+    static GLPipeline* syncGPUObject(const Pipeline& pipeline);
+
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
 
@@ -160,18 +170,24 @@ protected:
             _lastMode(GL_TEXTURE) {}
     } _transform;
 
-    // Shader Stage
+    // Pipeline Stage
+    void do_setPipeline(Batch& batch, uint32 paramOffset);
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
     void do_setUniformTexture(Batch& batch, uint32 paramOffset);
  
-    void updateShader();
-    struct ShaderStageState {
+    void updatePipeline();
+    struct PipelineStageState {
 
+        PipelinePointer _pipeline;
         GLuint _program;
+        bool _invalidProgram;
 
-        ShaderStageState() :
-            _program(0) {}
-    } _shader;
+        PipelineStageState() :
+            _pipeline(),
+            _program(0),
+            _invalidProgram(false)
+             {}
+    } _pipeline;
 
  
     // TODO: As long as we have gl calls explicitely issued from interface

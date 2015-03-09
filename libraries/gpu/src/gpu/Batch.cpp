@@ -25,7 +25,8 @@ Batch::Batch() :
     _buffers(),
     _textures(),
     _streamFormats(),
-    _transforms()
+    _transforms(),
+    _pipelines()
 {
 }
 
@@ -42,6 +43,7 @@ void Batch::clear() {
     _textures.clear();
     _streamFormats.clear();
     _transforms.clear();
+    _pipelines.clear();    
 }
 
 uint32 Batch::cacheResource(Resource* res) {
@@ -157,6 +159,12 @@ void Batch::setProjectionTransform(const Mat4& proj) {
     ADD_COMMAND(setProjectionTransform);
 
     _params.push_back(cacheData(sizeof(Mat4), &proj));
+}
+
+void Batch::setPipeline(const PipelinePointer& pipeline) {
+    ADD_COMMAND(setPipeline);
+
+    _params.push_back(_pipelines.cache(pipeline));
 }
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {

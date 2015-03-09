@@ -299,7 +299,7 @@ void Model::initJointTransforms() {
 
 void Model::init() {
     if (!_program.isLinked()) {
-/*
+/*      //Work in progress not used yet
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));

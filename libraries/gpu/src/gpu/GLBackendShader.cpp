@@ -672,3 +672,4 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
 
     return true;
 }
+

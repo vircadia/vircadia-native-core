@@ -15,8 +15,6 @@
 
 #include "SkyFromAtmosphere_vert.h"
 #include "SkyFromAtmosphere_frag.h"
-#include "gpu/Context.h"
-#include "gpu/GLBackend.h"
 
 using namespace model;
 
@@ -156,12 +154,14 @@ SunSkyStage::SunSkyStage() :
     // Begining of march
     setYearTime(60.0f);
 
-    _skyShader = gpu::ShaderPointer(
+    auto skyShader = gpu::ShaderPointer(
                     gpu::Shader::createProgram(
                         gpu::ShaderPointer(gpu::Shader::createVertex(std::string(SkyFromAtmosphere_vert))),
                         gpu::ShaderPointer(gpu::Shader::createPixel(std::string(SkyFromAtmosphere_frag)))
                     )
                  );
+    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, gpu::States()));
+
 }
 
 SunSkyStage::~SunSkyStage() {
@@ -217,12 +217,11 @@ void SunSkyStage::updateGraphicsObject() const {
     double originAlt = _earthSunModel.getAltitude();
     _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
 
-
-    GLuint program = gpu::GLBackend::getShaderID(_skyShader);
     static int firstTime = 0;
     if (firstTime == 0) {
         firstTime++;
-        gpu::Shader::makeProgram(*_skyShader);
+        bool result = gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
+    
     }
 
 }

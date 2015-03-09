@@ -11,7 +11,7 @@
 #ifndef hifi_model_Stage_h
 #define hifi_model_Stage_h
 
-#include "gpu/Shader.h"
+#include "gpu/Pipeline.h"
 
 #include "Light.h"
 
@@ -145,7 +145,7 @@ public:
 protected:
     LightPointer _sunLight;
 
-    gpu::ShaderPointer _skyShader;
+    gpu::PipelinePointer _skyPipeline;
 
     float _dayTime;
     int _yearTime;
