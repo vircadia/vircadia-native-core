@@ -88,6 +88,7 @@ void makeBindings(GLBackend::GLShader* shader) {
     // now assign the ubo binding, then DON't relink!
 
     //Check for gpu specific uniform slotBindings
+#if defined(Q_OS_WIN)
     loc = glGetUniformBlockIndex(glprogram, "transformObjectBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
@@ -99,7 +100,7 @@ void makeBindings(GLBackend::GLShader* shader) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
         shader->_transformCameraSlot = gpu::TRANSFORM_OBJECT_SLOT;
     }
-
+#endif
 }
 
 GLBackend::GLShader* compileShader(const Shader& shader) {
@@ -360,22 +361,24 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
     case GL_FLOAT_VEC2: return ElementResource(Element(VEC2, gpu::FLOAT, UNIFORM), Resource::BUFFER);
     case GL_FLOAT_VEC3: return ElementResource(Element(VEC3, gpu::FLOAT, UNIFORM), Resource::BUFFER);
     case GL_FLOAT_VEC4: return ElementResource(Element(VEC4, gpu::FLOAT, UNIFORM), Resource::BUFFER);
-
+/*
     case GL_DOUBLE: return ElementResource(Element(SCALAR, gpu::FLOAT, UNIFORM), Resource::BUFFER);
     case GL_DOUBLE_VEC2: return ElementResource(Element(VEC2, gpu::FLOAT, UNIFORM), Resource::BUFFER);
     case GL_DOUBLE_VEC3: return ElementResource(Element(VEC3, gpu::FLOAT, UNIFORM), Resource::BUFFER);
     case GL_DOUBLE_VEC4: return ElementResource(Element(VEC4, gpu::FLOAT, UNIFORM), Resource::BUFFER);
-
+*/
     case GL_INT: return ElementResource(Element(SCALAR, gpu::INT32, UNIFORM), Resource::BUFFER);
     case GL_INT_VEC2: return ElementResource(Element(VEC2, gpu::INT32, UNIFORM), Resource::BUFFER);
     case GL_INT_VEC3: return ElementResource(Element(VEC3, gpu::INT32, UNIFORM), Resource::BUFFER);
     case GL_INT_VEC4: return ElementResource(Element(VEC4, gpu::INT32, UNIFORM), Resource::BUFFER);
 
     case GL_UNSIGNED_INT: return ElementResource(Element(SCALAR, gpu::UINT32, UNIFORM), Resource::BUFFER);
+#if defined(Q_OS_WIN)
     case GL_UNSIGNED_INT_VEC2: return ElementResource(Element(VEC2, gpu::UINT32, UNIFORM), Resource::BUFFER);
     case GL_UNSIGNED_INT_VEC3: return ElementResource(Element(VEC3, gpu::UINT32, UNIFORM), Resource::BUFFER);
     case GL_UNSIGNED_INT_VEC4: return ElementResource(Element(VEC4, gpu::UINT32, UNIFORM), Resource::BUFFER);
-
+#endif
+            
     case GL_BOOL: return ElementResource(Element(SCALAR, gpu::BOOL, UNIFORM), Resource::BUFFER);
     case GL_BOOL_VEC2: return ElementResource(Element(VEC2, gpu::BOOL, UNIFORM), Resource::BUFFER);
     case GL_BOOL_VEC3: return ElementResource(Element(VEC3, gpu::BOOL, UNIFORM), Resource::BUFFER);
@@ -405,26 +408,32 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
 
     case GL_SAMPLER_1D: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_1D);
     case GL_SAMPLER_2D: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_2D);
-    case GL_SAMPLER_2D_MULTISAMPLE: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D);
+
     case GL_SAMPLER_3D: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_3D);
     case GL_SAMPLER_CUBE: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_CUBE);
 
+#if defined(Q_OS_WIN)
+    case GL_SAMPLER_2D_MULTISAMPLE: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D);
     case GL_SAMPLER_1D_ARRAY: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_1D_ARRAY);
     case GL_SAMPLER_2D_ARRAY: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER), Resource::TEXTURE_2D_ARRAY);
     case GL_SAMPLER_2D_MULTISAMPLE_ARRAY: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D_ARRAY);
-
+#endif
+            
     case GL_SAMPLER_2D_SHADOW: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_SHADOW), Resource::TEXTURE_2D);
+#if defined(Q_OS_WIN)
     case GL_SAMPLER_CUBE_SHADOW: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_SHADOW), Resource::TEXTURE_CUBE);
 
     case GL_SAMPLER_2D_ARRAY_SHADOW: return ElementResource(Element(SCALAR, gpu::FLOAT, SAMPLER_SHADOW), Resource::TEXTURE_2D_ARRAY);
-    
+#endif
+            
 //    {GL_SAMPLER_1D_SHADOW	sampler1DShadow},
  //   {GL_SAMPLER_1D_ARRAY_SHADOW	sampler1DArrayShadow},
 
 //    {GL_SAMPLER_BUFFER	samplerBuffer},
 //    {GL_SAMPLER_2D_RECT	sampler2DRect},
  //   {GL_SAMPLER_2D_RECT_SHADOW	sampler2DRectShadow},
- 
+
+#if defined(Q_OS_WIN)
     case GL_INT_SAMPLER_1D: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER), Resource::TEXTURE_1D);
     case GL_INT_SAMPLER_2D: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER), Resource::TEXTURE_2D);
     case GL_INT_SAMPLER_2D_MULTISAMPLE: return ElementResource(Element(SCALAR, gpu::INT32, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D);
@@ -447,7 +456,7 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
     case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER), Resource::TEXTURE_1D_ARRAY);
     case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER), Resource::TEXTURE_2D_ARRAY);
     case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return ElementResource(Element(SCALAR, gpu::UINT32, SAMPLER_MULTISAMPLE), Resource::TEXTURE_2D_ARRAY);
-
+#endif
 //    {GL_UNSIGNED_INT_SAMPLER_BUFFER	usamplerBuffer},
 //    {GL_UNSIGNED_INT_SAMPLER_2D_RECT	usampler2DRect},
 /*
@@ -542,6 +551,7 @@ bool isUnusedSlot(GLint binding) {
 
 int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
     GLint buffersCount = 0;
+#if defined(Q_OS_WIN)
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
 
     // fast exit
@@ -595,7 +605,7 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
         Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
         buffers.insert(Shader::Slot(name, binding, element, Resource::BUFFER));
     }
-
+#endif
     return buffersCount;
 }
 
