@@ -35,13 +35,15 @@ var NUM_INITIAL_PARTICLES = 200;
 var PARTICLE_MIN_SIZE = 0.50; 
 var PARTICLE_MAX_SIZE = 1.50;
 var INITIAL_VELOCITY = 5.0;
+var DEGREES_TO_RADIANS = Math.PI / 180.0;
 
 var planets = [];
 var particles = [];
 
 //  Create planets that will extert gravity on test particles 
 for (var i = 0; i < planetTypes.length; i++) {
-	var rotationalVelocity = 10 + Math.random() * 60;
+    // NOTE: rotationalVelocity is in radians/sec
+	var rotationalVelocity = (10 + Math.random() * 60) * DEGREES_TO_RADIANS;
 	var position = { x: planetTypes[i].x, y: planetTypes[i].y, z: planetTypes[i].z };
 	position = Vec3.multiply(MAX_RANGE / 2, position);
 	position = Vec3.sum(center, position);

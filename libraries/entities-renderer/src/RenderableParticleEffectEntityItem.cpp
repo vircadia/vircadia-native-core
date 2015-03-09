@@ -31,9 +31,6 @@ RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const Ent
 void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableParticleEffectEntityItem::render");
     assert(getType() == EntityTypes::ParticleEffect);
-    glm::vec3 position = getPositionInMeters();
-    glm::vec3 center = getCenterInMeters();
-    glm::quat rotation = getRotation();
     float pa_rad = getParticleRadius();
 
     const float MAX_COLOR = 255.0f;
@@ -75,13 +72,14 @@ void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
     DependencyManager::get<GeometryCache>()->updateVertices(_cacheID, *pointVec, paColor);
                     
     glPushMatrix();
+        glm::vec3 position = getPosition();
         glTranslatef(position.x, position.y, position.z);
+        glm::quat rotation = getRotation();
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         
-        
         glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
+            glm::vec3 positionToCenter = getCenter() - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             
             DependencyManager::get<GeometryCache>()->renderVertices(gpu::QUADS, _cacheID);

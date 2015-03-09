@@ -321,7 +321,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     sittingPoints.setProperty("length", _sittingPoints.size());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
-    AABox aaBox = getAABoxInMeters();
+    AABox aaBox = getAABox();
     QScriptValue boundingBox = engine->newObject();
     QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
     QScriptValue topFarLeft = vec3toScriptValue(engine, aaBox.calcTopFarLeft());
@@ -885,16 +885,10 @@ void EntityItemProperties::markAllChanged() {
     _particleRadiusChanged = true;
 }
 
-AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {
-    AACube maxCube = getMaximumAACubeInMeters();
-    maxCube.scale(1.0f / (float)TREE_SCALE);
-    return maxCube;
-}
-
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 /// 
-AACube EntityItemProperties::getMaximumAACubeInMeters() const { 
+AACube EntityItemProperties::getMaximumAACube() const { 
     // * we know that the position is the center of rotation
     glm::vec3 centerOfRotation = _position; // also where _registration point is
 
@@ -918,7 +912,7 @@ AACube EntityItemProperties::getMaximumAACubeInMeters() const {
 }
 
 // The minimum bounding box for the entity.
-AABox EntityItemProperties::getAABoxInMeters() const { 
+AABox EntityItemProperties::getAABox() const { 
 
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;

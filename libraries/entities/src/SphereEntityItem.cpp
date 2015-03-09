@@ -32,9 +32,6 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
 { 
     _type = EntityTypes::Sphere;
     setProperties(properties);
-    // NOTE: _volumeMultiplier is used to compute volume:
-    // volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z
-    // The formula below looks funny because _dimension.xyz = diameter rather than radius.
     _volumeMultiplier *= PI / 6.0f;
 }
 

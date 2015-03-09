@@ -62,12 +62,12 @@ void DiskCacheEditor::makeDialog() {
     path->setAlignment(Qt::AlignRight);
     layout->addWidget(path, 0, 0);
     
-    QLabel* size = new QLabel("Max Size : ", _dialog);
+    QLabel* size = new QLabel("Current Size : ", _dialog);
     Q_CHECK_PTR(size);
     size->setAlignment(Qt::AlignRight);
     layout->addWidget(size, 1, 0);
     
-    QLabel* maxSize = new QLabel("Current Size : ", _dialog);
+    QLabel* maxSize = new QLabel("Max Size : ", _dialog);
     Q_CHECK_PTR(maxSize);
     maxSize->setAlignment(Qt::AlignRight);
     layout->addWidget(maxSize, 2, 0);

@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var DEGREES_TO_RADIANS = Math.PI / 180.0;
+var RADIANS_TO_DEGREES = 180.0 / Math.PI;
+
 EntityPropertyDialogBox = (function () {
     var that = {};
 
@@ -148,11 +151,12 @@ EntityPropertyDialogBox = (function () {
         index++;
         array.push({ label: "Linear Damping:", value: properties.damping.toFixed(decimals) });
         index++;
-        array.push({ label: "Angular Pitch:", value: properties.angularVelocity.x.toFixed(decimals) });
+        // NOTE: angular velocity is in radians/sec but we display degrees/sec for users
+        array.push({ label: "Angular Pitch:", value: (properties.angularVelocity.x * RADIANS_TO_DEGREES).toFixed(decimals) });
         index++;
-        array.push({ label: "Angular Yaw:", value: properties.angularVelocity.y.toFixed(decimals) });
+        array.push({ label: "Angular Yaw:", value: (properties.angularVelocity.y * RADIANS_TO_DEGREES).toFixed(decimals) });
         index++;
-        array.push({ label: "Angular Roll:", value: properties.angularVelocity.z.toFixed(decimals) });
+        array.push({ label: "Angular Roll:", value: (properties.angularVelocity.z * RADIANS_TO_DEGREES).toFixed(decimals) });
         index++;
         array.push({ label: "Angular Damping:", value: properties.angularDamping.toFixed(decimals) });
         index++;
@@ -346,9 +350,10 @@ EntityPropertyDialogBox = (function () {
             properties.velocity.z = array[index++].value;
             properties.damping = array[index++].value;
 
-            properties.angularVelocity.x = array[index++].value;
-            properties.angularVelocity.y = array[index++].value;
-            properties.angularVelocity.z = array[index++].value;
+            // NOTE: angular velocity is in radians/sec but we display degrees/sec for users
+            properties.angularVelocity.x = array[index++].value * DEGREES_TO_RADIANS;
+            properties.angularVelocity.y = array[index++].value * DEGREES_TO_RADIANS;
+            properties.angularVelocity.z = array[index++].value * DEGREES_TO_RADIANS;
             properties.angularDamping = array[index++].value;
 
             properties.gravity.x = array[index++].value;
