@@ -31,20 +31,21 @@ Q_DECLARE_METATYPE(DownloadInfoResult)
 QScriptValue DownloadInfoResultToScriptValue(QScriptEngine* engine, const DownloadInfoResult& result);
 void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoResult& result);
 
-
 class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString myUsername READ getMyUsername)
-    GlobalServicesScriptingInterface();
-    ~GlobalServicesScriptingInterface();
+    
+    Q_PROPERTY(QString username READ getUsername)
+    
 public:
     static GlobalServicesScriptingInterface* getInstance();
 
-    QString getMyUsername();
+    const QString& getUsername() const { return AccountManager::getInstance().getAccountInfo().getUsername(); }
     
 public slots:
     DownloadInfoResult getDownloadInfo();
     void updateDownloadInfo();
+    
+    void setDiscoverability(const QString& discoverability);
 
 private slots:
     void loggedOut();
@@ -53,12 +54,13 @@ private slots:
 signals:
     void connected();
     void disconnected(const QString& reason);
-    void incomingMessage(const QString& username, const QString& message);
-    void onlineUsersChanged(const QStringList& usernames);
     void myUsernameChanged(const QString& username);
     void downloadInfoChanged(DownloadInfoResult info);
 
 private:
+    GlobalServicesScriptingInterface();
+    ~GlobalServicesScriptingInterface();
+    
     bool _downloading;
 };
 
