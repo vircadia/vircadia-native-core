@@ -53,7 +53,9 @@ function shootDice(position, velocity) {
           position: position,  
           velocity: velocity, 
           rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
-          angularVelocity: { x: Math.random() * 100, y: Math.random() * 100, z: Math.random() * 100 },
+          // NOTE: angularVelocity is in radians/sec
+          var maxAngularSpeed = Math.PI;
+          angularVelocity: { x: Math.random() * maxAngularSpeed, y: Math.random() * maxAngularSpeed, z: Math.random() * maxAngularSpeed },
           lifetime: LIFETIME,
           gravity: {  x: 0, y: GRAVITY, z: 0 },
           shapeType: "box",

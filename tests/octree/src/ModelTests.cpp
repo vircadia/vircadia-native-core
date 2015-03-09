@@ -45,12 +45,9 @@ void EntityTests::entityTreeTests(bool verbose) {
     entityID.isKnownID = false; // this is a temporary workaround to allow local tree entities to be added with known IDs
     EntityItemProperties properties;
     float oneMeter = 1.0f;
-    //float halfMeter = oneMeter / 2.0f;
     float halfOfDomain = TREE_SCALE * 0.5f;
-    glm::vec3 positionNearOriginInMeters(oneMeter, oneMeter, oneMeter); // when using properties, these are in meter not tree units
-    glm::vec3 positionAtCenterInMeters(halfOfDomain, halfOfDomain, halfOfDomain);
-    glm::vec3 positionNearOriginInTreeUnits = positionNearOriginInMeters / (float)TREE_SCALE;
-    glm::vec3 positionAtCenterInTreeUnits = positionAtCenterInMeters / (float)TREE_SCALE;
+    glm::vec3 positionNearOrigin(oneMeter, oneMeter, oneMeter); // when using properties, these are in meter not tree units
+    glm::vec3 positionAtCenter(halfOfDomain, halfOfDomain, halfOfDomain);
 
     {
         testsTaken++;
@@ -59,28 +56,27 @@ void EntityTests::entityTreeTests(bool verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
         
-        properties.setPosition(positionAtCenterInMeters);
+        properties.setPosition(positionAtCenter);
         // TODO: Fix these unit tests.
-        //properties.setRadius(halfMeter);
         //properties.setModelURL("http://s3.amazonaws.com/hifi-public/ozan/theater.fbx");
 
         tree.addEntity(entityID, properties);
         
-        float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
-        const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenterInTreeUnits, targetRadius);
+        float targetRadius = oneMeter * 2.0f;
+        const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenter, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
-        AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+        const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
             qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
             qDebug() << "foundEntityByID=" << foundEntityByID;
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
-                << elementCube.getCorner().x * TREE_SCALE << "," 
-                << elementCube.getCorner().y * TREE_SCALE << ","
-                << elementCube.getCorner().z * TREE_SCALE << ":" 
-                << elementCube.getScale() * TREE_SCALE;
+                << elementCube.getCorner().x << "," 
+                << elementCube.getCorner().y << ","
+                << elementCube.getCorner().z << ":" 
+                << elementCube.getScale();
             qDebug() << "elementCube.getScale()=" << elementCube.getScale();
             //containingElement->printDebugDetails("containingElement");
         }
@@ -103,27 +99,27 @@ void EntityTests::entityTreeTests(bool verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
         
-        glm::vec3 newPosition = positionNearOriginInMeters;
+        glm::vec3 newPosition = positionNearOrigin;
 
         properties.setPosition(newPosition);
 
         tree.updateEntity(entityID, properties, true);
         
-        float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
-        const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionNearOriginInTreeUnits, targetRadius);
+        float targetRadius = oneMeter * 2.0f;
+        const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionNearOrigin, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
-        AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+        const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
             qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
             qDebug() << "foundEntityByID=" << foundEntityByID;
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
-                << elementCube.getCorner().x * TREE_SCALE << "," 
-                << elementCube.getCorner().y * TREE_SCALE << ","
-                << elementCube.getCorner().z * TREE_SCALE << ":" 
-                << elementCube.getScale() * TREE_SCALE;
+                << elementCube.getCorner().x << "," 
+                << elementCube.getCorner().y << ","
+                << elementCube.getCorner().z << ":" 
+                << elementCube.getScale();
             //containingElement->printDebugDetails("containingElement");
         }
 
@@ -143,27 +139,27 @@ void EntityTests::entityTreeTests(bool verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
         
-        glm::vec3 newPosition = positionAtCenterInMeters;
+        glm::vec3 newPosition = positionAtCenter;
 
         properties.setPosition(newPosition);
 
         tree.updateEntity(entityID, properties, true);
         
-        float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
-        const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenterInTreeUnits, targetRadius);
+        float targetRadius = oneMeter * 2.0f;
+        const EntityItem* foundEntityByRadius = tree.findClosestEntity(positionAtCenter, targetRadius);
         const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
         EntityTreeElement* containingElement = tree.getContainingElement(entityID);
-        AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+        const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
             qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
             qDebug() << "foundEntityByID=" << foundEntityByID;
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
-                << elementCube.getCorner().x * TREE_SCALE << "," 
-                << elementCube.getCorner().y * TREE_SCALE << ","
-                << elementCube.getCorner().z * TREE_SCALE << ":" 
-                << elementCube.getScale() * TREE_SCALE;
+                << elementCube.getCorner().x << "," 
+                << elementCube.getCorner().y << ","
+                << elementCube.getCorner().z << ":" 
+                << elementCube.getScale();
             //containingElement->printDebugDetails("containingElement");
         }
 
@@ -184,11 +180,11 @@ void EntityTests::entityTreeTests(bool verbose) {
             qDebug() << "Test" << testsTaken <<":" << qPrintable(testName);
         }
 
-        float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
+        float targetRadius = oneMeter * 2.0f;
         quint64 start = usecTimestampNow();
         const EntityItem* foundEntityByRadius = NULL;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
-            foundEntityByRadius = tree.findClosestEntity(positionAtCenterInTreeUnits, targetRadius);
+            foundEntityByRadius = tree.findClosestEntity(positionAtCenter, targetRadius);
         }
         quint64 end = usecTimestampNow();
         
@@ -262,13 +258,11 @@ void EntityTests::entityTreeTests(bool verbose) {
             float randomX = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
             float randomY = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
             float randomZ = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
-            glm::vec3 randomPositionInMeters(randomX,randomY,randomZ);
-            glm::vec3 randomPositionInTreeUnits = randomPositionInMeters / (float)TREE_SCALE;
+            glm::vec3 randomPosition(randomX,randomY,randomZ);
 
-            properties.setPosition(randomPositionInMeters);
+            properties.setPosition(randomPosition);
             
             // TODO: fix these unit tests
-            //properties.setRadius(halfMeter);
             //properties.setModelURL("http://s3.amazonaws.com/hifi-public/ozan/theater.fbx");
 
             if (extraVerbose) {
@@ -287,14 +281,14 @@ void EntityTests::entityTreeTests(bool verbose) {
             }
 
             quint64 startFind = usecTimestampNow();
-            float targetRadius = oneMeter * 2.0 / (float)TREE_SCALE; // in tree units
-            const EntityItem* foundEntityByRadius = tree.findClosestEntity(randomPositionInTreeUnits, targetRadius);
+            float targetRadius = oneMeter * 2.0f;
+            const EntityItem* foundEntityByRadius = tree.findClosestEntity(randomPosition, targetRadius);
             const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
             quint64 endFind = usecTimestampNow();
             totalElapsedFind += (endFind - startFind);
 
             EntityTreeElement* containingElement = tree.getContainingElement(entityID);
-            AACube elementCube = containingElement ? containingElement->getAACube() : AACube();
+            const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
             
             bool elementIsBestFit = containingElement->bestFitEntityBounds(foundEntityByID);
             
@@ -303,10 +297,10 @@ void EntityTests::entityTreeTests(bool verbose) {
                 qDebug() << "foundEntityByID=" << foundEntityByID;
                 qDebug() << "containingElement=" << containingElement;
                 qDebug() << "containingElement.box=" 
-                    << elementCube.getCorner().x * TREE_SCALE << "," 
-                    << elementCube.getCorner().y * TREE_SCALE << ","
-                    << elementCube.getCorner().z * TREE_SCALE << ":" 
-                    << elementCube.getScale() * TREE_SCALE;
+                    << elementCube.getCorner().x << "," 
+                    << elementCube.getCorner().y << ","
+                    << elementCube.getCorner().z << ":" 
+                    << elementCube.getScale();
                 qDebug() << "elementCube.getScale()=" << elementCube.getScale();
                 //containingElement->printDebugDetails("containingElement");
                 qDebug() << "elementIsBestFit=" << elementIsBestFit;

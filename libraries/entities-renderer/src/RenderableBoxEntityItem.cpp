@@ -25,9 +25,9 @@ EntityItem* RenderableBoxEntityItem::factory(const EntityItemID& entityID, const
 void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
     assert(getType() == EntityTypes::Box);
-    glm::vec3 position = getPositionInMeters();
-    glm::vec3 center = getCenter() * (float)TREE_SCALE;
-    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::vec3 position = getPosition();
+    glm::vec3 center = getCenter();
+    glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
 
     const float MAX_COLOR = 255.0f;

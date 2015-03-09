@@ -139,9 +139,8 @@ public:
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
     
-    AACube getMaximumAACubeInTreeUnits() const;
-    AACube getMaximumAACubeInMeters() const;
-    AABox getAABoxInMeters() const;
+    AACube getMaximumAACube() const;
+    AABox getAABox() const;
 
     void debugDump() const;
     void setLastEdited(quint64 usecTime);

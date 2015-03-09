@@ -98,7 +98,7 @@ void EntityTreeRenderer::init() {
 
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.    
-    _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3(1.0f, 1.0f, 1.0f);
+    _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
     connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
@@ -278,10 +278,10 @@ void EntityTreeRenderer::update() {
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree && !_shuttingDown) {
         _tree->lockForWrite(); // so that our scripts can do edits if they want
-        glm::vec3 avatarPosition = _viewState->getAvatarPosition() / (float) TREE_SCALE;
+        glm::vec3 avatarPosition = _viewState->getAvatarPosition();
         
         if (avatarPosition != _lastAvatarPosition) {
-            float radius = 1.0f / (float) TREE_SCALE; // for now, assume 1 meter radius
+            float radius = 1.0f; // for now, assume 1 meter radius
             QVector<const EntityItem*> foundEntities;
             QVector<EntityItemID> entitiesContainingAvatar;
             
@@ -343,7 +343,7 @@ void EntityTreeRenderer::leaveAllEntities() {
         
         // make sure our "last avatar position" is something other than our current position, so that on our
         // first chance, we'll check for enter/leave entity events.    
-        _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3(1.0f, 1.0f, 1.0f);
+        _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
         _tree->unlock();
     }
 }
@@ -418,8 +418,8 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
 }
 
 void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement) {
-    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float) TREE_SCALE;
-    float elementSize = entityTreeElement->getScale() * (float) TREE_SCALE;
+    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter();
+    float elementSize = entityTreeElement->getScale();
     glPushMatrix();
         glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
         DependencyManager::get<DeferredLightingEffect>()->renderWireCube(elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
@@ -480,10 +480,6 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         AACube minCube = entity->getMinimumAACube();
         AABox entityBox = entity->getAABox();
 
-        maxCube.scale((float) TREE_SCALE);
-        minCube.scale((float) TREE_SCALE);
-        entityBox.scale((float) TREE_SCALE);
-
         glm::vec3 maxCenter = maxCube.calcCenter();
         glm::vec3 minCenter = minCube.calcCenter();
         glm::vec3 entityBoxCenter = entityBox.calcCenter();
@@ -509,9 +505,9 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glPopMatrix();
 
 
-        glm::vec3 position = entity->getPosition() * (float) TREE_SCALE;
-        glm::vec3 center = entity->getCenter() * (float) TREE_SCALE;
-        glm::vec3 dimensions = entity->getDimensions() * (float) TREE_SCALE;
+        glm::vec3 position = entity->getPosition();
+        glm::vec3 center = entity->getCenter();
+        glm::vec3 dimensions = entity->getDimensions();
         glm::quat rotation = entity->getRotation();
 
         glPushMatrix();
@@ -551,8 +547,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         if (entityItem->isVisible()) {
             // render entityItem 
             AABox entityBox = entityItem->getAABox();
-
-            entityBox.scale(TREE_SCALE);
         
             // TODO: some entity types (like lights) might want to be rendered even
             // when they are outside of the view frustum...

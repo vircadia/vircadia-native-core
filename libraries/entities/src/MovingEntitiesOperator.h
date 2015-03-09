@@ -15,11 +15,11 @@
 class EntityToMoveDetails {
 public:
     EntityItem* entity;
-    AACube oldCube;
-    AACube newCube;
-    AABox newCubeClamped;
+    AACube oldCube; // meters
+    AACube newCube; // meters
+    AABox newCubeClamped; // meters
     EntityTreeElement* oldContainingElement;
-    AACube oldContainingElementCube;
+    AACube oldContainingElementCube; // meters
     bool oldFound;
     bool newFound;
 };

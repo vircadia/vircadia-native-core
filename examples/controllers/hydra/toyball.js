@@ -92,7 +92,6 @@ function checkControllerSide(whichSide) {
                                             Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[0]));
         linearVelocity = averageLinearVelocity[0];
         angularVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getSpatialControlRawAngularVelocity(LEFT_TIP));
-        angularVelocity = Vec3.multiply(180.0 / Math.PI, angularVelocity);
     } else {
         BUTTON_FWD = RIGHT_BUTTON_FWD;
         BUTTON_3 = RIGHT_BUTTON_3;
@@ -104,7 +103,6 @@ function checkControllerSide(whichSide) {
                                             Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[1]));
         linearVelocity = averageLinearVelocity[1];
         angularVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getSpatialControlRawAngularVelocity(RIGHT_TIP));
-        angularVelocity = Vec3.multiply(180.0 / Math.PI, angularVelocity);
         handMessage = "RIGHT";
     }
 
