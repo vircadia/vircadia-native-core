@@ -332,8 +332,7 @@ void ModelUploader::populateBasicMapping(QVariantHash& mapping, QString filename
     // mixamo blendshapes - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
     // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
     bool likelyMixamoFile = geometry.applicationName == "mixamo.com" || 
-                            (geometry.blendshapeChannelNames.contains("Facial_Blends") && 
-                             geometry.blendshapeChannelNames.contains("BrowsDown_Right") && 
+                            (geometry.blendshapeChannelNames.contains("BrowsDown_Right") && 
                              geometry.blendshapeChannelNames.contains("MouthOpen") && 
                              geometry.blendshapeChannelNames.contains("Blink_Left") && 
                              geometry.blendshapeChannelNames.contains("Blink_Right") && 

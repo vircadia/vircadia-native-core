@@ -385,7 +385,6 @@ void Model::init() {
         _program.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
         _program.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
         initProgram(_program, _locations);
-        
    
         _normalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
         _normalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);

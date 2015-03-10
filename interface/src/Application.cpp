@@ -1143,6 +1143,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
                 break;
             }
+
+            case Qt::Key_Comma: {
+                _myAvatar->togglePhysicsEnabled();
+            }
             
             default:
                 event->ignore();
@@ -1806,6 +1810,9 @@ void Application::init() {
     _physicsEngine.setEntityTree(tree);
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
+
+
+    _physicsEngine.setAvatarData(_myAvatar);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
@@ -2869,6 +2876,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity());
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
@@ -3908,8 +3916,8 @@ void Application::takeSnapshot() {
 }
 
 void Application::setVSyncEnabled() {
-    bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
 #if defined(Q_OS_WIN)
+    bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         wglSwapIntervalEXT(vsyncOn);
         int swapInterval = wglGetSwapIntervalEXT();
@@ -3932,7 +3940,6 @@ void Application::setVSyncEnabled() {
 #else
     qDebug("V-Sync is FORCED ON on this system\n");
 #endif
-    vsyncOn = true; // Turns off unused variable warning
 }
 
 bool Application::isVSyncOn() const {

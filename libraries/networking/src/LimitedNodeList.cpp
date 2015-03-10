@@ -48,7 +48,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _localSockAddr(),
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
-    _packetStatTimer()
+    _packetStatTimer(),
+    _thisNodeCanAdjustLocks(false)
 {
     static bool firstCall = true;
     if (firstCall) {

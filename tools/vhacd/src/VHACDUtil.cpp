@@ -14,7 +14,7 @@
 
 
 //Read all the meshes from provided FBX file
-bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *results){
+bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *results) {
 
     // open the fbx file
     QFile fbx(filename);
@@ -24,11 +24,25 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
     std::cout << "Reading FBX.....\n";
 
     QByteArray fbxContents = fbx.readAll();
-    FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
+
+    
+    FBXGeometry geometry;
+
+    if (filename.toLower().endsWith(".obj")) {
+        geometry = readOBJ(fbxContents, QVariantHash());
+    } else if (filename.toLower().endsWith(".fbx")) {
+        geometry = readFBX(fbxContents, QVariantHash());
+    } else {
+        qDebug() << "unknown file extension";
+        return false;
+    }
+
+
     //results->meshCount = geometry.meshes.count();
+    // qDebug() << "read in" << geometry.meshes.count() << "meshes";
 
     int count = 0;
-    foreach(FBXMesh mesh, geometry.meshes){
+    foreach(FBXMesh mesh, geometry.meshes) {
         //get vertices for each mesh		
         QVector<glm::vec3> vertices = mesh.vertices;
 
@@ -40,9 +54,9 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
         }
 
         //only read meshes with triangles
-		if (triangles.count() <= 0){
-			continue;
-		}           
+        if (triangles.count() <= 0){
+            continue;
+        }           
         results->perMeshVertices.append(vertices);
         results->perMeshTriangleIndices.append(triangles);
         count++;
@@ -82,6 +96,23 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD
         for (unsigned int j = 0; j < nConvexHulls; j++){
             VHACD::IVHACD::ConvexHull hull;
             interfaceVHACD->GetConvexHull(j, hull);
+
+            double *m_points_copy = new double[hull.m_nPoints * 3];
+            // std::copy(std::begin(hull.m_points), std::end(hull.m_points), std::begin(m_points_copy));
+            for (unsigned int i=0; i<hull.m_nPoints * 3; i++) {
+                m_points_copy[ i ] = hull.m_points[ i ];
+            }
+            hull.m_points = m_points_copy;
+
+
+            int *m_triangles_copy = new int[hull.m_nTriangles * 3];
+            // std::copy(std::begin(hull.m_triangles), std::end(hull.m_triangles), std::begin(m_triangles_copy));
+            for (unsigned int i=0; i<hull.m_nTriangles * 3; i++) {
+                m_triangles_copy[ i ] = hull.m_triangles[ i ];
+            }
+            hull.m_triangles = m_triangles_copy;
+
+
             convexHulls.append(hull);
         }
         results->convexHullList.append(convexHulls);
