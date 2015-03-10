@@ -1724,9 +1724,17 @@ void Application::saveSettings() {
     _myAvatar->saveData();
 }
 
-bool Application::importEntities(const QString& filename) {
+bool Application::importEntities(const QString& urlOrFilename) {
     _entityClipboard.eraseAllOctreeElements();
-    bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+    
+    QUrl url(urlOrFilename);
+    
+    // if the URL appears to be invalid or relative, then it is probably a local file
+    if (!url.isValid() || url.isRelative()) {
+        url = QUrl::fromLocalFile(urlOrFilename);
+    }
+    
+    bool success = _entityClipboard.readFromSVOURL(url.toString());
     if (success) {
         _entityClipboard.reaverageOctreeElements();
     }
