@@ -39,6 +39,7 @@ public:
     glm::vec3 root;
     EntityTree* localTree;
     EntityEditPacketSender* packetSender;
+    QVector<EntityItemID>* newEntityIDs;
 };
 
 
@@ -95,6 +96,8 @@ public:
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false);
     void removeEntityFromSimulation(EntityItem* entity);
 
+    /// \param position point of query in world-frame (meters)
+    /// \param targetRadius radius of query (meters)
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(const QUuid& id);
     EntityItem* findEntityByEntityItemID(const EntityItemID& entityID);
@@ -103,14 +106,14 @@ public:
 
 
     /// finds all entities that touch a sphere
-    /// \param center the center of the sphere
-    /// \param radius the radius of the sphere
+    /// \param center the center of the sphere in world-frame (meters)
+    /// \param radius the radius of the sphere in world-frame (meters)
     /// \param foundEntities[out] vector of const EntityItem*
     /// \remark Side effect: any initial contents in foundEntities will be lost
     void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
 
     /// finds all entities that touch a cube
-    /// \param cube the query cube
+    /// \param cube the query cube in world-frame (meters)
     /// \param foundEntities[out] vector of non-const EntityItem*
     /// \remark Side effect: any initial contents in entities will be lost
     void findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities);
@@ -144,7 +147,7 @@ public:
     virtual void dumpTree();
     virtual void pruneTree();
 
-    void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
+    QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
     void entityChanged(EntityItem* entity);
 

@@ -76,7 +76,6 @@ int Referential::pack(unsigned char* destinationBuffer) const {
     
     destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, _translation, 0);
     destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _rotation);
-    destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, _scale, 0);
     return destinationBuffer - startPosition;
 }
 
@@ -91,7 +90,6 @@ int Referential::unpack(const unsigned char* sourceBuffer) {
     
     sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, _translation, 0);
     sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, _rotation);
-    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((const int16_t*) sourceBuffer, &_scale, 0);
     return sourceBuffer - startPosition;
 }
 

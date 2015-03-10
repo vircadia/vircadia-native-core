@@ -98,6 +98,8 @@ public:
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }
     const glm::vec3& getRawVelocity()  const { return _rawVelocity; }
+    void setRawAngularVelocity(const glm::vec3& angularVelocity) { _rawAngularVelocity = angularVelocity; }
+    const glm::vec3& getRawAngularVelocity() const { return _rawAngularVelocity; }
     void addToPosition(const glm::vec3& delta);
 
     void addToPenetration(const glm::vec3& penetration) { _totalPenetration += penetration; }
@@ -148,7 +150,7 @@ private:
     glm::quat _rawRotation;
     glm::vec3 _rawPosition;
     glm::vec3 _rawVelocity;
-    glm::vec3 _rotationalVelocity;
+    glm::vec3 _rawAngularVelocity;
     glm::quat _lastRotation;
     
     glm::vec3 _tipPosition;

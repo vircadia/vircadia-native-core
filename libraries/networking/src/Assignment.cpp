@@ -27,8 +27,6 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::AgentType;
         case NodeType::EntityServer:
             return Assignment::EntityServerType;
-        case NodeType::MetavoxelServer:
-            return Assignment::MetavoxelServerType;
         default:
             return Assignment::AllTypes;
     }
@@ -133,8 +131,6 @@ const char* Assignment::getTypeName() const {
             return "agent";
         case Assignment::EntityServerType:
             return "entity-server";
-        case Assignment::MetavoxelServerType:
-            return "metavoxel-server";
         default:
             return "unknown";
     }

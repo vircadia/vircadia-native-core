@@ -26,41 +26,28 @@ EntityItem* RenderableLightEntityItem::factory(const EntityItemID& entityID, con
 void RenderableLightEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLightEntityItem::render");
     assert(getType() == EntityTypes::Light);
-    glm::vec3 position = getPositionInMeters();
-    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
     float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
 
     const float MAX_COLOR = 255.0f;
-    float diffuseR = getDiffuseColor()[RED_INDEX] / MAX_COLOR;
-    float diffuseG = getDiffuseColor()[GREEN_INDEX] / MAX_COLOR;
-    float diffuseB = getDiffuseColor()[BLUE_INDEX] / MAX_COLOR;
+    float colorR = getColor()[RED_INDEX] / MAX_COLOR;
+    float colorG = getColor()[GREEN_INDEX] / MAX_COLOR;
+    float colorB = getColor()[BLUE_INDEX] / MAX_COLOR;
 
-    float ambientR = getAmbientColor()[RED_INDEX] / MAX_COLOR;
-    float ambientG = getAmbientColor()[GREEN_INDEX] / MAX_COLOR;
-    float ambientB = getAmbientColor()[BLUE_INDEX] / MAX_COLOR;
+    glm::vec3 color = glm::vec3(colorR, colorG, colorB);
 
-    float specularR = getSpecularColor()[RED_INDEX] / MAX_COLOR;
-    float specularG = getSpecularColor()[GREEN_INDEX] / MAX_COLOR;
-    float specularB = getSpecularColor()[BLUE_INDEX] / MAX_COLOR;
-
-    glm::vec3 ambient = glm::vec3(ambientR, ambientG, ambientB);
-    glm::vec3 diffuse = glm::vec3(diffuseR, diffuseG, diffuseB);
-    glm::vec3 specular = glm::vec3(specularR, specularG, specularB);
-    glm::vec3 direction = IDENTITY_FRONT * rotation;
-    float constantAttenuation = getConstantAttenuation();
-    float linearAttenuation = getLinearAttenuation();
-    float quadraticAttenuation = getQuadraticAttenuation();
+    float intensity = getIntensity();
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
 
     if (_isSpotlight) {
-        DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f, 
-            ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation,
-            direction, exponent, cutoff);
+        DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f,
+            color, intensity, rotation, exponent, cutoff);
     } else {
-        DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f, 
-            ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);
+        DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f,
+            color, intensity);
     }
 
 #ifdef WANT_DEBUG

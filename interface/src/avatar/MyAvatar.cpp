@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <vector>
 
-#include <QMessageBox>
 #include <QBuffer>
 
 #include <glm/gtx/norm.hpp>
@@ -182,7 +181,11 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("transform");
         updateOrientation(deltaTime);
-        updatePosition(deltaTime);
+        if (isPhysicsEnabled()) {
+            updatePositionWithPhysics(deltaTime);
+        } else {
+            updatePosition(deltaTime);
+        }
     }
     
     {
@@ -195,6 +198,12 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel.simulate(deltaTime);
     }
+
+    if (!_skeletonModel.hasSkeleton()) {
+        // All the simulation that can be done has been done
+        return;
+    }
+
     {
         PerformanceTimer perfTimer("attachments");
         simulateAttachments(deltaTime);
@@ -294,12 +303,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         return;
     }
     
-    if (Application::getInstance()->getPrioVR()->hasHeadRotation()) {
-        estimatedRotation = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getHeadRotation()));
-        estimatedRotation.x *= -1.0f;
-        estimatedRotation.z *= -1.0f;
-
-    } else if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected()) {
         estimatedPosition = OculusManager::getRelativePosition();
         estimatedPosition.x *= -1.0f;
         _trackedHeadPosition = estimatedPosition;
@@ -349,13 +353,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
     head->setDeltaRoll(estimatedRotation.z);
 
-    // the priovr can give us exact lean
-    if (Application::getInstance()->getPrioVR()->isActive()) {
-        glm::vec3 eulers = glm::degrees(safeEulerAngles(Application::getInstance()->getPrioVR()->getTorsoRotation()));
-        head->setLeanSideways(eulers.z);
-        head->setLeanForward(eulers.x);
-        return;
-    }
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
@@ -892,13 +889,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     _lookAtTargetAvatar.clear();
     _targetAvatarPosition = glm::vec3(0.0f);
     
-    glm::quat faceRotation = Application::getInstance()->getViewFrustum()->getOrientation();
-    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-    if (tracker) {
-        // If faceshift or other face tracker in use, add on the actual angle of the head
-        faceRotation *= tracker->getHeadRotation();
-    }
-    glm::vec3 lookForward = faceRotation * IDENTITY_FRONT;
+    glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
     
     float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.0f;
@@ -1085,7 +1076,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -1094,15 +1085,17 @@ void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLe
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
     if (!postLighting) {
-        _skeletonModel.render(1.0f, modelRenderMode);
-        renderAttachments(renderMode);
+        RenderArgs args;
+        args._viewFrustum = renderFrustum;
+        _skeletonModel.render(1.0f, modelRenderMode, &args);
+        renderAttachments(renderMode, &args);
     }
     
     //  Render head so long as the camera isn't inside it
     const Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
     if (shouldRenderHead(cameraPos, renderMode)) {
-        getHead()->render(1.0f, modelRenderMode, postLighting);
+        getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
     }
     if (postLighting) {
         getHand()->render(true, modelRenderMode);
@@ -1164,15 +1157,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         pitch *= DEGREES_PER_RADIAN;
         roll *= DEGREES_PER_RADIAN;
         
-        // Record the angular velocity
-        Head* head = getHead();
-        if (deltaTime > 0.0f) {
-            glm::vec3 angularVelocity(pitch - head->getBasePitch(), yaw - head->getBaseYaw(), roll - head->getBaseRoll());
-            angularVelocity *= 1.0f / deltaTime;
-            head->setAngularVelocity(angularVelocity);
-        }
-        
         //Invert yaw and roll when in mirror mode
+        Head* head = getHead();
         if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
             head->setBaseYaw(-yaw);
             head->setBasePitch(pitch);
@@ -1413,6 +1399,25 @@ void MyAvatar::updatePosition(float deltaTime) {
 
     updateChatCircle(deltaTime);
     measureMotionDerivatives(deltaTime);
+}
+
+void MyAvatar::updatePositionWithPhysics(float deltaTime) {
+    // rotate velocity into camera frame
+    glm::quat rotation = getHead()->getCameraOrientation();
+    glm::vec3 localVelocity = glm::inverse(rotation) * _velocity;
+
+    bool hasFloor = false;
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, hasFloor);
+    newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
+
+    // cap avatar speed
+    float speed = glm::length(newLocalVelocity);
+    if (speed > MAX_WALKING_SPEED) {
+        newLocalVelocity *= MAX_WALKING_SPEED / speed;
+    }
+
+    // rotate back into world-frame
+    _velocity = rotation * newLocalVelocity;
 }
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
@@ -1900,9 +1905,9 @@ void MyAvatar::onToggleRagdoll() {
     }
 }
 
-void MyAvatar::renderAttachments(RenderMode renderMode) {
+void MyAvatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
     if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
-        Avatar::renderAttachments(renderMode);
+        Avatar::renderAttachments(renderMode, args);
         return;
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
@@ -1912,7 +1917,7 @@ void MyAvatar::renderAttachments(RenderMode renderMode) {
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, modelRenderMode);        
+            _attachmentModels.at(i)->render(1.0f, modelRenderMode, args);        
         }
     }
 }

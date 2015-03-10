@@ -23,6 +23,7 @@
 #include "EntityItemPropertiesDefaults.h"
 #include "ModelEntityItem.h"
 #include "TextEntityItem.h"
+#include "ParticleEffectEntityItem.h"
 
 
 EntityItemProperties::EntityItemProperties() :
@@ -39,6 +40,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
     CONSTRUCT_PROPERTY(color, ),
     CONSTRUCT_PROPERTY(modelURL, ""),
+    CONSTRUCT_PROPERTY(collisionModelURL, ""),
     CONSTRUCT_PROPERTY(animationURL, ""),
     CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
     CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
@@ -49,12 +51,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(ignoreForCollisions, ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
     CONSTRUCT_PROPERTY(collisionsWillMove, ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
     CONSTRUCT_PROPERTY(isSpotlight, false),
-    CONSTRUCT_PROPERTY(diffuseColor, ),
-    CONSTRUCT_PROPERTY(ambientColor, ),
-    CONSTRUCT_PROPERTY(specularColor, ),
-    CONSTRUCT_PROPERTY(constantAttenuation, 1.0f),
-    CONSTRUCT_PROPERTY(linearAttenuation, 0.0f),
-    CONSTRUCT_PROPERTY(quadraticAttenuation, 0.0f),
+    CONSTRUCT_PROPERTY(intensity, 1.0f),
     CONSTRUCT_PROPERTY(exponent, 0.0f),
     CONSTRUCT_PROPERTY(cutoff, PI),
     CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
@@ -66,6 +63,13 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
     CONSTRUCT_PROPERTY(backgroundColor, TextEntityItem::DEFAULT_BACKGROUND_COLOR),
     CONSTRUCT_PROPERTY(shapeType, SHAPE_TYPE_NONE),
+    CONSTRUCT_PROPERTY(maxParticles, ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES),
+    CONSTRUCT_PROPERTY(lifespan, ParticleEffectEntityItem::DEFAULT_LIFESPAN),
+    CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
+    CONSTRUCT_PROPERTY(emitDirection, ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION),
+    CONSTRUCT_PROPERTY(emitStrength, ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH),
+    CONSTRUCT_PROPERTY(localGravity, ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY),
+    CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -155,6 +159,7 @@ void EntityItemProperties::debugDump() const {
     qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
     qDebug() << "   _dimensions=" << getDimensions();
     qDebug() << "   _modelURL=" << _modelURL;
+    qDebug() << "   _collisionModelURL=" << _collisionModelURL;
     qDebug() << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
@@ -210,6 +215,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
+    CHECK_PROPERTY_CHANGE(PROP_COLLISION_MODEL_URL, collisionModelURL);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
@@ -222,12 +228,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
     CHECK_PROPERTY_CHANGE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
     CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
-    CHECK_PROPERTY_CHANGE(PROP_DIFFUSE_COLOR, diffuseColor);
-    CHECK_PROPERTY_CHANGE(PROP_AMBIENT_COLOR, ambientColor);
-    CHECK_PROPERTY_CHANGE(PROP_SPECULAR_COLOR, specularColor);
-    CHECK_PROPERTY_CHANGE(PROP_CONSTANT_ATTENUATION, constantAttenuation);
-    CHECK_PROPERTY_CHANGE(PROP_LINEAR_ATTENUATION, linearAttenuation);
-    CHECK_PROPERTY_CHANGE(PROP_QUADRATIC_ATTENUATION, quadraticAttenuation);
+    CHECK_PROPERTY_CHANGE(PROP_INTENSITY, intensity);
     CHECK_PROPERTY_CHANGE(PROP_EXPONENT, exponent);
     CHECK_PROPERTY_CHANGE(PROP_CUTOFF, cutoff);
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
@@ -238,6 +239,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
     CHECK_PROPERTY_CHANGE(PROP_SHAPE_TYPE, shapeType);
+    CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
+    CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_DIRECTION, emitDirection);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_STRENGTH, emitStrength);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
+    CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
 
     return changedProperties;
 }
@@ -271,6 +279,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(color);
     COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(collisionModelURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
@@ -281,12 +290,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(collisionsWillMove);
     COPY_PROPERTY_TO_QSCRIPTVALUE(isSpotlight);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(diffuseColor, getDiffuseColor()); 
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(ambientColor, getAmbientColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(specularColor, getSpecularColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE(constantAttenuation);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(linearAttenuation);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(quadraticAttenuation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(intensity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(exponent);
     COPY_PROPERTY_TO_QSCRIPTVALUE(cutoff);
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
@@ -297,6 +301,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(maxParticles);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(lifespan);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitRate);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(emitDirection);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitStrength);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -310,7 +321,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     sittingPoints.setProperty("length", _sittingPoints.size());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
-    AABox aaBox = getAABoxInMeters();
+    AABox aaBox = getAABox();
     QScriptValue boundingBox = engine->newObject();
     QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
     QScriptValue topFarLeft = vec3toScriptValue(engine, aaBox.calcTopFarLeft());
@@ -349,6 +360,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(visible, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(color, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(modelURL, setModelURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(collisionModelURL, setCollisionModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(animationURL, setAnimationURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(animationIsPlaying, setAnimationIsPlaying);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
@@ -359,12 +371,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(collisionsWillMove, setCollisionsWillMove);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(isSpotlight, setIsSpotlight);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(diffuseColor, setDiffuseColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(ambientColor, setAmbientColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(specularColor, setSpecularColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(constantAttenuation, setConstantAttenuation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(linearAttenuation, setLinearAttenuation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(quadraticAttenuation, setQuadraticAttenuation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(intensity, setIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(exponent, setExponent);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(cutoff, setCutoff);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
@@ -375,6 +382,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(backgroundColor, setBackgroundColor);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(maxParticles, setMaxParticles);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lifespan, setLifespan);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitRate, setEmitRate);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(emitDirection, setEmitDirection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitStrength, setEmitStrength);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
 
     _lastEdited = usecTimestampNow();
 }
@@ -532,6 +546,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             
             if (properties.getType() == EntityTypes::Model) {
                 APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
+                APPEND_ENTITY_PROPERTY(PROP_COLLISION_MODEL_URL, appendValue, properties.getCollisionModelURL());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
@@ -543,14 +558,20 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             if (properties.getType() == EntityTypes::Light) {
                 APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, properties.getIsSpotlight());
-                APPEND_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, appendColor, properties.getDiffuseColor());
-                APPEND_ENTITY_PROPERTY(PROP_AMBIENT_COLOR, appendColor, properties.getAmbientColor());
-                APPEND_ENTITY_PROPERTY(PROP_SPECULAR_COLOR, appendColor, properties.getSpecularColor());
-                APPEND_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, appendValue, properties.getConstantAttenuation());
-                APPEND_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, appendValue, properties.getLinearAttenuation());
-                APPEND_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, appendValue, properties.getQuadraticAttenuation());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_INTENSITY, appendValue, properties.getIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
                 APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
+            }
+
+            if (properties.getType() == EntityTypes::ParticleEffect) {
+                APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, appendValue, properties.getMaxParticles());
+                APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, appendValue, properties.getLifespan());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, appendValue, properties.getEmitRate());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, appendValue, properties.getEmitDirection());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, appendValue, properties.getEmitStrength());
+                APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, properties.getLocalGravity());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, properties.getParticleRadius());
             }
         }
         if (propertyCount > 0) {
@@ -754,6 +775,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     
     if (properties.getType() == EntityTypes::Model) {
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MODEL_URL, setModelURL);
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_URL, setAnimationURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
@@ -765,14 +787,20 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     
     if (properties.getType() == EntityTypes::Light) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_DIFFUSE_COLOR, setDiffuseColor);
-        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_AMBIENT_COLOR, setAmbientColor);
-        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_SPECULAR_COLOR, setSpecularColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CONSTANT_ATTENUATION, float, setConstantAttenuation);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINEAR_ATTENUATION, float, setLinearAttenuation);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUADRATIC_ATTENUATION, float, setQuadraticAttenuation);
+        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_COLOR, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INTENSITY, float, setIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
+    }
+
+    if (properties.getType() == EntityTypes::ParticleEffect) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_STRENGTH, float, setEmitStrength);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCAL_GRAVITY, float, setLocalGravity);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     }
     
     return valid;
@@ -824,6 +852,7 @@ void EntityItemProperties::markAllChanged() {
     _visibleChanged = true;
     _colorChanged = true;
     _modelURLChanged = true;
+    _collisionModelURLChanged = true;
     _animationURLChanged = true;
     _animationIsPlayingChanged = true;
     _animationFrameIndexChanged = true;
@@ -835,12 +864,7 @@ void EntityItemProperties::markAllChanged() {
     _ignoreForCollisionsChanged = true;
     _collisionsWillMoveChanged = true;
 
-    _diffuseColorChanged = true;
-    _ambientColorChanged = true;
-    _specularColorChanged = true;
-    _constantAttenuationChanged = true;
-    _linearAttenuationChanged = true; 
-    _quadraticAttenuationChanged = true;
+    _intensityChanged = true;
     _exponentChanged = true;
     _cutoffChanged = true;
     _lockedChanged = true;
@@ -851,18 +875,20 @@ void EntityItemProperties::markAllChanged() {
     _textColorChanged = true;
     _backgroundColorChanged = true;
     _shapeTypeChanged = true;
-}
 
-AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {
-    AACube maxCube = getMaximumAACubeInMeters();
-    maxCube.scale(1.0f / (float)TREE_SCALE);
-    return maxCube;
+    _maxParticlesChanged = true;
+    _lifespanChanged = true;
+    _emitRateChanged = true;
+    _emitDirectionChanged = true;
+    _emitStrengthChanged = true;
+    _localGravityChanged = true;
+    _particleRadiusChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 /// 
-AACube EntityItemProperties::getMaximumAACubeInMeters() const { 
+AACube EntityItemProperties::getMaximumAACube() const { 
     // * we know that the position is the center of rotation
     glm::vec3 centerOfRotation = _position; // also where _registration point is
 
@@ -886,7 +912,7 @@ AACube EntityItemProperties::getMaximumAACubeInMeters() const {
 }
 
 // The minimum bounding box for the entity.
-AABox EntityItemProperties::getAABoxInMeters() const { 
+AABox EntityItemProperties::getAABox() const { 
 
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;

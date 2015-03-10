@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -31,8 +31,6 @@ elseif (WIN32)
 
   set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/wglew.h>")
 endif ()
-
-include_bullet()
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
@@ -78,7 +76,7 @@ if (APPLE)
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
   
-  if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
+  if (UPPER_CMAKE_BUILD_TYPE MATCHES RELEASE OR UPPER_CMAKE_BUILD_TYPE MATCHES RELWITHDEBINFO)
     set(ICON_FILENAME "interface.icns")
   else ()
     set(ICON_FILENAME "interface-beta.icns")
@@ -108,17 +106,20 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # set up the external glm library
-add_dependency_external_project(glm)
+add_dependency_external_projects(glm bullet)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
+find_package(Bullet REQUIRED)
+target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
+
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model fbx metavoxels networking entities avatars 
+link_hifi_libraries(shared octree environment gpu model fbx networking entities avatars 
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer)
 
-# find any optional and required libraries
-find_package(ZLIB REQUIRED)
+add_dependency_external_projects(sdl2)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -174,16 +175,11 @@ if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
   target_link_libraries(${TARGET_NAME} ${CoreMIDI})
 endif ()
 
-if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
-  # assume we're linking a static Qt on windows
-  add_definitions(-DQXMPP_STATIC) 
-endif ()
-
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
 target_link_libraries(
-  ${TARGET_NAME} ${ZLIB_LIBRARIES}
+  ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
 )
 
@@ -220,13 +216,11 @@ else (APPLE)
   
   # link target to external libraries
   if (WIN32)
+    add_dependency_external_projects(glew)
     find_package(GLEW REQUIRED)
-    include_directories(${GLEW_INCLUDE_DIRS})
+    target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
 
-    # we're using static GLEW, so define GLEW_STATIC
-    add_definitions(-DGLEW_STATIC)
-
-    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib Winmm.lib)
+    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} ${NSIGHT_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
 
     # try to find the Nsight package and add it to the build if we find it
     find_package(NSIGHT)
@@ -239,5 +233,4 @@ else (APPLE)
   endif()
 endif (APPLE)
 
-# link any dependencies bubbled up from our linked dependencies
-include_dependency_includes()
+copy_dlls_beside_windows_executable()

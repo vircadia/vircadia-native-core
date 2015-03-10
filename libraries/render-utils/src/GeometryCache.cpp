@@ -53,18 +53,33 @@ const int NUM_COORDS_PER_VERTEX = 3;
 const int NUM_BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
 const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
-void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid) {
+void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid, int id) {
+    bool registered = (id != UNKNOWN_ID);
 
     Vec2Pair radiusKey(glm::vec2(radius, slices), glm::vec2(stacks, 0));
     IntPair slicesStacksKey(slices, stacks);
-    Vec3Pair colorKey(glm::vec3(color.x, color.y, slices), glm::vec3(color.z, color.y, stacks));
+    Vec3Pair colorKey(glm::vec3(color.x, color.y, slices), glm::vec3(color.z, color.w, stacks));
 
     int vertices = slices * (stacks - 1) + 2;    
     int indices = slices * (stacks - 1) * NUM_VERTICES_PER_TRIANGULATED_QUAD;
     
-    if (!_sphereVertices.contains(radiusKey)) {
+    if ((registered && (!_registeredSphereVertices.contains(id) || _lastRegisteredSphereVertices[id] != radiusKey))
+        || (!registered && !_sphereVertices.contains(radiusKey))) {
+
+        if (registered && _registeredSphereVertices.contains(id)) {
+            _registeredSphereVertices[id].clear();
+            #ifdef WANT_DEBUG
+                qDebug() << "renderSphere()... RELEASING REGISTERED VERTICES BUFFER";
+            #endif
+        }
+
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        _sphereVertices[radiusKey] = verticesBuffer;
+        if (registered) {
+            _registeredSphereVertices[id] = verticesBuffer;
+            _lastRegisteredSphereVertices[id] = radiusKey;
+        } else {
+            _sphereVertices[radiusKey] = verticesBuffer;
+        }
 
         GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX];
         GLfloat* vertex = vertexData;
@@ -106,10 +121,29 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
             qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
         #endif
     }
+    #ifdef WANT_DEBUG
+    else if (registered) {
+        qDebug() << "renderSphere()... REUSING PREVIOUSLY REGISTERED VERTICES BUFFER";
+    }
+    #endif
     
-    if (!_sphereIndices.contains(slicesStacksKey)) {
+    if ((registered && (!_registeredSphereIndices.contains(id) || _lastRegisteredSphereIndices[id] != slicesStacksKey))
+        || (!registered && !_sphereIndices.contains(slicesStacksKey))) {
+
+        if (registered && _registeredSphereIndices.contains(id)) {
+            _registeredSphereIndices[id].clear();
+            #ifdef WANT_DEBUG
+                qDebug() << "renderSphere()... RELEASING REGISTERED INDICES BUFFER";
+            #endif
+        }
+
         gpu::BufferPointer indicesBuffer(new gpu::Buffer());
-        _sphereIndices[slicesStacksKey] = indicesBuffer;
+        if (registered) {
+            _registeredSphereIndices[id] = indicesBuffer;
+            _lastRegisteredSphereIndices[id] = slicesStacksKey;
+        } else {
+            _sphereIndices[slicesStacksKey] = indicesBuffer;
+        }
 
         GLushort* indexData = new GLushort[indices];
         GLushort* index = indexData;
@@ -164,7 +198,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         delete[] indexData;
         
         #ifdef WANT_DEBUG
-            qDebug() << "GeometryCache::renderSphere()... --- CREATING INDEX BUFFER";
+            qDebug() << "GeometryCache::renderSphere()... --- CREATING INDICES BUFFER";
             qDebug() << "    radius:" << radius;
             qDebug() << "    slices:" << slices;
             qDebug() << "    stacks:" << stacks;
@@ -173,10 +207,29 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
             qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
         #endif
     }
+    #ifdef WANT_DEBUG
+    else if (registered) {
+        qDebug() << "renderSphere()... REUSING PREVIOUSLY REGISTERED INDICES BUFFER";
+    }
+    #endif
 
-    if (!_sphereColors.contains(colorKey)) {
+    if ((registered && (!_registeredSphereColors.contains(id) || _lastRegisteredSphereColors[id] != colorKey)) 
+        || (!registered && !_sphereColors.contains(colorKey))) {
+
+        if (registered && _registeredSphereColors.contains(id)) {
+            _registeredSphereColors[id].clear();
+            #ifdef WANT_DEBUG
+                qDebug() << "renderSphere()... RELEASING REGISTERED COLORS BUFFER";
+            #endif
+        }
+
         gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        _sphereColors[colorKey] = colorBuffer;
+        if (registered) {
+            _registeredSphereColors[id] = colorBuffer;
+            _lastRegisteredSphereColors[id] = colorKey;
+        } else {
+            _sphereColors[colorKey] = colorBuffer;
+        }
 
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
                             ((int(color.y * 255.0f) & 0xFF) << 8) |
@@ -201,11 +254,16 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
             qDebug() << "    stacks:" << stacks;
             qDebug() << "    _sphereColors.size():" << _sphereColors.size();
         #endif
-
     }
-    gpu::BufferPointer verticesBuffer = _sphereVertices[radiusKey];
-    gpu::BufferPointer indicesBuffer = _sphereIndices[slicesStacksKey];
-    gpu::BufferPointer colorBuffer = _sphereColors[colorKey];
+    #ifdef WANT_DEBUG
+    else if (registered) {
+        qDebug() << "renderSphere()... REUSING PREVIOUSLY REGISTERED COLORS BUFFER";
+    }
+    #endif
+
+    gpu::BufferPointer verticesBuffer = registered ? _registeredSphereVertices[id] : _sphereVertices[radiusKey];
+    gpu::BufferPointer indicesBuffer = registered ? _registeredSphereIndices[id] : _sphereIndices[slicesStacksKey];
+    gpu::BufferPointer colorBuffer = registered ? _registeredSphereColors[id] : _sphereColors[colorKey];
     
     const int VERTICES_SLOT = 0;
     const int NORMALS_SLOT = 1;
@@ -2026,6 +2084,7 @@ void GeometryReader::run() {
         urlValid &= !urlname.isEmpty();
         urlValid &= !_url.path().isEmpty();
         urlValid &= _url.path().toLower().endsWith(".fbx")
+                    || _url.path().toLower().endsWith(".obj")
                     || _url.path().toLower().endsWith(".svo");
 
         if (urlValid) {
@@ -2043,6 +2102,8 @@ void GeometryReader::run() {
                     lightmapLevel = 3.5f;
                 }
                 fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
+            } else if (_url.path().toLower().endsWith(".obj")) {
+                fbxgeo = readOBJ(_reply, _mapping);
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {

@@ -14,35 +14,33 @@
 //  This script generates notifications created via a number of ways, such as:
 //  keystroke:
 //
-//  "q" returns number of users currently online (for debug purposes)
-
 //  CTRL/s for snapshot.
 //  CTRL/m for mic mute and unmute.
 
 //  System generated notifications:
-//  Displays users online at startup.
 //  If Screen is resized.
-//  Triggers notification if @MyUserName is mentioned in chat.
-//  Announces existing user logging out.
-//  Announces new user logging in.
 //  If mic is muted for any reason.
 //
 //  To add a new System notification type:
 //
 //  1. Set the Event Connector at the bottom of the script.
 //  example:
-//  GlobalServices.incomingMessage.connect(onIncomingMessage);
+//  AudioDevice.muteToggled.connect(onMuteStateChanged);
 //
 //  2. Create a new function to produce a text string, do not include new line returns.
 //  example:
-//  function onIncomingMessage(user, message) {
-//      //do stuff here;
-//      var text = "This is a notification";
-//      wordWrap(text);
+//  function onMuteStateChanged() {
+//     var muteState,
+//         muteString;
+//
+//     muteState = AudioDevice.getMuted() ? "muted" : "unmuted";
+//     muteString = "Microphone is now " + muteState;
+//     createNotification(muteString, NotificationType.MUTE_TOGGLE);
 //  }
 //
 //  This new function must call wordWrap(text) if the length of message is longer than 42 chars or unknown.
-//  wordWrap() will format the text to fit the notifications overlay and send it to createNotification(text).
+//  wordWrap() will format the text to fit the notifications overlay and return it
+//  after that we will send it to createNotification(text).
 //  If the message is 42 chars or less you should bypass wordWrap() and call createNotification() directly.
 
 
@@ -50,13 +48,14 @@
 //
 //  1. Add a key to the keyPressEvent(key).
 //  2. Declare a text string.
-//  3. Call createNotifications(text) parsing the text.
+//  3. Call createNotifications(text, NotificationType) parsing the text.
 //  example:
-//    var welcome;
-//    if (key.text == "q") { //queries number of users online
-//        var welcome = "There are " + GlobalServices.onlineUsers.length + " users online now.";
-//        createNotification(welcome);
-//    }
+//  if (key.text === "s") {
+//      if (ctrlIsPressed === true) {
+//          noteString = "Snapshot taken.";
+//          createNotification(noteString, NotificationType.SNAPSHOT);
+//      }
+//  }
 Script.include("./libraries/globals.js");
 Script.include("./libraries/soundArray.js");
 
@@ -79,25 +78,46 @@ var frame = 0;
 var ourWidth = Window.innerWidth;
 var ourHeight = Window.innerHeight;
 var text = "placeholder";
-var last_users = GlobalServices.onlineUsers;
-var users = [];
 var ctrlIsPressed = false;
 var ready = true;
+var MENU_NAME = 'Tools > Notifications';
+var PLAY_NOTIFICATION_SOUNDS_MENU_ITEM = "Play Notification Sounds";
+var NOTIFICATION_MENU_ITEM_POST = " Notifications";
+var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
+var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
+
+var NotificationType = {
+    UNKNOWN: 0,
+    MUTE_TOGGLE: 1,
+    SNAPSHOT: 2,
+    WINDOW_RESIZE: 3,
+    properties: [
+        { text: "Mute Toggle" },
+        { text: "Snapshot" },
+        { text: "Window Resize" }
+    ],
+    getTypeFromMenuItem: function(menuItemName) {
+        if (menuItemName.substr(menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length) !== NOTIFICATION_MENU_ITEM_POST) {
+            return NotificationType.UNKNOWN;
+        }
+        var preMenuItemName = menuItemName.substr(0, menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length);
+        for (type in this.properties) {
+            if (this.properties[type].text === preMenuItemName) {
+                return parseInt(type) + 1;
+            }
+        }
+        return NotificationType.UNKNOWN;
+    },
+    getMenuString: function(type) {
+        return this.properties[type - 1].text + NOTIFICATION_MENU_ITEM_POST;
+    }
+};
 
 var randomSounds = new SoundArray({ localOnly: true }, true);
 var numberOfSounds = 2;
 for (var i = 1; i <= numberOfSounds; i++) {
     randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/notification-general" + i + ".raw");
 }
-
-//  When our script shuts down, we should clean up all of our overlays
-function scriptEnding() {
-    for (i = 0; i < notifications.length; i++) {
-        Overlays.deleteOverlay(notifications[i]);
-        Overlays.deleteOverlay(buttons[i]);
-    }
-}
-Script.scriptEnding.connect(scriptEnding);
 
 var notifications = [];
 var buttons = [];
@@ -211,8 +231,6 @@ function notify(notice, button, height) {
         positions,
         last;
 
-    randomSounds.playRandom();
-
     if (isOnHMD) {
         // Calculate 3D values from 2D overlay properties.
 
@@ -257,7 +275,7 @@ function notify(notice, button, height) {
 }
 
 //  This function creates and sizes the overlays
-function createNotification(text) {
+function createNotification(text, notificationType) {
     var count = (text.match(/\n/g) || []).length,
         breakPoint = 43.0, // length when new line is added
         extraLine = 0,
@@ -307,6 +325,12 @@ function createNotification(text) {
         alpha: backgroundAlpha
     };
 
+    if (Menu.isOptionChecked(PLAY_NOTIFICATION_SOUNDS_MENU_ITEM) &&
+        Menu.isOptionChecked(NotificationType.getMenuString(notificationType)))
+    {
+        randomSounds.playRandom();
+    }
+
     notify(noticeProperties, buttonProperties, height);
 }
 
@@ -345,8 +369,7 @@ function stringDivider(str, slotWidth, spaceReplacer) {
 
 //  formats string to add newline every 43 chars
 function wordWrap(str) {
-    var result = stringDivider(str, 43.0, "\n");
-    createNotification(result);
+    return stringDivider(str, 43.0, "\n");
 }
 
 //  This fires a notification on window resize
@@ -358,7 +381,7 @@ function checkSize() {
         windowDimensions = Controller.getViewportDimensions();
         overlayLocationX = (windowDimensions.x - (width + 60.0));
         buttonLocationX = overlayLocationX + (width - 35.0);
-        createNotification(windowResize);
+        createNotification(windowResize, NotificationType.WINDOW_RESIZE);
     }
 }
 
@@ -440,18 +463,9 @@ var STARTUP_TIMEOUT = 500,  // ms
     startingUp = true,
     startupTimer = null;
 
-//  This reports the number of users online at startup
-function reportUsers() {
-    var welcome;
-
-    welcome = "Welcome! There are " + GlobalServices.onlineUsers.length + " users online now.";
-    createNotification(welcome);
-}
-
 function finishStartup() {
     startingUp = false;
     Script.clearTimeout(startupTimer);
-    reportUsers();
 }
 
 function isStartingUp() {
@@ -465,50 +479,14 @@ function isStartingUp() {
     return startingUp;
 }
 
-//  Triggers notification if a user logs on or off
-function onOnlineUsersChanged(users) {
-    var i;
-
-    if (!isStartingUp()) {  // Skip user notifications at startup.
-        for (i = 0; i < users.length; i += 1) {
-            if (last_users.indexOf(users[i]) === -1.0) {
-                createNotification(users[i] + " has joined");
-            }
-        }
-
-        for (i = 0; i < last_users.length; i += 1) {
-            if (users.indexOf(last_users[i]) === -1.0) {
-                createNotification(last_users[i] + " has left");
-            }
-        }
-    }
-
-    last_users = users;
-}
-
-//  Triggers notification if @MyUserName is mentioned in chat and returns the message to the notification.
-function onIncomingMessage(user, message) {
-    var myMessage,
-        alertMe,
-        thisAlert;
-
-    myMessage =  message;
-    alertMe = "@" + GlobalServices.myUsername;
-    thisAlert = user + ": " + myMessage;
-
-    if (myMessage.indexOf(alertMe) > -1.0) {
-        wordWrap(thisAlert);
-    }
-}
-
 //  Triggers mic mute notification
 function onMuteStateChanged() {
     var muteState,
         muteString;
 
-    muteState =  AudioDevice.getMuted() ?  "muted" :  "unmuted";
+    muteState = AudioDevice.getMuted() ? "muted" : "unmuted";
     muteString = "Microphone is now " + muteState;
-    createNotification(muteString);
+    createNotification(muteString, NotificationType.MUTE_TOGGLE);
 }
 
 //  handles mouse clicks on buttons
@@ -540,43 +518,69 @@ function keyReleaseEvent(key) {
 
 //  Triggers notification on specific key driven events
 function keyPressEvent(key) {
-    var numUsers,
-        welcome,
-        noteString;
+    var noteString;
 
     if (key.key === 16777249) {
         ctrlIsPressed = true;
     }
 
-    if (key.text === "q") { //queries number of users online
-        numUsers = GlobalServices.onlineUsers.length;
-        welcome = "There are " + numUsers + " users online now.";
-        createNotification(welcome);
-    }
-
     if (key.text === "s") {
         if (ctrlIsPressed === true) {
             noteString = "Snapshot taken.";
-            createNotification(noteString);
+            createNotification(noteString, NotificationType.SNAPSHOT);
         }
+    }
+}
+
+function setup() {
+    Menu.addMenu(MENU_NAME);
+    var checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING);
+    checked = checked === '' ? true : checked;
+    Menu.addMenuItem({
+        menuName: MENU_NAME,
+        menuItemName: PLAY_NOTIFICATION_SOUNDS_MENU_ITEM,
+        isCheckable: true,
+        isChecked: Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING)
+    });
+    Menu.addSeparator(MENU_NAME, "Play sounds for:");
+    for (type in NotificationType.properties) {
+        checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + (parseInt(type) + 1));
+        checked = checked === '' ? true : checked;
+        Menu.addMenuItem({
+            menuName: MENU_NAME,
+            menuItemName: NotificationType.properties[type].text + NOTIFICATION_MENU_ITEM_POST,
+            isCheckable: true,
+            isChecked: checked
+        });
     }
 }
 
 //  When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
-    var i;
-
-    for (i = 0; i < notifications.length; i += 1) {
+    for (var i = 0; i < notifications.length; i++) {
         Overlays.deleteOverlay(notifications[i]);
         Overlays.deleteOverlay(buttons[i]);
+    }
+    Menu.removeMenu(MENU_NAME);
+}
+
+function menuItemEvent(menuItem) {
+    if (menuItem === PLAY_NOTIFICATION_SOUNDS_MENU_ITEM) {
+        Settings.setValue(PLAY_NOTIFICATION_SOUNDS_SETTING, Menu.isOptionChecked(PLAY_NOTIFICATION_SOUNDS_MENU_ITEM));
+        return;
+    }
+    var notificationType = NotificationType.getTypeFromMenuItem(menuItem);
+    if (notificationType !== notificationType.UNKNOWN) {
+        Settings.setValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + notificationType, Menu.isOptionChecked(menuItem));
     }
 }
 
 AudioDevice.muteToggled.connect(onMuteStateChanged);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
-GlobalServices.onlineUsersChanged.connect(onOnlineUsersChanged);
-GlobalServices.incomingMessage.connect(onIncomingMessage);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
+Menu.menuItemEvent.connect(menuItemEvent);
+
+setup();

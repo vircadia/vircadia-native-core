@@ -1,4 +1,4 @@
-<@include Config.slh@>
+<@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
@@ -19,7 +19,7 @@
 <@include DeferredLighting.slh@>
 
 // Everything about light
-<@include Light.slh@>
+<@include model/Light.slh@>
 
 // The view Matrix
 uniform mat4 invViewMat;

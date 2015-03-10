@@ -29,15 +29,21 @@ var RIGHT_BUTTON_FWD = 11;
 var RIGHT_BUTTON_3 = 9;
 
 var BALL_RADIUS = 0.08;
-var GRAVITY_STRENGTH = 1.0;
+var GRAVITY_STRENGTH = 3.0;
 
 var HELD_COLOR = { red: 240, green: 0, blue: 0 };
 var THROWN_COLOR = { red: 128, green: 0, blue: 0 };
 
+var averageLinearVelocity = [ { x: 0, y: 0, z : 0 }, { x: 0, y: 0, z : 0 } ];
+
+var LIFETIME_SECONDS = 600;
+
+var BALL_MODEL_URL = "https://hifi-public.s3.amazonaws.com/ryan/baseball4.fbx";
+
 var leftBallAlreadyInHand = false;
 var rightBallAlreadyInHand = false;
-var leftHandEntity;
-var rightHandEntity;
+var leftHandEntity = false;
+var rightHandEntity = false;
 
 var newSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 var catchSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
@@ -67,28 +73,49 @@ function checkControllerSide(whichSide) {
     var BUTTON_3;
     var TRIGGER;
     var palmPosition;
+    var palmRotation;
     var ballAlreadyInHand;
     var handMessage;
+    var linearVelocity;
+    var angularVelocity; 
+    var AVERAGE_FACTOR = 0.33;
     
     if (whichSide == LEFT_PALM) {
         BUTTON_FWD = LEFT_BUTTON_FWD;
         BUTTON_3 = LEFT_BUTTON_3;
         TRIGGER = 0;
         palmPosition = Controller.getSpatialControlPosition(LEFT_PALM);
+        palmRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(LEFT_PALM));
         ballAlreadyInHand = leftBallAlreadyInHand;
         handMessage = "LEFT";
+        averageLinearVelocity[0] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, Controller.getSpatialControlVelocity(LEFT_TIP)), 
+                                            Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[0]));
+        linearVelocity = averageLinearVelocity[0];
+        angularVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getSpatialControlRawAngularVelocity(LEFT_TIP));
     } else {
         BUTTON_FWD = RIGHT_BUTTON_FWD;
         BUTTON_3 = RIGHT_BUTTON_3;
         TRIGGER = 1;
         palmPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
+        palmRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(RIGHT_PALM));
         ballAlreadyInHand = rightBallAlreadyInHand;
+        averageLinearVelocity[1] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, Controller.getSpatialControlVelocity(RIGHT_TIP)), 
+                                            Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[1]));
+        linearVelocity = averageLinearVelocity[1];
+        angularVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getSpatialControlRawAngularVelocity(RIGHT_TIP));
         handMessage = "RIGHT";
     }
 
     var grabButtonPressed = (Controller.isButtonPressed(BUTTON_FWD) || Controller.isButtonPressed(BUTTON_3) || (Controller.getTriggerValue(TRIGGER) > 0.5));
 
     // If I don't currently have a ball in my hand, then try to catch closest one
+    if (leftHandEntity && !leftHandEntity.isKnownID) {
+       leftHandEntity = Entities.identifyEntity(leftHandEntity);
+    }
+    if (rightHandEntity && !rightHandEntity.isKnownID) {
+       rightHandEntity = Entities.identifyEntity(rightHandEntity);
+    }
+
     if (!ballAlreadyInHand && grabButtonPressed) {
         var closestEntity = Entities.findClosestEntity(palmPosition, targetRadius);
 
@@ -107,13 +134,14 @@ function checkControllerSide(whichSide) {
             var properties = { position: { x: ballPosition.x, 
                                            y: ballPosition.y, 
                                            z: ballPosition.z },
-                                           color: HELD_COLOR, 
+                                rotation: palmRotation,
+                                color: HELD_COLOR, 
                                 velocity : { x: 0, y: 0, z: 0}, 
-                                lifetime : 600,
-                                inHand: true };
+                                gravity: { x: 0, y: 0, z: 0}
+                                };
             Entities.editEntity(closestEntity, properties);
             
-			      Audio.playSound(catchSound, { position: ballPosition });
+			Audio.playSound(catchSound, { position: ballPosition });
             
             return; // exit early
         }
@@ -129,18 +157,20 @@ function checkControllerSide(whichSide) {
     if (grabButtonPressed && !ballAlreadyInHand) {
         var ballPosition = getBallHoldPosition(whichSide);
         var properties = { 
-                type: "Sphere",
+                type: "Model",
+                modelURL: BALL_MODEL_URL,
                 position: { x: ballPosition.x, 
                             y: ballPosition.y, 
-                            z: ballPosition.z }, 
+                            z: ballPosition.z },
+                rotation: palmRotation, 
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: 0, z: 0}, 
-                inHand: true,
                 dimensions: { x: BALL_RADIUS * 2, y: BALL_RADIUS * 2, z: BALL_RADIUS * 2 },
                 damping: 0.00001,
+                shapeType: "sphere",
+                collisionsWillMove: false,
                 color: HELD_COLOR,
-
-                lifetime: 600 // 10 seconds - same as default, not needed but here as an example
+                lifetime: LIFETIME_SECONDS
             };
 
         newEntity = Entities.addEntity(properties);
@@ -174,21 +204,20 @@ function checkControllerSide(whichSide) {
             var properties = { position: { x: ballPosition.x, 
                                            y: ballPosition.y, 
                                            z: ballPosition.z }, 
+                                rotation: palmRotation,
+                                velocity: { x: 0, y: 0, z: 0}, 
+                                gravity: { x: 0, y: 0, z: 0}, 
                 };
             Entities.editEntity(handEntity, properties);
         } else {
             debugPrint(">>>>> " + handMessage + "-BALL IN HAND, not grabbing, THROW!!!");
             //  If toy ball just released, add velocity to it!
-            var tipVelocity = Controller.getSpatialControlVelocity(whichTip);
-            var THROWN_VELOCITY_SCALING = 1.5;
             var properties = { 
-                    velocity: { x: tipVelocity.x * THROWN_VELOCITY_SCALING, 
-                                y: tipVelocity.y * THROWN_VELOCITY_SCALING, 
-                                z: tipVelocity.z * THROWN_VELOCITY_SCALING } ,
+                    velocity: linearVelocity,
+                    rotation: palmRotation,
+                    angularVelocity: angularVelocity,
                     collisionsWillMove: true,
-                    inHand: false,
                     color: THROWN_COLOR,
-                    lifetime: 10,
                     gravity: { x: 0, y: -GRAVITY_STRENGTH, z: 0}, 
                 };
 
@@ -216,7 +245,7 @@ function checkController(deltaTime) {
 
     // this is expected for hydras
     if (!(numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2)) {
-        debugPrint("no hydra connected?");
+        debugPrint("total buttons = " + numberOfButtons + ", Triggers = " + numberOfTriggers + ", controllers/trigger = " + controllersPerTrigger); 
         return; // bail if no hydra
     }
 

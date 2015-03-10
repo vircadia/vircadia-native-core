@@ -123,7 +123,13 @@ public:
     void resetShapePositionsToDefaultPose(); // DEBUG method
 
     void renderRagdoll();
-    
+
+    bool hasSkeleton();
+
+signals:
+
+    void skeletonLoaded();
+
 protected:
 
     void buildShapes();

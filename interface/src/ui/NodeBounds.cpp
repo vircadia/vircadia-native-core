@@ -71,20 +71,19 @@ void NodeBounds::draw() {
                 voxelDetailsForCode(rootCode, rootDetails);
                 serverJurisdictions->unlock();
                 glm::vec3 location(rootDetails.x, rootDetails.y, rootDetails.z);
-                location *= (float)TREE_SCALE;
                 
-                AACube serverBounds(location, rootDetails.s * TREE_SCALE);
+                AACube serverBounds(location, rootDetails.s);
                 
                 glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR)
                 + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
                 
                 const float ENTITY_NODE_SCALE = 0.99f;
                 
-                float scaleFactor = rootDetails.s * TREE_SCALE;
+                float scaleFactor = rootDetails.s;
                 
                 // Scale by 0.92 - 1.00 depending on the scale of the node.  This allows smaller nodes to scale in
                 // a bit and not overlap larger nodes.
-                scaleFactor *= 0.92 + (rootDetails.s * 0.08);
+                scaleFactor *= 0.92f + (rootDetails.s * 0.08f);
                 
                 // Scale different node types slightly differently because it's common for them to overlap.
                 if (nodeType == NodeType::EntityServer) {

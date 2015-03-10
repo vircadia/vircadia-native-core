@@ -66,12 +66,12 @@ enum EntityPropertyList {
 
     // property used by Light entity
     PROP_IS_SPOTLIGHT,
-    PROP_DIFFUSE_COLOR,
-    PROP_AMBIENT_COLOR,
-    PROP_SPECULAR_COLOR,
-    PROP_CONSTANT_ATTENUATION,
-    PROP_LINEAR_ATTENUATION,
-    PROP_QUADRATIC_ATTENUATION,
+    PROP_DIFFUSE_COLOR_UNUSED,
+    PROP_AMBIENT_COLOR_UNUSED,
+    PROP_SPECULAR_COLOR_UNUSED,
+    PROP_INTENSITY, // Previously PROP_CONSTANT_ATTENUATION
+    PROP_LINEAR_ATTENUATION_UNUSED,
+    PROP_QUADRATIC_ATTENUATION_UNUSED,
     PROP_EXPONENT,
     PROP_CUTOFF,
 
@@ -83,9 +83,18 @@ enum EntityPropertyList {
     PROP_ANIMATION_SETTINGS,
     PROP_USER_DATA,
     PROP_SHAPE_TYPE,
+
+    // used by ParticleEffect entities
+    PROP_MAX_PARTICLES,
+    PROP_LIFESPAN,
+    PROP_EMIT_RATE,
+    PROP_EMIT_DIRECTION,
+    PROP_EMIT_STRENGTH,
+    PROP_LOCAL_GRAVITY,
+    PROP_PARTICLE_RADIUS,
     
     // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
-    PROP_LAST_ITEM = PROP_SHAPE_TYPE,
+    PROP_LAST_ITEM = PROP_PARTICLE_RADIUS,
 
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
@@ -93,6 +102,7 @@ enum EntityPropertyList {
     PROP_TEXT = PROP_MODEL_URL,
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
     PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
+    PROP_COLLISION_MODEL_URL,
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -110,6 +120,7 @@ class EntityItemProperties {
     friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
@@ -129,9 +140,8 @@ public:
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
     
-    AACube getMaximumAACubeInTreeUnits() const;
-    AACube getMaximumAACubeInMeters() const;
-    AABox getAABoxInMeters() const;
+    AACube getMaximumAACube() const;
+    AABox getAABox() const;
 
     void debugDump() const;
     void setLastEdited(quint64 usecTime);
@@ -155,6 +165,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
+    DEFINE_PROPERTY_REF(PROP_COLLISION_MODEL_URL, CollisionModelURL, collisionModelURL, QString);
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
     DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
@@ -165,12 +176,7 @@ public:
     DEFINE_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool);
     DEFINE_PROPERTY(PROP_COLLISIONS_WILL_MOVE, CollisionsWillMove, collisionsWillMove, bool);
     DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
-    DEFINE_PROPERTY_REF(PROP_DIFFUSE_COLOR, DiffuseColor, diffuseColor, xColor);
-    DEFINE_PROPERTY_REF(PROP_AMBIENT_COLOR, AmbientColor, ambientColor, xColor);
-    DEFINE_PROPERTY_REF(PROP_SPECULAR_COLOR, SpecularColor, specularColor, xColor);
-    DEFINE_PROPERTY(PROP_CONSTANT_ATTENUATION, ConstantAttenuation, constantAttenuation, float);
-    DEFINE_PROPERTY(PROP_LINEAR_ATTENUATION, LinearAttenuation, linearAttenuation, float);
-    DEFINE_PROPERTY(PROP_QUADRATIC_ATTENUATION, QuadraticAttenuation, quadraticAttenuation, float);
+    DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float);
     DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float);
     DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool);
@@ -182,6 +188,13 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
     DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
+    DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
+    DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float);
+    DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float);
+    DEFINE_PROPERTY_REF(PROP_EMIT_DIRECTION, EmitDirection, emitDirection, glm::vec3);
+    DEFINE_PROPERTY(PROP_EMIT_STRENGTH, EmitStrength, emitStrength, float);
+    DEFINE_PROPERTY(PROP_LOCAL_GRAVITY, LocalGravity, localGravity, float);
+    DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
@@ -258,6 +271,8 @@ inline void EntityItemProperties::setPosition(const glm::vec3& value)
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";
+    
+    debug << "    _type:" << properties.getType() << "\n";
 
     // TODO: figure out why position and animationSettings don't seem to like the macro approach
     if (properties.containsPositionChange()) {
@@ -278,6 +293,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionModelURL, collisionModelURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");
@@ -288,12 +304,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, IgnoreForCollisions, ignoreForCollisions, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionsWillMove, collisionsWillMove, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsSpotlight, isSpotlight, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, DiffuseColor, diffuseColor, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AmbientColor, ambientColor, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpecularColor, specularColor, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ConstantAttenuation, constantAttenuation, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LinearAttenuation, linearAttenuation, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, QuadraticAttenuation, quadraticAttenuation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Intensity, intensity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Exponent, exponent, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cutoff, cutoff, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
@@ -304,6 +315,13 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, TextColor, textColor, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundColor, backgroundColor, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ShapeType, shapeType, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, MaxParticles, maxParticles, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifespan, lifespan, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRate, emitRate, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitDirection, emitDirection, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitStrength, emitStrength, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalGravity, localGravity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";

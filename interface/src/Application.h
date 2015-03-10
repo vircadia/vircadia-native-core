@@ -45,13 +45,11 @@
 #include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
-#include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
 #include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
-#include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
@@ -171,17 +169,16 @@ public:
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
 
-    bool isThrottleRendering() const { return DependencyManager::get<GLCanvas>()->isThrottleRendering(); }
+    GLCanvas* getGLWidget() { return _glWidget; }
+    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
 
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     EntityTreeRenderer* getEntities() { return &_entities; }
     Environment* getEnvironment() { return &_environment; }
-    PrioVR* getPrioVR() { return &_prioVR; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
@@ -195,8 +192,8 @@ public:
     bool mouseOnScreen() const;
     int getMouseX() const;
     int getMouseY() const;
-    int getTrueMouseX() const { return DependencyManager::get<GLCanvas>()->mapFromGlobal(QCursor::pos()).x(); }
-    int getTrueMouseY() const { return DependencyManager::get<GLCanvas>()->mapFromGlobal(QCursor::pos()).y(); }
+    int getTrueMouseX() const { return _glWidget->mapFromGlobal(QCursor::pos()).x(); }
+    int getTrueMouseY() const { return _glWidget->mapFromGlobal(QCursor::pos()).y(); }
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
@@ -270,8 +267,8 @@ public:
 
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const { return glm::vec2(DependencyManager::get<GLCanvas>()->getDeviceWidth(),
-                                                               DependencyManager::get<GLCanvas>()->getDeviceHeight()); }
+    glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(),
+                                                               _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     void skipVersion(QString latestVersion);
@@ -321,12 +318,12 @@ signals:
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
-    void updateLocationInServer();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
-    void pasteEntities(float x, float y, float z);
+    QVector<EntityItemID> pasteEntities(float x, float y, float z);
+    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& filename);
 
@@ -420,12 +417,8 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateFaceshift();
-    void updateVisage();
-    void updateDDE();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
-    void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
     void updateCursor(float deltaTime);
@@ -478,8 +471,6 @@ private:
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTree _entityClipboard;
 
-    MetavoxelSystem _metavoxels;
-
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
@@ -491,8 +482,6 @@ private:
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-
-    PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
     Camera _mirrorCamera;              // Cammera for mirror view
@@ -593,6 +582,10 @@ private:
     
     QThread _settingsThread;
     QTimer _settingsTimer;
+    
+    GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
+
+    void checkSkeleton();
 };
 
 #endif // hifi_Application_h

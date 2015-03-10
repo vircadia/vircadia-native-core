@@ -1,6 +1,6 @@
 set(TARGET_NAME render-utils)
 
-AUTOSCRIBE_SHADER_LIB()
+AUTOSCRIBE_SHADER_LIB(gpu model)
 
 # pull in the resources.qrc file
 qt5_add_resources(QT_RESOURCES_FILE "${CMAKE_CURRENT_SOURCE_DIR}/res/fonts/fonts.qrc")
@@ -8,16 +8,8 @@ qt5_add_resources(QT_RESOURCES_FILE "${CMAKE_CURRENT_SOURCE_DIR}/res/fonts/fonts
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library(Widgets OpenGL Network Script)
 
-add_dependency_external_project(glm)
+add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 link_hifi_libraries(animation fbx shared gpu)
-
-if (WIN32)
-  # we're using static GLEW, so define GLEW_STATIC
-  add_definitions(-DGLEW_STATIC)
-endif ()
-
-# call macro to include our dependency includes and bubble them up via a property on our target
-include_dependency_includes()

@@ -44,6 +44,7 @@ void Light::setPosition(const Vec3& position) {
 }
 
 void Light::setOrientation(const glm::quat& orientation) {
+    setDirection(orientation * glm::vec3(0.0f, 0.0f, -1.0f));
     _transform.setRotation(orientation);
 }
 
@@ -76,7 +77,6 @@ void Light::setSpotAngle(float angle) {
     if (angle <= 0.f) {
         angle = 0.0f;
     }
-    float cosAngle = cos(angle);
     editSchema()._spot.x = cos(angle);
     editSchema()._spot.y = sin(angle);
     editSchema()._spot.z = angle;

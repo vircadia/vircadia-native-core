@@ -33,9 +33,6 @@ public:
                  int inKbitsPerSecond, int outKbitsPerSecond, int voxelPacketsToProcess);
     bool includeTimingRecord(const QString& name);
     
-    Q_INVOKABLE void setMetavoxelStats(int internal, int leaves, int sendProgress,
-        int sendTotal, int receiveProgress, int receiveTotal);
-    
 private:
     static Stats* _sharedInstance;
 
@@ -52,12 +49,6 @@ private:
 
     int _lastHorizontalOffset;
     
-    int _metavoxelInternal;
-    int _metavoxelLeaves;
-    int _metavoxelSendProgress;
-    int _metavoxelSendTotal;
-    int _metavoxelReceiveProgress;
-    int _metavoxelReceiveTotal;
 };
 
 #endif // hifi_Stats_h

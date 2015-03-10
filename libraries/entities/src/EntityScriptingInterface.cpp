@@ -19,6 +19,8 @@ EntityScriptingInterface::EntityScriptingInterface() :
     _nextCreatorTokenID(0),
     _entityTree(NULL)
 {
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::canAdjustLocksChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -180,8 +182,7 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
     EntityItemID result(UNKNOWN_ENTITY_ID, UNKNOWN_ENTITY_TOKEN, false);
     if (_entityTree) {
         _entityTree->lockForRead();
-        const EntityItem* closestEntity = _entityTree->findClosestEntity(center/(float)TREE_SCALE, 
-                                                                                radius/(float)TREE_SCALE);
+        const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
             result.id = closestEntity->getID();
@@ -205,7 +206,7 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
     if (_entityTree) {
         _entityTree->lockForRead();
         QVector<const EntityItem*> entities;
-        _entityTree->findEntities(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, entities);
+        _entityTree->findEntities(center, radius, entities);
         _entityTree->unlock();
 
         foreach (const EntityItem* entity, entities) {
