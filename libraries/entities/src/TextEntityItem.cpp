@@ -20,6 +20,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "TextEntityItem.h"
+#include "QVariantGLM.h"
 
 
 const QString TextEntityItem::DEFAULT_TEXT("");
@@ -166,5 +167,17 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
 }
 
 void TextEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("text");
+    map["type"] = QString("Text");
+    map["text"] = _text;
+    map["line-height"] = _lineHeight;
+    map["text-color"] = rgbColorToQList(_textColor);
+    map["background-color"] = rgbColorToQList(_backgroundColor);
+}
+
+
+void TextEntityItem::readSubTypeFromMap(QVariantMap& map) {
+    _text = map["text"].toString();
+    _lineHeight = map["line-height"].toFloat();
+    qListtoRgbColor(map["text-color"], _textColor);
+    qListtoRgbColor(map["background-color"], _backgroundColor);
 }

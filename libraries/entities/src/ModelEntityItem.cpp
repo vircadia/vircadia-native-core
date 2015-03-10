@@ -17,6 +17,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ModelEntityItem.h"
+#include "QVariantGLM.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_ANIMATION_URL = QString("");
@@ -402,5 +403,28 @@ QString ModelEntityItem::getAnimationSettings() const {
 }
 
 void ModelEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("model");
+    map["type"] = QString("Model");
+    map["color"] = rgbColorToQList(_color);
+    map["model-url"] = _modelURL;
+    map["animation-url"] = _animationURL;
+    map["animation-fps"] = getAnimationFPS();
+    map["animation-frame-index"] = getAnimationFrameIndex();
+    map["animation-is-playing"] = getAnimationIsPlaying();
+    map["textures"] = _textures;
+    map["animation-settings"] = getAnimationSettings();
+    map["shape-type"] = _shapeType;
+}
+
+
+void ModelEntityItem::readSubTypeFromMap(QVariantMap& map) {
+    qListtoRgbColor(map["color"], _color);
+
+    _modelURL = map["model-url"].toString();
+    _animationURL = map["animation-url"].toString();
+    setAnimationFPS(map["animation-fps"].toFloat());
+    setAnimationFrameIndex(map["animation-frame-index"].toFloat());
+    setAnimationIsPlaying(map["animation-is-playing"].toBool());
+    _textures = map["textures"].toString();
+    setAnimationSettings(map["animation-settings"].toString());
+    _shapeType = (ShapeType)(map["shape-type"].toInt());
 }

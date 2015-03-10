@@ -20,6 +20,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "SphereEntityItem.h"
+#include "QVariantGLM.h"
 
 
 EntityItem* SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -132,5 +133,11 @@ void SphereEntityItem::debugDump() const {
 
 
 void SphereEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("sphere");
+    map["type"] = QString("Sphere");
+    map["color"] = rgbColorToQList(_color);
+}
+
+
+void SphereEntityItem::readSubTypeFromMap(QVariantMap& map) {
+    qListtoRgbColor(map["color"], _color);
 }

@@ -294,7 +294,10 @@ public:
 
     QVariantMap writeToMap();
     virtual void writeSubTypeToMap(QVariantMap& map) = 0;
+
     void readFromMap(QVariantMap map);
+    virtual void readSubTypeFromMap(QVariantMap& map) = 0;
+
 
 protected:
 

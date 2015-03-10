@@ -17,6 +17,7 @@
 #include "BoxEntityItem.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "QVariantGLM.h"
 
 
 EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -108,5 +109,11 @@ void BoxEntityItem::debugDump() const {
 
 
 void BoxEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("box");
+    map["type"] = QString("Box");
+    map["color"] = rgbColorToQList(_color);
+}
+
+
+void BoxEntityItem::readSubTypeFromMap(QVariantMap& map) {
+    qListtoRgbColor(map["color"], _color);
 }

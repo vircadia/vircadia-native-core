@@ -71,6 +71,7 @@ public:
     static void setLightsArePickable(bool value) { _lightsArePickable = value; }
 
     void writeSubTypeToMap(QVariantMap& map);
+    void readSubTypeFromMap(QVariantMap& map);
     
 protected:
 

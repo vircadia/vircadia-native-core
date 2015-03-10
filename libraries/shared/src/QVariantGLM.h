@@ -15,7 +15,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "SharedUtil.h"
+
 QVariantList glmToQList(const glm::vec3& g);
 QVariantList glmToQList(const glm::quat& g);
+QVariantList rgbColorToQList(rgbColor& v);
+
 glm::vec3 qListToGlmVec3(const QVariant q);
 glm::quat qListToGlmQuat(const QVariant q);
+void qListtoRgbColor(const QVariant q, rgbColor returnValue);

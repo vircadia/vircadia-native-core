@@ -17,6 +17,7 @@
 #include "AddEntityOperator.h"
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
+#include "QVariantGLM.h"
 
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
@@ -1067,44 +1068,70 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription) {
 
 bool EntityTree::readFromMap(QVariantMap& map) {
 
-
     QVariantList entitiesQList = map["Entities"].toList();
+
+    qDebug() << "\n\n\nEntityTree::readFromMap --" << entitiesQList.count();
+
 
     foreach (QVariant entityQ, entitiesQList) {
         QVariantMap entityMap = entityQ.toMap();
         EntityTypes::EntityType entityType = EntityTypes::getEntityTypeFromName(entityMap["type"].toString());
 
+        qDebug() << "found entity of type" << entityType;
+
         if (entityType == EntityTypes::Unknown) {
             qDebug() << "unknown entity type" << entityMap["type"];
+            continue;
         }
 
-        const EntityItemID entityItemID();
-        const EntityItemProperties entityItemProperties();
-        EntityItem *entityItem = EntityTypes::constructEntityItem(entityType, entityItemID, entityItemProperties);
 
-        // switch (entityType) {
-        // case EntityType::Model:
-        //     ei = ModelEntityItem();
-        //     break;
-        // case EntityType::Box:
-        //     ei = BoxEntityItem();
-        //     break;
-        // case EntityType::Sphere:
-        //     ei = SphereEntityItem();
-        //     break;
-        // case EntityType::Light:
-        //     ei = LightEntityItem();
-        //     break;
-        // case EntityType::Text:
-        //     ei = TextEntityItem();
-        //     break;
-        // default:
-        //     break;
-        // }
+        EntityItemProperties properties;
+
+
+        qDebug() << "------------------------------------------------------";
+        for(QVariantMap::const_iterator iter = entityMap.begin(); iter != entityMap.end(); ++iter) {
+            qDebug() << iter.key() << iter.value();
+        }
+
+
+        // const EntityItemID entityItemID = assignEntityID(entityItemID);
+        // EntityItem *entityItem = EntityTypes::constructEntityItem(entityType, entityItemID, properties);
+
+        const EntityItemID entityItemID(QUuid::createUuid());
+
+        properties.setCreated(entityMap["created"].toULongLong());
+        QString typeString = entityMap["type"].toString();
+        // const char *typeCString = typeString.data();
+
+        QByteArray typeByteArray = typeString.toLocal8Bit();
+        const char *typeCString = typeByteArray.data();
+        properties.setType(EntityTypes::getEntityTypeFromName(typeCString));
+
+        properties.setDimensions(qListToGlmVec3(map["dimensions"]));
+        properties.setRotation(qListToGlmQuat(map["rotation"]));
+        properties.setDensity(map["density"].toFloat());
+        properties.setVelocity(qListToGlmVec3(map["angular-velocity"]));
+        properties.setGravity(qListToGlmVec3(map["gravity"]));
+        properties.setDamping(map["damping"].toFloat());
+        properties.setLifetime(map["lifetime"].toFloat());
+        properties.setScript(map["script"].toString());
+        properties.setRegistrationPoint(qListToGlmVec3(map["registration-point"]));
+        properties.setAngularVelocity(qListToGlmVec3(map["angular-velocity"]));
+        properties.setAngularDamping(map["angular-damping"].toFloat());
+        properties.setGlowLevel(map["glow"].toFloat());
+        properties.setLocalRenderAlpha(map["alpha"].toFloat());
+        properties.setVisible(map["visible"].toBool());
+        properties.setIgnoreForCollisions(map["ignore-for-collisions"].toBool());
+        properties.setCollisionsWillMove(map["collisions-will-move"].toBool());
+        properties.setLocked(map["locked"].toBool());
+        properties.setUserData(map["userData"].toString());
+
+        EntityItem* newEntity = addEntity(entityItemID, properties);
+        newEntity->readFromMap(entityMap);
     }
 
 
-    // EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+
 
     return true;
 }

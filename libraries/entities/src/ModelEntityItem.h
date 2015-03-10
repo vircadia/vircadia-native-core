@@ -116,6 +116,7 @@ public:
     static void cleanupLoadedAnimations();
 
     void writeSubTypeToMap(QVariantMap& map);
+    void readSubTypeFromMap(QVariantMap& map);
     
 protected:
 

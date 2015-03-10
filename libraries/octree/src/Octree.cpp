@@ -20,6 +20,8 @@
 
 #include <QDebug>
 #include <QVector>
+#include <QFile>
+#include <QJsonDocument>
 
 #include <GeometryUtil.h>
 #include <OctalCode.h>
@@ -1848,6 +1850,23 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
     return bytesAtThisLevel;
 }
+
+
+bool Octree::readFromJSONFile(const char* fileName) {
+    QFile file;
+    file.setFileName("/tmp/ok.json");
+    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    QString val = file.readAll();
+    file.close();
+    qWarning() << val;
+    QJsonDocument d = QJsonDocument::fromJson(val.toUtf8());
+    QVariant v = d.toVariant();
+    QVariantMap m = v.toMap();
+
+    readFromMap(m);
+    return true;
+}
+
 
 bool Octree::readFromSVOFile(const char* fileName) {
     bool fileOk = false;

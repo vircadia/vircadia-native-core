@@ -81,6 +81,7 @@ public:
     }
 
     void writeSubTypeToMap(QVariantMap& map);
+    void readSubTypeFromMap(QVariantMap& map);
 
 protected:
     QString _text;

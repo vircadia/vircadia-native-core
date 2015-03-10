@@ -18,6 +18,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "LightEntityItem.h"
+#include "QVariantGLM.h"
 
 bool LightEntityItem::_lightsArePickable = false;
 
@@ -152,5 +153,16 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 }
 
 void LightEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("light");
+    map["type"] = QString("Light");
+    map["color"] = rgbColorToQList(_color);
+    map["intensity"] = _intensity;
+    map["exponent"] = _exponent;
+    map["cutoff"] = _cutoff;
+}
+
+void LightEntityItem::readSubTypeFromMap(QVariantMap& map) {
+    qListtoRgbColor(map["color"], _color);
+    _intensity = map["intensity"].toFloat();
+    _exponent = map["exponent"].toFloat();
+    _cutoff = map["cutoff"].toFloat();
 }

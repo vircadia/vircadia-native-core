@@ -321,6 +321,9 @@ public:
     void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
     bool readFromSVOFile(const char* filename);
 
+    bool readFromJSONFile(const char* fileName);
+
+
     virtual bool writeToMap(QVariantMap& entityDescription) { return true; }
 
     unsigned long getOctreeElementsCount();
@@ -355,6 +358,8 @@ public:
     virtual void dumpTree() { };
     virtual void pruneTree() { };
 
+
+    virtual bool readFromMap(QVariantMap& entityDescription) = 0;
 
 signals:
     void importSize(float x, float y, float z);

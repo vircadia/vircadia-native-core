@@ -1178,12 +1178,16 @@ QVariantMap EntityItem::writeToMap() {
     result["locked"] = _locked;
     result["userData"] = _userData;
 
+    // XXX glow?
+
     writeSubTypeToMap(result);
     return result;
 }
 
 
 void EntityItem::readFromMap(QVariantMap map) {
+    // XXX
+#if 0
     _type = EntityTypes::getEntityTypeFromName(map["type"].toString());
     _created = map["created"].toULongLong();
     _lastEdited = map["last-edited"].toULongLong();
@@ -1203,4 +1207,10 @@ void EntityItem::readFromMap(QVariantMap map) {
     _collisionsWillMove = map["collisions-will-move"].toBool();
     _locked = map["locked"].toBool();
     _userData = map["userData"].toString();
+
+    // XXX glow?
+
+#endif
+
+    readSubTypeFromMap(map);
 }
