@@ -44,7 +44,7 @@ protected:
     friend class Backend;
 };
 
-typedef QSharedPointer< Pipeline > PipelinePointer;
+typedef std::shared_ptr< Pipeline > PipelinePointer;
 typedef std::vector< PipelinePointer > Pipelines;
 
 };
