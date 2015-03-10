@@ -11,11 +11,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var DEGREES_TO_RADIANS = Math.PI / 180.0;
+
 var lightProperties = {
     type: "Light",
     position: { x: 0, y: 0, z: 0 },
     dimensions: { x: 1000, y: 1000, z: 1000 },
-    angularVelocity: { x: 0, y: 10, z: 0 },
+    angularVelocity: { x: 0, y: 10 * DEGREES_TO_RADIANS, z: 0 },
     angularDamping: 0,
 
     isSpotlight: true,

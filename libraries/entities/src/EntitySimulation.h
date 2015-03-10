@@ -35,7 +35,7 @@ const int DIRTY_SIMULATION_FLAGS =
 class EntitySimulation : public QObject {
 Q_OBJECT
 public:
-    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL) { }
+    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(quint64(-1)) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
 
     void lock() { _mutex.lock(); }

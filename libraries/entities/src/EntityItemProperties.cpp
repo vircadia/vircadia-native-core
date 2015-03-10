@@ -23,6 +23,7 @@
 #include "EntityItemPropertiesDefaults.h"
 #include "ModelEntityItem.h"
 #include "TextEntityItem.h"
+#include "ParticleEffectEntityItem.h"
 
 
 EntityItemProperties::EntityItemProperties() :
@@ -39,6 +40,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
     CONSTRUCT_PROPERTY(color, ),
     CONSTRUCT_PROPERTY(modelURL, ""),
+    CONSTRUCT_PROPERTY(collisionModelURL, ""),
     CONSTRUCT_PROPERTY(animationURL, ""),
     CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
     CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
@@ -61,6 +63,13 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
     CONSTRUCT_PROPERTY(backgroundColor, TextEntityItem::DEFAULT_BACKGROUND_COLOR),
     CONSTRUCT_PROPERTY(shapeType, SHAPE_TYPE_NONE),
+    CONSTRUCT_PROPERTY(maxParticles, ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES),
+    CONSTRUCT_PROPERTY(lifespan, ParticleEffectEntityItem::DEFAULT_LIFESPAN),
+    CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
+    CONSTRUCT_PROPERTY(emitDirection, ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION),
+    CONSTRUCT_PROPERTY(emitStrength, ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH),
+    CONSTRUCT_PROPERTY(localGravity, ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY),
+    CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -150,6 +159,7 @@ void EntityItemProperties::debugDump() const {
     qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
     qDebug() << "   _dimensions=" << getDimensions();
     qDebug() << "   _modelURL=" << _modelURL;
+    qDebug() << "   _collisionModelURL=" << _collisionModelURL;
     qDebug() << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
@@ -205,6 +215,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
+    CHECK_PROPERTY_CHANGE(PROP_COLLISION_MODEL_URL, collisionModelURL);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
@@ -228,6 +239,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
     CHECK_PROPERTY_CHANGE(PROP_SHAPE_TYPE, shapeType);
+    CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
+    CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_DIRECTION, emitDirection);
+    CHECK_PROPERTY_CHANGE(PROP_EMIT_STRENGTH, emitStrength);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
+    CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
 
     return changedProperties;
 }
@@ -261,6 +279,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(color);
     COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(collisionModelURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
@@ -282,6 +301,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(maxParticles);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(lifespan);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitRate);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(emitDirection);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitStrength);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -295,7 +321,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     sittingPoints.setProperty("length", _sittingPoints.size());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
-    AABox aaBox = getAABoxInMeters();
+    AABox aaBox = getAABox();
     QScriptValue boundingBox = engine->newObject();
     QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
     QScriptValue topFarLeft = vec3toScriptValue(engine, aaBox.calcTopFarLeft());
@@ -334,6 +360,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(visible, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(color, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(modelURL, setModelURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(collisionModelURL, setCollisionModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(animationURL, setAnimationURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(animationIsPlaying, setAnimationIsPlaying);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
@@ -355,6 +382,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(backgroundColor, setBackgroundColor);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(maxParticles, setMaxParticles);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lifespan, setLifespan);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitRate, setEmitRate);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(emitDirection, setEmitDirection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitStrength, setEmitStrength);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
 
     _lastEdited = usecTimestampNow();
 }
@@ -512,6 +546,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             
             if (properties.getType() == EntityTypes::Model) {
                 APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
+                APPEND_ENTITY_PROPERTY(PROP_COLLISION_MODEL_URL, appendValue, properties.getCollisionModelURL());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
@@ -527,6 +562,16 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_INTENSITY, appendValue, properties.getIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
                 APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
+            }
+
+            if (properties.getType() == EntityTypes::ParticleEffect) {
+                APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, appendValue, properties.getMaxParticles());
+                APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, appendValue, properties.getLifespan());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, appendValue, properties.getEmitRate());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, appendValue, properties.getEmitDirection());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, appendValue, properties.getEmitStrength());
+                APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, properties.getLocalGravity());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, properties.getParticleRadius());
             }
         }
         if (propertyCount > 0) {
@@ -730,6 +775,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     
     if (properties.getType() == EntityTypes::Model) {
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MODEL_URL, setModelURL);
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_URL, setAnimationURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
@@ -745,6 +791,16 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INTENSITY, float, setIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
+    }
+
+    if (properties.getType() == EntityTypes::ParticleEffect) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_STRENGTH, float, setEmitStrength);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCAL_GRAVITY, float, setLocalGravity);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     }
     
     return valid;
@@ -796,6 +852,7 @@ void EntityItemProperties::markAllChanged() {
     _visibleChanged = true;
     _colorChanged = true;
     _modelURLChanged = true;
+    _collisionModelURLChanged = true;
     _animationURLChanged = true;
     _animationIsPlayingChanged = true;
     _animationFrameIndexChanged = true;
@@ -818,18 +875,20 @@ void EntityItemProperties::markAllChanged() {
     _textColorChanged = true;
     _backgroundColorChanged = true;
     _shapeTypeChanged = true;
-}
 
-AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {
-    AACube maxCube = getMaximumAACubeInMeters();
-    maxCube.scale(1.0f / (float)TREE_SCALE);
-    return maxCube;
+    _maxParticlesChanged = true;
+    _lifespanChanged = true;
+    _emitRateChanged = true;
+    _emitDirectionChanged = true;
+    _emitStrengthChanged = true;
+    _localGravityChanged = true;
+    _particleRadiusChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 /// 
-AACube EntityItemProperties::getMaximumAACubeInMeters() const { 
+AACube EntityItemProperties::getMaximumAACube() const { 
     // * we know that the position is the center of rotation
     glm::vec3 centerOfRotation = _position; // also where _registration point is
 
@@ -853,7 +912,7 @@ AACube EntityItemProperties::getMaximumAACubeInMeters() const {
 }
 
 // The minimum bounding box for the entity.
-AABox EntityItemProperties::getAABoxInMeters() const { 
+AABox EntityItemProperties::getAABox() const { 
 
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;

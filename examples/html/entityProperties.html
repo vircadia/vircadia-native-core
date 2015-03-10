@@ -2,6 +2,10 @@
 <head>
     <link rel="stylesheet" type="text/css" href="style.css">
     <script>
+        var PI = 3.14159265358979;
+        var DEGREES_TO_RADIANS = PI / 180.0;
+        var RADIANS_TO_DEGREES = 180.0 / PI;
+
         function enableChildren(el, selector) {
             els = el.querySelectorAll(selector);
             for (var i = 0; i < els.length; i++) {
@@ -53,6 +57,22 @@
                      x: elX.value,
                      y: elY.value,
                      z: elZ.value,
+                };
+                EventBridge.emitWebEvent(JSON.stringify(data));
+            }
+        };
+
+        function createEmitVec3PropertyUpdateFunctionWithMultiplier(property, elX, elY, elZ, multiplier) {
+            return function() {
+                var data = {
+                     type: "update",
+                     properties: {
+                     }
+                };
+                data.properties[property] = {
+                     x: elX.value * multiplier,
+                     y: elY.value * multiplier,
+                     z: elZ.value * multiplier,
                 };
                 EventBridge.emitWebEvent(JSON.stringify(data));
             }
@@ -138,6 +158,7 @@
 
             var elModelSections = document.querySelectorAll(".model-section");
             var elModelURL = document.getElementById("property-model-url");
+            var elCollisionModelURL = document.getElementById("property-collision-model-url");
             var elModelAnimationURL = document.getElementById("property-model-animation-url");
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
@@ -227,9 +248,9 @@
                             elLinearVelocityZ.value = properties.velocity.z.toFixed(2);
                             elLinearDamping.value = properties.damping.toFixed(2);
 
-                            elAngularVelocityX.value = properties.angularVelocity.x.toFixed(2);
-                            elAngularVelocityY.value = properties.angularVelocity.y.toFixed(2);
-                            elAngularVelocityZ.value = properties.angularVelocity.z.toFixed(2);
+                            elAngularVelocityX.value = (properties.angularVelocity.x * RADIANS_TO_DEGREES).toFixed(2);
+                            elAngularVelocityY.value = (properties.angularVelocity.y * RADIANS_TO_DEGREES).toFixed(2);
+                            elAngularVelocityZ.value = (properties.angularVelocity.z * RADIANS_TO_DEGREES).toFixed(2);
                             elAngularDamping.value = properties.angularDamping.toFixed(2);
 
                             elGravityX.value = properties.gravity.x.toFixed(2);
@@ -267,6 +288,7 @@
                                 }
 
                                 elModelURL.value = properties.modelURL;
+                                elCollisionModelURL.value = properties.collisionModelURL;
                                 elModelAnimationURL.value = properties.animationURL;
                                 elModelAnimationPlaying.checked = properties.animationIsPlaying;
                                 elModelAnimationFPS.value = properties.animationFPS;
@@ -352,8 +374,8 @@
             elLinearVelocityZ.addEventListener('change', velocityChangeFunction);
             elLinearDamping.addEventListener('change', createEmitNumberPropertyUpdateFunction('damping'));
 
-            var angularVelocityChangeFunction = createEmitVec3PropertyUpdateFunction(
-                'angularVelocity', elAngularVelocityX, elAngularVelocityY, elAngularVelocityZ);
+            var angularVelocityChangeFunction = createEmitVec3PropertyUpdateFunctionWithMultiplier(
+                'angularVelocity', elAngularVelocityX, elAngularVelocityY, elAngularVelocityZ, DEGREES_TO_RADIANS);
             elAngularVelocityX.addEventListener('change', angularVelocityChangeFunction);
             elAngularVelocityY.addEventListener('change', angularVelocityChangeFunction);
             elAngularVelocityZ.addEventListener('change', angularVelocityChangeFunction);
@@ -391,6 +413,7 @@
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
 
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
+            elCollisionModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionModelURL'));
             elModelAnimationURL.addEventListener('change', createEmitTextPropertyUpdateFunction('animationURL'));
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
             elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
@@ -620,6 +643,12 @@
             <div class="label">Model URL</div>
             <div class="value">
                 <input type="text" id="property-model-url" class="url"></input>
+            </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Collision Model URL</div>
+            <div class="value">
+                <input type="text" id="property-collision-model-url" class="url"></input>
             </div>
         </div>
         <div class="model-section property">

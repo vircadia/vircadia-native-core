@@ -318,7 +318,6 @@ signals:
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
-    void updateLocationInServer();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
@@ -585,6 +584,8 @@ private:
     QTimer _settingsTimer;
     
     GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
+
+    void checkSkeleton();
 };
 
 #endif // hifi_Application_h

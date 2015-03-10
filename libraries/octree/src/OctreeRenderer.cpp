@@ -65,7 +65,8 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     unsigned int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     QUuid sourceUUID = uuidFromPacketHeader(dataByteArray);
     PacketType expectedType = getExpectedPacketType();
-    PacketVersion expectedVersion = _tree->expectedVersion(); // TODO: would be better to read this from the packet!
+    // packetVersion is the second byte
+    PacketVersion packetVersion = dataByteArray[1];
     
     if(command == expectedType) {
         PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PacketType", showTimingDetails);
@@ -117,7 +118,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, 
-                                                sourceUUID, sourceNode, false, expectedVersion);
+                                                sourceUUID, sourceNode, false, packetVersion);
                 _tree->lockForWrite();
                 OctreePacketData packetData(packetIsCompressed);
                 packetData.loadFinalizedContent(dataAt, sectionLength);

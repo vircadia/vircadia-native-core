@@ -60,7 +60,7 @@ bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElement* el
     // If we don't have an old entity, then we don't contain the entity, otherwise
     // check the bounds
     if (_entitiesToDelete.size() > 0) {
-        AACube elementCube = element->getAACube();
+        const AACube& elementCube = element->getAACube();
         foreach(const EntityToDeleteDetails& details, _entitiesToDelete) {
             if (elementCube.contains(details.cube)) {
                 containsEntity = true;

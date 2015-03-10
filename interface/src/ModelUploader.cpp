@@ -177,6 +177,24 @@ bool ModelUploader::zip() {
     }
     QByteArray fbxContents = fbx.readAll();
     FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
+
+    #if 0 /// Temporarily remove this check until CtrlAltDavid can come up with a fix.
+    // Make sure that a skeleton model has a skeleton
+    if (_modelType == SKELETON_MODEL) {
+        if (geometry.rootJointIndex == -1) {
+
+            QString message = "Your selected skeleton model has no skeleton.\n\nThe upload will be canceled.";
+            QMessageBox msgBox;
+            msgBox.setWindowTitle("Model Upload");
+            msgBox.setText(message);
+            msgBox.setStandardButtons(QMessageBox::Ok);
+            msgBox.setIcon(QMessageBox::Warning);
+            msgBox.exec();
+
+            return false;
+        }
+    }
+    #endif
     
     // make sure we have some basic mappings
     populateBasicMapping(mapping, filename, geometry);
@@ -314,14 +332,15 @@ void ModelUploader::populateBasicMapping(QVariantHash& mapping, QString filename
     // mixamo blendshapes - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
     // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
     bool likelyMixamoFile = geometry.applicationName == "mixamo.com" || 
-                            (geometry.blendshapeChannelNames.contains("BrowsDown_Left") && 
-                             geometry.blendshapeChannelNames.contains("BrowsDown_Right") && 
+                            (geometry.blendshapeChannelNames.contains("BrowsDown_Right") && 
                              geometry.blendshapeChannelNames.contains("MouthOpen") && 
-                             geometry.blendshapeChannelNames.contains("TongueUp") && 
-                             geometry.blendshapeChannelNames.contains("MouthWhistle_NarrowAdjust_Left") && 
-                             geometry.blendshapeChannelNames.contains("NoseScrunch_Left") && 
+                             geometry.blendshapeChannelNames.contains("Blink_Left") && 
+                             geometry.blendshapeChannelNames.contains("Blink_Right") && 
                              geometry.blendshapeChannelNames.contains("Squint_Right"));
-    
+
+qDebug() << "likelyMixamoFile:" << likelyMixamoFile;
+qDebug() << "geometry.blendshapeChannelNames:" << geometry.blendshapeChannelNames;
+
     if (!mapping.contains(BLENDSHAPE_FIELD) && likelyMixamoFile) {
         QVariantHash blendshapes;
         blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
