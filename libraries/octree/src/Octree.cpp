@@ -18,7 +18,10 @@
 #include <cmath>
 #include <fstream> // to load voxels from file
 
+#include <QDataStream>
 #include <QDebug>
+#include <QFile>
+#include <QFileInfo>
 #include <QVector>
 
 #include <GeometryUtil.h>
@@ -1836,141 +1839,155 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 bool Octree::readFromSVOFile(const char* fileName) {
     bool fileOk = false;
 
-    PacketVersion gotVersion = 0;
-    std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
+    QFile file(fileName);
+    QFileInfo fileInfo(fileName);
+    bool isOpen = file.open(QIODevice::ReadOnly);
+    QDataStream fileInputStream(&file);    // read the data serialized from the file
 
-    if(file.is_open()) {
+    // get file length....
+    unsigned long fileLength = fileInfo.size();
+
+    if(isOpen) {
         emit importSize(1.0f, 1.0f, 1.0f);
         emit importProgress(0);
 
         qDebug("Loading file %s...", fileName);
+    
+        fileOk = readFromStream(fileLength, fileInputStream);
 
-        // get file length....
-        unsigned long fileLength = file.tellg();
-        file.seekg( 0, std::ios::beg );
+        emit importProgress(100);
+        file.close();
+    }
+    
+    return fileOk;
+}
+
+bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream) {
+    bool fileOk = false;
+
+    PacketVersion gotVersion = 0;
+
+    unsigned long headerLength = 0; // bytes in the header
+    
+    bool wantImportProgress = true;
+
+    PacketType expectedType = expectedDataPacketType();
+    PacketVersion expectedVersion = versionForPacketType(expectedType);
+    bool hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
+
+    // before reading the file, check to see if this version of the Octree supports file versions
+    if (getWantSVOfileVersions()) {
+
+        // read just enough of the file to parse the header...
+        const unsigned long HEADER_LENGTH = sizeof(PacketType) + sizeof(PacketVersion);
+        unsigned char fileHeader[HEADER_LENGTH];
+        //file.read((char*)&fileHeader, HEADER_LENGTH);
+        int bytesRead = inputStream.readRawData((char*)&fileHeader, HEADER_LENGTH);
+        qDebug() << "HEADER_LENGTH... bytesRead:" << bytesRead;
         
-        unsigned long headerLength = 0; // bytes in the header
+        headerLength = HEADER_LENGTH; // we need this later to skip to the data
+
+        unsigned char* dataAt = (unsigned char*)&fileHeader;
+        unsigned long  dataLength = HEADER_LENGTH;
+
+        // if so, read the first byte of the file and see if it matches the expected version code
+        PacketType gotType;
+        memcpy(&gotType, dataAt, sizeof(gotType));
+
+        dataAt += sizeof(expectedType);
+        dataLength -= sizeof(expectedType);
+        gotVersion = *dataAt;
         
-        bool wantImportProgress = true;
+        if (gotType == expectedType) {
+            if (canProcessVersion(gotVersion)) {
+                dataAt += sizeof(gotVersion);
+                dataLength -= sizeof(gotVersion);
+                fileOk = true;
+                qDebug("SVO file version match. Expected: %d Got: %d", 
+                            versionForPacketType(expectedDataPacketType()), gotVersion);
 
-        PacketType expectedType = expectedDataPacketType();
-        PacketVersion expectedVersion = versionForPacketType(expectedType);
-        bool hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
-
-        // before reading the file, check to see if this version of the Octree supports file versions
-        if (getWantSVOfileVersions()) {
-
-            // read just enough of the file to parse the header...
-            const unsigned long HEADER_LENGTH = sizeof(PacketType) + sizeof(PacketVersion);
-            unsigned char fileHeader[HEADER_LENGTH];
-            file.read((char*)&fileHeader, HEADER_LENGTH);
-            
-            headerLength = HEADER_LENGTH; // we need this later to skip to the data
-
-            unsigned char* dataAt = (unsigned char*)&fileHeader;
-            unsigned long  dataLength = HEADER_LENGTH;
-
-            // if so, read the first byte of the file and see if it matches the expected version code
-            PacketType gotType;
-            memcpy(&gotType, dataAt, sizeof(gotType));
-
-            dataAt += sizeof(expectedType);
-            dataLength -= sizeof(expectedType);
-            gotVersion = *dataAt;
-            
-            if (gotType == expectedType) {
-                if (canProcessVersion(gotVersion)) {
-                    dataAt += sizeof(gotVersion);
-                    dataLength -= sizeof(gotVersion);
-                    fileOk = true;
-                    qDebug("SVO file version match. Expected: %d Got: %d", 
-                                versionForPacketType(expectedDataPacketType()), gotVersion);
-
-                    hasBufferBreaks = versionHasSVOfileBreaks(gotVersion);
-                } else {
-                    qDebug("SVO file version mismatch. Expected: %d Got: %d", 
-                                versionForPacketType(expectedDataPacketType()), gotVersion);
-                }
+                hasBufferBreaks = versionHasSVOfileBreaks(gotVersion);
             } else {
-                qDebug() << "SVO file type mismatch. Expected: " << nameForPacketType(expectedType) 
-                            << " Got: " << nameForPacketType(gotType);
+                qDebug("SVO file version mismatch. Expected: %d Got: %d", 
+                            versionForPacketType(expectedDataPacketType()), gotVersion);
             }
-
         } else {
-            qDebug() << "   NOTE: this file type does not include type and version information.";
-            fileOk = true; // assume the file is ok
-        }
-        
-        if (hasBufferBreaks) {
-            qDebug() << "    this version includes buffer breaks";
-        } else {
-            qDebug() << "    this version does not include buffer breaks";
+            qDebug() << "SVO file type mismatch. Expected: " << nameForPacketType(expectedType) 
+                        << " Got: " << nameForPacketType(gotType);
         }
 
-        if (fileOk) {
+    } else {
+        qDebug() << "   NOTE: this file type does not include type and version information.";
+        fileOk = true; // assume the file is ok
+    }
+    
+    if (hasBufferBreaks) {
+        qDebug() << "    this version includes buffer breaks";
+    } else {
+        qDebug() << "    this version does not include buffer breaks";
+    }
+
+    if (fileOk) {
+    
+        // if this version of the file does not include buffer breaks, then we need to load the entire file at once
+        if (!hasBufferBreaks) {
         
-            // if this version of the file does not include buffer breaks, then we need to load the entire file at once
-            if (!hasBufferBreaks) {
+            // read the entire file into a buffer, WHAT!? Why not.
+            unsigned long dataLength = streamLength - headerLength;
+            unsigned char* entireFileDataSection = new unsigned char[dataLength];
+            inputStream.readRawData((char*)entireFileDataSection, dataLength);
+
+            unsigned char* dataAt = entireFileDataSection;
+        
+            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
+                                                SharedNodePointer(), wantImportProgress, gotVersion);
+
+            readBitstreamToTree(dataAt, dataLength, args);
+            delete[] entireFileDataSection;
+
+        } else {
+
             
-                // read the entire file into a buffer, WHAT!? Why not.
-                unsigned long dataLength = fileLength - headerLength;
-                unsigned char* entireFileDataSection = new unsigned char[dataLength];
-                file.read((char*)entireFileDataSection, dataLength);
-                unsigned char* dataAt = entireFileDataSection;
+            unsigned long dataLength = streamLength - headerLength;
+            unsigned long remainingLength = dataLength;
+            const unsigned long MAX_CHUNK_LENGTH = MAX_OCTREE_PACKET_SIZE * 2;
+            unsigned char* fileChunk = new unsigned char[MAX_CHUNK_LENGTH];
             
+            while (remainingLength > 0) {
+                quint16 chunkLength = 0;
+
+                inputStream.readRawData((char*)&chunkLength, sizeof(chunkLength));
+                remainingLength -= sizeof(chunkLength);
+                
+                if (chunkLength > remainingLength) {
+                    qDebug() << "UNEXPECTED chunk size of:" << chunkLength 
+                                << "greater than remaining length:" << remainingLength;
+                    break;
+                }
+
+                if (chunkLength > MAX_CHUNK_LENGTH) {
+                    qDebug() << "UNEXPECTED chunk size of:" << chunkLength 
+                                << "greater than MAX_CHUNK_LENGTH:" << MAX_CHUNK_LENGTH;
+                    break;
+                }
+                
+                inputStream.readRawData((char*)fileChunk, chunkLength);
+
+                remainingLength -= chunkLength;
+    
+                unsigned char* dataAt = fileChunk;
+                unsigned long  dataLength = chunkLength;
+        
                 ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
                                                     SharedNodePointer(), wantImportProgress, gotVersion);
 
                 readBitstreamToTree(dataAt, dataLength, args);
-                delete[] entireFileDataSection;
-
-            } else {
-
-                
-                unsigned long dataLength = fileLength - headerLength;
-                unsigned long remainingLength = dataLength;
-                const unsigned long MAX_CHUNK_LENGTH = MAX_OCTREE_PACKET_SIZE * 2;
-                unsigned char* fileChunk = new unsigned char[MAX_CHUNK_LENGTH];
-                
-                while (remainingLength > 0) {
-                    quint16 chunkLength = 0;
-
-                    file.read((char*)&chunkLength, sizeof(chunkLength)); // read the chunk size from the file
-                    remainingLength -= sizeof(chunkLength);
-                    
-                    if (chunkLength > remainingLength) {
-                        qDebug() << "UNEXPECTED chunk size of:" << chunkLength 
-                                    << "greater than remaining length:" << remainingLength;
-                        break;
-                    }
-
-                    if (chunkLength > MAX_CHUNK_LENGTH) {
-                        qDebug() << "UNEXPECTED chunk size of:" << chunkLength 
-                                    << "greater than MAX_CHUNK_LENGTH:" << MAX_CHUNK_LENGTH;
-                        break;
-                    }
-                    
-                    file.read((char*)fileChunk, chunkLength); // read in a section of the file larger than the chunk;
-
-                    remainingLength -= chunkLength;
-        
-                    unsigned char* dataAt = fileChunk;
-                    unsigned long  dataLength = chunkLength;
-            
-                    ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
-                                                        SharedNodePointer(), wantImportProgress, gotVersion);
-
-                    readBitstreamToTree(dataAt, dataLength, args);
-                }
-
-                delete[] fileChunk;
             }
+
+            delete[] fileChunk;
         }
-
-        emit importProgress(100);
-
-        file.close();
     }
+
     
     return fileOk;
 }
