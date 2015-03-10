@@ -290,8 +290,15 @@ void PhysicsEngine::stepSimulation() {
     if (_avatarData->isPhysicsEnabled()) {
         _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
                                                           glmToBullet(_avatarData->getPosition())));
-        // _characterController->setWalkDirection(glmToBullet(_avatarData->getVelocity()));
-        _characterController->setVelocityForTimeInterval(glmToBullet(_avatarData->getVelocity()), timeStep);
+        // WORKAROUND: there is a bug in the debug Bullet-2.82 libs where a zero length walk velocity will trigger
+        // an assert when the getNormalizedVector() helper function in btKinematicCharacterController.cpp tries to
+        // first normalize a vector before checking its length.  Here we workaround the problem by checking the
+        // length first.  NOTE: the character's velocity is reset to zero after each step, so when we DON'T set
+        // the velocity for this time interval it is the same thing as setting its velocity to zero.
+        btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
+        if (walkVelocity.length2() > FLT_EPSILON * FLT_EPSILON) {
+            _characterController->setVelocityForTimeInterval(walkVelocity, timeStep);
+        }
     }
 
     // This is step (2).
