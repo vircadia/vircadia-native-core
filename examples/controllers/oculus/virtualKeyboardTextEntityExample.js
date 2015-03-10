@@ -86,7 +86,7 @@ keyboard.onKeyRelease = function(event) {
 
            var textLines = textText.split("\n");
            var maxLineWidth = Overlays.textSize(textSizeMeasureOverlay, textText).width;
-           var usernameLine = "--" + GlobalServices.myUsername;
+           var usernameLine = "--" + GlobalServices.username;
            var usernameWidth = Overlays.textSize(textSizeMeasureOverlay, usernameLine).width;
            if (maxLineWidth < usernameWidth) {
                maxLineWidth = usernameWidth;
