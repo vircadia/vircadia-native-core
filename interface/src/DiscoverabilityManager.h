@@ -33,13 +33,13 @@ public slots:
     void updateLocation();
     void removeLocation();
     
-    Discoverability::Mode getDiscoverabilityMode() { return _mode.get(); }
+    Discoverability::Mode getDiscoverabilityMode() { return static_cast<Discoverability::Mode>(_mode.get()); }
     void setDiscoverabilityMode(Discoverability::Mode discoverabilityMode);
     
 private:
     DiscoverabilityManager();
     
-    Setting::Handle<Discoverability::Mode> _mode;
+    Setting::Handle<int> _mode;
 };
 
 #endif // hifi_DiscoverabilityManager_h
