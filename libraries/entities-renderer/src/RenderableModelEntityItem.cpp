@@ -114,9 +114,9 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     
     bool drawAsModel = hasModel();
 
-    glm::vec3 position = getPosition() * (float)TREE_SCALE;
-    float size = getSize() * (float)TREE_SCALE;
-    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
+    float size = glm::length(dimensions);
     
     if (drawAsModel) {
         remapTextures();
@@ -260,23 +260,10 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     if (!_model) {
         return true;
     }
-    
-    glm::vec3 originInMeters = origin * (float)TREE_SCALE;
-    QString extraInfo;
-    float localDistance;
-    
     //qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
     
-    bool intersectsModel = _model->findRayIntersectionAgainstSubMeshes(originInMeters, direction, 
-                                            localDistance, face, extraInfo, precisionPicking);
-    
-    if (intersectsModel) {
-        // NOTE: findRayIntersectionAgainstSubMeshes() does work in meters, but we're expected to return
-        // results in tree scale.
-        distance = localDistance / (float)TREE_SCALE;
-    }
-
-    return intersectsModel; // we only got here if we intersected our non-aabox                         
+    QString extraInfo;
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }
 
 

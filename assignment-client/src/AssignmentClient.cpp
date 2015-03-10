@@ -40,8 +40,8 @@ SharedAssignmentPointer AssignmentClient::_currentAssignment;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
-AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool, QUuid walletUUID,
-                                   QString assignmentServerHostname, quint16 assignmentServerPort) :
+AssignmentClient::AssignmentClient(int ppid, Assignment::Type requestAssignmentType, QString assignmentPool,
+                                   QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort) :
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
     _localASPortSharedMem(NULL),
     _localACMPortSharedMem(NULL)
@@ -106,7 +106,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     NetworkAccessManager::getInstance();
 
     // Hook up a timer to send this child's status to the Monitor once per second
-    setUpStatsToMonitor();
+    setUpStatsToMonitor(ppid);
 }
 
 
@@ -118,13 +118,13 @@ void AssignmentClient::stopAssignmentClient() {
 }
 
 
-void AssignmentClient::setUpStatsToMonitor() {
+void AssignmentClient::setUpStatsToMonitor(int ppid) {
     // Figure out the address to send out stats to
     quint16 localMonitorServerPort = DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT;
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->getLocalServerPortFromSharedMemory(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY,
-                                                 _localACMPortSharedMem, localMonitorServerPort);
+    nodeList->getLocalServerPortFromSharedMemory(QString(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY) + "-" +
+                                                 QString::number(ppid), _localACMPortSharedMem, localMonitorServerPort);
     _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, localMonitorServerPort, true);
 
     // send a stats packet every 1 seconds

@@ -87,6 +87,7 @@
 
 #include "Application.h"
 #include "AudioClient.h"
+#include "DiscoverabilityManager.h"
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
@@ -141,7 +142,7 @@ using namespace std;
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
 
-const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
@@ -151,7 +152,7 @@ static QTimer* billboardPacketTimer = NULL;
 static QTimer* checkFPStimer = NULL;
 static QTimer* idleTimer = NULL;
 
-const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
+const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
@@ -246,6 +247,7 @@ bool setupEssentials(int& argc, char** argv) {
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
+    auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     
     return true;
 }
@@ -367,11 +369,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, &DomainHandler::hostnameChanged,
             DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
-    // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
+    // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
     locationUpdateTimer = new QTimer(this);
-    connect(locationUpdateTimer, &QTimer::timeout, this, &Application::updateLocationInServer);
+    auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
+    connect(locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
@@ -445,7 +448,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);
-
+    
     ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);
@@ -495,6 +498,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             bandwidthRecorder.data(), SLOT(updateOutboundData(const quint8, const int)));
     connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
             bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
+
+    connect(&_myAvatar->getSkeletonModel(), &SkeletonModel::skeletonLoaded, 
+            this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // check first run...
     if (_firstRun.get()) {
@@ -778,13 +784,10 @@ void Application::paintGL() {
 
         DependencyManager::get<GlowEffect>()->render();
 
-        {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
             PerformanceTimer perfTimer("renderOverlay");
-            // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
             _applicationOverlay.renderOverlay(true);
-            if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
-                _applicationOverlay.displayOverlayTexture();
-            }
+            _applicationOverlay.displayOverlayTexture();
         }
     }
 
@@ -1148,6 +1151,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 
                 break;
+            }
+
+            case Qt::Key_Comma: {
+                _myAvatar->togglePhysicsEnabled();
             }
             
             default:
@@ -1684,10 +1691,50 @@ void Application::setActiveFaceTracker() {
 #endif
 }
 
+bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
+    QVector<EntityItem*> entities;
+
+    auto entityTree = _entities.getTree();
+    EntityTree exportTree;
+
+    glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+    for (auto entityID : entityIDs) {
+        auto entityItem = entityTree->findEntityByEntityItemID(entityID);
+        if (!entityItem) {
+            continue;
+        }
+
+        auto properties = entityItem->getProperties();
+        auto position = properties.getPosition();
+
+        root.x = glm::min(root.x, position.x);
+        root.y = glm::min(root.y, position.y);
+        root.z = glm::min(root.z, position.z);
+
+        entities << entityItem;
+    }
+
+    if (entities.size() == 0) {
+        return false;
+    }
+
+    for (auto entityItem : entities) {
+        auto properties = entityItem->getProperties();
+
+        properties.setPosition(properties.getPosition() - root);
+        exportTree.addEntity(entityItem->getEntityItemID(), properties);
+    }
+
+    exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+
+    // restore the main window's active state
+    _window->activateWindow();
+    return true;
+}
+
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItem*> entities;
-    _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
-                                y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), entities);
+    _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
         glm::vec3 root(x, y, z);
@@ -1734,8 +1781,8 @@ bool Application::importEntities(const QString& filename) {
     return success;
 }
 
-void Application::pasteEntities(float x, float y, float z) {
-    _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
+QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
+    return _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::initDisplay() {
@@ -1817,6 +1864,9 @@ void Application::init() {
     _physicsEngine.setEntityTree(tree);
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
+
+
+    _physicsEngine.setAvatarData(_myAvatar);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
@@ -2314,7 +2364,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverBounds.scale(TREE_SCALE);
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
@@ -2378,7 +2427,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverBounds.scale(TREE_SCALE);
                     
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
@@ -3197,45 +3245,6 @@ void Application::updateWindowTitle(){
     _window->setWindowTitle(title);
 }
 
-void Application::updateLocationInServer() {
-
-    AccountManager& accountManager = AccountManager::getInstance();
-    auto addressManager = DependencyManager::get<AddressManager>();
-    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    
-    if (accountManager.isLoggedIn() && domainHandler.isConnected()
-        && (!addressManager->getRootPlaceID().isNull() || !domainHandler.getUUID().isNull())) {
-
-        // construct a QJsonObject given the user's current address information
-        QJsonObject rootObject;
-
-        QJsonObject locationObject;
-        
-        QString pathString = addressManager->currentPath();
-       
-        const QString LOCATION_KEY_IN_ROOT = "location";
-        
-        const QString PATH_KEY_IN_LOCATION = "path";
-        locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        
-        if (!addressManager->getRootPlaceID().isNull()) {
-            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
-            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
-                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
-            
-        } else {
-            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
-            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
-                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
-        }
-
-        rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
-
-        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
-     }
-}
-
 void Application::clearDomainOctreeDetails() {
     qDebug() << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
@@ -3921,8 +3930,8 @@ void Application::takeSnapshot() {
 }
 
 void Application::setVSyncEnabled() {
-    bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
 #if defined(Q_OS_WIN)
+    bool vsyncOn = Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn);
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         wglSwapIntervalEXT(vsyncOn);
         int swapInterval = wglGetSwapIntervalEXT();
@@ -3945,7 +3954,6 @@ void Application::setVSyncEnabled() {
 #else
     qDebug("V-Sync is FORCED ON on this system\n");
 #endif
-    vsyncOn = true; // Turns off unused variable warning
 }
 
 bool Application::isVSyncOn() const {
@@ -4055,5 +4063,21 @@ void Application::notifyPacketVersionMismatch() {
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
+    }
+}
+
+void Application::checkSkeleton() {
+    if (_myAvatar->getSkeletonModel().isActive() && !_myAvatar->getSkeletonModel().hasSkeleton()) {
+        qDebug() << "MyAvatar model has no skeleton";
+    
+        QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+        
+        _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
+        _myAvatar->sendIdentityPacket();
     }
 }
