@@ -149,7 +149,7 @@ public:
 
     /// For loading resources, returns the load progress.
     float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
-
+    
     /// Refreshes the resource.
     void refresh();
 
@@ -169,6 +169,10 @@ signals:
 protected slots:
 
     void attemptRequest();
+    
+    /// Refreshes the resource if the last modified date on the network
+    /// is greater than the last modified date in the cache.
+    void maybeRefresh();
 
 protected:
 

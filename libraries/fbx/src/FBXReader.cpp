@@ -295,7 +295,11 @@ public:
 
     Tokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) { }
 
-    enum SpecialToken { DATUM_TOKEN = 0x100 };
+    enum SpecialToken {
+        NO_TOKEN = -1,
+        NO_PUSHBACKED_TOKEN = -1,
+        DATUM_TOKEN = 0x100
+    };
 
     int nextToken();
     const QByteArray& getDatum() const { return _datum; }
@@ -311,9 +315,9 @@ private:
 };
 
 int Tokenizer::nextToken() {
-    if (_pushedBackToken != -1) {
+    if (_pushedBackToken != NO_PUSHBACKED_TOKEN) {
         int token = _pushedBackToken;
-        _pushedBackToken = -1;
+        _pushedBackToken = NO_PUSHBACKED_TOKEN;
         return token;
     }
 
@@ -361,7 +365,7 @@ int Tokenizer::nextToken() {
                 return DATUM_TOKEN;
         }
     }
-    return -1;
+    return NO_TOKEN;
 }
 
 FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
@@ -378,7 +382,7 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
 
     int token;
     bool expectingDatum = true;
-    while ((token = tokenizer.nextToken()) != -1) {
+    while ((token = tokenizer.nextToken()) != Tokenizer::NO_TOKEN) {
         if (token == '{') {
             for (FBXNode child = parseTextFBXNode(tokenizer); !child.name.isNull(); child = parseTextFBXNode(tokenizer)) {
                 node.children.append(child);
@@ -1266,6 +1270,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     QVector<QString> humanIKJointIDs(humanIKJointNames.size());
 
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
+    
     QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
     for (int i = 0;; i++) {
         QByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
@@ -1720,12 +1725,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 
                     } else if (object.properties.last() == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
+
                         name = name.left(name.indexOf('\0'));
                         if (!blendshapeIndices.contains(name)) {
                             // try everything after the dot
                             name = name.mid(name.lastIndexOf('.') + 1);
                         }
                         QString id = getID(object.properties);
+                        geometry.blendshapeChannelNames << name;
                         foreach (const WeightedIndex& index, blendshapeIndices.values(name)) {
                             blendshapeChannelIndices.insert(id, index);
                         }

@@ -20,6 +20,7 @@
 #include "QVariantGLM.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
+const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_ANIMATION_URL = QString("");
 const float ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
@@ -45,6 +46,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionModelURL, getCollisionModelURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationURL, getAnimationURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
@@ -62,6 +64,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionModelURL, setCollisionModelURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationURL, setAnimationURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
@@ -93,6 +96,11 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
     READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
+    if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
+        setCollisionModelURL("");
+    } else {
+        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
+    }
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
 
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
@@ -129,6 +137,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_MODEL_URL;
+    requestedProperties += PROP_COLLISION_MODEL_URL;
     requestedProperties += PROP_ANIMATION_URL;
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
@@ -152,6 +161,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, getModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_COLLISION_MODEL_URL, appendValue, getCollisionModelURL());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, getAnimationURL());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
@@ -256,9 +266,10 @@ void ModelEntityItem::update(const quint64& now) {
 void ModelEntityItem::debugDump() const {
     qDebug() << "ModelEntityItem id:" << getEntityItemID();
     qDebug() << "    edited ago:" << getEditedAgo();
-    qDebug() << "    position:" << getPosition() * (float)TREE_SCALE;
-    qDebug() << "    dimensions:" << getDimensions() * (float)TREE_SCALE;
+    qDebug() << "    position:" << getPosition();
+    qDebug() << "    dimensions:" << getDimensions();
     qDebug() << "    model URL:" << getModelURL();
+    qDebug() << "    collision model URL:" << getCollisionModelURL();
 }
 
 void ModelEntityItem::updateShapeType(ShapeType type) {

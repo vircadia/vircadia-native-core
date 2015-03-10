@@ -125,7 +125,7 @@ namespace MenuOption {
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
-    const QString CachesSize = "Caches Size";
+    const QString CachesSize = "RAM Caches Size";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
     const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
@@ -143,9 +143,9 @@ namespace MenuOption {
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable NACK Packets";
+    const QString DiskCacheEditor = "Disk Cache Editor";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
-    const QString DisplayHermiteData = "Display Hermite Data";
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelTriangles = "Display Model Triangles";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
@@ -186,12 +186,9 @@ namespace MenuOption {
     const QString Login = "Login";
     const QString Log = "Log";
     const QString LowVelocityFilter = "Low Velocity Filter";
-    const QString MetavoxelEditor = "Metavoxel Editor...";
-    const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
-    const QString NetworkSimulator = "Network Simulator...";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString NoFaceTracking = "None";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
@@ -205,10 +202,8 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
-    const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
-    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
     const QString RenderTargetFramerate = "Framerate";

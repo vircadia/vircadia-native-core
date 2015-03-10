@@ -63,8 +63,8 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
     int vertices = slices * (stacks - 1) + 2;    
     int indices = slices * (stacks - 1) * NUM_VERTICES_PER_TRIANGULATED_QUAD;
     
-    if (registered && (!_registeredSphereVertices.contains(id) || _lastRegisteredSphereVertices[id] != radiusKey)
-        || !registered && !_sphereVertices.contains(radiusKey)) {
+    if ((registered && (!_registeredSphereVertices.contains(id) || _lastRegisteredSphereVertices[id] != radiusKey))
+        || (!registered && !_sphereVertices.contains(radiusKey))) {
 
         if (registered && _registeredSphereVertices.contains(id)) {
             _registeredSphereVertices[id].clear();
@@ -127,8 +127,8 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
     }
     #endif
     
-    if (registered && (!_registeredSphereIndices.contains(id) || _lastRegisteredSphereIndices[id] != slicesStacksKey)
-        || !registered && !_sphereIndices.contains(slicesStacksKey)) {
+    if ((registered && (!_registeredSphereIndices.contains(id) || _lastRegisteredSphereIndices[id] != slicesStacksKey))
+        || (!registered && !_sphereIndices.contains(slicesStacksKey))) {
 
         if (registered && _registeredSphereIndices.contains(id)) {
             _registeredSphereIndices[id].clear();
@@ -213,8 +213,8 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
     }
     #endif
 
-    if (registered && (!_registeredSphereColors.contains(id) || _lastRegisteredSphereColors[id] != colorKey) 
-        || !registered && !_sphereColors.contains(colorKey)) {
+    if ((registered && (!_registeredSphereColors.contains(id) || _lastRegisteredSphereColors[id] != colorKey)) 
+        || (!registered && !_sphereColors.contains(colorKey))) {
 
         if (registered && _registeredSphereColors.contains(id)) {
             _registeredSphereColors[id].clear();
@@ -2084,6 +2084,7 @@ void GeometryReader::run() {
         urlValid &= !urlname.isEmpty();
         urlValid &= !_url.path().isEmpty();
         urlValid &= _url.path().toLower().endsWith(".fbx")
+                    || _url.path().toLower().endsWith(".obj")
                     || _url.path().toLower().endsWith(".svo");
 
         if (urlValid) {
@@ -2101,6 +2102,8 @@ void GeometryReader::run() {
                     lightmapLevel = 3.5f;
                 }
                 fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
+            } else if (_url.path().toLower().endsWith(".obj")) {
+                fbxgeo = readOBJ(_reply, _mapping);
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {

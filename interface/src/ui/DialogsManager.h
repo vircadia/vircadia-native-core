@@ -24,16 +24,15 @@ class QAction;
 class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
-class CachesSizeDialog;
-class ChatWindow;
 class BandwidthDialog;
+class CachesSizeDialog;
+class DiskCacheEditor;
 class LodToolsDialog;
 class LoginDialog;
-class MetavoxelEditor;
-class MetavoxelNetworkSimulator;
 class OctreeStatsDialog;
 class PreferencesDialog;
 class ScriptEditorWindow;
+class QMessageBox;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
@@ -45,10 +44,9 @@ public:
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
     
-    void setupChat();
-    
 public slots:
     void toggleAddressBar();
+    void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();
     void octreeStatsDetails();
@@ -59,15 +57,12 @@ public slots:
     void bandwidthDetails();
     void lodTools();
     void hmdTools(bool showTools);
-    void showMetavoxelEditor();
-    void showMetavoxelNetworkSimulator();
     void showScriptEditor();
-    void showChat();
-    
+    void showIRCLink();
+
 private slots:
     void toggleToolWindow();
     void hmdToolsClosed();
-    void toggleChat();
     
 private:
     DialogsManager() {}
@@ -80,7 +75,7 @@ private:
             member = new T(parent);
             Q_CHECK_PTR(member);
             
-            if (_hmdToolsDialog) {
+            if (_hmdToolsDialog && member->windowHandle()) {
                 _hmdToolsDialog->watchWindow(member->windowHandle());
             }
         }
@@ -91,12 +86,11 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
-    QPointer<ChatWindow> _chatWindow;
+    QPointer<DiskCacheEditor> _diskCacheEditor;
+    QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<LoginDialog> _loginDialog;
-    QPointer<MetavoxelEditor> _metavoxelEditor;
-    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;

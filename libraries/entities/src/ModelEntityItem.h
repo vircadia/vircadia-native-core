@@ -57,9 +57,13 @@ public:
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
     bool hasModel() const { return !_modelURL.isEmpty(); }
+    bool hasCollisionModel() const { return !_collisionModelURL.isEmpty(); }
 
     static const QString DEFAULT_MODEL_URL;
     const QString& getModelURL() const { return _modelURL; }
+
+    static const QString DEFAULT_COLLISION_MODEL_URL;
+    const QString& getCollisionModelURL() const { return _collisionModelURL; }
 
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     static const QString DEFAULT_ANIMATION_URL;
@@ -74,6 +78,7 @@ public:
     
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
+    void setCollisionModelURL(const QString& url) { _collisionModelURL = url; }
     void setAnimationURL(const QString& url);
     static const float DEFAULT_ANIMATION_FRAME_INDEX;
     void setAnimationFrameIndex(float value);
@@ -124,6 +129,7 @@ protected:
 
     rgbColor _color;
     QString _modelURL;
+    QString _collisionModelURL;
 
     quint64 _lastAnimated;
     QString _animationURL;

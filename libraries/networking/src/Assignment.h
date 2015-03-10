@@ -26,14 +26,14 @@ class Assignment : public NodeData {
 public:
 
     enum Type {
-        AudioMixerType,
-        AvatarMixerType,
-        AgentType,
-        UNUSED_0,
-        UNUSED_1,
-        MetavoxelServerType,
-        EntityServerType,
-        AllTypes
+        AudioMixerType = 0,
+        AvatarMixerType = 1,
+        AgentType = 2,
+        UNUSED_0 = 3,
+        UNUSED_1 = 4,
+        UNUSED_2 = 5,
+        EntityServerType = 6,
+        AllTypes = 7
     };
 
     enum Command {

@@ -276,7 +276,7 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     
     if (destinationElement->getScale() < SCALE_AT_DANGEROUSLY_DEEP_RECURSION) {
         qDebug() << "UNEXPECTED: readElementData() destination element is unreasonably small [" 
-                << destinationElement->getScale() * (float)TREE_SCALE << " meters] "
+                << destinationElement->getScale() << " meters] "
                 << " Discarding " << bytesAvailable << " remaining bytes.";
         return bytesAvailable; // assume we read the entire buffer...
     }
@@ -708,7 +708,7 @@ bool findRayIntersectionOp(OctreeElement* element, void* extraData) {
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     OctreeElement*& element, float& distance, BoxFace& face, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    RayArgs args = { origin / (float)(TREE_SCALE), direction, element, distance, face, 
+    RayArgs args = { origin, direction, element, distance, face, 
                         intersectedObject, false, precisionPicking};
     distance = FLT_MAX;
 
@@ -728,10 +728,6 @@ bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
 
     recurseTreeWithOperation(findRayIntersectionOp, &args);
     
-    if (args.found) {
-        args.distance *= (float)(TREE_SCALE); // scale back up to meters
-    }
-
     if (gotLock) {
         unlock();
     }
@@ -755,8 +751,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
     // coarse check against bounds
-    const AACube& box = element->getAACube();
-    if (!box.expandedContains(args->center, args->radius)) {
+    if (!element->getAACube().expandedContains(args->center, args->radius)) {
         return false;
     }
     if (element->hasContent()) {
@@ -764,7 +759,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
         if (element->findSpherePenetration(args->center, args->radius, elementPenetration, &args->penetratedObject)) {
             // NOTE: it is possible for this penetration accumulation algorithm to produce a 
             // final penetration vector with zero length.
-            args->penetration = addPenetrations(args->penetration, elementPenetration * (float)(TREE_SCALE));
+            args->penetration = addPenetrations(args->penetration, elementPenetration);
             args->found = true;
         }
     }
@@ -778,8 +773,8 @@ bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::v
                     void** penetratedObject, Octree::lockType lockType, bool* accurateResult) {
 
     SphereArgs args = {
-        center / (float)(TREE_SCALE),
-        radius / (float)(TREE_SCALE),
+        center,
+        radius,
         penetration,
         false,
         NULL };
@@ -840,14 +835,13 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
-    const AACube& box = element->getAACube();
-    if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
+    if (!element->getAACube().expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
     if (element->hasContent()) {
         glm::vec3 nodePenetration;
-        if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
-            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)(TREE_SCALE));
+        if (element->getAACube().findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
+            args->penetration = addPenetrations(args->penetration, nodePenetration);
             args->found = true;
         }
     }
@@ -874,8 +868,7 @@ bool findContentInCubeOp(OctreeElement* element, void* extraData) {
     ContentArgs* args = static_cast<ContentArgs*>(extraData);
 
     // coarse check against bounds
-    AACube cube = element->getAACube();
-    cube.scale(TREE_SCALE);
+    const AACube& cube = element->getAACube();
     if (!cube.touches(args->cube)) {
         return false;
     }
@@ -894,12 +887,7 @@ bool findContentInCubeOp(OctreeElement* element, void* extraData) {
 bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
                     glm::vec3& penetration, Octree::lockType lockType, bool* accurateResult) {
                     
-    CapsuleArgs args = {
-        start / (float)(TREE_SCALE),
-        end / (float)(TREE_SCALE),
-        radius / (float)(TREE_SCALE),
-        penetration,
-        false };
+    CapsuleArgs args = { start, end, radius, penetration, false };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
 
     bool gotLock = false;
@@ -947,8 +935,7 @@ public:
 // Find the smallest colored voxel enclosing a point (if there is one)
 bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
-    AACube elementBox = element->getAACube();
-    if (elementBox.contains(args->point)) {
+    if (element->getAACube().contains(args->point)) {
         if (element->hasContent() && element->isLeaf()) {
             // we've reached a solid leaf containing the point, return the element.
             args->element = element;
@@ -1214,9 +1201,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
         if (params.wantOcclusionCulling && !element->isLeaf()) {
-            AACube voxelBox = element->getAACube();
-            voxelBox.scale(TREE_SCALE);
-            OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(voxelBox));
+            OctreeProjectedPolygon* voxelPolygon = 
+                new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(element->getAACube()));
 
             // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
             // culling and proceed as normal
@@ -1367,10 +1353,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
 
-                    AACube voxelBox = childElement->getAACube();
-                    voxelBox.scale(TREE_SCALE);
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
-                                params.viewFrustum->getProjectedPolygon(voxelBox));
+                                params.viewFrustum->getProjectedPolygon(childElement->getAACube()));
 
                     // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we ignore occlusion
                     // culling and proceed as normal
@@ -2101,58 +2085,6 @@ unsigned long Octree::getOctreeElementsCount() {
 bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraData) {
     (*(unsigned long*)extraData)++;
     return true; // keep going
-}
-
-void Octree::copySubTreeIntoNewTree(OctreeElement* startElement, Octree* destinationTree, bool rebaseToRoot) {
-    OctreeElementBag elementBag;
-    elementBag.insert(startElement);
-    int chopLevels = 0;
-    if (rebaseToRoot) {
-        chopLevels = numberOfThreeBitSectionsInCode(startElement->getOctalCode());
-    }
-
-    EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
-    OctreeElementExtraEncodeData extraEncodeData;
-    params.extraEncodeData = &extraEncodeData;
-
-    OctreePacketData packetData;
-
-    while (!elementBag.isEmpty()) {
-        OctreeElement* subTree = elementBag.extract();
-        packetData.reset(); // reset the packet between usage
-        // ask our tree to write a bitsteam
-        encodeTreeBitstream(subTree, &packetData, elementBag, params);
-        // ask destination tree to read the bitstream
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
-        destinationTree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
-    }
-}
-
-void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinationElement) {
-    OctreeElementBag elementBag;
-    // If we were given a specific element, start from there, otherwise start from root
-    elementBag.insert(sourceTree->_rootElement);
-
-    OctreePacketData packetData;
-
-    EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-    OctreeElementExtraEncodeData extraEncodeData;
-    params.extraEncodeData = &extraEncodeData;
-
-    while (!elementBag.isEmpty()) {
-        OctreeElement* subTree = elementBag.extract();
-
-        packetData.reset(); // reset between usage
-
-        // ask our tree to write a bitsteam
-        sourceTree->encodeTreeBitstream(subTree, &packetData, elementBag, params);
-
-        // ask destination tree to read the bitstream
-        bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationElement, 
-                                            0, SharedNodePointer(), wantImportProgress);
-        readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
-    }
 }
 
 void Octree::cancelImport() {

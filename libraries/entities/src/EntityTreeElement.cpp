@@ -50,7 +50,7 @@ EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
 
 void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) const { 
     qDebug() << "EntityTreeElement::debugExtraEncodeData()... ";
-    qDebug() << "    element:" << getAACube();
+    qDebug() << "    element:" << _cube;
 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
@@ -159,7 +159,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     const bool wantDebug = false;
     
     if (wantDebug) {
-        qDebug() << "EntityTreeElement::elementEncodeComplete() element:" << getAACube();
+        qDebug() << "EntityTreeElement::elementEncodeComplete() element:" << _cube;
     }
 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
@@ -194,7 +194,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
                                 = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement));
                                 
                 if (wantDebug) {
-                    qDebug() << "checking child: " << childElement->getAACube();
+                    qDebug() << "checking child: " << childElement->_cube;
                     qDebug() << "    childElement->isLeaf():" << childElement->isLeaf();
                     qDebug() << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
                     qDebug() << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
@@ -215,7 +215,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     }
 
     if (wantDebug) {
-        qDebug() << "for this element: " << getAACube();
+        qDebug() << "for this element: " << _cube;
         qDebug() << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
         qDebug() << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
     }
@@ -302,7 +302,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 // the entity may not be in view and then in view a frame later, let the client side handle it's view
                 // frustum culling on rendering.
                 AACube entityCube = entity->getMaximumAACube();
-                entityCube.scale(TREE_SCALE);
                 if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                     includeThisEntity = false; // out of view, don't include it
                 }
@@ -417,11 +416,11 @@ bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
 }
 
 bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
-    return containsBounds(properties.getMaximumAACubeInTreeUnits());
+    return containsBounds(properties.getMaximumAACube());
 }
 
 bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
-    return bestFitBounds(properties.getMaximumAACubeInTreeUnits());
+    return bestFitBounds(properties.getMaximumAACube());
 }
 
 bool EntityTreeElement::containsBounds(const AACube& bounds) const {
@@ -441,14 +440,14 @@ bool EntityTreeElement::bestFitBounds(const AABox& bounds) const {
 }
 
 bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
+    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, (float)TREE_SCALE);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, (float)TREE_SCALE);
     return _cube.contains(clampedMin) && _cube.contains(clampedMax);
 }
 
 bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
+    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, (float)TREE_SCALE);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, (float)TREE_SCALE);
 
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         
@@ -823,9 +822,7 @@ bool EntityTreeElement::pruneChildren() {
 
 void EntityTreeElement::debugDump() {
     qDebug() << "EntityTreeElement...";
-    AACube temp = getAACube();
-    temp.scale((float)TREE_SCALE);
-    qDebug() << "    cube:" << temp;
+    qDebug() << "    cube:" << _cube;
     qDebug() << "    has child elements:" << getChildCount();
     if (_entityItems->size()) {
         qDebug() << "    has entities:" << _entityItems->size();

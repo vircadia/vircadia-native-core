@@ -74,13 +74,11 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES;
+            return VERSION_ENTITIES_HAS_COLLISION_MODEL;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
             return 1;
-        case PacketTypeMetavoxelData:
-            return 13;
         default:
             return 0;
     }
@@ -114,7 +112,6 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeStats);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdiction);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdictionRequest);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeMetavoxelData);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarIdentity);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarBillboard);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainConnectRequest);

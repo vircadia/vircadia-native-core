@@ -20,8 +20,6 @@
 // creating a new one on the stack so we declare the ZERO_VEC3 constant as an optimization.
 const glm::vec3 ENTITY_ITEM_ZERO_VEC3(0.0f);
 
-const glm::vec3 REGULAR_GRAVITY = glm::vec3(0, -9.8f / (float)TREE_SCALE, 0);
-
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");
 
@@ -37,7 +35,7 @@ const float ENTITY_ITEM_DEFAULT_LIFETIME = ENTITY_ITEM_IMMORTAL_LIFETIME;
 
 const glm::quat ENTITY_ITEM_DEFAULT_ROTATION;
 const float ENTITY_ITEM_DEFAULT_WIDTH = 0.1f;
-const glm::vec3 ENTITY_ITEM_DEFAULT_DIMENSIONS = glm::vec3(ENTITY_ITEM_DEFAULT_WIDTH) / (float)TREE_SCALE;
+const glm::vec3 ENTITY_ITEM_DEFAULT_DIMENSIONS = glm::vec3(ENTITY_ITEM_DEFAULT_WIDTH);
 const float ENTITY_ITEM_DEFAULT_VOLUME = ENTITY_ITEM_DEFAULT_WIDTH * ENTITY_ITEM_DEFAULT_WIDTH * ENTITY_ITEM_DEFAULT_WIDTH;
 
 const float ENTITY_ITEM_MAX_DENSITY = 10000.0f; // kg/m^3 density of silver

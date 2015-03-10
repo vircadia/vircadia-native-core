@@ -41,10 +41,16 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityIte
     setProperties(properties);
 }
 
+const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
+
 void TextEntityItem::setDimensions(const glm::vec3& value) {
     // NOTE: Text Entities always have a "depth" of 1cm.
-    float fixedDepth = 0.01f / (float)TREE_SCALE;
-    _dimensions = glm::vec3(value.x, value.y, fixedDepth); 
+    _dimensions = glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH); 
+}
+
+void TextEntityItem::setDimensionsInDomainUnits(const glm::vec3& value) {
+    // NOTE: Text Entities always have a "depth" of 1cm.
+    _dimensions = glm::vec3(value.x * (float)TREE_SCALE, value.y * (float)TREE_SCALE, TEXT_ENTITY_ITEM_FIXED_DEPTH); 
 }
 
 EntityItemProperties TextEntityItem::getProperties() const {
@@ -137,7 +143,7 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
     glm::vec3 normal = _rotation * UNROTATED_NORMAL;
     plane.setNormal(normal);
-    plane.setPoint(_position); // the position is definitely a point on our plane
+    plane.setPoint(getPosition()); // the position is definitely a point on our plane
 
     bool intersects = plane.findRayIntersection(rayInfo);
 

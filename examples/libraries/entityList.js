@@ -28,7 +28,6 @@ EntityListTool = function(opts) {
             type: 'selectionUpdate',
             selectedIDs: selectedIDs,
         };
-        print("Sending: " + JSON.stringify(data));
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
@@ -59,7 +58,6 @@ EntityListTool = function(opts) {
     }
 
     webView.eventBridge.webEventReceived.connect(function(data) {
-        print("Got: " + data);
         data = JSON.parse(data);
         if (data.type == "selectionUpdate") {
             var ids = data.entityIds;

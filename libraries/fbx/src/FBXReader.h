@@ -152,8 +152,6 @@ public:
     
     bool hasSpecularTexture() const;
     bool hasEmissiveTexture() const;
-
-    model::Mesh _mesh;
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -257,6 +255,8 @@ public:
     
     /// given a meshIndex this will return the name of the model that mesh belongs to if known
     QString getModelNameOfMesh(int meshIndex) const;
+    
+    QList<QString> blendshapeChannelNames;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)

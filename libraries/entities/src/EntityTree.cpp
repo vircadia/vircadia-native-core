@@ -202,7 +202,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     // construct the instance of the entity
     EntityTypes::EntityType type = properties.getType();
     result = EntityTypes::constructEntityItem(type, entityID, properties);
-
+    
     if (result) {
         if (recordCreationTime) {
             result->recordCreationTime();
@@ -425,8 +425,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
     glm::vec3 penetration;
-    bool sphereIntersection = entityTreeElement->getAACube().findSpherePenetration(args->position,
-                                                                    args->targetRadius, penetration);
+    bool sphereIntersection = entityTreeElement->getAACube().findSpherePenetration(args->position, args->targetRadius, penetration);
 
     // If this entityTreeElement contains the point, then search it...
     if (sphereIntersection) {
@@ -476,8 +475,7 @@ public:
 bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) {
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
-    bool sphereIntersection = element->getAACube().findSpherePenetration(args->position,
-                                                                    args->targetRadius, penetration);
+    bool sphereIntersection = element->getAACube().findSpherePenetration(args->position, args->targetRadius, penetration);
 
     // If this element contains the point, then search it...
     if (sphereIntersection) {
@@ -512,8 +510,7 @@ public:
 
 bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
     FindEntitiesInCubeArgs* args = static_cast<FindEntitiesInCubeArgs*>(extraData);
-    const AACube& elementCube = element->getAACube();
-    if (elementCube.touches(args->_cube)) {
+    if (element->getAACube().touches(args->_cube)) {
         EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
         entityTreeElement->getEntities(args->_cube, args->_foundEntities);
         return true;
@@ -1001,13 +998,17 @@ void EntityTree::pruneTree() {
     recurseTreeWithOperator(&theOperator);
 }
 
-void EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z) {
+QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
     args.localTree = localTree;
     args.root = glm::vec3(x, y, z);
+    QVector<EntityItemID> newEntityIDs;
+    args.newEntityIDs = &newEntityIDs;
     recurseTreeWithOperation(sendEntitiesOperation, &args);
     packetSender->releaseQueuedMessages();
+
+    return newEntityIDs;
 }
 
 bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) {
@@ -1017,6 +1018,7 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     const QList<EntityItem*>&  entities = entityTreeElement->getEntities();
     for (int i = 0; i < entities.size(); i++) {
         EntityItemID newID(NEW_ENTITY, EntityItemID::getNextCreatorTokenID(), false);
+        args->newEntityIDs->append(newID);
         EntityItemProperties properties = entities[i]->getProperties();
         properties.setPosition(properties.getPosition() + args->root);
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
