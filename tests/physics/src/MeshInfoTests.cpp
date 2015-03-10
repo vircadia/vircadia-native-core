@@ -14,7 +14,7 @@
 #include <MeshInfo.h>
 
 #include "MeshInfoTests.h"
-const float epsilon = 0.01f;
+const float epsilon = 0.015f;
 void MeshInfoTests::testWithTetrahedron(){
     glm::vec3 p0(8.33220, -11.86875, 0.93355);
     glm::vec3 p1(0.75523, 5.00000, 16.37072);
@@ -40,9 +40,12 @@ void MeshInfoTests::testWithTetrahedron(){
     float inertia_cc = 11996.20119f;
 
     meshinfo::MeshInfo meshinfo(&vertices,&triangles);
-    glm::vec3 tetCenterOfMass = meshinfo.getCentroid(p0, p1, p2, p3);
-    glm::vec3 diff = centroid - tetCenterOfMass;
     vector<float> voumeAndInertia = meshinfo.computeMassProperties();
+    glm::vec3 tetCenterOfMass = meshinfo.getMeshCentroid();
+
+    //get original center of mass
+    tetCenterOfMass = tetCenterOfMass + p0;
+    glm::vec3 diff = centroid - tetCenterOfMass;
     std::cout << std::setprecision(12);
     //test if centroid is correct
     if (diff.x > epsilon || diff.y > epsilon || diff.z > epsilon){
@@ -95,6 +98,37 @@ void MeshInfoTests::testWithTetrahedron(){
 
 }
 
+void MeshInfoTests::testWithTetrahedronAsMesh(){
+	glm::vec3 p0(8.33220, -11.86875, 0.93355);
+	glm::vec3 p1(0.75523, 5.00000, 16.37072);
+	glm::vec3 p2(52.61236, 5.00000, -5.38580);
+	glm::vec3 p3(2.00000, 5.00000, 3.00000);
+	glm::vec3 centroid(15.92492, 0.782813, 3.72962);
+	float volume = 1873.233236f;
+	float inertia_a = 43520.33257f;
+	//actual should be 194711.28938f. But for some reason it becomes 194711.296875 during
+	//runtime due to how floating points are stored.
+	float inertia_b = 194711.289f;
+	float inertia_c = 191168.76173f;
+	float inertia_aa = 4417.66150f;
+	float inertia_bb = -46343.16662f;
+	float inertia_cc = 11996.20119f;
+	std::cout << std::setprecision(12);
+	vector<glm::vec3> vertices = { p0, p1, p2, p3 };
+	vector<int> triangles = { 0, 1, 2, 0, 3, 1, 1, 3, 2, 0, 2, 3 }; //clockwise direction
+	meshinfo::MeshInfo massProp(&vertices, &triangles);
+	vector<float> volumeAndInertia = massProp.computeMassProperties();
+	std::cout << volumeAndInertia[0] << " " << volumeAndInertia[1] << " " << volumeAndInertia[2]
+		<< " " << volumeAndInertia[3]
+		<< " " << volumeAndInertia[4]
+		<< " " << volumeAndInertia[5] << " " << volumeAndInertia[6] << std::endl;
+
+	//translate the tetrahedron so that the model is placed at origin i.e. com is at origin
+	p0 -= centroid;
+	p1 -= centroid;
+	p2 -= centroid;
+	p3 -= centroid;
+}
 void MeshInfoTests::testWithCube(){
     glm::vec3 p0(1.0, -1.0, -1.0);
     glm::vec3 p1(1.0, -1.0, 1.0);
@@ -122,25 +156,25 @@ void MeshInfoTests::testWithCube(){
     double inertia = (volume * side * side) / 6.0; //inertia of a unit cube is (mass * side * side) /6
 
     //test with origin as reference point
-    meshinfo::MeshInfo massProp1(&vertices, &triangles);
-    vector<float> volumeAndInertia1 = massProp1.computeMassProperties();
-    if (abs(centerOfMass.x - massProp1.getMeshCentroid().x) > epsilon || abs(centerOfMass.y - massProp1.getMeshCentroid().y) > epsilon ||
-        abs(centerOfMass.z - massProp1.getMeshCentroid().z) > epsilon){
+    meshinfo::MeshInfo massProp(&vertices, &triangles);
+    vector<float> volumeAndInertia = massProp.computeMassProperties();
+    if (abs(centerOfMass.x - massProp.getMeshCentroid().x) > epsilon || abs(centerOfMass.y - massProp.getMeshCentroid().y) > epsilon ||
+        abs(centerOfMass.z - massProp.getMeshCentroid().z) > epsilon){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Center of mass is incorrect : Expected = " << centerOfMass.x << " " <<
-            centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp1.getMeshCentroid().x << " " <<
-            massProp1.getMeshCentroid().y << " " << massProp1.getMeshCentroid().z << std::endl;
+            centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp.getMeshCentroid().x << " " <<
+            massProp.getMeshCentroid().y << " " << massProp.getMeshCentroid().z << std::endl;
     }
 
-    if (abs(volume - volumeAndInertia1.at(0)) > epsilon){
+    if (abs(volume - volumeAndInertia.at(0)) > epsilon){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Volume is incorrect : Expected = " << volume <<
-            ", actual = " << volumeAndInertia1.at(0) << std::endl;
+            ", actual = " << volumeAndInertia.at(0) << std::endl;
     }
 
-    if (abs(inertia - (volumeAndInertia1.at(1))) > epsilon || abs(inertia - (volumeAndInertia1.at(2))) > epsilon ||
-        abs(inertia - (volumeAndInertia1.at(3))) > epsilon){
+    if (abs(inertia - (volumeAndInertia.at(1))) > epsilon || abs(inertia - (volumeAndInertia.at(2))) > epsilon ||
+        abs(inertia - (volumeAndInertia.at(3))) > epsilon){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Moment of inertia is incorrect : Expected = " << inertia << " " <<
-            inertia << " " << inertia << ", actual = " << (volumeAndInertia1.at(1)) << " " << (volumeAndInertia1.at(2)) <<
-            " " << (volumeAndInertia1.at(3)) << std::endl;
+            inertia << " " << inertia << ", actual = " << (volumeAndInertia.at(1)) << " " << (volumeAndInertia.at(2)) <<
+            " " << (volumeAndInertia.at(3)) << std::endl;
     }
 }
 
@@ -172,29 +206,30 @@ void MeshInfoTests::testWithUnitCube()
     std::cout << std::setprecision(10);
 
     //test with origin as reference point
-    meshinfo::MeshInfo massProp1(&vertices, &triangles);
-    vector<float> volumeAndInertia1 = massProp1.computeMassProperties();
-    if (abs(centerOfMass.x - massProp1.getMeshCentroid().x) > epsilon || abs(centerOfMass.y - massProp1.getMeshCentroid().y) > 
-        epsilon || abs(centerOfMass.z - massProp1.getMeshCentroid().z) > epsilon){
+    meshinfo::MeshInfo massProp(&vertices, &triangles);
+    vector<float> volumeAndInertia = massProp.computeMassProperties();
+    if (abs(centerOfMass.x - massProp.getMeshCentroid().x) > epsilon || abs(centerOfMass.y - massProp.getMeshCentroid().y) > 
+        epsilon || abs(centerOfMass.z - massProp.getMeshCentroid().z) > epsilon){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Center of mass is incorrect : Expected = " << centerOfMass.x <<
-            " " << centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp1.getMeshCentroid().x << " " <<
-            massProp1.getMeshCentroid().y << " " << massProp1.getMeshCentroid().z << std::endl;
+            " " << centerOfMass.y << " " << centerOfMass.z << ", actual = " << massProp.getMeshCentroid().x << " " <<
+            massProp.getMeshCentroid().y << " " << massProp.getMeshCentroid().z << std::endl;
     }
 
-    if (abs(volume - volumeAndInertia1.at(0)) > epsilon){
+    if (abs(volume - volumeAndInertia.at(0)) > epsilon){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Volume is incorrect : Expected = " << volume <<
-            ", actual = " << volumeAndInertia1.at(0) << std::endl;
+            ", actual = " << volumeAndInertia.at(0) << std::endl;
     }
 
-    if (abs(inertia - (volumeAndInertia1.at(1))) > epsilon || abs(inertia - (volumeAndInertia1.at(2))) > epsilon ||
-        abs(inertia - (volumeAndInertia1.at(3))) > epsilon){
+    if (abs(inertia - (volumeAndInertia.at(1))) > epsilon || abs(inertia - (volumeAndInertia.at(2))) > epsilon ||
+        abs(inertia - (volumeAndInertia.at(3))) > epsilon){
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : Moment of inertia is incorrect : Expected = " << inertia << " " <<
-            inertia << " " << inertia << ", actual = " << (volumeAndInertia1.at(1)) << " " << (volumeAndInertia1.at(2)) <<
-            " " << (volumeAndInertia1.at(3)) << std::endl;
+            inertia << " " << inertia << ", actual = " << (volumeAndInertia.at(1)) << " " << (volumeAndInertia.at(2)) <<
+            " " << (volumeAndInertia.at(3)) << std::endl;
     }
 }
 void MeshInfoTests::runAllTests(){
     testWithTetrahedron();
+	testWithTetrahedronAsMesh();
     testWithUnitCube();
     testWithCube();
 }

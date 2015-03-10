@@ -26,7 +26,6 @@ namespace meshinfo{
         vector<int> *_triangles;
         MeshInfo(vector<Vertex> *vertices, vector<int> *triangles);
         ~MeshInfo();
-        inline Vertex getCentroid(const Vertex p1, const Vertex p2, const Vertex p3, const Vertex p4) const;
         Vertex getMeshCentroid() const;
         vector<float> computeMassProperties();		
     };

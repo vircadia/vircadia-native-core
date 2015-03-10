@@ -16,5 +16,6 @@ namespace MeshInfoTests{
     void testWithUnitCube();
     void testWithCube();
     void runAllTests();
+	void testWithTetrahedronAsMesh();
 }
 #endif // hifi_MeshInfoTests_h
