@@ -19,7 +19,7 @@
 
 #include "DiscoverabilityManager.h"
 
-const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::None;
+const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::All;
 
 DiscoverabilityManager::DiscoverabilityManager() :
     _mode("discoverabilityMode", DEFAULT_DISCOVERABILITY_MODE)
