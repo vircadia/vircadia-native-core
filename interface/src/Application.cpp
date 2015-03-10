@@ -605,6 +605,7 @@ Application::~Application() {
     ModelEntityItem::cleanupLoadedAnimations();
     
     delete _glWidget;
+    _glWidget = NULL;
     
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
@@ -631,7 +632,7 @@ void Application::initializeGL() {
     #ifdef WIN32
     GLenum err = glewInit();
     if (GLEW_OK != err) {
-      /* Problem: glewInit fa   iled, something is seriously wrong. */
+      /* Problem: glewInit failed, something is seriously wrong. */
       qDebug("Error: %s\n", glewGetErrorString(err));
     }
     qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
