@@ -61,6 +61,11 @@ void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
     _doubleHashKey.clear();
 }
 
+void ShapeInfo::setHull(QString url) {
+    _type = SHAPE_TYPE_HULL;
+    _url = url;
+}
+
 void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
     _type = SHAPE_TYPE_CAPSULE_Y;
     _halfExtents = glm::vec3(radius, halfHeight, radius);

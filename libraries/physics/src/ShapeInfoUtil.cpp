@@ -26,6 +26,9 @@ int ShapeInfoUtil::toBulletShapeType(int shapeInfoType) {
         case SHAPE_TYPE_CAPSULE_Y:
             bulletShapeType = CAPSULE_SHAPE_PROXYTYPE;
             break;
+        case SHAPE_TYPE_HULL:
+            bulletShapeType = HULL_SHAPE_PROXYTYPE;
+            break;
     }
     return bulletShapeType;
 }
@@ -42,6 +45,9 @@ int ShapeInfoUtil::fromBulletShapeType(int bulletShapeType) {
         case CAPSULE_SHAPE_PROXYTYPE:
             shapeInfoType = SHAPE_TYPE_CAPSULE_Y;
             break;
+        case HULL_SHAPE_PROXYTYPE:
+            shapeInfoType = SHAPE_TYPE_HULL;
+            break;
     }
     return shapeInfoType;
 }
@@ -53,16 +59,21 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
             case SHAPE_TYPE_BOX: {
                 const btBoxShape* boxShape = static_cast<const btBoxShape*>(shape);
                 info.setBox(bulletToGLM(boxShape->getHalfExtentsWithMargin()));
+                break;
             }
-            break;
             case SHAPE_TYPE_SPHERE: {
                 const btSphereShape* sphereShape = static_cast<const btSphereShape*>(shape);
                 info.setSphere(sphereShape->getRadius());
+                break;
             }
-            break;
-            default:
+            case SHAPE_TYPE_HULL: {
+                XXX;
+                break;
+            }
+            default: {
                 info.clear();
-            break;
+                break;
+            }
         }
     } else {
         info.clear();
@@ -74,20 +85,24 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
     switch(info.getType()) {
         case SHAPE_TYPE_BOX: {
             shape = new btBoxShape(glmToBullet(info.getHalfExtents()));
+            break;
         }
-        break;
         case SHAPE_TYPE_SPHERE: {
             float radius = info.getHalfExtents().x;
             shape = new btSphereShape(radius);
+            break;
         }
-        break;
         case SHAPE_TYPE_CAPSULE_Y: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
             float height = 2.0f * halfExtents.y;
             shape = new btCapsuleShape(radius, height);
+            break;
         }
-        break;
+        case SHAPE_TYPE_HULL: {
+            XXX;
+            break;
+        }
     }
     return shape;
 }

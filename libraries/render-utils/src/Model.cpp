@@ -1018,6 +1018,10 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
+void Model::setCollisionModelURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+    _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
+}
+
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;

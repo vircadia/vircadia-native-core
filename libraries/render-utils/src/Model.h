@@ -106,7 +106,10 @@ public:
     /// \param delayLoad if true, don't load the model immediately; wait until actually requested
     Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(),
         bool retainCurrent = false, bool delayLoad = false);
-    
+
+    // Set the model to use for collisions
+    Q_INVOKABLE void setCollisionModelURL(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
+
     const QUrl& getURL() const { return _url; }
     
     /// Sets the distance parameter used for LOD computations.

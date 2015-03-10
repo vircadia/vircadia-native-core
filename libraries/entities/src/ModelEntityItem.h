@@ -49,7 +49,14 @@ public:
     virtual void debugDump() const;
 
     void updateShapeType(ShapeType type);
-    virtual ShapeType getShapeType() const { return _shapeType; }
+    virtual ShapeType getShapeType() const {
+        // return _shapeType;
+        if (_collisionModelURL != "") {
+            return SHAPE_TYPE_HULL;
+        } else {
+            return _shapeType;
+        }
+    }
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles

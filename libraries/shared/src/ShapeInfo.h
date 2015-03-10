@@ -41,7 +41,7 @@ public:
     void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
     void setEllipsoid(const glm::vec3& halfExtents);
-    //void setHull(); // TODO: implement this
+    void setHull(QString collisionModelURL);
     void setCapsuleY(float radius, float halfHeight);
 
     const int getType() const { return _type; }
@@ -50,6 +50,8 @@ public:
 
     void setData(const QVector<glm::vec3>* data) { _externalData = data; }
     const QVector<glm::vec3>* getData() const { return _externalData; }
+
+    QString& getURL() { return _url; }
 
     float computeVolume() const;
 
@@ -60,6 +62,7 @@ protected:
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     DoubleHashKey _doubleHashKey;
     const QVector<glm::vec3>* _externalData = NULL;
+    QString _url;
 };
 
 #endif // hifi_ShapeInfo_h
