@@ -33,8 +33,14 @@ var usersWindow = (function () {
         usersRequest,
         processUsers,
         usersTimedOut,
-        usersTimer,
+        usersTimer = null,
         UPDATE_TIMEOUT = 5000;  // ms = 5s
+
+        MENU_NAME = "Tools",
+        MENU_ITEM = "Users Online",
+        MENI_ITEM_AFTER = "Chat...",
+
+        isVisible = false;
 
     function onMousePressEvent(event) {
         var clickedOverlay,
@@ -47,6 +53,10 @@ var usersWindow = (function () {
             i,
             userIndex,
             foundUser;
+
+        if (!isVisible) {
+            return;
+        }
 
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
         if (clickedOverlay === usersPane2D) {
@@ -175,6 +185,27 @@ var usersWindow = (function () {
         usersTimer = Script.setTimeout(requestUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
     };
 
+    function setVisible(visible) {
+        isVisible = visible;
+
+        if (isVisible) {
+            if (usersTimer === null) {
+                requestUsers();
+            }
+        } else {
+            Script.clearTimeout(usersTimer);
+            usersTimer = null;
+        }
+
+        Overlays.editOverlay(usersPane2D, { visible: isVisible });
+    }
+
+    function onMenuItemEvent(event) {
+        if (event === MENU_ITEM) {
+            setVisible(Menu.isOptionChecked(MENU_ITEM));
+        }
+    }
+
     function setUp() {
         usersPane2D = Overlays.addOverlay("text", {
             bounds: WINDOW_BOUNDS_2D,
@@ -186,7 +217,7 @@ var usersWindow = (function () {
             backgroundAlpha: WINDOW_BACKGROUND_ALPHA_2D,
             text: "",
             font: USERS_FONT_2D,
-            visible: true
+            visible: isVisible
         });
 
         usersLineHeight = Math.floor(Overlays.textSize(usersPane2D, "1").height);
@@ -196,10 +227,21 @@ var usersWindow = (function () {
 
         Controller.mousePressEvent.connect(onMousePressEvent);
 
+        Menu.addMenuItem({
+            menuName: MENU_NAME,
+            menuItemName: MENU_ITEM,
+            afterItem: MENI_ITEM_AFTER,
+            isCheckable: true,
+            isChecked: isVisible
+        });
+        Menu.menuItemEvent.connect(onMenuItemEvent);
+
         requestUsers();
     }
 
     function tearDown() {
+        Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
+
         Script.clearTimeout(usersTimer);
         Overlays.deleteOverlay(usersPane2D);
     }
