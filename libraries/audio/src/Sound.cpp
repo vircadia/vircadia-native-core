@@ -118,18 +118,17 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
                 destinationSamples[i / 2] = sourceSamples[i];
                 destinationSamples[(i / 2) + 1] = sourceSamples[i + 1];
             } else {
-                destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 2] / 2);
-                destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] / 2) + (sourceSamples[i + 3] / 2);
+                destinationSamples[i / 2] = (sourceSamples[i] + sourceSamples[i + 2]) / 2;
+                destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] + sourceSamples[i + 3]) / 2;
             }
             
         }
     } else {
         for (int i = 1; i < numSourceSamples; i += 2) {
             if (i + 1 >= numSourceSamples) {
-                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 2) + (sourceSamples[i] / 2);
+                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] + sourceSamples[i]) / 2;
             } else {
-                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2)
-                                                + (sourceSamples[i + 1] / 4);
+                destinationSamples[(i - 1) / 2] = ((sourceSamples[i - 1] + sourceSamples[i + 1]) / 4) + (sourceSamples[i] / 2);
             }
         }
     }
