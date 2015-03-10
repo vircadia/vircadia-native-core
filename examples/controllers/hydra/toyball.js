@@ -51,7 +51,7 @@ var throwSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and
 var targetRadius = 0.25;
 
 
-var wantDebugging = true;
+var wantDebugging = false;
 function debugPrint(message) {
     if (wantDebugging) {
         print(message);
