@@ -20,11 +20,11 @@ var trailingLoudness = 0.0;
 var soundClip = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Tabla+Loops/Tabla1.wav");
 
 var properties = { 
-        type: "Box",
-        position: orbitCenter, 
-        dimensions: { x: 0.25, y: 0.25, z: 0.25 },
-        color: { red: 100, green: 0, blue : 0 }
-    };
+    type: "Box",
+    position: orbitCenter, 
+    dimensions: { x: 0.25, y: 0.25, z: 0.25 },
+    color: { red: 100, green: 0, blue : 0 }
+};
 
 var objectId = Entities.addEntity(properties);
 var sound = Audio.playSound(soundClip, { position: orbitCenter, loop: true, volume: 0.5 });
@@ -34,7 +34,7 @@ function update(deltaTime) {
     currentPosition = { x: orbitCenter.x + Math.cos(time * SPEED) * RADIUS, y: orbitCenter.y, z: orbitCenter.z + Math.sin(time * SPEED) * RADIUS };
     trailingLoudness = 0.9 * trailingLoudness + 0.1 * sound.loudness;
     Entities.editEntity( objectId, { position: currentPosition, color: { red: Math.min(trailingLoudness * 2000, 255), green: 0, blue: 0 } } );
-    sound.setOptions({ position: currentPosition });
+    sound.options = { position: currentPosition };
 }
 
 Script.scriptEnding.connect(function() {
