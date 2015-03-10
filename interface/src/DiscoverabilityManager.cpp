@@ -75,12 +75,12 @@ void DiscoverabilityManager::removeLocation() {
 }
 
 void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discoverabilityMode) {
-    if (_mode.get() != discoverabilityMode) {
+    if (static_cast<Discoverability::Mode>(_mode.get()) != discoverabilityMode) {
         
         // update the setting to the new value
-        _mode.set(discoverabilityMode);
+        _mode.set(static_cast<int>(discoverabilityMode));
         
-        if (_mode.get() == Discoverability::None) {
+        if (static_cast<int>(_mode.get()) == Discoverability::None) {
             // if we just got set to no discoverability, make sure that we delete our location in DB
             removeLocation();
         }
