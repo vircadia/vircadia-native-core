@@ -99,10 +99,11 @@ void EntitySimulation::sortEntitiesThatMoved() {
             _mortalEntities.remove(entity);
             _updateableEntities.remove(entity);
             removeEntityInternal(entity);
+            itemItr = _entitiesToBeSorted.erase(itemItr);
         } else {
             moveOperator.addEntityToMoveList(entity, newCube);
+            ++itemItr;
         }
-        ++itemItr;
     }
     if (moveOperator.hasMovingEntities()) {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
