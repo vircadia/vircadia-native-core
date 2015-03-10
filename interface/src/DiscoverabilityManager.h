@@ -33,7 +33,8 @@ public slots:
     void updateLocation();
     void removeLocation();
     
-    void setDiscoverability(Discoverability::Mode discoverabilityMode);
+    Discoverability::Mode getDiscoverabilityMode() { return _mode.get(); }
+    void setDiscoverabilityMode(Discoverability::Mode discoverabilityMode);
     
 private:
     DiscoverabilityManager();

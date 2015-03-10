@@ -66,8 +66,6 @@ void DiscoverabilityManager::updateLocation() {
             accountManager.authenticatedRequest(API_USER_LOCATION_PATH, QNetworkAccessManager::PutOperation,
                                                 JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
         }
-    } else {
-        qDebug() << "not updating discoverability since it is currently set to none!";
     }
 }
 
@@ -76,7 +74,7 @@ void DiscoverabilityManager::removeLocation() {
     accountManager.authenticatedRequest(API_USER_LOCATION_PATH, QNetworkAccessManager::DeleteOperation);
 }
 
-void DiscoverabilityManager::setDiscoverability(Discoverability::Mode discoverabilityMode) {
+void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discoverabilityMode) {
     if (_mode.get() != discoverabilityMode) {
         
         // update the setting to the new value
