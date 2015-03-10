@@ -247,6 +247,7 @@ bool setupEssentials(int& argc, char** argv) {
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
+    auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     
     return true;
 }

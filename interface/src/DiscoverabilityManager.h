@@ -13,6 +13,17 @@
 #define hifi_DiscoverabilityManager_h
 
 #include <DependencyManager.h>
+#include <SettingHandle.h>
+
+namespace Discoverability {
+    enum Mode {
+        None,
+        Friends,
+        All
+    };
+}
+
+Q_DECLARE_METATYPE(Discoverability::Mode);
 
 class DiscoverabilityManager : public QObject, public Dependency {
     Q_OBJECT
@@ -20,7 +31,14 @@ class DiscoverabilityManager : public QObject, public Dependency {
     
 public slots:
     void updateLocation();
-    void removeLocation();    
+    void removeLocation();
+    
+    void setDiscoverability(Discoverability::Mode discoverabilityMode);
+    
+private:
+    DiscoverabilityManager();
+    
+    Setting::Handle<Discoverability::Mode> _mode;
 };
 
 #endif // hifi_DiscoverabilityManager_h
