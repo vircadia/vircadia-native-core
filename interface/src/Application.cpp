@@ -1723,7 +1723,7 @@ void Application::saveSettings() {
 
 bool Application::importEntities(const QString& filename) {
     _entityClipboard.eraseAllOctreeElements();
-    bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+    bool success = _entityClipboard.readFromSVOURL(filename);
     if (success) {
         _entityClipboard.reaverageOctreeElements();
     }

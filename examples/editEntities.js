@@ -699,7 +699,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Entities", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities", shortcutKey: "CTRL+META+I", afterItem: "Export Entities" });
-
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities from URL", shortcutKey: "CTRL+META+U", afterItem: "Import Entities" });
 
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
@@ -799,6 +799,28 @@ function handeMenuEvent(menuItem) {
         var filename = Window.browse("Select models to import", "", "*.svo")
         if (filename) {
             var success = Clipboard.importEntities(filename);
+
+            if (success) {
+                var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+                var direction = Quat.getFront(Camera.orientation);
+                var offset = Vec3.multiply(distance, direction);
+                var position = Vec3.sum(Camera.position, offset);
+
+                position.x = Math.max(0, position.x);
+                position.y = Math.max(0, position.y);
+                position.z = Math.max(0, position.z);
+
+                var pastedEntityIDs = Clipboard.pasteEntities(position);
+
+                selectionManager.setSelections(pastedEntityIDs);
+            } else {
+                Window.alert("There was an error importing the entity file.");
+            }
+        }
+    } else if (menuItem == "Import Entities from URL") {
+        var url = Window.prompt("URL of SVO to import", "");
+        if (url) {
+            var success = Clipboard.importEntities(url);
 
             if (success) {
                 var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;

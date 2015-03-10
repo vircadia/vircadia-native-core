@@ -20,13 +20,18 @@
 
 #include <QDataStream>
 #include <QDebug>
+#include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QNetworkAccessManager>
 #include <QVector>
 
 #include <GeometryUtil.h>
-#include <OctalCode.h>
 #include <LogHandler.h>
+#include <NetworkAccessManager.h>
+#include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <Shape.h>
@@ -1862,6 +1867,38 @@ bool Octree::readFromSVOFile(const char* fileName) {
     return fileOk;
 }
 
+bool Octree::readFromSVOURL(const QString& urlString) {
+    bool readOk = false;
+
+    // determine if this is a local file or a network resource
+    QUrl url(urlString);
+    
+    if (url.isLocalFile()) {
+        readOk = readFromSVOFile(qPrintable(url.toLocalFile()));
+    } else {
+        QNetworkRequest request;
+        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        request.setUrl(url);
+    
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkReply* reply = networkAccessManager.get(request);
+
+        qDebug() << "Downloading svo at" << qPrintable(urlString);
+    
+        QEventLoop loop;
+        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+        loop.exec();
+
+        if (reply->error() == QNetworkReply::NoError) {
+            int resourceSize = reply->bytesAvailable();
+            QDataStream inputStream(reply);
+            readOk = readFromStream(resourceSize, inputStream);
+        }
+    }
+    return readOk;
+}
+
+
 bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream) {
     bool fileOk = false;
 
@@ -1881,9 +1918,7 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
         // read just enough of the file to parse the header...
         const unsigned long HEADER_LENGTH = sizeof(PacketType) + sizeof(PacketVersion);
         unsigned char fileHeader[HEADER_LENGTH];
-        //file.read((char*)&fileHeader, HEADER_LENGTH);
-        int bytesRead = inputStream.readRawData((char*)&fileHeader, HEADER_LENGTH);
-        qDebug() << "HEADER_LENGTH... bytesRead:" << bytesRead;
+        inputStream.readRawData((char*)&fileHeader, HEADER_LENGTH);
         
         headerLength = HEADER_LENGTH; // we need this later to skip to the data
 
