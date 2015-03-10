@@ -726,6 +726,7 @@ function cleanupModelMenus() {
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Entities");
     Menu.removeMenuItem("File", "Import Entities");
+    Menu.removeMenuItem("File", "Import Entities from URL");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
@@ -795,32 +796,18 @@ function handeMenuEvent(menuItem) {
                 }
             }
         }
-    } else if (menuItem == "Import Entities") {
-        var filename = Window.browse("Select models to import", "", "*.svo")
-        if (filename) {
-            var success = Clipboard.importEntities(filename);
-
-            if (success) {
-                var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
-                var direction = Quat.getFront(Camera.orientation);
-                var offset = Vec3.multiply(distance, direction);
-                var position = Vec3.sum(Camera.position, offset);
-
-                position.x = Math.max(0, position.x);
-                position.y = Math.max(0, position.y);
-                position.z = Math.max(0, position.z);
-
-                var pastedEntityIDs = Clipboard.pasteEntities(position);
-
-                selectionManager.setSelections(pastedEntityIDs);
-            } else {
-                Window.alert("There was an error importing the entity file.");
-            }
+    } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
+    
+        var importURL;
+        if (menuItem == "Import Entities") {
+            importURL = Window.browse("Select models to import", "", "*.svo");
+            //importURL = "file://" + filename;
+        } else {
+            importURL = Window.prompt("URL of SVO to import", "");
         }
-    } else if (menuItem == "Import Entities from URL") {
-        var url = Window.prompt("URL of SVO to import", "");
-        if (url) {
-            var success = Clipboard.importEntities(url);
+
+        if (importURL) {
+            var success = Clipboard.importEntities(importURL);
 
             if (success) {
                 var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
