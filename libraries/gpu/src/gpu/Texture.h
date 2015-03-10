@@ -207,12 +207,10 @@ protected:
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
 
-    mutable GPUObject* _gpuObject = NULL;
-
     // This shouldn't be used by anything else than the Backend class with the proper casting.
+    mutable GPUObject* _gpuObject = NULL;
     void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
     GPUObject* getGPUObject() const { return _gpuObject; }
-
     friend class Backend;
 };
 

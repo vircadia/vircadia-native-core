@@ -270,6 +270,12 @@ void DeferredLightingEffect::render() {
             batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
             gpu::GLBackend::renderBatch(batch);
         }
+        
+        if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
+            gpu::Batch batch;
+            batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
+            gpu::GLBackend::renderBatch(batch);
+        }
         glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
     }
 
@@ -511,6 +517,31 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
         locations.lightBufferUnit = -1;
     }
 #endif
+
+#if defined(Q_OS_MAC)
+    loc = program.uniformLocation("atmosphereBufferUnit");
+    if (loc >= 0) {
+        locations.atmosphereBufferUnit = loc;
+    } else {
+        locations.atmosphereBufferUnit = -1;
+    }
+#elif defined(Q_OS_WIN)
+    loc = glGetUniformBlockIndex(program.programId(), "atmosphereBufferUnit");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, 1);
+        locations.atmosphereBufferUnit = 1;
+    } else {
+        locations.atmosphereBufferUnit = -1;
+    }
+#else
+    loc = program.uniformLocation("atmosphereBufferUnit");
+    if (loc >= 0) {
+        locations.atmosphereBufferUnit = loc;
+    } else {
+        locations.atmosphereBufferUnit = -1;
+    }
+#endif
+
     program.release();
 }
 
