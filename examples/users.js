@@ -20,11 +20,13 @@ var usersWindow = (function () {
         usersPane2D,
         USERS_PANE_TEXT_WIDTH_2D = WINDOW_BOUNDS_2D.width - 2 * WINDOW_MARGIN_2D,
         USERS_FONT_2D = { size: 14 },
+        usersLineHeight,
+        usersLineSpacing,
         USERNAME_SPACER = "\u00a0\u00a0\u00a0\u00a0",  // Nonbreaking spaces
         usernameSpacerWidth2D,
 
         usersOnline,
-        usersInLines = [],  // 2D array of lines of users
+        linesOfUserIndexes = [],  // 2D array of lines of indexes into usersOnline
 
         API_URL = "https://metaverse.highfidelity.io/api/v1/users?status=online",
         HTTP_GET_TIMEOUT = 60000,  // ms = 1 minute
@@ -34,29 +36,75 @@ var usersWindow = (function () {
         usersTimer,
         UPDATE_TIMEOUT = 5000;  // ms = 5s
 
+    function onMousePressEvent(event) {
+        var clickedOverlay,
+            numLinesBefore,
+            overlayX,
+            overlayY,
+            minY,
+            maxY,
+            lineClicked,
+            i,
+            userIndex,
+            foundUser;
+
+        clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+        if (clickedOverlay === usersPane2D) {
+            overlayX = event.x - WINDOW_BOUNDS_2D.x - WINDOW_MARGIN_2D;
+            overlayY = event.y - WINDOW_BOUNDS_2D.y - WINDOW_MARGIN_2D;
+
+            numLinesBefore = Math.floor(overlayY / (usersLineHeight + usersLineSpacing));
+            minY = numLinesBefore * (usersLineHeight + usersLineSpacing);
+            maxY = minY + usersLineHeight;
+
+            lineClicked = -1;
+            if (minY <= overlayY && overlayY <= maxY) {
+                lineClicked = numLinesBefore;
+            }
+
+            if (0 <= lineClicked && lineClicked < linesOfUserIndexes.length) {
+                foundUser = false;
+                i = 0;
+                while (!foundUser && i < linesOfUserIndexes[lineClicked].length) {
+                    userIndex = linesOfUserIndexes[lineClicked][i];
+                    foundUser = usersOnline[userIndex].leftX <= overlayX && overlayX <= usersOnline[userIndex].rightX;
+                    i += 1;
+                }
+
+                if (foundUser) {
+                    location.goToUser(usersOnline[userIndex].username);
+                }
+            }
+        }
+    }
+
     function updateWindow() {
         var displayText = "",
             numUsersDisplayed = 0,
             lineText = "",
             lineWidth = 0,
-            myUsername = GlobalServices.myUsername,
+            myUsername = GlobalServices.username,
             usernameWidth,
             user,
             i;
 
-        usersInLines = [];
-
+        // Create 2D array of lines x IDs into usersOnline.
+        // Augment usersOnline entries with x-coordinates of left and right of displayed username.
+        linesOfUserIndexes = [];
         for (i = 0; i < usersOnline.length; i += 1) {
             user = usersOnline[i];
             if (user.username !== myUsername && user.online) {
+
                 usernameWidth = Overlays.textSize(usersPane2D, user.username).width;
 
-                if (usersInLines.length === 0 || lineWidth + usernameSpacerWidth2D + usernameWidth > USERS_PANE_TEXT_WIDTH_2D) {
+                if (linesOfUserIndexes.length === 0
+                        || lineWidth + usernameSpacerWidth2D + usernameWidth > USERS_PANE_TEXT_WIDTH_2D) {
+
                     displayText += "\n" + lineText;
 
                     // New line
-                    usersInLines.push([i]);                 // New array in new line or userLines array
-                    usersOnline[i].leftX = 0;               // Augment usersOnline data
+                    linesOfUserIndexes.push([i]);
+                    usersOnline[i].leftX = 0;
                     usersOnline[i].rightX = usernameWidth;
 
                     lineText = user.username;
@@ -64,8 +112,7 @@ var usersWindow = (function () {
 
                 } else {
                     // Append
-                    usersInLines[usersInLines.length - 1].push(i);
-
+                    linesOfUserIndexes[linesOfUserIndexes.length - 1].push(i);
                     usersOnline[i].leftX = lineWidth + usernameSpacerWidth2D;
                     usersOnline[i].rightX = lineWidth + usernameSpacerWidth2D + usernameWidth;
 
@@ -138,7 +185,12 @@ var usersWindow = (function () {
             visible: true
         });
 
+        usersLineHeight = Math.floor(Overlays.textSize(usersPane2D, "1").height);
+        usersLineSpacing = Math.floor(Overlays.textSize(usersPane2D, "1\n2").height - 2 * usersLineHeight);
+
         usernameSpacerWidth2D = Overlays.textSize(usersPane2D, USERNAME_SPACER).width;
+
+        Controller.mousePressEvent.connect(onMousePressEvent);
 
         requestUsers();
     }
