@@ -1109,27 +1109,36 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         const char *typeCString = typeByteArray.data();
         properties.setType(EntityTypes::getEntityTypeFromName(typeCString));
 
-        properties.setDimensions(qListToGlmVec3(map["dimensions"]));
-        properties.setRotation(qListToGlmQuat(map["rotation"]));
-        properties.setDensity(map["density"].toFloat());
-        properties.setVelocity(qListToGlmVec3(map["angular-velocity"]));
-        properties.setGravity(qListToGlmVec3(map["gravity"]));
-        properties.setDamping(map["damping"].toFloat());
-        properties.setLifetime(map["lifetime"].toFloat());
-        properties.setScript(map["script"].toString());
-        properties.setRegistrationPoint(qListToGlmVec3(map["registration-point"]));
-        properties.setAngularVelocity(qListToGlmVec3(map["angular-velocity"]));
-        properties.setAngularDamping(map["angular-damping"].toFloat());
-        properties.setGlowLevel(map["glow"].toFloat());
-        properties.setLocalRenderAlpha(map["alpha"].toFloat());
-        properties.setVisible(map["visible"].toBool());
-        properties.setIgnoreForCollisions(map["ignore-for-collisions"].toBool());
-        properties.setCollisionsWillMove(map["collisions-will-move"].toBool());
-        properties.setLocked(map["locked"].toBool());
-        properties.setUserData(map["userData"].toString());
+        
 
-        EntityItem* newEntity = addEntity(entityItemID, properties);
-        newEntity->readFromMap(entityMap);
+        properties.setPosition(qListToGlmVec3(entityMap["position"]));
+        properties.setDimensions(qListToGlmVec3(entityMap["dimensions"]));
+        properties.setRotation(qListToGlmQuat(entityMap["rotation"]));
+        properties.setDensity(entityMap["density"].toFloat());
+        properties.setVelocity(qListToGlmVec3(entityMap["angular-velocity"]));
+        properties.setGravity(qListToGlmVec3(entityMap["gravity"]));
+        properties.setDamping(entityMap["damping"].toFloat());
+        properties.setLifetime(entityMap["lifetime"].toFloat());
+        properties.setScript(entityMap["script"].toString());
+        properties.setRegistrationPoint(qListToGlmVec3(entityMap["registration-point"]));
+        properties.setAngularVelocity(qListToGlmVec3(entityMap["angular-velocity"]));
+        properties.setAngularDamping(entityMap["angular-damping"].toFloat());
+        properties.setGlowLevel(entityMap["glow"].toFloat());
+        properties.setLocalRenderAlpha(entityMap["alpha"].toFloat());
+        properties.setVisible(entityMap["visible"].toBool());
+        properties.setIgnoreForCollisions(entityMap["ignore-for-collisions"].toBool());
+        properties.setCollisionsWillMove(entityMap["collisions-will-move"].toBool());
+        properties.setLocked(entityMap["locked"].toBool());
+        properties.setUserData(entityMap["userData"].toString());
+
+        EntityItem* entity = addEntity(entityItemID, properties);
+        // EntityItem* entity = getOrCreateEntityItem(entityItemID, properties);
+        entity->readFromMap(entityMap);
+        postAddEntity(entity);
+        update();
+        qDebug() << "\n\n\n";
+        dumpTree();
+        qDebug() << "\n\n\n";
     }
 
 

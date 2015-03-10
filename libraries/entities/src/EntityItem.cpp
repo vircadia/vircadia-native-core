@@ -1144,28 +1144,32 @@ QVariantMap EntityItem::writeToMap() {
     QVariantMap result;
     // result["id"] = getID().toString();
     result["type"] = _type;
+
+    result["created"] = _created;
+    result["last-edited"] = getLastEdited();
+    result["last-updated"] = _lastUpdated;
     // result["animation-update-delta"] = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
     // result["simulation-update-delta"] = getLastSimulated() <= getLastEdited() ? 0 : getLastSimulated() - getLastEdited();
-    result["created"] = _created;
-    result["last-edited"] = _lastEdited;
-    result["last-updated"] = _lastUpdated;
-    result["dimensions"] = glmToQList(_dimensions);
-    result["rotation"] = glmToQList(_rotation);
-    result["density"] = _density;
-    result["gravity"] = glmToQList(_gravity);
-    result["damping"] = _damping;
-    result["lifetime"] = _lifetime;
-    result["script"] = _script;
-    result["registration-point"] = glmToQList(_registrationPoint);
-    result["angular-velocity"] = glmToQList(_angularVelocity);
-    result["angular-damping"] = _angularDamping;
-    result["visible"] = _visible;
-    result["ignore-for-collisions"] = _ignoreForCollisions;
-    result["collisions-will-move"] = _collisionsWillMove;
-    result["locked"] = _locked;
-    result["userData"] = _userData;
 
-    // XXX glow?
+    result["position"] = glmToQList(getPosition());
+    result["dimensions"] = glmToQList(getDimensions());
+    result["rotation"] = glmToQList(getRotation());
+    result["density"] = getDensity();
+    result["velocity"] = glmToQList(getVelocity());
+    result["gravity"] = glmToQList(getGravity());
+    result["damping"] = getDamping();
+    result["lifetime"] = getLifetime();
+    result["script"] = getScript();
+    result["registration-point"] = glmToQList(getRegistrationPoint());
+    result["angular-velocity"] = glmToQList(getAngularVelocity());
+    result["angular-damping"] = getAngularDamping();
+    result["visible"] = getVisible();
+    result["ignore-for-collisions"] = getIgnoreForCollisions();
+    result["collisions-will-move"] = getCollisionsWillMove();
+    result["locked"] = getLocked();
+    result["userData"] = getUserData();
+    result["glow-level"] = getGlowLevel();
+
 
     writeSubTypeToMap(result);
     return result;

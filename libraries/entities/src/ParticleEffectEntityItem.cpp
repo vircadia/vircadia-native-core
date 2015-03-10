@@ -43,6 +43,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ParticleEffectEntityItem.h"
+#include "QVariantGLM.h"
 
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
@@ -510,3 +511,36 @@ void ParticleEffectEntityItem::resetSimulation() {
     srand(_randSeed);
 }
 
+
+void ParticleEffectEntityItem::writeSubTypeToMap(QVariantMap& map) {
+    map["type"] = QString("Box");
+    map["color"] = rgbColorToQList(_color);
+    map["max-particles"] = _maxParticles;
+    map["lifespan"] = _lifespan;
+    map["emit-rate"] = _emitRate;
+    map["emit-direction"] = glmToQList(_emitDirection);
+    map["emit-strength"] = _emitStrength;
+    map["local-gravity"] = _localGravity;
+    map["particle-radius"] = _particleRadius;
+    map["last-animatged"] = _lastAnimated;
+    // XXX animation-loop
+    map["animation-settings"] = _animationSettings;
+    map["shape-type"] = _shapeType;
+}
+
+
+void ParticleEffectEntityItem::readSubTypeFromMap(QVariantMap& map) {
+    qListtoRgbColor(map["color"], _color);
+
+    _maxParticles = map["max-particles"].toFloat();
+    _lifespan = map["lifespan"].toFloat();
+    _emitRate = map["emit-rate"].toFloat();
+    _emitDirection = qListToGlmVec3(map["emit-direction"]);
+    _emitStrength = map["emit-strength"].toFloat();
+    _localGravity = map["local-gravity"].toFloat();
+    _particleRadius = map["particle-radius"].toFloat();
+    _lastAnimated = map["last-animated"].toULongLong();
+    // XXX animation-loop
+    _animationSettings = map["animation-settings"].toString();
+    _shapeType = (ShapeType)(map["shape-type"].toInt());
+}

@@ -141,6 +141,9 @@ public:
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
     QString getAnimationSettings() const;
 
+    void writeSubTypeToMap(QVariantMap& map);
+    void readSubTypeFromMap(QVariantMap& map);
+
 protected:
 
     bool isAnimatingSomething() const;
