@@ -11,7 +11,7 @@
 
 var usersWindow = (function () {
 
-    var WINDOW_BOUNDS_2D = { x: 100, y: 100, width: 300, height: 200 },
+    var WINDOW_BOUNDS_2D = { x: 100, y: 100, width: 300, height: 0 },
         WINDOW_MARGIN_2D = 12,
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
         WINDOW_FOREGROUND_ALPHA_2D = 0.9,
@@ -127,7 +127,11 @@ var usersWindow = (function () {
         displayText += "\n" + lineText;
         displayText = displayText.slice(2);  // Remove leading "\n"s.
 
-        Overlays.editOverlay(usersPane2D, { text: numUsersDisplayed > 0 ? displayText : "No users online" });
+        Overlays.editOverlay(usersPane2D, {
+            text: numUsersDisplayed > 0 ? displayText : "No users online",
+            height: (numUsersDisplayed > 0 ? linesOfUserIndexes.length : 1) * (usersLineHeight + usersLineSpacing)
+                - usersLineSpacing + 2 * WINDOW_MARGIN_2D
+        });
     }
 
     function requestUsers() {
