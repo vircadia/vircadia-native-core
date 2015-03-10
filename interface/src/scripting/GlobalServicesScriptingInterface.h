@@ -35,6 +35,7 @@ class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
     
     Q_PROPERTY(QString username READ getUsername)
+    Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy)
     
 public:
     static GlobalServicesScriptingInterface* getInstance();
@@ -48,6 +49,9 @@ public slots:
 private slots:
     void loggedOut();
     void checkDownloadInfo();
+    
+    QString getFindableBy() const;
+    void setFindableBy(const QString& discoverabilityMode);
 
 signals:
     void connected();
