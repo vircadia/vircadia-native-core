@@ -155,7 +155,6 @@ public:
     
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
-    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
     Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
     Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
@@ -184,11 +183,9 @@ protected:
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
 
-    glm::vec3 _velocity;
-
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
-    // and are therefor READ-ONLY --> motion control of the Avatar is NOT obtained 
+    // and are therefore READ-ONLY --> motion control of the Avatar is NOT obtained 
     // by setting these values.
     // Floating point error prevents us from accurately measuring velocity using a naive approach 
     // (e.g. vel = (pos - lastPos)/dt) so instead we use _positionDeltaAccumulator.

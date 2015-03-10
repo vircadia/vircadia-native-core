@@ -13,6 +13,7 @@
 #include "ShapeInfoUtil.h"
 #include "PhysicsHelpers.h"
 #include "ThreadSafeDynamicsWorld.h"
+#include "AvatarData.h"
 
 static uint32_t _numSubsteps;
 
@@ -286,6 +287,13 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
+    if (_avatarData->isPhysicsEnabled()) {
+        _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
+                                                          glmToBullet(_avatarData->getPosition())));
+        // _characterController->setWalkDirection(glmToBullet(_avatarData->getVelocity()));
+        _characterController->setVelocityForTimeInterval(glmToBullet(_avatarData->getVelocity()), timeStep);
+    }
+
     // This is step (2).
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     _numSubsteps += (uint32_t)numSubsteps;
@@ -302,9 +310,18 @@ void PhysicsEngine::stepSimulation() {
         //
         // TODO: untangle these lock sequences.
         _entityTree->lockForWrite();
+        _avatarData->lockForWrite();
         lock();
         _dynamicsWorld->synchronizeMotionStates();
+
+        if (_avatarData->isPhysicsEnabled()) {
+            const btTransform& avatarTransform = _avatarGhostObject->getWorldTransform();
+            _avatarData->setOrientation(bulletToGLM(avatarTransform.getRotation()));
+            _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()));
+        }
+
         unlock();
+        _avatarData->unlock();
         _entityTree->unlock();
     
         computeCollisionEvents();
@@ -581,4 +598,33 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
     body->activate();
     return true;
+}
+
+
+
+void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
+    _avatarData = avatarData;
+    _avatarGhostObject = new btPairCachingGhostObject();
+    _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
+                                                      glmToBullet(_avatarData->getPosition())));
+
+    // XXX these values should be computed from the character model.
+    btScalar characterHeight = 1.75;
+    btScalar characterWidth = 1.75;
+    btScalar stepHeight = btScalar(0.35);
+
+    btConvexShape* capsule = new btCapsuleShape(characterWidth, characterHeight);
+    _avatarGhostObject->setCollisionShape(capsule);
+    _avatarGhostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+
+    _characterController = new btKinematicCharacterController(_avatarGhostObject, capsule, stepHeight);
+
+    _dynamicsWorld->addCollisionObject(_avatarGhostObject, btBroadphaseProxy::CharacterFilter,
+                                       btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
+    _dynamicsWorld->addAction(_characterController);
+    _characterController->reset (_dynamicsWorld);
+    // _characterController->warp (btVector3(10.210001,-2.0306311,16.576973));
+
+    btGhostPairCallback* ghostPairCallback = new btGhostPairCallback();
+    _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(ghostPairCallback);
 }

@@ -52,6 +52,8 @@ EntityPropertyDialogBox = (function () {
         if (properties.type == "Model") {
             array.push({ label: "Model URL:", value: properties.modelURL });
             index++;
+            array.push({ label: "Collision Model URL:", value: properties.collisionModelURL });
+            index++;
             array.push({ label: "Animation URL:", value: properties.animationURL });
             index++;
             array.push({ label: "Animation is playing:", type: "checkbox", value: properties.animationIsPlaying });
@@ -275,6 +277,7 @@ EntityPropertyDialogBox = (function () {
             properties.locked = array[index++].value;
             if (properties.type == "Model") {
                 properties.modelURL = array[index++].value;
+                properties.collisionModelURL = array[index++].value;
                 properties.animationURL = array[index++].value;
 
                 var newAnimationIsPlaying = array[index++].value;
