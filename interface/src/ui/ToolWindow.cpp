@@ -22,7 +22,7 @@ ToolWindow::ToolWindow(QWidget* parent) :
     _hasShown(false),
     _lastGeometry() {
 
-    setDockOptions(QMainWindow::ForceTabbedDocks);
+    // setDockOptions(QMainWindow::ForceTabbedDocks);
     Application::getInstance()->installEventFilter(this);
 }
 
@@ -53,6 +53,7 @@ bool ToolWindow::event(QEvent* event) {
 }
 
 bool ToolWindow::eventFilter(QObject* sender, QEvent* event) {
+#if 0
     switch (event->type()) {
         case QEvent::WindowStateChange:
             if (Application::getInstance()->getWindow()->isMinimized()) {
@@ -77,7 +78,7 @@ bool ToolWindow::eventFilter(QObject* sender, QEvent* event) {
         default:
             break;
     }
-
+#endif
     return false;
 }
 

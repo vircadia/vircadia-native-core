@@ -983,43 +983,6 @@ void EntityTree::dumpTree() {
     recurseTreeWithOperator(&theOperator);
 }
 
-
-
-
-class ToMapOperator : public RecurseOctreeOperator {
-public:
-    ToMapOperator(QVariantMap& map) : RecurseOctreeOperator(), _map(map) {};
-    bool preRecursion(OctreeElement* element) {return true;}
-    bool postRecursion(OctreeElement* element) {
-        qDebug() << "  in ToMapOperator::preRecursion";
-        EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-        const QList<EntityItem*>& entities = entityTreeElement->getEntities();
-        if (!_map.contains("Entities")) {
-            _map["Entities"] = QVariantList();
-        }
-        // XXX is this causing a lot of copying?
-        QVariantList entitiesQList = qvariant_cast<QVariantList>(_map["Entities"]);
-        foreach (EntityItem* entityItem, entities) {
-            entitiesQList << entityItem->writeToMap();
-        }
-        _map["Entities"] = entitiesQList;
-        return true;
-    }
- private:
-    QVariantMap& _map;
-};
-
-
-
-bool EntityTree::writeToMap(QVariantMap& entityDescription) {
-    ToMapOperator theOperator(entityDescription);
-    recurseTreeWithOperator(&theOperator);
-    return true;
-}
-
-
-
-
 class PruneOperator : public RecurseOctreeOperator {
 public:
     virtual bool preRecursion(OctreeElement* element) { return true; }
@@ -1071,3 +1034,77 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     return true;
 }
 
+
+class ToMapOperator : public RecurseOctreeOperator {
+public:
+    ToMapOperator(QVariantMap& map) : RecurseOctreeOperator(), _map(map) {};
+    bool preRecursion(OctreeElement* element) {return true;}
+    bool postRecursion(OctreeElement* element) {
+        qDebug() << "  in ToMapOperator::preRecursion";
+        EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+        const QList<EntityItem*>& entities = entityTreeElement->getEntities();
+        // XXX is this causing a lot of copying?
+        QVariantList entitiesQList = qvariant_cast<QVariantList>(_map["Entities"]);
+        foreach (EntityItem* entityItem, entities) {
+            entitiesQList << entityItem->writeToMap();
+        }
+        _map["Entities"] = entitiesQList;
+        return true;
+    }
+ private:
+    QVariantMap& _map;
+};
+
+
+
+bool EntityTree::writeToMap(QVariantMap& entityDescription) {
+    entityDescription["Entities"] = QVariantList();
+    ToMapOperator theOperator(entityDescription);
+    recurseTreeWithOperator(&theOperator);
+    return true;
+}
+
+
+bool EntityTree::readFromMap(QVariantMap& map) {
+
+
+    QVariantList entitiesQList = map["Entities"].toList();
+
+    foreach (QVariant entityQ, entitiesQList) {
+        QVariantMap entityMap = entityQ.toMap();
+        EntityTypes::EntityType entityType = EntityTypes::getEntityTypeFromName(entityMap["type"].toString());
+
+        if (entityType == EntityTypes::Unknown) {
+            qDebug() << "unknown entity type" << entityMap["type"];
+        }
+
+        const EntityItemID entityItemID();
+        const EntityItemProperties entityItemProperties();
+        EntityItem *entityItem = EntityTypes::constructEntityItem(entityType, entityItemID, entityItemProperties);
+
+        // switch (entityType) {
+        // case EntityType::Model:
+        //     ei = ModelEntityItem();
+        //     break;
+        // case EntityType::Box:
+        //     ei = BoxEntityItem();
+        //     break;
+        // case EntityType::Sphere:
+        //     ei = SphereEntityItem();
+        //     break;
+        // case EntityType::Light:
+        //     ei = LightEntityItem();
+        //     break;
+        // case EntityType::Text:
+        //     ei = TextEntityItem();
+        //     break;
+        // default:
+        //     break;
+        // }
+    }
+
+
+    // EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    return true;
+}

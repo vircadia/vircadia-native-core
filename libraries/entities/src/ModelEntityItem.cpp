@@ -401,9 +401,6 @@ QString ModelEntityItem::getAnimationSettings() const {
     return jsonByteString;
 }
 
-
-QVariantMap ModelEntityItem::writeSubTypeToMap() {
-    QVariantMap result;
-    result["type"] = QString("model");
-    return result;
+void ModelEntityItem::writeSubTypeToMap(QVariantMap& map) {
+    map["type"] = QString("model");
 }
