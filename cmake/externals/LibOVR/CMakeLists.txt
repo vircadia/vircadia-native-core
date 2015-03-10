@@ -62,9 +62,32 @@ elseif(NOT ANDROID)
 	  LOG_DOWNLOAD ON
 	)
 	
+	
+    ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
+    ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
+    set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libovr.a CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE TYPE INTERNAL)
+    
+    find_package(Threads REQUIRED)
+    find_package(X11 REQUIRED)
+
+    # Check for XRandR (modern resolution switching and gamma control)
+    if (NOT X11_Xrandr_FOUND)
+        message(FATAL_ERROR "The RandR library and headers were not found")
+    endif()
+
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS rt udev ${CMAKE_THREAD_LIBS_INIT} ${X11_X11_LIB} ${X11_Xrandr_LIB})
+	
 endif()
 
 select_library_configurations(${EXTERNAL_NAME_UPPER})
 
 set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE TYPE INTERNAL)
+
+# Helpful for debugging the external libs
+#message("Include: " ${${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS})
+#foreach(l ${${EXTERNAL_NAME_UPPER}_LIBRARIES})
+#  message("Library: " ${l})
+#endforeach()
 
