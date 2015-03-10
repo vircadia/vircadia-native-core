@@ -338,9 +338,6 @@ void ModelUploader::populateBasicMapping(QVariantHash& mapping, QString filename
                              geometry.blendshapeChannelNames.contains("Blink_Right") && 
                              geometry.blendshapeChannelNames.contains("Squint_Right"));
 
-qDebug() << "likelyMixamoFile:" << likelyMixamoFile;
-qDebug() << "geometry.blendshapeChannelNames:" << geometry.blendshapeChannelNames;
-
     if (!mapping.contains(BLENDSHAPE_FIELD) && likelyMixamoFile) {
         QVariantHash blendshapes;
         blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
