@@ -616,11 +616,11 @@ void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
                                                       glmToBullet(_avatarData->getPosition())));
 
     // XXX these values should be computed from the character model.
-    btScalar characterHeight = 1.75;
-    btScalar characterWidth = 1.75;
+    btScalar characterRadius = 0.3;
+    btScalar characterHeight = 1.75 - 2.0f * characterRadius;
     btScalar stepHeight = btScalar(0.35);
 
-    btConvexShape* capsule = new btCapsuleShape(characterWidth, characterHeight);
+    btConvexShape* capsule = new btCapsuleShape(characterRadius, characterHeight);
     _avatarGhostObject->setCollisionShape(capsule);
     _avatarGhostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 
