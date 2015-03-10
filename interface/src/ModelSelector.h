@@ -12,4 +12,35 @@
 #ifndef hifi_ModelSelector_h
 #define hifi_ModelSelector_h
 
+#include <QDialog>
+#include <QFileInfo>
+
+#include <SettingHandle.h>
+
+#include "ui/ModelsBrowser.h"
+
+class QComboBox;
+class QPushButton;
+
+class ModelSelector : public QDialog {
+    Q_OBJECT
+    
+public:
+    ModelSelector();
+    
+    QFileInfo getFileInfo() const;
+    ModelType getModelType() const;
+    
+    public slots:
+    virtual void accept();
+    
+    private slots:
+    void browse();
+    
+private:
+    QFileInfo _modelFile;
+    QPushButton* _browseButton;
+    QComboBox* _modelType;
+};
+
 #endif // hifi_ModelSelector_h
