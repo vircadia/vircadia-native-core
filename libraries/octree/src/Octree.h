@@ -328,10 +328,9 @@ public:
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
     bool readFromSVOFile(const char* filename);
-
+    bool readFromSVOURL(const QString& url); // will support file urls as well...
+    bool readFromStream(unsigned long streamLength, QDataStream& inputStream);
     bool readFromJSONFile(const char* fileName);
-
-
     virtual bool writeToMap(QVariantMap& entityDescription) { return true; }
 
     unsigned long getOctreeElementsCount();

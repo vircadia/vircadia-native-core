@@ -325,7 +325,7 @@ public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
-    bool importEntities(const QString& filename);
+    bool importEntities(const QString& url);
 
     void setLowVelocityFilter(bool lowVelocityFilter);
     void loadDialog();
