@@ -1077,39 +1077,31 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
     foreach (QVariant entityQ, entitiesQList) {
         QVariantMap entityMap = entityQ.toMap();
-        EntityTypes::EntityType entityType = EntityTypes::getEntityTypeFromName(entityMap["type"].toString());
 
-        qDebug() << "found entity of type" << entityType;
+        // EntityTypes::EntityType entityType = EntityTypes::getEntityTypeFromName(entityMap["type"].toString());
 
-        if (entityType == EntityTypes::Unknown) {
-            qDebug() << "unknown entity type" << entityMap["type"];
-            continue;
-        }
+        // qDebug() << "found entity of type" << entityType;
+
+        // if (entityType == EntityTypes::Unknown) {
+        //     qDebug() << "unknown entity type" << entityMap["type"];
+        //     continue;
+        // }
 
 
         EntityItemProperties properties;
 
-
-        qDebug() << "------------------------------------------------------";
-        for(QVariantMap::const_iterator iter = entityMap.begin(); iter != entityMap.end(); ++iter) {
-            qDebug() << iter.key() << iter.value();
+        EntityItemID entityItemID;
+        if (entityMap.contains("id")) {
+            entityItemID = EntityItemID(QUuid(entityMap["id"].toString()));
+        } else {
+            entityItemID = EntityItemID(QUuid::createUuid());
         }
-
-
-        // const EntityItemID entityItemID = assignEntityID(entityItemID);
-        // EntityItem *entityItem = EntityTypes::constructEntityItem(entityType, entityItemID, properties);
-
-        const EntityItemID entityItemID(QUuid::createUuid());
 
         properties.setCreated(entityMap["created"].toULongLong());
         QString typeString = entityMap["type"].toString();
-        // const char *typeCString = typeString.data();
-
         QByteArray typeByteArray = typeString.toLocal8Bit();
         const char *typeCString = typeByteArray.data();
         properties.setType(EntityTypes::getEntityTypeFromName(typeCString));
-
-        
 
         properties.setPosition(qListToGlmVec3(entityMap["position"]));
         properties.setDimensions(qListToGlmVec3(entityMap["dimensions"]));
@@ -1134,11 +1126,11 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         EntityItem* entity = addEntity(entityItemID, properties);
         // EntityItem* entity = getOrCreateEntityItem(entityItemID, properties);
         entity->readFromMap(entityMap);
-        postAddEntity(entity);
-        update();
-        qDebug() << "\n\n\n";
-        dumpTree();
-        qDebug() << "\n\n\n";
+        // postAddEntity(entity);
+        // update();
+        // qDebug() << "\n\n\n";
+        // dumpTree();
+        // qDebug() << "\n\n\n";
     }
 
 

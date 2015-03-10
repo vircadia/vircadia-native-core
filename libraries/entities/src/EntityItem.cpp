@@ -1142,7 +1142,7 @@ void EntityItem::updateLifetime(float value) {
 
 QVariantMap EntityItem::writeToMap() {
     QVariantMap result;
-    // result["id"] = getID().toString();
+    result["id"] = getID().toString();
     result["type"] = _type;
 
     result["created"] = _created;
@@ -1177,31 +1177,25 @@ QVariantMap EntityItem::writeToMap() {
 
 
 void EntityItem::readFromMap(QVariantMap map) {
-    // XXX
-#if 0
-    _type = EntityTypes::getEntityTypeFromName(map["type"].toString());
-    _created = map["created"].toULongLong();
-    _lastEdited = map["last-edited"].toULongLong();
-    _lastUpdated = map["last-updated"].toULongLong();
-    _dimensions = qListToGlmVec3(map["dimensions"]);
-    _rotation = qListToGlmQuat(map["rotation"]);
-    _density = map["density"].toFloat();
-    _gravity = qListToGlmVec3(map["gravity"]);
-    _damping = map["damping"].toFloat();
-    _lifetime = map["lifetime"].toFloat();
-    _script = map["script"].toString();
-    _registrationPoint = qListToGlmVec3(map["registration-point"]);
-    _angularVelocity = qListToGlmVec3(map["angular-velocity"]);
-    _angularDamping = map["angular-damping"].toFloat();
-    _visible = map["visible"].toBool();
-    _ignoreForCollisions = map["ignore-for-collisions"].toBool();
-    _collisionsWillMove = map["collisions-will-move"].toBool();
-    _locked = map["locked"].toBool();
-    _userData = map["userData"].toString();
-
-    // XXX glow?
-
-#endif
+    // _type = EntityTypes::getEntityTypeFromName(map["type"].toString());
+    // _created = map["created"].toULongLong();
+    // _lastEdited = map["last-edited"].toULongLong();
+    // _lastUpdated = map["last-updated"].toULongLong();
+    // _dimensions = qListToGlmVec3(map["dimensions"]);
+    // _rotation = qListToGlmQuat(map["rotation"]);
+    // _density = map["density"].toFloat();
+    // _gravity = qListToGlmVec3(map["gravity"]);
+    // _damping = map["damping"].toFloat();
+    // _lifetime = map["lifetime"].toFloat();
+    // _script = map["script"].toString();
+    // _registrationPoint = qListToGlmVec3(map["registration-point"]);
+    // _angularVelocity = qListToGlmVec3(map["angular-velocity"]);
+    // _angularDamping = map["angular-damping"].toFloat();
+    // _visible = map["visible"].toBool();
+    // _ignoreForCollisions = map["ignore-for-collisions"].toBool();
+    // _collisionsWillMove = map["collisions-will-move"].toBool();
+    // _locked = map["locked"].toBool();
+    // _userData = map["userData"].toString();
 
     readSubTypeFromMap(map);
 }
