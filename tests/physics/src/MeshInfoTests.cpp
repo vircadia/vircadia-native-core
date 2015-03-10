@@ -115,7 +115,7 @@ void MeshInfoTests::testWithTetrahedronAsMesh(){
 	float inertia_cc = 11996.20119f;
 	std::cout << std::setprecision(12);
 	vector<glm::vec3> vertices = { p0, p1, p2, p3 };
-	vector<int> triangles = { 0, 1, 2, 0, 3, 1, 1, 3, 2, 0, 2, 3 }; //clockwise direction
+	vector<int> triangles = { 0, 2, 1, 0, 3, 2, 0, 1, 3, 1, 2, 3 };
 	meshinfo::MeshInfo massProp(&vertices, &triangles);
 	vector<float> volumeAndInertia = massProp.computeMassProperties();
 	std::cout << volumeAndInertia[0] << " " << volumeAndInertia[1] << " " << volumeAndInertia[2]
