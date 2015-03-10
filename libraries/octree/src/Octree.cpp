@@ -1845,14 +1845,13 @@ bool Octree::readFromSVOFile(const char* fileName) {
     bool fileOk = false;
 
     QFile file(fileName);
-    QFileInfo fileInfo(fileName);
-    bool isOpen = file.open(QIODevice::ReadOnly);
-    QDataStream fileInputStream(&file);    // read the data serialized from the file
+    fileOk = file.open(QIODevice::ReadOnly);
 
-    // get file length....
-    unsigned long fileLength = fileInfo.size();
+    if(fileOk) {
+        QDataStream fileInputStream(&file);
+        QFileInfo fileInfo(fileName);
+        unsigned long fileLength = fileInfo.size();
 
-    if(isOpen) {
         emit importSize(1.0f, 1.0f, 1.0f);
         emit importProgress(0);
 
