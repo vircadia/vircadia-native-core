@@ -19,9 +19,6 @@ if (WIN32)
 
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
-  # Different Oculus SDKs have different layouts, so we can't combine the include directories below
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/OculusSDK/LibOVR/Include ${SOURCE_DIR}/OculusSDK/LibOVR/Src  CACHE TYPE INTERNAL)
-
   # FIXME need to account for different architectures 
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/OculusSDK/LibOVR/Lib/Win32/VS2013/libovr.lib CACHE TYPE INTERNAL)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${SOURCE_DIR}/OculusSDK/LibOVR/Lib/Win32/VS2013/libovrd.lib  CACHE TYPE INTERNAL)
@@ -40,8 +37,6 @@ elseif(APPLE)
   )
 
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
-
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
 
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/LibOVR/Lib/Mac/Release/libovr.a CACHE TYPE INTERNAL)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${SOURCE_DIR}/LibOVR/Lib/Mac/Debug/libovr.a  CACHE TYPE INTERNAL)
@@ -65,7 +60,7 @@ elseif(NOT ANDROID)
 	
     ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
     ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
-    set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
+    
     set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libovr.a CACHE TYPE INTERNAL)
     set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE TYPE INTERNAL)
     
@@ -83,11 +78,6 @@ endif()
 
 select_library_configurations(${EXTERNAL_NAME_UPPER})
 
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
 set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE TYPE INTERNAL)
-
-# Helpful for debugging the external libs
-#message("Include: " ${${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS})
-#foreach(l ${${EXTERNAL_NAME_UPPER}_LIBRARIES})
-#  message("Library: " ${l})
-#endforeach()
 
