@@ -604,8 +604,8 @@ Application::~Application() {
 
     ModelEntityItem::cleanupLoadedAnimations();
     
-    delete _glWidget;
-    _glWidget = NULL;
+    // stop the glWidget frame timer so it doesn't call paintGL
+    _glWidget->stopFrameTimer();
     
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();

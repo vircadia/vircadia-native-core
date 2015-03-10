@@ -31,6 +31,10 @@ GLCanvas::GLCanvas() : QGLWidget(QGL::NoDepthBuffer | QGL::NoStencilBuffer),
 #endif
 }
 
+void GLCanvas::stopFrameTimer() {
+    _frameTimer.stop();
+}
+
 bool GLCanvas::isThrottleRendering() const {
     return _throttleRendering || Application::getInstance()->getWindow()->isMinimized();
 }
