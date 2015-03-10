@@ -11,13 +11,77 @@
 
 var usersWindow = (function () {
 
-    var API_URL = "https://metaverse.highfidelity.io/api/v1/users?status=online",
+    var WINDOW_BOUNDS_2D = { x: 100, y: 100, width: 300, height: 200 },
+        WINDOW_MARGIN_2D = 12,
+        WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
+        WINDOW_FOREGROUND_ALPHA_2D = 0.9,
+        WINDOW_BACKGROUND_COLOR_2D = { red: 120, green: 120, blue: 120 },
+        WINDOW_BACKGROUND_ALPHA_2D = 0.7,
+        usersPane2D,
+        USERS_PANE_TEXT_WIDTH_2D = WINDOW_BOUNDS_2D.width - 2 * WINDOW_MARGIN_2D,
+        USERS_FONT_2D = { size: 14 },
+        USERNAME_SPACER = "\u00a0\u00a0\u00a0\u00a0",  // Nonbreaking spaces
+        usernameSpacerWidth2D,
+
+        usersOnline,
+        usersInLines = [],  // 2D array of lines of users
+
+        API_URL = "https://metaverse.highfidelity.io/api/v1/users?status=online",
         HTTP_GET_TIMEOUT = 60000,  // ms = 1 minute
         usersRequest,
         processUsers,
         usersTimedOut,
         usersTimer,
-        UPDATE_TIMEOUT = 1000;  // ms = 1s
+        UPDATE_TIMEOUT = 5000;  // ms = 5s
+
+    function updateWindow() {
+        var displayText = "",
+            numUsersDisplayed = 0,
+            lineText = "",
+            lineWidth = 0,
+            myUsername = GlobalServices.myUsername,
+            usernameWidth,
+            user,
+            i;
+
+        usersInLines = [];
+
+        for (i = 0; i < usersOnline.length; i += 1) {
+            user = usersOnline[i];
+            if (user.username !== myUsername && user.online) {
+                usernameWidth = Overlays.textSize(usersPane2D, user.username).width;
+
+                if (usersInLines.length === 0 || lineWidth + usernameSpacerWidth2D + usernameWidth > USERS_PANE_TEXT_WIDTH_2D) {
+                    displayText += "\n" + lineText;
+
+                    // New line
+                    usersInLines.push([i]);                 // New array in new line or userLines array
+                    usersOnline[i].leftX = 0;               // Augment usersOnline data
+                    usersOnline[i].rightX = usernameWidth;
+
+                    lineText = user.username;
+                    lineWidth = usernameWidth;
+
+                } else {
+                    // Append
+                    usersInLines[usersInLines.length - 1].push(i);
+
+                    usersOnline[i].leftX = lineWidth + usernameSpacerWidth2D;
+                    usersOnline[i].rightX = lineWidth + usernameSpacerWidth2D + usernameWidth;
+
+                    lineText += USERNAME_SPACER + user.username;
+                    lineWidth = usersOnline[i].rightX;
+                }
+
+                numUsersDisplayed += 1;
+            }
+        }
+
+        displayText += "\n" + lineText;
+        displayText = displayText.slice(2);  // Remove leading "\n"s.
+
+        Overlays.editOverlay(usersPane2D, { text: numUsersDisplayed > 0 ? displayText : "No users online" });
+    }
 
     function requestUsers() {
         usersRequest = new XMLHttpRequest();
@@ -29,14 +93,29 @@ var usersWindow = (function () {
     }
 
     processUsers = function () {
+        var response;
+
         if (usersRequest.readyState === usersRequest.DONE) {
             if (usersRequest.status === 200) {
-                // TODO: Process users data
+                response = JSON.parse(usersRequest.responseText);
+                if (response.status !== "success") {
+                    print("Error: Request for users status returned status = " + response.status);
+                    usersTimer = Script.setTimeout(requestUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                    return;
+                }
+                if (!response.hasOwnProperty("data") || !response.data.hasOwnProperty("users")) {
+                    print("Error: Request for users status returned invalid data");
+                    usersTimer = Script.setTimeout(requestUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                    return;
+                }
+
+                usersOnline = response.data.users;
+                updateWindow();
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
             }
 
-            usersTimer = Script.setTimeout(requestUsers, UPDATE_TIMEOUT);  // Update  while after finished processing.
+            usersTimer = Script.setTimeout(requestUsers, UPDATE_TIMEOUT);  // Update after finished processing.
         }
     };
 
@@ -46,13 +125,27 @@ var usersWindow = (function () {
     };
 
     function setUp() {
+        usersPane2D = Overlays.addOverlay("text", {
+            bounds: WINDOW_BOUNDS_2D,
+            topMargin: WINDOW_MARGIN_2D,
+            leftMargin: WINDOW_MARGIN_2D,
+            color: WINDOW_FOREGROUND_COLOR_2D,
+            alpha: WINDOW_FOREGROUND_ALPHA_2D,
+            backgroundColor: WINDOW_BACKGROUND_COLOR_2D,
+            backgroundAlpha: WINDOW_BACKGROUND_ALPHA_2D,
+            text: "",
+            font: USERS_FONT_2D,
+            visible: true
+        });
+
+        usernameSpacerWidth2D = Overlays.textSize(usersPane2D, USERNAME_SPACER).width;
 
         requestUsers();
     }
 
     function tearDown() {
         Script.clearTimeout(usersTimer);
-
+        Overlays.deleteOverlay(usersPane2D);
     }
 
     setUp();
