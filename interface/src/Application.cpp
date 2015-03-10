@@ -602,7 +602,10 @@ Application::~Application() {
 
     _myAvatar = NULL;
 
-    ModelEntityItem::cleanupLoadedAnimations() ;
+    ModelEntityItem::cleanupLoadedAnimations();
+    
+    delete _glWidget;
+    _glWidget = NULL;
     
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
@@ -614,7 +617,7 @@ Application::~Application() {
 }
 
 void Application::initializeGL() {
-    qDebug( "Created Display Window.");
+    qDebug() << "Created Display Window.";
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
