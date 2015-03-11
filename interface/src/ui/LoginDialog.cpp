@@ -58,6 +58,7 @@ void LoginDialog::reset() {
     _ui->emailLineEdit->setFocus();
     _ui->logoLabel->setPixmap(QPixmap(PathUtils::resourcesPath() + "images/hifi-logo.svg"));
     _ui->loginButton->setIcon(QIcon(PathUtils::resourcesPath() + "images/login.svg"));
+    _ui->closeButton->setIcon(QIcon(PathUtils::resourcesPath() + "images/close.svg"));
     _ui->infoLabel->setVisible(false);
     _ui->errorLabel->setVisible(false);
     

@@ -699,7 +699,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Entities", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities", shortcutKey: "CTRL+META+I", afterItem: "Export Entities" });
-
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities from URL", shortcutKey: "CTRL+META+U", afterItem: "Import Entities" });
 
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
@@ -726,6 +726,7 @@ function cleanupModelMenus() {
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Entities");
     Menu.removeMenuItem("File", "Import Entities");
+    Menu.removeMenuItem("File", "Import Entities from URL");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
@@ -795,10 +796,17 @@ function handeMenuEvent(menuItem) {
                 }
             }
         }
-    } else if (menuItem == "Import Entities") {
-        var filename = Window.browse("Select models to import", "", "*.svo")
-        if (filename) {
-            var success = Clipboard.importEntities(filename);
+    } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
+    
+        var importURL;
+        if (menuItem == "Import Entities") {
+            importURL = Window.browse("Select models to import", "", "*.svo");
+        } else {
+            importURL = Window.prompt("URL of SVO to import", "");
+        }
+
+        if (importURL) {
+            var success = Clipboard.importEntities(importURL);
 
             if (success) {
                 var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
