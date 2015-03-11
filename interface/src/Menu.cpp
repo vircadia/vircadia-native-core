@@ -205,7 +205,6 @@ Menu::Menu() {
             Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
             avatar, SLOT(updateMotionBehavior()));
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ChatCircling, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
@@ -215,14 +214,6 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
             avatar, SLOT(updateMotionBehavior()));
-
-    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With");
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 
-            avatar, SLOT(onToggleRagdoll()));
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
-            0, true, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithEnvironment,
-            0, false, avatar, SLOT(updateCollisionGroups()));
 
     QMenu* viewMenu = addMenu("View");
 
