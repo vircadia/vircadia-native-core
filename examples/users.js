@@ -39,7 +39,7 @@ var usersWindow = (function () {
 
         MENU_NAME = "Tools",
         MENU_ITEM = "Users Online",
-        MENI_ITEM_AFTER = "Chat...",
+        MENU_ITEM_AFTER = "Chat...",
 
         isVisible = true,
 
@@ -226,7 +226,7 @@ var usersWindow = (function () {
         Menu.addMenuItem({
             menuName: MENU_NAME,
             menuItemName: MENU_ITEM,
-            afterItem: MENI_ITEM_AFTER,
+            afterItem: MENU_ITEM_AFTER,
             isCheckable: true,
             isChecked: isVisible
         });
