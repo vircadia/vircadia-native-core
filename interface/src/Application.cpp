@@ -146,7 +146,6 @@ const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
-static QTimer* silentNodeTimer = NULL;
 static QTimer* identityPacketTimer = NULL;
 static QTimer* billboardPacketTimer = NULL;
 static QTimer* checkFPStimer = NULL;
@@ -426,12 +425,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
-    // move the silentNodeTimer to the _nodeThread
-    silentNodeTimer = new QTimer();
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
-    silentNodeTimer->moveToThread(_nodeThread);
-
     // send the identity packet for our avatar each second to our avatar mixer
     identityPacketTimer = new QTimer();
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
@@ -548,7 +541,6 @@ void Application::cleanupBeforeQuit() {
     // depending on what thread they run in
     locationUpdateTimer->stop();
     balanceUpdateTimer->stop();
-    QMetaObject::invokeMethod(silentNodeTimer, "stop", Qt::BlockingQueuedConnection);
     identityPacketTimer->stop();
     billboardPacketTimer->stop();
     checkFPStimer->stop();
@@ -558,7 +550,6 @@ void Application::cleanupBeforeQuit() {
     // and then delete those that got created by "new"
     delete locationUpdateTimer;
     delete balanceUpdateTimer;
-    delete silentNodeTimer;
     delete identityPacketTimer;
     delete billboardPacketTimer;
     delete checkFPStimer;
