@@ -586,6 +586,9 @@ private:
     GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
 
     void checkSkeleton();
+
+    QWidget* _fullscreenMenuWidget = new QWidget();
+    int _menuBarHeight;
 };
 
 #endif // hifi_Application_h

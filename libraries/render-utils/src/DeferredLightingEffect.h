@@ -20,6 +20,7 @@
 #include "ProgramObject.h"
 
 #include "model/Light.h"
+#include "model/Stage.h"
 
 class AbstractViewStateInterface;
 class PostLightingRenderable;
@@ -73,6 +74,7 @@ public:
     // update global lighting
     void setAmbientLightMode(int preset);
     void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity);
+    void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
 
 private:
     DeferredLightingEffect() {}
@@ -89,6 +91,7 @@ private:
         int radius;
         int ambientSphere;
         int lightBufferUnit;
+        int atmosphereBufferUnit;
         int invViewMat;
     };
     
@@ -146,6 +149,7 @@ private:
     AbstractViewStateInterface* _viewState;
 
     int _ambientLightMode = 0;
+    model::AtmospherePointer _atmosphere;
 };
 
 /// Simple interface for objects that require something to be rendered after deferred lighting.
