@@ -13,20 +13,21 @@ var usersWindow = (function () {
 
     var WINDOW_WIDTH_2D = 150,
         WINDOW_MARGIN_2D = 12,
+        WINDOW_FONT_2D = { size: 14 },
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
         WINDOW_FOREGROUND_ALPHA_2D = 0.9,
         WINDOW_HEADING_COLOR_2D = { red: 180, green: 180, blue: 180 },
         WINDOW_HEADING_ALPHA_2D = 0.9,
         WINDOW_BACKGROUND_COLOR_2D = { red: 80, green: 80, blue: 80 },
         WINDOW_BACKGROUND_ALPHA_2D = 0.7,
-        windowHeight = 0,
-        usersPane2D,
-        usersHeading2D,
-        USERS_FONT_2D = { size: 14 },
-        usersLineHeight,
-        usersLineSpacing,
+        windowPane2D,
+        windowHeading2D,
+        windowHeight,
+        windowTextHeight,
+        windowLineSpacing,
+        windowLineHeight,  // = windowTextHeight + windowLineSpacing
 
-        usersOnline,    // Raw data
+        usersOnline,    // Raw users data
         linesOfUsers,   // Array of indexes pointing into usersOnline
 
         API_URL = "https://metaverse.highfidelity.io/api/v1/users?status=online",
@@ -59,14 +60,15 @@ var usersWindow = (function () {
         }
 
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-        if (clickedOverlay === usersPane2D) {
+
+        if (clickedOverlay === windowPane2D) {
 
             overlayX = event.x - WINDOW_MARGIN_2D;
-            overlayY = event.y - viewportHeight + windowHeight - WINDOW_MARGIN_2D - (usersLineHeight + usersLineSpacing);
+            overlayY = event.y - viewportHeight + windowHeight - WINDOW_MARGIN_2D - windowLineHeight;
 
-            numLinesBefore = Math.floor(overlayY / (usersLineHeight + usersLineSpacing));
-            minY = numLinesBefore * (usersLineHeight + usersLineSpacing);
-            maxY = minY + usersLineHeight;
+            numLinesBefore = Math.floor(overlayY / windowLineHeight);
+            minY = numLinesBefore * windowLineHeight;
+            maxY = minY + windowTextHeight;
 
             lineClicked = -1;
             if (minY <= overlayY && overlayY <= maxY) {
@@ -75,8 +77,8 @@ var usersWindow = (function () {
 
             if (0 <= lineClicked && lineClicked < linesOfUsers.length
                     && overlayX <= usersOnline[linesOfUsers[lineClicked]].usernameWidth) {
-                //print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
-                location.goToUser(usersOnline[linesOfUsers[lineClicked]].username);
+                print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
+                //location.goToUser(usersOnline[linesOfUsers[lineClicked]].username);
             }
         }
     }
@@ -92,22 +94,23 @@ var usersWindow = (function () {
         for (i = 0; i < usersOnline.length; i += 1) {
             user = usersOnline[i];
             if (user.username !== myUsername && user.online) {
-                usersOnline[i].usernameWidth = Overlays.textSize(usersPane2D, user.username).width;
+                usersOnline[i].usernameWidth = Overlays.textSize(windowPane2D, user.username).width;
                 linesOfUsers.push(i);
                 displayText += "\n" + user.username;
             }
         }
 
-        windowHeight = (linesOfUsers.length > 0 ? linesOfUsers.length + 1 : 1) * (usersLineHeight + usersLineSpacing)
-                - usersLineSpacing + 2 * WINDOW_MARGIN_2D;  // First or only line is for heading
+        displayText = displayText.slice(1);  // Remove leading "\n".
+        windowHeight = (linesOfUsers.length > 0 ? linesOfUsers.length + 1 : 1) * windowLineHeight
+                - windowLineSpacing + 2 * WINDOW_MARGIN_2D;  // First or only line is for heading
 
-        Overlays.editOverlay(usersPane2D, {
+        Overlays.editOverlay(windowPane2D, {
             y: viewportHeight - windowHeight,
             height: windowHeight,
             text: displayText
         });
 
-        Overlays.editOverlay(usersHeading2D, {
+        Overlays.editOverlay(windowHeading2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D,
             text: linesOfUsers.length > 0 ? "Online" : "No users online"
         });
@@ -168,8 +171,8 @@ var usersWindow = (function () {
             usersTimer = null;
         }
 
-        Overlays.editOverlay(usersPane2D, { visible: isVisible });
-        Overlays.editOverlay(usersHeading2D, { visible: isVisible });
+        Overlays.editOverlay(windowPane2D, { visible: isVisible });
+        Overlays.editOverlay(windowHeading2D, { visible: isVisible });
     }
 
     function onMenuItemEvent(event) {
@@ -180,46 +183,54 @@ var usersWindow = (function () {
 
     function update() {
         viewportHeight = Controller.getViewportDimensions().y;
-        Overlays.editOverlay(usersPane2D, {
+        Overlays.editOverlay(windowPane2D, {
             y: viewportHeight - windowHeight
         });
-        Overlays.editOverlay(usersHeading2D, {
+        Overlays.editOverlay(windowHeading2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D
         });
     }
 
     function setUp() {
-        usersPane2D = Overlays.addOverlay("text", {
-            bounds: { x: 0, y: 0, width: WINDOW_WIDTH_2D, height: 0 },
-            topMargin: WINDOW_MARGIN_2D,
+        var textSizeOverlay;
+
+        textSizeOverlay = Overlays.addOverlay("text", { font: WINDOW_FONT_2D, visible: false });
+        windowTextHeight = Math.floor(Overlays.textSize(textSizeOverlay, "1").height);
+        windowLineSpacing = Math.floor(Overlays.textSize(textSizeOverlay, "1\n2").height - 2 * windowTextHeight);
+        windowLineHeight = windowTextHeight + windowLineSpacing;
+        Overlays.deleteOverlay(textSizeOverlay);
+
+        windowHeight = windowTextHeight + 2 * WINDOW_MARGIN_2D;
+
+        windowPane2D = Overlays.addOverlay("text", {
+            bounds: { x: 0, y: 0, width: WINDOW_WIDTH_2D, height: windowHeight },
+            topMargin: WINDOW_MARGIN_2D + windowLineHeight,
             leftMargin: WINDOW_MARGIN_2D,
             color: WINDOW_FOREGROUND_COLOR_2D,
             alpha: WINDOW_FOREGROUND_ALPHA_2D,
             backgroundColor: WINDOW_BACKGROUND_COLOR_2D,
             backgroundAlpha: WINDOW_BACKGROUND_ALPHA_2D,
             text: "",
-            font: USERS_FONT_2D,
+            font: WINDOW_FONT_2D,
             visible: isVisible
         });
 
-        usersHeading2D = Overlays.addOverlay("text", {
+        windowHeading2D = Overlays.addOverlay("text", {
             x: WINDOW_MARGIN_2D,
+            y: 0,
             width: WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
-            height: USERS_FONT_2D.size,
+            height: windowTextHeight,
             topMargin: 0,
             leftMargin: 0,
             color: WINDOW_HEADING_COLOR_2D,
             alpha: WINDOW_HEADING_ALPHA_2D,
             backgroundAlpha: 0.0,
             text: "No users online",
-            font: USERS_FONT_2D,
+            font: WINDOW_FONT_2D,
             visible: isVisible
         });
 
         viewportHeight = Controller.getViewportDimensions().y;
-
-        usersLineHeight = Math.floor(Overlays.textSize(usersPane2D, "1").height);
-        usersLineSpacing = Math.floor(Overlays.textSize(usersPane2D, "1\n2").height - 2 * usersLineHeight);
 
         Controller.mousePressEvent.connect(onMousePressEvent);
 
@@ -241,8 +252,8 @@ var usersWindow = (function () {
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
         Script.clearTimeout(usersTimer);
-        Overlays.deleteOverlay(usersHeading2D);
-        Overlays.deleteOverlay(usersPane2D);
+        Overlays.deleteOverlay(windowHeading2D);
+        Overlays.deleteOverlay(windowPane2D);
     }
 
     setUp();
