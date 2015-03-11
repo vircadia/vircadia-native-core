@@ -1457,6 +1457,10 @@ void Application::dropEvent(QDropEvent *event) {
         if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
             snapshotPath = url.toLocalFile();
             break;
+        } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+            emit svoImportRequested(url.url());
+            event->acceptProposedAction();
+            return;
         }
     }
 
