@@ -12,6 +12,7 @@
 #ifndef hifi_ShapeInfo_h
 #define hifi_ShapeInfo_h
 
+#include <QObject>
 #include <QVector>
 #include <QString>
 #include <QUrl>

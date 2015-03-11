@@ -14,7 +14,6 @@
 #include "SharedUtil.h" // for MILLIMETERS_PER_METER
 
 #include "ShapeInfo.h"
-#include "GeometryCache.h"
 
 void ShapeInfo::clear() {
     _type = SHAPE_TYPE_NONE;
@@ -42,12 +41,6 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<
             _url = QUrl(url);
             // start download of model which contains collision hulls
             _type = SHAPE_TYPE_NONE; // until download is done
-
-            QSharedPointer<NetworkGeometry> networkGeometry = 
-                DependencyManager::get<GeometryCache>()->getGeometry (_url, QUrl(), false);
-
-            connect(networkGeometry, loaded, this, collisionGeometryLoaded);
-
             break;
         default:
             _halfExtents = halfExtents;

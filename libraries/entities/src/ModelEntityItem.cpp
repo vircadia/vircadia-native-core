@@ -17,6 +17,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ModelEntityItem.h"
+// #include "GeometryCache.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
@@ -31,7 +32,7 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
 }
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) 
+    EntityItem(entityItemID, properties)
 { 
     _type = EntityTypes::Model;
     setProperties(properties);
@@ -413,5 +414,15 @@ QString ModelEntityItem::getAnimationSettings() const {
 }
 
 void ModelEntityItem::computeShapeInfo(ShapeInfo& info) const {
-    info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
+
+    if (_collisionModelURL != "") {
+        //        QSharedPointer<NetworkGeometry> networkGeometry = 
+        //            DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
+
+        // FBXGeometry& _collisionModel;
+        // _collisionModel = &networkGeometry->getFBXGeometry();
+        // connect(networkGeometry, loaded, this, collisionGeometryLoaded);
+
+        //        info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
+    }
 }

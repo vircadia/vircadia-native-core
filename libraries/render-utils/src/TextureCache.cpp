@@ -13,7 +13,7 @@
 #include <gpu/GPUConfig.h>
 
 #include <QEvent>
-#include <QGLWidget>
+// #include <QGLWidget>
 #include <QNetworkReply>
 #include <QOpenGLFramebufferObject>
 #include <QResizeEvent>

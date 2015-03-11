@@ -16,6 +16,9 @@
 
 #include "EntityItem.h" 
 
+class NetworkGeometry;
+class GeometryCache;
+
 class ModelEntityItem : public EntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -152,6 +155,8 @@ protected:
     static Animation* getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;
     static AnimationCache _animationCache;
+
+    QSharedPointer<NetworkGeometry> _collisionNetworkGeometry;
 
 };
 
