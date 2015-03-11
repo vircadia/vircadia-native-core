@@ -11,22 +11,21 @@
 
 var usersWindow = (function () {
 
-    var WINDOW_BOUNDS_2D = { x: 100, y: 100, width: 300, height: 0 },
+    var WINDOW_BOUNDS_2D = { x: 100, y: 100, width: 150, height: 0 },
         WINDOW_MARGIN_2D = 12,
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
         WINDOW_FOREGROUND_ALPHA_2D = 0.9,
         WINDOW_BACKGROUND_COLOR_2D = { red: 120, green: 120, blue: 120 },
         WINDOW_BACKGROUND_ALPHA_2D = 0.7,
         usersPane2D,
-        USERS_PANE_TEXT_WIDTH_2D = WINDOW_BOUNDS_2D.width - 2 * WINDOW_MARGIN_2D,
         USERS_FONT_2D = { size: 14 },
         usersLineHeight,
         usersLineSpacing,
         USERNAME_SPACER = "\u00a0\u00a0\u00a0\u00a0",  // Nonbreaking spaces
         usernameSpacerWidth2D,
 
-        usersOnline,
-        linesOfUserIndexes = [],  // 2D array of lines of indexes into usersOnline
+        usersOnline,    // Raw data
+        linesOfUsers,   // Array of indexes pointing into usersOnline
 
         API_URL = "https://metaverse.highfidelity.io/api/v1/users?status=online",
         HTTP_GET_TIMEOUT = 60000,  // ms = 1 minute
@@ -34,7 +33,7 @@ var usersWindow = (function () {
         processUsers,
         usersTimedOut,
         usersTimer = null,
-        UPDATE_TIMEOUT = 5000;  // ms = 5s
+        UPDATE_TIMEOUT = 5000,  // ms = 5s
 
         MENU_NAME = "Tools",
         MENU_ITEM = "Users Online",
@@ -49,10 +48,7 @@ var usersWindow = (function () {
             overlayY,
             minY,
             maxY,
-            lineClicked,
-            i,
-            userIndex,
-            foundUser;
+            lineClicked;
 
         if (!isVisible) {
             return;
@@ -72,74 +68,38 @@ var usersWindow = (function () {
                 lineClicked = numLinesBefore;
             }
 
-            if (0 <= lineClicked && lineClicked < linesOfUserIndexes.length) {
-                foundUser = false;
-                i = 0;
-                while (!foundUser && i < linesOfUserIndexes[lineClicked].length) {
-                    userIndex = linesOfUserIndexes[lineClicked][i];
-                    foundUser = usersOnline[userIndex].leftX <= overlayX && overlayX <= usersOnline[userIndex].rightX;
-                    i += 1;
-                }
+            if (0 <= lineClicked && lineClicked < linesOfUsers.length
+                    && overlayX <= usersOnline[linesOfUsers[lineClicked]].usernameWidth) {
 
-                if (foundUser) {
-                    location.goToUser(usersOnline[userIndex].username);
-                }
+                print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
+                // DJRTODO
+                //location.goToUser(usersOnline[userIndex].username);
             }
         }
     }
 
     function updateWindow() {
         var displayText = "",
-            numUsersDisplayed = 0,
-            lineText = "",
-            lineWidth = 0,
-            myUsername = GlobalServices.username,
-            usernameWidth,
+            myUsername,
             user,
             i;
 
-        // Create 2D array of lines x IDs into usersOnline.
-        // Augment usersOnline entries with x-coordinates of left and right of displayed username.
-        linesOfUserIndexes = [];
+        myUsername = GlobalServices.username;
+        linesOfUsers = [];
         for (i = 0; i < usersOnline.length; i += 1) {
             user = usersOnline[i];
             if (user.username !== myUsername && user.online) {
-
-                usernameWidth = Overlays.textSize(usersPane2D, user.username).width;
-
-                if (linesOfUserIndexes.length === 0
-                        || lineWidth + usernameSpacerWidth2D + usernameWidth > USERS_PANE_TEXT_WIDTH_2D) {
-
-                    displayText += "\n" + lineText;
-
-                    // New line
-                    linesOfUserIndexes.push([i]);
-                    usersOnline[i].leftX = 0;
-                    usersOnline[i].rightX = usernameWidth;
-
-                    lineText = user.username;
-                    lineWidth = usernameWidth;
-
-                } else {
-                    // Append
-                    linesOfUserIndexes[linesOfUserIndexes.length - 1].push(i);
-                    usersOnline[i].leftX = lineWidth + usernameSpacerWidth2D;
-                    usersOnline[i].rightX = lineWidth + usernameSpacerWidth2D + usernameWidth;
-
-                    lineText += USERNAME_SPACER + user.username;
-                    lineWidth = usersOnline[i].rightX;
-                }
-
-                numUsersDisplayed += 1;
+                usersOnline[i].usernameWidth = Overlays.textSize(usersPane2D, user.username).width;
+                linesOfUsers.push(i);
+                displayText += "\n" + user.username;
             }
         }
 
-        displayText += "\n" + lineText;
-        displayText = displayText.slice(2);  // Remove leading "\n"s.
+        displayText = displayText.slice(1);  // Remove leading "\n".
 
         Overlays.editOverlay(usersPane2D, {
-            text: numUsersDisplayed > 0 ? displayText : "No users online",
-            height: (numUsersDisplayed > 0 ? linesOfUserIndexes.length : 1) * (usersLineHeight + usersLineSpacing)
+            text: linesOfUsers.length > 0 ? displayText : "No users online",
+            height: (linesOfUsers.length > 0 ? linesOfUsers.length : 1) * (usersLineHeight + usersLineSpacing)
                 - usersLineSpacing + 2 * WINDOW_MARGIN_2D
         });
     }
