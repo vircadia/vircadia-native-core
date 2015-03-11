@@ -127,10 +127,6 @@ namespace MenuOption {
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
     const QString Chat = "Chat...";
-    const QString ChatCircling = "Chat Circling";
-    const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
-    const QString CollideWithAvatars = "Collide With Other Avatars";
-    const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
