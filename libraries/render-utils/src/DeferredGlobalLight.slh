@@ -13,6 +13,7 @@
 
 <@include DeferredLighting.slh@>
 
+
 struct SphericalHarmonics {
     vec4 L00;
     vec4 L1m1;
