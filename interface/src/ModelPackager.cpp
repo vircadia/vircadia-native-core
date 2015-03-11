@@ -13,7 +13,6 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QTemporaryDir>
-#include <QTemporaryFile>
 
 #include "ModelSelector.h"
 #include "ModelPropertiesDialog.h"
@@ -21,6 +20,28 @@
 #include "ModelPackager.h"
 
 static const int MAX_TEXTURE_SIZE = 1024;
+
+void copyDirectoryContent(QDir& from, QDir& to) {
+    for (auto entry : from.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot |
+                                         QDir::NoSymLinks | QDir::Readable)) {
+        if (entry.isDir()) {
+            to.mkdir(entry.fileName());
+            from.cd(entry.fileName());
+            to.cd(entry.fileName());
+            copyDirectoryContent(from, to);
+            from.cdUp();
+            to.cdUp();
+        } else { // Files
+            QFile file(entry.absoluteFilePath());
+            QString newPath = to.absolutePath() + "/" + entry.fileName();
+            if (to.exists(entry.fileName())) {
+                QFile overridenFile(newPath);
+                overridenFile.remove();
+            }
+            file.copy(newPath);
+        }
+    }
+}
 
 bool ModelPackager::package() {
     ModelPackager packager;
@@ -115,28 +136,6 @@ bool ModelPackager::editProperties() {
     }
     _mapping = properties.getMapping();
     return true;
-}
-
-void copyDirectoryContent(QDir& from, QDir& to) {
-    for (auto entry : from.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot |
-                                         QDir::NoSymLinks | QDir::Readable)) {
-        if (entry.isDir()) {
-            to.mkdir(entry.fileName());
-            from.cd(entry.fileName());
-            to.cd(entry.fileName());
-            copyDirectoryContent(from, to);
-            from.cdUp();
-            to.cdUp();
-        } else { // Files
-            QFile file(entry.absoluteFilePath());
-            QString newPath = to.absolutePath() + "/" + entry.fileName();
-            if (to.exists(entry.fileName())) {
-                QFile overridenFile(newPath);
-                overridenFile.remove();
-            }
-            file.copy(newPath);
-        }
-    }
 }
 
 bool ModelPackager::zipModel() {
