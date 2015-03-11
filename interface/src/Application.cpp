@@ -91,7 +91,7 @@
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
-#include "ModelUploader.h"
+#include "ModelPackager.h"
 #include "Util.h"
 
 #include "avatar/AvatarManager.h"
@@ -3715,20 +3715,8 @@ void Application::toggleRunningScriptsWidget() {
     }
 }
 
-void Application::uploadHead() {
-    ModelUploader::uploadHead();
-}
-
-void Application::uploadSkeleton() {
-    ModelUploader::uploadSkeleton();
-}
-
-void Application::uploadAttachment() {
-    ModelUploader::uploadAttachment();
-}
-
-void Application::uploadEntity() {
-    ModelUploader::uploadEntity();
+void Application::packageModel() {
+    ModelPackager::package();
 }
 
 void Application::openUrl(const QUrl& url) {
