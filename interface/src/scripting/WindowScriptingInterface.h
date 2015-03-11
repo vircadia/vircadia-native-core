@@ -60,6 +60,7 @@ signals:
     void domainChanged(const QString& domainHostname);
     void inlineButtonClicked(const QString& name);
     void nonBlockingFormClosed();
+    void svoImportRequested(const QString& url);
 
 private slots:
     QScriptValue showAlert(const QString& message);

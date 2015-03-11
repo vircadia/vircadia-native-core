@@ -882,9 +882,15 @@ bool Application::event(QEvent* event) {
     if (event->type() == QEvent::FileOpen) {
         
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+
+        QUrl url = fileEvent->url();
         
-        if (!fileEvent->url().isEmpty()) {
-            DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
+        if (!url.isEmpty()) {
+            if (url.scheme() == HIFI_URL_SCHEME) {
+                DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
+            } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+                emit svoImportRequested(url.url());
+            }
         }
         
         return false;
