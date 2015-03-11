@@ -75,7 +75,7 @@ var usersWindow = (function () {
             if (0 <= lineClicked && lineClicked < linesOfUsers.length
                     && overlayX <= usersOnline[linesOfUsers[lineClicked]].usernameWidth) {
                 //print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
-                location.goToUser(usersOnline[userIndex].username);
+                location.goToUser(usersOnline[linesOfUsers[lineClicked]].username);
             }
         }
     }
