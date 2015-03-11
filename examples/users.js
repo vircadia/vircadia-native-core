@@ -116,7 +116,7 @@ var usersWindow = (function () {
     function requestUsers() {
         usersRequest = new XMLHttpRequest();
         usersRequest.open("GET", API_URL, true);
-        usersRequest.timeout = HTTP_GET_TIMEOUT * 1000;
+        usersRequest.timeout = HTTP_GET_TIMEOUT;
         usersRequest.ontimeout = usersTimedOut;
         usersRequest.onreadystatechange = processUsers;
         usersRequest.send();
