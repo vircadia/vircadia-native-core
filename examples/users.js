@@ -11,12 +11,13 @@
 
 var usersWindow = (function () {
 
-    var WINDOW_BOUNDS_2D = { x: 100, y: 100, width: 150, height: 0 },
+    var WINDOW_WIDTH_2D = 150,
         WINDOW_MARGIN_2D = 12,
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
         WINDOW_FOREGROUND_ALPHA_2D = 0.9,
         WINDOW_BACKGROUND_COLOR_2D = { red: 120, green: 120, blue: 120 },
         WINDOW_BACKGROUND_ALPHA_2D = 0.7,
+        windowHeight = 0,
         usersPane2D,
         USERS_FONT_2D = { size: 14 },
         usersLineHeight,
@@ -39,7 +40,9 @@ var usersWindow = (function () {
         MENU_ITEM = "Users Online",
         MENI_ITEM_AFTER = "Chat...",
 
-        isVisible = false;
+        isVisible = false,
+
+        viewportHeight;
 
     function onMousePressEvent(event) {
         var clickedOverlay,
@@ -56,8 +59,9 @@ var usersWindow = (function () {
 
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
         if (clickedOverlay === usersPane2D) {
-            overlayX = event.x - WINDOW_BOUNDS_2D.x - WINDOW_MARGIN_2D;
-            overlayY = event.y - WINDOW_BOUNDS_2D.y - WINDOW_MARGIN_2D;
+
+            overlayX = event.x - WINDOW_MARGIN_2D;
+            overlayY = event.y - viewportHeight + windowHeight - WINDOW_MARGIN_2D;
 
             numLinesBefore = Math.floor(overlayY / (usersLineHeight + usersLineSpacing));
             minY = numLinesBefore * (usersLineHeight + usersLineSpacing);
@@ -70,10 +74,8 @@ var usersWindow = (function () {
 
             if (0 <= lineClicked && lineClicked < linesOfUsers.length
                     && overlayX <= usersOnline[linesOfUsers[lineClicked]].usernameWidth) {
-
-                print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
-                // DJRTODO
-                //location.goToUser(usersOnline[userIndex].username);
+                //print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
+                location.goToUser(usersOnline[userIndex].username);
             }
         }
     }
@@ -96,11 +98,13 @@ var usersWindow = (function () {
         }
 
         displayText = displayText.slice(1);  // Remove leading "\n".
+        windowHeight = (linesOfUsers.length > 0 ? linesOfUsers.length : 1) * (usersLineHeight + usersLineSpacing)
+                - usersLineSpacing + 2 * WINDOW_MARGIN_2D;
 
         Overlays.editOverlay(usersPane2D, {
-            text: linesOfUsers.length > 0 ? displayText : "No users online",
-            height: (linesOfUsers.length > 0 ? linesOfUsers.length : 1) * (usersLineHeight + usersLineSpacing)
-                - usersLineSpacing + 2 * WINDOW_MARGIN_2D
+            y: viewportHeight - windowHeight,
+            height: windowHeight,
+            text: linesOfUsers.length > 0 ? displayText : "No users online"
         });
     }
 
@@ -168,9 +172,16 @@ var usersWindow = (function () {
         }
     }
 
+    function update() {
+        viewportHeight = Controller.getViewportDimensions().y;
+        Overlays.editOverlay(usersPane2D, {
+            y: viewportHeight - windowHeight
+        });
+    }
+
     function setUp() {
         usersPane2D = Overlays.addOverlay("text", {
-            bounds: WINDOW_BOUNDS_2D,
+            bounds: { x: 0, y: 0, width: WINDOW_WIDTH_2D, height: 0 },
             topMargin: WINDOW_MARGIN_2D,
             leftMargin: WINDOW_MARGIN_2D,
             color: WINDOW_FOREGROUND_COLOR_2D,
@@ -182,6 +193,7 @@ var usersWindow = (function () {
             visible: isVisible
         });
 
+        viewportHeight = Controller.getViewportDimensions().y;
         usersLineHeight = Math.floor(Overlays.textSize(usersPane2D, "1").height);
         usersLineSpacing = Math.floor(Overlays.textSize(usersPane2D, "1\n2").height - 2 * usersLineHeight);
 
@@ -197,6 +209,8 @@ var usersWindow = (function () {
             isChecked: isVisible
         });
         Menu.menuItemEvent.connect(onMenuItemEvent);
+
+        Script.update.connect(update);
 
         requestUsers();
     }
