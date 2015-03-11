@@ -181,7 +181,11 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("transform");
         updateOrientation(deltaTime);
-        updatePosition(deltaTime);
+        if (isPhysicsEnabled()) {
+            updatePositionWithPhysics(deltaTime);
+        } else {
+            updatePosition(deltaTime);
+        }
     }
     
     {
@@ -1395,6 +1399,25 @@ void MyAvatar::updatePosition(float deltaTime) {
 
     updateChatCircle(deltaTime);
     measureMotionDerivatives(deltaTime);
+}
+
+void MyAvatar::updatePositionWithPhysics(float deltaTime) {
+    // rotate velocity into camera frame
+    glm::quat rotation = getHead()->getCameraOrientation();
+    glm::vec3 localVelocity = glm::inverse(rotation) * _velocity;
+
+    bool hasFloor = false;
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, hasFloor);
+    newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
+
+    // cap avatar speed
+    float speed = glm::length(newLocalVelocity);
+    if (speed > MAX_WALKING_SPEED) {
+        newLocalVelocity *= MAX_WALKING_SPEED / speed;
+    }
+
+    // rotate back into world-frame
+    _velocity = rotation * newLocalVelocity;
 }
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {

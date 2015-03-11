@@ -102,6 +102,7 @@ enum EntityPropertyList {
     PROP_TEXT = PROP_MODEL_URL,
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
     PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
+    PROP_COLLISION_MODEL_URL,
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -164,6 +165,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
+    DEFINE_PROPERTY_REF(PROP_COLLISION_MODEL_URL, CollisionModelURL, collisionModelURL, QString);
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
     DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
@@ -291,6 +293,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionModelURL, collisionModelURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");

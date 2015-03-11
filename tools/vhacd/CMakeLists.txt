@@ -1,5 +1,5 @@
-set(TARGET_NAME vhacd)
-setup_hifi_project()
+set(TARGET_NAME vhacd-util)
+setup_hifi_project(Core Widgets)
 link_hifi_libraries(shared model fbx gpu networking octree)
 
 #find_package(VHACD REQUIRED) done in CMakeList.txt in parent directory

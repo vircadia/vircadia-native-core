@@ -55,7 +55,8 @@ AvatarData::AvatarData() :
     _billboard(),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _lastUpdateTimer()
+    _lastUpdateTimer(),
+    _velocity(0.0f)
 {
     
 }

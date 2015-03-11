@@ -63,7 +63,6 @@ Avatar::Avatar() :
     _skeletonModel(this),
     _skeletonOffset(0.0f),
     _bodyYawDelta(0.0f),
-    _velocity(0.0f),
     _positionDeltaAccumulator(0.0f),
     _lastVelocity(0.0f),
     _acceleration(0.0f),
