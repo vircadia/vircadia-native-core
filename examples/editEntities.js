@@ -125,7 +125,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         browseModelsButton = toolBar.addTool({
@@ -133,7 +133,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         newCubeButton = toolBar.addTool({
@@ -142,7 +142,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         newSphereButton = toolBar.addTool({
@@ -151,7 +151,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         newLightButton = toolBar.addTool({
@@ -160,7 +160,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         newTextButton = toolBar.addTool({
@@ -169,9 +169,8 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
-
     }
 
     that.setActive = function(active) {
@@ -196,9 +195,20 @@ var toolBar = (function () {
                     propertiesTool.setVisible(true);
                     Window.setFocus();
                 }
+                that.showTools(isActive);
             }
         }
         toolBar.selectTool(activeButton, isActive);
+    };
+
+    // Sets visibility of tool buttons, excluding the power button
+    that.showTools = function(doShow) {
+        toolBar.showTool(newModelButton, doShow);
+        toolBar.showTool(browseModelsButton, doShow);
+        toolBar.showTool(newCubeButton, doShow);
+        toolBar.showTool(newSphereButton, doShow);
+        toolBar.showTool(newLightButton, doShow);
+        toolBar.showTool(newTextButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
