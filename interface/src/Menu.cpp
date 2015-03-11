@@ -105,9 +105,6 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
                                   addressManager.data(), SLOT(copyPath()));
 
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::PackageModel, 0,
-                                  qApp, SLOT(packageModel()));
-
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
@@ -173,6 +170,9 @@ Menu::Menu() {
                                   Qt::Key_Apostrophe,
                                   qApp,
                                   SLOT(resetSensors()));
+    
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
+                                  qApp, SLOT(packageModel()));
 
     QMenu* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
