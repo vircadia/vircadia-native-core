@@ -290,11 +290,14 @@ private:
     float _lodDistance;
     float _lodHysteresis;
     float _nextLODHysteresis;
+
+    QSharedPointer<NetworkGeometry> _collisionGeometry;
     
     float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
     
     QUrl _url;
+    QUrl _collisionUrl;
 
     gpu::Buffers _blendedVertexBuffers;
     std::vector<Transform> _transforms;

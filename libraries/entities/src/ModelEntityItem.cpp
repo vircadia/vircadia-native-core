@@ -411,3 +411,7 @@ QString ModelEntityItem::getAnimationSettings() const {
     QString jsonByteString(jsonByteArray);
     return jsonByteString;
 }
+
+void ModelEntityItem::computeShapeInfo(ShapeInfo& info) const {
+    info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
+}

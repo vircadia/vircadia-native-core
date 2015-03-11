@@ -48,11 +48,14 @@ public:
     virtual bool needsToCallUpdate() const;
     virtual void debugDump() const;
 
+    virtual void computeShapeInfo(ShapeInfo& info) const;
+
     void updateShapeType(ShapeType type);
     virtual ShapeType getShapeType() const {
         // return _shapeType;
+        // XXX make hull an option in editentity.js
         if (_collisionModelURL != "") {
-            return SHAPE_TYPE_HULL;
+            return SHAPE_TYPE_CONVEX_HULL;
         } else {
             return _shapeType;
         }

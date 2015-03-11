@@ -14,6 +14,7 @@
 #include "SharedUtil.h" // for MILLIMETERS_PER_METER
 
 #include "ShapeInfo.h"
+#include "GeometryCache.h"
 
 void ShapeInfo::clear() {
     _type = SHAPE_TYPE_NONE;
@@ -22,7 +23,7 @@ void ShapeInfo::clear() {
     _externalData = NULL;
 }
 
-void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<glm::vec3>* data) {
+void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<glm::vec3>* data, QString url) {
     _type = type;
     switch(type) {
         case SHAPE_TYPE_NONE:
@@ -37,11 +38,30 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<
             _halfExtents = glm::vec3(radius);
             break;
         }
+        case SHAPE_TYPE_CONVEX_HULL:
+            _url = QUrl(url);
+            // start download of model which contains collision hulls
+            _type = SHAPE_TYPE_NONE; // until download is done
+
+            QSharedPointer<NetworkGeometry> networkGeometry = 
+                DependencyManager::get<GeometryCache>()->getGeometry (_url, QUrl(), false);
+
+            connect(networkGeometry, loaded, this, collisionGeometryLoaded);
+
+            break;
         default:
             _halfExtents = halfExtents;
+            break;
     }
     _externalData = data;
 }
+
+
+void ShapeInfo::collisionGeometryLoaded() {
+    _type = SHAPE_TYPE_CONVEX_HULL;
+    // xxx copy points over;
+}
+
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
     _type = SHAPE_TYPE_BOX;
@@ -61,9 +81,9 @@ void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
     _doubleHashKey.clear();
 }
 
-void ShapeInfo::setHull(QString url) {
-    _type = SHAPE_TYPE_HULL;
-    _url = url;
+void ShapeInfo::setConvexHull(QVector<glm::vec3>& points) {
+    _type = SHAPE_TYPE_CONVEX_HULL;
+    _points = points;
 }
 
 void ShapeInfo::setCapsuleY(float radius, float halfHeight) {

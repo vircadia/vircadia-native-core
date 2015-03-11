@@ -1019,6 +1019,10 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
 }
 
 void Model::setCollisionModelURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+    if (_collisionUrl == url) {
+        return;
+    }
+    _collisionUrl = url;
     _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
 }
 

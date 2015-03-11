@@ -11,8 +11,8 @@
 
 #include <glm/gtx/norm.hpp>
 
-#include "ShapeInfoUtil.h"
 #include "ShapeManager.h"
+#include "ShapeInfoUtil.h"
 
 ShapeManager::ShapeManager() {
 }
@@ -53,9 +53,8 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     return shape;
 }
 
-bool ShapeManager::releaseShape(const ShapeInfo& info) {
-    DoubleHashKey key = info.getHash();
-    ShapeReference* shapeRef = _shapeMap.find(key);
+
+void ShapeManager::dereferenceShapeReferece(ShapeReference* shapeRef, DoubleHashKey key) {
     if (shapeRef) {
         if (shapeRef->_refCount > 0) {
             shapeRef->_refCount--;
@@ -66,7 +65,7 @@ bool ShapeManager::releaseShape(const ShapeInfo& info) {
                     collectGarbage();
                 }
             }
-            return true;
+            return;
         } else {
             // attempt to remove shape that has no refs
             assert(false);
@@ -75,13 +74,32 @@ bool ShapeManager::releaseShape(const ShapeInfo& info) {
         // attempt to remove unmanaged shape
         assert(false);
     }
-    return false;
+    assert(false);
 }
 
-bool ShapeManager::releaseShape(const btCollisionShape* shape) {
-    ShapeInfo info;
-    ShapeInfoUtil::collectInfoFromShape(shape, info);
-    return releaseShape(info);
+
+void ShapeManager::releaseShape(const ShapeInfo& info) {
+    DoubleHashKey key = info.getHash();
+    ShapeReference* shapeRef = _shapeMap.find(key);
+    dereferenceShapeReferece(shapeRef, key);
+}
+
+void ShapeManager::releaseShape(const btCollisionShape* shape) {
+    // XXX make a table for this
+    int numShapes = _shapeMap.size();
+    for (int i = 0; i < numShapes; ++i) {
+        ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
+        if (shapeRef->_shape == shape) {
+            // XXX how can I find the key?
+            // dereferenceShapeReferece(shapeRef);
+            break;
+        }
+    }
+
+
+    // ShapeInfo info;
+    // ShapeInfoUtil::collectInfoFromShape(shape, info);
+    // releaseShape(info);
 }
 
 void ShapeManager::collectGarbage() {

@@ -26,8 +26,8 @@ int ShapeInfoUtil::toBulletShapeType(int shapeInfoType) {
         case SHAPE_TYPE_CAPSULE_Y:
             bulletShapeType = CAPSULE_SHAPE_PROXYTYPE;
             break;
-        case SHAPE_TYPE_HULL:
-            bulletShapeType = HULL_SHAPE_PROXYTYPE;
+        case SHAPE_TYPE_CONVEX_HULL:
+            bulletShapeType = CONVEX_HULL_SHAPE_PROXYTYPE;
             break;
     }
     return bulletShapeType;
@@ -45,8 +45,8 @@ int ShapeInfoUtil::fromBulletShapeType(int bulletShapeType) {
         case CAPSULE_SHAPE_PROXYTYPE:
             shapeInfoType = SHAPE_TYPE_CAPSULE_Y;
             break;
-        case HULL_SHAPE_PROXYTYPE:
-            shapeInfoType = SHAPE_TYPE_HULL;
+        case CONVEX_HULL_SHAPE_PROXYTYPE:
+            shapeInfoType = SHAPE_TYPE_CONVEX_HULL;
             break;
     }
     return shapeInfoType;
@@ -66,8 +66,16 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
                 info.setSphere(sphereShape->getRadius());
                 break;
             }
-            case SHAPE_TYPE_HULL: {
-                XXX;
+            case SHAPE_TYPE_CONVEX_HULL: {
+                const btConvexHullShape* convexHullShape = static_cast<const btConvexHullShape*>(shape);
+                const int numPoints = convexHullShape->getNumPoints();
+                const btVector3* btPoints = convexHullShape->getUnscaledPoints();
+                QVector<glm::vec3> points;
+                for (int i = 0; i < numPoints; i++) {
+                    glm::vec3 point(btPoints->getX(), btPoints->getY(), btPoints->getZ());
+                    points << point;
+                }
+                info.setConvexHull(points);
                 break;
             }
             default: {
@@ -99,8 +107,13 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
             shape = new btCapsuleShape(radius, height);
             break;
         }
-        case SHAPE_TYPE_HULL: {
-            XXX;
+        case SHAPE_TYPE_CONVEX_HULL: {
+            shape = new btConvexHullShape();
+            QVector<glm::vec3> points = info.getPoints();
+            foreach (glm::vec3 point, points) {
+                btVector3 btPoint(point[0], point[1], point[2]);
+                static_cast<btConvexHullShape*>(shape)->addPoint(btPoint);
+            }
             break;
         }
     }
