@@ -25,8 +25,6 @@ var usersWindow = (function () {
         USERS_FONT_2D = { size: 14 },
         usersLineHeight,
         usersLineSpacing,
-        USERNAME_SPACER = "\u00a0\u00a0\u00a0\u00a0",  // Nonbreaking spaces
-        usernameSpacerWidth2D,
 
         usersOnline,    // Raw data
         linesOfUsers,   // Array of indexes pointing into usersOnline
@@ -187,7 +185,7 @@ var usersWindow = (function () {
         });
         Overlays.editOverlay(usersHeading2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D
-        })
+        });
     }
 
     function setUp() {
@@ -219,10 +217,9 @@ var usersWindow = (function () {
         });
 
         viewportHeight = Controller.getViewportDimensions().y;
+
         usersLineHeight = Math.floor(Overlays.textSize(usersPane2D, "1").height);
         usersLineSpacing = Math.floor(Overlays.textSize(usersPane2D, "1\n2").height - 2 * usersLineHeight);
-
-        usernameSpacerWidth2D = Overlays.textSize(usersPane2D, USERNAME_SPACER).width;
 
         Controller.mousePressEvent.connect(onMousePressEvent);
 
