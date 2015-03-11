@@ -25,11 +25,6 @@
 
 #include "WindowScriptingInterface.h"
 
-WindowScriptingInterface* WindowScriptingInterface::getInstance() {
-    static WindowScriptingInterface sharedInstance;
-    return &sharedInstance;
-}
-
 WindowScriptingInterface::WindowScriptingInterface() :
     _editDialog(NULL),
     _nonBlockingFormActive(false),

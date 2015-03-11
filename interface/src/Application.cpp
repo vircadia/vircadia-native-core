@@ -244,6 +244,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
     auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
+    auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -3527,7 +3528,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
                             RayToOverlayIntersectionResultFromScriptValue);
 
-    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
+    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter, windowValue);
     // register `location` on the global object.

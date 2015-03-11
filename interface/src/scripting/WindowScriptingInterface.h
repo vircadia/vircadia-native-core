@@ -21,7 +21,7 @@
 
 #include "WebWindowClass.h"
 
-class WindowScriptingInterface : public QObject {
+class WindowScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(int innerWidth READ getInnerWidth)
     Q_PROPERTY(int innerHeight READ getInnerHeight)
@@ -29,7 +29,7 @@ class WindowScriptingInterface : public QObject {
     Q_PROPERTY(int y READ getY)
     Q_PROPERTY(bool cursorVisible READ isCursorVisible WRITE setCursorVisible)
 public:
-    static WindowScriptingInterface* getInstance();
+    WindowScriptingInterface();
     int getInnerWidth();
     int getInnerHeight();
     int getX();
@@ -85,7 +85,6 @@ private slots:
     WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
     
 private:
-    WindowScriptingInterface();
     QString jsRegExp2QtRegExp(QString string);
     QDialog* createForm(const QString& title, QScriptValue form);
     
