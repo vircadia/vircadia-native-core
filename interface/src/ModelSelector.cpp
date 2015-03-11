@@ -81,7 +81,7 @@ void ModelSelector::browse() {
                                                     "Model files (*.fst *.fbx)");
     QFileInfo fileInfo(filename);
     
-    if (fileInfo.isFile() && fileInfo.completeSuffix().contains(QRegExp("fst|fbx"))) {
+    if (fileInfo.isFile() && fileInfo.completeSuffix().contains(QRegExp("fst|fbx|FST|FBX"))) {
         _modelFile = fileInfo;
         _browseButton->setText(fileInfo.fileName());
         lastModelBrowseLocation.set(fileInfo.path());
