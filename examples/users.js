@@ -43,7 +43,7 @@ var usersWindow = (function () {
         MENU_ITEM = "Users Online",
         MENI_ITEM_AFTER = "Chat...",
 
-        isVisible = false,
+        isVisible = true,
 
         viewportHeight;
 
