@@ -134,6 +134,8 @@ var usersWindow = (function () {
                 updateWindow();
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
+                usersTimer = Script.setTimeout(requestUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                return;
             }
 
             usersTimer = Script.setTimeout(requestUsers, UPDATE_TIMEOUT);  // Update after finished processing.
