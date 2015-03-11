@@ -53,6 +53,7 @@ function Tooltip() {
         text += "ID: " + properties.id + "\n"
         if (properties.type == "Model") {
             text += "Model URL: " + properties.modelURL + "\n"
+            text += "Collision Model URL: " + properties.collisionModelURL + "\n"
             text += "Animation URL: " + properties.animationURL + "\n"
             text += "Animation is playing: " + properties.animationIsPlaying + "\n"
             if (properties.sittingPoints && properties.sittingPoints.length > 0) {

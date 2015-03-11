@@ -61,6 +61,8 @@ public:
 
     bool getShapeCollisions(const Shape* shape, CollisionList& collisions) const;
 
+    void setupAvatarCollision();
+
 protected:
     void integrate(float deltaTime);
 

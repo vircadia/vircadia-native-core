@@ -216,7 +216,6 @@ protected:
     void handleNodeKill(const SharedNodePointer& node);
 
     QUuid _sessionUUID;
-    bool _thisNodeCanAdjustLocks;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
     QUdpSocket _nodeSocket;
@@ -230,6 +229,7 @@ protected:
     int _numCollectedBytes;
 
     QElapsedTimer _packetStatTimer;
+    bool _thisNodeCanAdjustLocks;
     
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {

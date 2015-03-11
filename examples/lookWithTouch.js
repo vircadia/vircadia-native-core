@@ -38,6 +38,13 @@ function touchUpdateEvent(event) {
     if (wantDebugging) {
         print("touchUpdateEvent event.x,y=" + event.x + ", " + event.y);
     }
+    
+    if (!startedTouching) {
+      // handle Qt 5.4.x bug where we get touch update without a touch begin event
+      startedTouching = true;
+      lastX = event.x;
+      lastY = event.y;
+    }
 
     var MOUSE_YAW_SCALE = -0.25;
     var MOUSE_PITCH_SCALE = -12.5;

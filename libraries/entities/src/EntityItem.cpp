@@ -501,7 +501,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         EntityPropertyFlags propertyFlags = encodedPropertyFlags;
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
-        bool useMeters = (args.bitstreamVersion == VERSION_ENTITIES_USE_METERS_AND_RADIANS);
+        bool useMeters = (args.bitstreamVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS);
         if (useMeters) {
             READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePosition);
         } else {

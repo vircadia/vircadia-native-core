@@ -22,6 +22,8 @@ class GLCanvas : public QGLWidget {
     
 public:
     GLCanvas();
+    
+    void stopFrameTimer();
 
     bool isThrottleRendering() const;
     

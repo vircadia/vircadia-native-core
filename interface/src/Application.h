@@ -318,7 +318,6 @@ signals:
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
-    void updateLocationInServer();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
@@ -326,7 +325,7 @@ public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
-    bool importEntities(const QString& filename);
+    bool importEntities(const QString& url);
 
     void setLowVelocityFilter(bool lowVelocityFilter);
     void loadDialog();
@@ -587,6 +586,9 @@ private:
     GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
 
     void checkSkeleton();
+
+    QWidget* _fullscreenMenuWidget = new QWidget();
+    int _menuBarHeight;
 };
 
 #endif // hifi_Application_h
