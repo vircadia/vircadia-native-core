@@ -32,7 +32,6 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityI
     _type = EntityTypes::Light;
     
     // default property values
-    const quint8 MAX_COLOR = 255;
     _color[RED_INDEX] = _color[GREEN_INDEX] = _color[BLUE_INDEX] = 0;
     _intensity = 1.0f;
     _exponent = 0.0f;
