@@ -18,7 +18,6 @@ class DatagramProcessor : public QObject {
     Q_OBJECT
 public:
     DatagramProcessor(QObject* parent = 0);
-    ~DatagramProcessor();
     
     int getInPacketCount() const { return _inPacketCount; }
     int getOutPacketCount() const { return _outPacketCount; }

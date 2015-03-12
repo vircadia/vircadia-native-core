@@ -63,10 +63,6 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 }
 
-NodeList::~NodeList() {
-    qDebug() << "NL dtor called from" << QThread::currentThread() << "and the NL thread is" << thread();
-}
-
 qint64 NodeList::sendStats(const QJsonObject& statsObject, HifiSockAddr destination) {
     QByteArray statsPacket = byteArrayWithPopulatedHeader(PacketTypeNodeJsonStats);
     QDataStream statsPacketStream(&statsPacket, QIODevice::Append);
