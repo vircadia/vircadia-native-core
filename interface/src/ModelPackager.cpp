@@ -135,6 +135,23 @@ bool ModelPackager::editProperties() {
         return false;
     }
     _mapping = properties.getMapping();
+    
+    // Make sure that a mapping for the root joint has been specified
+    QVariantHash joints = _mapping.value(JOINT_FIELD).toHash();
+    if (!joints.contains("jointRoot")) {
+        qWarning() << QString("%1 root joint not configured for skeleton.").arg(_modelFile.fileName());
+        
+        QString message = "Your did not configure a root joint for your skeleton model.\n\nThe upload will be canceled.";
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Model Upload");
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+        
+        return false;
+    }
+    
     return true;
 }
 

@@ -74,7 +74,6 @@ Avatar::Avatar() :
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
-    _collisionGroups(0),
     _initialized(false),
     _shouldRenderBillboard(true),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
@@ -996,16 +995,6 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         // better if the avatars cached these buffers for each of the joints they are rendering
         geometryCache->updateVertices(_jointConesID, points, color);
         geometryCache->renderVertices(gpu::TRIANGLES, _jointConesID);
-    }
-}
-
-void Avatar::updateCollisionGroups() {
-    _collisionGroups = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithEnvironment)) {
-        _collisionGroups |= COLLISION_GROUP_ENVIRONMENT;
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
-        _collisionGroups |= COLLISION_GROUP_AVATARS;
     }
 }
 

@@ -91,7 +91,7 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
-const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
+const int UNUSED_AVATAR_STATE_BIT_5 = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 
@@ -248,7 +248,6 @@ public:
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
 
-    bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
@@ -370,7 +369,6 @@ protected:
     // key state
     KeyState _keyState;
 
-    bool _isChatCirclingEnabled;
     bool _forceFaceTrackerConnected;
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
 

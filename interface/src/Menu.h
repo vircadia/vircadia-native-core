@@ -127,10 +127,6 @@ namespace MenuOption {
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
     const QString Chat = "Chat...";
-    const QString ChatCircling = "Chat Circling";
-    const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
-    const QString CollideWithAvatars = "Collide With Other Avatars";
-    const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
@@ -248,7 +244,7 @@ namespace MenuOption {
     const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
-    const QString StereoAudio = "Stereo Audio";
+    const QString StereoAudio = "Stereo Audio (disables spatial sound)";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";

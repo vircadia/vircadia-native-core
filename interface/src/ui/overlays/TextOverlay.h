@@ -55,7 +55,7 @@ public:
     virtual TextOverlay* createClone() const;
     virtual QScriptValue getProperty(const QString& property);
 
-    QSizeF textSize(const QString& test) const;  // Pixels
+    QSizeF textSize(const QString& text) const;  // Pixels
 
 private:
     QString _text;

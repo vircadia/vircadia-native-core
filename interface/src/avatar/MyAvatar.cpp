@@ -72,7 +72,6 @@ MyAvatar::MyAvatar() :
 	Avatar(),
     _turningKeyPressTime(0.0f),
     _gravity(0.0f, 0.0f, 0.0f),
-    _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _shouldJump(false),
     _wasPushing(false),
     _isPushing(false),
@@ -88,7 +87,6 @@ MyAvatar::MyAvatar() :
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
-    _physicsSimulation(),
     _feetTouchFloor(true),
     _isLookingAtLeftEye(true),
     _realWorldFieldOfView("realWorldFieldOfView",
@@ -98,18 +96,15 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    _physicsSimulation.setEntity(&_skeletonModel);
 
     _skeletonModel.setEnableShapes(true);
-    _skeletonModel.buildRagdoll();
-    
+
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, &MyAvatar::goToLocation);
 }
 
 MyAvatar::~MyAvatar() {
-    _physicsSimulation.clear();
     _lookAtTargetAvatar.clear();
 }
 
@@ -176,7 +171,6 @@ void MyAvatar::simulate(float deltaTime) {
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
-    _skeletonModel.setShowTrueJointTransforms(! Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll));
 
     {
         PerformanceTimer perfTimer("transform");
@@ -213,16 +207,9 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_skeletonModel.getJointStateCount());
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-            for (int i = 0; i < _jointData.size(); i++) {
-                JointData& data = _jointData[i];
-                data.valid = _skeletonModel.getVisibleJointState(i, data.rotation);
-            }
-        } else {
-            for (int i = 0; i < _jointData.size(); i++) {
-                JointData& data = _jointData[i];
-                data.valid = _skeletonModel.getJointState(i, data.rotation);
-            }
+        for (int i = 0; i < _jointData.size(); i++) {
+            JointData& data = _jointData[i];
+            data.valid = _skeletonModel.getJointState(i, data.rotation);
         }
     }
 
@@ -238,54 +225,6 @@ void MyAvatar::simulate(float deltaTime) {
         head->simulate(deltaTime, true);
     }
     
-    {
-        PerformanceTimer perfTimer("physics");
-        const float minError = 0.00001f;
-        const float maxIterations = 3;
-        const quint64 maxUsec = 4000;
-        _physicsSimulation.setTranslation(_position);
-        _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
-
-        Ragdoll* ragdoll = _skeletonModel.getRagdoll();
-        if (ragdoll && Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-            // harvest any displacement of the Ragdoll that is a result of collisions
-            glm::vec3 ragdollDisplacement = ragdoll->getAndClearAccumulatedMovement();
-            const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
-            float length2 = glm::length2(ragdollDisplacement);
-            if (length2 > EPSILON && length2 < MAX_RAGDOLL_DISPLACEMENT_2) {
-                applyPositionDelta(ragdollDisplacement);
-            }
-        } else {
-            _skeletonModel.moveShapesTowardJoints(1.0f);
-        }
-    }
-
-    // now that we're done stepping the avatar forward in time, compute new collisions
-    if (_collisionGroups != 0) {
-        PerformanceTimer perfTimer("collisions");
-        Camera* myCamera = Application::getInstance()->getCamera();
-
-        float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
-        if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
-            radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.0f));
-            radius *= COLLISION_RADIUS_SCALAR;
-        }
-        if (_collisionGroups & COLLISION_GROUP_ENVIRONMENT) {
-            PerformanceTimer perfTimer("environment");
-            updateCollisionWithEnvironment(deltaTime, radius);
-        }
-        if (_collisionGroups & COLLISION_GROUP_VOXELS) {
-            PerformanceTimer perfTimer("voxels");
-            updateCollisionWithVoxels(deltaTime, radius);
-        } else {
-            _trapDuration = 0.0f;
-        }
-        if (_collisionGroups & COLLISION_GROUP_AVATARS) {
-            PerformanceTimer perfTimer("avatars");
-            updateCollisionWithAvatars(deltaTime);
-        }
-    }
-
     // Record avatars movements.
     if (_recorder && _recorder->isRecording()) {
         _recorder->record();
@@ -1305,14 +1244,6 @@ void MyAvatar::updatePosition(float deltaTime) {
     intersection._rayStart = glm::vec3(0.0f);
     intersection._rayDirection = - _worldUpDirection;
     intersection._rayLength = 4.0f * boundingShape.getBoundingRadius();
-    if (_physicsSimulation.findFloorRayIntersection(intersection)) {
-        // NOTE: heightAboveFloor is the distance between the bottom of the avatar and the floor
-        heightAboveFloor = intersection._hitDistance - boundingShape.getBoundingRadius()
-            + _skeletonModel.getBoundingShapeOffset().y;
-        if (heightAboveFloor < maxFloorDistance) {
-            hasFloor = true;
-        }
-    }
 
     // velocity is initialized to the measured _velocity but will be modified by friction, external thrust, etc
     glm::vec3 velocity = _velocity;
@@ -1397,7 +1328,6 @@ void MyAvatar::updatePosition(float deltaTime) {
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = speed > MOVING_SPEED_THRESHOLD;
 
-    updateChatCircle(deltaTime);
     measureMotionDerivatives(deltaTime);
 }
 
@@ -1418,169 +1348,6 @@ void MyAvatar::updatePositionWithPhysics(float deltaTime) {
 
     // rotate back into world-frame
     _velocity = rotation * newLocalVelocity;
-}
-
-void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
-    glm::vec3 up = getBodyUpDirection();
-    const float ENVIRONMENT_SURFACE_ELASTICITY = 0.0f;
-    const float ENVIRONMENT_SURFACE_DAMPING = 0.01f;
-    const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
-    glm::vec3 penetration;
-    float pelvisFloatingHeight = getPelvisFloatingHeight();
-    if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
-            _position - up * (pelvisFloatingHeight - radius),
-            _position + up * (getSkeletonHeight() - pelvisFloatingHeight + radius), radius, penetration)) {
-        updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
-        applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
-    }
-}
-
-static CollisionList myCollisions(64);
-
-void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-
-    // TODO: Andrew to do ground/walking detection in ragdoll mode
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-        const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
-        float speed = glm::length(_velocity);
-        if (speed > MAX_VOXEL_COLLISION_SPEED) {
-            // don't even bother to try to collide against voxles when moving very fast
-            _trapDuration = 0.0f;
-            return;
-        }
-        bool isTrapped = false;
-        myCollisions.clear();
-        // copy the boundingShape and tranform into physicsSimulation frame
-        CapsuleShape boundingShape = _skeletonModel.getBoundingShape();
-        boundingShape.setTranslation(boundingShape.getTranslation() - _position);
-
-        if (_physicsSimulation.getShapeCollisions(&boundingShape, myCollisions)) {
-            // we temporarily move b
-            const float VOXEL_ELASTICITY = 0.0f;
-            const float VOXEL_DAMPING = 0.0f;
-            const float capsuleRadius = boundingShape.getRadius();
-            const float capsuleHalfHeight = boundingShape.getHalfHeight();
-            const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
-            const float MIN_STEP_HEIGHT = 0.0f;
-            float highestStep = 0.0f;
-            float lowestStep = MAX_STEP_HEIGHT;
-            glm::vec3 floorPoint;
-            glm::vec3 stepPenetration(0.0f);
-            glm::vec3 totalPenetration(0.0f);
-    
-            for (int i = 0; i < myCollisions.size(); ++i) {
-                CollisionInfo* collision = myCollisions[i];
-
-                float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
-                float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
-                const float MAX_TRAP_PERIOD = 0.125f;
-                if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
-                    isTrapped = true;
-                    if (_trapDuration > MAX_TRAP_PERIOD) {
-                        RayIntersectionInfo intersection;
-                        // we pick a rayStart that we expect to be inside the boundingShape (aka shapeA)
-                        intersection._rayStart = collision->_contactPoint - MAX_STEP_HEIGHT * glm::normalize(collision->_penetration);
-                        intersection._rayDirection = -_worldUpDirection;
-                        // cast the ray down against shapeA
-                        if (collision->_shapeA->findRayIntersection(intersection)) {
-                            float firstDepth = - intersection._hitDistance;
-                            // recycle intersection and cast again in up against shapeB
-                            intersection._rayDirection = _worldUpDirection;
-                            intersection._hitDistance = FLT_MAX;
-                            if (collision->_shapeB->findRayIntersection(intersection)) {
-                                // now we know how much we need to move UP to get out
-                                totalPenetration = addPenetrations(totalPenetration, 
-                                        (firstDepth + intersection._hitDistance) * _worldUpDirection);
-                            }
-                        }
-                        continue;
-                    }
-                } else if (_trapDuration > MAX_TRAP_PERIOD) {
-                    // we're trapped, ignore this shallow collision
-                    continue;
-                }
-                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
-                
-                // some logic to help us walk up steps
-                if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
-                    float stepHeight = - glm::dot(_worldUpDirection, collision->_penetration);
-                    if (stepHeight > highestStep) {
-                        highestStep = stepHeight;
-                        stepPenetration = collision->_penetration;
-                    }
-                    if (stepHeight < lowestStep) {
-                        lowestStep = stepHeight;
-                        // remember that collision is in _physicsSimulation frame so we must add _position
-                        floorPoint = _position + collision->_contactPoint - collision->_penetration;
-                    }
-                }
-            }
-    
-            float penetrationLength = glm::length(totalPenetration);
-            if (penetrationLength < EPSILON) {
-                _trapDuration = 0.0f;
-                return;
-            }
-            float verticalPenetration = glm::dot(totalPenetration, _worldUpDirection);
-            if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
-                // we're colliding against an edge
-
-                // rotate _keyboardMotorVelocity into world frame
-                glm::vec3 targetVelocity = _keyboardMotorVelocity;
-                glm::quat rotation = getHead()->getCameraOrientation();
-                targetVelocity = rotation * _keyboardMotorVelocity;
-                if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
-                    // we're puhing into the edge, so we want to lift
-    
-                    // remove unhelpful horizontal component of the step's penetration
-                    totalPenetration -= stepPenetration - (glm::dot(stepPenetration, _worldUpDirection) * _worldUpDirection);
-    
-                    // further adjust penetration to help lift
-                    float liftSpeed = glm::max(MAX_WALKING_SPEED, speed);
-                    float thisStep = glm::min(liftSpeed * deltaTime, highestStep);
-                    float extraStep = glm::dot(totalPenetration, _worldUpDirection) + thisStep;
-                    if (extraStep > 0.0f) {
-                        totalPenetration -= extraStep * _worldUpDirection;
-                    }
-    
-                    _position -= totalPenetration;
-                } else {
-                    // we're not pushing into the edge, so let the avatar fall
-                    applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-                }
-            } else {
-                applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-            }
-    
-            // Don't make a collision sound against voxlels by default -- too annoying when walking
-            //const float VOXEL_COLLISION_FREQUENCY = 0.5f;
-            //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-        } 
-        _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
-    }
-}
-
-void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {
-    //
-    //  Update the avatar in response to a hard collision.  Position will be reset exactly
-    //  to outside the colliding surface.  Velocity will be modified according to elasticity.
-    //
-    //  if elasticity = 0.0, collision is 100% inelastic.
-    //  if elasticity = 1.0, collision is elastic.
-    //
-    _position -= penetration;
-    static float HALTING_VELOCITY = 0.2f;
-    // cancel out the velocity component in the direction of penetration
-    float penetrationLength = glm::length(penetration);
-    if (penetrationLength > EPSILON) {
-        glm::vec3 direction = penetration / penetrationLength;
-        _velocity -= glm::dot(_velocity, direction) * direction * (1.0f + elasticity);
-        _velocity *= glm::clamp(1.0f - damping, 0.0f, 1.0f);
-        if ((glm::length(_velocity) < HALTING_VELOCITY) && (glm::length(_thrust) == 0.0f)) {
-            // If moving really slowly after a collision, and not applying forces, stop altogether
-            _velocity *= 0.0f;
-        }
-    }
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
@@ -1623,173 +1390,6 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
         }
     }
     return false;
-}
-
-void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
-    //  Reset detector for nearest avatar
-    _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    const AvatarHash& avatars = DependencyManager::get<AvatarManager>()->getAvatarHash();
-    if (avatars.size() <= 1) {
-        // no need to compute a bunch of stuff if we have one or fewer avatars
-        return;
-    }
-    float myBoundingRadius = getBoundingRadius();
-
-    // find nearest avatar
-    float nearestDistance2 = std::numeric_limits<float>::max();
-    Avatar* nearestAvatar = NULL;
-    foreach (const AvatarSharedPointer& avatarPointer, avatars) {
-        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-        if (static_cast<Avatar*>(this) == avatar) {
-            // don't collide with ourselves
-            continue;
-        }
-        float distance2 = glm::distance2(_position, avatar->getPosition());        
-        if (nearestDistance2 > distance2) {
-            nearestDistance2 = distance2;
-            nearestAvatar = avatar;
-        }
-    }
-    _distanceToNearestAvatar = glm::sqrt(nearestDistance2);
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-        if (nearestAvatar != NULL) {
-            if (_distanceToNearestAvatar > myBoundingRadius + nearestAvatar->getBoundingRadius()) {
-                // they aren't close enough to put into the _physicsSimulation
-                // so we clear the pointer
-                nearestAvatar = NULL;
-            }
-        }
-    
-        foreach (const AvatarSharedPointer& avatarPointer, avatars) {
-            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            if (static_cast<Avatar*>(this) == avatar) {
-                // don't collide with ourselves
-                continue;
-            }
-            SkeletonModel* skeleton = &(avatar->getSkeletonModel());
-            PhysicsSimulation* simulation = skeleton->getSimulation();
-            if (avatar == nearestAvatar) {
-                if (simulation != &(_physicsSimulation)) {
-                    skeleton->setEnableShapes(true);
-                    _physicsSimulation.addEntity(skeleton);
-                    _physicsSimulation.addRagdoll(skeleton->getRagdoll());
-                }
-            } else if (simulation == &(_physicsSimulation)) {
-                _physicsSimulation.removeRagdoll(skeleton->getRagdoll());
-                _physicsSimulation.removeEntity(skeleton);
-                skeleton->setEnableShapes(false);
-            }
-        }
-    }
-}
-
-class SortedAvatar {
-public:
-    Avatar* avatar;
-    float distance;
-    glm::vec3 accumulatedCenter;
-};
-
-bool operator<(const SortedAvatar& s1, const SortedAvatar& s2) {
-    return s1.distance < s2.distance;
-}
-
-void MyAvatar::updateChatCircle(float deltaTime) {
-    if (!(_isChatCirclingEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ChatCircling))) {
-        return;
-    }
-
-    // find all circle-enabled members and sort by distance
-    QVector<SortedAvatar> sortedAvatars;
-    
-    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-        if ( ! avatar->isChatCirclingEnabled() ||
-                avatar == static_cast<Avatar*>(this)) {
-            continue;
-        }
-    
-        SortedAvatar sortedAvatar;
-        sortedAvatar.avatar = avatar;
-        sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
-        sortedAvatars.append(sortedAvatar);
-    }
-    
-    qSort(sortedAvatars.begin(), sortedAvatars.end());
-
-    // compute the accumulated centers
-    glm::vec3 center = _position;
-    for (int i = 0; i < sortedAvatars.size(); i++) {
-        SortedAvatar& sortedAvatar = sortedAvatars[i];
-        sortedAvatar.accumulatedCenter = (center += sortedAvatar.avatar->getPosition()) / (i + 2.0f);
-    }
-
-    // remove members whose accumulated circles are too far away to influence us
-    const float CIRCUMFERENCE_PER_MEMBER = 0.5f;
-    const float CIRCLE_INFLUENCE_SCALE = 2.0f;
-    const float MIN_RADIUS = 0.3f;
-    for (int i = sortedAvatars.size() - 1; i >= 0; i--) {
-        float radius = qMax(MIN_RADIUS, (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / TWO_PI);
-        if (glm::distance(_position, sortedAvatars[i].accumulatedCenter) > radius * CIRCLE_INFLUENCE_SCALE) {
-            sortedAvatars.remove(i);
-        } else {
-            break;
-        }
-    }
-    if (sortedAvatars.isEmpty()) {
-        return;
-    }
-    center = sortedAvatars.last().accumulatedCenter;
-    float radius = qMax(MIN_RADIUS, (CIRCUMFERENCE_PER_MEMBER * (sortedAvatars.size() + 1)) / TWO_PI);
-
-    // compute the average up vector
-    glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
-    foreach (const SortedAvatar& sortedAvatar, sortedAvatars) {
-        up += sortedAvatar.avatar->getWorldAlignedOrientation() * IDENTITY_UP;
-    }
-    up = glm::normalize(up);
-
-    // find reasonable corresponding right/front vectors
-    glm::vec3 front = glm::cross(up, IDENTITY_RIGHT);
-    if (glm::length(front) < EPSILON) {
-        front = glm::cross(up, IDENTITY_FRONT);
-    }
-    front = glm::normalize(front);
-    glm::vec3 right = glm::cross(front, up);
-
-    // find our angle and the angular distances to our closest neighbors
-    glm::vec3 delta = _position - center;
-    glm::vec3 projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
-    float myAngle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
-    float leftDistance = TWO_PI;
-    float rightDistance = TWO_PI;
-    foreach (const SortedAvatar& sortedAvatar, sortedAvatars) {
-        delta = sortedAvatar.avatar->getPosition() - center;
-        projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
-        float angle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
-        if (angle < myAngle) {
-            leftDistance = min(myAngle - angle, leftDistance);
-            rightDistance = min(TWO_PI - (myAngle - angle), rightDistance);
-
-        } else {
-            leftDistance = min(TWO_PI - (angle - myAngle), leftDistance);
-            rightDistance = min(angle - myAngle, rightDistance);
-        }
-    }
-
-    // if we're on top of a neighbor, we need to randomize so that they don't both go in the same direction
-    if (rightDistance == 0.0f && randomBoolean()) {
-        swap(leftDistance, rightDistance);
-    }
-
-    // split the difference between our neighbors
-    float targetAngle = myAngle + (rightDistance - leftDistance) / 4.0f;
-    glm::vec3 targetPosition = center + (front * sinf(targetAngle) + right * cosf(targetAngle)) * radius;
-
-    // approach the target position
-    const float APPROACH_RATE = 0.05f;
-    _position = glm::mix(_position, targetPosition, APPROACH_RATE);
 }
 
 void MyAvatar::maybeUpdateBillboard() {
@@ -1894,17 +1494,6 @@ void MyAvatar::updateMotionBehavior() {
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
-void MyAvatar::onToggleRagdoll() {
-    Ragdoll* ragdoll = _skeletonModel.getRagdoll();
-    if (ragdoll) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-            _physicsSimulation.setRagdoll(ragdoll);
-        } else {
-            _physicsSimulation.setRagdoll(NULL);
-        }
-    }
-}
-
 void MyAvatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
     if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
         Avatar::renderAttachments(renderMode, args);
@@ -1919,38 +1508,6 @@ void MyAvatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
         if (jointName != headJointName && jointName != "Head") {
             _attachmentModels.at(i)->render(1.0f, modelRenderMode, args);        
         }
-    }
-}
-
-void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
-    Avatar::setCollisionGroups(collisionGroups & VALID_COLLISION_GROUPS);
-    Menu* menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::CollideWithEnvironment, (bool)(_collisionGroups & COLLISION_GROUP_ENVIRONMENT));
-    menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
-    
-    // TODO: what to do about this now that voxels are gone
-    if (! (_collisionGroups & COLLISION_GROUP_VOXELS)) {
-        // no collision with voxels --> disable standing on floors
-        _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
-        menu->setIsOptionChecked(MenuOption::StandOnNearbyFloors, false);
-    }
-}
-
-void MyAvatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
-    glm::vec3 leverAxis = contactPoint - getPosition();
-    float leverLength = glm::length(leverAxis);
-    if (leverLength > EPSILON) {
-        // compute lean perturbation angles
-        glm::quat bodyRotation = getOrientation();
-        glm::vec3 xAxis = bodyRotation * glm::vec3(1.0f, 0.0f, 0.0f);
-        glm::vec3 zAxis = bodyRotation * glm::vec3(0.0f, 0.0f, 1.0f);
-
-        leverAxis = leverAxis / leverLength;
-        glm::vec3 effectivePenetration = penetration - glm::dot(penetration, leverAxis) * leverAxis;
-        // use the small-angle approximation for sine
-        float sideways = - glm::dot(effectivePenetration, xAxis) / leverLength;
-        float forward = glm::dot(effectivePenetration, zAxis) / leverLength;
-        getHead()->addLeanDeltas(sideways, forward);
     }
 }
 
