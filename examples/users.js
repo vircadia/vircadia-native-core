@@ -24,7 +24,7 @@ var usersWindow = (function () {
         windowHeading2D,
         VISIBILITY_SPACER_2D = 12,                          // Space between list of users and visibility controls
         visibilityHeading2D,
-        VISIBILITY_RADIO_SPACE = 20,
+        VISIBILITY_RADIO_SPACE = 16,
         visibilityControls2D,
         windowHeight,
         windowTextHeight,
@@ -53,7 +53,13 @@ var usersWindow = (function () {
 
         isVisible = true,
 
-        viewportHeight;
+        viewportHeight,
+
+        HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
+        RADIO_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/radio-button.svg",
+        RADIO_BUTTON_SVG_DIAMETER = 14,
+        RADIO_BUTTON_DISPLAY_SCALE = 0.7,                   // 1.0 = windowTextHeight
+        radioButtonDiameter;
 
     function calculateWindowHeight() {
         // Reserve 5 lines for window heading plus visibility heading and controls
@@ -63,7 +69,8 @@ var usersWindow = (function () {
     }
 
     function updateOverlayPositions() {
-        var i;
+        var i,
+            y;
 
         Overlays.editOverlay(windowPane2D, {
             y: viewportHeight - windowHeight
@@ -75,19 +82,23 @@ var usersWindow = (function () {
             y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
         });
         for (i = 0; i < visibilityControls2D.length; i += 1) {
-            Overlays.editOverlay(visibilityControls2D[i].overlay, {
-                y: viewportHeight - (3 - i) * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
-            });
+            y = viewportHeight - (3 - i) * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D;
+            Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { y: y });
+            Overlays.editOverlay(visibilityControls2D[i].textOverlay, { y: y });
         }
     }
 
     function updateVisibilityControls() {
-        var i;
+        var i,
+            color;
 
         for (i = 0; i < visibilityControls2D.length; i += 1) {
-            Overlays.editOverlay(visibilityControls2D[i].overlay, {
-                color: visibilityControls2D[i].selected ? WINDOW_FOREGROUND_COLOR_2D : WINDOW_HEADING_COLOR_2D
+            color = visibilityControls2D[i].selected ? WINDOW_FOREGROUND_COLOR_2D : WINDOW_HEADING_COLOR_2D;
+            Overlays.editOverlay(visibilityControls2D[i].radioOverlay, {
+                color: color,
+                subImage: { y: visibilityControls2D[i].selected ? 0 : RADIO_BUTTON_SVG_DIAMETER }
             });
+            Overlays.editOverlay(visibilityControls2D[i].textOverlay, { color: color });
         }
     }
 
@@ -196,7 +207,8 @@ var usersWindow = (function () {
         Overlays.editOverlay(windowHeading2D, { visible: isVisible });
         Overlays.editOverlay(visibilityHeading2D, { visible: isVisible });
         for (i = 0; i < visibilityControls2D.length; i += 1) {
-            Overlays.editOverlay(visibilityControls2D[i].overlay, { visible: isVisible });
+            Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { visible: isVisible });
+            Overlays.editOverlay(visibilityControls2D[i].textOverlay, { visible: isVisible });
         }
     }
 
@@ -246,14 +258,16 @@ var usersWindow = (function () {
 
         visibilityChanged = false;
         for (i = 0; i < visibilityControls2D.length; i += 1) {
-            if (clickedOverlay === visibilityControls2D[i].overlay) {
+            // Don't need to test radioOverlay if it us under textOverlay.
+            if (clickedOverlay === visibilityControls2D[i].textOverlay) {
                 GlobalServices.findableBy = VISIBILITY_VALUES[i];
                 visibilityChanged = true;
             }
         }
         if (visibilityChanged) {
             for (i = 0; i < visibilityControls2D.length; i += 1) {
-                visibilityControls2D[i].selected = clickedOverlay === visibilityControls2D[i].overlay;
+                // Don't need to handle radioOverlay if it us under textOverlay.
+                visibilityControls2D[i].selected = clickedOverlay === visibilityControls2D[i].textOverlay;
             }
             updateVisibilityControls();
         }
@@ -275,6 +289,7 @@ var usersWindow = (function () {
         windowTextHeight = Math.floor(Overlays.textSize(textSizeOverlay, "1").height);
         windowLineSpacing = Math.floor(Overlays.textSize(textSizeOverlay, "1\n2").height - 2 * windowTextHeight);
         windowLineHeight = windowTextHeight + windowLineSpacing;
+        radioButtonDiameter = RADIO_BUTTON_DISPLAY_SCALE * windowTextHeight;
         Overlays.deleteOverlay(textSizeOverlay);
 
         calculateWindowHeight();
@@ -333,14 +348,29 @@ var usersWindow = (function () {
             myVisibility = "";
         }
 
-        visibilityControls2D = [ {
-            overlay: Overlays.addOverlay("text", {
-                x: WINDOW_MARGIN_2D + VISIBILITY_RADIO_SPACE,
+        visibilityControls2D = [{
+            radioOverlay: Overlays.addOverlay("image", {  // Create first so that it is under textOverlay.
+                x: WINDOW_MARGIN_2D,
+                y: viewportHeight,
+                width: radioButtonDiameter,
+                height: radioButtonDiameter,
+                imageURL: RADIO_BUTTON_SVG,
+                subImage: {
+                    x: 0,
+                    y: RADIO_BUTTON_SVG_DIAMETER,  // Off
+                    width: RADIO_BUTTON_SVG_DIAMETER,
+                    height: RADIO_BUTTON_SVG_DIAMETER
+                },
+                color: WINDOW_HEADING_COLOR_2D,
+                alpha: WINDOW_FOREGROUND_ALPHA_2D
+            }),
+            textOverlay: Overlays.addOverlay("text", {
+                x: WINDOW_MARGIN_2D,
                 y: viewportHeight,
                 width: WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
                 height: windowTextHeight,
                 topMargin: 0,
-                leftMargin: 0,
+                leftMargin: VISIBILITY_RADIO_SPACE,
                 color: WINDOW_HEADING_COLOR_2D,
                 alpha: WINDOW_FOREGROUND_ALPHA_2D,
                 backgroundAlpha: 0.0,
@@ -351,15 +381,17 @@ var usersWindow = (function () {
             selected: myVisibility === VISIBILITY_VALUES[0]
         } ];
         visibilityControls2D[1] = {
-            overlay: Overlays.cloneOverlay(visibilityControls2D[0].overlay),
+            radioOverlay: Overlays.cloneOverlay(visibilityControls2D[0].radioOverlay),
+            textOverlay: Overlays.cloneOverlay(visibilityControls2D[0].textOverlay),
             selected: myVisibility === VISIBILITY_VALUES[1]
         };
-        Overlays.editOverlay(visibilityControls2D[1].overlay, { text: "my friends" });
+        Overlays.editOverlay(visibilityControls2D[1].textOverlay, { text: "my friends" });
         visibilityControls2D[2] = {
-            overlay: Overlays.cloneOverlay(visibilityControls2D[0].overlay),
+            radioOverlay: Overlays.cloneOverlay(visibilityControls2D[0].radioOverlay),
+            textOverlay: Overlays.cloneOverlay(visibilityControls2D[0].textOverlay),
             selected: myVisibility === VISIBILITY_VALUES[2]
         };
-        Overlays.editOverlay(visibilityControls2D[2].overlay, { text: "no one" });
+        Overlays.editOverlay(visibilityControls2D[2].textOverlay, { text: "no one" });
 
         updateVisibilityControls();
 
@@ -393,7 +425,8 @@ var usersWindow = (function () {
         Overlays.deleteOverlay(windowHeading2D);
         Overlays.deleteOverlay(visibilityHeading2D);
         for (i = 0; i <= visibilityControls2D.length; i += 1) {
-            Overlays.deleteOverlay(visibilityControls2D[i].overlay);
+            Overlays.deleteOverlay(visibilityControls2D[i].textOverlay);
+            Overlays.deleteOverlay(visibilityControls2D[i].radioOverlay);
         }
     }
 
