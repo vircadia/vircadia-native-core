@@ -115,5 +115,5 @@ void BoxEntityItem::writeSubTypeToMap(QVariantMap& map) {
 
 
 void BoxEntityItem::readFromMap(QVariantMap& map) {
-    qListtoRgbColor(map["color"], _color);
+    qListtoRgbColor(map.value("color", QVariantList() << 255 << 255 << 255), _color);
 }

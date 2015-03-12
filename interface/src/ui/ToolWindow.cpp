@@ -77,6 +77,7 @@ bool ToolWindow::eventFilter(QObject* sender, QEvent* event) {
         default:
             break;
     }
+
     return false;
 }
 

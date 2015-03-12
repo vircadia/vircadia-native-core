@@ -428,14 +428,13 @@ void ModelEntityItem::writeSubTypeToMap(QVariantMap& map) {
 
 
 void ModelEntityItem::readFromMap(QVariantMap& map) {
-    qListtoRgbColor(map["color"], _color);
-
-    _modelURL = map["model-url"].toString();
-    _animationURL = map["animation-url"].toString();
-    setAnimationFPS(map["animation-fps"].toFloat());
-    setAnimationFrameIndex(map["animation-frame-index"].toFloat());
-    setAnimationIsPlaying(map["animation-is-playing"].toBool());
-    _textures = map["textures"].toString();
-    setAnimationSettings(map["animation-settings"].toString());
-    _shapeType = (ShapeType)(map["shape-type"].toInt());
+    qListtoRgbColor(map.value("color", QVariantList() << 255 << 255 << 255), _color);
+    _modelURL = map.value("model-url", "").toString();
+    _animationURL = map.value("animation-url", "").toString();
+    setAnimationFPS(map.value("animation-fps", 0.0f).toFloat());
+    setAnimationFrameIndex(map.value("animation-frame-index", 0.0f).toFloat());
+    setAnimationIsPlaying(map.value("animation-is-playing", false).toBool());
+    _textures = map.value("textures", "").toString();
+    setAnimationSettings(map.value("animation-settings", "").toString());
+    _shapeType = (ShapeType)(map.value("shape-type", SHAPE_TYPE_NONE).toInt());
 }

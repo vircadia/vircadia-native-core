@@ -523,24 +523,23 @@ void ParticleEffectEntityItem::writeSubTypeToMap(QVariantMap& map) {
     map["local-gravity"] = _localGravity;
     map["particle-radius"] = _particleRadius;
     map["last-animatged"] = _lastAnimated;
-    // XXX animation-loop
+    map["animation-last"] = getAnimationLoop();
     map["animation-settings"] = _animationSettings;
     map["shape-type"] = _shapeType;
 }
 
 
 void ParticleEffectEntityItem::readFromMap(QVariantMap& map) {
-    qListtoRgbColor(map["color"], _color);
-
-    _maxParticles = map["max-particles"].toFloat();
-    _lifespan = map["lifespan"].toFloat();
-    _emitRate = map["emit-rate"].toFloat();
-    _emitDirection = qListToGlmVec3(map["emit-direction"]);
-    _emitStrength = map["emit-strength"].toFloat();
-    _localGravity = map["local-gravity"].toFloat();
-    _particleRadius = map["particle-radius"].toFloat();
-    _lastAnimated = map["last-animated"].toULongLong();
-    // XXX animation-loop
-    _animationSettings = map["animation-settings"].toString();
-    _shapeType = (ShapeType)(map["shape-type"].toInt());
+    qListtoRgbColor(map.value("color", QVariantList() << 255 << 255 << 255), _color);
+    _maxParticles = map.value("max-particles", DEFAULT_MAX_PARTICLES).toFloat();
+    _lifespan = map.value("lifespan", DEFAULT_LIFESPAN).toFloat();
+    _emitRate = map.value("emit-rate", DEFAULT_EMIT_RATE).toFloat();
+    _emitDirection = qListToGlmVec3(map.value("emit-direction", glmToQList(DEFAULT_EMIT_DIRECTION)));
+    _emitStrength = map.value("emit-strength", DEFAULT_EMIT_STRENGTH).toFloat();
+    _localGravity = map.value("local-gravity", DEFAULT_LOCAL_GRAVITY).toFloat();
+    _particleRadius = map.value("particle-radius", DEFAULT_PARTICLE_RADIUS).toFloat();
+    _lastAnimated = map.value("last-animated", usecTimestampNow()).toULongLong();
+    setAnimationLoop (map.value("animation-loop", true).toBool());
+    _animationSettings = map.value("animation-settings", "").toString();
+    _shapeType = (ShapeType)(map.value("shape-type", SHAPE_TYPE_NONE).toInt());
 }

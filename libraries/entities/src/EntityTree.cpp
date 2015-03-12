@@ -10,6 +10,7 @@
 //
 
 #include <PerfStat.h>
+#include <QDateTime>
 
 #include "EntityTree.h"
 #include "EntitySimulation.h"
@@ -1105,32 +1106,40 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid::createUuid());
         }
 
-        properties.setCreated(entityMap["created"].toULongLong());
-        QString typeString = entityMap["type"].toString();
+        if (!entityMap.contains("type")) {
+            // forget it.
+            return false;
+        }
+
+        QString typeString = entityMap.value("type").toString();
         QByteArray typeByteArray = typeString.toLocal8Bit();
         const char *typeCString = typeByteArray.data();
-
         properties.setType(EntityTypes::getEntityTypeFromName(typeCString));
 
-        properties.setPosition(qListToGlmVec3(entityMap["position"]));
-        properties.setDimensions(qListToGlmVec3(entityMap["dimensions"]));
-        properties.setRotation(qListToGlmQuat(entityMap["rotation"]));
-        properties.setDensity(entityMap["density"].toFloat());
-        properties.setVelocity(qListToGlmVec3(entityMap["angular-velocity"]));
-        properties.setGravity(qListToGlmVec3(entityMap["gravity"]));
-        properties.setDamping(entityMap["damping"].toFloat());
-        properties.setLifetime(entityMap["lifetime"].toFloat());
-        properties.setScript(entityMap["script"].toString());
-        properties.setRegistrationPoint(qListToGlmVec3(entityMap["registration-point"]));
-        properties.setAngularVelocity(qListToGlmVec3(entityMap["angular-velocity"]));
-        properties.setAngularDamping(entityMap["angular-damping"].toFloat());
-        properties.setGlowLevel(entityMap["glow"].toFloat());
-        properties.setLocalRenderAlpha(entityMap["alpha"].toFloat());
-        properties.setVisible(entityMap["visible"].toBool());
-        properties.setIgnoreForCollisions(entityMap["ignore-for-collisions"].toBool());
-        properties.setCollisionsWillMove(entityMap["collisions-will-move"].toBool());
-        properties.setLocked(entityMap["locked"].toBool());
-        properties.setUserData(entityMap["userData"].toString());
+        properties.setCreated(entityMap.value("created", usecTimestampNow()).toULongLong());
+        properties.setPosition(qListToGlmVec3(entityMap.value("position", glmToQList(ENTITY_ITEM_DEFAULT_POSITION))));
+        properties.setDimensions(qListToGlmVec3(entityMap.value("dimensions", glmToQList(ENTITY_ITEM_DEFAULT_DIMENSIONS))));
+        properties.setRotation(qListToGlmQuat(entityMap.value("rotation", glmToQList(ENTITY_ITEM_DEFAULT_ROTATION))));
+        properties.setDensity(entityMap.value("density", 1.0).toFloat());
+        properties.setVelocity(qListToGlmVec3(entityMap.value("velocity", glmToQList(ENTITY_ITEM_DEFAULT_VELOCITY))));
+        properties.setGravity(qListToGlmVec3(entityMap.value("gravity", glmToQList(ENTITY_ITEM_DEFAULT_GRAVITY))));
+        properties.setDamping(entityMap.value("damping", ENTITY_ITEM_DEFAULT_DAMPING).toFloat());
+        properties.setLifetime(entityMap.value("lifetime", ENTITY_ITEM_DEFAULT_LIFETIME).toFloat());
+        properties.setScript(entityMap.value("script", ENTITY_ITEM_DEFAULT_SCRIPT).toString());
+        properties.setRegistrationPoint(qListToGlmVec3(entityMap.value("registration-point",
+                                                                       glmToQList(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT))));
+        properties.setAngularVelocity(qListToGlmVec3(entityMap.value("angular-velocity",
+                                                                     glmToQList(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY))));
+        properties.setAngularDamping(entityMap.value("angular-damping", ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING).toFloat());
+        properties.setGlowLevel(entityMap.value("glow", ENTITY_ITEM_DEFAULT_GLOW_LEVEL).toFloat());
+        properties.setLocalRenderAlpha(entityMap.value("alpha", ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA).toFloat());
+        properties.setVisible(entityMap.value("visible", ENTITY_ITEM_DEFAULT_VISIBLE).toBool());
+        properties.setIgnoreForCollisions(entityMap.value("ignore-for-collisions",
+                                                          ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS).toBool());
+        properties.setCollisionsWillMove(entityMap.value("collisions-will-move",
+                                                         ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE).toBool());
+        properties.setLocked(entityMap.value("locked", ENTITY_ITEM_DEFAULT_LOCKED).toBool());
+        properties.setUserData(entityMap.value("user-data", ENTITY_ITEM_DEFAULT_USER_DATA).toString());
 
         EntityItem* entity = addEntity(entityItemID, properties);
 

@@ -180,10 +180,9 @@ void TextEntityItem::writeSubTypeToMap(QVariantMap& map) {
     map["background-color"] = rgbColorToQList(_backgroundColor);
 }
 
-
 void TextEntityItem::readFromMap(QVariantMap& map) {
-    _text = map["text"].toString();
-    _lineHeight = map["line-height"].toFloat();
-    qListtoRgbColor(map["text-color"], _textColor);
-    qListtoRgbColor(map["background-color"], _backgroundColor);
+    _text = map.value("text", "").toString();
+    _lineHeight = map.value("line-height", TextEntityItem::DEFAULT_LINE_HEIGHT).toFloat();
+    qListtoRgbColor(map.value("text-color", QVariantList() << 255 << 255 << 255), _textColor);
+    qListtoRgbColor(map.value("background-color", QVariantList() << 0 << 0 << 0), _backgroundColor);
 }

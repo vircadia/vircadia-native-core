@@ -136,5 +136,5 @@ void SphereEntityItem::writeSubTypeToMap(QVariantMap& map) {
 
 
 void SphereEntityItem::readFromMap(QVariantMap& map) {
-    qListtoRgbColor(map["color"], _color);
+    qListtoRgbColor(map.value("color", QVariantList() << 255 << 255 << 255), _color);
 }

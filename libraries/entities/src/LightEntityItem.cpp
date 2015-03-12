@@ -161,8 +161,8 @@ void LightEntityItem::writeSubTypeToMap(QVariantMap& map) {
 }
 
 void LightEntityItem::readFromMap(QVariantMap& map) {
-    qListtoRgbColor(map["color"], _color);
-    _intensity = map["intensity"].toFloat();
-    _exponent = map["exponent"].toFloat();
-    _cutoff = map["cutoff"].toFloat();
+    qListtoRgbColor(map.value("color", QVariantList() << 255 << 255 << 255), _color);
+    _intensity = map.value("intensity", 1.0f).toFloat();
+    _exponent = map.value("exponent", 0.0f).toFloat();
+    _cutoff = map.value("cutoff", PI).toFloat();
 }

@@ -1148,9 +1148,6 @@ QVariantMap EntityItem::writeToMap() {
     result["created"] = _created;
     result["last-edited"] = getLastEdited();
     result["last-updated"] = _lastUpdated;
-    // result["animation-update-delta"] = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
-    // result["simulation-update-delta"] = getLastSimulated() <= getLastEdited() ? 0 : getLastSimulated() - getLastEdited();
-
     result["position"] = glmToQList(getPosition());
     result["dimensions"] = glmToQList(getDimensions());
     result["rotation"] = glmToQList(getRotation());
@@ -1167,9 +1164,8 @@ QVariantMap EntityItem::writeToMap() {
     result["ignore-for-collisions"] = getIgnoreForCollisions();
     result["collisions-will-move"] = getCollisionsWillMove();
     result["locked"] = getLocked();
-    result["userData"] = getUserData();
+    result["user-data"] = getUserData();
     result["glow-level"] = getGlowLevel();
-
 
     writeSubTypeToMap(result);
     return result;
