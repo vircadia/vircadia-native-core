@@ -25,11 +25,6 @@
 
 #include "WindowScriptingInterface.h"
 
-WindowScriptingInterface* WindowScriptingInterface::getInstance() {
-    static WindowScriptingInterface sharedInstance;
-    return &sharedInstance;
-}
-
 WindowScriptingInterface::WindowScriptingInterface() :
     _editDialog(NULL),
     _nonBlockingFormActive(false),
@@ -37,6 +32,7 @@ WindowScriptingInterface::WindowScriptingInterface() :
 {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::hostnameChanged, this, &WindowScriptingInterface::domainChanged);
+    connect(Application::getInstance(), &Application::svoImportRequested, this, &WindowScriptingInterface::svoImportRequested);
 }
 
 WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {

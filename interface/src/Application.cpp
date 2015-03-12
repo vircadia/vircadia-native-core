@@ -91,7 +91,7 @@
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
-#include "ModelUploader.h"
+#include "ModelPackager.h"
 #include "Util.h"
 
 #include "avatar/AvatarManager.h"
@@ -244,6 +244,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
     auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
+    auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -882,9 +883,15 @@ bool Application::event(QEvent* event) {
     if (event->type() == QEvent::FileOpen) {
         
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+
+        QUrl url = fileEvent->url();
         
-        if (!fileEvent->url().isEmpty()) {
-            DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
+        if (!url.isEmpty()) {
+            if (url.scheme() == HIFI_URL_SCHEME) {
+                DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
+            } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+                emit svoImportRequested(url.url());
+            }
         }
         
         return false;
@@ -1451,6 +1458,10 @@ void Application::dropEvent(QDropEvent *event) {
         if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
             snapshotPath = url.toLocalFile();
             break;
+        } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+            emit svoImportRequested(url.url());
+            event->acceptProposedAction();
+            return;
         }
     }
 
@@ -1807,6 +1818,9 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
+    // Make sure Login state is up to date
+    DependencyManager::get<DialogsManager>()->toggleLoginDialog();
+    
     _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
@@ -3528,7 +3542,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
                             RayToOverlayIntersectionResultFromScriptValue);
 
-    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
+    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter, windowValue);
     // register `location` on the global object.
@@ -3716,20 +3730,8 @@ void Application::toggleRunningScriptsWidget() {
     }
 }
 
-void Application::uploadHead() {
-    ModelUploader::uploadHead();
-}
-
-void Application::uploadSkeleton() {
-    ModelUploader::uploadSkeleton();
-}
-
-void Application::uploadAttachment() {
-    ModelUploader::uploadAttachment();
-}
-
-void Application::uploadEntity() {
-    ModelUploader::uploadEntity();
+void Application::packageModel() {
+    ModelPackager::package();
 }
 
 void Application::openUrl(const QUrl& url) {
