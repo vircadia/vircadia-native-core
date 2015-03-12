@@ -25,16 +25,16 @@
 
 class Dependency {
 public:
-    typedef std::function<void(Dependency* pointer)> DeleterFct;
+    typedef std::function<void(Dependency* pointer)> DeleterFunction;
     
 protected:
     virtual ~Dependency() {}
     virtual void customDeleter() {
-        _customDeleterFct(this);
+        _customDeleter(this);
     }
     
-    void setCustomDeleterFct(DeleterFct customDeleterFct) { _customDeleterFct = customDeleterFct; }
-    DeleterFct _customDeleterFct = [](Dependency* pointer) { delete pointer; };
+    void setCustomDeleter(DeleterFunction customDeleter) { _customDeleter = customDeleter; }
+    DeleterFunction _customDeleter = [](Dependency* pointer) { delete pointer; };
     
     friend class DependencyManager;
 };
