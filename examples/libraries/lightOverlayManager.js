@@ -87,6 +87,7 @@ LightOverlayManager = function() {
                 rotation: Quat.fromPitchYawRollDegrees(0, 0, 270),
                 visible: visible,
                 alpha: 0.9,
+                scale: 0.5,
                 color: { red: 255, green: 255, blue: 255 }
             });
         }
