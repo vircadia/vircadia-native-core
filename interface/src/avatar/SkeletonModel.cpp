@@ -659,57 +659,57 @@ void SkeletonModel::buildShapes() {
 void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     // compute default joint transforms
     int numStates = _jointStates.size();
+    assert(numStates == _shapes.size());
     QVector<glm::mat4> transforms;
     transforms.fill(glm::mat4(), numStates);
-
-    // compute the default transforms
-    for (int i = 0; i < numStates; i++) {
-        JointState& state = _jointStates[i];
-        const FBXJoint& joint = state.getFBXJoint();
-        int parentIndex = joint.parentIndex;
-        if (parentIndex == -1) {
-            transforms[i] = _jointStates[i].getTransform();
-            continue;
-        }
-        
-        glm::quat modifiedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
-        transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
-            * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
-        // TODO: Andrew to harvest transforms here to move shapes to correct positions so that
-        // bounding capsule calculations below are correct.
-    }
 
     // compute bounding box that encloses all shapes
     Extents totalExtents;
     totalExtents.reset();
     totalExtents.addPoint(glm::vec3(0.0f));
-    for (int i = 0; i < _shapes.size(); i++) {
+    for (int i = 0; i < numStates; i++) {
+        // compute the default transform of this joint
+        JointState& state = _jointStates[i];
+        const FBXJoint& joint = state.getFBXJoint();
+        int parentIndex = joint.parentIndex;
+        if (parentIndex == -1) {
+            transforms[i] = _jointStates[i].getTransform();
+        } else {
+            glm::quat modifiedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
+            transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
+                * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
+        }
+
         Shape* shape = _shapes[i];
         if (!shape) {
             continue;
         }
+
+        // Each joint with a shape contributes to the totalExtents: a box 
+        // that contains the sphere centered at the end of the joint with radius of the bone.
+
         // TODO: skip hand and arm shapes for bounding box calculation
-        Extents shapeExtents;
-        shapeExtents.reset();
-        glm::vec3 localPosition = shape->getTranslation();
+        glm::vec3 jointPosition = extractTranslation(transforms[i]);
+
         int type = shape->getType();
+        float radius = 0.0f;
         if (type == CAPSULE_SHAPE) {
             // add the two furthest surface points of the capsule
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
-            glm::vec3 axis;
-            capsule->computeNormalizedAxis(axis);
             float radius = capsule->getRadius();
-            float halfHeight = capsule->getHalfHeight();
-            axis = halfHeight * axis + glm::vec3(radius);
-
-            shapeExtents.addPoint(localPosition + axis);
-            shapeExtents.addPoint(localPosition - axis);
+            glm::vec3 axis(radius);
+            Extents shapeExtents;
+            shapeExtents.reset();
+            shapeExtents.addPoint(jointPosition + axis);
+            shapeExtents.addPoint(jointPosition - axis);
             totalExtents.addExtents(shapeExtents);
         } else if (type == SPHERE_SHAPE) {
             float radius = shape->getBoundingRadius();
-            glm::vec3 axis = glm::vec3(radius);
-            shapeExtents.addPoint(localPosition + axis);
-            shapeExtents.addPoint(localPosition - axis);
+            glm::vec3 axis(radius);
+            Extents shapeExtents;
+            shapeExtents.reset();
+            shapeExtents.addPoint(jointPosition + axis);
+            shapeExtents.addPoint(jointPosition - axis);
             totalExtents.addExtents(shapeExtents);
         }
     }
