@@ -336,6 +336,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     _datagramProcessor = new DatagramProcessor(nodeList.data());
     
+    // have the NodeList use deleteLater from DM customDeleter
+    nodeList->setCustomDeleter([](Dependency* dependency) {
+        static_cast<NodeList*>(dependency)->deleteLater();
+    });
+    
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
@@ -609,9 +614,8 @@ Application::~Application() {
     //DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
     
-    auto nodeList = DependencyManager::get<NodeList>();
-    QThread* nodeThread = nodeList->thread();
-    nodeList->deleteLater();
+    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    DependencyManager::destroy<NodeList>();
     
     // ask the node thread to quit and wait until it is done
     nodeThread->quit();
