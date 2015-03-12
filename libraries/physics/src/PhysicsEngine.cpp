@@ -60,10 +60,7 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo && !_busyComputingShape.contains(entity->getID())) {
-        ShapeInfo shapeInfo;
-
-        qDebug() << "in addEntityInternal ID is" << entity->getID().toString();
-
+        // qDebug() << "in addEntityInternal ID is" << entity->getID().toString();
         QPointer<EntityItem> entityWptr(entity);
         _busyComputingShape[entity->getID()] = entityWptr;
         connect(entity, SIGNAL(entityShapeReady(QUuid)), this, SLOT(entityShapeReady(QUuid)));
@@ -72,8 +69,7 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
 }
 
 void PhysicsEngine::entityShapeReady(QUuid entityId) {
-
-    qDebug() << "PhysicsEngine::entityShapeReady for" << entityId.toString();
+    // qDebug() << "PhysicsEngine::entityShapeReady for" << entityId.toString();
 
     QPointer<EntityItem> entityPtr = _busyComputingShape[entityId];
     _busyComputingShape.remove(entityId);

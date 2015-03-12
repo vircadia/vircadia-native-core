@@ -18,6 +18,7 @@
 #include "EntityTreeElement.h"
 #include "ModelEntityItem.h"
 #include "GeometryCache.h"
+#include "ResourceCache.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
@@ -417,19 +418,27 @@ QString ModelEntityItem::getAnimationSettings() const {
 void ModelEntityItem::getReadyToComputeShape() {
     qDebug() << "ModelEntityItem::getReadyToComputeShape for " << getID().toString();
 
-    if (_collisionModelURL != "" && _collisionNetworkGeometry.isNull()) {
-        qDebug() << "    yes";
-        // QSharedPointer<NetworkGeometry> networkGeometry = 
-        _collisionNetworkGeometry = DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
-
-        // XXX does this do an unneeded copy?
-        // FBXGeometry _collisionModel = networkGeometry->getFBXGeometry();
-        FBXGeometry _collisionModel = _collisionNetworkGeometry->getFBXGeometry();
-
-        // connect(networkGeometry, loaded, this, collisionGeometryLoaded);
-
+    if (_collisionModelURL != "") {
+        if (! _collisionNetworkGeometry.isNull()) {
+            qDebug() << "    url is" << _collisionModelURL;
+            // QSharedPointer<NetworkGeometry> networkGeometry = 
+            _collisionNetworkGeometry =
+                DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
+            connect(_collisionNetworkGeometry.data(), SIGNAL(Resource::loaded()), this, SLOT(collisionGeometryLoaded()));
+        }
+    } else {
         emit entityShapeReady(getID());
     }
+}
+
+void ModelEntityItem::collisionGeometryLoaded() {
+    qDebug() << "ModelEntityItem::collisionGeometryLoaded for " << getID().toString();
+
+    // XXX does this do an unneeded copy?
+    // FBXGeometry _collisionModel = networkGeometry->getFBXGeometry();
+    FBXGeometry _collisionModel = _collisionNetworkGeometry->getFBXGeometry();
+
+    emit entityShapeReady(getID());
 }
 
 void ModelEntityItem::computeShapeInfo(ShapeInfo& info) {

@@ -20,6 +20,8 @@ class NetworkGeometry;
 class GeometryCache;
 
 class ModelEntityItem : public EntityItem {
+    Q_OBJECT
+
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -134,6 +136,9 @@ public:
     static void cleanupLoadedAnimations();
 
     void getReadyToComputeShape();
+
+public slots:
+    void collisionGeometryLoaded();
     
 protected:
 
