@@ -74,6 +74,8 @@ var DEFAULT_DIMENSIONS = {
     z: DEFAULT_DIMENSION
 };
 
+var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
+
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
@@ -333,8 +335,8 @@ var toolBar = (function () {
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 placingEntityID = Entities.addEntity({
                                 type: "Light",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: DEFAULT_DIMENSIONS,
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_LIGHT_DIMENSIONS), DEFAULT_LIGHT_DIMENSIONS),
+                                dimensions: DEFAULT_LIGHT_DIMENSIONS,
                                 isSpotlight: false,
                                 diffuseColor: { red: 255, green: 255, blue: 255 },
                                 ambientColor: { red: 255, green: 255, blue: 255 },
