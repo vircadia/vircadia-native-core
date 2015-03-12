@@ -1806,6 +1806,9 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
+    // Make sure Login state is up to date
+    DependencyManager::get<DialogsManager>()->toggleLoginDialog();
+    
     _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
