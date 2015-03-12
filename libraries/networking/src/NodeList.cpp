@@ -13,7 +13,6 @@
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QUrl>
-#include <QtCore/qthread.h>
 #include <QtNetwork/QHostInfo>
 
 #include <LogHandler.h>
