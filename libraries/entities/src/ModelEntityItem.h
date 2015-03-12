@@ -51,7 +51,7 @@ public:
     virtual bool needsToCallUpdate() const;
     virtual void debugDump() const;
 
-    virtual void computeShapeInfo(ShapeInfo& info) const;
+    virtual void computeShapeInfo(ShapeInfo& info);
 
     void updateShapeType(ShapeType type);
     virtual ShapeType getShapeType() const {
@@ -132,6 +132,8 @@ public:
     void setTextures(const QString& textures) { _textures = textures; }
     
     static void cleanupLoadedAnimations();
+
+    void getReadyToComputeShape();
     
 protected:
 

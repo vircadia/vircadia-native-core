@@ -413,17 +413,26 @@ QString ModelEntityItem::getAnimationSettings() const {
     return jsonByteString;
 }
 
-void ModelEntityItem::computeShapeInfo(ShapeInfo& info) const {
 
-    if (_collisionModelURL != "") {
-        QSharedPointer<NetworkGeometry> networkGeometry = 
-            DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
+void ModelEntityItem::getReadyToComputeShape() {
+    qDebug() << "ModelEntityItem::getReadyToComputeShape for " << getID().toString();
+
+    if (_collisionModelURL != "" && _collisionNetworkGeometry.isNull()) {
+        qDebug() << "    yes";
+        // QSharedPointer<NetworkGeometry> networkGeometry = 
+        _collisionNetworkGeometry = DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
 
         // XXX does this do an unneeded copy?
-        FBXGeometry _collisionModel = networkGeometry->getFBXGeometry();
+        // FBXGeometry _collisionModel = networkGeometry->getFBXGeometry();
+        FBXGeometry _collisionModel = _collisionNetworkGeometry->getFBXGeometry();
 
         // connect(networkGeometry, loaded, this, collisionGeometryLoaded);
 
-        info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
+        emit entityShapeReady(getID());
     }
+}
+
+void ModelEntityItem::computeShapeInfo(ShapeInfo& info) {
+    qDebug() << "ModelEntityItem::computeShapeInfo for " << getID().toString();
+    info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
 }

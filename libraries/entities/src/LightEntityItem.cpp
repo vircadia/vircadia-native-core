@@ -32,7 +32,7 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityI
     _type = EntityTypes::Light;
     
     // default property values
-    const quint8 MAX_COLOR = 255;
+    // const quint8 MAX_COLOR = 255;
     _color[RED_INDEX] = _color[GREEN_INDEX] = _color[BLUE_INDEX] = 0;
     _intensity = 1.0f;
     _exponent = 0.0f;
@@ -112,6 +112,8 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
         READ_ENTITY_PROPERTY(PROP_EXPONENT, float, _exponent);
         READ_ENTITY_PROPERTY(PROP_CUTOFF, float, _cutoff);
+
+        (void) ignoredAttenuation; // suppress compiler warning
     } else {
         READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, _isSpotlight);
         READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);

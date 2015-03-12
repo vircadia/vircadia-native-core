@@ -43,7 +43,9 @@ class EntityTreeElementExtraEncodeData;
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
-class EntityItem  {
+class EntityItem : public QObject {
+    Q_OBJECT
+
     friend class EntityTreeElement;
 public:
     enum EntityDirtyFlags {
@@ -256,7 +258,7 @@ public:
     
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     virtual bool containsInDomainUnits(const glm::vec3& point) const { return getAABoxInDomainUnits().contains(point); }
-    virtual void computeShapeInfo(ShapeInfo& info) const;
+    virtual void computeShapeInfo(ShapeInfo& info);
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
@@ -295,6 +297,10 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
+    virtual void getReadyToComputeShape();
+
+ signals:
+    void entityShapeReady(QUuid entityId) const;
 
 protected:
 

@@ -51,6 +51,8 @@ typedef std::map<ContactKey, ContactInfo> ContactMap;
 typedef std::pair<ContactKey, ContactInfo> ContactMapElement;
 
 class PhysicsEngine : public EntitySimulation {
+    Q_OBJECT
+
 public:
     // TODO: find a good way to make this a non-static method
     static uint32_t getNumSubsteps();
@@ -90,6 +92,9 @@ public:
 
     void setAvatarData(AvatarData *avatarData);
 
+public slots:
+    void entityShapeReady(QUuid entityId);
+
 private:
     /// \param motionState pointer to Object's MotionState
     void removeObjectFromBullet(ObjectMotionState* motionState);
@@ -126,6 +131,8 @@ private:
     btCharacterControllerInterface* _characterController = 0;
     class btPairCachingGhostObject* _avatarGhostObject = 0;
     AvatarData *_avatarData = 0;
+
+    QMap<QUuid, QPointer<EntityItem>> _busyComputingShape;
 };
 
 #endif // hifi_PhysicsEngine_h

@@ -59,25 +59,43 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
 void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
-    if (!physicsInfo) {
+    if (!physicsInfo && !_busyComputingShape.contains(entity->getID())) {
         ShapeInfo shapeInfo;
-        entity->computeShapeInfo(shapeInfo);
-        btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
-        if (shape) {
-            EntityMotionState* motionState = new EntityMotionState(entity);
-            entity->setPhysicsInfo(static_cast<void*>(motionState));
-            _entityMotionStates.insert(motionState);
-            addObject(shapeInfo, shape, motionState);
-        } else if (entity->isMoving()) {
-            EntityMotionState* motionState = new EntityMotionState(entity);
-            entity->setPhysicsInfo(static_cast<void*>(motionState));
-            _entityMotionStates.insert(motionState);
 
-            motionState->setKinematic(true, _numSubsteps);
-            _nonPhysicalKinematicObjects.insert(motionState);
-            // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-            //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
-        }
+        qDebug() << "in addEntityInternal ID is" << entity->getID().toString();
+
+        QPointer<EntityItem> entityWptr(entity);
+        _busyComputingShape[entity->getID()] = entityWptr;
+        connect(entity, SIGNAL(entityShapeReady(QUuid)), this, SLOT(entityShapeReady(QUuid)));
+        entity->getReadyToComputeShape();
+    }
+}
+
+void PhysicsEngine::entityShapeReady(QUuid entityId) {
+
+    qDebug() << "PhysicsEngine::entityShapeReady for" << entityId.toString();
+
+    QPointer<EntityItem> entityPtr = _busyComputingShape[entityId];
+    _busyComputingShape.remove(entityId);
+
+    EntityItem &entity = *entityPtr;
+
+    ShapeInfo shapeInfo;
+    entity.computeShapeInfo(shapeInfo);
+
+    btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+
+    EntityMotionState* motionState = new EntityMotionState(&entity);
+    entity.setPhysicsInfo(static_cast<void*>(motionState));
+    _entityMotionStates.insert(motionState);
+
+    if (shape) {
+        addObject(shapeInfo, shape, motionState);
+    } else if (entity.isMoving()) {
+        motionState->setKinematic(true, _numSubsteps);
+        _nonPhysicalKinematicObjects.insert(motionState);
+        // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+        //qDebug() << "failed to add entity " << entity.getEntityItemID() << " to physics engine";
     }
 }
 
