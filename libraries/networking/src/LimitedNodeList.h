@@ -223,8 +223,6 @@ protected:
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
-    
-    QTimer* _silentNodeTimer;
 
     // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;

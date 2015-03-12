@@ -146,6 +146,7 @@ const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
+static QTimer* silentNodeTimer = NULL;
 static QTimer* identityPacketTimer = NULL;
 static QTimer* billboardPacketTimer = NULL;
 static QTimer* checkFPStimer = NULL;
@@ -257,6 +258,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
+        _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
@@ -327,20 +329,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
     // start the nodeThread so its event loop is running
-    QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("Datagram Processor Thread");
-    nodeThread->start();
+    _nodeThread->setObjectName("Datagram Processor Thread");
+    _nodeThread->start();
 
     // make sure the node thread is given highest priority
-    nodeThread->setPriority(QThread::TimeCriticalPriority);
-    
-    _datagramProcessor = new DatagramProcessor(nodeList.data());
+    _nodeThread->setPriority(QThread::TimeCriticalPriority);
     
     // put the NodeList and datagram processing on the node thread
-    nodeList->moveToThread(nodeThread);
+    nodeList->moveToThread(_nodeThread);
+    _datagramProcessor.moveToThread(_nodeThread);
 
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
+    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -426,6 +426,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
+
+    // move the silentNodeTimer to the _nodeThread
+    silentNodeTimer = new QTimer();
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
+    silentNodeTimer->moveToThread(_nodeThread);
 
     // send the identity packet for our avatar each second to our avatar mixer
     identityPacketTimer = new QTimer();
@@ -541,7 +547,7 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
-    _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
+    _datagramProcessor.shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
     
@@ -549,6 +555,7 @@ void Application::cleanupBeforeQuit() {
     // depending on what thread they run in
     locationUpdateTimer->stop();
     balanceUpdateTimer->stop();
+    QMetaObject::invokeMethod(silentNodeTimer, "stop", Qt::BlockingQueuedConnection);
     identityPacketTimer->stop();
     billboardPacketTimer->stop();
     checkFPStimer->stop();
@@ -558,6 +565,7 @@ void Application::cleanupBeforeQuit() {
     // and then delete those that got created by "new"
     delete locationUpdateTimer;
     delete balanceUpdateTimer;
+    delete silentNodeTimer;
     delete identityPacketTimer;
     delete billboardPacketTimer;
     delete checkFPStimer;
@@ -589,6 +597,10 @@ Application::~Application() {
     tree->lockForWrite();
     _entities.getTree()->setSimulation(NULL);
     tree->unlock();
+
+    // ask the datagram processing thread to quit and wait until it is done
+    _nodeThread->quit();
+    _nodeThread->wait();
     
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
@@ -608,14 +620,6 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     //DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
-    
-    auto nodeList = DependencyManager::get<NodeList>();
-    QThread* nodeThread = nodeList->thread();
-    nodeList->deleteLater();
-    
-    // ask the node thread to quit and wait until it is done
-    nodeThread->quit();
-    nodeThread->wait();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -1494,7 +1498,7 @@ void Application::checkFPS() {
 
     _fps = (float)_frameCount / diffTime;
     _frameCount = 0;
-    _datagramProcessor->resetCounters();
+    _datagramProcessor.resetCounters();
     _timerStart.start();
 
     // ask the node list to check in with the domain server
