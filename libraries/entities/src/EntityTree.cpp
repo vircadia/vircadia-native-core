@@ -1040,8 +1040,21 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
 
 class ToMapOperator : public RecurseOctreeOperator {
 public:
-    ToMapOperator(QVariantMap& map) : RecurseOctreeOperator(), _map(map) {};
-    bool preRecursion(OctreeElement* element) {return true;}
+    ToMapOperator(QVariantMap& map, OctreeElement *top) : RecurseOctreeOperator(), _map(map), _top(top) {
+        // if some element "top" was given, only save information for that element and it's children.
+        if (_top) {
+            _withinTop = false;
+        } else {
+            // top was NULL, export entire tree.
+            _withinTop = true;
+        }
+    };
+    bool preRecursion(OctreeElement* element) {
+        if (element == _top) {
+            _withinTop = true;
+        }
+        return true;
+    }
     bool postRecursion(OctreeElement* element) {
         qDebug() << "  in ToMapOperator::preRecursion";
         EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
@@ -1052,19 +1065,22 @@ public:
             entitiesQList << entityItem->writeToMap();
         }
         _map["Entities"] = entitiesQList;
+        if (element == _top) {
+            _withinTop = false;
+        }
         return true;
     }
  private:
     QVariantMap& _map;
+    OctreeElement *_top;
+    bool _withinTop;
 };
 
 
 
 bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* element) {
-
-    // XXX how can I make the RecurseOctreeOperator start with element?
     entityDescription["Entities"] = QVariantList();
-    ToMapOperator theOperator(entityDescription);
+    ToMapOperator theOperator(entityDescription, element);
     recurseTreeWithOperator(&theOperator);
     return true;
 }

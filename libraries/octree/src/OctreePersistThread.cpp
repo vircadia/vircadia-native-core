@@ -44,6 +44,14 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
     _persistAsJson(persistAsJson)
 {
     parseSettings(settings);
+
+    QString sansExt = fileNameWithoutExtension(_filename, persistExtensions);
+    if (_persistAsJson) {
+        _filename = sansExt + "." + "json";
+    } else {
+        _filename = sansExt + "." + "svo";
+    }
+
 }
 
 void OctreePersistThread::parseSettings(const QJsonObject& settings) {
@@ -347,8 +355,8 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
                 QString backupExtensionNplusOne = rule.extensionFormat;
                 backupExtensionN.replace(QString("%N"), QString::number(n));
                 backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
-    
-                QString backupFilenameN = _filename + backupExtensionN;
+
+                QString backupFilenameN = findMostRecentPersist(_filename) + backupExtensionN;
                 QString backupFilenameNplusOne = _filename + backupExtensionNplusOne;
 
                 QFile backupFileN(backupFilenameN);

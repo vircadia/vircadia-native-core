@@ -46,6 +46,9 @@
 #include "Octree.h"
 #include "ViewFrustum.h"
 
+
+QVector<QString> persistExtensions = {"svo", "json"};
+
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
     return voxelSizeScale / powf(2, renderLevel);
 }
@@ -1846,43 +1849,17 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 }
 
 
-QString withoutFileExtension(const QString& fileName) {
-    return fileName.left(fileName.lastIndexOf("."));
-}
-
-
 bool Octree::readFromFile(const char* fileName) {
     bool fileOk = false;
 
-    // try to ease migration from svo to json or back
-    QString svoFileName = withoutFileExtension(QString(fileName)) + ".svo";
-    QFileInfo svoFileInfo(svoFileName);
-    QString jsonFileName = withoutFileExtension(QString(fileName)) + ".json";
-    QFileInfo jsonFileInfo(jsonFileName);
-    QString qFileName;
-    QFileInfo fileInfo;
-
-    if (jsonFileInfo.exists() && svoFileInfo.exists()) {
-        if (jsonFileInfo.lastModified() >= svoFileInfo.lastModified()) {
-            qFileName = jsonFileName;
-            fileInfo = jsonFileInfo;
-        } else {
-            qFileName = svoFileName;
-            fileInfo = svoFileInfo;
-        }
-    } else if (jsonFileInfo.exists()) {
-        qFileName = jsonFileName;
-        fileInfo = jsonFileInfo;
-    } else if (svoFileInfo.exists()) {
-        qFileName = svoFileName;
-        fileInfo = svoFileInfo;
-    } else {
-        qDebug() << "failed to read Octree from nonexistant file:" << fileName;
-        return false;
-    }
+    QString qFileName = findMostRecentPersist(fileName);
+    // QByteArray byteArray = qFileName.toUtf8();
+    // const char* cFileName = byteArray.constData();
 
     QFile file(qFileName);
     fileOk = file.open(QIODevice::ReadOnly);
+
+    QFileInfo fileInfo(qFileName);
 
     if(fileOk) {
         QDataStream fileInputStream(&file);
@@ -2102,7 +2079,7 @@ void Octree::writeToFile(const char* fileName, OctreeElement* element, bool pers
     if (persistAsJson) {
         // make the sure file extension is correct.  This isn't great, but it allows a user with
         // an existing .svo save to migrate.
-        QString qFileName = withoutFileExtension(QString(fileName)) + ".json";
+        QString qFileName = fileNameWithoutExtension(QString(fileName), persistExtensions) + ".json";
         QByteArray byteArray = qFileName.toUtf8();
         const char* cFileName = byteArray.constData();
         writeToJSONFile(cFileName, element);
@@ -2231,3 +2208,28 @@ void Octree::cancelImport() {
     _stopImport = true;
 }
 
+QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
+    foreach (const QString possibleExtension, possibleExtensions) {
+        if (fileName.endsWith(possibleExtension) ||
+            fileName.endsWith(possibleExtension.toUpper()) ||
+            fileName.endsWith(possibleExtension.toLower())) {
+            return fileName.left(fileName.count() - possibleExtension.count() - 1);
+        }
+    }
+    return fileName;
+}
+
+QString findMostRecentPersist(const QString& originalFileName) {
+    QString sansExt = fileNameWithoutExtension(originalFileName, persistExtensions);
+    QString newestFileName = originalFileName;
+    QDateTime newestTime = QDateTime::fromMSecsSinceEpoch(0);
+    foreach (QString possibleExtension, persistExtensions) {
+        QString fileName = sansExt + "." + possibleExtension;
+        QFileInfo fileInfo(fileName);
+        if (fileInfo.exists() && fileInfo.lastModified() > newestTime) {
+            newestFileName = fileName;
+            newestTime = fileInfo.lastModified();
+        }
+    }
+    return newestFileName;
+}
