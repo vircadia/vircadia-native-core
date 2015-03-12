@@ -791,8 +791,6 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     glPopMatrix();
 }
 
-const int BALL_SUBDIVISIONS = 10;
-
 bool SkeletonModel::hasSkeleton() {
     return isActive() ? _geometry->getFBXGeometry().rootJointIndex != -1 : false;
 }

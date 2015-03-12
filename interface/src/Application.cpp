@@ -91,7 +91,7 @@
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
-#include "ModelUploader.h"
+#include "ModelPackager.h"
 #include "Util.h"
 
 #include "avatar/AvatarManager.h"
@@ -146,7 +146,6 @@ const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
-static QTimer* silentNodeTimer = NULL;
 static QTimer* identityPacketTimer = NULL;
 static QTimer* billboardPacketTimer = NULL;
 static QTimer* checkFPStimer = NULL;
@@ -244,6 +243,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
     auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
+    auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -257,7 +257,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
-        _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
@@ -328,18 +327,25 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
     // start the nodeThread so its event loop is running
-    _nodeThread->setObjectName("Datagram Processor Thread");
-    _nodeThread->start();
+    QThread* nodeThread = new QThread(this);
+    nodeThread->setObjectName("Datagram Processor Thread");
+    nodeThread->start();
 
     // make sure the node thread is given highest priority
-    _nodeThread->setPriority(QThread::TimeCriticalPriority);
+    nodeThread->setPriority(QThread::TimeCriticalPriority);
+    
+    _datagramProcessor = new DatagramProcessor(nodeList.data());
+    
+    // have the NodeList use deleteLater from DM customDeleter
+    nodeList->setCustomDeleter([](Dependency* dependency) {
+        static_cast<NodeList*>(dependency)->deleteLater();
+    });
     
     // put the NodeList and datagram processing on the node thread
-    nodeList->moveToThread(_nodeThread);
-    _datagramProcessor.moveToThread(_nodeThread);
+    nodeList->moveToThread(nodeThread);
 
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
+    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -425,12 +431,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
-
-    // move the silentNodeTimer to the _nodeThread
-    silentNodeTimer = new QTimer();
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
-    silentNodeTimer->moveToThread(_nodeThread);
 
     // send the identity packet for our avatar each second to our avatar mixer
     identityPacketTimer = new QTimer();
@@ -546,7 +546,7 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
-    _datagramProcessor.shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
+    _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
     
@@ -554,7 +554,6 @@ void Application::cleanupBeforeQuit() {
     // depending on what thread they run in
     locationUpdateTimer->stop();
     balanceUpdateTimer->stop();
-    QMetaObject::invokeMethod(silentNodeTimer, "stop", Qt::BlockingQueuedConnection);
     identityPacketTimer->stop();
     billboardPacketTimer->stop();
     checkFPStimer->stop();
@@ -564,7 +563,6 @@ void Application::cleanupBeforeQuit() {
     // and then delete those that got created by "new"
     delete locationUpdateTimer;
     delete balanceUpdateTimer;
-    delete silentNodeTimer;
     delete identityPacketTimer;
     delete billboardPacketTimer;
     delete checkFPStimer;
@@ -596,10 +594,6 @@ Application::~Application() {
     tree->lockForWrite();
     _entities.getTree()->setSimulation(NULL);
     tree->unlock();
-
-    // ask the datagram processing thread to quit and wait until it is done
-    _nodeThread->quit();
-    _nodeThread->wait();
     
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
@@ -612,12 +606,20 @@ Application::~Application() {
     
     // stop the glWidget frame timer so it doesn't call paintGL
     _glWidget->stopFrameTimer();
-    
+
+    DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     //DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+    
+    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    DependencyManager::destroy<NodeList>();
+    
+    // ask the node thread to quit and wait until it is done
+    nodeThread->quit();
+    nodeThread->wait();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -881,9 +883,15 @@ bool Application::event(QEvent* event) {
     if (event->type() == QEvent::FileOpen) {
         
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+
+        QUrl url = fileEvent->url();
         
-        if (!fileEvent->url().isEmpty()) {
-            DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
+        if (!url.isEmpty()) {
+            if (url.scheme() == HIFI_URL_SCHEME) {
+                DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
+            } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+                emit svoImportRequested(url.url());
+            }
         }
         
         return false;
@@ -1450,6 +1458,10 @@ void Application::dropEvent(QDropEvent *event) {
         if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
             snapshotPath = url.toLocalFile();
             break;
+        } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+            emit svoImportRequested(url.url());
+            event->acceptProposedAction();
+            return;
         }
     }
 
@@ -1486,7 +1498,7 @@ void Application::checkFPS() {
 
     _fps = (float)_frameCount / diffTime;
     _frameCount = 0;
-    _datagramProcessor.resetCounters();
+    _datagramProcessor->resetCounters();
     _timerStart.start();
 
     // ask the node list to check in with the domain server
@@ -1806,6 +1818,9 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
+    // Make sure Login state is up to date
+    DependencyManager::get<DialogsManager>()->toggleLoginDialog();
+    
     _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
@@ -2724,7 +2739,6 @@ const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
 const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
 
 const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
-const float GLOBAL_LIGHT_INTENSITY = 1.0f;
 
 void Application::setupWorldLight() {
 
@@ -3527,7 +3541,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
                             RayToOverlayIntersectionResultFromScriptValue);
 
-    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
+    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter, windowValue);
     // register `location` on the global object.
@@ -3715,20 +3729,8 @@ void Application::toggleRunningScriptsWidget() {
     }
 }
 
-void Application::uploadHead() {
-    ModelUploader::uploadHead();
-}
-
-void Application::uploadSkeleton() {
-    ModelUploader::uploadSkeleton();
-}
-
-void Application::uploadAttachment() {
-    ModelUploader::uploadAttachment();
-}
-
-void Application::uploadEntity() {
-    ModelUploader::uploadEntity();
+void Application::packageModel() {
+    ModelPackager::package();
 }
 
 void Application::openUrl(const QUrl& url) {
