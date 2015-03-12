@@ -101,6 +101,21 @@ var isActive = false;
 
 var placingEntityID = null;
 
+IMPORTING_SVO_OVERLAY_WIDTH = 130;
+IMPORTING_SVO_OVERLAY_HEIGHT = 30;
+IMPORTING_SVO_OVERLAY_MARGIN = 6;
+var importingSVOOverlay = Overlays.addOverlay("text", {
+    font: { size: 14 },
+    text: "Importing SVO...",
+    x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH - IMPORTING_SVO_OVERLAY_MARGIN,
+    y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT - IMPORTING_SVO_OVERLAY_MARGIN,
+    width: IMPORTING_SVO_OVERLAY_WIDTH,
+    height: IMPORTING_SVO_OVERLAY_HEIGHT,
+    backgroundColor: { red: 80, green: 80, blue: 80 },
+    backgroundAlpha: 0.7,
+    visible: false,
+});
+
 var toolBar = (function () {
     var that = {},
         toolBar,
@@ -131,7 +146,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         browseModelsButton = toolBar.addTool({
@@ -139,7 +154,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         newCubeButton = toolBar.addTool({
@@ -148,7 +163,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         newSphereButton = toolBar.addTool({
@@ -157,7 +172,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         newLightButton = toolBar.addTool({
@@ -166,7 +181,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         newTextButton = toolBar.addTool({
@@ -175,7 +190,7 @@ var toolBar = (function () {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: true
+            visible: false
         });
 
         that.setActive(false);
@@ -203,10 +218,21 @@ var toolBar = (function () {
                     propertiesTool.setVisible(true);
                     Window.setFocus();
                 }
+                that.showTools(isActive);
             }
         }
         toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive);
+    };
+
+    // Sets visibility of tool buttons, excluding the power button
+    that.showTools = function(doShow) {
+        toolBar.showTool(newModelButton, doShow);
+        toolBar.showTool(browseModelsButton, doShow);
+        toolBar.showTool(newCubeButton, doShow);
+        toolBar.showTool(newSphereButton, doShow);
+        toolBar.showTool(newLightButton, doShow);
+        toolBar.showTool(newTextButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -726,7 +752,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Entities", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities", shortcutKey: "CTRL+META+I", afterItem: "Export Entities" });
-
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities from URL", shortcutKey: "CTRL+META+U", afterItem: "Import Entities" });
 
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
@@ -753,6 +779,7 @@ function cleanupModelMenus() {
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Entities");
     Menu.removeMenuItem("File", "Import Entities");
+    Menu.removeMenuItem("File", "Import Entities from URL");
 
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
@@ -769,6 +796,8 @@ Script.scriptEnding.connect(function() {
     tooltip.cleanup();
     selectionDisplay.cleanup();
     Entities.setLightsArePickable(originalLightsArePickable);
+
+    Overlays.deleteOverlay(importingSVOOverlay);
 });
 
 // Do some stuff regularly, like check for placement of various overlays
@@ -822,33 +851,51 @@ function handeMenuEvent(menuItem) {
                 }
             }
         }
-    } else if (menuItem == "Import Entities") {
-        var filename = Window.browse("Select models to import", "", "*.svo")
-        if (filename) {
-            var success = Clipboard.importEntities(filename);
+    } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
+    
+        var importURL;
+        if (menuItem == "Import Entities") {
+            importURL = Window.browse("Select models to import", "", "*.svo");
+        } else {
+            importURL = Window.prompt("URL of SVO to import", "");
+        }
 
-            if (success) {
-                var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
-                var direction = Quat.getFront(Camera.orientation);
-                var offset = Vec3.multiply(distance, direction);
-                var position = Vec3.sum(Camera.position, offset);
-
-                position.x = Math.max(0, position.x);
-                position.y = Math.max(0, position.y);
-                position.z = Math.max(0, position.z);
-
-                var pastedEntityIDs = Clipboard.pasteEntities(position);
-
-                selectionManager.setSelections(pastedEntityIDs);
-            } else {
-                Window.alert("There was an error importing the entity file.");
-            }
+        if (importURL) {
+            importSVO(importURL);
         }
     } else if (menuItem == "Entity List...") {
         entityListTool.toggleVisible();
     }
     tooltip.show(false);
 }
+
+function importSVO(importURL) {
+    Overlays.editOverlay(importingSVOOverlay, { visible: true });
+
+    var success = Clipboard.importEntities(importURL);
+
+    if (success) {
+        var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+        var direction = Quat.getFront(Camera.orientation);
+        var offset = Vec3.multiply(distance, direction);
+        var position = Vec3.sum(Camera.position, offset);
+
+        position.x = Math.max(0, position.x);
+        position.y = Math.max(0, position.y);
+        position.z = Math.max(0, position.z);
+
+        var pastedEntityIDs = Clipboard.pasteEntities(position);
+
+        if (isActive) {
+            selectionManager.setSelections(pastedEntityIDs);
+        }
+    } else {
+        Window.alert("There was an error importing the entity file.");
+    }
+
+    Overlays.editOverlay(importingSVOOverlay, { visible: false });
+}
+Window.svoImportRequested.connect(importSVO);
 
 Menu.menuItemEvent.connect(handeMenuEvent);
 

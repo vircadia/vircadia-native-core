@@ -43,7 +43,6 @@ AvatarData::AvatarData() :
     _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
-    _isChatCirclingEnabled(false),
     _forceFaceTrackerConnected(false),
     _hasNewJointRotations(true),
     _headData(NULL),
@@ -194,9 +193,6 @@ QByteArray AvatarData::toByteArray() {
     // faceshift state
     if (_headData->_isFaceTrackerConnected) {
         setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-    }
-    if (_isChatCirclingEnabled) {
-        setAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
     }
     if (_referential != NULL && _referential->isValid()) {
         setAtBit(bitItems, HAS_REFERENTIAL);
@@ -419,7 +415,6 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
         
         _headData->_isFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-        _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
         
         // Referential

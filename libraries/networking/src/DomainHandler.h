@@ -100,7 +100,6 @@ private:
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
     bool _isConnected;
-    QTimer* _handshakeTimer;
     QJsonObject _settingsObject;
     int _failedSettingsRequests;
 };

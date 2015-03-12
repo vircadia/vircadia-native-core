@@ -59,7 +59,6 @@ class Texture;
 
 class Avatar : public AvatarData {
     Q_OBJECT
-    Q_PROPERTY(quint32 collisionGroups READ getCollisionGroups WRITE setCollisionGroups)
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
@@ -137,9 +136,6 @@ public:
     /// \return bounding radius of avatar
     virtual float getBoundingRadius() const;
 
-    quint32 getCollisionGroups() const { return _collisionGroups; }
-    virtual void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
-
     Q_INVOKABLE void setSkeletonOffset(const glm::vec3& offset);
     Q_INVOKABLE glm::vec3 getSkeletonOffset() { return _skeletonOffset; }
     virtual glm::vec3 getSkeletonPosition() const;
@@ -171,9 +167,6 @@ public:
     // (otherwise floating point error will cause problems at large positions).
     void applyPositionDelta(const glm::vec3& delta);
 
-public slots:
-    void updateCollisionGroups();
-    
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
@@ -203,8 +196,6 @@ protected:
     float _stringLength;
     bool _moving; ///< set when position is changing
     
-    quint32 _collisionGroups;
- 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }

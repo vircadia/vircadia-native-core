@@ -31,6 +31,10 @@ GLCanvas::GLCanvas() : QGLWidget(QGL::NoDepthBuffer | QGL::NoStencilBuffer),
 #endif
 }
 
+void GLCanvas::stopFrameTimer() {
+    _frameTimer.stop();
+}
+
 bool GLCanvas::isThrottleRendering() const {
     return _throttleRendering || Application::getInstance()->getWindow()->isMinimized();
 }
@@ -166,7 +170,8 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
 void GLCanvas::dragEnterEvent(QDragEnterEvent* event) {
     const QMimeData *mimeData = event->mimeData();
     foreach (QUrl url, mimeData->urls()) {
-        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
+        auto lower = url.url().toLower();
+        if (lower.endsWith(SNAPSHOT_EXTENSION) || lower.endsWith(SVO_EXTENSION)) {
             event->acceptProposedAction();
             break;
         }

@@ -271,6 +271,10 @@ ToolBar = function(x, y, direction) {
                                  });
         }
     }
+
+    this.showTool = function(tool, doShow) {
+        this.tools[tool].show(doShow);
+    }
     
     this.show = function(doShow) {
         for(var tool in this.tools) {

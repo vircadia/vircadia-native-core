@@ -94,6 +94,7 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
+static const QString SVO_EXTENSION  = ".svo";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.56f;       // meters
@@ -315,6 +316,8 @@ signals:
     
     void scriptLocationChanged(const QString& newPath);
 
+    void svoImportRequested(const QString& url);
+
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
@@ -325,7 +328,7 @@ public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
-    bool importEntities(const QString& filename);
+    bool importEntities(const QString& url);
 
     void setLowVelocityFilter(bool lowVelocityFilter);
     void loadDialog();
@@ -340,11 +343,8 @@ public slots:
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
     void saveScripts();
-
-    void uploadHead();
-    void uploadSkeleton();
-    void uploadAttachment();
-    void uploadEntity();
+    
+    void packageModel();
     
     void openUrl(const QUrl& url);
 
@@ -586,6 +586,9 @@ private:
     GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
 
     void checkSkeleton();
+
+    QWidget* _fullscreenMenuWidget = new QWidget();
+    int _menuBarHeight;
 };
 
 #endif // hifi_Application_h

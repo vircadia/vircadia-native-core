@@ -223,7 +223,7 @@ public:
 };
 
 
-void GLBackend::syncGPUObject(const Texture& texture) {
+GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
     GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(texture);
 
     // If GPU object already created and in sync
@@ -232,14 +232,14 @@ void GLBackend::syncGPUObject(const Texture& texture) {
         // If gpu object info is in sync with sysmem version
         if (object->_contentStamp >= texture.getDataStamp()) {
             // Then all good, GPU object is ready to be used
-            return;
+            return object;
         } else {
             // Need to update the content of the GPU object from the source sysmem of the texture
             needUpdate = true;
         }
     } else if (!texture.isDefined()) {
         // NO texture definition yet so let's avoid thinking
-        return;
+        return nullptr;
     }
 
     // need to have a gpu object?
@@ -320,6 +320,8 @@ void GLBackend::syncGPUObject(const Texture& texture) {
         qDebug() << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";	
     }
     CHECK_GL_ERROR();
+
+    return object;
 }
 
 
@@ -328,8 +330,7 @@ GLuint GLBackend::getTextureID(const TexturePointer& texture) {
     if (!texture) {
         return 0;
     }
-    GLBackend::syncGPUObject(*texture);
-    GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texture);
+    GLTexture* object = GLBackend::syncGPUObject(*texture);
     if (object) {
         return object->_texture;
     } else {

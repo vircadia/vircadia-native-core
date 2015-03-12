@@ -16,6 +16,8 @@
 #include <QStandardItemModel>
 #include <QTreeView>
 
+class QNetworkReply;
+
 enum ModelType {
     ENTITY_MODEL,
     HEAD_MODEL,
