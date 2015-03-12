@@ -452,7 +452,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
         return true; // keep searching in case children have closer entities
     }
 
-    // if this element doesn't contain the point, then none of it's children can contain the point, so stop searching
+    // if this element doesn't contain the point, then none of its children can contain the point, so stop searching
     return false;
 }
 
@@ -1088,12 +1088,7 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* eleme
 
 
 bool EntityTree::readFromMap(QVariantMap& map) {
-
     QVariantList entitiesQList = map["Entities"].toList();
-
-    qDebug() << "\n\n\nEntityTree::readFromMap --" << entitiesQList.count();
-
-
     foreach (QVariant entityQ, entitiesQList) {
         QVariantMap entityMap = entityQ.toMap();
 
