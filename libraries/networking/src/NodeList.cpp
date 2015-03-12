@@ -13,6 +13,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QUrl>
+#include <QtCore/qthread.h>
 #include <QtNetwork/QHostInfo>
 
 #include <LogHandler.h>
@@ -60,6 +61,10 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
+}
+
+NodeList::~NodeList() {
+    qDebug() << "NL dtor called from" << QThread::currentThread() << "and the NL thread is" << thread();
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, HifiSockAddr destination) {

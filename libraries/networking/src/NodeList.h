@@ -78,6 +78,8 @@ private:
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
     
+    ~NodeList();
+    
     void sendSTUNRequest();
     bool processSTUNResponse(const QByteArray& packet);
     

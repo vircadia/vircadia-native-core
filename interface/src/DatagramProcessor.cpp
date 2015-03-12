@@ -27,6 +27,10 @@ DatagramProcessor::DatagramProcessor(QObject* parent) :
     
 }
 
+DatagramProcessor::~DatagramProcessor() {
+    qDebug() << "DP dtor called from" << QThread::currentThread() << "and the DP thread is" << thread();
+}
+
 void DatagramProcessor::processDatagrams() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "DatagramProcessor::processDatagrams()");
