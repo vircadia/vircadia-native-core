@@ -343,11 +343,8 @@ public slots:
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
     void saveScripts();
-
-    void uploadHead();
-    void uploadSkeleton();
-    void uploadAttachment();
-    void uploadEntity();
+    
+    void packageModel();
     
     void openUrl(const QUrl& url);
 
