@@ -4,6 +4,8 @@ var SPOT_LIGHT_URL = "http://s3.amazonaws.com/hifi-public/images/tools/spot-ligh
 LightOverlayManager = function() {
     var self = this;
 
+    var visible = false;
+
     // List of all created overlays
     var allOverlays = [];
 
@@ -47,6 +49,15 @@ LightOverlayManager = function() {
         return result;
     };
 
+    this.setVisible = function(isVisible) {
+        if (visible != isVisible) {
+            visible = isVisible;
+            for (var id in entityOverlays) {
+                Overlays.editOverlay(entityOverlays[id], { visible: visible });
+            }
+        }
+    };
+
     // Allocate or get an unused overlay
     function getOverlay() {
         if (unusedOverlays.length == 0) {
@@ -74,7 +85,7 @@ LightOverlayManager = function() {
                 position: properties.position,
                 url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
                 rotation: Quat.fromPitchYawRollDegrees(0, 0, 270),
-                visible: true,
+                visible: visible,
                 alpha: 0.9,
                 color: { red: 255, green: 255, blue: 255 }
             });

@@ -205,6 +205,7 @@ var toolBar = (function () {
             }
         }
         toolBar.selectTool(activeButton, isActive);
+        lightOverlayManager.setVisible(isActive);
     };
 
     var RESIZE_INTERVAL = 50;
