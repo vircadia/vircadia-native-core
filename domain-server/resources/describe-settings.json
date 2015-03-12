@@ -340,7 +340,7 @@
             "value": "json",
             "label": "Entity server persists data as JSON"
           }
-        ]
+        ],
         "advanced": true
       },
       {
