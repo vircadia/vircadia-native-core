@@ -17,18 +17,25 @@
 #include <QSharedPointer>
 #include <QWeakPointer>
 
+#include <functional>
 #include <typeinfo>
 
 #define SINGLETON_DEPENDENCY \
     friend class DependencyManager;
 
 class Dependency {
+public:
+    typedef std::function<void(Dependency* pointer)> DeleterFct;
+    
 protected:
     virtual ~Dependency() {}
     virtual void customDeleter() {
-        delete this;
+        _customDeleterFct(this);
     }
-
+    
+    void setCustomDeleterFct(DeleterFct customDeleterFct) { _customDeleterFct = customDeleterFct; }
+    DeleterFct _customDeleterFct = [](Dependency* pointer) { delete pointer; };
+    
     friend class DependencyManager;
 };
 
