@@ -95,6 +95,21 @@ var isActive = false;
 
 var placingEntityID = null;
 
+IMPORTING_SVO_OVERLAY_WIDTH = 130;
+IMPORTING_SVO_OVERLAY_HEIGHT = 30;
+IMPORTING_SVO_OVERLAY_MARGIN = 6;
+var importingSVOOverlay = Overlays.addOverlay("text", {
+    font: { size: 14 },
+    text: "Importing SVO...",
+    x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH - IMPORTING_SVO_OVERLAY_MARGIN,
+    y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT - IMPORTING_SVO_OVERLAY_MARGIN,
+    width: IMPORTING_SVO_OVERLAY_WIDTH,
+    height: IMPORTING_SVO_OVERLAY_HEIGHT,
+    backgroundColor: { red: 80, green: 80, blue: 80 },
+    backgroundAlpha: 0.7,
+    visible: false,
+});
+
 var toolBar = (function () {
     var that = {},
         toolBar,
@@ -753,6 +768,8 @@ Script.scriptEnding.connect(function() {
     tooltip.cleanup();
     selectionDisplay.cleanup();
     Entities.setLightsArePickable(originalLightsArePickable);
+
+    Overlays.deleteOverlay(importingSVOOverlay);
 });
 
 // Do some stuff regularly, like check for placement of various overlays
@@ -816,30 +833,41 @@ function handeMenuEvent(menuItem) {
         }
 
         if (importURL) {
-            var success = Clipboard.importEntities(importURL);
-
-            if (success) {
-                var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
-                var direction = Quat.getFront(Camera.orientation);
-                var offset = Vec3.multiply(distance, direction);
-                var position = Vec3.sum(Camera.position, offset);
-
-                position.x = Math.max(0, position.x);
-                position.y = Math.max(0, position.y);
-                position.z = Math.max(0, position.z);
-
-                var pastedEntityIDs = Clipboard.pasteEntities(position);
-
-                selectionManager.setSelections(pastedEntityIDs);
-            } else {
-                Window.alert("There was an error importing the entity file.");
-            }
+            importSVO(importURL);
         }
     } else if (menuItem == "Entity List...") {
         entityListTool.toggleVisible();
     }
     tooltip.show(false);
 }
+
+function importSVO(importURL) {
+    Overlays.editOverlay(importingSVOOverlay, { visible: true });
+
+    var success = Clipboard.importEntities(importURL);
+
+    if (success) {
+        var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+        var direction = Quat.getFront(Camera.orientation);
+        var offset = Vec3.multiply(distance, direction);
+        var position = Vec3.sum(Camera.position, offset);
+
+        position.x = Math.max(0, position.x);
+        position.y = Math.max(0, position.y);
+        position.z = Math.max(0, position.z);
+
+        var pastedEntityIDs = Clipboard.pasteEntities(position);
+
+        if (isActive) {
+            selectionManager.setSelections(pastedEntityIDs);
+        }
+    } else {
+        Window.alert("There was an error importing the entity file.");
+    }
+
+    Overlays.editOverlay(importingSVOOverlay, { visible: false });
+}
+Window.svoImportRequested.connect(importSVO);
 
 Menu.menuItemEvent.connect(handeMenuEvent);
 
