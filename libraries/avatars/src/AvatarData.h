@@ -50,6 +50,7 @@ typedef unsigned long long quint64;
 
 #include <Node.h>
 
+#include "AABox.h"
 #include "HandData.h"
 #include "HeadData.h"
 #include "Player.h"
@@ -296,8 +297,7 @@ public:
     
     QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
      
-    virtual float getBoundingRadius() const { return 1.0f; }
-    
+    const AABox& getLocalAABox() const { return _localAABox; }
     const Referential* getReferential() const { return _referential; }
 
     void togglePhysicsEnabled() { _enablePhysics = !_enablePhysics; }
@@ -410,6 +410,7 @@ private:
 
     QReadWriteLock _lock;
     bool _enablePhysics = false;
+    AABox _localAABox;
 };
 Q_DECLARE_METATYPE(AvatarData*)
 

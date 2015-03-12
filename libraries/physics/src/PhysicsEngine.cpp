@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <AABox.h> 
+
 #include "PhysicsEngine.h"
 #include "ShapeInfoUtil.h"
 #include "PhysicsHelpers.h"
 #include "ThreadSafeDynamicsWorld.h"
-#include "AvatarData.h"
 
 static uint32_t _numSubsteps;
 
@@ -23,10 +24,12 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 }
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
-    :  _originOffset(offset) {
+    : _originOffset(offset),
+    _avatarShapeLocalOffset(0.0f) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
+    // TODO: delete engine components... if we ever plan to create more than one instance
 }
 
 // begin EntitySimulation overrides
@@ -260,6 +263,9 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         _constraintSolver = new btSequentialImpulseConstraintSolver;
         _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
 
+        _ghostPairCallback = new btGhostPairCallback();
+        _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(_ghostPairCallback);
+
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
@@ -271,6 +277,9 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
 }
 
 void PhysicsEngine::stepSimulation() {
+    // expect the engine to have an avatar (and hence: a character controller)
+    assert(_avatarData);
+
     lock();
     // NOTE: the grand order of operations is:
     // (1) relay incoming changes
@@ -288,17 +297,13 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     if (_avatarData->isPhysicsEnabled()) {
-        _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                          glmToBullet(_avatarData->getPosition())));
-        // WORKAROUND: there is a bug in the debug Bullet-2.82 libs where a zero length walk velocity will trigger
-        // an assert when the getNormalizedVector() helper function in btKinematicCharacterController.cpp tries to
-        // first normalize a vector before checking its length.  Here we workaround the problem by checking the
-        // length first.  NOTE: the character's velocity is reset to zero after each step, so when we DON'T set
-        // the velocity for this time interval it is the same thing as setting its velocity to zero.
+        // update character controller
+        glm::quat rotation = _avatarData->getOrientation();
+        glm::vec3 position = _avatarData->getPosition() + rotation * _avatarShapeLocalOffset;
+        _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
+        
         btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
-        if (walkVelocity.length2() > FLT_EPSILON * FLT_EPSILON) {
-            _characterController->setVelocityForTimeInterval(walkVelocity, timeStep);
-        }
+        _characterController->setVelocityForTimeInterval(walkVelocity, timeStep);
     }
 
     // This is step (2).
@@ -323,8 +328,10 @@ void PhysicsEngine::stepSimulation() {
 
         if (_avatarData->isPhysicsEnabled()) {
             const btTransform& avatarTransform = _avatarGhostObject->getWorldTransform();
-            _avatarData->setOrientation(bulletToGLM(avatarTransform.getRotation()));
-            _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()));
+            glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
+            glm::vec3 offset = rotation * _avatarShapeLocalOffset;
+            _avatarData->setOrientation(rotation);
+            _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()) - offset);
         }
 
         unlock();
@@ -610,28 +617,69 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 
 
 void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
-    _avatarData = avatarData;
+    assert(avatarData); // don't pass NULL argument
+
+    // compute capsule dimensions
+    AABox box = avatarData->getLocalAABox();
+    const glm::vec3& diagonal = box.getScale();
+    float radius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
+    float halfHeight = 0.5f * diagonal.y;
+    glm::vec3 offset = box.getCorner() + 0.5f * diagonal;
+
+    if (!_avatarData) {
+        // _avatarData is being initialized
+        _avatarData = avatarData;
+    } else {
+        // _avatarData is being updated
+        assert(_avatarData == avatarData);
+
+        // get old dimensions from shape
+        btCapsuleShape* capsule = static_cast<btCapsuleShape*>(_avatarGhostObject->getCollisionShape());
+        btScalar oldRadius = capsule->getRadius();
+        btScalar oldHalfHeight = capsule->getHalfHeight();
+
+        // compare dimensions (and offset)
+        float radiusDelta = glm::abs(radius - oldRadius);
+        float heightDelta = glm::abs(halfHeight - oldHalfHeight);
+        if (radiusDelta < FLT_EPSILON && heightDelta < FLT_EPSILON) {
+            // shape hasn't changed --> nothing to do
+            float offsetDelta = glm::distance(offset, _avatarShapeLocalOffset);
+            if (offsetDelta > FLT_EPSILON) {
+                // if only the offset changes then we can update it --> no need to rebuild shape
+                _avatarShapeLocalOffset = offset;
+            }
+            return;
+        }
+
+        // delete old controller and friends
+        _dynamicsWorld->removeCollisionObject(_avatarGhostObject);
+        _dynamicsWorld->removeAction(_characterController);
+        delete _characterController;
+        _characterController = NULL;
+        delete _avatarGhostObject;
+        _avatarGhostObject = NULL;
+        delete capsule;
+    }
+
+    // set offset
+    _avatarShapeLocalOffset = offset;
+
+    // build ghost, shape, and controller
     _avatarGhostObject = new btPairCachingGhostObject();
     _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                      glmToBullet(_avatarData->getPosition())));
+                                                    glmToBullet(_avatarData->getPosition())));
+    // ?TODO: use ShapeManager to get avatar's shape?
+    btCapsuleShape* capsule = new btCapsuleShape(radius, 2.0f * halfHeight);
 
-    // XXX these values should be computed from the character model.
-    btScalar characterRadius = 0.3f;
-    btScalar characterHeight = 1.75 - 2.0f * characterRadius;
-    btScalar stepHeight = btScalar(0.35);
-
-    btConvexShape* capsule = new btCapsuleShape(characterRadius, characterHeight);
     _avatarGhostObject->setCollisionShape(capsule);
     _avatarGhostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 
-    _characterController = new btKinematicCharacterController(_avatarGhostObject, capsule, stepHeight);
+    const float MIN_STEP_HEIGHT = 0.35f;
+    btScalar stepHeight = glm::max(MIN_STEP_HEIGHT, 0.6f * halfHeight);
+    _characterController = new CharacterController(_avatarGhostObject, capsule, stepHeight);
 
     _dynamicsWorld->addCollisionObject(_avatarGhostObject, btBroadphaseProxy::CharacterFilter,
-                                       btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
+                                    btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
     _dynamicsWorld->addAction(_characterController);
-    _characterController->reset (_dynamicsWorld);
-    // _characterController->warp (btVector3(10.210001,-2.0306311,16.576973));
-
-    btGhostPairCallback* ghostPairCallback = new btGhostPairCallback();
-    _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(ghostPairCallback);
+    _characterController->reset(_dynamicsWorld);
 }
