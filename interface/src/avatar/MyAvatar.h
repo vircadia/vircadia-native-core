@@ -12,7 +12,6 @@
 #ifndef hifi_MyAvatar_h
 #define hifi_MyAvatar_h
 
-#include <PhysicsSimulation.h>
 #include <SettingHandle.h>
 
 #include "Avatar.h"
@@ -139,10 +138,6 @@ public:
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
         
-    virtual void setCollisionGroups(quint32 collisionGroups);
-
-    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
-
     /// Renders a laser pointer for UI picking
     void renderLaserPointers();
     glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
@@ -165,7 +160,6 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehavior();
-    void onToggleRagdoll();
     
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getRightPalmPosition();
@@ -190,7 +184,6 @@ protected:
 private:
     float _turningKeyPressTime;
     glm::vec3 _gravity;
-    float _distanceToNearestAvatar; // How close is the nearest avatar?
 
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
@@ -215,7 +208,6 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
-    PhysicsSimulation _physicsSimulation;
     
     bool _feetTouchFloor;
     bool _isLookingAtLeftEye;
@@ -232,12 +224,7 @@ private:
     glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
     void updatePositionWithPhysics(float deltaTime);
-    void updateCollisionWithAvatars(float deltaTime);
-    void updateCollisionWithEnvironment(float deltaTime, float radius);
-    void updateCollisionWithVoxels(float deltaTime, float radius);
-    void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
-    void updateChatCircle(float deltaTime);
     void maybeUpdateBillboard();
     void setGravity(const glm::vec3& gravity);
 };

@@ -12,7 +12,6 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QTimer>
 #include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
