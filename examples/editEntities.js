@@ -29,11 +29,14 @@ Script.include([
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
+    "libraries/lightOverlayManager.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
 var entityPropertyDialogBox = EntityPropertyDialogBox;
+
+var lightOverlayManager = new LightOverlayManager();
 
 var cameraManager = new CameraManager();
 
@@ -45,6 +48,7 @@ var entityListTool = EntityListTool();
 
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
+    lightOverlayManager.updatePositions();
 });
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -444,12 +448,31 @@ function rayPlaneIntersection(pickRay, point, normal) {
 function findClickedEntity(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
 
-    var foundIntersection = Entities.findRayIntersection(pickRay, true); // want precision picking
+    var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
+    var lightResult = lightOverlayManager.findRayIntersection(pickRay);
+    lightResult.accurate = true;
 
-    if (!foundIntersection.accurate) {
+    var result;
+
+    if (!entityResult.intersects && !lightResult.intersects) {
+        return null;
+    } else if (entityResult.intersects && !lightResult.intersects) {
+        result = entityResult;
+    } else if (!entityResult.intersects && lightResult.intersects) {
+        result = lightResult;
+    } else {
+        if (entityResult.distance < lightResult.distance) {
+            result = entityResult;
+        } else {
+            result = lightResult;
+        }
+    }
+
+    if (!result.accurate) {
         return null;
     }
-    var foundEntity = foundIntersection.entityID;
+
+    var foundEntity = result.entityID;
 
     if (!foundEntity.isKnownID) {
         var identify = Entities.identifyEntity(foundEntity);
