@@ -573,10 +573,6 @@ void Application::cleanupBeforeQuit() {
     _settingsThread.quit();
     saveSettings();
     _window->saveGeometry();
-    
-    // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
-    // an event loop to send the packet?
-    UserActivityLogger::getInstance().close();
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();

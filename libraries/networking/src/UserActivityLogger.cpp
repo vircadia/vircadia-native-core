@@ -86,11 +86,6 @@ void UserActivityLogger::launch(QString applicationVersion) {
     logAction(ACTION_NAME, actionDetails);
 }
 
-void UserActivityLogger::close() {
-    const QString ACTION_NAME = "close";
-    logAction(ACTION_NAME, QJsonObject());
-}
-
 void UserActivityLogger::changedDisplayName(QString displayName) {
     const QString ACTION_NAME = "changed_display_name";
     QJsonObject actionDetails;
