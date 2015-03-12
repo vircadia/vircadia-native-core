@@ -77,6 +77,15 @@ void UserActivityLogger::requestError(QNetworkReply& errorReply) {
     qDebug() << errorReply.error() << "-" << errorReply.errorString();
 }
 
+void UserActivityLogger::launch(QString applicationVersion) {
+    const QString ACTION_NAME = "launch";
+    QJsonObject actionDetails;
+    QString VERSION_KEY = "version";
+    actionDetails.insert(VERSION_KEY, applicationVersion);
+    
+    logAction(ACTION_NAME, actionDetails);
+}
+
 void UserActivityLogger::changedDisplayName(QString displayName) {
     const QString ACTION_NAME = "changed_display_name";
     QJsonObject actionDetails;
