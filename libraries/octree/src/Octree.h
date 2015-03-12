@@ -36,7 +36,7 @@ class Shape;
 #include <QReadWriteLock>
 
 
-extern QVector<QString> persistExtensions;
+extern QVector<QString> PERSIST_EXTENSIONS;
 
 /// derive from this class to use the Octree::recurseTreeWithOperator() method
 class RecurseOctreeOperator {
@@ -406,11 +406,5 @@ protected:
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
-
-
-QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions);
-
-// XXX rename this
-QString findMostRecentPersist(const QString& originalFileName);
 
 #endif // hifi_Octree_h

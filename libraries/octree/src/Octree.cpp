@@ -39,6 +39,7 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <Shape.h>
+#include <PathUtils.h>
 
 #include "CoverageMap.h"
 #include "OctreeConstants.h"
@@ -47,7 +48,7 @@
 #include "ViewFrustum.h"
 
 
-QVector<QString> persistExtensions = {"svo", "json"};
+QVector<QString> PERSIST_EXTENSIONS = {"svo", "json"};
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
     return voxelSizeScale / powf(2, renderLevel);
@@ -1851,7 +1852,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 bool Octree::readFromFile(const char* fileName) {
     bool fileOk = false;
 
-    QString qFileName = findMostRecentPersist(fileName);
+    QString qFileName = findMostRecentFileExtension(fileName, PERSIST_EXTENSIONS);
     QFile file(qFileName);
     fileOk = file.open(QIODevice::ReadOnly);
 
@@ -2063,7 +2064,7 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
 
 void Octree::writeToFile(const char* fileName, OctreeElement* element, QString persistAsFileType) {
     // make the sure file extension makes sense
-    QString qFileName = fileNameWithoutExtension(QString(fileName), persistExtensions) + "." + persistAsFileType;
+    QString qFileName = fileNameWithoutExtension(QString(fileName), PERSIST_EXTENSIONS) + "." + persistAsFileType;
     QByteArray byteArray = qFileName.toUtf8();
     const char* cFileName = byteArray.constData();
 
@@ -2192,30 +2193,4 @@ bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraDat
 
 void Octree::cancelImport() {
     _stopImport = true;
-}
-
-QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
-    foreach (const QString possibleExtension, possibleExtensions) {
-        if (fileName.endsWith(possibleExtension) ||
-            fileName.endsWith(possibleExtension.toUpper()) ||
-            fileName.endsWith(possibleExtension.toLower())) {
-            return fileName.left(fileName.count() - possibleExtension.count() - 1);
-        }
-    }
-    return fileName;
-}
-
-QString findMostRecentPersist(const QString& originalFileName) {
-    QString sansExt = fileNameWithoutExtension(originalFileName, persistExtensions);
-    QString newestFileName = originalFileName;
-    QDateTime newestTime = QDateTime::fromMSecsSinceEpoch(0);
-    foreach (QString possibleExtension, persistExtensions) {
-        QString fileName = sansExt + "." + possibleExtension;
-        QFileInfo fileInfo(fileName);
-        if (fileInfo.exists() && fileInfo.lastModified() > newestTime) {
-            newestFileName = fileName;
-            newestTime = fileInfo.lastModified();
-        }
-    }
-    return newestFileName;
 }

@@ -24,6 +24,7 @@
 
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <PathUtils.h>
 
 #include "OctreePersistThread.h"
 
@@ -46,7 +47,7 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
     parseSettings(settings);
 
     // in case the persist filename has an extension that doesn't match the file type
-    QString sansExt = fileNameWithoutExtension(_filename, persistExtensions);
+    QString sansExt = fileNameWithoutExtension(_filename, PERSIST_EXTENSIONS);
     _filename = sansExt + "." + _persistAsFileType;
 }
 
@@ -352,7 +353,7 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
                 backupExtensionN.replace(QString("%N"), QString::number(n));
                 backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
 
-                QString backupFilenameN = findMostRecentPersist(_filename) + backupExtensionN;
+                QString backupFilenameN = findMostRecentFileExtension(_filename, PERSIST_EXTENSIONS) + backupExtensionN;
                 QString backupFilenameNplusOne = _filename + backupExtensionNplusOne;
 
                 QFile backupFileN(backupFilenameN);
