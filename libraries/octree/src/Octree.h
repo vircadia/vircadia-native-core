@@ -214,7 +214,6 @@ public:
     {}
 };
 
-
 class Octree : public QObject {
     Q_OBJECT
 public:
@@ -328,21 +327,19 @@ public:
     // Note: this assumes the fileFormat is the HIO individual voxels code files
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
 
-    // these will read/write files that match the wireformat, excluding the 'V' leading
-    void writeToFile(const char* filename, OctreeElement* element = NULL, bool persistAsJson = false);
+    // Octree exporters
+    void writeToFile(const char* filename, OctreeElement* element = NULL, QString persistAsFileType = "svo");
     void writeToJSONFile(const char* filename, OctreeElement* element = NULL);
     void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElement* element) = 0;
 
-
+    // Octree importers
     bool readFromFile(const char* filename);
     bool readFromURL(const QString& url); // will support file urls as well...
-
     bool readFromStream(unsigned long streamLength, QDataStream& inputStream);
     bool readSVOFromStream(unsigned long streamLength, QDataStream& inputStream);
     bool readJSONFromStream(unsigned long streamLength, QDataStream& inputStream);
-
-
+    virtual bool readFromMap(QVariantMap& entityDescription) = 0;
 
     unsigned long getOctreeElementsCount();
 
@@ -372,9 +369,6 @@ public:
     
     virtual void dumpTree() { };
     virtual void pruneTree() { };
-
-
-    virtual bool readFromMap(QVariantMap& entityDescription) = 0;
 
 signals:
     void importSize(float x, float y, float z);

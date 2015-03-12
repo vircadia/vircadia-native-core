@@ -326,11 +326,21 @@
         "advanced": true
       },
       {
-        "name": "persistAsJson",
-        "type": "checkbox",
-        "label": "Encode persist file as JSON:",
-        "help": "Entity server will save entities as JSON rather than SVO",
-        "default": false,
+        "name": "persistAsFileType",
+        "label": "File format for entity server's persistent data",
+        "help": "This defines how the entity server will save entities to disk.",
+        "default": "svo",
+        "type": "select",
+        "options": [
+          {
+            "value": "svo",
+            "label": "Entity server persists data as SVO"
+          },
+          {
+            "value": "json",
+            "label": "Entity server persists data as JSON"
+          }
+        ]
         "advanced": true
       },
       {

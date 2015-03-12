@@ -31,7 +31,7 @@ const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30
 
 OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, int persistInterval, 
                                          bool wantBackup, const QJsonObject& settings, bool debugTimestampNow,
-                                         bool persistAsJson) :
+                                         QString persistAsFileType) :
     _tree(tree),
     _filename(filename),
     _persistInterval(persistInterval),
@@ -41,17 +41,13 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
     _wantBackup(wantBackup),
     _debugTimestampNow(debugTimestampNow),
     _lastTimeDebug(0),
-    _persistAsJson(persistAsJson)
+    _persistAsFileType(persistAsFileType)
 {
     parseSettings(settings);
 
+    // in case the persist filename has an extension that doesn't match the file type
     QString sansExt = fileNameWithoutExtension(_filename, persistExtensions);
-    if (_persistAsJson) {
-        _filename = sansExt + "." + "json";
-    } else {
-        _filename = sansExt + "." + "svo";
-    }
-
+    _filename = sansExt + "." + _persistAsFileType;
 }
 
 void OctreePersistThread::parseSettings(const QJsonObject& settings) {
@@ -253,7 +249,7 @@ void OctreePersistThread::persist() {
         if(lockFile.is_open()) {
             qDebug() << "saving Octree lock file created at:" << lockFileName;
 
-            _tree->writeToFile(qPrintable(_filename), NULL, _persistAsJson);
+            _tree->writeToFile(qPrintable(_filename), NULL, _persistAsFileType);
             time(&_lastPersistTime);
             _tree->clearDirtyBit(); // tree is clean after saving
             qDebug() << "DONE saving Octree to file...";

@@ -49,10 +49,6 @@ public:
 };
 
 
-
-
-
-
 class OctreeElement {
 
 protected:

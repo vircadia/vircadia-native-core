@@ -35,7 +35,7 @@ public:
 
     OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL, 
                         bool wantBackup = false, const QJsonObject& settings = QJsonObject(), 
-                        bool debugTimestampNow = false, bool persistAsJson=false);
+                        bool debugTimestampNow = false, QString persistAsFileType="svo");
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
@@ -73,7 +73,7 @@ private:
     bool _debugTimestampNow;
     quint64 _lastTimeDebug;
 
-    bool _persistAsJson;
+    QString _persistAsFileType;
 };
 
 #endif // hifi_OctreePersistThread_h

@@ -1848,21 +1848,16 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     return bytesAtThisLevel;
 }
 
-
 bool Octree::readFromFile(const char* fileName) {
     bool fileOk = false;
 
     QString qFileName = findMostRecentPersist(fileName);
-    // QByteArray byteArray = qFileName.toUtf8();
-    // const char* cFileName = byteArray.constData();
-
     QFile file(qFileName);
     fileOk = file.open(QIODevice::ReadOnly);
 
-    QFileInfo fileInfo(qFileName);
-
     if(fileOk) {
         QDataStream fileInputStream(&file);
+        QFileInfo fileInfo(qFileName);
         unsigned long fileLength = fileInfo.size();
 
         emit importSize(1.0f, 1.0f, 1.0f);
@@ -2057,37 +2052,29 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
 }
 
 bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
-    // QFile file;
-    // file.setFileName("/tmp/ok.json");
-    // file.open(QIODevice::ReadOnly | QIODevice::Text);
-    // QString val = file.readAll();
-    // file.close();
-
     char rawData[streamLength];
     inputStream.readRawData(rawData, streamLength);
-
-    // QJsonDocument d = QJsonDocument::fromJson(val.toUtf8());
     QJsonDocument d = QJsonDocument::fromJson(rawData);
     QVariant v = d.toVariant();
     QVariantMap m = v.toMap();
-
     readFromMap(m);
     return true;
 }
 
-void Octree::writeToFile(const char* fileName, OctreeElement* element, bool persistAsJson) {
-    if (persistAsJson) {
-        // make the sure file extension is correct.  This isn't great, but it allows a user with
-        // an existing .svo save to migrate.
-        QString qFileName = fileNameWithoutExtension(QString(fileName), persistExtensions) + ".json";
-        QByteArray byteArray = qFileName.toUtf8();
-        const char* cFileName = byteArray.constData();
+void Octree::writeToFile(const char* fileName, OctreeElement* element, QString persistAsFileType) {
+    // make the sure file extension makes sense
+    QString qFileName = fileNameWithoutExtension(QString(fileName), persistExtensions) + "." + persistAsFileType;
+    QByteArray byteArray = qFileName.toUtf8();
+    const char* cFileName = byteArray.constData();
+
+    if (persistAsFileType == "svo") {
+        writeToSVOFile(fileName, element);
+    } else if (persistAsFileType == "json") {
         writeToJSONFile(cFileName, element);
     } else {
-        writeToSVOFile(fileName, element);
+        qDebug() << "unable to write octree to file of type" << persistAsFileType;
     }
 }
-
 
 void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
     QFile persistFile(fileName);
@@ -2109,7 +2096,6 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
         qCritical("Could not write to JSON description of entities.");
     }
 }
-
 
 void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);

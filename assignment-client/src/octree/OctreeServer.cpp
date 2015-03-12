@@ -1036,12 +1036,12 @@ void OctreeServer::readConfiguration() {
         strcpy(_persistFilename, qPrintable(persistFilename));
         qDebug("persistFilename=%s", _persistFilename);
 
-        bool persistAsJson;
-        if (!readOptionBool(QString("persistAsJson"), settingsSectionObject, persistAsJson)) {
-            persistAsJson = false;
+        QString persistAsFileType;
+        if (!readOptionString(QString("persistAsFileType"), settingsSectionObject, persistAsFileType)) {
+            persistAsFileType = "svo";
         }
-        _persistAsJson = persistAsJson;
-        qDebug() << "persistAsJson=" << _persistAsJson;
+        _persistAsFileType = persistAsFileType;
+        qDebug() << "persistAsFileType=" << _persistAsFileType;
 
         _persistInterval = OctreePersistThread::DEFAULT_PERSIST_INTERVAL;
         readOptionInt(QString("persistInterval"), settingsSectionObject, _persistInterval);
@@ -1138,7 +1138,7 @@ void OctreeServer::run() {
 
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
-                                                 _wantBackup, _settings, _debugTimestampNow, _persistAsJson);
+                                                 _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         if (_persistThread) {
             _persistThread->initialize(true);
         }
