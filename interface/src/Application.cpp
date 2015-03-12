@@ -326,7 +326,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
     // start the nodeThread so its event loop is running
-    QThread* nodeThread = new QThread();
+    QThread* nodeThread = new QThread(this);
     nodeThread->setObjectName("Datagram Processor Thread");
     nodeThread->start();
 
