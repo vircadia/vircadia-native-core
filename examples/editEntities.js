@@ -178,6 +178,7 @@ var toolBar = (function () {
             visible: true
         });
 
+        that.setActive(false);
     }
 
     that.setActive = function(active) {
