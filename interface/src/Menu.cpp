@@ -105,16 +105,6 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
                                   addressManager.data(), SLOT(copyPath()));
 
-    addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
-                                  qApp, SLOT(uploadHead()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadSkeleton, 0,
-                                  qApp, SLOT(uploadSkeleton()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadAttachment, 0,
-                                  qApp, SLOT(uploadAttachment()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadEntity, 0,
-                                  qApp, SLOT(uploadEntity()));
-
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
@@ -180,6 +170,9 @@ Menu::Menu() {
                                   Qt::Key_Apostrophe,
                                   qApp,
                                   SLOT(resetSensors()));
+    
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
+                                  qApp, SLOT(packageModel()));
 
     QMenu* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();

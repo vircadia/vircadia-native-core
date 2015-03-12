@@ -73,7 +73,7 @@ void WebWindowClass::setVisible(bool visible) {
 QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     WebWindowClass* retVal;
     QString file = context->argument(0).toString();
-    QMetaObject::invokeMethod(WindowScriptingInterface::getInstance(), "doCreateWebWindow", Qt::BlockingQueuedConnection,
+    QMetaObject::invokeMethod(DependencyManager::get<WindowScriptingInterface>().data(), "doCreateWebWindow", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(WebWindowClass*, retVal),
             Q_ARG(const QString&, file),
             Q_ARG(QString, context->argument(1).toString()),
