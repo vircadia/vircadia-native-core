@@ -24,7 +24,6 @@
 #include <gpu/GLBackend.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <PhysicsEntity.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 #include <ViewFrustum.h>
@@ -34,6 +33,8 @@
 #include "DeferredLightingEffect.h"
 #include "GlowEffect.h"
 #include "Model.h"
+#include "PhysicsEntity.h"
+
 
 #include "model_vert.h"
 #include "model_shadow_vert.h"

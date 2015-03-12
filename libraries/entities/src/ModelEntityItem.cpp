@@ -17,7 +17,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ModelEntityItem.h"
-// #include "GeometryCache.h"
+#include "GeometryCache.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
@@ -416,13 +416,14 @@ QString ModelEntityItem::getAnimationSettings() const {
 void ModelEntityItem::computeShapeInfo(ShapeInfo& info) const {
 
     if (_collisionModelURL != "") {
-        //        QSharedPointer<NetworkGeometry> networkGeometry = 
-        //            DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
+        QSharedPointer<NetworkGeometry> networkGeometry = 
+            DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
 
-        // FBXGeometry& _collisionModel;
-        // _collisionModel = &networkGeometry->getFBXGeometry();
+        // XXX does this do an unneeded copy?
+        FBXGeometry _collisionModel = networkGeometry->getFBXGeometry();
+
         // connect(networkGeometry, loaded, this, collisionGeometryLoaded);
 
-        //        info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
+        info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
     }
 }
