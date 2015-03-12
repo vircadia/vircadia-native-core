@@ -178,27 +178,9 @@ bool ModelUploader::zip() {
     QByteArray fbxContents = fbx.readAll();
     FBXGeometry geometry = readFBX(fbxContents, QVariantHash());
 
-    #if 0 /// Temporarily remove this check until CtrlAltDavid can come up with a fix.
-    // Make sure that a skeleton model has a skeleton
-    if (_modelType == SKELETON_MODEL) {
-        if (geometry.rootJointIndex == -1) {
-
-            QString message = "Your selected skeleton model has no skeleton.\n\nThe upload will be canceled.";
-            QMessageBox msgBox;
-            msgBox.setWindowTitle("Model Upload");
-            msgBox.setText(message);
-            msgBox.setStandardButtons(QMessageBox::Ok);
-            msgBox.setIcon(QMessageBox::Warning);
-            msgBox.exec();
-
-            return false;
-        }
-    }
-    #endif
-    
     // make sure we have some basic mappings
     populateBasicMapping(mapping, filename, geometry);
-    
+
     // open the dialog to configure the rest
     ModelPropertiesDialog properties(_modelType, mapping, basePath, geometry);
     if (properties.exec() == QDialog::Rejected) {
@@ -206,6 +188,22 @@ bool ModelUploader::zip() {
     }
     mapping = properties.getMapping();
     
+    // Make sure that a mapping for the root joint has been specified
+    QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
+    if (!joints.contains("jointRoot")) {
+        qDebug() << QString("[Warning] %1 root joint not configured for skeleton.").arg(filename);
+        
+        QString message = "Your did not configure a root joint for your skeleton model.\n\nThe upload will be canceled.";
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Model Upload");
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+
+        return false;
+    }
+
     QByteArray nameField = mapping.value(NAME_FIELD).toByteArray();
     QString urlBase;
     if (!nameField.isEmpty()) {
