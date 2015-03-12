@@ -94,6 +94,7 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
+static const QString SVO_EXTENSION  = ".svo";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.56f;       // meters
@@ -314,6 +315,8 @@ signals:
     void importDone();
     
     void scriptLocationChanged(const QString& newPath);
+
+    void svoImportRequested(const QString& url);
 
 public slots:
     void domainChanged(const QString& domainHostname);

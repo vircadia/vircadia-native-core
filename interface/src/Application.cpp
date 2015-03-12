@@ -244,6 +244,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
     auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
+    auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -882,9 +883,15 @@ bool Application::event(QEvent* event) {
     if (event->type() == QEvent::FileOpen) {
         
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+
+        QUrl url = fileEvent->url();
         
-        if (!fileEvent->url().isEmpty()) {
-            DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
+        if (!url.isEmpty()) {
+            if (url.scheme() == HIFI_URL_SCHEME) {
+                DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
+            } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+                emit svoImportRequested(url.url());
+            }
         }
         
         return false;
@@ -1451,6 +1458,10 @@ void Application::dropEvent(QDropEvent *event) {
         if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
             snapshotPath = url.toLocalFile();
             break;
+        } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+            emit svoImportRequested(url.url());
+            event->acceptProposedAction();
+            return;
         }
     }
 
@@ -3528,7 +3539,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
                             RayToOverlayIntersectionResultFromScriptValue);
 
-    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
+    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter, windowValue);
     // register `location` on the global object.
