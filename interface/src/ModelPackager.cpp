@@ -105,24 +105,6 @@ bool ModelPackager::loadModel() {
     QByteArray fbxContents = fbx.readAll();
     _geometry = readFBX(fbxContents, QVariantHash());
     
-#if 0 /// Temporarily remove this check until CtrlAltDavid can come up with a fix.
-    // Make sure that a skeleton model has a skeleton
-    if (_modelType == SKELETON_MODEL) {
-        if (_geometry.rootJointIndex == -1) {
-            
-            QString message = "Your selected skeleton model has no skeleton.\n\nThe upload will be canceled.";
-            QMessageBox msgBox;
-            msgBox.setWindowTitle("Model Upload");
-            msgBox.setText(message);
-            msgBox.setStandardButtons(QMessageBox::Ok);
-            msgBox.setIcon(QMessageBox::Warning);
-            msgBox.exec();
-            
-            return false;
-        }
-    }
-#endif
-    
     // make sure we have some basic mappings
     populateBasicMapping(_mapping, _fbxInfo.filePath(), _geometry);
     return true;
