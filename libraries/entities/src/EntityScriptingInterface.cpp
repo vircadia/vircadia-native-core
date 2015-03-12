@@ -208,7 +208,24 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
         QVector<const EntityItem*> entities;
         _entityTree->findEntities(center, radius, entities);
         _entityTree->unlock();
+        
+        foreach (const EntityItem* entity, entities) {
+            EntityItemID thisEntityItemID(entity->getID(), UNKNOWN_ENTITY_TOKEN, true);
+            result << thisEntityItemID;
+        }
+    }
+    return result;
+}
 
+QVector<EntityItemID> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
+    QVector<EntityItemID> result;
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        AABox box(corner, dimensions);
+        QVector<EntityItem*> entities;
+        _entityTree->findEntities(box, entities);
+        _entityTree->unlock();
+        
         foreach (const EntityItem* entity, entities) {
             EntityItemID thisEntityItemID(entity->getID(), UNKNOWN_ENTITY_TOKEN, true);
             result << thisEntityItemID;
