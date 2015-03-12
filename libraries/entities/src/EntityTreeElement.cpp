@@ -836,4 +836,4 @@ void EntityTreeElement::debugDump() {
         qDebug() << "    NO entities!";
     }
 }
-
+    
