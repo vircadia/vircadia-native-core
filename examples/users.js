@@ -116,6 +116,9 @@ var usersWindow = (function () {
                 usersOnline[i].usernameWidth = Overlays.textSize(windowPane2D, user.username).width;
                 linesOfUsers.push(i);
                 displayText += "\n" + user.username;
+                if (user.location.root) {
+                    displayText += " @ " + user.location.root.name;
+                }
             }
         }
 
