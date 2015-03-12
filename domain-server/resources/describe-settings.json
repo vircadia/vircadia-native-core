@@ -326,6 +326,14 @@
         "advanced": true
       },
       {
+        "name": "persistAsJson",
+        "type": "checkbox",
+        "label": "Encode persist file as JSON:",
+        "help": "Entity server will save entities as JSON rather than SVO",
+        "default": false,
+        "advanced": true
+      },
+      {
         "name": "persistInterval",
         "label": "Save Check Interval",
         "help": "Milliseconds between checks for saving the current state of entities.",

@@ -260,8 +260,6 @@ public:
     int getMyChildContaining(const AABox& box) const;
     int getMyChildContainingPoint(const glm::vec3& point) const;
 
-    virtual bool writeToMap(QVariantMap& entityDescription) { return true; }
-
 protected:
 
     void deleteAllChildren();

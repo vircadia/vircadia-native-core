@@ -181,7 +181,7 @@ void TextEntityItem::writeSubTypeToMap(QVariantMap& map) {
 }
 
 
-void TextEntityItem::readSubTypeFromMap(QVariantMap& map) {
+void TextEntityItem::readFromMap(QVariantMap& map) {
     _text = map["text"].toString();
     _lineHeight = map["line-height"].toFloat();
     qListtoRgbColor(map["text-color"], _textColor);

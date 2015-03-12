@@ -326,12 +326,20 @@ public:
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
 
     // these will read/write files that match the wireformat, excluding the 'V' leading
+    void writeToFile(const char* filename, OctreeElement* element = NULL, bool persistAsJson = false);
+    void writeToJSONFile(const char* filename, OctreeElement* element = NULL);
     void writeToSVOFile(const char* filename, OctreeElement* element = NULL);
-    bool readFromSVOFile(const char* filename);
-    bool readFromSVOURL(const QString& url); // will support file urls as well...
+    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElement* element) = 0;
+
+
+    bool readFromFile(const char* filename);
+    bool readFromURL(const QString& url); // will support file urls as well...
+
     bool readFromStream(unsigned long streamLength, QDataStream& inputStream);
-    bool readFromJSONFile(const char* fileName);
-    virtual bool writeToMap(QVariantMap& entityDescription) { return true; }
+    bool readSVOFromStream(unsigned long streamLength, QDataStream& inputStream);
+    bool readJSONFromStream(unsigned long streamLength, QDataStream& inputStream);
+
+
 
     unsigned long getOctreeElementsCount();
 

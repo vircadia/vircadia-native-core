@@ -142,7 +142,7 @@ public:
     QString getAnimationSettings() const;
 
     void writeSubTypeToMap(QVariantMap& map);
-    void readSubTypeFromMap(QVariantMap& map);
+    void readFromMap(QVariantMap& map);
 
 protected:
 

@@ -63,7 +63,7 @@ public:
     virtual void debugDump() const;
 
     void writeSubTypeToMap(QVariantMap& map);
-    void readSubTypeFromMap(QVariantMap& map);
+    void readFromMap(QVariantMap& map);
 
 protected:
 

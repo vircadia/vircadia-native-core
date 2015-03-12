@@ -30,7 +30,8 @@
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
 OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, int persistInterval, 
-                                                bool wantBackup, const QJsonObject& settings, bool debugTimestampNow) :
+                                         bool wantBackup, const QJsonObject& settings, bool debugTimestampNow,
+                                         bool persistAsJson) :
     _tree(tree),
     _filename(filename),
     _persistInterval(persistInterval),
@@ -39,7 +40,8 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
     _lastCheck(0),
     _wantBackup(wantBackup),
     _debugTimestampNow(debugTimestampNow),
-    _lastTimeDebug(0)
+    _lastTimeDebug(0),
+    _persistAsJson(persistAsJson)
 {
     parseSettings(settings);
 }
@@ -141,8 +143,7 @@ bool OctreePersistThread::process() {
                 qDebug() << "Loading Octree... lock file removed:" << lockFileName;
             }
 
-            // persistantFileRead = _tree->readFromSVOFile(_filename.toLocal8Bit().constData());
-            persistantFileRead = _tree->readFromJSONFile(_filename.toLocal8Bit().constData());
+            persistantFileRead = _tree->readFromFile(_filename.toLocal8Bit().constData());
             _tree->pruneTree();
         }
         _tree->unlock();
@@ -244,19 +245,7 @@ void OctreePersistThread::persist() {
         if(lockFile.is_open()) {
             qDebug() << "saving Octree lock file created at:" << lockFileName;
 
-            qDebug() << "saving Octree to file " << _filename << "...";
-
-
-            QFile persistFile("/tmp/ok.json");
-            QVariantMap entityDescription;
-            bool entityDescriptionSuccess = _tree->writeToMap(entityDescription);
-            if (entityDescriptionSuccess && persistFile.open(QIODevice::WriteOnly)) {
-                persistFile.write(QJsonDocument::fromVariant(entityDescription).toJson());
-            } else {
-                qCritical("Could not write to JSON description of entities.");
-            }
-
-            _tree->writeToSVOFile(qPrintable(_filename));
+            _tree->writeToFile(qPrintable(_filename), NULL, _persistAsJson);
             time(&_lastPersistTime);
             _tree->clearDirtyBit(); // tree is clean after saving
             qDebug() << "DONE saving Octree to file...";

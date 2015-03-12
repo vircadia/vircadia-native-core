@@ -529,7 +529,7 @@ void ParticleEffectEntityItem::writeSubTypeToMap(QVariantMap& map) {
 }
 
 
-void ParticleEffectEntityItem::readSubTypeFromMap(QVariantMap& map) {
+void ParticleEffectEntityItem::readFromMap(QVariantMap& map) {
     qListtoRgbColor(map["color"], _color);
 
     _maxParticles = map["max-particles"].toFloat();

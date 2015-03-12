@@ -157,6 +157,7 @@ protected:
     QString _statusHost;
 
     char _persistFilename[MAX_FILENAME_LENGTH];
+    bool _persistAsJson;
     int _packetsPerClientPerInterval;
     int _packetsTotalPerInterval;
     Octree* _tree; // this IS a reaveraging tree

@@ -1060,7 +1060,9 @@ public:
 
 
 
-bool EntityTree::writeToMap(QVariantMap& entityDescription) {
+bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* element) {
+
+    // XXX how can I make the RecurseOctreeOperator start with element?
     entityDescription["Entities"] = QVariantList();
     ToMapOperator theOperator(entityDescription);
     recurseTreeWithOperator(&theOperator);
@@ -1078,16 +1080,6 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     foreach (QVariant entityQ, entitiesQList) {
         QVariantMap entityMap = entityQ.toMap();
 
-        // EntityTypes::EntityType entityType = EntityTypes::getEntityTypeFromName(entityMap["type"].toString());
-
-        // qDebug() << "found entity of type" << entityType;
-
-        // if (entityType == EntityTypes::Unknown) {
-        //     qDebug() << "unknown entity type" << entityMap["type"];
-        //     continue;
-        // }
-
-
         EntityItemProperties properties;
 
         EntityItemID entityItemID;
@@ -1101,6 +1093,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         QString typeString = entityMap["type"].toString();
         QByteArray typeByteArray = typeString.toLocal8Bit();
         const char *typeCString = typeByteArray.data();
+
         properties.setType(EntityTypes::getEntityTypeFromName(typeCString));
 
         properties.setPosition(qListToGlmVec3(entityMap["position"]));
@@ -1124,13 +1117,8 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         properties.setUserData(entityMap["userData"].toString());
 
         EntityItem* entity = addEntity(entityItemID, properties);
-        // EntityItem* entity = getOrCreateEntityItem(entityItemID, properties);
+
         entity->readFromMap(entityMap);
-        // postAddEntity(entity);
-        // update();
-        // qDebug() << "\n\n\n";
-        // dumpTree();
-        // qDebug() << "\n\n\n";
     }
 
 

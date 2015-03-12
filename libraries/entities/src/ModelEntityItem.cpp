@@ -427,7 +427,7 @@ void ModelEntityItem::writeSubTypeToMap(QVariantMap& map) {
 }
 
 
-void ModelEntityItem::readSubTypeFromMap(QVariantMap& map) {
+void ModelEntityItem::readFromMap(QVariantMap& map) {
     qListtoRgbColor(map["color"], _color);
 
     _modelURL = map["model-url"].toString();
