@@ -13,7 +13,7 @@ var usersWindow = (function () {
 
     var WINDOW_WIDTH_2D = 150,
         WINDOW_MARGIN_2D = 12,
-        WINDOW_FONT_2D = { size: 14 },
+        WINDOW_FONT_2D = { size: 12 },
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
         WINDOW_FOREGROUND_ALPHA_2D = 0.9,
         WINDOW_HEADING_COLOR_2D = { red: 180, green: 180, blue: 180 },
