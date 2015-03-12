@@ -4091,5 +4091,7 @@ void Application::checkSkeleton() {
         
         _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
         _myAvatar->sendIdentityPacket();
+    } else {
+        _physicsEngine.setAvatarData(_myAvatar);
     }
 }
