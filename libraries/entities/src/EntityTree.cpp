@@ -1057,7 +1057,6 @@ public:
         return true;
     }
     bool postRecursion(OctreeElement* element) {
-        qDebug() << "  in ToMapOperator::preRecursion";
         EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
         const QList<EntityItem*>& entities = entityTreeElement->getEntities();
         // XXX is this causing a lot of copying?
