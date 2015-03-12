@@ -445,8 +445,10 @@ private:
     MainWindow* _window;
 
     ToolWindow* _toolWindow;
-    
-    DatagramProcessor* _datagramProcessor;
+
+
+    QThread* _nodeThread;
+    DatagramProcessor _datagramProcessor;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;

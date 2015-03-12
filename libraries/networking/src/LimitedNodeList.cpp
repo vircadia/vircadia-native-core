@@ -80,10 +80,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     connect(localSocketUpdate, &QTimer::timeout, this, &LimitedNodeList::updateLocalSockAddr);
     localSocketUpdate->start(LOCAL_SOCKET_UPDATE_INTERVAL_MSECS);
     
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, &QTimer::timeout, this, &LimitedNodeList::removeSilentNodes);
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
-    
     // check the local socket right now
     updateLocalSockAddr();
     
@@ -504,7 +500,6 @@ void LimitedNodeList::resetPacketStats() {
 }
 
 void LimitedNodeList::removeSilentNodes() {
-    
     QSet<SharedNodePointer> killedNodes;
     
     eachNodeHashIterator([&](NodeHash::iterator& it){
