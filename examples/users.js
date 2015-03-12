@@ -22,21 +22,30 @@ var usersWindow = (function () {
         WINDOW_BACKGROUND_ALPHA_2D = 0.7,
         windowPane2D,
         windowHeading2D,
+        VISIBILITY_SPACER_2D = 12,                          // Space between list of users and visibility controls
+        visibilityHeading2D,
+        VISIBILITY_RADIO_SPACE = 20,
+        visibilityControls2D,
         windowHeight,
         windowTextHeight,
         windowLineSpacing,
-        windowLineHeight,  // = windowTextHeight + windowLineSpacing
+        windowLineHeight,                                   // = windowTextHeight + windowLineSpacing
 
-        usersOnline,    // Raw users data
-        linesOfUsers,   // Array of indexes pointing into usersOnline
+        usersOnline,                                        // Raw users data
+        linesOfUsers = [],                                  // Array of indexes pointing into usersOnline
 
         API_URL = "https://metaverse.highfidelity.io/api/v1/users?status=online",
-        HTTP_GET_TIMEOUT = 60000,  // ms = 1 minute
+        HTTP_GET_TIMEOUT = 60000,                           // ms = 1 minute
         usersRequest,
         processUsers,
-        usersTimedOut,
+        pollUsersTimedOut,
         usersTimer = null,
-        UPDATE_TIMEOUT = 5000,  // ms = 5s
+        USERS_UPDATE_TIMEOUT = 5000,                        // ms = 5s
+
+        myVisibility,
+        VISIBILITY_VALUES = ["all", "friends", "none"],
+        visibilityInterval,
+        VISIBILITY_POLL_INTERVAL = 5000,                    // ms = 5s
 
         MENU_NAME = "Tools",
         MENU_ITEM = "Users Online",
@@ -46,6 +55,157 @@ var usersWindow = (function () {
 
         viewportHeight;
 
+    function calculateWindowHeight() {
+        // Reserve 5 lines for window heading plus visibility heading and controls
+        // Subtract windowLineSpacing for both end of user list and end of controls
+        windowHeight = (linesOfUsers.length > 0 ? linesOfUsers.length + 5 : 5) * windowLineHeight
+                - 2 * windowLineSpacing + VISIBILITY_SPACER_2D + 2 * WINDOW_MARGIN_2D;
+    }
+
+    function updateOverlayPositions() {
+        var i;
+
+        Overlays.editOverlay(windowPane2D, {
+            y: viewportHeight - windowHeight
+        });
+        Overlays.editOverlay(windowHeading2D, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D
+        });
+        Overlays.editOverlay(visibilityHeading2D, {
+            y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
+        });
+        for (i = 0; i < visibilityControls2D.length; i += 1) {
+            Overlays.editOverlay(visibilityControls2D[i].overlay, {
+                y: viewportHeight - (3 - i) * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
+            });
+        }
+    }
+
+    function updateVisibilityControls() {
+        var i;
+
+        for (i = 0; i < visibilityControls2D.length; i += 1) {
+            Overlays.editOverlay(visibilityControls2D[i].overlay, {
+                color: visibilityControls2D[i].selected ? WINDOW_FOREGROUND_COLOR_2D : WINDOW_HEADING_COLOR_2D
+            });
+        }
+    }
+
+    function updateUsersDisplay() {
+        var displayText = "",
+            myUsername,
+            user,
+            i;
+
+        myUsername = GlobalServices.username;
+        linesOfUsers = [];
+        for (i = 0; i < usersOnline.length; i += 1) {
+            user = usersOnline[i];
+            if (user.username !== myUsername && user.online) {
+                usersOnline[i].usernameWidth = Overlays.textSize(windowPane2D, user.username).width;
+                linesOfUsers.push(i);
+                displayText += "\n" + user.username;
+            }
+        }
+
+        displayText = displayText.slice(1);  // Remove leading "\n".
+
+        calculateWindowHeight();
+
+        Overlays.editOverlay(windowPane2D, {
+            y: viewportHeight - windowHeight,
+            height: windowHeight,
+            text: displayText
+        });
+
+        Overlays.editOverlay(windowHeading2D, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D,
+            text: linesOfUsers.length > 0 ? "Users online" : "No users online"
+        });
+
+        updateOverlayPositions();
+    }
+
+    function pollUsers() {
+        usersRequest = new XMLHttpRequest();
+        usersRequest.open("GET", API_URL, true);
+        usersRequest.timeout = HTTP_GET_TIMEOUT;
+        usersRequest.ontimeout = pollUsersTimedOut;
+        usersRequest.onreadystatechange = processUsers;
+        usersRequest.send();
+    }
+
+    processUsers = function () {
+        var response;
+
+        if (usersRequest.readyState === usersRequest.DONE) {
+            if (usersRequest.status === 200) {
+                response = JSON.parse(usersRequest.responseText);
+                if (response.status !== "success") {
+                    print("Error: Request for users status returned status = " + response.status);
+                    usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                    return;
+                }
+                if (!response.hasOwnProperty("data") || !response.data.hasOwnProperty("users")) {
+                    print("Error: Request for users status returned invalid data");
+                    usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                    return;
+                }
+
+                usersOnline = response.data.users;
+                updateUsersDisplay();
+            } else {
+                print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
+                usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                return;
+            }
+
+            usersTimer = Script.setTimeout(pollUsers, USERS_UPDATE_TIMEOUT);  // Update after finished processing.
+        }
+    };
+
+    pollUsersTimedOut = function () {
+        print("Error: Request for users status timed out");
+        usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+    };
+
+    function pollVisibility() {
+        var currentVisibility = myVisibility;
+
+        myVisibility = GlobalServices.findableBy;
+        if (myVisibility !== currentVisibility) {
+            updateVisibilityControls();
+        }
+    }
+
+    function setVisible(visible) {
+        var i;
+
+        isVisible = visible;
+
+        if (isVisible) {
+            if (usersTimer === null) {
+                pollUsers();
+            }
+        } else {
+            Script.clearTimeout(usersTimer);
+            usersTimer = null;
+        }
+
+        Overlays.editOverlay(windowPane2D, { visible: isVisible });
+        Overlays.editOverlay(windowHeading2D, { visible: isVisible });
+        Overlays.editOverlay(visibilityHeading2D, { visible: isVisible });
+        for (i = 0; i < visibilityControls2D.length; i += 1) {
+            Overlays.editOverlay(visibilityControls2D[i].overlay, { visible: isVisible });
+        }
+    }
+
+    function onMenuItemEvent(event) {
+        if (event === MENU_ITEM) {
+            setVisible(Menu.isOptionChecked(MENU_ITEM));
+        }
+    }
+
     function onMousePressEvent(event) {
         var clickedOverlay,
             numLinesBefore,
@@ -53,7 +213,9 @@ var usersWindow = (function () {
             overlayY,
             minY,
             maxY,
-            lineClicked;
+            lineClicked,
+            i,
+            visibilityChanged;
 
         if (!isVisible) {
             return;
@@ -77,118 +239,33 @@ var usersWindow = (function () {
 
             if (0 <= lineClicked && lineClicked < linesOfUsers.length
                     && overlayX <= usersOnline[linesOfUsers[lineClicked]].usernameWidth) {
-                print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
-                //location.goToUser(usersOnline[linesOfUsers[lineClicked]].username);
-            }
-        }
-    }
-
-    function updateWindow() {
-        var displayText = "",
-            myUsername,
-            user,
-            i;
-
-        myUsername = GlobalServices.username;
-        linesOfUsers = [];
-        for (i = 0; i < usersOnline.length; i += 1) {
-            user = usersOnline[i];
-            if (user.username !== myUsername && user.online) {
-                usersOnline[i].usernameWidth = Overlays.textSize(windowPane2D, user.username).width;
-                linesOfUsers.push(i);
-                displayText += "\n" + user.username;
+                //print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
+                location.goToUser(usersOnline[linesOfUsers[lineClicked]].username);
             }
         }
 
-        displayText = displayText.slice(1);  // Remove leading "\n".
-        windowHeight = (linesOfUsers.length > 0 ? linesOfUsers.length + 1 : 1) * windowLineHeight
-                - windowLineSpacing + 2 * WINDOW_MARGIN_2D;  // First or only line is for heading
-
-        Overlays.editOverlay(windowPane2D, {
-            y: viewportHeight - windowHeight,
-            height: windowHeight,
-            text: displayText
-        });
-
-        Overlays.editOverlay(windowHeading2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D,
-            text: linesOfUsers.length > 0 ? "Online" : "No users online"
-        });
-    }
-
-    function requestUsers() {
-        usersRequest = new XMLHttpRequest();
-        usersRequest.open("GET", API_URL, true);
-        usersRequest.timeout = HTTP_GET_TIMEOUT;
-        usersRequest.ontimeout = usersTimedOut;
-        usersRequest.onreadystatechange = processUsers;
-        usersRequest.send();
-    }
-
-    processUsers = function () {
-        var response;
-
-        if (usersRequest.readyState === usersRequest.DONE) {
-            if (usersRequest.status === 200) {
-                response = JSON.parse(usersRequest.responseText);
-                if (response.status !== "success") {
-                    print("Error: Request for users status returned status = " + response.status);
-                    usersTimer = Script.setTimeout(requestUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
-                    return;
-                }
-                if (!response.hasOwnProperty("data") || !response.data.hasOwnProperty("users")) {
-                    print("Error: Request for users status returned invalid data");
-                    usersTimer = Script.setTimeout(requestUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
-                    return;
-                }
-
-                usersOnline = response.data.users;
-                updateWindow();
-            } else {
-                print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
-                usersTimer = Script.setTimeout(requestUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
-                return;
+        visibilityChanged = false;
+        for (i = 0; i < visibilityControls2D.length; i += 1) {
+            if (clickedOverlay === visibilityControls2D[i].overlay) {
+                GlobalServices.findableBy = VISIBILITY_VALUES[i];
+                visibilityChanged = true;
             }
-
-            usersTimer = Script.setTimeout(requestUsers, UPDATE_TIMEOUT);  // Update after finished processing.
         }
-    };
-
-    usersTimedOut = function () {
-        print("Error: Request for users status timed out");
-        usersTimer = Script.setTimeout(requestUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
-    };
-
-    function setVisible(visible) {
-        isVisible = visible;
-
-        if (isVisible) {
-            if (usersTimer === null) {
-                requestUsers();
+        if (visibilityChanged) {
+            for (i = 0; i < visibilityControls2D.length; i += 1) {
+                visibilityControls2D[i].selected = clickedOverlay === visibilityControls2D[i].overlay;
             }
-        } else {
-            Script.clearTimeout(usersTimer);
-            usersTimer = null;
-        }
-
-        Overlays.editOverlay(windowPane2D, { visible: isVisible });
-        Overlays.editOverlay(windowHeading2D, { visible: isVisible });
-    }
-
-    function onMenuItemEvent(event) {
-        if (event === MENU_ITEM) {
-            setVisible(Menu.isOptionChecked(MENU_ITEM));
+            updateVisibilityControls();
         }
     }
 
-    function update() {
+    function onScriptUpdate() {
+        var oldViewportHeight = viewportHeight;
+
         viewportHeight = Controller.getViewportDimensions().y;
-        Overlays.editOverlay(windowPane2D, {
-            y: viewportHeight - windowHeight
-        });
-        Overlays.editOverlay(windowHeading2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D
-        });
+        if (viewportHeight !== oldViewportHeight) {
+            updateOverlayPositions();
+        }
     }
 
     function setUp() {
@@ -200,10 +277,15 @@ var usersWindow = (function () {
         windowLineHeight = windowTextHeight + windowLineSpacing;
         Overlays.deleteOverlay(textSizeOverlay);
 
-        windowHeight = windowTextHeight + 2 * WINDOW_MARGIN_2D;
+        calculateWindowHeight();
+
+        viewportHeight = Controller.getViewportDimensions().y;
 
         windowPane2D = Overlays.addOverlay("text", {
-            bounds: { x: 0, y: 0, width: WINDOW_WIDTH_2D, height: windowHeight },
+            x: 0,
+            y: viewportHeight,  // Start up off-screen
+            width: WINDOW_WIDTH_2D,
+            height: windowHeight,
             topMargin: WINDOW_MARGIN_2D + windowLineHeight,
             leftMargin: WINDOW_MARGIN_2D,
             color: WINDOW_FOREGROUND_COLOR_2D,
@@ -217,7 +299,7 @@ var usersWindow = (function () {
 
         windowHeading2D = Overlays.addOverlay("text", {
             x: WINDOW_MARGIN_2D,
-            y: 0,
+            y: viewportHeight,
             width: WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
             height: windowTextHeight,
             topMargin: 0,
@@ -230,7 +312,56 @@ var usersWindow = (function () {
             visible: isVisible
         });
 
-        viewportHeight = Controller.getViewportDimensions().y;
+        visibilityHeading2D = Overlays.addOverlay("text", {
+            x: WINDOW_MARGIN_2D,
+            y: viewportHeight,
+            width: WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
+            height: windowTextHeight,
+            topMargin: 0,
+            leftMargin: 0,
+            color: WINDOW_HEADING_COLOR_2D,
+            alpha: WINDOW_HEADING_ALPHA_2D,
+            backgroundAlpha: 0.0,
+            text: "I am visible to:",
+            font: WINDOW_FONT_2D,
+            visible: isVisible
+        });
+
+        myVisibility = GlobalServices.findableBy;
+        if (!/^(all|friends|none)$/.test(myVisibility)) {
+            print("Error: Unrecognized findableBy value");
+            myVisibility = "";
+        }
+
+        visibilityControls2D = [ {
+            overlay: Overlays.addOverlay("text", {
+                x: WINDOW_MARGIN_2D + VISIBILITY_RADIO_SPACE,
+                y: viewportHeight,
+                width: WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
+                height: windowTextHeight,
+                topMargin: 0,
+                leftMargin: 0,
+                color: WINDOW_HEADING_COLOR_2D,
+                alpha: WINDOW_FOREGROUND_ALPHA_2D,
+                backgroundAlpha: 0.0,
+                text: "everyone",
+                font: WINDOW_FONT_2D,
+                visible: isVisible
+            }),
+            selected: myVisibility === VISIBILITY_VALUES[0]
+        } ];
+        visibilityControls2D[1] = {
+            overlay: Overlays.cloneOverlay(visibilityControls2D[0].overlay),
+            selected: myVisibility === VISIBILITY_VALUES[1]
+        };
+        Overlays.editOverlay(visibilityControls2D[1].overlay, { text: "my friends" });
+        visibilityControls2D[2] = {
+            overlay: Overlays.cloneOverlay(visibilityControls2D[0].overlay),
+            selected: myVisibility === VISIBILITY_VALUES[2]
+        };
+        Overlays.editOverlay(visibilityControls2D[2].overlay, { text: "no one" });
+
+        updateVisibilityControls();
 
         Controller.mousePressEvent.connect(onMousePressEvent);
 
@@ -243,17 +374,27 @@ var usersWindow = (function () {
         });
         Menu.menuItemEvent.connect(onMenuItemEvent);
 
-        Script.update.connect(update);
+        Script.update.connect(onScriptUpdate);
 
-        requestUsers();
+        visibilityInterval = Script.setInterval(pollVisibility, VISIBILITY_POLL_INTERVAL);
+
+        pollUsers();
+
     }
 
     function tearDown() {
+        var i;
+
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
+        Script.clearInterval(visibilityInterval);
         Script.clearTimeout(usersTimer);
-        Overlays.deleteOverlay(windowHeading2D);
         Overlays.deleteOverlay(windowPane2D);
+        Overlays.deleteOverlay(windowHeading2D);
+        Overlays.deleteOverlay(visibilityHeading2D);
+        for (i = 0; i <= visibilityControls2D.length; i += 1) {
+            Overlays.deleteOverlay(visibilityControls2D[i].overlay);
+        }
     }
 
     setUp();
