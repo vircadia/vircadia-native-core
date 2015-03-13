@@ -41,3 +41,7 @@ bool DataWebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkReques
         return false;
     }
 }
+
+QString DataWebPage::userAgentForUrl(const QUrl & url) const {
+    return INTERFACE_USER_AGENT;
+}

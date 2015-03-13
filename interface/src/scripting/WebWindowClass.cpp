@@ -18,9 +18,10 @@
 #include <QListWidget>
 
 #include "Application.h"
+#include "ui/DataWebPage.h"
 #include "MainWindow.h"
-#include "WindowScriptingInterface.h"
 #include "WebWindowClass.h"
+#include "WindowScriptingInterface.h"
 
 ScriptEventBridge::ScriptEventBridge(QObject* parent) : QObject(parent) {
 }
@@ -32,17 +33,6 @@ void ScriptEventBridge::emitWebEvent(const QString& data) {
 void ScriptEventBridge::emitScriptEvent(const QString& data) {
     emit scriptEventReceived(data);
 }
-
-
-class InterfaceWebPage : public QWebPage {
-public:
-    InterfaceWebPage(QWidget* parent = nullptr) : QWebPage(parent) { }
-protected:
-    virtual QString userAgentForUrl(const QUrl & url) const {
-        return "HighFidelityInterface/1.0";
-    }
-};
-
 
 WebWindowClass::WebWindowClass(const QString& title, const QString& url, int width, int height, bool isToolWindow)
     : QObject(NULL),
@@ -71,7 +61,7 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
         addEventBridgeToWindowObject();
     }
 
-    _webView->setPage(new InterfaceWebPage());
+    _webView->setPage(new DataWebPage());
     _webView->setUrl(url);
 
 
