@@ -35,6 +35,8 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID, properties)
 { 
+    _collisionNetworkGeometry = QSharedPointer<NetworkGeometry>(0);
+
     _type = EntityTypes::Model;
     setProperties(properties);
     _lastAnimated = usecTimestampNow();
@@ -416,7 +418,7 @@ QString ModelEntityItem::getAnimationSettings() const {
 
 
 void ModelEntityItem::getReadyToComputeShape() {
-    qDebug() << "ModelEntityItem::getReadyToComputeShape for " << getID().toString();
+    qDebug() << "ModelEntityItem::getReadyToComputeShape for " << getID().toString() << _collisionModelURL;
 
     if (_collisionModelURL != "") {
         if (! _collisionNetworkGeometry.isNull()) {
@@ -425,6 +427,7 @@ void ModelEntityItem::getReadyToComputeShape() {
             _collisionNetworkGeometry =
                 DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
             connect(_collisionNetworkGeometry.data(), SIGNAL(Resource::loaded()), this, SLOT(collisionGeometryLoaded()));
+            connect(_collisionNetworkGeometry.data(), SIGNAL(Resource::loadingFailed()), this, SLOT(collisionGeometryLoaded()));
         }
     } else {
         emit entityShapeReady(getID());

@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <QSet>
+#include <QReadWriteLock>
 #include <btBulletDynamicsCommon.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
@@ -132,7 +133,12 @@ private:
     class btPairCachingGhostObject* _avatarGhostObject = 0;
     AvatarData *_avatarData = 0;
 
-    QMap<QUuid, QPointer<EntityItem>> _busyComputingShape;
+    QReadWriteLock _busyLock;
+    void lockBusyForRead() { _busyLock.lockForRead(); }
+    void lockBusyForWrite() { _busyLock.lockForWrite(); }
+    void unlockBusy() { _busyLock.unlock(); }
+
+    QMap<QUuid, bool> _busyComputingShape;
 };
 
 #endif // hifi_PhysicsEngine_h

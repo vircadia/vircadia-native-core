@@ -278,6 +278,7 @@ void Resource::finishedLoading(bool success) {
         emit loaded();
     } else {
         _failedToLoad = true;
+        emit loadingFailed();
     }
     _loadPriorities.clear();
 }

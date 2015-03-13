@@ -57,42 +57,60 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
 }
 
 void PhysicsEngine::addEntityInternal(EntityItem* entity) {
+    lockBusyForRead();
+
+    qDebug() << "PhysicsEngine::addEntityInternal for " << entity->getID().toString()
+             << "thread-id" << QThread::currentThreadId();
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
-    if (!physicsInfo && !_busyComputingShape.contains(entity->getID())) {
-        // qDebug() << "in addEntityInternal ID is" << entity->getID().toString();
-        QPointer<EntityItem> entityWptr(entity);
-        _busyComputingShape[entity->getID()] = entityWptr;
-        connect(entity, SIGNAL(entityShapeReady(QUuid)), this, SLOT(entityShapeReady(QUuid)));
-        entity->getReadyToComputeShape();
+    if (!physicsInfo) {
+        qDebug() << "  has no physicsInfo";
+        if (!_busyComputingShape.contains(entity->getID())) {
+            qDebug() << "  calling getReadyToComputeShape";
+            QPointer<EntityItem> entityWptr(entity);
+            _busyComputingShape[entity->getID()] = true;
+            connect(entity, SIGNAL(entityShapeReady(QUuid)), this, SLOT(entityShapeReady(QUuid)));
+            entity->getReadyToComputeShape();
+        } else {
+            if (_busyComputingShape[entity->getID()]) {
+                qDebug() << "  still getting ready to compute shape";
+            } else {
+                qDebug() << "  it's ready to compute shape";
+
+                ShapeInfo shapeInfo;
+                entity->computeShapeInfo(shapeInfo);
+                btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+                if (shape) {
+                    EntityMotionState* motionState = new EntityMotionState(entity);
+                    entity->setPhysicsInfo(static_cast<void*>(motionState));
+                    _entityMotionStates.insert(motionState);
+                    addObject(shapeInfo, shape, motionState);
+                } else if (entity->isMoving()) {
+                    EntityMotionState* motionState = new EntityMotionState(entity);
+                    entity->setPhysicsInfo(static_cast<void*>(motionState));
+                    _entityMotionStates.insert(motionState);
+
+                    motionState->setKinematic(true, _numSubsteps);
+                    _nonPhysicalKinematicObjects.insert(motionState);
+                    // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+                    //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+                }
+
+
+                _busyComputingShape.remove(entity->getID());
+            }
+        }
+    } else {
+        qDebug() << "  already has physicsInfo";
     }
+    unlockBusy();
 }
 
 void PhysicsEngine::entityShapeReady(QUuid entityId) {
-    // qDebug() << "PhysicsEngine::entityShapeReady for" << entityId.toString();
-
-    QPointer<EntityItem> entityPtr = _busyComputingShape[entityId];
-    _busyComputingShape.remove(entityId);
-
-    EntityItem &entity = *entityPtr;
-
-    ShapeInfo shapeInfo;
-    entity.computeShapeInfo(shapeInfo);
-
-    btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
-
-    EntityMotionState* motionState = new EntityMotionState(&entity);
-    entity.setPhysicsInfo(static_cast<void*>(motionState));
-    _entityMotionStates.insert(motionState);
-
-    if (shape) {
-        addObject(shapeInfo, shape, motionState);
-    } else if (entity.isMoving()) {
-        motionState->setKinematic(true, _numSubsteps);
-        _nonPhysicalKinematicObjects.insert(motionState);
-        // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-        //qDebug() << "failed to add entity " << entity.getEntityItemID() << " to physics engine";
-    }
+    qDebug() << "PhysicsEngine::entityShapeReady for" << entityId.toString() << "thread-id" << QThread::currentThreadId();
+    lockBusyForWrite();
+    _busyComputingShape[entityId] = false;
+    unlockBusy();
 }
 
 void PhysicsEngine::removeEntityInternal(EntityItem* entity) {

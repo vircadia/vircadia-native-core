@@ -165,6 +165,7 @@ signals:
 
     /// Fired when the resource has been loaded.
     void loaded();
+    void loadingFailed();
 
 protected slots:
 
