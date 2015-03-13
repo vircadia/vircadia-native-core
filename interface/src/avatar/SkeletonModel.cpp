@@ -692,7 +692,6 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         glm::vec3 jointPosition = extractTranslation(transforms[i]);
 
         int type = shape->getType();
-        float radius = 0.0f;
         if (type == CAPSULE_SHAPE) {
             // add the two furthest surface points of the capsule
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
