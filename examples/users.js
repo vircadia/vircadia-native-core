@@ -106,6 +106,7 @@ var usersWindow = (function () {
         var displayText = "",
             myUsername,
             user,
+            userText,
             i;
 
         myUsername = GlobalServices.username;
@@ -113,12 +114,13 @@ var usersWindow = (function () {
         for (i = 0; i < usersOnline.length; i += 1) {
             user = usersOnline[i];
             if (user.username !== myUsername && user.online) {
-                usersOnline[i].usernameWidth = Overlays.textSize(windowPane2D, user.username).width;
-                linesOfUsers.push(i);
-                displayText += "\n" + user.username;
+                userText = user.username;
                 if (user.location.root) {
-                    displayText += " @ " + user.location.root.name;
+                    userText += " @ " + user.location.root.name;
                 }
+                usersOnline[i].textWidth = Overlays.textSize(windowPane2D, userText).width;
+                linesOfUsers.push(i);
+                displayText += "\n" + userText;
             }
         }
 
@@ -253,7 +255,7 @@ var usersWindow = (function () {
             }
 
             if (0 <= lineClicked && lineClicked < linesOfUsers.length
-                    && overlayX <= usersOnline[linesOfUsers[lineClicked]].usernameWidth) {
+                    && 0 <= overlayX && overlayX <= usersOnline[linesOfUsers[lineClicked]].textWidth) {
                 //print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
                 location.goToUser(usersOnline[linesOfUsers[lineClicked]].username);
             }
@@ -262,7 +264,7 @@ var usersWindow = (function () {
         visibilityChanged = false;
         for (i = 0; i < visibilityControls2D.length; i += 1) {
             // Don't need to test radioOverlay if it us under textOverlay.
-            if (clickedOverlay === visibilityControls2D[i].textOverlay) {
+            if (clickedOverlay === visibilityControls2D[i].textOverlay && event.x <= visibilityControls2D[i].optionWidth) {
                 GlobalServices.findableBy = VISIBILITY_VALUES[i];
                 visibilityChanged = true;
             }
@@ -286,7 +288,8 @@ var usersWindow = (function () {
     }
 
     function setUp() {
-        var textSizeOverlay;
+        var textSizeOverlay,
+            optionText;
 
         textSizeOverlay = Overlays.addOverlay("text", { font: WINDOW_FONT_2D, visible: false });
         windowTextHeight = Math.floor(Overlays.textSize(textSizeOverlay, "1").height);
@@ -351,6 +354,7 @@ var usersWindow = (function () {
             myVisibility = "";
         }
 
+        optionText = "everyone";
         visibilityControls2D = [{
             radioOverlay: Overlays.addOverlay("image", {  // Create first so that it is under textOverlay.
                 x: WINDOW_MARGIN_2D,
@@ -377,24 +381,34 @@ var usersWindow = (function () {
                 color: WINDOW_HEADING_COLOR_2D,
                 alpha: WINDOW_FOREGROUND_ALPHA_2D,
                 backgroundAlpha: 0.0,
-                text: "everyone",
+                text: optionText,
                 font: WINDOW_FONT_2D,
                 visible: isVisible
             }),
             selected: myVisibility === VISIBILITY_VALUES[0]
-        } ];
+        }];
+        visibilityControls2D[0].optionWidth = WINDOW_MARGIN_2D + VISIBILITY_RADIO_SPACE
+            + Overlays.textSize(visibilityControls2D[0].textOverlay, optionText).width;
+
+        optionText = "my friends";
         visibilityControls2D[1] = {
             radioOverlay: Overlays.cloneOverlay(visibilityControls2D[0].radioOverlay),
             textOverlay: Overlays.cloneOverlay(visibilityControls2D[0].textOverlay),
             selected: myVisibility === VISIBILITY_VALUES[1]
         };
-        Overlays.editOverlay(visibilityControls2D[1].textOverlay, { text: "my friends" });
+        Overlays.editOverlay(visibilityControls2D[1].textOverlay, { text: optionText });
+        visibilityControls2D[1].optionWidth = WINDOW_MARGIN_2D + VISIBILITY_RADIO_SPACE
+            + Overlays.textSize(visibilityControls2D[1].textOverlay, optionText).width;
+
+        optionText = "no one";
         visibilityControls2D[2] = {
             radioOverlay: Overlays.cloneOverlay(visibilityControls2D[0].radioOverlay),
             textOverlay: Overlays.cloneOverlay(visibilityControls2D[0].textOverlay),
             selected: myVisibility === VISIBILITY_VALUES[2]
         };
-        Overlays.editOverlay(visibilityControls2D[2].textOverlay, { text: "no one" });
+        Overlays.editOverlay(visibilityControls2D[2].textOverlay, { text: optionText });
+        visibilityControls2D[2].optionWidth = WINDOW_MARGIN_2D + VISIBILITY_RADIO_SPACE
+            + Overlays.textSize(visibilityControls2D[2].textOverlay, optionText).width;
 
         updateVisibilityControls();
 
