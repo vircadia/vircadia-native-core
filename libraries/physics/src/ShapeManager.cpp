@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDebug>
 #include <glm/gtx/norm.hpp>
 
 #include "ShapeManager.h"
@@ -28,6 +29,7 @@ ShapeManager::~ShapeManager() {
 
 btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     if (info.getType() == SHAPE_TYPE_NONE) {
+        // qDebug() << "OOOOOO type is null";
         return NULL;
     }
     // Very small or large objects are not supported.
@@ -35,16 +37,19 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
     const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e4f;  // 100 m cube
     if (diagonal < MIN_SHAPE_DIAGONAL_SQUARED || diagonal > MAX_SHAPE_DIAGONAL_SQUARED) {
+        // qDebug() << "OOOOOO too small " << diagonal << MIN_SHAPE_DIAGONAL_SQUARED << MAX_SHAPE_DIAGONAL_SQUARED;
         return NULL;
     }
     DoubleHashKey key = info.getHash();
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
+        // qDebug() << "OOOOOO ref";
         shapeRef->_refCount++;
         return shapeRef->_shape;
     }
     btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
     if (shape) {
+        // qDebug() << "OOOOOO shape";
         ShapeReference newRef;
         newRef._refCount = 1;
         newRef._shape = shape;

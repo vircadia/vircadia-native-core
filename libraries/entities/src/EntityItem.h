@@ -258,6 +258,8 @@ public:
     
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     virtual bool containsInDomainUnits(const glm::vec3& point) const { return getAABoxInDomainUnits().contains(point); }
+
+    virtual bool isReadyToComputeShape() { return true; }
     virtual void computeShapeInfo(ShapeInfo& info);
 
     /// return preferred shape type (actual physical shape may differ)

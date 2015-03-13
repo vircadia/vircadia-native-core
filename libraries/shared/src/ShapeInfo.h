@@ -46,7 +46,7 @@ public:
     void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
     void setEllipsoid(const glm::vec3& halfExtents);
-    void setConvexHull(QVector<glm::vec3>& points);
+    void setConvexHull(const QVector<glm::vec3>& points);
     void setCapsuleY(float radius, float halfHeight);
 
     const int getType() const { return _type; }
@@ -56,7 +56,10 @@ public:
     void setData(const QVector<glm::vec3>* data) { _externalData = data; }
     const QVector<glm::vec3>* getData() const { return _externalData; }
 
-    QVector<glm::vec3> getPoints() const { return _points; }
+    const QVector<glm::vec3>& getPoints() const { return _points; }
+
+    void clearPoints () { _points.clear(); }
+    void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }
 
     float computeVolume() const;
 

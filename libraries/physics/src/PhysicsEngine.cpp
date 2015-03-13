@@ -56,62 +56,118 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
     }
 }
 
-void PhysicsEngine::addEntityInternal(EntityItem* entity) {
-    lockBusyForRead();
+// void PhysicsEngine::addEntityInternal(EntityItem* entity) {
 
-    qDebug() << "PhysicsEngine::addEntityInternal for " << entity->getID().toString()
-             << "thread-id" << QThread::currentThreadId();
+//     qDebug() << "\n\nPhysicsEngine::addEntityInternal for " << entity->getID().toString()
+//              << "thread-id" << QThread::currentThreadId();
+//     assert(entity);
+//     void* physicsInfo = entity->getPhysicsInfo();
+//     if (!physicsInfo) {
+//         qDebug() << "  has no physicsInfo";
+
+//         lockBusyForRead();
+//         bool busyContains = _busyComputingShape.contains(entity->getID());
+//         unlockBusy();
+
+//         if (!busyContains) {
+//             qDebug() << "  calling isReadyToComputeShape";
+
+//             lockBusyForWrite();
+//             _busyComputingShape[entity->getID()] = true;
+//             unlockBusy();
+//             connect(entity, SIGNAL(entityShapeReady(QUuid)), this, SLOT(entityShapeReady(QUuid)));
+//             entity->isReadyToComputeShape();
+//         } else {
+//             lockBusyForRead();
+//             bool entityIsBusy = _busyComputingShape[entity->getID()];
+//             unlockBusy();
+//             if (entityIsBusy) {
+//                 qDebug() << "  still getting ready to compute shape";
+
+//                 entity->getReadyToComputeShape(); // XXX remove this once connect is working
+
+//             } else {
+//                 qDebug() << "  it's ready to compute shape";
+
+//                 ShapeInfo shapeInfo;
+//                 entity->computeShapeInfo(shapeInfo);
+//                 btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+//                 if (shape) {
+//                     qDebug() << "  found a shape";
+//                     EntityMotionState* motionState = new EntityMotionState(entity);
+//                     entity->setPhysicsInfo(static_cast<void*>(motionState));
+//                     _entityMotionStates.insert(motionState);
+//                     addObject(shapeInfo, shape, motionState);
+//                 } else if (entity->isMoving()) {
+//                     qDebug() << "  is moving";
+//                     EntityMotionState* motionState = new EntityMotionState(entity);
+//                     entity->setPhysicsInfo(static_cast<void*>(motionState));
+//                     _entityMotionStates.insert(motionState);
+
+//                     motionState->setKinematic(true, _numSubsteps);
+//                     _nonPhysicalKinematicObjects.insert(motionState);
+//                     // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+//                     //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+//                 } else {
+//                     qDebug() << "  no shape and not moving";
+//                 }
+
+//                 qDebug() << "  removing from _busyComputingShape:" << entity->getID();
+//                 lockBusyForWrite();
+//                 _busyComputingShape.remove(entity->getID());
+//                 unlockBusy();
+//             }
+//         }
+//     } else {
+//         qDebug() << "  already has physicsInfo";
+//     }
+//     qDebug() << "  done with PhysicsEngine::addEntityInternal";
+// }
+
+
+void PhysicsEngine::addEntityInternal(EntityItem* entity) {
+    // qDebug() << "\n\nPhysicsEngine::addEntityInternal for " << entity->getID().toString()
+    //          << "thread-id" << QThread::currentThreadId();
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        qDebug() << "  has no physicsInfo";
-        if (!_busyComputingShape.contains(entity->getID())) {
-            qDebug() << "  calling getReadyToComputeShape";
-            QPointer<EntityItem> entityWptr(entity);
-            _busyComputingShape[entity->getID()] = true;
-            connect(entity, SIGNAL(entityShapeReady(QUuid)), this, SLOT(entityShapeReady(QUuid)));
-            entity->getReadyToComputeShape();
-        } else {
-            if (_busyComputingShape[entity->getID()]) {
-                qDebug() << "  still getting ready to compute shape";
+        // qDebug() << "  has no physicsInfo";
+
+        if (entity->isReadyToComputeShape()) {
+            ShapeInfo shapeInfo;
+            entity->computeShapeInfo(shapeInfo);
+            btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+            if (shape) {
+                // qDebug() << "  found a shape";
+                EntityMotionState* motionState = new EntityMotionState(entity);
+                entity->setPhysicsInfo(static_cast<void*>(motionState));
+                _entityMotionStates.insert(motionState);
+                addObject(shapeInfo, shape, motionState);
+            } else if (entity->isMoving()) {
+                // qDebug() << "  is moving";
+                EntityMotionState* motionState = new EntityMotionState(entity);
+                entity->setPhysicsInfo(static_cast<void*>(motionState));
+                _entityMotionStates.insert(motionState);
+
+                motionState->setKinematic(true, _numSubsteps);
+                _nonPhysicalKinematicObjects.insert(motionState);
+                // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+                //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
             } else {
-                qDebug() << "  it's ready to compute shape";
-
-                ShapeInfo shapeInfo;
-                entity->computeShapeInfo(shapeInfo);
-                btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
-                if (shape) {
-                    EntityMotionState* motionState = new EntityMotionState(entity);
-                    entity->setPhysicsInfo(static_cast<void*>(motionState));
-                    _entityMotionStates.insert(motionState);
-                    addObject(shapeInfo, shape, motionState);
-                } else if (entity->isMoving()) {
-                    EntityMotionState* motionState = new EntityMotionState(entity);
-                    entity->setPhysicsInfo(static_cast<void*>(motionState));
-                    _entityMotionStates.insert(motionState);
-
-                    motionState->setKinematic(true, _numSubsteps);
-                    _nonPhysicalKinematicObjects.insert(motionState);
-                    // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-                    //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
-                }
-
-
-                _busyComputingShape.remove(entity->getID());
+                // qDebug() << "  no shape and not moving";
             }
+        } else {
+            // qDebug() << "  not ready to compute shape.";
         }
-    } else {
-        qDebug() << "  already has physicsInfo";
     }
-    unlockBusy();
 }
 
-void PhysicsEngine::entityShapeReady(QUuid entityId) {
-    qDebug() << "PhysicsEngine::entityShapeReady for" << entityId.toString() << "thread-id" << QThread::currentThreadId();
-    lockBusyForWrite();
-    _busyComputingShape[entityId] = false;
-    unlockBusy();
-}
+// void PhysicsEngine::entityShapeReady(QUuid entityId) {
+//     qDebug() << "PhysicsEngine::entityShapeReady for" << entityId.toString() << "thread-id" << QThread::currentThreadId();
+//     lockBusyForWrite();
+//     _busyComputingShape[entityId] = false;
+//     unlockBusy();
+// }
 
 void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
     assert(entity);

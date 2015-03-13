@@ -31,6 +31,7 @@ public:
     };
     int nextToken();
     const QByteArray& getDatum() const { return _datum; }
+    bool nextTokenIsFloat();
     void skipLine() { _device->readLine(); }
     void pushBackToken(int token) { _pushedBackToken = token; }
     void ungetChar(char ch) { _device->ungetChar(ch); }
@@ -92,6 +93,18 @@ int OBJTokenizer::nextToken() {
 }
 
 
+bool OBJTokenizer::nextTokenIsFloat() {
+    QByteArray token = getDatum();
+    pushBackToken(OBJTokenizer::DATUM_TOKEN);
+    bool ok;
+    token.toFloat(&ok);
+    return ok;
+}
+
+
+
+
+
 bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeometry &geometry) {
     FBXMesh &mesh = geometry.meshes[0];
     mesh.parts.append(FBXMeshPart());
@@ -143,8 +156,13 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeom
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
-            // the spec gets vague here.  might be w, might be a color... chop it off.
-            tokenizer.skipLine();
+
+            qDebug() << "point --" << x << y << z;
+
+            if (tokenizer.nextTokenIsFloat()) {
+                // the spec gets vague here.  might be w, might be a color... chop it off.
+                tokenizer.skipLine();
+            }
             mesh.vertices.append(glm::vec3(x, y, z));
             mesh.colors.append(glm::vec3(1, 1, 1));
         } else if (token == "f") {
@@ -154,6 +172,9 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeom
                 if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) { goto done; }
                 try {
                     int vertexIndex = std::stoi(tokenizer.getDatum().data());
+
+                    qDebug() << "vertexIndex =" << vertexIndex;
+
                     // negative indexes count backward from the current end of the vertex list
                     vertexIndex = (vertexIndex >= 0 ? vertexIndex : mesh.vertices.count() + vertexIndex + 1);
                     // obj index is 1 based

@@ -135,10 +135,10 @@ public:
     
     static void cleanupLoadedAnimations();
 
-    void getReadyToComputeShape();
+    bool isReadyToComputeShape();
 
-public slots:
-    void collisionGeometryLoaded();
+    // public slots:
+    // void collisionGeometryLoaded();
     
 protected:
 
@@ -164,7 +164,7 @@ protected:
     static AnimationCache _animationCache;
 
     QSharedPointer<NetworkGeometry> _collisionNetworkGeometry;
-
+    QVector<glm::vec3> _points;
 };
 
 #endif // hifi_ModelEntityItem_h

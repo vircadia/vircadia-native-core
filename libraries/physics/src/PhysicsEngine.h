@@ -93,8 +93,8 @@ public:
 
     void setAvatarData(AvatarData *avatarData);
 
-public slots:
-    void entityShapeReady(QUuid entityId);
+    // public slots:
+    // void entityShapeReady(QUuid entityId);
 
 private:
     /// \param motionState pointer to Object's MotionState
@@ -133,12 +133,11 @@ private:
     class btPairCachingGhostObject* _avatarGhostObject = 0;
     AvatarData *_avatarData = 0;
 
-    QReadWriteLock _busyLock;
-    void lockBusyForRead() { _busyLock.lockForRead(); }
-    void lockBusyForWrite() { _busyLock.lockForWrite(); }
-    void unlockBusy() { _busyLock.unlock(); }
-
-    QMap<QUuid, bool> _busyComputingShape;
+    // QReadWriteLock _busyLock;
+    // void lockBusyForRead() { _busyLock.lockForRead(); }
+    // void lockBusyForWrite() { _busyLock.lockForWrite(); }
+    // void unlockBusy() { _busyLock.unlock(); }
+    // QMap<QUuid, bool> _busyComputingShape;
 };
 
 #endif // hifi_PhysicsEngine_h

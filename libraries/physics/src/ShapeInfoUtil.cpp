@@ -109,7 +109,7 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
         }
         case SHAPE_TYPE_CONVEX_HULL: {
             shape = new btConvexHullShape();
-            QVector<glm::vec3> points = info.getPoints();
+            const QVector<glm::vec3>& points = info.getPoints();
             foreach (glm::vec3 point, points) {
                 btVector3 btPoint(point[0], point[1], point[2]);
                 static_cast<btConvexHullShape*>(shape)->addPoint(btPoint);

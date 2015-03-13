@@ -35,7 +35,7 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID, properties)
 { 
-    _collisionNetworkGeometry = QSharedPointer<NetworkGeometry>(0);
+    _collisionNetworkGeometry = QSharedPointer<NetworkGeometry>();
 
     _type = EntityTypes::Model;
     setProperties(properties);
@@ -417,34 +417,50 @@ QString ModelEntityItem::getAnimationSettings() const {
 }
 
 
-void ModelEntityItem::getReadyToComputeShape() {
-    qDebug() << "ModelEntityItem::getReadyToComputeShape for " << getID().toString() << _collisionModelURL;
-
-    if (_collisionModelURL != "") {
-        if (! _collisionNetworkGeometry.isNull()) {
-            qDebug() << "    url is" << _collisionModelURL;
-            // QSharedPointer<NetworkGeometry> networkGeometry = 
-            _collisionNetworkGeometry =
-                DependencyManager::get<GeometryCache>()->getGeometry (_collisionModelURL, QUrl(), false);
-            connect(_collisionNetworkGeometry.data(), SIGNAL(Resource::loaded()), this, SLOT(collisionGeometryLoaded()));
-            connect(_collisionNetworkGeometry.data(), SIGNAL(Resource::loadingFailed()), this, SLOT(collisionGeometryLoaded()));
-        }
-    } else {
-        emit entityShapeReady(getID());
+bool ModelEntityItem::isReadyToComputeShape() {
+    // qDebug() << "    ModelEntityItem::getReadyToComputeShape for " << getID().toString() << _collisionModelURL;
+    if (_collisionModelURL == "") {
+        return true;
     }
+
+    // qDebug() << "    url is" << _collisionModelURL;
+    if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
+        return true;
+    }
+
+    if (_collisionNetworkGeometry.isNull()) {
+        // qDebug() << "        _collisionNetworkGeometry is Null";
+        _collisionNetworkGeometry =
+            DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false);
+
+        if (_collisionNetworkGeometry->isLoadedWithTextures()) {
+            return true;
+        }
+    }
+
+    // the model is still being downloaded.
+    return false;
 }
 
-void ModelEntityItem::collisionGeometryLoaded() {
-    qDebug() << "ModelEntityItem::collisionGeometryLoaded for " << getID().toString();
-
-    // XXX does this do an unneeded copy?
-    // FBXGeometry _collisionModel = networkGeometry->getFBXGeometry();
-    FBXGeometry _collisionModel = _collisionNetworkGeometry->getFBXGeometry();
-
-    emit entityShapeReady(getID());
-}
+// void ModelEntityItem::collisionGeometryLoaded() {
+//     qDebug() << "ModelEntityItem::collisionGeometryLoaded for " << getID().toString();
+//     emit entityShapeReady(getID());
+// }
 
 void ModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    qDebug() << "ModelEntityItem::computeShapeInfo for " << getID().toString();
-    info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
+    // qDebug() << "ModelEntityItem::computeShapeInfo for " << getID().toString();
+
+    if (_collisionModelURL == "") {
+        info.setParams(getShapeType(), 0.5f * getDimensions());
+    } else {
+        const FBXGeometry& fbxGeometry = _collisionNetworkGeometry->getFBXGeometry();
+
+        _points.clear();
+        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
+            _points << mesh.vertices;
+        }
+
+        info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
+        info.setConvexHull(_points);
+    }
 }
