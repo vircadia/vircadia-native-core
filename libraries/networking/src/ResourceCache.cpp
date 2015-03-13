@@ -224,8 +224,12 @@ void Resource::refresh() {
     }
     if (_reply) {
         ResourceCache::requestCompleted(this);
-        delete _reply;
+        _reply->disconnect(this);
+        _replyTimer->disconnect(this);
+        _reply->deleteLater();
         _reply = nullptr;
+        _replyTimer->deleteLater();
+        _replyTimer = nullptr;
     }
     init();
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
@@ -296,9 +300,9 @@ void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
         return;
     }
     _reply->disconnect(this);
+    _replyTimer->disconnect(this);
     QNetworkReply* reply = _reply;
     _reply = nullptr;
-    _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
     _replyTimer = nullptr;
     ResourceCache::requestCompleted(this);
@@ -369,9 +373,9 @@ void Resource::makeRequest() {
 
 void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug) {
     _reply->disconnect(this);
+    _replyTimer->disconnect(this);
     _reply->deleteLater();
     _reply = nullptr;
-    _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
     _replyTimer = nullptr;
     ResourceCache::requestCompleted(this);
