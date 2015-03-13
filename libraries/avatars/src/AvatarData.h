@@ -403,6 +403,8 @@ protected:
 
     glm::vec3 _velocity;
 
+    AABox _localAABox;
+
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
@@ -410,7 +412,6 @@ private:
 
     QReadWriteLock _lock;
     bool _enablePhysics = false;
-    AABox _localAABox;
 };
 Q_DECLARE_METATYPE(AvatarData*)
 
