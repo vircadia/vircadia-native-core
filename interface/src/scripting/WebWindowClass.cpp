@@ -34,6 +34,16 @@ void ScriptEventBridge::emitScriptEvent(const QString& data) {
 }
 
 
+class InterfaceWebPage : public QWebPage {
+public:
+    InterfaceWebPage(QWidget* parent = nullptr) : QWebPage(parent) { }
+protected:
+    virtual QString userAgentForUrl(const QUrl & url) const {
+        return "HighFidelityInterface/1.0";
+    }
+};
+
+
 WebWindowClass::WebWindowClass(const QString& title, const QString& url, int width, int height, bool isToolWindow)
     : QObject(NULL),
       _eventBridge(new ScriptEventBridge(this)),
