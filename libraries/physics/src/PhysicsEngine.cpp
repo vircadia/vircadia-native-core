@@ -623,7 +623,11 @@ void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
     AABox box = avatarData->getLocalAABox();
     const glm::vec3& diagonal = box.getScale();
     float radius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
-    float halfHeight = 0.5f * diagonal.y;
+    float halfHeight = 0.5f * diagonal.y - radius;
+    float MIN_HALF_HEIGHT = 0.1f;
+    if (halfHeight < MIN_HALF_HEIGHT) {
+        halfHeight = MIN_HALF_HEIGHT;
+    }
     glm::vec3 offset = box.getCorner() + 0.5f * diagonal;
 
     if (!_avatarData) {
@@ -675,7 +679,7 @@ void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
     _avatarGhostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 
     const float MIN_STEP_HEIGHT = 0.35f;
-    btScalar stepHeight = glm::max(MIN_STEP_HEIGHT, 0.6f * halfHeight);
+    btScalar stepHeight = glm::max(MIN_STEP_HEIGHT, radius + 0.5f * halfHeight);
     _characterController = new CharacterController(_avatarGhostObject, capsule, stepHeight);
 
     _dynamicsWorld->addCollisionObject(_avatarGhostObject, btBroadphaseProxy::CharacterFilter,
