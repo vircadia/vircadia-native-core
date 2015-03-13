@@ -29,11 +29,14 @@ Script.include([
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
+    "libraries/lightOverlayManager.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
 var entityPropertyDialogBox = EntityPropertyDialogBox;
+
+var lightOverlayManager = new LightOverlayManager();
 
 var cameraManager = new CameraManager();
 
@@ -45,6 +48,7 @@ var entityListTool = EntityListTool();
 
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
+    lightOverlayManager.updatePositions();
 });
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -70,13 +74,17 @@ var DEFAULT_DIMENSIONS = {
     z: DEFAULT_DIMENSION
 };
 
+var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
+
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
+var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
+var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 
@@ -186,6 +194,8 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: false
         });
+
+        that.setActive(false);
     }
 
     that.setActive = function(active) {
@@ -214,6 +224,7 @@ var toolBar = (function () {
             }
         }
         toolBar.selectTool(activeButton, isActive);
+        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     };
 
     // Sets visibility of tool buttons, excluding the power button
@@ -354,8 +365,8 @@ var toolBar = (function () {
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 placingEntityID = Entities.addEntity({
                                 type: "Light",
-                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: DEFAULT_DIMENSIONS,
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_LIGHT_DIMENSIONS), DEFAULT_LIGHT_DIMENSIONS),
+                                dimensions: DEFAULT_LIGHT_DIMENSIONS,
                                 isSpotlight: false,
                                 diffuseColor: { red: 255, green: 255, blue: 255 },
                                 ambientColor: { red: 255, green: 255, blue: 255 },
@@ -469,12 +480,31 @@ function rayPlaneIntersection(pickRay, point, normal) {
 function findClickedEntity(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
 
-    var foundIntersection = Entities.findRayIntersection(pickRay, true); // want precision picking
+    var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
+    var lightResult = lightOverlayManager.findRayIntersection(pickRay);
+    lightResult.accurate = true;
 
-    if (!foundIntersection.accurate) {
+    var result;
+
+    if (!entityResult.intersects && !lightResult.intersects) {
+        return null;
+    } else if (entityResult.intersects && !lightResult.intersects) {
+        result = entityResult;
+    } else if (!entityResult.intersects && lightResult.intersects) {
+        result = lightResult;
+    } else {
+        if (entityResult.distance < lightResult.distance) {
+            result = entityResult;
+        } else {
+            result = lightResult;
+        }
+    }
+
+    if (!result.accurate) {
         return null;
     }
-    var foundEntity = foundIntersection.entityID;
+
+    var foundEntity = result.entityID;
 
     if (!foundEntity.isKnownID) {
         var identify = Entities.identifyEntity(foundEntity);
@@ -730,6 +760,8 @@ function setupModelMenus() {
                        isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_AUTO_FOCUS_ON_SELECT,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE, afterItem: MENU_EASE_ON_FOCUS,
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) == "true" });
 
     Entities.setLightsArePickable(false);
 }
@@ -756,11 +788,13 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
+    Menu.removeMenuItem("View", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
 }
 
 Script.scriptEnding.connect(function() {
     Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+    Settings.setValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
 
     progressDialog.cleanup();
     toolBar.cleanup();
@@ -837,6 +871,8 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Entity List...") {
         entityListTool.toggleVisible();
+    } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
+        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     }
     tooltip.show(false);
 }
