@@ -72,8 +72,6 @@ public:
     void requestProfile();
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
-    
-    void waitForAllPendingReplies();
 
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
@@ -95,8 +93,6 @@ signals:
     void loginFailed();
     void logoutComplete();
     void balanceChanged(qint64 newBalance);
-    void replyFinished();
-
 private slots:
     void processReply();
     void handleKeypairGenerationError();

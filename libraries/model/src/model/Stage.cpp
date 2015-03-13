@@ -267,7 +267,7 @@ void SunSkyStage::updateGraphicsObject() const {
     static int firstTime = 0;
     if (firstTime == 0) {
         firstTime++;
-        bool result = gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
+        gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
     
     }
 

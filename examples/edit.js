@@ -134,7 +134,7 @@ var toolBar = (function () {
 
         // Hide active button for now - this may come back, so not deleting yet.
         activeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "models-tool.svg",
+            imageURL: toolIconUrl + "edit-status.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
@@ -143,7 +143,7 @@ var toolBar = (function () {
         }, true, false);
 
         newModelButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-model-tool.svg",
+            imageURL: toolIconUrl + "upload.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
@@ -152,7 +152,7 @@ var toolBar = (function () {
         });
 
         browseModelsButton = toolBar.addTool({
-            imageURL: toolIconUrl + "list-icon.svg",
+            imageURL: toolIconUrl + "marketplace.svg",
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
