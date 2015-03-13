@@ -889,7 +889,7 @@ bool Application::event(QEvent* event) {
         if (!url.isEmpty()) {
             if (url.scheme() == HIFI_URL_SCHEME) {
                 DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
-            } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+            } else if (url.path().toLower().endsWith(SVO_EXTENSION)) {
                 emit svoImportRequested(url.url());
             }
         }
@@ -1455,10 +1455,11 @@ void Application::dropEvent(QDropEvent *event) {
     QString snapshotPath;
     const QMimeData *mimeData = event->mimeData();
     foreach (QUrl url, mimeData->urls()) {
-        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
+        auto lower = url.path().toLower();
+        if (lower.endsWith(SNAPSHOT_EXTENSION)) {
             snapshotPath = url.toLocalFile();
             break;
-        } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+        } else if (lower.endsWith(SVO_EXTENSION)) {
             emit svoImportRequested(url.url());
             event->acceptProposedAction();
             return;
