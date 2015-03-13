@@ -865,6 +865,8 @@ function importSVO(importURL) {
         if (isActive) {
             selectionManager.setSelections(pastedEntityIDs);
         }
+
+        Window.raiseMainWindow();
     } else {
         Window.alert("There was an error importing the entity file.");
     }

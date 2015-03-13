@@ -44,8 +44,13 @@ QScriptValue WindowScriptingInterface::hasFocus() {
 }
 
 void WindowScriptingInterface::setFocus() {
-    Application::getInstance()->getWindow()->activateWindow();
-    Application::getInstance()->getWindow()->setFocus();
+    auto window = Application::getInstance()->getWindow();
+    window->activateWindow();
+    window->setFocus();
+}
+
+void WindowScriptingInterface::raiseMainWindow() {
+    Application::getInstance()->getWindow()->raise();
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {
