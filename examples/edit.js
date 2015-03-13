@@ -110,6 +110,10 @@ var importingSVOOverlay = Overlays.addOverlay("text", {
     visible: false,
 });
 
+var MARKETPLACE_URL = "https://metaverse.highfidelity.io/marketplace";
+var marketplaceWindow = new WebWindow('Marketplace', MARKETPLACE_URL, 900, 700, false);
+marketplaceWindow.setVisible(false);
+
 var toolBar = (function () {
     var that = {},
         toolBar,
@@ -311,7 +315,7 @@ var toolBar = (function () {
             return true;
         }
         if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
-            browseModelsButtonDown = true;
+            marketplaceWindow.setVisible(true);
             return true;
         }
 
@@ -989,7 +993,7 @@ PropertiesTool = function(opts) {
     var that = {};
 
     var url = Script.resolvePath('html/entityProperties.html');
-    var webView = new WebWindow('Entity Properties', url, 200, 280);
+    var webView = new WebWindow('Entity Properties', url, 200, 280, true);
 
     var visible = false;
 
