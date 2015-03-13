@@ -107,6 +107,8 @@ var usersWindow = (function () {
             myUsername,
             user,
             userText,
+            textWidth,
+            maxTextWidth,
             i;
 
         myUsername = GlobalServices.username;
@@ -118,7 +120,21 @@ var usersWindow = (function () {
                 if (user.location.root) {
                     userText += " @ " + user.location.root.name;
                 }
-                usersOnline[i].textWidth = Overlays.textSize(windowPane2D, userText).width;
+                textWidth = Overlays.textSize(windowPane2D, userText).width;
+
+                maxTextWidth = WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D;
+                if (textWidth > maxTextWidth) {
+                    // Trim and append "..." to fit window width
+                    maxTextWidth = maxTextWidth - Overlays.textSize(windowPane2D, "...").width;
+                    while (textWidth > maxTextWidth) {
+                        userText = userText.slice(0, -1);
+                        textWidth = Overlays.textSize(windowPane2D, userText).width;
+                    }
+                    userText += "...";
+                    textWidth = Overlays.textSize(windowPane2D, userText).width;
+                }
+
+                usersOnline[i].textWidth = textWidth;
                 linesOfUsers.push(i);
                 displayText += "\n" + userText;
             }
