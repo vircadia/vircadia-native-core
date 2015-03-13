@@ -17,9 +17,11 @@ using namespace meshinfo;
 //origin is the default reference point for generating the tetrahedron from each triangle of the mesh.
 
 MeshInfo::MeshInfo(vector<Vertex> *vertices, vector<int> *triangles) :\
-_vertices(vertices),
-_triangles(triangles),
-_centerOfMass(Vertex(0.0, 0.0, 0.0)){
+    _vertices(vertices),
+    _centerOfMass(Vertex(0.0, 0.0, 0.0)),
+    _triangles(triangles)
+{
+    
 }
 
 MeshInfo::~MeshInfo(){

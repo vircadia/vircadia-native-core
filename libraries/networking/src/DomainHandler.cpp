@@ -32,7 +32,6 @@ DomainHandler::DomainHandler(QObject* parent) :
     _iceServerSockAddr(),
     _icePeer(),
     _isConnected(false),
-    _handshakeTimer(NULL),
     _settingsObject(),
     _failedSettingsRequests(0)
 {
@@ -50,12 +49,6 @@ void DomainHandler::clearConnectionInfo() {
     }
     
     setIsConnected(false);
-    
-    if (_handshakeTimer) {
-        _handshakeTimer->stop();
-        delete _handshakeTimer;
-        _handshakeTimer = NULL;
-    }
 }
 
 void DomainHandler::clearSettings() {

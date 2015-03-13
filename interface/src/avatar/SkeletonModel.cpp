@@ -12,15 +12,14 @@
 #include <glm/gtx/transform.hpp>
 #include <QMultiMap>
 
-#include <VerletCapsuleShape.h>
-#include <VerletSphereShape.h>
+#include <CapsuleShape.h>
+#include <SphereShape.h>
 
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Menu.h"
 #include "SkeletonModel.h"
-#include "SkeletonRagdoll.h"
 #include "Util.h"
 
 enum StandingFootState {
@@ -35,7 +34,6 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _owningAvatar(owningAvatar),
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
-    _ragdoll(NULL),
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
     _standingFoot(NO_FOOT),
     _standingOffset(0.0f),
@@ -44,8 +42,6 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
 }
 
 SkeletonModel::~SkeletonModel() {
-    delete _ragdoll;
-    _ragdoll = NULL;
 }
 
 void SkeletonModel::setJointStates(QVector<JointState> states) {
@@ -173,12 +169,6 @@ void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes)
             }
         }
     }
-}
-
-void SkeletonModel::getBodyShapes(QVector<const Shape*>& shapes) const {
-    // for now we push a single bounding shape, 
-    // but later we could push a subset of joint shapes
-    shapes.push_back(&_boundingShape);
 }
 
 void SkeletonModel::renderIKConstraints() {
@@ -496,10 +486,6 @@ bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
 }
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
-    if (_owningAvatar->isMyAvatar() &&
-            Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-        return isActive() && getVisibleJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
-    }
     return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
@@ -513,12 +499,7 @@ bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckP
     }
     int parentIndex = geometry.joints.at(geometry.neckJointIndex).parentIndex;
     glm::quat worldFrameRotation;
-    bool success = false;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-        success = getVisibleJointRotationInWorldFrame(parentIndex, worldFrameRotation);
-    } else {
-        success = getJointRotationInWorldFrame(parentIndex, worldFrameRotation);
-    }
+    bool success = getJointRotationInWorldFrame(parentIndex, worldFrameRotation);
     if (success) {
         neckParentRotation = worldFrameRotation * _jointStates[parentIndex].getFBXJoint().inverseDefaultRotation;
     }
@@ -563,83 +544,6 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
 
 glm::vec3 SkeletonModel::getDefaultEyeModelPosition() const {
     return _owningAvatar->getScale() * _defaultEyeModelPosition;
-}
-
-void SkeletonModel::renderRagdoll() {
-    if (!_ragdoll) {
-        return;
-    }
-    const QVector<VerletPoint>& points = _ragdoll->getPoints();
-    const int BALL_SUBDIVISIONS = 6;
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glPushMatrix();
-
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    int numPoints = points.size();
-    float alpha = 0.3f;
-    float radius1 = 0.008f;
-    float radius2 = 0.01f;
-    glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    for (int i = 0; i < numPoints; ++i) {
-        glPushMatrix();
-        // NOTE: ragdollPoints are in simulation-frame but we want them to be model-relative
-        glm::vec3 position = points[i]._position - simulationTranslation;
-        glTranslatef(position.x, position.y, position.z);
-        // draw each point as a yellow hexagon with black border
-        geometryCache->renderSphere(radius2, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.0f, 0.0f, 0.0f, alpha));
-        geometryCache->renderSphere(radius1, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(1.0f, 1.0f, 0.0f, alpha));
-        glPopMatrix();
-    }
-    glPopMatrix();
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-}
-
-void SkeletonModel::updateVisibleJointStates() {
-    if (_showTrueJointTransforms || !_ragdoll) {
-        // no need to update visible transforms
-        return;
-    }
-    const QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
-    QVector<glm::vec3> points;
-    points.reserve(_jointStates.size());
-    glm::quat invRotation = glm::inverse(_rotation);
-    for (int i = 0; i < _jointStates.size(); i++) {
-        JointState& state = _jointStates[i];
-        points.push_back(ragdollPoints[i]._position);
-
-        // get the parent state (this is the state that we want to rotate)
-        int parentIndex = state.getParentIndex();
-        if (parentIndex == -1) {
-            _jointStates[i].slaveVisibleTransform();
-            continue;
-        }
-        JointState& parentState = _jointStates[parentIndex];
-
-        // check the grand-parent index (for now we don't want to rotate any root states)
-        int grandParentIndex = parentState.getParentIndex();
-        if (grandParentIndex == -1) {
-            continue;
-        }
-
-        // make sure state's visibleTransform is up to date
-        const glm::mat4& parentTransform = parentState.getVisibleTransform();
-        state.computeVisibleTransform(parentTransform);
-
-        // we're looking for the rotation that moves visible bone parallel to ragdoll bone
-        // rotationBetween(jointTip - jointPivot, shapeTip - shapePivot)
-        // NOTE: points are in simulation-frame so rotate line segment into model-frame
-        glm::quat delta = rotationBetween(state.getVisiblePosition() - extractTranslation(parentTransform), 
-                invRotation * (points[i] - points[parentIndex]));
-
-        // apply
-        parentState.mixVisibleRotationDelta(delta, 0.01f);
-        // update transforms
-        parentState.computeVisibleTransform(_jointStates[grandParentIndex].getVisibleTransform());
-        state.computeVisibleTransform(parentState.getVisibleTransform());
-    }
 }
 
 /// \return offset of hips after foot animation
@@ -701,17 +605,6 @@ void SkeletonModel::updateStandingFoot() {
     _standingOffset = offset;
 }
 
-SkeletonRagdoll* SkeletonModel::buildRagdoll() {
-    if (!_ragdoll) {
-        _ragdoll = new SkeletonRagdoll(this);
-        if (_enableShapes) {
-            clearShapes();
-            buildShapes();
-        }
-    }
-    return _ragdoll;
-}
-
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3
 float MIN_JOINT_MASS = 1.0f;
 float VERY_BIG_MASS = 1.0e6f;
@@ -728,18 +621,8 @@ void SkeletonModel::buildShapes() {
         return;
     }
 
-    if (!_ragdoll) {
-        _ragdoll = new SkeletonRagdoll(this);
-    }
-    _ragdoll->setRootIndex(geometry.rootJointIndex);
-    _ragdoll->initPoints();
-    QVector<VerletPoint>& points = _ragdoll->getPoints();
-
-    float massScale = _ragdoll->getMassScale();
-
     float uniformScale = extractUniformScale(_scale);
     const int numStates = _jointStates.size();
-    float totalMass = 0.0f;
     for (int i = 0; i < numStates; i++) {
         JointState& state = _jointStates[i];
         const FBXJoint& joint = state.getFBXJoint();
@@ -755,18 +638,12 @@ void SkeletonModel::buildShapes() {
         }
         Shape* shape = NULL;
         if (type == SPHERE_SHAPE) {
-            shape = new VerletSphereShape(radius, &(points[i]));
+            shape = new SphereShape(radius);
             shape->setEntity(this);
-            float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
-            points[i].setMass(mass);
-            totalMass += mass;
         } else if (type == CAPSULE_SHAPE) {
             assert(parentIndex != -1);
-            shape = new VerletCapsuleShape(radius, &(points[parentIndex]), &(points[i]));
+            shape = new CapsuleShape(radius, halfHeight);
             shape->setEntity(this);
-            float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
-            points[i].setMass(mass);
-            totalMass += mass;
         } 
         if (shape && parentIndex != -1) {
             // always disable collisions between joint and its parent
@@ -775,47 +652,8 @@ void SkeletonModel::buildShapes() {
         _shapes.push_back(shape);
     }
 
-    // set the mass of the root
-    if (numStates > 0) {
-        points[_ragdoll->getRootIndex()].setMass(totalMass);
-    }
-
     // This method moves the shapes to their default positions in Model frame.
     computeBoundingShape(geometry);
-
-    // While the shapes are in their default position we disable collisions between
-    // joints that are currently colliding.
-    disableCurrentSelfCollisions();
-
-    _ragdoll->buildConstraints();
-
-    // ... then move shapes back to current joint positions
-    _ragdoll->slamPointPositions();
-    _ragdoll->enforceConstraints();
-}
-
-void SkeletonModel::moveShapesTowardJoints(float deltaTime) {
-    // KEEP: although we don't currently use this method we may eventually need it to help
-    // unravel a skelton that has become tangled in its constraints.  So let's keep this
-    // around for a while just in case.
-    const int numStates = _jointStates.size();
-    QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
-    assert(_jointStates.size() == ragdollPoints.size());
-    if (ragdollPoints.size() != numStates) {
-        return;
-    }
-
-    // fraction = 0 means keep old position, = 1 means slave 100% to target position
-    const float RAGDOLL_FOLLOWS_JOINTS_TIMESCALE = 0.05f;
-    float fraction = glm::clamp(deltaTime / RAGDOLL_FOLLOWS_JOINTS_TIMESCALE, 0.0f, 1.0f);
-
-    float oneMinusFraction = 1.0f - fraction; 
-    glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
-    for (int i = 0; i < numStates; ++i) {
-        // ragdollPoints are in simulation-frame but jointStates are in model-frame
-        ragdollPoints[i].initPosition(oneMinusFraction * ragdollPoints[i]._position + 
-                fraction * (simulationTranslation + _rotation * (_jointStates.at(i).getPosition())));
-    }
 }
 
 void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
@@ -824,25 +662,21 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     QVector<glm::mat4> transforms;
     transforms.fill(glm::mat4(), numStates);
 
-    QVector<VerletPoint>& ragdollPoints = _ragdoll->getPoints();
-
-    // compute the default transforms and slam the ragdoll positions accordingly
-    // (which puts the shapes where we want them)
+    // compute the default transforms
     for (int i = 0; i < numStates; i++) {
         JointState& state = _jointStates[i];
         const FBXJoint& joint = state.getFBXJoint();
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
             transforms[i] = _jointStates[i].getTransform();
-            ragdollPoints[i].initPosition(extractTranslation(transforms[i]));
             continue;
         }
         
         glm::quat modifiedRotation = joint.preRotation * joint.rotation * joint.postRotation;    
         transforms[i] = transforms[parentIndex] * glm::translate(joint.translation) 
             * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
-        // setting the ragdollPoints here slams the VerletShapes into their default positions
-        ragdollPoints[i].initPosition(extractTranslation(transforms[i]));
+        // TODO: Andrew to harvest transforms here to move shapes to correct positions so that
+        // bounding capsule calculations below are correct.
     }
 
     // compute bounding box that encloses all shapes
@@ -954,58 +788,6 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     glm::vec3 origin(0.0f);
     Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 
-    glPopMatrix();
-}
-
-const int BALL_SUBDIVISIONS = 10;
-
-// virtual
-void SkeletonModel::renderJointCollisionShapes(float alpha) { 
-    if (!_ragdoll) {
-        return;
-    }
-    glPushMatrix();
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    glm::vec3 simulationTranslation = _ragdoll->getTranslationInSimulationFrame();
-    for (int i = 0; i < _shapes.size(); i++) { 
-        Shape* shape = _shapes[i];
-        if (!shape) { 
-            continue;
-        } 
-
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-
-        glPushMatrix();
-        // shapes are stored in simulation-frame but we want position to be model-relative
-        if (shape->getType() == SPHERE_SHAPE) { 
-            glm::vec3 position = shape->getTranslation() - simulationTranslation;
-            glTranslatef(position.x, position.y, position.z);
-            // draw a grey sphere at shape position
-            geometryCache->renderSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.75f, 0.75f, 0.75f, alpha));
-        } else if (shape->getType() == CAPSULE_SHAPE) {
-            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
-
-            // draw a blue sphere at the capsule endpoint                                         
-            glm::vec3 endPoint;
-            capsule->getEndPoint(endPoint);
-            endPoint = endPoint - simulationTranslation;
-            glTranslatef(endPoint.x, endPoint.y, endPoint.z);                                     
-            geometryCache->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
-
-            // draw a yellow sphere at the capsule startpoint
-            glm::vec3 startPoint;
-            capsule->getStartPoint(startPoint);
-            startPoint = startPoint - simulationTranslation;
-            glm::vec3 axis = endPoint - startPoint;
-            glTranslatef(-axis.x, -axis.y, -axis.z);
-            geometryCache->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
-
-            // draw a green cylinder between the two points
-            glm::vec3 origin(0.0f);
-            Avatar::renderJointConnectingCone( origin, axis, capsule->getRadius(), capsule->getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
-        }
-        glPopMatrix();
-    }
     glPopMatrix();
 }
 

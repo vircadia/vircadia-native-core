@@ -105,16 +105,6 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
                                   addressManager.data(), SLOT(copyPath()));
 
-    addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0,
-                                  qApp, SLOT(uploadHead()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadSkeleton, 0,
-                                  qApp, SLOT(uploadSkeleton()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadAttachment, 0,
-                                  qApp, SLOT(uploadAttachment()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadEntity, 0,
-                                  qApp, SLOT(uploadEntity()));
-
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
@@ -180,6 +170,9 @@ Menu::Menu() {
                                   Qt::Key_Apostrophe,
                                   qApp,
                                   SLOT(resetSensors()));
+    
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
+                                  qApp, SLOT(packageModel()));
 
     QMenu* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
@@ -205,7 +198,6 @@ Menu::Menu() {
             Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
             avatar, SLOT(updateMotionBehavior()));
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ChatCircling, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
@@ -215,14 +207,6 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
             avatar, SLOT(updateMotionBehavior()));
-
-    QMenu* collisionsMenu = avatarMenu->addMenu("Collide With");
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 
-            avatar, SLOT(onToggleRagdoll()));
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
-            0, true, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithEnvironment,
-            0, false, avatar, SLOT(updateCollisionGroups()));
 
     QMenu* viewMenu = addMenu("View");
 
@@ -713,6 +697,12 @@ void Menu::removeAction(QMenu* menu, const QString& actionName) {
 }
 
 void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(Menu::getInstance(), "setIsOptionChecked", Qt::BlockingQueuedConnection,
+                    Q_ARG(const QString&, menuOption),
+                    Q_ARG(bool, isChecked));
+        return;
+    }
     QAction* menu = _actionHash.value(menuOption);
     if (menu) {
         menu->setChecked(isChecked);

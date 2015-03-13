@@ -11,7 +11,6 @@
 
 #include "PhysicsEntity.h"
 
-#include "PhysicsSimulation.h"
 #include "PlaneShape.h"
 #include "Shape.h"
 #include "ShapeCollider.h"
@@ -22,15 +21,10 @@ PhysicsEntity::PhysicsEntity() :
     _rotation(), 
     _boundingRadius(0.0f), 
     _shapesAreDirty(true),
-    _enableShapes(false),
-    _simulation(NULL) {
+    _enableShapes(false) {
 }
 
 PhysicsEntity::~PhysicsEntity() {
-    if (_simulation) {
-        _simulation->removeEntity(this);
-        _simulation = NULL;
-    }
 }
 
 void PhysicsEntity::setTranslation(const glm::vec3& translation) {
@@ -67,9 +61,6 @@ void PhysicsEntity::setEnableShapes(bool enable) {
 }   
 
 void PhysicsEntity::clearShapes() {
-    if (_simulation) {
-        _simulation->removeShapes(this);
-    }
     for (int i = 0; i < _shapes.size(); ++i) {
         delete _shapes[i];
     }
@@ -177,25 +168,4 @@ bool PhysicsEntity::collisionsAreEnabled(int shapeIndexA, int shapeIndexB) const
         return !_disabledCollisions.contains(primes[shapeIndexA] * primes[shapeIndexB]);
     }
     return false;
-}
-
-void PhysicsEntity::disableCurrentSelfCollisions() {
-    CollisionList collisions(10);
-    int numShapes = _shapes.size();
-    for (int i = 0; i < numShapes; ++i) {
-        const Shape* shape = _shapes.at(i);
-        if (!shape) {
-            continue;
-        }
-        for (int j = i+1; j < numShapes; ++j) {
-            if (!collisionsAreEnabled(i, j)) {
-                continue;
-            }
-            const Shape* otherShape = _shapes.at(j);
-            if (otherShape && ShapeCollider::collideShapes(shape, otherShape, collisions)) {
-                disableCollisions(i, j);
-                collisions.clear();
-            }
-        }
-    }
 }
