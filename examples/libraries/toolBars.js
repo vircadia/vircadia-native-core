@@ -94,7 +94,7 @@ Tool = function(properties, selectable, selected) { // selectable and selected a
         }
 
         selected = doSelect;
-        properties.subImage.y = (selected ? 2 : 1) * properties.subImage.height;
+        properties.subImage.y = (selected ? 0 : 1) * properties.subImage.height;
         Overlays.editOverlay(this.overlay(), { subImage: properties.subImage });
     }
     this.toggle = function() {
@@ -102,7 +102,7 @@ Tool = function(properties, selectable, selected) { // selectable and selected a
             return;
         }
         selected = !selected;
-        properties.subImage.y = (selected ? 2 : 1) * properties.subImage.height;
+        properties.subImage.y = (selected ? 0 : 1) * properties.subImage.height;
         Overlays.editOverlay(this.overlay(), { subImage: properties.subImage });
         
         return selected;
