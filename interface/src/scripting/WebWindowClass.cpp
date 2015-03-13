@@ -89,8 +89,12 @@ void WebWindowClass::addEventBridgeToWindowObject() {
 
 void WebWindowClass::setVisible(bool visible) {
     if (visible) {
-        QMetaObject::invokeMethod(
-            Application::getInstance()->getToolWindow(), "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+        if (_isToolWindow) {
+            QMetaObject::invokeMethod(
+                Application::getInstance()->getToolWindow(), "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+        } else {
+            QMetaObject::invokeMethod(_windowWidget, "raise", Qt::BlockingQueuedConnection);
+        }
     }
     QMetaObject::invokeMethod(_windowWidget, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
 }
