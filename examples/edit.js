@@ -95,12 +95,24 @@ var isActive = false;
 
 var placingEntityID = null;
 
-IMPORTING_SVO_OVERLAY_WIDTH = 130;
+IMPORTING_SVO_OVERLAY_WIDTH = 144;
 IMPORTING_SVO_OVERLAY_HEIGHT = 30;
-IMPORTING_SVO_OVERLAY_MARGIN = 6;
-var importingSVOOverlay = Overlays.addOverlay("text", {
+IMPORTING_SVO_OVERLAY_MARGIN = 5;
+IMPORTING_SVO_OVERLAY_LEFT_MARGIN = 34;
+var importingSVOImageOverlay = Overlays.addOverlay("image", {
+    imageURL: HIFI_PUBLIC_BUCKET + "images/hourglass.svg",
+    width: 20,
+    height: 20,
+    alpha: 1.0,
+    color: { red: 255, green: 255, blue: 255 },
+    x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH,
+    y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT,
+    visible: false,
+});
+var importingSVOTextOverlay = Overlays.addOverlay("text", {
     font: { size: 14 },
     text: "Importing SVO...",
+    leftMargin: IMPORTING_SVO_OVERLAY_LEFT_MARGIN,
     x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH - IMPORTING_SVO_OVERLAY_MARGIN,
     y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT - IMPORTING_SVO_OVERLAY_MARGIN,
     width: IMPORTING_SVO_OVERLAY_WIDTH,
@@ -769,7 +781,8 @@ Script.scriptEnding.connect(function() {
     selectionDisplay.cleanup();
     Entities.setLightsArePickable(originalLightsArePickable);
 
-    Overlays.deleteOverlay(importingSVOOverlay);
+    Overlays.deleteOverlay(importingSVOImageOverlay);
+    Overlays.deleteOverlay(importingSVOTextOverlay);
 });
 
 // Do some stuff regularly, like check for placement of various overlays
@@ -842,7 +855,8 @@ function handeMenuEvent(menuItem) {
 }
 
 function importSVO(importURL) {
-    Overlays.editOverlay(importingSVOOverlay, { visible: true });
+    Overlays.editOverlay(importingSVOTextOverlay, { visible: true });
+    Overlays.editOverlay(importingSVOImageOverlay, { visible: true });
 
     var success = Clipboard.importEntities(importURL);
 
@@ -865,7 +879,8 @@ function importSVO(importURL) {
         Window.alert("There was an error importing the entity file.");
     }
 
-    Overlays.editOverlay(importingSVOOverlay, { visible: false });
+    Overlays.editOverlay(importingSVOTextOverlay, { visible: false });
+    Overlays.editOverlay(importingSVOImageOverlay, { visible: false });
 }
 Window.svoImportRequested.connect(importSVO);
 
