@@ -83,7 +83,7 @@ private slots:
     void nonBlockingFormAccepted() { _nonBlockingFormActive = false; _formResult = QDialog::Accepted; emit nonBlockingFormClosed(); }
     void nonBlockingFormRejected() { _nonBlockingFormActive = false; _formResult = QDialog::Rejected; emit nonBlockingFormClosed(); }
 
-    WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
+    WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height, bool isToolWindow);
     
 private:
     QString jsRegExp2QtRegExp(QString string);
