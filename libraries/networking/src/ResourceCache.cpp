@@ -332,6 +332,10 @@ void Resource::maybeRefresh() {
                 // We don't need to update, return
                 return;
             }
+        } else if (!variant.isValid() || !variant.canConvert<QDateTime>() ||
+                   !variant.value<QDateTime>().isValid() || variant.value<QDateTime>().isNull()) {
+            qDebug() << "Cannot determine when" << _url.fileName() << "was modified last, cached version might be outdated";
+            return;
         }
         qDebug() << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
         refresh();
@@ -355,10 +359,19 @@ void Resource::makeRequest() {
     } else {
         if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
             QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
+            bool needUpdate = false;
             if (metaData.expirationDate().isNull() || metaData.expirationDate() <= QDateTime::currentDateTime()) {
                 // If the expiration date is NULL or in the past,
                 // put one far enough away that it won't be an issue.
                 metaData.setExpirationDate(QDateTime::currentDateTime().addYears(100));
+                needUpdate = true;
+            }
+            if (metaData.lastModified().isNull()) {
+                // If the lastModified date is NULL, set it to now.
+                metaData.setLastModified(QDateTime::currentDateTime());
+                needUpdate = true;
+            }
+            if (needUpdate) {
                 NetworkAccessManager::getInstance().cache()->updateMetaData(metaData);
             }
         }
