@@ -697,6 +697,12 @@ void Menu::removeAction(QMenu* menu, const QString& actionName) {
 }
 
 void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(Menu::getInstance(), "setIsOptionChecked", Qt::BlockingQueuedConnection,
+                    Q_ARG(const QString&, menuOption),
+                    Q_ARG(bool, isChecked));
+        return;
+    }
     QAction* menu = _actionHash.value(menuOption);
     if (menu) {
         menu->setChecked(isChecked);
