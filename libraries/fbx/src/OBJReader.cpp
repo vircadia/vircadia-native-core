@@ -163,19 +163,31 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeom
             QVector<int> indices;
             while (true) {
                 if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) { goto done; }
-                try {
-                    int vertexIndex = std::stoi(tokenizer.getDatum().data());
-                    // negative indexes count backward from the current end of the vertex list
-                    vertexIndex = (vertexIndex >= 0 ? vertexIndex : mesh.vertices.count() + vertexIndex + 1);
-                    // obj index is 1 based
-                    assert(vertexIndex >= 1);
-                    indices.append(vertexIndex - 1);
-                }
-                catch(const std::exception& e) {
-                    // wasn't a number, but it back.
+                // faces can be:
+                //   vertex-index
+                //   vertex-index/texture-index
+                //   vertex-index/texture-index/surface-normal-index
+
+                QByteArray token = tokenizer.getDatum();
+                QList<QByteArray> parts = token.split('/');
+                assert(parts.count() >= 1);
+                assert(parts.count() <= 3);
+                QByteArray vertIndexBA = parts[ 0 ];
+
+                // int vertexIndex = std::stoi(tokenizer.getDatum().data());
+                bool ok;
+                int vertexIndex = vertIndexBA.toInt(&ok);
+                if (!ok) {
+                    // it wasn't #/#/#, put it back and exit this loop.
                     tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
                     break;
                 }
+
+                // negative indexes count backward from the current end of the vertex list
+                vertexIndex = (vertexIndex >= 0 ? vertexIndex : mesh.vertices.count() + vertexIndex + 1);
+                // obj index is 1 based
+                assert(vertexIndex >= 1);
+                indices.append(vertexIndex - 1);
             }
 
             if (indices.count() == 3) {
