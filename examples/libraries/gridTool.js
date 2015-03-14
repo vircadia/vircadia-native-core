@@ -229,7 +229,7 @@ GridTool = function(opts) {
     var listeners = [];
 
     var url = Script.resolvePath('html/gridControls.html');
-    var webView = new WebWindow('Grid', url, 200, 280);
+    var webView = new WebWindow('Grid', url, 200, 280, true);
 
     horizontalGrid.addListener(function(data) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));

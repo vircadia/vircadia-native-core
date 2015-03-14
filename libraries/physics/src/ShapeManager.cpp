@@ -22,7 +22,7 @@ ShapeManager::~ShapeManager() {
     int numShapes = _shapeMap.size();
     for (int i = 0; i < numShapes; ++i) {
         ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
-        delete shapeRef->_shape;
+        delete shapeRef->shape;
     }
     _shapeMap.clear();
 }
@@ -44,26 +44,33 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         // qDebug() << "OOOOOO ref";
-        shapeRef->_refCount++;
-        return shapeRef->_shape;
+        shapeRef->refCount++;
+        return shapeRef->shape;
     }
     btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
     if (shape) {
         // qDebug() << "OOOOOO shape";
         ShapeReference newRef;
-        newRef._refCount = 1;
-        newRef._shape = shape;
+        newRef.refCount = 1;
+        newRef.shape = shape;
+        newRef.key = key;
         _shapeMap.insert(key, newRef);
     }
     return shape;
 }
 
+<<<<<<< HEAD
 
 void ShapeManager::dereferenceShapeReferece(ShapeReference* shapeRef, DoubleHashKey key) {
+=======
+// private helper method
+bool ShapeManager::releaseShape(const DoubleHashKey& key) {
+    ShapeReference* shapeRef = _shapeMap.find(key);
+>>>>>>> 641581a825cbc656ef23b8d1198733d20ebef62e
     if (shapeRef) {
-        if (shapeRef->_refCount > 0) {
-            shapeRef->_refCount--;
-            if (shapeRef->_refCount == 0) {
+        if (shapeRef->refCount > 0) {
+            shapeRef->refCount--;
+            if (shapeRef->refCount == 0) {
                 _pendingGarbage.push_back(key);
                 const int MAX_GARBAGE_CAPACITY = 127;
                 if (_pendingGarbage.size() > MAX_GARBAGE_CAPACITY) {
@@ -82,6 +89,7 @@ void ShapeManager::dereferenceShapeReferece(ShapeReference* shapeRef, DoubleHash
     assert(false);
 }
 
+<<<<<<< HEAD
 
 void ShapeManager::releaseShape(const ShapeInfo& info) {
     DoubleHashKey key = info.getHash();
@@ -105,6 +113,21 @@ void ShapeManager::releaseShape(const btCollisionShape* shape) {
     // ShapeInfo info;
     // ShapeInfoUtil::collectInfoFromShape(shape, info);
     // releaseShape(info);
+=======
+bool ShapeManager::releaseShape(const ShapeInfo& info) {
+    return releaseShape(info.getHash());
+}
+
+bool ShapeManager::releaseShape(const btCollisionShape* shape) {
+    int numShapes = _shapeMap.size();
+    for (int i = 0; i < numShapes; ++i) {
+        ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
+        if (shape == shapeRef->shape) {
+            return releaseShape(shapeRef->key);
+        }
+    }
+    return false;
+>>>>>>> 641581a825cbc656ef23b8d1198733d20ebef62e
 }
 
 void ShapeManager::collectGarbage() {
@@ -112,8 +135,8 @@ void ShapeManager::collectGarbage() {
     for (int i = 0; i < numShapes; ++i) {
         DoubleHashKey& key = _pendingGarbage[i];
         ShapeReference* shapeRef = _shapeMap.find(key);
-        if (shapeRef && shapeRef->_refCount == 0) {
-            delete shapeRef->_shape;
+        if (shapeRef && shapeRef->refCount == 0) {
+            delete shapeRef->shape;
             _shapeMap.remove(key);
         }
     }
@@ -124,7 +147,29 @@ int ShapeManager::getNumReferences(const ShapeInfo& info) const {
     DoubleHashKey key = info.getHash();
     const ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
-        return shapeRef->_refCount;
+        return shapeRef->refCount;
     }
-    return -1;
+    return 0;
+}
+
+int ShapeManager::getNumReferences(const btCollisionShape* shape) const {
+    int numShapes = _shapeMap.size();
+    for (int i = 0; i < numShapes; ++i) {
+        const ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
+        if (shape == shapeRef->shape) {
+            return shapeRef->refCount;
+        }
+    }
+    return 0;
+}
+
+bool ShapeManager::hasShape(const btCollisionShape* shape) const {
+    int numShapes = _shapeMap.size();
+    for (int i = 0; i < numShapes; ++i) {
+        const ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
+        if (shape == shapeRef->shape) {
+            return true;
+        }
+    }
+    return false;
 }

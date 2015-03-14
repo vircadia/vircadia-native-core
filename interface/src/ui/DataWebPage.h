@@ -14,12 +14,15 @@
 
 #include <qwebpage.h>
 
+const QString INTERFACE_USER_AGENT = "HighFidelityInterface/1.0";
+
 class DataWebPage : public QWebPage {
 public:
     DataWebPage(QObject* parent = 0);
 protected:
     void javaScriptConsoleMessage(const QString & message, int lineNumber, const QString & sourceID);
     bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type);
+    virtual QString userAgentForUrl(const QUrl & url) const;
 };
 
 #endif // hifi_DataWebPage_h

@@ -43,6 +43,7 @@ public slots:
     void setCursorVisible(bool visible);
     QScriptValue hasFocus();
     void setFocus();
+    void raiseMainWindow();
     QScriptValue alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
     QScriptValue form(const QString& title, QScriptValue array);
@@ -83,7 +84,7 @@ private slots:
     void nonBlockingFormAccepted() { _nonBlockingFormActive = false; _formResult = QDialog::Accepted; emit nonBlockingFormClosed(); }
     void nonBlockingFormRejected() { _nonBlockingFormActive = false; _formResult = QDialog::Rejected; emit nonBlockingFormClosed(); }
 
-    WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
+    WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height, bool isToolWindow);
     
 private:
     QString jsRegExp2QtRegExp(QString string);

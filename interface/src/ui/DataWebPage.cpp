@@ -11,6 +11,7 @@
 
 #include <qnetworkrequest.h>
 
+#include "Application.h"
 #include <AddressManager.h>
 #include <OAuthNetworkAccessManager.h>
 
@@ -21,7 +22,7 @@ DataWebPage::DataWebPage(QObject* parent) :
 {
     // use an OAuthNetworkAccessManager instead of regular QNetworkAccessManager so our requests are authed
     setNetworkAccessManager(OAuthNetworkAccessManager::getInstance());
-    
+
     // give the page an empty stylesheet
     settings()->setUserStyleSheetUrl(QUrl());
 }
@@ -31,8 +32,12 @@ void DataWebPage::javaScriptConsoleMessage(const QString& message, int lineNumbe
 }
 
 bool DataWebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type) {
-    
+
     if (!request.url().toString().startsWith(HIFI_URL_SCHEME)) {
+        if (request.url().path().toLower().endsWith(SVO_EXTENSION)) {
+            Application::getInstance()->importSVOFromURL(request.url());
+            return false;
+        }
         return true;
     } else {
         // this is a hifi URL - have the AddressManager handle it
@@ -40,4 +45,8 @@ bool DataWebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkReques
                                   Qt::AutoConnection, Q_ARG(const QString&, request.url().toString()));
         return false;
     }
+}
+
+QString DataWebPage::userAgentForUrl(const QUrl & url) const {
+    return INTERFACE_USER_AGENT;
 }

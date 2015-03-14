@@ -224,8 +224,12 @@ void Resource::refresh() {
     }
     if (_reply) {
         ResourceCache::requestCompleted(this);
-        delete _reply;
+        _reply->disconnect(this);
+        _replyTimer->disconnect(this);
+        _reply->deleteLater();
         _reply = nullptr;
+        _replyTimer->deleteLater();
+        _replyTimer = nullptr;
     }
     init();
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
@@ -297,9 +301,9 @@ void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
         return;
     }
     _reply->disconnect(this);
+    _replyTimer->disconnect(this);
     QNetworkReply* reply = _reply;
     _reply = nullptr;
-    _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
     _replyTimer = nullptr;
     ResourceCache::requestCompleted(this);
@@ -329,6 +333,10 @@ void Resource::maybeRefresh() {
                 // We don't need to update, return
                 return;
             }
+        } else if (!variant.isValid() || !variant.canConvert<QDateTime>() ||
+                   !variant.value<QDateTime>().isValid() || variant.value<QDateTime>().isNull()) {
+            qDebug() << "Cannot determine when" << _url.fileName() << "was modified last, cached version might be outdated";
+            return;
         }
         qDebug() << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
         refresh();
@@ -352,10 +360,19 @@ void Resource::makeRequest() {
     } else {
         if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
             QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
+            bool needUpdate = false;
             if (metaData.expirationDate().isNull() || metaData.expirationDate() <= QDateTime::currentDateTime()) {
                 // If the expiration date is NULL or in the past,
                 // put one far enough away that it won't be an issue.
                 metaData.setExpirationDate(QDateTime::currentDateTime().addYears(100));
+                needUpdate = true;
+            }
+            if (metaData.lastModified().isNull()) {
+                // If the lastModified date is NULL, set it to now.
+                metaData.setLastModified(QDateTime::currentDateTime());
+                needUpdate = true;
+            }
+            if (needUpdate) {
                 NetworkAccessManager::getInstance().cache()->updateMetaData(metaData);
             }
         }
@@ -370,9 +387,9 @@ void Resource::makeRequest() {
 
 void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug) {
     _reply->disconnect(this);
+    _replyTimer->disconnect(this);
     _reply->deleteLater();
     _reply = nullptr;
-    _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
     _replyTimer = nullptr;
     ResourceCache::requestCompleted(this);
