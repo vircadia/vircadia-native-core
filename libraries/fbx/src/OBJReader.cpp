@@ -159,7 +159,6 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
-            // obj is right-handed, hifi is left-handed
             float z = std::stof(tokenizer.getDatum().data());
 
             while (tokenizer.isNextTokenFloat()) {
@@ -208,7 +207,6 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
                 assert(parts.count() <= 3);
                 QByteArray vertIndexBA = parts[ 0 ];
 
-                // int vertexIndex = std::stoi(tokenizer.getDatum().data());
                 bool ok;
                 int vertexIndex = vertIndexBA.toInt(&ok);
                 if (!ok) {
@@ -238,7 +236,6 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
             }
 
             if (indices.count() == 3) {
-                // flip these around (because of the -z above) so our triangles face outward
                 meshPart.triangleIndices.append(indices[0]);
                 meshPart.triangleIndices.append(indices[1]);
                 meshPart.triangleIndices.append(indices[2]);
@@ -385,9 +382,9 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
                 pointNormalsSums[p0Index] += n0;
                 pointNormalsSums[p1Index] += n1;
                 pointNormalsSums[p2Index] += n2;
-                pointNormalsCounts[p0Index] ++;
-                pointNormalsCounts[p1Index] ++;
-                pointNormalsCounts[p2Index] ++;
+                pointNormalsCounts[p0Index]++;
+                pointNormalsCounts[p1Index]++;
+                pointNormalsCounts[p2Index]++;
             }
 
             int vertCount = mesh.vertices.count();

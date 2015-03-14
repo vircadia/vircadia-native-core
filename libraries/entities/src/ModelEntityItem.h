@@ -57,8 +57,7 @@ public:
 
     void updateShapeType(ShapeType type);
     virtual ShapeType getShapeType() const {
-        // return _shapeType;
-        // XXX make hull an option in editentity.js
+        // XXX make hull an option in edit.js ?
         if (_collisionModelURL != "") {
             return SHAPE_TYPE_CONVEX_HULL;
         } else {
