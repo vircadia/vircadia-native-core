@@ -96,13 +96,6 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     }
 }
 
-// void PhysicsEngine::entityShapeReady(QUuid entityId) {
-//     qDebug() << "PhysicsEngine::entityShapeReady for" << entityId.toString() << "thread-id" << QThread::currentThreadId();
-//     lockBusyForWrite();
-//     _busyComputingShape[entityId] = false;
-//     unlockBusy();
-// }
-
 void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();

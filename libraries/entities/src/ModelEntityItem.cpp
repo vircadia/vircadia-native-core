@@ -418,18 +418,15 @@ QString ModelEntityItem::getAnimationSettings() const {
 
 
 bool ModelEntityItem::isReadyToComputeShape() {
-    // qDebug() << "    ModelEntityItem::getReadyToComputeShape for " << getID().toString() << _collisionModelURL;
     if (_collisionModelURL == "") {
         return true;
     }
 
-    // qDebug() << "    url is" << _collisionModelURL;
     if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
         return true;
     }
 
     if (_collisionNetworkGeometry.isNull()) {
-        // qDebug() << "        _collisionNetworkGeometry is Null";
         _collisionNetworkGeometry =
             DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false);
 
@@ -442,14 +439,7 @@ bool ModelEntityItem::isReadyToComputeShape() {
     return false;
 }
 
-// void ModelEntityItem::collisionGeometryLoaded() {
-//     qDebug() << "ModelEntityItem::collisionGeometryLoaded for " << getID().toString();
-//     emit entityShapeReady(getID());
-// }
-
 void ModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    // qDebug() << "ModelEntityItem::computeShapeInfo for " << getID().toString();
-
     if (_collisionModelURL == "") {
         info.setParams(getShapeType(), 0.5f * getDimensions());
     } else {
@@ -461,7 +451,6 @@ void ModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
-        // info.setConvexHull(QVector<glm::vec3>(_points));
         info.setConvexHull(_points);
     }
 }

@@ -65,11 +65,6 @@ public:
 
     const DoubleHashKey& getHash() const;
 
-
-private slots:
-    void collisionGeometryLoaded();
-
-
 protected:
     ShapeType _type = SHAPE_TYPE_NONE;
     glm::vec3 _halfExtents = glm::vec3(0.0f);

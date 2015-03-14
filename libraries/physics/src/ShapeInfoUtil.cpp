@@ -93,20 +93,20 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
     switch(info.getType()) {
         case SHAPE_TYPE_BOX: {
             shape = new btBoxShape(glmToBullet(info.getHalfExtents()));
-            break;
         }
+        break;
         case SHAPE_TYPE_SPHERE: {
             float radius = info.getHalfExtents().x;
             shape = new btSphereShape(radius);
-            break;
         }
+        break;
         case SHAPE_TYPE_CAPSULE_Y: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
             float height = 2.0f * halfExtents.y;
             shape = new btCapsuleShape(radius, height);
-            break;
         }
+        break;
         case SHAPE_TYPE_CONVEX_HULL: {
             shape = new btConvexHullShape();
             const QVector<glm::vec3>& points = info.getPoints();
@@ -114,8 +114,8 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
                 btVector3 btPoint(point[0], point[1], point[2]);
                 static_cast<btConvexHullShape*>(shape)->addPoint(btPoint);
             }
-            break;
         }
+        break;
     }
     return shape;
 }

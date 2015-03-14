@@ -50,13 +50,6 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<
     _externalData = data;
 }
 
-
-void ShapeInfo::collisionGeometryLoaded() {
-    _type = SHAPE_TYPE_CONVEX_HULL;
-    // xxx copy points over;
-}
-
-
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
     _type = SHAPE_TYPE_BOX;
     _halfExtents = halfExtents;

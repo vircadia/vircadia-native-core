@@ -136,9 +136,6 @@ public:
     static void cleanupLoadedAnimations();
 
     bool isReadyToComputeShape();
-
-    // public slots:
-    // void collisionGeometryLoaded();
     
 protected:
 
