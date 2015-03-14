@@ -33,7 +33,7 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
 }
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    EntityItem(entityItemID, properties)
+        EntityItem(entityItemID, properties) 
 { 
     _collisionNetworkGeometry = QSharedPointer<NetworkGeometry>();
 
