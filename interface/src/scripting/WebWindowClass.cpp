@@ -57,7 +57,14 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
         _windowWidget = new QWidget(Application::getInstance()->getWindow(), Qt::Window);
         _windowWidget->setMinimumSize(width, height);
 
+        auto layout = new QVBoxLayout(_windowWidget);
+        layout->setContentsMargins(0, 0, 0, 0);
+        _windowWidget->setLayout(layout);
+
         _webView = new QWebView(_windowWidget);
+
+        layout->addWidget(_webView);
+
         addEventBridgeToWindowObject();
     }
 
