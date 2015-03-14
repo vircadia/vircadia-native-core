@@ -163,6 +163,7 @@ signals:
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID);
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
+    void clearingEntities();
 
 private:
 
