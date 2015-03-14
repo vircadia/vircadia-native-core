@@ -954,6 +954,17 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
     return Avatar::getPosition();
 }
 
+void MyAvatar::updateLocalAABox() {
+    const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
+    float radius = capsule.getRadius();
+    float height = 2.0f * (capsule.getHalfHeight() + radius);
+    glm::vec3 offset = _skeletonModel.getBoundingShapeOffset();
+    glm::vec3 corner(-radius, -0.5f * height, -radius);
+    corner += offset;
+    glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
+    _localAABox.setBox(corner, scale);
+}
+
 QString MyAvatar::getScriptedMotorFrame() const {
     QString frame = "avatar";
     if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
