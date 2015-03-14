@@ -15,7 +15,6 @@
 #include <stdint.h>
 
 #include <QSet>
-#include <QReadWriteLock>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 //#include <BulletCollision/CollisionShapes/btCapsuleShape.h>
@@ -90,9 +89,6 @@ public:
     void relayIncomingChangesToSimulation();
 
     void setAvatarData(AvatarData *avatarData);
-
-    // public slots:
-    // void entityShapeReady(QUuid entityId);
 
 private:
     /// \param motionState pointer to Object's MotionState

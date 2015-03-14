@@ -169,6 +169,10 @@ const DoubleHashKey& ShapeInfo::getHash() const {
                         hash = (hash << 16) | (hash >> 16);
                     }
                 }
+            } else {
+                QByteArray baUrl = url.toLocal8Bit();
+                const char *cUrl = baUrl.data();
+                hash = qChecksum(cUrl, baUrl.count());
             }
             thisPtr->_doubleHashKey.setHash2(hash);
         } else {

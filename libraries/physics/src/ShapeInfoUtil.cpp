@@ -59,13 +59,13 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
             case SHAPE_TYPE_BOX: {
                 const btBoxShape* boxShape = static_cast<const btBoxShape*>(shape);
                 info.setBox(bulletToGLM(boxShape->getHalfExtentsWithMargin()));
-                break;
             }
+            break;
             case SHAPE_TYPE_SPHERE: {
                 const btSphereShape* sphereShape = static_cast<const btSphereShape*>(shape);
                 info.setSphere(sphereShape->getRadius());
-                break;
             }
+            break;
             case SHAPE_TYPE_CONVEX_HULL: {
                 const btConvexHullShape* convexHullShape = static_cast<const btConvexHullShape*>(shape);
                 const int numPoints = convexHullShape->getNumPoints();
@@ -76,12 +76,12 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
                     points << point;
                 }
                 info.setConvexHull(points);
-                break;
             }
+            break;
             default: {
                 info.clear();
-                break;
             }
+            break;
         }
     } else {
         info.clear();

@@ -24,6 +24,7 @@
 #include <GeometryUtil.h>
 #include <gpu/Stream.h>
 #include <gpu/Batch.h>
+#include "PhysicsEntity.h"
 #include <Transform.h>
 
 #include "AnimationHandle.h"
@@ -31,7 +32,6 @@
 #include "JointState.h"
 #include "ProgramObject.h"
 #include "TextureCache.h"
-#include "PhysicsEntity.h"
 
 class AbstractViewStateInterface;
 class QScriptEngine;
