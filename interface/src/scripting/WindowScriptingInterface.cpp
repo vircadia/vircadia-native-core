@@ -35,8 +35,8 @@ WindowScriptingInterface::WindowScriptingInterface() :
     connect(Application::getInstance(), &Application::svoImportRequested, this, &WindowScriptingInterface::svoImportRequested);
 }
 
-WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
-    return new WebWindowClass(title, url, width, height);
+WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height, bool isToolWindow) {
+    return new WebWindowClass(title, url, width, height, isToolWindow);
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
@@ -44,8 +44,13 @@ QScriptValue WindowScriptingInterface::hasFocus() {
 }
 
 void WindowScriptingInterface::setFocus() {
-    Application::getInstance()->getWindow()->activateWindow();
-    Application::getInstance()->getWindow()->setFocus();
+    auto window = Application::getInstance()->getWindow();
+    window->activateWindow();
+    window->setFocus();
+}
+
+void WindowScriptingInterface::raiseMainWindow() {
+    Application::getInstance()->getWindow()->raise();
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {

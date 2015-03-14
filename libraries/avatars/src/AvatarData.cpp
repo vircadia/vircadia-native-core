@@ -32,6 +32,9 @@ quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
 
+const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
+const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
+
 AvatarData::AvatarData() :
     _sessionUUID(),
     _position(0.0f),
@@ -55,9 +58,9 @@ AvatarData::AvatarData() :
     _errorLogExpiry(0),
     _owningAvatarMixer(),
     _lastUpdateTimer(),
-    _velocity(0.0f)
+    _velocity(0.0f),
+    _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
 {
-    
 }
 
 AvatarData::~AvatarData() {
