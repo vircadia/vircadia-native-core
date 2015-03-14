@@ -19,7 +19,6 @@
 
 #include "DoubleHashKey.h"
 
-
 class ShapeManager {
 public:
 
