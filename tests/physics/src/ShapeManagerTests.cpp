@@ -55,9 +55,14 @@ void ShapeManagerTests::testShapeAccounting() {
     }
 
     // release all references
+    bool released = shapeManager.releaseShape(info);
+    numReferences--;
     while (numReferences > 0) {
-        shapeManager.releaseShape(info);
+        released = shapeManager.releaseShape(info) && released;
         numReferences--;
+    }
+    if (!released) {
+        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected shape released" << std::endl;
     }
 
     // verify shape still exists (not yet garbage collected)
@@ -92,7 +97,7 @@ void ShapeManagerTests::testShapeAccounting() {
     }
 
     // release reference and verify that it is collected as garbage
-    shapeManager.releaseShape(info);
+    released = shapeManager.releaseShape(info);
     shapeManager.collectGarbage();
     if (shapeManager.getNumShapes() != 0) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected zero shapes after release" << std::endl;
