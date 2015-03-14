@@ -1013,7 +1013,7 @@ float Avatar::getSkeletonHeight() const {
 }
 
 float Avatar::getHeadHeight() const {
-    Extents extents = getHead()->getFaceModel().getBindExtents();
+    Extents extents = getHead()->getFaceModel().getMeshExtents();
     if (!extents.isEmpty()) {
         return extents.maximum.y - extents.minimum.y;
     }
