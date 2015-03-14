@@ -84,29 +84,6 @@ bool ShapeManager::releaseShape(const DoubleHashKey& key) {
     assert(false);
 }
 
-void ShapeManager::releaseShape(const ShapeInfo& info) {
-    DoubleHashKey key = info.getHash();
-    ShapeReference* shapeRef = _shapeMap.find(key);
-    dereferenceShapeReferece(shapeRef, key);
-}
-
-void ShapeManager::releaseShape(const btCollisionShape* shape) {
-    // XXX make a table for this
-    int numShapes = _shapeMap.size();
-    for (int i = 0; i < numShapes; ++i) {
-        ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
-        if (shapeRef->_shape == shape) {
-            // XXX how can I find the key?
-            // dereferenceShapeReferece(shapeRef);
-            break;
-        }
-    }
-
-
-    // ShapeInfo info;
-    // ShapeInfoUtil::collectInfoFromShape(shape, info);
-    // releaseShape(info);
-=======
 bool ShapeManager::releaseShape(const ShapeInfo& info) {
     return releaseShape(info.getHash());
 }
@@ -120,7 +97,6 @@ bool ShapeManager::releaseShape(const btCollisionShape* shape) {
         }
     }
     return false;
->>>>>>> 641581a825cbc656ef23b8d1198733d20ebef62e
 }
 
 void ShapeManager::collectGarbage() {
