@@ -66,9 +66,6 @@ public:
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
-public slots:
-    // virtual void entityShapeComputed(QUuid entityId) { }
-
 protected:
 
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class

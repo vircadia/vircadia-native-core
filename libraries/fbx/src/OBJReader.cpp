@@ -92,7 +92,6 @@ int OBJTokenizer::nextToken() {
     return NO_TOKEN;
 }
 
-
 bool OBJTokenizer::nextTokenIsFloat() {
     if (nextToken() != OBJTokenizer::DATUM_TOKEN) {
         return false;
@@ -103,10 +102,6 @@ bool OBJTokenizer::nextTokenIsFloat() {
     token.toFloat(&ok);
     return ok;
 }
-
-
-
-
 
 bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeometry &geometry) {
     FBXMesh &mesh = geometry.meshes[0];
@@ -160,7 +155,6 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeom
             while (tokenizer.nextTokenIsFloat()) {
                 // the spec gets vague here.  might be w, might be a color... chop it off.
                 tokenizer.nextToken();
-                // tokenizer.skipLine();
             }
             mesh.vertices.append(glm::vec3(x, y, z));
             mesh.colors.append(glm::vec3(1, 1, 1));

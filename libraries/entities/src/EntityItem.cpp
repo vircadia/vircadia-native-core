@@ -1003,7 +1003,6 @@ float EntityItem::getRadius() const {
 }
 
 void EntityItem::getReadyToComputeShape() {
-    emit entityShapeReady(getID());
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) {

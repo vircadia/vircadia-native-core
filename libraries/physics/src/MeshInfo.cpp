@@ -21,6 +21,7 @@ MeshInfo::MeshInfo(vector<Vertex> *vertices, vector<int> *triangles) :\
     _centerOfMass(Vertex(0.0, 0.0, 0.0)),
     _triangles(triangles)
 {
+    
 }
 
 MeshInfo::~MeshInfo(){

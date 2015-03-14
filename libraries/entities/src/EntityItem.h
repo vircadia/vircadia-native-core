@@ -301,9 +301,6 @@ public:
 
     virtual void getReadyToComputeShape();
 
- signals:
-    void entityShapeReady(QUuid entityId) const;
-
 protected:
 
     static bool _sendPhysicsUpdates;
