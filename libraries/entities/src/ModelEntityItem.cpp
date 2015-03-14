@@ -461,6 +461,6 @@ void ModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
-        info.setConvexHull(_points);
+        info.setConvexHull(QVector<glm::vec3>(_points));
     }
 }

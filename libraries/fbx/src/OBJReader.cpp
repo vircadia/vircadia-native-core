@@ -94,6 +94,9 @@ int OBJTokenizer::nextToken() {
 
 
 bool OBJTokenizer::nextTokenIsFloat() {
+    if (nextToken() != OBJTokenizer::DATUM_TOKEN) {
+        return false;
+    }
     QByteArray token = getDatum();
     pushBackToken(OBJTokenizer::DATUM_TOKEN);
     bool ok;
@@ -153,15 +156,11 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeom
                 break;
             }
             float y = std::stof(tokenizer.getDatum().data());
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                break;
-            }
 
-            qDebug() << "point --" << x << y << z;
-
-            if (tokenizer.nextTokenIsFloat()) {
+            while (tokenizer.nextTokenIsFloat()) {
                 // the spec gets vague here.  might be w, might be a color... chop it off.
-                tokenizer.skipLine();
+                tokenizer.nextToken();
+                // tokenizer.skipLine();
             }
             mesh.vertices.append(glm::vec3(x, y, z));
             mesh.colors.append(glm::vec3(1, 1, 1));
@@ -172,9 +171,6 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeom
                 if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) { goto done; }
                 try {
                     int vertexIndex = std::stoi(tokenizer.getDatum().data());
-
-                    qDebug() << "vertexIndex =" << vertexIndex;
-
                     // negative indexes count backward from the current end of the vertex list
                     vertexIndex = (vertexIndex >= 0 ? vertexIndex : mesh.vertices.count() + vertexIndex + 1);
                     // obj index is 1 based
@@ -282,6 +278,10 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
                 int p0Index = meshPart.triangleIndices[i*3];
                 int p1Index = meshPart.triangleIndices[i*3+1];
                 int p2Index = meshPart.triangleIndices[i*3+2];
+
+                assert(p0Index < mesh.vertices.count());
+                assert(p1Index < mesh.vertices.count());
+                assert(p2Index < mesh.vertices.count());
 
                 glm::vec3 p0 = mesh.vertices[p0Index];
                 glm::vec3 p1 = mesh.vertices[p1Index];
