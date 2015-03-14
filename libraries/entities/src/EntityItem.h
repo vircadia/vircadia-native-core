@@ -299,8 +299,6 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
-    virtual void getReadyToComputeShape();
-
 protected:
 
     static bool _sendPhysicsUpdates;

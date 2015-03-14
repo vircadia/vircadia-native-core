@@ -1002,12 +1002,8 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(_dimensions);
 }
 
-void EntityItem::getReadyToComputeShape() {
-}
-
 void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
-
 }
 
 const float MIN_POSITION_DELTA = 0.0001f;
