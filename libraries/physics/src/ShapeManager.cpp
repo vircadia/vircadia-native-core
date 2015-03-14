@@ -59,14 +59,9 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     return shape;
 }
 
-<<<<<<< HEAD
-
-void ShapeManager::dereferenceShapeReferece(ShapeReference* shapeRef, DoubleHashKey key) {
-=======
 // private helper method
 bool ShapeManager::releaseShape(const DoubleHashKey& key) {
     ShapeReference* shapeRef = _shapeMap.find(key);
->>>>>>> 641581a825cbc656ef23b8d1198733d20ebef62e
     if (shapeRef) {
         if (shapeRef->refCount > 0) {
             shapeRef->refCount--;
@@ -88,8 +83,6 @@ bool ShapeManager::releaseShape(const DoubleHashKey& key) {
     }
     assert(false);
 }
-
-<<<<<<< HEAD
 
 void ShapeManager::releaseShape(const ShapeInfo& info) {
     DoubleHashKey key = info.getHash();
