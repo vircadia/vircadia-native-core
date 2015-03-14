@@ -873,6 +873,10 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
     }
 }
 
+void Application::importSVOFromURL(QUrl url) {
+    emit svoImportRequested(url.url());
+}
+
 bool Application::event(QEvent* event) {
 
     // handle custom URL
