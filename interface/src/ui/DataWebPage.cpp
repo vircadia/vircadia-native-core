@@ -11,6 +11,7 @@
 
 #include <qnetworkrequest.h>
 
+#include "Application.h"
 #include <AddressManager.h>
 #include <OAuthNetworkAccessManager.h>
 
@@ -21,7 +22,7 @@ DataWebPage::DataWebPage(QObject* parent) :
 {
     // use an OAuthNetworkAccessManager instead of regular QNetworkAccessManager so our requests are authed
     setNetworkAccessManager(OAuthNetworkAccessManager::getInstance());
-    
+
     // give the page an empty stylesheet
     settings()->setUserStyleSheetUrl(QUrl());
 }
