@@ -28,9 +28,9 @@ public:
     /// \return pointer to shape
     btCollisionShape* getShape(const ShapeInfo& info);
 
-    /// find and release a shape
-    void releaseShape(const ShapeInfo& info);
-    void releaseShape(const btCollisionShape* shape);
+    /// \return true if shape was found and released
+    bool releaseShape(const ShapeInfo& info);
+    bool releaseShape(const btCollisionShape* shape);
 
     /// delete shapes that have zero references
     void collectGarbage();
@@ -50,8 +50,6 @@ private:
         DoubleHashKey key;
         ShapeReference() : refCount(0), shape(NULL) {}
     };
-
-    void dereferenceShapeReferece(ShapeReference* shapeRef, DoubleHashKey key);
 
     btHashMap<DoubleHashKey, ShapeReference> _shapeMap;
     btAlignedObjectArray<DoubleHashKey> _pendingGarbage;
