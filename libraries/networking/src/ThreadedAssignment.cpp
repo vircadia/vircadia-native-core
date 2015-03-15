@@ -67,10 +67,6 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
-    QTimer* silentNodeRemovalTimer = new QTimer(this);
-    connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
-    silentNodeRemovalTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
-    
     if (shouldSendStats) {
         // send a stats packet every 1 second
         QTimer* statsTimer = new QTimer(this);

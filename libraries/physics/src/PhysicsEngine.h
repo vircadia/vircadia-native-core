@@ -16,21 +16,19 @@
 
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
-#include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
-#include <BulletDynamics/Character/btCharacterControllerInterface.h>
-#include <BulletCollision/CollisionShapes/btCapsuleShape.h>
-#include <BulletDynamics/Character/btKinematicCharacterController.h>
+//#include <BulletCollision/CollisionShapes/btCapsuleShape.h>
 
+#include <AvatarData.h>
 #include <EntityItem.h>
 #include <EntitySimulation.h>
 
 #include "BulletUtil.h"
+#include "CharacterController.h"
 #include "ContactInfo.h"
 #include "EntityMotionState.h"
 #include "ShapeManager.h"
 #include "ThreadSafeDynamicsWorld.h"
-#include "AvatarData.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
@@ -106,6 +104,7 @@ private:
     btBroadphaseInterface* _broadphaseFilter = NULL;
     btSequentialImpulseConstraintSolver* _constraintSolver = NULL;
     ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
+    btGhostPairCallback* _ghostPairCallback = NULL;
     ShapeManager _shapeManager;
 
     glm::vec3 _originOffset;
@@ -123,9 +122,10 @@ private:
     uint32_t _lastNumSubstepsAtUpdateInternal = 0;
 
     /// character collisions
-    btCharacterControllerInterface* _characterController = 0;
-    class btPairCachingGhostObject* _avatarGhostObject = 0;
-    AvatarData *_avatarData = 0;
+    CharacterController* _characterController = NULL;
+    class btPairCachingGhostObject* _avatarGhostObject = NULL;
+    AvatarData* _avatarData = NULL;
+    glm::vec3 _avatarShapeLocalOffset;
 };
 
 #endif // hifi_PhysicsEngine_h

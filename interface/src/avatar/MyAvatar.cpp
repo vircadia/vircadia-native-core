@@ -49,8 +49,6 @@ using namespace std;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_SPEED = 500.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
-const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
-const float COLLISION_RADIUS_SCALE = 0.125f;
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
 const float MAX_WALKING_SPEED = 2.5f; // human walking speed
@@ -954,6 +952,17 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
         return _position + getOrientation() * FLIP * skeletonOffset;
     }
     return Avatar::getPosition();
+}
+
+void MyAvatar::updateLocalAABox() {
+    const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
+    float radius = capsule.getRadius();
+    float height = 2.0f * (capsule.getHalfHeight() + radius);
+    glm::vec3 offset = _skeletonModel.getBoundingShapeOffset();
+    glm::vec3 corner(-radius, -0.5f * height, -radius);
+    corner += offset;
+    glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
+    _localAABox.setBox(corner, scale);
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {

@@ -107,13 +107,16 @@ void TV3DManager::display(Camera& whichCamera) {
     const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
 
     DependencyManager::get<GlowEffect>()->prepare();
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_SCISSOR_TEST);
     // render left side view
     glViewport(portalX, portalY, portalW, portalH);
     glScissor(portalX, portalY, portalW, portalH);
+    
+    Camera eyeCamera;
+    eyeCamera.setRotation(whichCamera.getRotation());
+    eyeCamera.setPosition(whichCamera.getPosition());
 
     glPushMatrix();
     {
@@ -129,7 +132,8 @@ void TV3DManager::display(Camera& whichCamera) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        Application::getInstance()->displaySide(whichCamera, false, RenderArgs::STEREO_LEFT);
+        eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
+        Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
 
         if (displayOverlays) {
             applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
@@ -150,7 +154,7 @@ void TV3DManager::display(Camera& whichCamera) {
         _activeEye = &_rightEye;
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
-        glFrustum(_rightEye.left, _rightEye.right, _rightEye.bottom, _rightEye.top, nearZ, farZ); // set left view frustum
+        glFrustum(_rightEye.left, _rightEye.right, _rightEye.bottom, _rightEye.top, nearZ, farZ); // set right view frustum
         GLfloat p[4][4];
         glGetFloatv(GL_PROJECTION_MATRIX, &(p[0][0]));
         GLfloat cotangent = p[1][1];
@@ -159,7 +163,8 @@ void TV3DManager::display(Camera& whichCamera) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        Application::getInstance()->displaySide(whichCamera, false, RenderArgs::STEREO_RIGHT);
+        eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
+        Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
 
         if (displayOverlays) {
             applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);

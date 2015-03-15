@@ -39,6 +39,8 @@ EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
 }
 
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
+    emit clearingEntities();
+
     // this would be a good place to clean up our entities...
     if (_simulation) {
         _simulation->lock();

@@ -61,7 +61,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         params.errorCallbackReceiver = this;
         params.errorCallbackMethod = "requestError";
     }
-
+    
     accountManager.authenticatedRequest(USER_ACTIVITY_URL,
                                         QNetworkAccessManager::PostOperation,
                                         params,
@@ -84,13 +84,6 @@ void UserActivityLogger::launch(QString applicationVersion) {
     actionDetails.insert(VERSION_KEY, applicationVersion);
     
     logAction(ACTION_NAME, actionDetails);
-}
-
-void UserActivityLogger::close() {
-    const QString ACTION_NAME = "close";
-    logAction(ACTION_NAME, QJsonObject());
-    
-    AccountManager::getInstance().waitForAllPendingReplies();
 }
 
 void UserActivityLogger::changedDisplayName(QString displayName) {

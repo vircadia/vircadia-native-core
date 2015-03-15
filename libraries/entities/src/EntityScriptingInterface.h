@@ -58,7 +58,7 @@ public:
     virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
 
-    void setEntityTree(EntityTree* modelTree) { _entityTree = modelTree; }
+    void setEntityTree(EntityTree* modelTree);
     EntityTree* getEntityTree(EntityTree*) { return _entityTree; }
     
 public slots:
@@ -128,6 +128,11 @@ signals:
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
+
+    void deletingEntity(const EntityItemID& entityID);
+    void addingEntity(const EntityItemID& entityID);
+    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
+    void clearingEntities();
 
 private:
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);

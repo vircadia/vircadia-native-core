@@ -146,7 +146,6 @@ const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
 static QTimer* locationUpdateTimer = NULL;
 static QTimer* balanceUpdateTimer = NULL;
-static QTimer* silentNodeTimer = NULL;
 static QTimer* identityPacketTimer = NULL;
 static QTimer* billboardPacketTimer = NULL;
 static QTimer* checkFPStimer = NULL;
@@ -258,7 +257,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
-        _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
@@ -329,18 +327,25 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
     // start the nodeThread so its event loop is running
-    _nodeThread->setObjectName("Datagram Processor Thread");
-    _nodeThread->start();
+    QThread* nodeThread = new QThread(this);
+    nodeThread->setObjectName("Datagram Processor Thread");
+    nodeThread->start();
 
     // make sure the node thread is given highest priority
-    _nodeThread->setPriority(QThread::TimeCriticalPriority);
+    nodeThread->setPriority(QThread::TimeCriticalPriority);
+    
+    _datagramProcessor = new DatagramProcessor(nodeList.data());
+    
+    // have the NodeList use deleteLater from DM customDeleter
+    nodeList->setCustomDeleter([](Dependency* dependency) {
+        static_cast<NodeList*>(dependency)->deleteLater();
+    });
     
     // put the NodeList and datagram processing on the node thread
-    nodeList->moveToThread(_nodeThread);
-    _datagramProcessor.moveToThread(_nodeThread);
+    nodeList->moveToThread(nodeThread);
 
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
+    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -426,12 +431,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
-
-    // move the silentNodeTimer to the _nodeThread
-    silentNodeTimer = new QTimer();
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList.data(), SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
-    silentNodeTimer->moveToThread(_nodeThread);
 
     // send the identity packet for our avatar each second to our avatar mixer
     identityPacketTimer = new QTimer();
@@ -547,7 +546,7 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
-    _datagramProcessor.shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
+    _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
     
@@ -555,7 +554,6 @@ void Application::cleanupBeforeQuit() {
     // depending on what thread they run in
     locationUpdateTimer->stop();
     balanceUpdateTimer->stop();
-    QMetaObject::invokeMethod(silentNodeTimer, "stop", Qt::BlockingQueuedConnection);
     identityPacketTimer->stop();
     billboardPacketTimer->stop();
     checkFPStimer->stop();
@@ -565,7 +563,6 @@ void Application::cleanupBeforeQuit() {
     // and then delete those that got created by "new"
     delete locationUpdateTimer;
     delete balanceUpdateTimer;
-    delete silentNodeTimer;
     delete identityPacketTimer;
     delete billboardPacketTimer;
     delete checkFPStimer;
@@ -576,10 +573,6 @@ void Application::cleanupBeforeQuit() {
     _settingsThread.quit();
     saveSettings();
     _window->saveGeometry();
-    
-    // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
-    // an event loop to send the packet?
-    UserActivityLogger::getInstance().close();
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
@@ -597,10 +590,6 @@ Application::~Application() {
     tree->lockForWrite();
     _entities.getTree()->setSimulation(NULL);
     tree->unlock();
-
-    // ask the datagram processing thread to quit and wait until it is done
-    _nodeThread->quit();
-    _nodeThread->wait();
     
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
@@ -620,6 +609,13 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     //DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+    
+    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    DependencyManager::destroy<NodeList>();
+    
+    // ask the node thread to quit and wait until it is done
+    nodeThread->quit();
+    nodeThread->wait();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -877,6 +873,10 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
     }
 }
 
+void Application::importSVOFromURL(QUrl url) {
+    emit svoImportRequested(url.url());
+}
+
 bool Application::event(QEvent* event) {
 
     // handle custom URL
@@ -889,7 +889,7 @@ bool Application::event(QEvent* event) {
         if (!url.isEmpty()) {
             if (url.scheme() == HIFI_URL_SCHEME) {
                 DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
-            } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+            } else if (url.path().toLower().endsWith(SVO_EXTENSION)) {
                 emit svoImportRequested(url.url());
             }
         }
@@ -1455,10 +1455,11 @@ void Application::dropEvent(QDropEvent *event) {
     QString snapshotPath;
     const QMimeData *mimeData = event->mimeData();
     foreach (QUrl url, mimeData->urls()) {
-        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
+        auto lower = url.path().toLower();
+        if (lower.endsWith(SNAPSHOT_EXTENSION)) {
             snapshotPath = url.toLocalFile();
             break;
-        } else if (url.url().toLower().endsWith(SVO_EXTENSION)) {
+        } else if (lower.endsWith(SVO_EXTENSION)) {
             emit svoImportRequested(url.url());
             event->acceptProposedAction();
             return;
@@ -1498,7 +1499,7 @@ void Application::checkFPS() {
 
     _fps = (float)_frameCount / diffTime;
     _frameCount = 0;
-    _datagramProcessor.resetCounters();
+    _datagramProcessor->resetCounters();
     _timerStart.start();
 
     // ask the node list to check in with the domain server
@@ -2739,7 +2740,6 @@ const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
 const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
 
 const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
-const float GLOBAL_LIGHT_INTENSITY = 1.0f;
 
 void Application::setupWorldLight() {
 
@@ -4094,5 +4094,8 @@ void Application::checkSkeleton() {
         
         _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
         _myAvatar->sendIdentityPacket();
+    } else {
+        _myAvatar->updateLocalAABox();
+        _physicsEngine.setAvatarData(_myAvatar);
     }
 }
