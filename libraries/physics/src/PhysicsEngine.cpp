@@ -63,7 +63,7 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-
+        qDebug() << "PhysicsEngine::addEntityInternal(" << entity;
         if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
@@ -283,7 +283,9 @@ void PhysicsEngine::stepSimulation() {
     // expect the engine to have an avatar (and hence: a character controller)
     assert(_avatarData);
 
+    qDebug() << "lock0";
     lock();
+
     // NOTE: the grand order of operations is:
     // (1) relay incoming changes
     // (2) step simulation
@@ -313,7 +315,9 @@ void PhysicsEngine::stepSimulation() {
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     _numSubsteps += (uint32_t)numSubsteps;
     stepNonPhysicalKinematics(usecTimestampNow());
+    qDebug() << "unlock0";
     unlock();
+    qDebug() << "unlock0.1";
 
     if (numSubsteps > 0) {
         // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
@@ -325,24 +329,44 @@ void PhysicsEngine::stepSimulation() {
         //
         // TODO: untangle these lock sequences.
         _entityTree->lockForWrite();
-        _avatarData->lockForWrite();
-        lock();
-        _dynamicsWorld->synchronizeMotionStates();
 
-        if (_avatarData->isPhysicsEnabled()) {
+        qDebug() << "lock1";
+        lock();
+        qDebug() << "lock1.1";
+        _dynamicsWorld->synchronizeMotionStates();
+        qDebug() << "lock1.2";
+
+        _avatarData->lockForRead();
+        qDebug() << "lock1.3";
+        bool avatarHasPhysicsEnabled = _avatarData->isPhysicsEnabled();
+        qDebug() << "lock1.4";
+        _avatarData->unlock();
+        qDebug() << "lock1.5";
+        if (avatarHasPhysicsEnabled) {
             const btTransform& avatarTransform = _avatarGhostObject->getWorldTransform();
             glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
             glm::vec3 offset = rotation * _avatarShapeLocalOffset;
+
+            qDebug() << "a";
+
+            _avatarData->lockForWrite();
             _avatarData->setOrientation(rotation);
             _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()) - offset);
+            _avatarData->unlock();
         }
 
+        qDebug() << "unlock1";
         unlock();
+        qDebug() << "unlock1.1";
         _avatarData->unlock();
+        qDebug() << "unlock1.2";
         _entityTree->unlock();
+        qDebug() << "unlock1.3";
     
         computeCollisionEvents();
     }
+
+    qDebug() << "end";
 }
 
 void PhysicsEngine::stepNonPhysicalKinematics(const quint64& now) {
