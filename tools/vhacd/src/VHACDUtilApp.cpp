@@ -50,15 +50,13 @@ bool writeOBJ(QString outFileName, QVector<QVector<VHACD::IVHACD::ConvexHull>>& 
             for (unsigned int i = 0; i < hull.m_nPoints; i++) {
                 out << "v ";
                 out << formatFloat(hull.m_points[i*3]) << " ";
-                // swap y and z because up is 3rd value in OBJ
-                out << formatFloat(hull.m_points[i*3+2]) << " ";
-                out << formatFloat(hull.m_points[i*3+1]) << "\n";
+                out << formatFloat(hull.m_points[i*3+1]) << " ";
+                out << formatFloat(hull.m_points[i*3+2]) << "\n";
             }
             for (unsigned int i = 0; i < hull.m_nTriangles; i++) {
                 out << "f ";
-                // change order to flip normal (due to swapping y and z, above)
-                out << hull.m_triangles[i*3+1] + 1 + pointStartOffset  << " ";
                 out << hull.m_triangles[i*3] + 1 + pointStartOffset << " ";
+                out << hull.m_triangles[i*3+1] + 1 + pointStartOffset  << " ";
                 out << hull.m_triangles[i*3+2] + 1 + pointStartOffset  << "\n";
             }
             out << "\n";
