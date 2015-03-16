@@ -19,13 +19,15 @@ elseif (WIN32)
 
   target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} opengl32.lib)
 
-  # try to find the Nsight package and add it to the build if we find it
-  find_package(NSIGHT)
-  if (NSIGHT_FOUND)
-    include_directories(${NSIGHT_INCLUDE_DIRS})
-    add_definitions(-DNSIGHT_FOUND)
-    target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
-  endif ()
+  if (USE_NSIGHT)
+    # try to find the Nsight package and add it to the build if we find it
+    find_package(NSIGHT)
+    if (NSIGHT_FOUND)
+      include_directories(${NSIGHT_INCLUDE_DIRS})
+      add_definitions(-DNSIGHT_FOUND)
+      target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
+    endif ()
+  endif()
 elseif (ANDROID)
   target_link_libraries(${TARGET_NAME} "-lGLESv3" "-lEGL")
 else ()

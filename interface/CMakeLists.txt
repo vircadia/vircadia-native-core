@@ -220,15 +220,17 @@ else (APPLE)
     find_package(GLEW REQUIRED)
     target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
 
-    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} ${NSIGHT_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
+    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
 
-    # try to find the Nsight package and add it to the build if we find it
-    find_package(NSIGHT)
-    if (NSIGHT_FOUND)
-      include_directories(${NSIGHT_INCLUDE_DIRS})
-      add_definitions(-DNSIGHT_FOUND)
-      target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
-    endif ()
+    if (USE_NSIGHT)
+      # try to find the Nsight package and add it to the build if we find it
+      find_package(NSIGHT)
+      if (NSIGHT_FOUND)
+        include_directories(${NSIGHT_INCLUDE_DIRS})
+        add_definitions(-DNSIGHT_FOUND)
+        target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
+      endif ()
+    endif()
 
   endif()
 endif (APPLE)
