@@ -20,7 +20,6 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "TextEntityItem.h"
-#include "QVariantGLM.h"
 
 
 const QString TextEntityItem::DEFAULT_TEXT("");

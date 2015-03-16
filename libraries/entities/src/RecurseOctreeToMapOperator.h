@@ -2,7 +2,7 @@
 //  RecurseOctreeToMapOperator.h
 //  libraries/entities/src
 //
-//  Created by Seth Alves on 3/6/15.
+//  Created by Seth Alves on 3/16/15.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

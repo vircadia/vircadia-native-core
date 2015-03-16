@@ -20,7 +20,6 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "SphereEntityItem.h"
-#include "QVariantGLM.h"
 
 
 EntityItem* SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -127,3 +126,4 @@ void SphereEntityItem::debugDump() const {
     qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
     qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
+

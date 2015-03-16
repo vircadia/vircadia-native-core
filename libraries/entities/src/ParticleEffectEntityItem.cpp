@@ -43,7 +43,6 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ParticleEffectEntityItem.h"
-#include "QVariantGLM.h"
 
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
@@ -510,3 +509,4 @@ void ParticleEffectEntityItem::resetSimulation() {
 
     srand(_randSeed);
 }
+

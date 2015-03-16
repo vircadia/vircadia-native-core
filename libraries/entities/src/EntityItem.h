@@ -295,6 +295,7 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
+
 protected:
 
     static bool _sendPhysicsUpdates;

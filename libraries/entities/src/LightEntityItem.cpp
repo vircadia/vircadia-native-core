@@ -18,7 +18,6 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "LightEntityItem.h"
-#include "QVariantGLM.h"
 
 bool LightEntityItem::_lightsArePickable = false;
 

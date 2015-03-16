@@ -17,7 +17,6 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ModelEntityItem.h"
-#include "QVariantGLM.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
