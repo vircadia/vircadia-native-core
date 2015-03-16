@@ -38,8 +38,14 @@ public:
     EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(quint64(-1)) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
 
-    void lock() { _mutex.lock(); }
-    void unlock() { _mutex.unlock(); }
+    void lock() {
+        qDebug() << "LOCKING SIMULATION" << QThread::currentThreadId();
+        _mutex.lock();
+    }
+    void unlock() {
+        qDebug() << "UNLOCKING SIMULATION" << QThread::currentThreadId();
+        _mutex.unlock();
+    }
 
     /// \param tree pointer to EntityTree which is stored internally
     void setEntityTree(EntityTree* tree);
