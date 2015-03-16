@@ -21,7 +21,6 @@
 #include "EntityScriptingInterface.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
-#include "QVariantGLM.h"
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
@@ -1139,3 +1138,4 @@ void EntityItem::updateLifetime(float value) {
         _dirtyFlags |= EntityItem::DIRTY_LIFETIME;
     }
 }
+

@@ -17,7 +17,6 @@
 #include "BoxEntityItem.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "QVariantGLM.h"
 
 
 EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -105,3 +104,4 @@ void BoxEntityItem::debugDump() const {
     qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
     qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
+
