@@ -19,6 +19,8 @@ subject to the following restrictions:
 #ifndef hifi_CharacterController_h
 #define hifi_CharacterController_h
 
+#include <AvatarData.h>
+
 #include <btBulletDynamicsCommon.h>
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 #include <BulletCollision/BroadphaseCollision/btCollisionAlgorithm.h>
@@ -39,14 +41,15 @@ ATTRIBUTE_ALIGNED16(class) CharacterController : public btCharacterControllerInt
 {
 protected:
 
-    btScalar m_halfHeight;
-
+    AvatarData* m_avatarData = NULL;
     btPairCachingGhostObject* m_ghostObject;
+    glm::vec3 m_shapeLocalOffset;
+
     btConvexShape* m_convexShape;//is also in m_ghostObject, but it needs to be convex, so we store it here to avoid upcast
 
     btScalar m_verticalVelocity;
     btScalar m_verticalOffset;
-    btScalar m_fallSpeed;
+    btScalar m_maxFallSpeed;
     btScalar m_jumpSpeed;
     btScalar m_maxJumpHeight;
     btScalar m_maxSlopeRadians; // Slope angle that is set (used for returning the exact value)
@@ -95,15 +98,12 @@ protected:
     void updateTargetPositionBasedOnCollision(const btVector3& hit_normal, btScalar tangentMag = btScalar(0.0), btScalar normalMag = btScalar(1.0));
     void stepForwardAndStrafe(btCollisionWorld* collisionWorld, const btVector3& walkMove);
     void stepDown(btCollisionWorld* collisionWorld, btScalar dt);
+    void createShapeAndGhost();
 public:
 
     BT_DECLARE_ALIGNED_ALLOCATOR();
 
-    CharacterController(
-            btPairCachingGhostObject* ghostObject, 
-            btConvexShape* convexShape, 
-            btScalar stepHeight, 
-            int upAxis = 1);
+    CharacterController(AvatarData* avatarData);
     ~CharacterController();
 
 
@@ -145,7 +145,7 @@ public:
     void preStep(btCollisionWorld* collisionWorld);
     void playerStep(btCollisionWorld* collisionWorld, btScalar dt);
 
-    void setFallSpeed(btScalar fallSpeed);
+    void setMaxFallSpeed(btScalar speed);
     void setJumpSpeed(btScalar jumpSpeed);
     void setMaxJumpHeight(btScalar maxJumpHeight);
     bool canJump() const;
@@ -167,6 +167,12 @@ public:
 
     bool onGround() const;
     void setUpInterpolate(bool value);
+
+    bool needsShapeUpdate();
+    void updateShape();
+
+    void preSimulation(btScalar timeStep);
+    void postSimulation();
 };
 
 #endif // hifi_CharacterController_h
