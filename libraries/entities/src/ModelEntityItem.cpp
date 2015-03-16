@@ -413,18 +413,18 @@ QString ModelEntityItem::getAnimationSettings() const {
     return jsonByteString;
 }
 
-void ModelEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("Model");
-    map["color"] = rgbColorToQList(_color);
-    map["model-url"] = _modelURL;
-    map["animation-url"] = _animationURL;
-    map["animation-fps"] = getAnimationFPS();
-    map["animation-frame-index"] = getAnimationFrameIndex();
-    map["animation-is-playing"] = getAnimationIsPlaying();
-    map["textures"] = _textures;
-    map["animation-settings"] = getAnimationSettings();
-    map["shape-type"] = _shapeType;
-}
+// void ModelEntityItem::writeSubTypeToMap(QVariantMap& map) {
+//     map["type"] = QString("Model");
+//     map["color"] = rgbColorToQList(_color);
+//     map["model-url"] = _modelURL;
+//     map["animation-url"] = _animationURL;
+//     map["animation-fps"] = getAnimationFPS();
+//     map["animation-frame-index"] = getAnimationFrameIndex();
+//     map["animation-is-playing"] = getAnimationIsPlaying();
+//     map["textures"] = _textures;
+//     map["animation-settings"] = getAnimationSettings();
+//     map["shape-type"] = _shapeType;
+// }
 
 
 void ModelEntityItem::readFromMap(QVariantMap& map) {

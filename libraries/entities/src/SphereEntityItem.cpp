@@ -129,10 +129,10 @@ void SphereEntityItem::debugDump() const {
 }
 
 
-void SphereEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("Sphere");
-    map["color"] = rgbColorToQList(_color);
-}
+// void SphereEntityItem::writeSubTypeToMap(QVariantMap& map) {
+//     map["type"] = QString("Sphere");
+//     map["color"] = rgbColorToQList(_color);
+// }
 
 
 void SphereEntityItem::readFromMap(QVariantMap& map) {

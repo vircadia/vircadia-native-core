@@ -369,3 +369,41 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
         vec3FromScriptValue(intersection, value.intersection);
     }
 }
+
+
+// XXX why can't I find a call that does this?
+QScriptValue variantMapToQScriptValue(QVariantMap& variantMap, QScriptEngine& scriptEngine) {
+    QScriptValue scriptValue = scriptEngine.newObject();
+
+    for (QVariantMap::const_iterator iter = variantMap.begin(); iter != variantMap.end(); ++iter) {
+        QString key = iter.key();
+        QVariant qValue = iter.value();
+
+        qDebug() << key << "=" << qValue;
+
+        switch(qValue.type()) {
+        case QVariant::Bool:
+            scriptValue.setProperty(key, qValue.toBool());
+            break;
+        case QVariant::Int:
+            scriptValue.setProperty(key, qValue.toInt());
+            break;
+        case QVariant::Double:
+            scriptValue.setProperty(key, qValue.toDouble());
+            break;
+        case QVariant::String: {
+            scriptValue.setProperty(key, scriptEngine.newVariant(qValue));
+            break;
+        }
+        case QVariant::Map: {
+            QVariantMap childMap = qValue.toMap();
+            scriptValue.setProperty(key, variantMapToQScriptValue(childMap, scriptEngine));
+            break;
+        }
+        default:
+            qDebug() << "unhandled QScript type" << qValue.type();
+        }
+    }
+
+    return scriptValue;
+}

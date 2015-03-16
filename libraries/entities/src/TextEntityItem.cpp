@@ -172,13 +172,13 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     return intersects;
 }
 
-void TextEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("Text");
-    map["text"] = _text;
-    map["line-height"] = _lineHeight;
-    map["text-color"] = rgbColorToQList(_textColor);
-    map["background-color"] = rgbColorToQList(_backgroundColor);
-}
+// void TextEntityItem::writeSubTypeToMap(QVariantMap& map) {
+//     map["type"] = QString("Text");
+//     map["text"] = _text;
+//     map["line-height"] = _lineHeight;
+//     map["text-color"] = rgbColorToQList(_textColor);
+//     map["background-color"] = rgbColorToQList(_backgroundColor);
+// }
 
 void TextEntityItem::readFromMap(QVariantMap& map) {
     _text = map.value("text", "").toString();

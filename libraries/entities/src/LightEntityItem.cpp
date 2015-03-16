@@ -151,13 +151,13 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, getCutoff());
 }
 
-void LightEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("Light");
-    map["color"] = rgbColorToQList(_color);
-    map["intensity"] = _intensity;
-    map["exponent"] = _exponent;
-    map["cutoff"] = _cutoff;
-}
+// void LightEntityItem::writeSubTypeToMap(QVariantMap& map) {
+//     map["type"] = QString("Light");
+//     map["color"] = rgbColorToQList(_color);
+//     map["intensity"] = _intensity;
+//     map["exponent"] = _exponent;
+//     map["cutoff"] = _cutoff;
+// }
 
 void LightEntityItem::readFromMap(QVariantMap& map) {
     qListtoRgbColor(map.value("color", QVariantList() << 255 << 255 << 255), _color);

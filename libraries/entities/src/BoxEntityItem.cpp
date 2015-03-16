@@ -108,10 +108,10 @@ void BoxEntityItem::debugDump() const {
 
 
 
-void BoxEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("Box");
-    map["color"] = rgbColorToQList(_color);
-}
+// void BoxEntityItem::writeSubTypeToMap(QVariantMap& map) {
+//     map["type"] = QString("Box");
+//     map["color"] = rgbColorToQList(_color);
+// }
 
 
 void BoxEntityItem::readFromMap(QVariantMap& map) {

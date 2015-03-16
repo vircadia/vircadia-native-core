@@ -11,9 +11,11 @@
 
 #include <PerfStat.h>
 #include <QDateTime>
+#include <QtScript/QScriptEngine>
 
 #include "EntityTree.h"
 #include "EntitySimulation.h"
+#include "EntityScriptingInterface.h"
 
 #include "AddEntityOperator.h"
 #include "MovingEntitiesOperator.h"
@@ -1043,7 +1045,12 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
 
 class ToMapOperator : public RecurseOctreeOperator {
 public:
-    ToMapOperator(QVariantMap& map, OctreeElement *top) : RecurseOctreeOperator(), _map(map), _top(top) {
+    ToMapOperator(QVariantMap& map, OctreeElement *top, QScriptEngine *engine) :
+        RecurseOctreeOperator(),
+        _map(map),
+        _top(top),
+        _engine(engine)
+    {
         // if some element "top" was given, only save information for that element and it's children.
         if (_top) {
             _withinTop = false;
@@ -1059,12 +1066,31 @@ public:
         return true;
     }
     bool postRecursion(OctreeElement* element) {
+
         EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
         const QList<EntityItem*>& entities = entityTreeElement->getEntities();
-        // XXX is this causing a lot of copying?
+
         QVariantList entitiesQList = qvariant_cast<QVariantList>(_map["Entities"]);
+
         foreach (EntityItem* entityItem, entities) {
-            entitiesQList << entityItem->writeToMap();
+            EntityItemProperties properties = entityItem->getProperties();
+
+            // XXX this is copied out of EntityScriptingInterface::getEntityProperties
+            // is it needed here?
+
+            // if (entityItem->getType() == EntityTypes::Model) {
+            //     const FBXGeometry* geometry = getGeometryForEntity(entityItem);
+            //     if (geometry) {
+            //         properties.setSittingPoints(geometry->sittingPoints);
+            //         Extents meshExtents = geometry->getUnscaledMeshExtents();
+            //         properties.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+            //     }
+            // }
+
+            QScriptValue qScriptValues =
+                EntityItemPropertiesToScriptValue(_engine, properties);
+
+            entitiesQList << qScriptValues.toVariant();
         }
         _map["Entities"] = entitiesQList;
         if (element == _top) {
@@ -1075,25 +1101,32 @@ public:
  private:
     QVariantMap& _map;
     OctreeElement *_top;
+    QScriptEngine *_engine;
     bool _withinTop;
 };
 
-
-
 bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* element) {
     entityDescription["Entities"] = QVariantList();
-    ToMapOperator theOperator(entityDescription, element);
+    QScriptEngine scriptEngine;
+    ToMapOperator theOperator(entityDescription, element, &scriptEngine);
     recurseTreeWithOperator(&theOperator);
     return true;
 }
 
-
 bool EntityTree::readFromMap(QVariantMap& map) {
+    // map will have a top-level list keyed as "Entities".  This will be extracted
+    // and iterated over.  Each member of this list is converted to a QVariantMap, then
+    // to a QScriptValue, and then to EntityItemProperties.  These properties are used
+    // to add the new entity to the EnitytTree.
     QVariantList entitiesQList = map["Entities"].toList();
-    foreach (QVariant entityQ, entitiesQList) {
-        QVariantMap entityMap = entityQ.toMap();
+    QScriptEngine scriptEngine;
 
+    foreach (QVariant entityVariant, entitiesQList) {
+        // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
+        QVariantMap entityMap = entityVariant.toMap();
+        QScriptValue entityScriptValue = variantMapToQScriptValue(entityMap, scriptEngine);
         EntityItemProperties properties;
+        EntityItemPropertiesFromScriptValue(entityScriptValue, properties);
 
         EntityItemID entityItemID;
         if (entityMap.contains("id")) {
@@ -1102,48 +1135,11 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid::createUuid());
         }
 
-        if (!entityMap.contains("type")) {
-            // forget it.
-            return false;
-        }
-
-        QString typeString = entityMap.value("type").toString();
-        QByteArray typeByteArray = typeString.toLocal8Bit();
-        const char *typeCString = typeByteArray.data();
-        properties.setType(EntityTypes::getEntityTypeFromName(typeCString));
-
-        properties.setCreated(entityMap.value("created", usecTimestampNow()).toULongLong());
-        properties.setPosition(qListToGlmVec3(entityMap.value("position", glmToQList(ENTITY_ITEM_DEFAULT_POSITION))));
-        properties.setDimensions(qListToGlmVec3(entityMap.value("dimensions", glmToQList(ENTITY_ITEM_DEFAULT_DIMENSIONS))));
-        properties.setRotation(qListToGlmQuat(entityMap.value("rotation", glmToQList(ENTITY_ITEM_DEFAULT_ROTATION))));
-        properties.setDensity(entityMap.value("density", 1.0).toFloat());
-        properties.setVelocity(qListToGlmVec3(entityMap.value("velocity", glmToQList(ENTITY_ITEM_DEFAULT_VELOCITY))));
-        properties.setGravity(qListToGlmVec3(entityMap.value("gravity", glmToQList(ENTITY_ITEM_DEFAULT_GRAVITY))));
-        properties.setDamping(entityMap.value("damping", ENTITY_ITEM_DEFAULT_DAMPING).toFloat());
-        properties.setLifetime(entityMap.value("lifetime", ENTITY_ITEM_DEFAULT_LIFETIME).toFloat());
-        properties.setScript(entityMap.value("script", ENTITY_ITEM_DEFAULT_SCRIPT).toString());
-        properties.setRegistrationPoint(qListToGlmVec3(entityMap.value("registration-point",
-                                                                       glmToQList(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT))));
-        properties.setAngularVelocity(qListToGlmVec3(entityMap.value("angular-velocity",
-                                                                     glmToQList(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY))));
-        properties.setAngularDamping(entityMap.value("angular-damping", ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING).toFloat());
-        properties.setGlowLevel(entityMap.value("glow", ENTITY_ITEM_DEFAULT_GLOW_LEVEL).toFloat());
-        properties.setLocalRenderAlpha(entityMap.value("alpha", ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA).toFloat());
-        properties.setVisible(entityMap.value("visible", ENTITY_ITEM_DEFAULT_VISIBLE).toBool());
-        properties.setIgnoreForCollisions(entityMap.value("ignore-for-collisions",
-                                                          ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS).toBool());
-        properties.setCollisionsWillMove(entityMap.value("collisions-will-move",
-                                                         ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE).toBool());
-        properties.setLocked(entityMap.value("locked", ENTITY_ITEM_DEFAULT_LOCKED).toBool());
-        properties.setUserData(entityMap.value("user-data", ENTITY_ITEM_DEFAULT_USER_DATA).toString());
-
         EntityItem* entity = addEntity(entityItemID, properties);
-
-        entity->readFromMap(entityMap);
+        if (!entity) {
+            qDebug() << "adding Entity failed:" << entityItemID << entity->getType();
+        }
     }
-
-
-
 
     return true;
 }

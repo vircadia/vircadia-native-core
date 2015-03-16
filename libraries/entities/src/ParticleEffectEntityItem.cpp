@@ -512,21 +512,21 @@ void ParticleEffectEntityItem::resetSimulation() {
 }
 
 
-void ParticleEffectEntityItem::writeSubTypeToMap(QVariantMap& map) {
-    map["type"] = QString("Box");
-    map["color"] = rgbColorToQList(_color);
-    map["max-particles"] = _maxParticles;
-    map["lifespan"] = _lifespan;
-    map["emit-rate"] = _emitRate;
-    map["emit-direction"] = glmToQList(_emitDirection);
-    map["emit-strength"] = _emitStrength;
-    map["local-gravity"] = _localGravity;
-    map["particle-radius"] = _particleRadius;
-    map["last-animatged"] = _lastAnimated;
-    map["animation-last"] = getAnimationLoop();
-    map["animation-settings"] = _animationSettings;
-    map["shape-type"] = _shapeType;
-}
+// void ParticleEffectEntityItem::writeSubTypeToMap(QVariantMap& map) {
+//     map["type"] = QString("Box");
+//     map["color"] = rgbColorToQList(_color);
+//     map["max-particles"] = _maxParticles;
+//     map["lifespan"] = _lifespan;
+//     map["emit-rate"] = _emitRate;
+//     map["emit-direction"] = glmToQList(_emitDirection);
+//     map["emit-strength"] = _emitStrength;
+//     map["local-gravity"] = _localGravity;
+//     map["particle-radius"] = _particleRadius;
+//     map["last-animatged"] = _lastAnimated;
+//     map["animation-last"] = getAnimationLoop();
+//     map["animation-settings"] = _animationSettings;
+//     map["shape-type"] = _shapeType;
+// }
 
 
 void ParticleEffectEntityItem::readFromMap(QVariantMap& map) {

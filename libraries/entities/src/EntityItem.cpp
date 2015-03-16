@@ -1139,34 +1139,3 @@ void EntityItem::updateLifetime(float value) {
         _dirtyFlags |= EntityItem::DIRTY_LIFETIME;
     }
 }
-
-QVariantMap EntityItem::writeToMap() {
-    QVariantMap result;
-    result["id"] = getID().toString();
-    result["type"] = _type;
-
-    result["created"] = _created;
-    result["last-edited"] = getLastEdited();
-    result["last-updated"] = _lastUpdated;
-    result["position"] = glmToQList(getPosition());
-    result["dimensions"] = glmToQList(getDimensions());
-    result["rotation"] = glmToQList(getRotation());
-    result["density"] = getDensity();
-    result["velocity"] = glmToQList(getVelocity());
-    result["gravity"] = glmToQList(getGravity());
-    result["damping"] = getDamping();
-    result["lifetime"] = getLifetime();
-    result["script"] = getScript();
-    result["registration-point"] = glmToQList(getRegistrationPoint());
-    result["angular-velocity"] = glmToQList(getAngularVelocity());
-    result["angular-damping"] = getAngularDamping();
-    result["visible"] = getVisible();
-    result["ignore-for-collisions"] = getIgnoreForCollisions();
-    result["collisions-will-move"] = getCollisionsWillMove();
-    result["locked"] = getLocked();
-    result["user-data"] = getUserData();
-    result["glow-level"] = getGlowLevel();
-
-    writeSubTypeToMap(result);
-    return result;
-}
