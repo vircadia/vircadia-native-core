@@ -204,8 +204,7 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
         const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
-            result.id = closestEntity->getID();
-            result.isKnownID = true;
+            result = closestEntity->getEntityItemID();
         }
     }
     return result;
@@ -229,8 +228,7 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
         _entityTree->unlock();
         
         foreach (const EntityItem* entity, entities) {
-            EntityItemID thisEntityItemID(entity->getID(), UNKNOWN_ENTITY_TOKEN, true);
-            result << thisEntityItemID;
+            result << entity->getEntityItemID();
         }
     }
     return result;
@@ -246,8 +244,7 @@ QVector<EntityItemID> EntityScriptingInterface::findEntitiesInBox(const glm::vec
         _entityTree->unlock();
         
         foreach (const EntityItem* entity, entities) {
-            EntityItemID thisEntityItemID(entity->getID(), UNKNOWN_ENTITY_TOKEN, true);
-            result << thisEntityItemID;
+            result << entity->getEntityItemID();
         }
     }
     return result;
