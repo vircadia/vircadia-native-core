@@ -2053,12 +2053,13 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
 }
 
 bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
-    char rawData[streamLength];
+    char *rawData = new char[streamLength];
     inputStream.readRawData(rawData, streamLength);
     QJsonDocument d = QJsonDocument::fromJson(rawData);
     QVariant v = d.toVariant();
     QVariantMap m = v.toMap();
     readFromMap(m);
+    delete rawData;
     return true;
 }
 
