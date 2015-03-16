@@ -111,6 +111,8 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
         READ_ENTITY_PROPERTY(PROP_EXPONENT, float, _exponent);
         READ_ENTITY_PROPERTY(PROP_CUTOFF, float, _cutoff);
+
+        (void) ignoredAttenuation; // suppress compiler warning
     } else {
         READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, _isSpotlight);
         READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
