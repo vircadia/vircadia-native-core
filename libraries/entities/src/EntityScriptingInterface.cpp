@@ -35,6 +35,25 @@ bool EntityScriptingInterface::canAdjustLocks() {
 }
 
 
+void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
+    if (_entityTree) {
+        disconnect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
+        disconnect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
+        disconnect(_entityTree, &EntityTree::changingEntityID, this, &EntityScriptingInterface::changingEntityID);
+        disconnect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
+    }
+
+    _entityTree = modelTree;
+
+    if (_entityTree) {
+        connect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
+        connect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
+        connect(_entityTree, &EntityTree::changingEntityID, this, &EntityScriptingInterface::changingEntityID);
+        connect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
+    }
+}
+
+
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     // The application will keep track of creatorTokenID

@@ -573,10 +573,6 @@ void Application::cleanupBeforeQuit() {
     _settingsThread.quit();
     saveSettings();
     _window->saveGeometry();
-    
-    // TODO: now that this is in cleanupBeforeQuit do we really need it to stop and force
-    // an event loop to send the packet?
-    UserActivityLogger::getInstance().close();
 
     // let the avatar mixer know we're out
     MyAvatar::sendKillAvatar();
@@ -875,6 +871,10 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         // Perform the broadcast for one type
         DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
     }
+}
+
+void Application::importSVOFromURL(QUrl url) {
+    emit svoImportRequested(url.url());
 }
 
 bool Application::event(QEvent* event) {
@@ -4094,5 +4094,8 @@ void Application::checkSkeleton() {
         
         _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
         _myAvatar->sendIdentityPacket();
+    } else {
+        _myAvatar->updateLocalAABox();
+        _physicsEngine.setAvatarData(_myAvatar);
     }
 }

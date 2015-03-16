@@ -121,6 +121,7 @@ public:
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
     virtual glm::vec3 getSkeletonPosition() const;
+    void updateLocalAABox();
     
     void clearJointAnimationPriorities();
 

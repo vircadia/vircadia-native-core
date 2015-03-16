@@ -133,9 +133,6 @@ public:
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
-    /// \return bounding radius of avatar
-    virtual float getBoundingRadius() const;
-
     Q_INVOKABLE void setSkeletonOffset(const glm::vec3& offset);
     Q_INVOKABLE glm::vec3 getSkeletonOffset() { return _skeletonOffset; }
     virtual glm::vec3 getSkeletonPosition() const;

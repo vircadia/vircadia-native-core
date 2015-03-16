@@ -104,15 +104,16 @@ void MeshInfoTests::testWithTetrahedronAsMesh(){
 	glm::vec3 p2(52.61236, 5.00000, -5.38580);
 	glm::vec3 p3(2.00000, 5.00000, 3.00000);
 	glm::vec3 centroid(15.92492, 0.782813, 3.72962);
-	float volume = 1873.233236f;
-	float inertia_a = 43520.33257f;
-	//actual should be 194711.28938f. But for some reason it becomes 194711.296875 during
+    /* TODO: actually test inertia/volume calculations here
+	//float volume = 1873.233236f;
 	//runtime due to how floating points are stored.
+	float inertia_a = 43520.33257f;
 	float inertia_b = 194711.289f;
 	float inertia_c = 191168.76173f;
 	float inertia_aa = 4417.66150f;
 	float inertia_bb = -46343.16662f;
 	float inertia_cc = 11996.20119f;
+    */
 	std::cout << std::setprecision(12);
 	vector<glm::vec3> vertices = { p0, p1, p2, p3 };
 	vector<int> triangles = { 0, 2, 1, 0, 3, 2, 0, 1, 3, 1, 2, 3 };
@@ -129,6 +130,7 @@ void MeshInfoTests::testWithTetrahedronAsMesh(){
 	p2 -= centroid;
 	p3 -= centroid;
 }
+
 void MeshInfoTests::testWithCube(){
     glm::vec3 p0(1.0, -1.0, -1.0);
     glm::vec3 p1(1.0, -1.0, 1.0);

@@ -1026,11 +1026,6 @@ float Avatar::getHeadHeight() const {
     return DEFAULT_HEAD_HEIGHT;
 }
 
-float Avatar::getBoundingRadius() const {
-    // TODO: also use head model when computing the avatar's bounding radius
-    return _skeletonModel.getBoundingRadius();
-}
-
 float Avatar::getPelvisFloatingHeight() const {
     return -_skeletonModel.getBindExtents().minimum.y;
 }

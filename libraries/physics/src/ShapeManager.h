@@ -38,12 +38,17 @@ public:
     // validation methods
     int getNumShapes() const { return _shapeMap.size(); }
     int getNumReferences(const ShapeInfo& info) const;
+    int getNumReferences(const btCollisionShape* shape) const;
+    bool hasShape(const btCollisionShape* shape) const; 
 
 private:
+    bool releaseShape(const DoubleHashKey& key);
+
     struct ShapeReference {
-        int _refCount;
-        btCollisionShape* _shape;
-        ShapeReference() : _refCount(0), _shape(NULL) {}
+        int refCount;
+        btCollisionShape* shape;
+        DoubleHashKey key;
+        ShapeReference() : refCount(0), shape(NULL) {}
     };
 
     btHashMap<DoubleHashKey, ShapeReference> _shapeMap;

@@ -19,7 +19,6 @@
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkRequest>
-#include <QEventLoop>
 #include <qthread.h>
 
 #include <SettingHandle.h>
@@ -300,8 +299,6 @@ void AccountManager::processReply() {
         passErrorToCallback(requestReply);
     }
     delete requestReply;
-
-    emit replyFinished();
 }
 
 void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
@@ -341,15 +338,6 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
         }
     }
 }
-
-void AccountManager::waitForAllPendingReplies() {
-    while (_pendingCallbackMap.size() > 0) {
-        QEventLoop loop;
-        QObject::connect(this, &AccountManager::replyFinished, &loop, &QEventLoop::quit);
-        loop.exec();
-    }
-}
-
 
 void AccountManager::persistAccountToSettings() {
     if (_shouldPersistToSettingsFile) {
