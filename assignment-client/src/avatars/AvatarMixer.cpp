@@ -119,12 +119,24 @@ void AvatarMixer::broadcastAvatarData() {
     
     auto nodeList = DependencyManager::get<NodeList>();
     
-    AvatarMixerClientData* nodeData = NULL;
-    AvatarMixerClientData* otherNodeData = NULL;
-    
-    nodeList->eachNode([&](const SharedNodePointer& node) {
-        if (node->getLinkedData() && node->getType() == NodeType::Agent && node->getActiveSocket()
-            && (nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData()))->getMutex().tryLock()) {
+    nodeList->eachMatchingNode(
+        [&](const SharedNodePointer& node)->bool {
+            if (!node->getLinkedData()) {
+                return false;
+            }
+            if (node->getType() != NodeType::Agent) {
+                return false;
+            }
+            if (!node->getActiveSocket()) {
+                return false;
+            }
+            return true;
+        },
+        [&](const SharedNodePointer& node) {
+            AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+            if (!nodeData->getMutex().tryLock()) {
+                return;
+            }
             ++_sumListeners;
             
             // reset packet pointers for this node
@@ -135,9 +147,21 @@ void AvatarMixer::broadcastAvatarData() {
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
-            nodeList->eachNode([&](const SharedNodePointer& otherNode) {
-                if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()
-                    && (otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData()))->getMutex().tryLock()) {
+            nodeList->eachMatchingNode(
+                [&](const SharedNodePointer& otherNode)->bool {
+                    if (!otherNode->getLinkedData()) {
+                        return false;
+                    }
+                    if (otherNode->getUUID() == node->getUUID()) {
+                        return false;
+                    }
+                    return true;
+                },
+                [&](const SharedNodePointer& otherNode) {
+                    AvatarMixerClientData* otherNodeData = otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
+                    if (!otherNodeData->getMutex().tryLock()) {
+                        return;
+                    }
                     
                     AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
@@ -202,13 +226,11 @@ void AvatarMixer::broadcastAvatarData() {
                     }
                 
                     otherNodeData->getMutex().unlock();
-                }
             });
             
             nodeList->writeDatagram(mixedAvatarByteArray, node);
             
             nodeData->getMutex().unlock();
-        }
     });
     
     _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
