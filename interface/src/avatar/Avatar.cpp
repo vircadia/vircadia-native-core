@@ -1023,7 +1023,8 @@ float Avatar::getHeadHeight() const {
     if (!extents.isEmpty() && _skeletonModel.getNeckPosition(neckPosition)) {
         return extents.maximum.y / 2.0f - neckPosition.y + _position.y;
     }
-    const float DEFAULT_HEAD_HEIGHT = 0.1f;
+
+    const float DEFAULT_HEAD_HEIGHT = 0.25f;
     return DEFAULT_HEAD_HEIGHT;
 }
 
