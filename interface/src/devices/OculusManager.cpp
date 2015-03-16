@@ -560,6 +560,10 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     //Wait till time-warp to reduce latency
     ovr_WaitTillTime(_hmdFrameTiming.TimewarpPointSeconds);
 
+    //Clear the color buffer to ensure that there isnt any residual color
+    //Left over from when OR was not connected.
+    glClear(GL_COLOR_BUFFER_BIT);
+
     glBindTexture(GL_TEXTURE_2D, finalFbo->texture());
 
     //Renders the distorted mesh onto the screen
