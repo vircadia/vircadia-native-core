@@ -87,10 +87,14 @@ public slots:
     /// will return a EntityItemID.isKnownID = false if no models are in the radius
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE EntityItemID findClosestEntity(const glm::vec3& center, float radius) const;
-
+    
     /// finds models within the search sphere specified by the center point and radius
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<EntityItemID> findEntities(const glm::vec3& center, float radius) const;
+    
+    /// finds models within the search sphere specified by the center point and radius
+    /// this function will not find any models in script engine contexts which don't have access to models
+    Q_INVOKABLE QVector<EntityItemID> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
 
     /// If the scripting context has visible entities, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
