@@ -111,12 +111,18 @@ public:
     /// \param foundEntities[out] vector of const EntityItem*
     /// \remark Side effect: any initial contents in foundEntities will be lost
     void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
-
+    
     /// finds all entities that touch a cube
     /// \param cube the query cube in world-frame (meters)
     /// \param foundEntities[out] vector of non-const EntityItem*
     /// \remark Side effect: any initial contents in entities will be lost
     void findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities);
+    
+    /// finds all entities that touch a box
+    /// \param box the query box in world-frame (meters)
+    /// \param foundEntities[out] vector of non-const EntityItem*
+    /// \remark Side effect: any initial contents in entities will be lost
+    void findEntities(const AABox& box, QVector<EntityItem*>& foundEntities);
 
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
@@ -176,6 +182,7 @@ private:
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
+    static bool findInBoxOperation(OctreeElement* element, void* extraData);
     static bool sendEntitiesOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
