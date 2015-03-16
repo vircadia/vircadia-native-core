@@ -287,26 +287,11 @@ public:
     void setDirtyBit() { _isDirty = true; }
 
     // Octree does not currently handle its own locking, caller must use these to lock/unlock
-    void lockForRead() {
-        qDebug() << "READ LOCKING OCTREE" << QThread::currentThreadId();
-        _lock.lockForRead();
-    }
-    bool tryLockForRead() {
-        qDebug() << "TRY READ LOCKING OCTREE" << QThread::currentThreadId();
-        return _lock.tryLockForRead();
-    }
-    void lockForWrite() {
-        qDebug() << "WRITE LOCKING OCTREE" << QThread::currentThreadId();
-        _lock.lockForWrite();
-    }
-    bool tryLockForWrite() {
-        qDebug() << "TRY WRITE LOCKING OCTREE" << QThread::currentThreadId();
-        return _lock.tryLockForWrite();
-    }
-    void unlock() {
-        qDebug() << "UNLOCKING OCTREE" << QThread::currentThreadId();
-        _lock.unlock();
-    }
+    void lockForRead() { _lock.lockForRead(); }
+    bool tryLockForRead() { return _lock.tryLockForRead(); }
+    void lockForWrite() { _lock.lockForWrite(); }
+    bool tryLockForWrite() { return _lock.tryLockForWrite(); }
+    void unlock() { _lock.unlock(); }
     // output hints from the encode process
     typedef enum {
         Lock,

@@ -427,6 +427,7 @@ bool ModelEntityItem::isReadyToComputeShape() {
     }
 
     if (_collisionNetworkGeometry.isNull()) {
+
         _collisionNetworkGeometry =
             DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false);
 
