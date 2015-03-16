@@ -43,22 +43,7 @@ bool RecurseOctreeToMapOperator::postRecursion(OctreeElement* element) {
 
     foreach (EntityItem* entityItem, entities) {
         EntityItemProperties properties = entityItem->getProperties();
-
-        // XXX this is copied out of EntityScriptingInterface::getEntityProperties
-        // is it needed here?
-
-        // if (entityItem->getType() == EntityTypes::Model) {
-        //     const FBXGeometry* geometry = getGeometryForEntity(entityItem);
-        //     if (geometry) {
-        //         properties.setSittingPoints(geometry->sittingPoints);
-        //         Extents meshExtents = geometry->getUnscaledMeshExtents();
-        //         properties.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
-        //     }
-        // }
-
-        QScriptValue qScriptValues =
-            EntityItemPropertiesToScriptValue(_engine, properties);
-
+        QScriptValue qScriptValues = EntityItemPropertiesToScriptValue(_engine, properties);
         entitiesQList << qScriptValues.toVariant();
     }
     _map["Entities"] = entitiesQList;

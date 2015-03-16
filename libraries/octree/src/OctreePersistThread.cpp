@@ -148,7 +148,7 @@ bool OctreePersistThread::process() {
                 qDebug() << "Loading Octree... lock file removed:" << lockFileName;
             }
 
-            persistantFileRead = _tree->readFromFile(_filename.toLocal8Bit().constData());
+            persistantFileRead = _tree->readFromFile(qPrintable(_filename.toLocal8Bit()));
             _tree->pruneTree();
         }
         _tree->unlock();

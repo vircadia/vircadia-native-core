@@ -15,7 +15,7 @@
 
 #include "EntityTree.h"
 #include "EntitySimulation.h"
-#include "EntityScriptingInterface.h"
+#include "VariantMapToScriptValue.h"
 
 #include "AddEntityOperator.h"
 #include "MovingEntitiesOperator.h"
@@ -1091,7 +1091,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     foreach (QVariant entityVariant, entitiesQList) {
         // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
         QVariantMap entityMap = entityVariant.toMap();
-        QScriptValue entityScriptValue = variantMapToQScriptValue(entityMap, scriptEngine);
+        QScriptValue entityScriptValue = variantMapToScriptValue(entityMap, scriptEngine);
         EntityItemProperties properties;
         EntityItemPropertiesFromScriptValue(entityScriptValue, properties);
 
