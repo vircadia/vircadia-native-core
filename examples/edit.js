@@ -103,12 +103,24 @@ var isActive = false;
 
 var placingEntityID = null;
 
-IMPORTING_SVO_OVERLAY_WIDTH = 130;
+IMPORTING_SVO_OVERLAY_WIDTH = 144;
 IMPORTING_SVO_OVERLAY_HEIGHT = 30;
-IMPORTING_SVO_OVERLAY_MARGIN = 6;
-var importingSVOOverlay = Overlays.addOverlay("text", {
+IMPORTING_SVO_OVERLAY_MARGIN = 5;
+IMPORTING_SVO_OVERLAY_LEFT_MARGIN = 34;
+var importingSVOImageOverlay = Overlays.addOverlay("image", {
+    imageURL: HIFI_PUBLIC_BUCKET + "images/hourglass.svg",
+    width: 20,
+    height: 20,
+    alpha: 1.0,
+    color: { red: 255, green: 255, blue: 255 },
+    x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH,
+    y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT,
+    visible: false,
+});
+var importingSVOTextOverlay = Overlays.addOverlay("text", {
     font: { size: 14 },
     text: "Importing SVO...",
+    leftMargin: IMPORTING_SVO_OVERLAY_LEFT_MARGIN,
     x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH - IMPORTING_SVO_OVERLAY_MARGIN,
     y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT - IMPORTING_SVO_OVERLAY_MARGIN,
     width: IMPORTING_SVO_OVERLAY_WIDTH,
@@ -754,6 +766,10 @@ function setupModelMenus() {
                         afterItem: "Allow Selecting of Large Models", isCheckable: true, isChecked: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
                         afterItem: "Allow Selecting of Small Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities In Box", shortcutKey: "CTRL+SHIFT+META+A", 
+                        afterItem: "Allow Selecting of Lights" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities Touching Box", shortcutKey: "CTRL+SHIFT+META+T", 
+                        afterItem: "Select All Entities In Box" });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Entities", shortcutKey: "CTRL+META+E", afterItem: "Models" });
@@ -783,6 +799,8 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
+    Menu.removeMenuItem("Edit", "Select All Entities In Box");
+    Menu.removeMenuItem("Edit", "Select All Entities Touching Box");
 
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Entities");
@@ -807,7 +825,8 @@ Script.scriptEnding.connect(function() {
     selectionDisplay.cleanup();
     Entities.setLightsArePickable(originalLightsArePickable);
 
-    Overlays.deleteOverlay(importingSVOOverlay);
+    Overlays.deleteOverlay(importingSVOImageOverlay);
+    Overlays.deleteOverlay(importingSVOTextOverlay);
 });
 
 // Do some stuff regularly, like check for placement of various overlays
@@ -816,6 +835,45 @@ Script.update.connect(function (deltaTime) {
     progressDialog.move();
     selectionDisplay.checkMove();
 });
+
+function insideBox(center, dimensions, point) {
+    return (Math.abs(point.x - center.x) <= (dimensions.x / 2.0))
+        && (Math.abs(point.y - center.y) <= (dimensions.y / 2.0))
+        && (Math.abs(point.z - center.z) <= (dimensions.z / 2.0));
+}
+
+function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
+    if (selectionManager.hasSelection()) {
+        // Get all entities touching the bounding box of the current selection
+        var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
+                                              Vec3.multiply(selectionManager.worldDimensions, 0.5));
+        var entities = Entities.findEntitiesInBox(boundingBoxCorner, selectionManager.worldDimensions);
+        
+        if (!keepIfTouching) {
+            var isValid;
+            if (selectionManager.localPosition === null) {
+                isValid = function(position) {
+                    return insideBox(selectionManager.worldPosition, selectionManager.worldDimensions, position);
+                }
+            } else {
+                isValid = function(position) {
+                    var localPosition = Vec3.multiplyQbyV(Quat.inverse(selectionManager.localRotation),
+                                                          Vec3.subtract(position,
+                                                                        selectionManager.localPosition));
+                    return insideBox({ x: 0, y: 0, z: 0 }, selectionManager.localDimensions, localPosition);
+                }
+            }
+            for (var i = 0; i < entities.length; ++i) {
+                var properties = Entities.getEntityProperties(entities[i]);
+                if (!isValid(properties.position)) {
+                    entities.splice(i, 1);
+                    --i;
+                }
+            } 
+        }
+        selectionManager.setSelections(entities);
+    }
+}
 
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
@@ -875,6 +933,10 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Entity List...") {
         entityListTool.toggleVisible();
+    } else if (menuItem == "Select All Entities In Box") {
+        selectAllEtitiesInCurrentSelectionBox(false);
+    } else if (menuItem == "Select All Entities Touching Box") {
+        selectAllEtitiesInCurrentSelectionBox(true);
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     }
@@ -882,7 +944,8 @@ function handeMenuEvent(menuItem) {
 }
 
 function importSVO(importURL) {
-    Overlays.editOverlay(importingSVOOverlay, { visible: true });
+    Overlays.editOverlay(importingSVOTextOverlay, { visible: true });
+    Overlays.editOverlay(importingSVOImageOverlay, { visible: true });
 
     var success = Clipboard.importEntities(importURL);
 
@@ -907,7 +970,8 @@ function importSVO(importURL) {
         Window.alert("There was an error importing the entity file.");
     }
 
-    Overlays.editOverlay(importingSVOOverlay, { visible: false });
+    Overlays.editOverlay(importingSVOTextOverlay, { visible: false });
+    Overlays.editOverlay(importingSVOImageOverlay, { visible: false });
 }
 Window.svoImportRequested.connect(importSVO);
 

@@ -528,6 +528,35 @@ void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*>& foundEnt
     foundEntities.swap(args._foundEntities);
 }
 
+class FindEntitiesInBoxArgs {
+public:
+    FindEntitiesInBoxArgs(const AABox& box)
+    : _box(box), _foundEntities() {
+    }
+    
+    AABox _box;
+    QVector<EntityItem*> _foundEntities;
+};
+
+bool EntityTree::findInBoxOperation(OctreeElement* element, void* extraData) {
+    FindEntitiesInBoxArgs* args = static_cast<FindEntitiesInBoxArgs*>(extraData);
+    if (element->getAACube().touches(args->_box)) {
+        EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+        entityTreeElement->getEntities(args->_box, args->_foundEntities);
+        return true;
+    }
+    return false;
+}
+
+// NOTE: assumes caller has handled locking
+void EntityTree::findEntities(const AABox& box, QVector<EntityItem*>& foundEntities) {
+    FindEntitiesInBoxArgs args(box);
+    // NOTE: This should use recursion, since this is a spatial operation
+    recurseTreeWithOperation(findInBoxOperation, &args);
+    // swap the two lists of entity pointers instead of copy
+    foundEntities.swap(args._foundEntities);
+}
+
 EntityItem* EntityTree::findEntityByID(const QUuid& id) {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);
