@@ -127,14 +127,3 @@ void SphereEntityItem::debugDump() const {
     qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
     qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
-
-
-// void SphereEntityItem::writeSubTypeToMap(QVariantMap& map) {
-//     map["type"] = QString("Sphere");
-//     map["color"] = rgbColorToQList(_color);
-// }
-
-
-void SphereEntityItem::readFromMap(QVariantMap& map) {
-    qListtoRgbColor(map.value("color", QVariantList() << 255 << 255 << 255), _color);
-}

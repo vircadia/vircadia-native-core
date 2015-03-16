@@ -105,15 +105,3 @@ void BoxEntityItem::debugDump() const {
     qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
     qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
-
-
-
-// void BoxEntityItem::writeSubTypeToMap(QVariantMap& map) {
-//     map["type"] = QString("Box");
-//     map["color"] = rgbColorToQList(_color);
-// }
-
-
-void BoxEntityItem::readFromMap(QVariantMap& map) {
-    qListtoRgbColor(map.value("color", QVariantList() << 255 << 255 << 255), _color);
-}

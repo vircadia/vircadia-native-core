@@ -379,8 +379,6 @@ QScriptValue variantMapToQScriptValue(QVariantMap& variantMap, QScriptEngine& sc
         QString key = iter.key();
         QVariant qValue = iter.value();
 
-        qDebug() << key << "=" << qValue;
-
         switch(qValue.type()) {
         case QVariant::Bool:
             scriptValue.setProperty(key, qValue.toBool());

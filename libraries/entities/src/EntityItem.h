@@ -295,11 +295,6 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
-    // virtual void writeSubTypeToMap(QVariantMap& map) = 0;
-
-    virtual void readFromMap(QVariantMap& map) = 0;
-
-
 protected:
 
     static bool _sendPhysicsUpdates;
