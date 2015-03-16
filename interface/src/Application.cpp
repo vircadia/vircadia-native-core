@@ -2138,9 +2138,9 @@ void Application::updateCursor(float deltaTime) {
 
 void Application::updateCursorVisibility() {
     if (!_cursorVisible || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
-        _glWidget->setCursor(Qt::BlankCursor);
+        _window->setCursor(Qt::BlankCursor);
     } else {
-        _glWidget->unsetCursor();
+        _window->unsetCursor();
     }
 }
 
