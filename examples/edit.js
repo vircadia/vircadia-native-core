@@ -933,15 +933,12 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Entity List...") {
         entityListTool.toggleVisible();
-<<<<<<< HEAD
     } else if (menuItem == "Select All Entities In Box") {
         selectAllEtitiesInCurrentSelectionBox(false);
     } else if (menuItem == "Select All Entities Touching Box") {
         selectAllEtitiesInCurrentSelectionBox(true);
-=======
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
->>>>>>> dfd39ca1e14bb2198b12374b6bc863b3c27f673c
     }
     tooltip.show(false);
 }
