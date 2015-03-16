@@ -1017,10 +1017,11 @@ float Avatar::getHeadHeight() const {
     if (!extents.isEmpty()) {
         return extents.maximum.y - extents.minimum.y;
     }
+
+    extents = _skeletonModel.getMeshExtents();
     glm::vec3 neckPosition;
-    glm::vec3 headPosition;
-    if (_skeletonModel.getNeckPosition(neckPosition) && _skeletonModel.getHeadPosition(headPosition)) {
-        return glm::distance(neckPosition, headPosition);
+    if (!extents.isEmpty() && _skeletonModel.getNeckPosition(neckPosition)) {
+        return extents.maximum.y / 2.0f - neckPosition.y + _position.y;
     }
     const float DEFAULT_HEAD_HEIGHT = 0.1f;
     return DEFAULT_HEAD_HEIGHT;
