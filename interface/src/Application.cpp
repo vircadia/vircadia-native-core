@@ -2137,7 +2137,9 @@ void Application::updateCursor(float deltaTime) {
 }
 
 void Application::updateCursorVisibility() {
-    if (!_cursorVisible || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+    if (!_cursorVisible ||
+        Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) ||
+        Menu::getInstance()->isOptionChecked(MenuOption::Enable3DTVMode)) {
         _window->setCursor(Qt::BlankCursor);
     } else {
         _window->unsetCursor();
