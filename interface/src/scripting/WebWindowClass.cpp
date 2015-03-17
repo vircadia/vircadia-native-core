@@ -55,6 +55,7 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
         _windowWidget = dockWidget;
     } else {
         _windowWidget = new QWidget(Application::getInstance()->getWindow(), Qt::Window);
+        _windowWidget->setWindowTitle(title);
         _windowWidget->setMinimumSize(width, height);
 
         auto layout = new QVBoxLayout(_windowWidget);
