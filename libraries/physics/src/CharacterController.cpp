@@ -53,7 +53,7 @@ m_me = me;
 
 virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace)
 {
-if(rayResult.m_collisionObject == m_me)
+if (rayResult.m_collisionObject == m_me)
 return 1.0;
 
 return ClosestRayResultCallback::addSingleResult(rayResult, normalInWorldSpace);
@@ -221,7 +221,6 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
                     if (dist < maxPen) {
                         maxPen = dist;
                         m_touchingNormal = pt.m_normalWorldOnB * directionSign;//??
-
                     }
                     m_currentPosition += pt.m_normalWorldOnB * directionSign * dist * btScalar(0.2);
                     penetration = true;
@@ -282,7 +281,7 @@ void CharacterController::stepUp( btCollisionWorld* world) {
 void CharacterController::updateTargetPositionBasedOnCollision(const btVector3& hitNormal, btScalar tangentMag, btScalar normalMag) {
     btVector3 movementDirection = m_targetPosition - m_currentPosition;
     btScalar movementLength = movementDirection.length();
-    if (movementLength>SIMD_EPSILON) {
+    if (movementLength > SIMD_EPSILON) {
         movementDirection.normalize();
 
         btVector3 reflectDir = computeReflectionDirection(movementDirection, hitNormal);
@@ -296,12 +295,12 @@ void CharacterController::updateTargetPositionBasedOnCollision(const btVector3& 
         m_targetPosition = m_currentPosition;
         //if (tangentMag != 0.0) {
         if (0) {
-            btVector3 parComponent = parallelDir * btScalar(tangentMag*movementLength);
+            btVector3 parComponent = parallelDir * btScalar(tangentMag * movementLength);
             m_targetPosition +=  parComponent;
         }
 
         if (normalMag != 0.0) {
-            btVector3 perpComponent = perpindicularDir * btScalar(normalMag*movementLength);
+            btVector3 perpComponent = perpindicularDir * btScalar(normalMag * movementLength);
             m_targetPosition += perpComponent;
         }
     }
@@ -337,10 +336,8 @@ void CharacterController::stepForwardAndStrafe( btCollisionWorld* collisionWorld
         callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
         callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
 
-
         btScalar margin = m_convexShape->getMargin();
         m_convexShape->setMargin(margin + m_addedMargin);
-
 
         if (m_useGhostObjectSweepTest) {
             m_ghostObject->convexSweepTest(m_convexShape, start, end, callback, collisionWorld->getDispatchInfo().m_allowedCcdPenetration);
@@ -349,7 +346,6 @@ void CharacterController::stepForwardAndStrafe( btCollisionWorld* collisionWorld
         }
 
         m_convexShape->setMargin(margin);
-
 
         fraction -= callback.m_closestHitFraction;
 
@@ -443,13 +439,13 @@ void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar d
 
         btScalar downDistance = (m_verticalVelocity < 0.0f ? -m_verticalVelocity : 0.0f) * dt;
         bool has_hit = false;
-        if(bounce_fix == true) {
+        if (bounce_fix == true) {
             has_hit = callback.hasHit() || callback2.hasHit();
         } else {
             has_hit = callback2.hasHit();
         }
 
-        if(downDistance > 0.0 && downDistance < m_stepHeight && has_hit == true && runOnce == false
+        if (downDistance > 0.0 && downDistance < m_stepHeight && has_hit == true && runOnce == false
                 && (m_wasOnGround || !m_wasJumping)) {
             //redo the velocity calculation when falling a small amount, for fast stairs motion
             //for larger falls, use the smoother/slower interpolated movement by not touching the target position
@@ -475,9 +471,9 @@ void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar d
                 //due to errors in the closestHitFraction variable when used with large polygons, calculate the hit fraction manually
                 m_currentPosition.setInterpolate3 (m_currentPosition, m_targetPosition, fraction);
             }
-        }
-        else
+        } else {
             m_currentPosition.setInterpolate3 (m_currentPosition, m_targetPosition, callback.m_closestHitFraction);
+        }
 
         full_drop = false;
 
