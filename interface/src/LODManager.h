@@ -41,7 +41,8 @@ const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
 
 
-class LODManager : public Dependency {
+class LODManager : public QObject, public Dependency {
+    Q_OBJECT
     SINGLETON_DEPENDENCY
     
 public:
@@ -55,20 +56,26 @@ public:
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     
     // User Tweakable LOD Items
-    QString getLODFeedbackText();
-    void setOctreeSizeScale(float sizeScale);
-    float getOctreeSizeScale() const { return _octreeSizeScale; }
+    Q_INVOKABLE QString getLODFeedbackText();
+    Q_INVOKABLE void setOctreeSizeScale(float sizeScale);
+    Q_INVOKABLE float getOctreeSizeScale() const { return _octreeSizeScale; }
     
-    void setBoundaryLevelAdjust(int boundaryLevelAdjust);
-    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
+    Q_INVOKABLE void setBoundaryLevelAdjust(int boundaryLevelAdjust);
+    Q_INVOKABLE int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     
     void autoAdjustLOD(float currentFPS);
-    void resetLODAdjust();
+    Q_INVOKABLE void resetLODAdjust();
+    Q_INVOKABLE float getFPSAverage() const { return _fpsAverage.getAverage(); }
+    Q_INVOKABLE float getFastFPSAverage() const { return _fastFPSAverage.getAverage(); }
     
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
     
     void loadSettings();
     void saveSettings();
+    
+signals:
+    void LODIncreased();
+    void LODDecreased();
     
 private:
     LODManager() {}
