@@ -199,14 +199,8 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     }
 
     // bindable uniform version
-#if defined(Q_OS_MAC)
-    loc = program.uniformLocation("materialBuffer");
-    if (loc >= 0) {
-        locations.materialBufferUnit = loc;
-    } else {
-        locations.materialBufferUnit = -1;
-    }
-#elif defined(Q_OS_WIN)
+
+#if (GPU_FEATURE_PROFILE == Core)
     loc = glGetUniformBlockIndex(program.programId(), "materialBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, 1);
@@ -223,7 +217,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     }
 #endif
 
-#if defined(Q_OS_WIN)
+#if (GPU_FEATURE_PROFILE == Core)
     loc = glGetUniformBlockIndex(program.programId(), "transformObjectBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_OBJECT_SLOT);
@@ -231,7 +225,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     }
 #endif
 
-#if defined(Q_OS_WIN)
+#if (GPU_FEATURE_PROFILE == Core)
     loc = glGetUniformBlockIndex(program.programId(), "transformCameraBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_CAMERA_SLOT);

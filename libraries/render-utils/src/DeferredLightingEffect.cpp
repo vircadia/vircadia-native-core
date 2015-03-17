@@ -494,14 +494,8 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     locations.invViewMat = program.uniformLocation("invViewMat");
 
     GLint loc = -1;
-#if defined(Q_OS_MAC)
-    loc = program.uniformLocation("lightBuffer");
-    if (loc >= 0) {
-        locations.lightBufferUnit = loc;
-    } else {
-        locations.lightBufferUnit = -1;
-    }
-#elif defined(Q_OS_WIN)
+
+#if (GPU_FEATURE_PROFILE == Core)
     loc = glGetUniformBlockIndex(program.programId(), "lightBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, 0);
@@ -518,14 +512,7 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     }
 #endif
 
-#if defined(Q_OS_MAC)
-    loc = program.uniformLocation("atmosphereBufferUnit");
-    if (loc >= 0) {
-        locations.atmosphereBufferUnit = loc;
-    } else {
-        locations.atmosphereBufferUnit = -1;
-    }
-#elif defined(Q_OS_WIN)
+#if (GPU_FEATURE_PROFILE == Core)
     loc = glGetUniformBlockIndex(program.programId(), "atmosphereBufferUnit");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, 1);

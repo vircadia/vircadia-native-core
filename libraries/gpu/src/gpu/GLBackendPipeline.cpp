@@ -55,19 +55,17 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
-#if defined(Q_OS_MAC)
+
+#if (GPU_FEATURE_PROFILE == Core)
+    GLuint bo = getBufferID(*uniformBuffer);
+    glBindBufferRange(GL_UNIFORM_BUFFER, slot, bo, rangeStart, rangeSize);
+#else
     GLfloat* data = (GLfloat*) (uniformBuffer->getData() + rangeStart);
     glUniform4fv(slot, rangeSize / sizeof(GLfloat[4]), data);
  
     // NOT working so we ll stick to the uniform float array until we move to core profile
     // GLuint bo = getBufferID(*uniformBuffer);
     //glUniformBufferEXT(_shader._program, slot, bo);
-#elif defined(Q_OS_WIN)
-    GLuint bo = getBufferID(*uniformBuffer);
-    glBindBufferRange(GL_UNIFORM_BUFFER, slot, bo, rangeStart, rangeSize);
-#else
-    GLfloat* data = (GLfloat*) (uniformBuffer->getData() + rangeStart);
-    glUniform4fv(slot, rangeSize / sizeof(GLfloat[4]), data);
 #endif
     CHECK_GL_ERROR();
 }

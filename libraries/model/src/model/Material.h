@@ -79,20 +79,15 @@ public:
     class Schema {
     public:
         
-        Color _diffuse;
-        float _opacity;
-        Color _specular;
-        float _shininess;
-        Color _emissive;
-        float _spare0;
+        Color _diffuse = Color(0.5f);
+        float _opacity = 1.f;
+        Color _specular = Color(0.03f);
+        float _shininess = 0.1f;
+        Color _emissive = Color(0.0f);
+        float _spare0 = 0.0f;
+        glm::vec4  _spareVec4 = glm::vec4(0.0f); // for alignment beauty, Mat size == Mat4x4
 
-        Schema() :
-            _diffuse(0.5f),
-            _opacity(1.0f),
-            _specular(0.03f),
-            _shininess(0.1f),
-            _emissive(0.0f)
-            {}
+        Schema() {}
     };
 
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
