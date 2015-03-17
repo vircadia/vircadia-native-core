@@ -37,6 +37,8 @@ EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
 }
 
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
+    emit clearingEntities();
+
     // this would be a good place to clean up our entities...
     if (_simulation) {
         _simulation->lock();
@@ -234,21 +236,28 @@ void EntityTree::setSimulation(EntitySimulation* simulation) {
     _simulation = simulation;
 }
 
-void EntityTree::deleteEntity(const EntityItemID& entityID, bool force) {
+void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ignoreWarnings) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
-        qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+        if (!ignoreWarnings) {
+            qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+        }
         return;
     }
 
     EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
-        qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. entityID=" << entityID;
+        if (!ignoreWarnings) {
+            qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
+                        "entityID=" << entityID;
+        }
         return;
     }
 
     if (existingEntity->getLocked() && !force) {
-        qDebug() << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
+        if (!ignoreWarnings) {
+            qDebug() << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
+        }
         return;
     }
 
@@ -261,24 +270,31 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force) {
     _isDirty = true;
 }
 
-void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force) {
+void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool ignoreWarnings) {
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(this);
     foreach(const EntityItemID& entityID, entityIDs) {
         EntityTreeElement* containingElement = getContainingElement(entityID);
         if (!containingElement) {
-            qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+            if (!ignoreWarnings) {
+                qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+            }
             continue;
         }
 
         EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (!existingEntity) {
-            qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. entityID=" << entityID;
+            if (!ignoreWarnings) {
+                qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
+                            "entityID=" << entityID;
+            }
             continue;
         }
 
         if (existingEntity->getLocked() && !force) {
-            qDebug() << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
+            if (!ignoreWarnings) {
+                qDebug() << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
+            }
             continue;
         }
 
@@ -522,6 +538,35 @@ void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*>& foundEnt
     FindEntitiesInCubeArgs args(cube);
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInCubeOperation, &args);
+    // swap the two lists of entity pointers instead of copy
+    foundEntities.swap(args._foundEntities);
+}
+
+class FindEntitiesInBoxArgs {
+public:
+    FindEntitiesInBoxArgs(const AABox& box)
+    : _box(box), _foundEntities() {
+    }
+    
+    AABox _box;
+    QVector<EntityItem*> _foundEntities;
+};
+
+bool EntityTree::findInBoxOperation(OctreeElement* element, void* extraData) {
+    FindEntitiesInBoxArgs* args = static_cast<FindEntitiesInBoxArgs*>(extraData);
+    if (element->getAACube().touches(args->_box)) {
+        EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+        entityTreeElement->getEntities(args->_box, args->_foundEntities);
+        return true;
+    }
+    return false;
+}
+
+// NOTE: assumes caller has handled locking
+void EntityTree::findEntities(const AABox& box, QVector<EntityItem*>& foundEntities) {
+    FindEntitiesInBoxArgs args(box);
+    // NOTE: This should use recursion, since this is a spatial operation
+    recurseTreeWithOperation(findInBoxOperation, &args);
     // swap the two lists of entity pointers instead of copy
     foundEntities.swap(args._foundEntities);
 }
@@ -847,10 +892,9 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
         }
-        deleteEntities(entityItemIDsToDelete);
+        deleteEntities(entityItemIDsToDelete, true, true);
     }
     unlock();
-    
     return processedBytes;
 }
 
@@ -887,7 +931,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
         }
-        deleteEntities(entityItemIDsToDelete);
+        deleteEntities(entityItemIDsToDelete, true, true);
     }
     return processedBytes;
 }

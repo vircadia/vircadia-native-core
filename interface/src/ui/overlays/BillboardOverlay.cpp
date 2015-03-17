@@ -58,6 +58,7 @@ void BillboardOverlay::render(RenderArgs* args) {
             // rotate about vertical to face the camera
             rotation = Application::getInstance()->getCamera()->getRotation();
             rotation *= glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+            rotation *= getRotation();
         } else {
             rotation = getRotation();
         }

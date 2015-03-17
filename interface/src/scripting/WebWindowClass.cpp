@@ -18,8 +18,10 @@
 #include <QListWidget>
 
 #include "Application.h"
-#include "WindowScriptingInterface.h"
+#include "ui/DataWebPage.h"
+#include "MainWindow.h"
 #include "WebWindowClass.h"
+#include "WindowScriptingInterface.h"
 
 ScriptEventBridge::ScriptEventBridge(QObject* parent) : QObject(parent) {
 }
@@ -32,27 +34,47 @@ void ScriptEventBridge::emitScriptEvent(const QString& data) {
     emit scriptEventReceived(data);
 }
 
-
-WebWindowClass::WebWindowClass(const QString& title, const QString& url, int width, int height)
+WebWindowClass::WebWindowClass(const QString& title, const QString& url, int width, int height, bool isToolWindow)
     : QObject(NULL),
-      _eventBridge(new ScriptEventBridge(this)) {
+      _eventBridge(new ScriptEventBridge(this)),
+      _isToolWindow(isToolWindow) {
 
-    ToolWindow* toolWindow = Application::getInstance()->getToolWindow();
+    if (_isToolWindow) {
+        ToolWindow* toolWindow = Application::getInstance()->getToolWindow();
 
-    _dockWidget = new QDockWidget(title, toolWindow);
-    _dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
+        auto dockWidget = new QDockWidget(title, toolWindow);
+        dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
 
-    _webView = new QWebView(_dockWidget);
+        _webView = new QWebView(dockWidget);
+        addEventBridgeToWindowObject();
+
+        dockWidget->setWidget(_webView);
+
+        toolWindow->addDockWidget(Qt::RightDockWidgetArea, dockWidget);
+
+        _windowWidget = dockWidget;
+    } else {
+        _windowWidget = new QWidget(Application::getInstance()->getWindow(), Qt::Window);
+        _windowWidget->setMinimumSize(width, height);
+
+        auto layout = new QVBoxLayout(_windowWidget);
+        layout->setContentsMargins(0, 0, 0, 0);
+        _windowWidget->setLayout(layout);
+
+        _webView = new QWebView(_windowWidget);
+
+        layout->addWidget(_webView);
+
+        addEventBridgeToWindowObject();
+    }
+
+    _webView->setPage(new DataWebPage());
     _webView->setUrl(url);
-    addEventBridgeToWindowObject();
 
-    _dockWidget->setWidget(_webView);
 
-    toolWindow->addDockWidget(Qt::RightDockWidgetArea, _dockWidget);
-
+    connect(this, &WebWindowClass::destroyed, _windowWidget, &QWidget::deleteLater);
     connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
             this, &WebWindowClass::addEventBridgeToWindowObject);
-    connect(this, &WebWindowClass::destroyed, _dockWidget, &QWidget::deleteLater);
 }
 
 WebWindowClass::~WebWindowClass() {
@@ -64,10 +86,14 @@ void WebWindowClass::addEventBridgeToWindowObject() {
 
 void WebWindowClass::setVisible(bool visible) {
     if (visible) {
-        QMetaObject::invokeMethod(
-            Application::getInstance()->getToolWindow(), "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+        if (_isToolWindow) {
+            QMetaObject::invokeMethod(
+                Application::getInstance()->getToolWindow(), "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+        } else {
+            QMetaObject::invokeMethod(_windowWidget, "raise", Qt::BlockingQueuedConnection);
+        }
     }
-    QMetaObject::invokeMethod(_dockWidget, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+    QMetaObject::invokeMethod(_windowWidget, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
 }
 
 QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
@@ -78,7 +104,8 @@ QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine*
             Q_ARG(const QString&, file),
             Q_ARG(QString, context->argument(1).toString()),
             Q_ARG(int, context->argument(2).toInteger()),
-            Q_ARG(int, context->argument(3).toInteger()));
+            Q_ARG(int, context->argument(3).toInteger()),
+            Q_ARG(bool, context->argument(4).toBool()));
 
     connect(engine, &QScriptEngine::destroyed, retVal, &WebWindowClass::deleteLater);
 
