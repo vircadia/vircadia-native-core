@@ -200,7 +200,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
 
     // bindable uniform version
 
-#if (GPU_FEATURE_PROFILE == Core)
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
     loc = glGetUniformBlockIndex(program.programId(), "materialBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, 1);
@@ -217,7 +217,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     }
 #endif
 
-#if (GPU_FEATURE_PROFILE == Core)
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
     loc = glGetUniformBlockIndex(program.programId(), "transformObjectBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_OBJECT_SLOT);
@@ -225,7 +225,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, boo
     }
 #endif
 
-#if (GPU_FEATURE_PROFILE == Core)
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
     loc = glGetUniformBlockIndex(program.programId(), "transformCameraBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_CAMERA_SLOT);

@@ -32,7 +32,7 @@ void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::initTransform() {
- #if (GPU_TRANSFORM_PROFILE == Core)
+ #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
     glGenBuffers(1, &_transform._transformObjectBuffer);
     glGenBuffers(1, &_transform._transformCameraBuffer);
 
@@ -49,7 +49,7 @@ void GLBackend::initTransform() {
 }
 
 void GLBackend::killTransform() {
- #if (GPU_TRANSFORM_PROFILE == Core)
+ #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
     glDeleteBuffers(1, &_transform._transformObjectBuffer);
     glDeleteBuffers(1, &_transform._transformCameraBuffer);
 #else
@@ -77,7 +77,7 @@ void GLBackend::updateTransform() {
         _transform._transformCamera._projectionViewUntranslated = _transform._transformCamera._projection * viewUntranslated;
     }
  
- #if (GPU_TRANSFORM_PROFILE == Core)
+ #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
     if (_transform._invalidView || _transform._invalidProj) {
         glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 0);
         glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
@@ -100,7 +100,7 @@ void GLBackend::updateTransform() {
 #endif
 
 
-#if (GPU_TRANSFORM_PROFILE == Legacy)
+#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
     // Do it again for fixed pipeline until we can get rid of it
     if (_transform._invalidProj) {
         if (_transform._lastMode != GL_PROJECTION) {

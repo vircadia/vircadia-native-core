@@ -88,7 +88,7 @@ void makeBindings(GLBackend::GLShader* shader) {
     // now assign the ubo binding, then DON't relink!
 
     //Check for gpu specific uniform slotBindings
-#if (GPU_TRANSFORM_PROFILE == Core)
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
     loc = glGetUniformBlockIndex(glprogram, "transformObjectBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
@@ -552,7 +552,7 @@ bool isUnusedSlot(GLint binding) {
 int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
     GLint buffersCount = 0;
 
-#if (GPU_FEATURE_PROFILE == Core)
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
 
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
 

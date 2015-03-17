@@ -56,7 +56,7 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
 
-#if (GPU_FEATURE_PROFILE == Core)
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
     GLuint bo = getBufferID(*uniformBuffer);
     glBindBufferRange(GL_UNIFORM_BUFFER, slot, bo, rangeStart, rangeSize);
 #else

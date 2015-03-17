@@ -16,7 +16,7 @@ uniform sampler2DShadow shadowMap;
 
 // Fetching it
 float fetchShadow(vec3 texcoord) {
-<@if GPU_FEATURE_PROFILE == Core @>
+<@if GPU_FEATURE_PROFILE == GPU_CORE @>
     return texture(shadowMap, texcoord);
 <@else@>
     return shadow2D(shadowMap, texcoord).r;

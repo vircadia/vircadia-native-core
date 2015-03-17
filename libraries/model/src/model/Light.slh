@@ -64,7 +64,7 @@ float getLightShowContour(Light l) {
     return l._control.w;
 }
 
-<@if GPU_FEATURE_PROFILE == Core @>
+<@if GPU_FEATURE_PROFILE == GPU_CORE @>
 uniform lightBuffer {
     Light light;
 };

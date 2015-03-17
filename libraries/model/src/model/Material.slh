@@ -25,7 +25,7 @@ float getMaterialShininess(Material m) { return m._specular.a; }
 
 
 
-<@if GPU_FEATURE_PROFILE == Core@>
+<@if GPU_FEATURE_PROFILE == GPU_CORE@>
 uniform materialBuffer {
     Material _mat;
 };
