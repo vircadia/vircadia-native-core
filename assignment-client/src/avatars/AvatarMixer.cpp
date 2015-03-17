@@ -20,9 +20,9 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
+#include <TryLocker.h>
 
 #include "AvatarMixerClientData.h"
-
 #include "AvatarMixer.h"
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
@@ -134,7 +134,8 @@ void AvatarMixer::broadcastAvatarData() {
         },
         [&](const SharedNodePointer& node) {
             AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-            if (!nodeData->getMutex().tryLock()) {
+            MutexTryLocker lock(nodeData->getMutex());
+            if (!lock.tryLock()) {
                 return;
             }
             ++_sumListeners;
@@ -144,6 +145,7 @@ void AvatarMixer::broadcastAvatarData() {
             
             AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getPosition();
+            float outputBandwidth = node->getBandwidthRecorder().getTotalAverageOutputKilobitsPerSecond();
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -155,82 +157,81 @@ void AvatarMixer::broadcastAvatarData() {
                     if (otherNode->getUUID() == node->getUUID()) {
                         return false;
                     }
+
+                    //  Check throttling value
+                    if (!(_performanceThrottlingRatio == 0 || randFloat() < (1.0f - _performanceThrottlingRatio))) {
+                        return;
+                    }
                     return true;
                 },
                 [&](const SharedNodePointer& otherNode) {
                     AvatarMixerClientData* otherNodeData = otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                    if (!otherNodeData->getMutex().tryLock()) {
+                    MutexTryLocker lock(otherNodeData->getMutex());
+                    if (!lock.tryLock()) {
                         return;
                     }
-                    
-                    AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
-                    glm::vec3 otherPosition = otherAvatar.getPosition();
-            
-                    float distanceToAvatar = glm::length(myPosition - otherPosition);
+                    //  Decide whether to send this avatar's data based on it's distance from us
                     //  The full rate distance is the distance at which EVERY update will be sent for this avatar
                     //  at a distance of twice the full rate distance, there will be a 50% chance of sending this avatar's update
                     const float FULL_RATE_DISTANCE = 2.0f;
-                    
-                    //  Decide whether to send this avatar's data based on it's distance from us
-                    if ((_performanceThrottlingRatio == 0 || randFloat() < (1.0f - _performanceThrottlingRatio))
-                        && (distanceToAvatar == 0.0f || randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
-                        QByteArray avatarByteArray;
-                        avatarByteArray.append(otherNode->getUUID().toRfc4122());
-                        avatarByteArray.append(otherAvatar.toByteArray());
-                        
-                        if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
-                            nodeList->writeDatagram(mixedAvatarByteArray, node);
-                            
-                            // reset the packet
-                            mixedAvatarByteArray.resize(numPacketHeaderBytes);
-                        }
-                        
-                        // copy the avatar into the mixedAvatarByteArray packet
-                        mixedAvatarByteArray.append(avatarByteArray);
-                        
-                        // if the receiving avatar has just connected make sure we send out the mesh and billboard
-                        // for this avatar (assuming they exist)
-                        bool forceSend = !nodeData->checkAndSetHasReceivedFirstPackets();
-                        
-                        // we will also force a send of billboard or identity packet
-                        // if either has changed in the last frame
-                        
-                        if (otherNodeData->getBillboardChangeTimestamp() > 0
-                            && (forceSend
-                                || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
-                                || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-                            QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
-                            billboardPacket.append(otherNode->getUUID().toRfc4122());
-                            billboardPacket.append(otherNodeData->getAvatar().getBillboard());
-                            nodeList->writeDatagram(billboardPacket, node);
-                            
-                            ++_sumBillboardPackets;
-                        }
-                        
-                        if (otherNodeData->getIdentityChangeTimestamp() > 0
-                            && (forceSend
-                                || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
-                                || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-                                
-                            QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
-                            
-                            QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
-                            individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
-                            identityPacket.append(individualData);
-                            
-                            nodeList->writeDatagram(identityPacket, node);
-                                
-                            ++_sumIdentityPackets;
-                        }
+                    glm::vec3 otherPosition = otherAvatar.getPosition();
+                    float distanceToAvatar = glm::length(myPosition - otherPosition);
+
+                    if (!(distanceToAvatar == 0.0f || randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
+                        return;
                     }
-                
-                    otherNodeData->getMutex().unlock();
+
+                    QByteArray avatarByteArray;
+                    avatarByteArray.append(otherNode->getUUID().toRfc4122());
+                    avatarByteArray.append(otherAvatar.toByteArray());
+                    
+                    if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
+                        nodeList->writeDatagram(mixedAvatarByteArray, node);
+                            
+                        // reset the packet
+                        mixedAvatarByteArray.resize(numPacketHeaderBytes);
+                    }
+                        
+                    // copy the avatar into the mixedAvatarByteArray packet
+                    mixedAvatarByteArray.append(avatarByteArray);
+                        
+                    // if the receiving avatar has just connected make sure we send out the mesh and billboard
+                    // for this avatar (assuming they exist)
+                    bool forceSend = !nodeData->checkAndSetHasReceivedFirstPackets();
+                        
+                    // we will also force a send of billboard or identity packet
+                    // if either has changed in the last frame
+                        
+                    if (otherNodeData->getBillboardChangeTimestamp() > 0
+                        && (forceSend
+                            || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
+                            || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
+                        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+                        billboardPacket.append(otherNode->getUUID().toRfc4122());
+                        billboardPacket.append(otherNodeData->getAvatar().getBillboard());
+                        nodeList->writeDatagram(billboardPacket, node);
+                            
+                        ++_sumBillboardPackets;
+                    }
+                        
+                    if (otherNodeData->getIdentityChangeTimestamp() > 0
+                        && (forceSend
+                            || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
+                            || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
+                                
+                        QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+                            
+                        QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
+                        individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
+                        identityPacket.append(individualData);
+                            
+                        nodeList->writeDatagram(identityPacket, node);
+                                
+                        ++_sumIdentityPackets;
+                    }
             });
-            
             nodeList->writeDatagram(mixedAvatarByteArray, node);
-            
-            nodeData->getMutex().unlock();
     });
     
     _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();

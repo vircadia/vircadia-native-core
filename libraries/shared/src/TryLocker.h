@@ -18,13 +18,10 @@ class MutexTryLocker {
   QMutex & _mutex;
   bool _locked{false};
 public:
-  MutexTryLocker(QMutex &m) : _mutex(m) {}
+  MutexTryLocker(QMutex &m) : _mutex(m), _locked(m.tryLock()) {}
   ~MutexTryLocker() { if (_locked) _mutex.unlock(); }
-  bool tryLock() {
-    if (_locked) {
-      return true;
-    }
-    return (_locked = _mutex.tryLock());
+  bool isLocked() {
+    return _locked;
   }
 }
 
