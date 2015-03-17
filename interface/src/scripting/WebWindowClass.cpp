@@ -96,6 +96,14 @@ void WebWindowClass::setVisible(bool visible) {
     QMetaObject::invokeMethod(_windowWidget, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
 }
 
+void WebWindowClass::setURL(const QString& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setURL", Qt::BlockingQueuedConnection, Q_ARG(QString, url));
+        return;
+    }
+    _webView->setUrl(url);
+}
+
 QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     WebWindowClass* retVal;
     QString file = context->argument(0).toString();

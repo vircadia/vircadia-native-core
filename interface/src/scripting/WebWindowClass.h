@@ -42,6 +42,7 @@ public:
 
 public slots:
     void setVisible(bool visible);
+    void setURL(const QString& url);
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
     void addEventBridgeToWindowObject();
 
