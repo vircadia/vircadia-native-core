@@ -104,6 +104,10 @@ void WebWindowClass::setURL(const QString& url) {
     _webView->setUrl(url);
 }
 
+void WebWindowClass::raise() {
+    QMetaObject::invokeMethod(_windowWidget, "raise", Qt::BlockingQueuedConnection);
+}
+
 QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     WebWindowClass* retVal;
     QString file = context->argument(0).toString();
