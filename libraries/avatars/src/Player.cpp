@@ -309,7 +309,7 @@ void Player::setCurrentFrame(int currentFrame) {
     
     if (isPlaying()) {
         _timer.start();
-        setAudionInjectorPosition();
+        setAudioInjectorPosition();
     } else {
         _pausedFrame = _currentFrame;
     }
@@ -354,7 +354,7 @@ void Player::setCurrentTime(int currentTime) {
     
     if (isPlaying()) {
         _timer.start();
-        setAudionInjectorPosition();
+        setAudioInjectorPosition();
     } else {
         _pausedFrame = lowestBound;
     }
@@ -372,7 +372,7 @@ void Player::setAudioOffset(int audioOffset) {
     _audioOffset = audioOffset;
 }
 
-void Player::setAudionInjectorPosition() {
+void Player::setAudioInjectorPosition() {
     int MSEC_PER_SEC = 1000;
     int SAMPLE_SIZE = 2; // 16 bits
     int CHANNEL_COUNT = 1;
