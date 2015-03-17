@@ -2795,11 +2795,12 @@ QImage Application::renderAvatarBillboard() {
     return image;
 }
 
-
+// FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
 ViewFrustum* Application::getViewFrustum() {
     if (QThread::currentThread() == activeRenderingThread) {
+        // FIXME, should this be an assert?
         qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
     }
     return &_viewFrustum;
@@ -2807,6 +2808,7 @@ ViewFrustum* Application::getViewFrustum() {
 
 ViewFrustum* Application::getDisplayViewFrustum() {
     if (QThread::currentThread() != activeRenderingThread) {
+        // FIXME, should this be an assert?
         qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
     }
     return &_displayViewFrustum;
