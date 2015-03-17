@@ -95,6 +95,7 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
+static const QString JS_EXTENSION  = ".js";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.56f;       // meters
@@ -336,6 +337,7 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
+    void askToLoadScript(const QString& scriptFilenameOrURL);
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
         bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
