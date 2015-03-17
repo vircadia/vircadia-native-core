@@ -20,8 +20,6 @@ class NetworkGeometry;
 class GeometryCache;
 
 class ModelEntityItem : public EntityItem {
-    Q_OBJECT
-
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
