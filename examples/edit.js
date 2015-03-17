@@ -338,7 +338,11 @@ var toolBar = (function () {
             return true;
         }
         if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
+            if (marketplaceWindow.url != MARKETPLACE_URL) {
+                marketplaceWindow.setURL(MARKETPLACE_URL);
+            }
             marketplaceWindow.setVisible(true);
+            marketplaceWindow.raise();
             return true;
         }
 
@@ -1143,6 +1147,10 @@ PropertiesTool = function(opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
+        } else if (data.type = "showMarketplace") {
+            if (marketplaceWindow.url != data.url) {
+                marketplaceWindow.setURL(data.url);
+            }
         } else if (data.type == "action") {
             if (data.action == "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
