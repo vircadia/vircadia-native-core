@@ -18,16 +18,16 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
-#define GPU_FEATURE_PROFILE Core
-#define GPU_TRANSFORM_PROFILE Core
+#define GPU_FEATURE_PROFILE Legacy
+#define GPU_TRANSFORM_PROFILE Legacy
 
 #elif defined(WIN32)
 #include <windowshacks.h>
 #include <GL/glew.h>
 #include <GL/wglew.h>
 
-#define GPU_FEATURE_PROFILE Legacy
-#define GPU_TRANSFORM_PROFILE Legacy
+#define GPU_FEATURE_PROFILE Core
+#define GPU_TRANSFORM_PROFILE Core
 
 #elif defined(ANDROID)
 
