@@ -1,3 +1,15 @@
+//  LODWarning.js
+//  examples
+//
+//  Created by Brad Hefta-Gaub on 3/17/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This script will display a warning when the LOD is adjusted to do scene complexity.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var DISPLAY_WARNING_FOR = 3; // in seconds
 var DISTANCE_FROM_CAMERA = 2;
 var SHOW_LOD_UP_MESSAGE = false; // By default we only display the LOD message when reducing LOD
