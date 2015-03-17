@@ -419,19 +419,22 @@ QString ModelEntityItem::getAnimationSettings() const {
 
 bool ModelEntityItem::isReadyToComputeShape() {
     if (_collisionModelURL == "") {
+        // no model url, so we're ready to compute a shape.
         return true;
     }
 
     if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
+        // we have a _collisionModelURL AND a _collisionNetworkGeometry AND it's fully loaded.
         return true;
     }
 
     if (_collisionNetworkGeometry.isNull()) {
-
+        // we have a _collisionModelURL but we don't yet have a _collisionNetworkGeometry.
         _collisionNetworkGeometry =
-            DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false);
+            DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false, false);
 
-        if (_collisionNetworkGeometry->isLoadedWithTextures()) {
+        if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
+            // shortcut in case it's already loaded.
             return true;
         }
     }

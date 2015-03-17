@@ -89,7 +89,7 @@ protected:
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
     /// \param extra extra data to pass to the creator, if appropriate
     Q_INVOKABLE QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
-        bool delayLoad = false, void* extra = NULL);
+                                                     bool delayLoad = false, void* extra = NULL, bool block = true);
 
     /// Creates a new resource.
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
