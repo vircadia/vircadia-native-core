@@ -1357,6 +1357,9 @@ void MyAvatar::updatePositionWithPhysics(float deltaTime) {
 
     // rotate back into world-frame
     _velocity = rotation * newLocalVelocity;
+
+    _velocity += _thrust * deltaTime;
+    _thrust = glm::vec3(0.0f);
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
