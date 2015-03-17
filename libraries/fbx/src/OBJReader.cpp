@@ -307,25 +307,14 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
 
         geometry.joints.resize(1);
         geometry.joints[0].isFree = false;
-        // geometry.joints[0].freeLineage;
         geometry.joints[0].parentIndex = -1;
         geometry.joints[0].distanceToParent = 0;
         geometry.joints[0].boneRadius = 0;
         geometry.joints[0].translation = glm::vec3(0, 0, 0);
-        // geometry.joints[0].preTransform = ;
-        geometry.joints[0].preRotation = glm::quat(1, 0, 0, 0);
-        geometry.joints[0].rotation = glm::quat(1, 0, 0, 0);
-        geometry.joints[0].postRotation = glm::quat(1, 0, 0, 0);
-        // geometry.joints[0].postTransform = ;
-        // geometry.joints[0].transform = ;
         geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
         geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
-        geometry.joints[0].inverseDefaultRotation = glm::quat(1, 0, 0, 0);
-        geometry.joints[0].inverseBindRotation = glm::quat(1, 0, 0, 0);
-        // geometry.joints[0].bindTransform = ;
         geometry.joints[0].name = "OBJ";
         geometry.joints[0].shapePosition = glm::vec3(0, 0, 0);
-        geometry.joints[0].shapeRotation = glm::quat(1, 0, 0, 0);
         geometry.joints[0].shapeType = SPHERE_SHAPE;
         geometry.joints[0].isSkeletonJoint = true;
 
@@ -343,11 +332,9 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
         // run through all the faces, look-up (or determine) a normal and set the normal for the points
         // that make up each face.
         QVector<glm::vec3> pointNormalsSums;
-        QVector<int> pointNormalsCounts;
 
         mesh.normals.fill(glm::vec3(0,0,0), mesh.vertices.count());
         pointNormalsSums.fill(glm::vec3(0,0,0), mesh.vertices.count());
-        pointNormalsCounts.fill(0, mesh.vertices.count());
 
         foreach (FBXMeshPart meshPart, mesh.parts) {
             int triCount = meshPart.triangleIndices.count() / 3;
@@ -382,15 +369,13 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
                 pointNormalsSums[p0Index] += n0;
                 pointNormalsSums[p1Index] += n1;
                 pointNormalsSums[p2Index] += n2;
-                pointNormalsCounts[p0Index]++;
-                pointNormalsCounts[p1Index]++;
-                pointNormalsCounts[p2Index]++;
             }
 
             int vertCount = mesh.vertices.count();
             for (int i = 0; i < vertCount; i++) {
-                if (pointNormalsCounts[i] > 0) {
-                    mesh.normals[i] = glm::normalize(pointNormalsSums[i] / (float)(pointNormalsCounts[i]));
+                float length = glm::length(pointNormalsSums[i]);
+                if (length > FLT_EPSILON) {
+                    mesh.normals[i] = glm::normalize(pointNormalsSums[i]);
                 }
             }
 
