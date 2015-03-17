@@ -14,7 +14,6 @@
 
 #include <set>
 #include <SimpleMovingAverage.h>
-#include <QThread>
 
 class CoverageMap;
 class ReadBitstreamToTreeParams;

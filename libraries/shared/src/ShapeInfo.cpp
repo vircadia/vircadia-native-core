@@ -39,8 +39,6 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<
         }
         case SHAPE_TYPE_CONVEX_HULL:
             _url = QUrl(url);
-            // start download of model which contains collision hulls
-            // _type = SHAPE_TYPE_NONE; // until download is done XXX
             _halfExtents = halfExtents;
             break;
         default:

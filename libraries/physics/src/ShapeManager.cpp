@@ -74,8 +74,7 @@ bool ShapeManager::releaseShape(const DoubleHashKey& key) {
         }
     } else {
         // attempt to remove unmanaged shape
-        // XXX
-        //        assert(false);
+        assert(false);
     }
     return false;
 }
