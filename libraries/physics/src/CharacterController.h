@@ -77,8 +77,9 @@ protected:
     bool m_touchingContact;
     btVector3 m_touchingNormal;
 
-    bool  m_wasOnGround;
-    bool  m_wasJumping;
+    bool m_enabled;
+    bool m_wasOnGround;
+    bool m_wasJumping;
     bool m_useGhostObjectSweepTest;
     bool m_useWalkDirection;
     btScalar m_velocityTimeInterval;

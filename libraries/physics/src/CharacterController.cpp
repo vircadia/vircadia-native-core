@@ -132,6 +132,11 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
     m_avatarData = avatarData;
 
+    // cache the "PhysicsEnabled" state of m_avatarData
+    m_avatarData->lockForRead();
+    m_enabled = m_avatarData->isPhysicsEnabled();
+    m_avatarData->unlock();
+
     createShapeAndGhost();
 
     m_upAxis = 1; // HACK: hard coded to be 1 for now (yAxis)
@@ -533,6 +538,9 @@ void CharacterController::warp(const btVector3& origin) {
 
 
 void CharacterController::preStep(  btCollisionWorld* collisionWorld) {
+    if (!m_enabled) {
+        return;
+    }
     int numPenetrationLoops = 0;
     m_touchingContact = false;
     while (recoverFromPenetration(collisionWorld)) {
@@ -548,7 +556,7 @@ void CharacterController::preStep(  btCollisionWorld* collisionWorld) {
 }
 
 void CharacterController::playerStep(  btCollisionWorld* collisionWorld, btScalar dt) {
-    if (!m_useWalkDirection && m_velocityTimeInterval <= 0.0) {
+    if (!m_enabled || (!m_useWalkDirection && m_velocityTimeInterval <= 0.0)) {
         return; // no motion
     }
 
@@ -637,7 +645,7 @@ btScalar CharacterController::getMaxSlope() const {
 }
 
 bool CharacterController::onGround() const {
-    return m_verticalVelocity == 0.0 && m_verticalOffset == 0.0;
+    return m_enabled && m_verticalVelocity == 0.0 && m_verticalOffset == 0.0;
 }
 
 btVector3* CharacterController::getUpAxisDirections() {
@@ -656,7 +664,15 @@ void CharacterController::setUpInterpolate(bool value) {
 // protected
 void CharacterController::createShapeAndGhost() {
     // get new dimensions from avatar
+    m_avatarData->lockForRead();
     AABox box = m_avatarData->getLocalAABox();
+
+    // create new ghost
+    m_ghostObject = new btPairCachingGhostObject();
+    m_ghostObject->setWorldTransform(btTransform(glmToBullet(m_avatarData->getOrientation()),
+                                                    glmToBullet(m_avatarData->getPosition())));
+    m_avatarData->unlock();
+
     const glm::vec3& diagonal = box.getScale();
     float radius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     float halfHeight = 0.5f * diagonal.y - radius;
@@ -672,18 +688,16 @@ void CharacterController::createShapeAndGhost() {
 
     // create new shape
     m_convexShape = new btCapsuleShape(radius, 2.0f * halfHeight);
-
-    // create new ghost
-    m_ghostObject = new btPairCachingGhostObject();
-    m_ghostObject->setWorldTransform(btTransform(glmToBullet(m_avatarData->getOrientation()),
-                                                    glmToBullet(m_avatarData->getPosition())));
     m_ghostObject->setCollisionShape(m_convexShape);
     m_ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 }
 
 bool CharacterController::needsShapeUpdate() {
     // get new dimensions from avatar
+    m_avatarData->lockForRead();
     AABox box = m_avatarData->getLocalAABox();
+    m_avatarData->unlock();
+
     const glm::vec3& diagonal = box.getScale();
     float radius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     float halfHeight = 0.5f * diagonal.y - radius;
@@ -727,21 +741,23 @@ void CharacterController::updateShape() {
 }
 
 void CharacterController::preSimulation(btScalar timeStep) {
-    if (m_avatarData->isPhysicsEnabled()) { 
-         m_avatarData->lockForRead();
-        // update character controller
-        glm::quat rotation = m_avatarData->getOrientation();
-        glm::vec3 position = m_avatarData->getPosition() + rotation * m_shapeLocalOffset;
-        m_ghostObject->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
-                                                                                                     
-        btVector3 walkVelocity = glmToBullet(m_avatarData->getVelocity());
-        setVelocityForTimeInterval(walkVelocity, timeStep);
-        m_avatarData->unlock();
-    } 
+    m_avatarData->lockForRead();
+
+    // cache the "PhysicsEnabled" state of m_avatarData here 
+    // and use the cached value for the rest of the simulation step
+    m_enabled = m_avatarData->isPhysicsEnabled();
+
+    glm::quat rotation = m_avatarData->getOrientation();
+    glm::vec3 position = m_avatarData->getPosition() + rotation * m_shapeLocalOffset;
+    m_ghostObject->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
+    btVector3 walkVelocity = glmToBullet(m_avatarData->getVelocity());
+    setVelocityForTimeInterval(walkVelocity, timeStep);
+
+    m_avatarData->unlock();
 }
 
 void CharacterController::postSimulation() {
-    if (m_avatarData->isPhysicsEnabled()) {
+    if (m_enabled) {
         m_avatarData->lockForWrite();
         const btTransform& avatarTransform = m_ghostObject->getWorldTransform();            
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
