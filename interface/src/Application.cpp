@@ -3113,16 +3113,8 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     } else { // HEAD zoom level
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
-        if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
-            // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
-            // face/body so that the average eye position lies at the origin
-            eyeRelativeCamera = true;
-            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-
-        } else {
-            _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                      _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-        }
+        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+                                    _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
 
@@ -3149,58 +3141,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // render rear mirror view
     glPushMatrix();
-    if (eyeRelativeCamera) {
-        // save absolute translations
-        glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
-        glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
-
-        // get the neck position so we can translate the face relative to it
-        glm::vec3 neckPosition;
-        _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
-        _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
-
-        // get the eye position relative to the body
-        glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
-        float eyeHeight = eyePosition.y - _myAvatar->getPosition().y;
-
-        // set the translation of the face relative to the neck position
-        _myAvatar->getHead()->getFaceModel().setTranslation(neckPosition - glm::vec3(0, eyeHeight, 0));
-
-        // translate the neck relative to the face
-        _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
-            neckPosition);
-
-        // update the attachments to match
-        QVector<glm::vec3> absoluteAttachmentTranslations;
-        glm::vec3 delta = _myAvatar->getSkeletonModel().getTranslation() - absoluteSkeletonTranslation;
-        foreach (Model* attachment, _myAvatar->getAttachmentModels()) {
-            absoluteAttachmentTranslations.append(attachment->getTranslation());
-            attachment->setTranslation(attachment->getTranslation() + delta);
-        }
-
-        // and lo, even the shadow matrices
-        glm::mat4 savedShadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
-        for (int i = 0; i < CASCADED_SHADOW_MATRIX_COUNT; i++) {
-            savedShadowMatrices[i] = _shadowMatrices[i];
-            _shadowMatrices[i] = glm::transpose(glm::transpose(_shadowMatrices[i]) * glm::translate(-delta));
-        }
-
-        displaySide(_mirrorCamera, true);
-
-        // restore absolute translations
-        _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
-        _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
-        for (int i = 0; i < absoluteAttachmentTranslations.size(); i++) {
-            _myAvatar->getAttachmentModels().at(i)->setTranslation(absoluteAttachmentTranslations.at(i));
-        }
-        
-        // restore the shadow matrices
-        for (int i = 0; i < CASCADED_SHADOW_MATRIX_COUNT; i++) {
-            _shadowMatrices[i] = savedShadowMatrices[i];
-        }
-    } else {
-        displaySide(_mirrorCamera, true);
-    }
+    displaySide(_mirrorCamera, true);
     glPopMatrix();
 
     if (!billboard) {
