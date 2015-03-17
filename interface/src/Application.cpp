@@ -3112,6 +3112,22 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
     } else { // HEAD zoom level
+        // FIXME note that the positioing of the camera relative to the avatar can suffer limited 
+        // precision as the user's position moves further away from the origin.  Thus at 
+        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways 
+        // wildly as you rotate your avatar because the floating point values are becoming 
+        // larger, squeezing out the available digits of precision you have available at the 
+        // human scale for camera positioning.  
+
+        // Previously there was a hack to correct this using the mechanism of repositioning 
+        // the avatar at the origin of the world for the purposes of rendering the mirror, 
+        // but it resulted in failing to render the avatar's head model in the mirror view 
+        // when in first person mode.  Presumably this was because of some missed culling logic 
+        // that was not accounted for in the hack.  
+
+        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further 
+        // investigated in order to adapt the technique while fixing the head rendering issue,
+        // but the complexity of the hack suggests that a better approach 
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
                                     _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
