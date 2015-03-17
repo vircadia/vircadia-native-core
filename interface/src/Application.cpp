@@ -2795,7 +2795,25 @@ QImage Application::renderAvatarBillboard() {
     return image;
 }
 
+
+static QThread * activeRenderingThread = nullptr;
+
+ViewFrustum* Application::getViewFrustum() {
+    if (QThread::currentThread() == activeRenderingThread) {
+        qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
+    }
+    return &_viewFrustum;
+}
+
+ViewFrustum* Application::getDisplayViewFrustum() {
+    if (QThread::currentThread() != activeRenderingThread) {
+        qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
+    }
+    return &_displayViewFrustum;
+}
+
 void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
+    activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
@@ -3020,6 +3038,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glClear(GL_DEPTH_BUFFER_BIT);
         _overlays.renderWorld(true);
     }
+    activeRenderingThread = nullptr;
 }
 
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {

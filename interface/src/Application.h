@@ -175,11 +175,11 @@ public:
 
     Camera* getCamera() { return &_myCamera; }
     // Represents the current view frustum of the avatar.  
-    ViewFrustum* getViewFrustum() { return &_viewFrustum; }
+    ViewFrustum* getViewFrustum();
     // Represents the view frustum of the current rendering pass, 
     // which might be different from the viewFrustum, i.e. shadowmap 
     // passes, mirror window passes, etc
-    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
+    ViewFrustum* getDisplayViewFrustum();
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }
