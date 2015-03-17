@@ -43,9 +43,7 @@ class EntityTreeElementExtraEncodeData;
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
-class EntityItem : public QObject {
-    Q_OBJECT
-
+class EntityItem {
     friend class EntityTreeElement;
 public:
     enum EntityDirtyFlags {
