@@ -24,7 +24,7 @@
 #include <GeometryUtil.h>
 #include <gpu/Stream.h>
 #include <gpu/Batch.h>
-#include <PhysicsEntity.h>
+#include "PhysicsEntity.h"
 #include <Transform.h>
 
 #include "AnimationHandle.h"
@@ -106,7 +106,10 @@ public:
     /// \param delayLoad if true, don't load the model immediately; wait until actually requested
     Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(),
         bool retainCurrent = false, bool delayLoad = false);
-    
+
+    // Set the model to use for collisions
+    Q_INVOKABLE void setCollisionModelURL(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
+
     const QUrl& getURL() const { return _url; }
     
     /// Sets the distance parameter used for LOD computations.
@@ -287,11 +290,14 @@ private:
     float _lodDistance;
     float _lodHysteresis;
     float _nextLODHysteresis;
+
+    QSharedPointer<NetworkGeometry> _collisionGeometry;
     
     float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
     
     QUrl _url;
+    QUrl _collisionUrl;
 
     gpu::Buffers _blendedVertexBuffers;
     std::vector<Transform> _transforms;

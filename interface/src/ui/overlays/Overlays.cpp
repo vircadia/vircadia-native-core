@@ -122,7 +122,7 @@ void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, Re
     float myAvatarScale = 1.0f;
     
     auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
+    RenderArgs args = { NULL, Application::getInstance()->getDisplayViewFrustum(),
                         lodManager->getOctreeSizeScale(),
                         lodManager->getBoundaryLevelAdjust(),
                         renderMode, renderSide,

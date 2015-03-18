@@ -169,6 +169,8 @@ void Player::setupAudioThread() {
     _audioThread->setObjectName("Player Audio Thread");
     _options.position = _avatar->getPosition();
     _options.orientation = _avatar->getOrientation();
+    _options.stereo = _recording->numberAudioChannel() == 2;
+    
     _injector.reset(new AudioInjector(_recording->getAudioData(), _options), &QObject::deleteLater);
     _injector->moveToThread(_audioThread);
     _audioThread->start();
@@ -309,7 +311,7 @@ void Player::setCurrentFrame(int currentFrame) {
     
     if (isPlaying()) {
         _timer.start();
-        setAudionInjectorPosition();
+        setAudioInjectorPosition();
     } else {
         _pausedFrame = _currentFrame;
     }
@@ -349,15 +351,7 @@ void Player::setCurrentTime(int currentTime) {
         }
     }
     
-    _currentFrame = lowestBound;
-    _timerOffset = _recording->getFrameTimestamp(lowestBound);
-    
-    if (isPlaying()) {
-        _timer.start();
-        setAudionInjectorPosition();
-    } else {
-        _pausedFrame = lowestBound;
-    }
+    setCurrentFrame(lowestBound);
 }
 
 void Player::setVolume(float volume) {
@@ -372,11 +366,9 @@ void Player::setAudioOffset(int audioOffset) {
     _audioOffset = audioOffset;
 }
 
-void Player::setAudionInjectorPosition() {
+void Player::setAudioInjectorPosition() {
     int MSEC_PER_SEC = 1000;
-    int SAMPLE_SIZE = 2; // 16 bits
-    int CHANNEL_COUNT = 1;
-    int FRAME_SIZE = SAMPLE_SIZE * CHANNEL_COUNT;
+    int FRAME_SIZE = sizeof(AudioConstants::AudioSample) * _recording->numberAudioChannel();
     int currentAudioFrame = elapsed() * FRAME_SIZE * (AudioConstants::SAMPLE_RATE / MSEC_PER_SEC);
     _injector->setCurrentSendPosition(currentAudioFrame);
 }

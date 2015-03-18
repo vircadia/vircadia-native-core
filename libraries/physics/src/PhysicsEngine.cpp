@@ -63,23 +63,25 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        ShapeInfo shapeInfo;
-        entity->computeShapeInfo(shapeInfo);
-        btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
-        if (shape) {
-            EntityMotionState* motionState = new EntityMotionState(entity);
-            entity->setPhysicsInfo(static_cast<void*>(motionState));
-            _entityMotionStates.insert(motionState);
-            addObject(shapeInfo, shape, motionState);
-        } else if (entity->isMoving()) {
-            EntityMotionState* motionState = new EntityMotionState(entity);
-            entity->setPhysicsInfo(static_cast<void*>(motionState));
-            _entityMotionStates.insert(motionState);
+        if (entity->isReadyToComputeShape()) {
+            ShapeInfo shapeInfo;
+            entity->computeShapeInfo(shapeInfo);
+            btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+            if (shape) {
+                EntityMotionState* motionState = new EntityMotionState(entity);
+                entity->setPhysicsInfo(static_cast<void*>(motionState));
+                _entityMotionStates.insert(motionState);
+                addObject(shapeInfo, shape, motionState);
+            } else if (entity->isMoving()) {
+                EntityMotionState* motionState = new EntityMotionState(entity);
+                entity->setPhysicsInfo(static_cast<void*>(motionState));
+                _entityMotionStates.insert(motionState);
 
-            motionState->setKinematic(true, _numSubsteps);
-            _nonPhysicalKinematicObjects.insert(motionState);
-            // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-            //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+                motionState->setKinematic(true, _numSubsteps);
+                _nonPhysicalKinematicObjects.insert(motionState);
+                // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+                //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+            }
         }
     }
 }
@@ -322,16 +324,21 @@ void PhysicsEngine::stepSimulation() {
         //
         // TODO: untangle these lock sequences.
         _entityTree->lockForWrite();
-        _avatarData->lockForWrite();
+
         lock();
         _dynamicsWorld->synchronizeMotionStates();
 
-        if (_avatarData->isPhysicsEnabled()) {
+        _avatarData->lockForRead();
+        bool avatarHasPhysicsEnabled = _avatarData->isPhysicsEnabled();
+        _avatarData->unlock();
+        if (avatarHasPhysicsEnabled) {
             const btTransform& avatarTransform = _avatarGhostObject->getWorldTransform();
             glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
             glm::vec3 offset = rotation * _avatarShapeLocalOffset;
+            _avatarData->lockForWrite();
             _avatarData->setOrientation(rotation);
             _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()) - offset);
+            _avatarData->unlock();
         }
 
         unlock();

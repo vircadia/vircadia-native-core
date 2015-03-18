@@ -10,13 +10,18 @@
 //
 
 #include <PerfStat.h>
+#include <QDateTime>
+#include <QtScript/QScriptEngine>
 
 #include "EntityTree.h"
 #include "EntitySimulation.h"
+#include "VariantMapToScriptValue.h"
 
 #include "AddEntityOperator.h"
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
+#include "QVariantGLM.h"
+#include "RecurseOctreeToMapOperator.h"
 
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
@@ -466,7 +471,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
         return true; // keep searching in case children have closer entities
     }
 
-    // if this element doesn't contain the point, then none of it's children can contain the point, so stop searching
+    // if this element doesn't contain the point, then none of its children can contain the point, so stop searching
     return false;
 }
 
@@ -1080,3 +1085,41 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     return true;
 }
 
+bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* element) {
+    entityDescription["Entities"] = QVariantList();
+    QScriptEngine scriptEngine;
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine);
+    recurseTreeWithOperator(&theOperator);
+    return true;
+}
+
+bool EntityTree::readFromMap(QVariantMap& map) {
+    // map will have a top-level list keyed as "Entities".  This will be extracted
+    // and iterated over.  Each member of this list is converted to a QVariantMap, then
+    // to a QScriptValue, and then to EntityItemProperties.  These properties are used
+    // to add the new entity to the EnitytTree.
+    QVariantList entitiesQList = map["Entities"].toList();
+    QScriptEngine scriptEngine;
+
+    foreach (QVariant entityVariant, entitiesQList) {
+        // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
+        QVariantMap entityMap = entityVariant.toMap();
+        QScriptValue entityScriptValue = variantMapToScriptValue(entityMap, scriptEngine);
+        EntityItemProperties properties;
+        EntityItemPropertiesFromScriptValue(entityScriptValue, properties);
+
+        EntityItemID entityItemID;
+        if (entityMap.contains("id")) {
+            entityItemID = EntityItemID(QUuid(entityMap["id"].toString()));
+        } else {
+            entityItemID = EntityItemID(QUuid::createUuid());
+        }
+
+        EntityItem* entity = addEntity(entityItemID, properties);
+        if (!entity) {
+            qDebug() << "adding Entity failed:" << entityItemID << entity->getType();
+        }
+    }
+
+    return true;
+}

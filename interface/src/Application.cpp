@@ -891,9 +891,10 @@ bool Application::event(QEvent* event) {
                 DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
             } else if (url.path().toLower().endsWith(SVO_EXTENSION)) {
                 emit svoImportRequested(url.url());
+            } else if (url.path().toLower().endsWith(JS_EXTENSION)) {
+                askToLoadScript(url.toString());
             }
         }
-        
         return false;
     }
     
@@ -1454,31 +1455,43 @@ void Application::wheelEvent(QWheelEvent* event) {
 void Application::dropEvent(QDropEvent *event) {
     QString snapshotPath;
     const QMimeData *mimeData = event->mimeData();
+    bool atLeastOneFileAccepted = false;
     foreach (QUrl url, mimeData->urls()) {
         auto lower = url.path().toLower();
         if (lower.endsWith(SNAPSHOT_EXTENSION)) {
             snapshotPath = url.toLocalFile();
-            break;
+            
+            
+            SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
+            if (snapshotData) {
+                if (!snapshotData->getDomain().isEmpty()) {
+                    DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
+                }
+
+                _myAvatar->setPosition(snapshotData->getLocation());
+                _myAvatar->setOrientation(snapshotData->getOrientation());
+                atLeastOneFileAccepted = true;
+                break; // don't process further files
+            } else {
+                QMessageBox msgBox;
+                msgBox.setText("No location details were found in the file "
+                                + snapshotPath + ", try dragging in an authentic Hifi snapshot.");
+                                
+                msgBox.setStandardButtons(QMessageBox::Ok);
+                msgBox.exec();
+            }
         } else if (lower.endsWith(SVO_EXTENSION)) {
             emit svoImportRequested(url.url());
             event->acceptProposedAction();
-            return;
+            atLeastOneFileAccepted = true;
+        } else if (lower.endsWith(JS_EXTENSION)) {
+            askToLoadScript(url.url());
+            atLeastOneFileAccepted = true;
         }
     }
-
-    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
-    if (snapshotData) {
-        if (!snapshotData->getDomain().isEmpty()) {
-            DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
-        }
-
-        _myAvatar->setPosition(snapshotData->getLocation());
-        _myAvatar->setOrientation(snapshotData->getOrientation());
-    } else {
-        QMessageBox msgBox;
-        msgBox.setText("No location details were found in this JPG, try dragging in an authentic Hifi snapshot.");
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.exec();
+    
+    if (atLeastOneFileAccepted) {
+        event->acceptProposedAction();
     }
 }
 
@@ -1798,7 +1811,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
         url = QUrl::fromLocalFile(urlOrFilename);
     }
     
-    bool success = _entityClipboard.readFromSVOURL(url.toString());
+    bool success = _entityClipboard.readFromURL(url.toString());
     if (success) {
         _entityClipboard.reaverageOctreeElements();
     }
@@ -2795,7 +2808,31 @@ QImage Application::renderAvatarBillboard() {
     return image;
 }
 
+// FIXME, preprocessor guard this check to occur only in DEBUG builds
+static QThread * activeRenderingThread = nullptr;
+
+ViewFrustum* Application::getViewFrustum() {
+#ifdef DEBUG
+    if (QThread::currentThread() == activeRenderingThread) {
+        // FIXME, should this be an assert?
+        qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
+    }
+#endif
+    return &_viewFrustum;
+}
+
+ViewFrustum* Application::getDisplayViewFrustum() {
+#ifdef DEBUG
+    if (QThread::currentThread() != activeRenderingThread) {
+        // FIXME, should this be an assert?
+        qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
+    }
+#endif
+    return &_displayViewFrustum;
+}
+
 void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
+    activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
@@ -3020,6 +3057,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glClear(GL_DEPTH_BUFFER_BIT);
         _overlays.renderWorld(true);
     }
+    activeRenderingThread = nullptr;
 }
 
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
@@ -3556,6 +3594,19 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // Starts an event loop, and emits workerThread->started()
     workerThread->start();
+}
+
+void Application::askToLoadScript(const QString& scriptFilenameOrURL) {
+    QMessageBox::StandardButton reply;
+    QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
+    reply = QMessageBox::question(getWindow(), "Run Script", message, QMessageBox::Yes|QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        qDebug() << "Chose to run the script: " << scriptFilenameOrURL;
+        loadScript(scriptFilenameOrURL);
+    } else {
+        qDebug() << "Declined to run the script: " << scriptFilenameOrURL;
+    }
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
