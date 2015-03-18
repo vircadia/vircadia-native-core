@@ -668,9 +668,34 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 }
 
 
+unsigned int DomainServer::countConnectedUsers() {
+    unsigned int result = 0;
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->eachNode([&](const SharedNodePointer& otherNode){
+        if (otherNode->getType() == NodeType::Agent) {
+            result++;
+        }
+    });
+    return result;
+}
+
+
 bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
                                                  const HifiSockAddr& senderSockAddr) {
+
+    const QVariant* maximumUserCapacityVariant = valueForKeyPath(_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
+    unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
+    if (maximumUserCapacity > 0) {
+        unsigned int connectedUsers = countConnectedUsers();
+        if (connectedUsers >= maximumUserCapacity) {
+            // too many users, deny the new connection.
+            qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, denying new connection.";
+            return false;
+        }
+        qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, perhaps allowing new connection.";
+    }
+
     const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
                                                                  ALLOWED_USERS_SETTINGS_KEYPATH);
     QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
