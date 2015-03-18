@@ -510,7 +510,8 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
     GLint uniformsCount = 0;
 
 #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-    GLuint currentProgram = glGetIntegerv(GL_CURRENT_PROGRAM);
+    GLuint currentProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
     glUseProgram(glprogram);
 #endif
 
