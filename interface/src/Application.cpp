@@ -1798,7 +1798,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
         url = QUrl::fromLocalFile(urlOrFilename);
     }
     
-    bool success = _entityClipboard.readFromSVOURL(url.toString());
+    bool success = _entityClipboard.readFromURL(url.toString());
     if (success) {
         _entityClipboard.reaverageOctreeElements();
     }
