@@ -24,7 +24,7 @@
 #include <gpu/GLBackend.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <PhysicsEntity.h>
+#include "PhysicsEntity.h"
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 #include <ViewFrustum.h>
@@ -1099,6 +1099,14 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     if (!retainCurrent || !isActive() || _nextGeometry->isLoaded()) {
         applyNextGeometry();
     }
+}
+
+void Model::setCollisionModelURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+    if (_collisionUrl == url) {
+        return;
+    }
+    _collisionUrl = url;
+    _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {

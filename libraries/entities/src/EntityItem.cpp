@@ -1002,7 +1002,7 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(_dimensions);
 }
 
-void EntityItem::computeShapeInfo(ShapeInfo& info) const {
+void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }
 
