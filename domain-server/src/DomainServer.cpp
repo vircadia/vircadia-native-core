@@ -684,6 +684,16 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
                                                  const HifiSockAddr& senderSockAddr) {
 
+    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
+                                                                 ALLOWED_USERS_SETTINGS_KEYPATH);
+    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    
+    // we always let in a user who is sending a packet from our local socket or from the localhost address
+    if (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress()
+        || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
+        return true;
+    }
+
     const QVariant* maximumUserCapacityVariant = valueForKeyPath(_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
     unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
     if (maximumUserCapacity > 0) {
@@ -694,16 +704,6 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
             return false;
         }
         qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, perhaps allowing new connection.";
-    }
-
-    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                                 ALLOWED_USERS_SETTINGS_KEYPATH);
-    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
-    
-    // we always let in a user who is sending a packet from our local socket or from the localhost address
-    if (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress()
-        || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
-        return true;
     }
     
     if (allowedUsers.count() > 0) {
