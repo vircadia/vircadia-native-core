@@ -37,6 +37,9 @@ bool DataWebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkReques
         if (request.url().path().toLower().endsWith(SVO_EXTENSION)) {
             Application::getInstance()->importSVOFromURL(request.url());
             return false;
+        } else if (request.url().path().toLower().endsWith(JS_EXTENSION)) {
+            Application::getInstance()->askToLoadScript(request.url().toString());
+            return false;
         }
         return true;
     } else {
