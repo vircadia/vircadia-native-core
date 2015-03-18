@@ -51,11 +51,18 @@ public:
         Element _element = Element();
         uint16 _resourceType = Resource::BUFFER;
  
+        Slot(const Slot& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
         Slot(const Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
-  //      Slot& operator&&(const Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
         Slot(const std::string& name, int32 location, const Element& element, uint16 resourceType = Resource::BUFFER) :
              _name(name), _location(location), _element(element), _resourceType(resourceType) {}
         Slot(const std::string& name) : _name(name) {}
+        
+        Slot& operator= (const Slot& s) {
+            _name = s._name;
+            _location = s._location;
+            _element = s._element;
+            _resourceType = s._resourceType;
+            return (*this); }
     };
 
     class Binding {

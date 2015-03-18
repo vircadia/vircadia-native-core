@@ -218,7 +218,7 @@ void Model::initProgram(gpu::ShaderPointer& program, Model::Locations& locations
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
 #else
-    locations.materialBuffer = program->getUniforms().findLocation("materialBuffer");
+    locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
 #endif
 
 }
