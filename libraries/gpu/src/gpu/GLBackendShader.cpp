@@ -509,6 +509,11 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
 int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
     GLint uniformsCount = 0;
 
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+    GLuint currentProgram = glGetIntegerv(GL_CURRENT_PROGRAM);
+    glUseProgram(glprogram);
+#endif
+
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
 
     for (int i = 0; i < uniformsCount; i++) {
@@ -551,7 +556,11 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
                 if (requestedBinding != slotBindings.end()) {
                     if (binding != (*requestedBinding)._location) {
                         binding = (*requestedBinding)._location;
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+                        glUniform1i(location, binding);
+#else
                         glProgramUniform1i(glprogram, location, binding);
+#endif
                     }
                 }
 
@@ -560,6 +569,10 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
             }
         }
     }
+
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+    glUseProgram(currentProgram);
+#endif
 
     return uniformsCount;
 }
