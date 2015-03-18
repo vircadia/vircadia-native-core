@@ -2799,18 +2799,22 @@ QImage Application::renderAvatarBillboard() {
 static QThread * activeRenderingThread = nullptr;
 
 ViewFrustum* Application::getViewFrustum() {
+#ifdef DEBUG
     if (QThread::currentThread() == activeRenderingThread) {
         // FIXME, should this be an assert?
         qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
     }
+#endif
     return &_viewFrustum;
 }
 
 ViewFrustum* Application::getDisplayViewFrustum() {
+#ifdef DEBUG
     if (QThread::currentThread() != activeRenderingThread) {
         // FIXME, should this be an assert?
         qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
     }
+#endif
     return &_displayViewFrustum;
 }
 
