@@ -27,6 +27,10 @@
 #include <QNetworkReply>
 #include <QNetworkAccessManager>
 #include <QVector>
+#include <QFile>
+#include <QJsonDocument>
+#include <QFileInfo>
+#include <QString>
 
 #include <GeometryUtil.h>
 #include <LogHandler.h>
@@ -35,12 +39,16 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <Shape.h>
+#include <PathUtils.h>
 
 #include "CoverageMap.h"
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "Octree.h"
 #include "ViewFrustum.h"
+
+
+QVector<QString> PERSIST_EXTENSIONS = {"svo", "json"};
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
     return voxelSizeScale / powf(2, renderLevel);
@@ -1841,21 +1849,22 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     return bytesAtThisLevel;
 }
 
-bool Octree::readFromSVOFile(const char* fileName) {
+bool Octree::readFromFile(const char* fileName) {
     bool fileOk = false;
 
-    QFile file(fileName);
+    QString qFileName = findMostRecentFileExtension(fileName, PERSIST_EXTENSIONS);
+    QFile file(qFileName);
     fileOk = file.open(QIODevice::ReadOnly);
 
     if(fileOk) {
         QDataStream fileInputStream(&file);
-        QFileInfo fileInfo(fileName);
+        QFileInfo fileInfo(qFileName);
         unsigned long fileLength = fileInfo.size();
 
         emit importSize(1.0f, 1.0f, 1.0f);
         emit importProgress(0);
 
-        qDebug("Loading file %s...", fileName);
+        qDebug() << "Loading file" << qFileName << "...";
     
         fileOk = readFromStream(fileLength, fileInputStream);
 
@@ -1866,14 +1875,14 @@ bool Octree::readFromSVOFile(const char* fileName) {
     return fileOk;
 }
 
-bool Octree::readFromSVOURL(const QString& urlString) {
+bool Octree::readFromURL(const QString& urlString) {
     bool readOk = false;
 
     // determine if this is a local file or a network resource
     QUrl url(urlString);
     
     if (url.isLocalFile()) {
-        readOk = readFromSVOFile(qPrintable(url.toLocalFile()));
+        readOk = readFromFile(qPrintable(url.toLocalFile()));
     } else {
         QNetworkRequest request;
         request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -1899,6 +1908,23 @@ bool Octree::readFromSVOURL(const QString& urlString) {
 
 
 bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream) {
+
+    // decide if this is SVO or JSON
+    QIODevice *device = inputStream.device();
+    char firstChar;
+    device->getChar(&firstChar);
+    device->ungetChar(firstChar);
+
+    if (firstChar == (char) PacketTypeEntityData) {
+        return readSVOFromStream(streamLength, inputStream);
+    } else {
+        return readJSONFromStream(streamLength, inputStream);
+    }
+}
+
+
+bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStream) {
+
     bool fileOk = false;
 
     PacketVersion gotVersion = 0;
@@ -2024,6 +2050,53 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
 
     
     return fileOk;
+}
+
+bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
+    char *rawData = new char[streamLength];
+    inputStream.readRawData(rawData, streamLength);
+    QJsonDocument d = QJsonDocument::fromJson(rawData);
+    QVariant v = d.toVariant();
+    QVariantMap m = v.toMap();
+    readFromMap(m);
+    delete rawData;
+    return true;
+}
+
+void Octree::writeToFile(const char* fileName, OctreeElement* element, QString persistAsFileType) {
+    // make the sure file extension makes sense
+    QString qFileName = fileNameWithoutExtension(QString(fileName), PERSIST_EXTENSIONS) + "." + persistAsFileType;
+    QByteArray byteArray = qFileName.toUtf8();
+    const char* cFileName = byteArray.constData();
+
+    if (persistAsFileType == "svo") {
+        writeToSVOFile(fileName, element);
+    } else if (persistAsFileType == "json") {
+        writeToJSONFile(cFileName, element);
+    } else {
+        qDebug() << "unable to write octree to file of type" << persistAsFileType;
+    }
+}
+
+void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
+    QFile persistFile(fileName);
+    QVariantMap entityDescription;
+
+    qDebug("Saving to file %s...", fileName);
+
+    OctreeElement* top;
+    if (element) {
+        top = element;
+    } else {
+        top = _rootElement;
+    }
+
+    bool entityDescriptionSuccess = writeToMap(entityDescription, top);
+    if (entityDescriptionSuccess && persistFile.open(QIODevice::WriteOnly)) {
+        persistFile.write(QJsonDocument::fromVariant(entityDescription).toJson());
+    } else {
+        qCritical("Could not write to JSON description of entities.");
+    }
 }
 
 void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
