@@ -1034,7 +1034,7 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
 
     // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
     if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
-        camera->setNearClip(DEFAULT_NEAR_CLIP);
+        renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
     } else {
         float clipDistance = _skeletonModel.getHeadClipDistance();
         if (OculusManager::isConnected()) {
@@ -1047,7 +1047,7 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
                 clipDistance += headOffset;
             }
         }
-        camera->setNearClip(clipDistance);
+        renderFrustum->setNearClip(clipDistance);
     }
 
     //  Render the body's voxels and head
