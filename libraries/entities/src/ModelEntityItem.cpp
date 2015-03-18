@@ -17,7 +17,6 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ModelEntityItem.h"
-#include "GeometryCache.h"
 #include "ResourceCache.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
@@ -35,8 +34,6 @@ EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityI
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
-    _collisionNetworkGeometry = QSharedPointer<NetworkGeometry>();
-
     _type = EntityTypes::Model;
     setProperties(properties);
     _lastAnimated = usecTimestampNow();
@@ -414,47 +411,4 @@ QString ModelEntityItem::getAnimationSettings() const {
     QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
     QString jsonByteString(jsonByteArray);
     return jsonByteString;
-}
-
-
-bool ModelEntityItem::isReadyToComputeShape() {
-    if (_collisionModelURL == "") {
-        // no model url, so we're ready to compute a shape.
-        return true;
-    }
-
-    if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
-        // we have a _collisionModelURL AND a _collisionNetworkGeometry AND it's fully loaded.
-        return true;
-    }
-
-    if (_collisionNetworkGeometry.isNull()) {
-        // we have a _collisionModelURL but we don't yet have a _collisionNetworkGeometry.
-        _collisionNetworkGeometry =
-            DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false, false);
-
-        if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
-            // shortcut in case it's already loaded.
-            return true;
-        }
-    }
-
-    // the model is still being downloaded.
-    return false;
-}
-
-void ModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    if (_collisionModelURL == "") {
-        info.setParams(getShapeType(), 0.5f * getDimensions());
-    } else {
-        const FBXGeometry& fbxGeometry = _collisionNetworkGeometry->getFBXGeometry();
-
-        _points.clear();
-        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
-            _points << mesh.vertices;
-        }
-
-        info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
-        info.setConvexHull(_points);
-    }
 }

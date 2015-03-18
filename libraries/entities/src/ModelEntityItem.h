@@ -51,17 +51,7 @@ public:
     virtual bool needsToCallUpdate() const;
     virtual void debugDump() const;
 
-    virtual void computeShapeInfo(ShapeInfo& info);
-
     void updateShapeType(ShapeType type);
-    virtual ShapeType getShapeType() const {
-        // XXX make hull an option in edit.js ?
-        if (_collisionModelURL != "") {
-            return SHAPE_TYPE_CONVEX_HULL;
-        } else {
-            return _shapeType;
-        }
-    }
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
@@ -132,8 +122,6 @@ public:
     
     static void cleanupLoadedAnimations();
 
-    bool isReadyToComputeShape();
-    
 protected:
 
     bool isAnimatingSomething() const;
@@ -156,9 +144,6 @@ protected:
     static Animation* getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;
     static AnimationCache _animationCache;
-
-    QSharedPointer<NetworkGeometry> _collisionNetworkGeometry;
-    QVector<glm::vec3> _points;
 };
 
 #endif // hifi_ModelEntityItem_h
