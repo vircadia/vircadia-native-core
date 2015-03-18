@@ -66,8 +66,6 @@ private:
     QString _currentTextures;
     QStringList _originalTextures;
     bool _originalTexturesRead;
-
-    // QSharedPointer<NetworkGeometry> _collisionNetworkGeometry;
     QVector<glm::vec3> _points;
 };
 

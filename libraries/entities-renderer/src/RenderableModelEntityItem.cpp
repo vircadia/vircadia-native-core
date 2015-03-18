@@ -269,12 +269,10 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 bool RenderableModelEntityItem::isReadyToComputeShape() {
 
     if (!_model) {
-        qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::isReadyToComputeShape --> no _model, false";
         return false; // hmm...
     }
 
     if (_model->getCollisionURL().toString() == "") {
-        qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::isReadyToComputeShape --> no _model->_collisionUrl, true";
         // no model url, so we're ready to compute a shape.
         return true;
     }
@@ -282,12 +280,10 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
     if (! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) {
         // we have a _collisionModelURL AND a collisionNetworkGeometry AND it's fully loaded.
-        qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::isReadyToComputeShape --> model is ready, true";
         return true;
     }
 
     if (collisionNetworkGeometry.isNull()) {
-        qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::isReadyToComputeShape --> started download, false";
         // we have a _collisionModelURL but we don't yet have a collisionNetworkGeometry.
         // kick-off the download so that we'll have it at some future re-attempt.
         DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false, false);
@@ -295,16 +291,13 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     }
 
     // the model is still being downloaded.
-    qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::isReadyToComputeShape --> model not ready, false";
     return false;
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     if (_model->getCollisionURL().toString() == "") {
-        qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::computeShapeInfo --> default";
         info.setParams(getShapeType(), 0.5f * getDimensions());
     } else {
-        qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::computeShapeInfo --> hull points";
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const FBXGeometry& fbxGeometry = collisionNetworkGeometry->getFBXGeometry();
 
@@ -321,10 +314,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 ShapeType RenderableModelEntityItem::getShapeType() const {
     // XXX make hull an option in edit.js ?
     if (!_model || _model->getCollisionURL().toString() == "") {
-        qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::getShapeType -->" << _shapeType;
         return _shapeType;
     } else {
-        qDebug() << "O#O#O#O#O#O RenderableModelEntityItem::getShapeType -->" << SHAPE_TYPE_CONVEX_HULL;
         return SHAPE_TYPE_CONVEX_HULL;
     }
 }
