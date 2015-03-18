@@ -283,13 +283,6 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         return true;
     }
 
-    if (collisionNetworkGeometry.isNull()) {
-        // we have a _collisionModelURL but we don't yet have a collisionNetworkGeometry.
-        // kick-off the download so that we'll have it at some future re-attempt.
-        DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false, false);
-        return false;
-    }
-
     // the model is still being downloaded.
     return false;
 }
