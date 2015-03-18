@@ -57,6 +57,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
     _locked = ENTITY_ITEM_DEFAULT_LOCKED;
     _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
+    _attribution = ENTITY_ITEM_DEFAULT_ATTRIBUTION;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
@@ -116,6 +117,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_COLLISIONS_WILL_MOVE;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
+    requestedProperties += PROP_ATTRIBUTION;
     
     return requestedProperties;
 }
@@ -245,6 +247,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
                                 propertiesDidntFit,
                                 propertyCount,
                                 appendState);
+        
+        APPEND_ENTITY_PROPERTY(PROP_ATTRIBUTION, appendValue, getAttribution());
     }
 
     if (propertyCount > 0) {
@@ -550,9 +554,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_SETTER(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
         READ_ENTITY_PROPERTY_SETTER(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
-        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA,setUserData);
+        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
+        
+        READ_ENTITY_PROPERTY_STRING(PROP_ATTRIBUTION, setAttribution);
 
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
             // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
@@ -820,6 +826,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(attribution, getAttribution);
 
     properties._defaultSettings = false;
     
@@ -848,6 +855,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(attribution, setAttribution);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed

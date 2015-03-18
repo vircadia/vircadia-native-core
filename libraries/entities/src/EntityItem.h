@@ -251,6 +251,9 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
     
+    const QString& getAttribution() const { return _attribution; }
+    void setAttribution(const QString& value) { _attribution = value; }
+    
     // TODO: get rid of users of getRadius()... 
     float getRadius() const;
     
@@ -338,6 +341,7 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
+    QString _attribution;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //
