@@ -16,9 +16,6 @@
 
 #include "EntityItem.h" 
 
-class NetworkGeometry;
-class GeometryCache;
-
 class ModelEntityItem : public EntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -52,6 +49,7 @@ public:
     virtual void debugDump() const;
 
     void updateShapeType(ShapeType type);
+    virtual ShapeType getShapeType() const { return _shapeType; }
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
@@ -121,7 +119,7 @@ public:
     void setTextures(const QString& textures) { _textures = textures; }
     
     static void cleanupLoadedAnimations();
-
+    
 protected:
 
     bool isAnimatingSomething() const;
@@ -144,6 +142,7 @@ protected:
     static Animation* getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;
     static AnimationCache _animationCache;
+
 };
 
 #endif // hifi_ModelEntityItem_h

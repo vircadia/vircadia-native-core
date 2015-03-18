@@ -49,8 +49,6 @@ typedef std::map<ContactKey, ContactInfo> ContactMap;
 typedef std::pair<ContactKey, ContactInfo> ContactMapElement;
 
 class PhysicsEngine : public EntitySimulation {
-    Q_OBJECT
-
 public:
     // TODO: find a good way to make this a non-static method
     static uint32_t getNumSubsteps();

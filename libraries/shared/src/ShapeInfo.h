@@ -12,7 +12,6 @@
 #ifndef hifi_ShapeInfo_h
 #define hifi_ShapeInfo_h
 
-#include <QObject>
 #include <QVector>
 #include <QString>
 #include <QUrl>
@@ -36,8 +35,7 @@ enum ShapeType {
     SHAPE_TYPE_CYLINDER_Z
 };
 
-class ShapeInfo : QObject {
-    Q_OBJECT
+class ShapeInfo {
 
 public:
     void clear();

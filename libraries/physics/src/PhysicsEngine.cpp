@@ -284,7 +284,6 @@ void PhysicsEngine::stepSimulation() {
     assert(_avatarData);
 
     lock();
-
     // NOTE: the grand order of operations is:
     // (1) relay incoming changes
     // (2) step simulation
