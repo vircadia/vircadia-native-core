@@ -22,7 +22,7 @@ void ShapeInfo::clear() {
     _externalData = NULL;
 }
 
-void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<glm::vec3>* data) {
+void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<glm::vec3>* data, QString url) {
     _type = type;
     switch(type) {
         case SHAPE_TYPE_NONE:
@@ -37,8 +37,13 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<
             _halfExtents = glm::vec3(radius);
             break;
         }
+        case SHAPE_TYPE_CONVEX_HULL:
+            _url = QUrl(url);
+            _halfExtents = halfExtents;
+            break;
         default:
             _halfExtents = halfExtents;
+            break;
     }
     _externalData = data;
 }
@@ -59,6 +64,11 @@ void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
     _type = SHAPE_TYPE_ELLIPSOID;
     _halfExtents = halfExtents;
     _doubleHashKey.clear();
+}
+
+void ShapeInfo::setConvexHull(const QVector<glm::vec3>& points) {
+    _type = SHAPE_TYPE_CONVEX_HULL;
+    _points = points;
 }
 
 void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
@@ -130,21 +140,30 @@ const DoubleHashKey& ShapeInfo::getHash() const {
             thisPtr->_doubleHashKey.setHash(hash);
         
             // compute hash2
-            hash = _doubleHashKey.getHash2();
-            for (int i = 0; i < numData; ++i) {
-                tmpData = (*data)[i];
-                for (int j = 0; j < 3; ++j) {
-                    // NOTE: 0.49f is used to bump the float up almost half a millimeter
-                    // so the cast to int produces a round() effect rather than a floor()
-                    uint32_t floatHash =
-                        DoubleHashKey::hashFunction2((uint32_t)(tmpData[j] * MILLIMETERS_PER_METER + copysignf(1.0f, tmpData[j]) * 0.49f));
-                    hash += ~(floatHash << 17);
-                    hash ^=  (floatHash >> 11);
-                    hash +=  (floatHash << 4);
-                    hash ^=  (floatHash >> 7);
-                    hash += ~(floatHash << 10);
-                    hash = (hash << 16) | (hash >> 16);
+
+            QString url = _url.toString();
+
+            if (url == "") {
+                hash = _doubleHashKey.getHash2();
+                for (int i = 0; i < numData; ++i) {
+                    tmpData = (*data)[i];
+                    for (int j = 0; j < 3; ++j) {
+                        // NOTE: 0.49f is used to bump the float up almost half a millimeter
+                        // so the cast to int produces a round() effect rather than a floor()
+                        uint32_t floatHash =
+                            DoubleHashKey::hashFunction2((uint32_t)(tmpData[j] * MILLIMETERS_PER_METER + copysignf(1.0f, tmpData[j]) * 0.49f));
+                        hash += ~(floatHash << 17);
+                        hash ^=  (floatHash >> 11);
+                        hash +=  (floatHash << 4);
+                        hash ^=  (floatHash >> 7);
+                        hash += ~(floatHash << 10);
+                        hash = (hash << 16) | (hash >> 16);
+                    }
                 }
+            } else {
+                QByteArray baUrl = url.toLocal8Bit();
+                const char *cUrl = baUrl.data();
+                hash = qChecksum(cUrl, baUrl.count());
             }
             thisPtr->_doubleHashKey.setHash2(hash);
         } else {

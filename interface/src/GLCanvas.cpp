@@ -172,10 +172,10 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
 }
 
 void GLCanvas::dragEnterEvent(QDragEnterEvent* event) {
-    const QMimeData *mimeData = event->mimeData();
+    const QMimeData* mimeData = event->mimeData();
     foreach (QUrl url, mimeData->urls()) {
         auto lower = url.path().toLower();
-        if (lower.endsWith(SNAPSHOT_EXTENSION) || lower.endsWith(SVO_EXTENSION)) {
+        if (lower.endsWith(SNAPSHOT_EXTENSION) || lower.endsWith(SVO_EXTENSION) || lower.endsWith(JS_EXTENSION)) {
             event->acceptProposedAction();
             break;
         }

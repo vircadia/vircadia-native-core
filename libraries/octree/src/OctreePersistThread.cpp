@@ -20,16 +20,19 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QJsonDocument>
 
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <PathUtils.h>
 
 #include "OctreePersistThread.h"
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
 OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, int persistInterval, 
-                                                bool wantBackup, const QJsonObject& settings, bool debugTimestampNow) :
+                                         bool wantBackup, const QJsonObject& settings, bool debugTimestampNow,
+                                         QString persistAsFileType) :
     _tree(tree),
     _filename(filename),
     _persistInterval(persistInterval),
@@ -38,9 +41,14 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
     _lastCheck(0),
     _wantBackup(wantBackup),
     _debugTimestampNow(debugTimestampNow),
-    _lastTimeDebug(0)
+    _lastTimeDebug(0),
+    _persistAsFileType(persistAsFileType)
 {
     parseSettings(settings);
+
+    // in case the persist filename has an extension that doesn't match the file type
+    QString sansExt = fileNameWithoutExtension(_filename, PERSIST_EXTENSIONS);
+    _filename = sansExt + "." + _persistAsFileType;
 }
 
 void OctreePersistThread::parseSettings(const QJsonObject& settings) {
@@ -140,7 +148,7 @@ bool OctreePersistThread::process() {
                 qDebug() << "Loading Octree... lock file removed:" << lockFileName;
             }
 
-            persistantFileRead = _tree->readFromSVOFile(_filename.toLocal8Bit().constData());
+            persistantFileRead = _tree->readFromFile(qPrintable(_filename.toLocal8Bit()));
             _tree->pruneTree();
         }
         _tree->unlock();
@@ -242,9 +250,7 @@ void OctreePersistThread::persist() {
         if(lockFile.is_open()) {
             qDebug() << "saving Octree lock file created at:" << lockFileName;
 
-            qDebug() << "saving Octree to file " << _filename << "...";
-            
-            _tree->writeToSVOFile(qPrintable(_filename));
+            _tree->writeToFile(qPrintable(_filename), NULL, _persistAsFileType);
             time(&_lastPersistTime);
             _tree->clearDirtyBit(); // tree is clean after saving
             qDebug() << "DONE saving Octree to file...";
@@ -346,8 +352,8 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
                 QString backupExtensionNplusOne = rule.extensionFormat;
                 backupExtensionN.replace(QString("%N"), QString::number(n));
                 backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
-    
-                QString backupFilenameN = _filename + backupExtensionN;
+
+                QString backupFilenameN = findMostRecentFileExtension(_filename, PERSIST_EXTENSIONS) + backupExtensionN;
                 QString backupFilenameNplusOne = _filename + backupExtensionNplusOne;
 
                 QFile backupFileN(backupFilenameN);
