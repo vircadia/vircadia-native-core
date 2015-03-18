@@ -187,7 +187,9 @@ void buildStringToShapeTypeLookup() {
 }
 
 QString EntityItemProperties::getShapeTypeAsString() const {
-    return QString(shapeTypeNames[_shapeType]);
+    if (_shapeType < sizeof(shapeTypeNames) / sizeof(char *))
+        return QString(shapeTypeNames[_shapeType]);
+    return QString("none");
 }
 
 void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {

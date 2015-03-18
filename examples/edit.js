@@ -766,6 +766,10 @@ function setupModelMenus() {
                         afterItem: "Allow Selecting of Large Models", isCheckable: true, isChecked: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
                         afterItem: "Allow Selecting of Small Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities In Box", shortcutKey: "CTRL+SHIFT+META+A", 
+                        afterItem: "Allow Selecting of Lights" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities Touching Box", shortcutKey: "CTRL+SHIFT+META+T", 
+                        afterItem: "Select All Entities In Box" });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Entities", shortcutKey: "CTRL+META+E", afterItem: "Models" });
@@ -795,6 +799,8 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
+    Menu.removeMenuItem("Edit", "Select All Entities In Box");
+    Menu.removeMenuItem("Edit", "Select All Entities Touching Box");
 
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Entities");
@@ -829,6 +835,45 @@ Script.update.connect(function (deltaTime) {
     progressDialog.move();
     selectionDisplay.checkMove();
 });
+
+function insideBox(center, dimensions, point) {
+    return (Math.abs(point.x - center.x) <= (dimensions.x / 2.0))
+        && (Math.abs(point.y - center.y) <= (dimensions.y / 2.0))
+        && (Math.abs(point.z - center.z) <= (dimensions.z / 2.0));
+}
+
+function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
+    if (selectionManager.hasSelection()) {
+        // Get all entities touching the bounding box of the current selection
+        var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
+                                              Vec3.multiply(selectionManager.worldDimensions, 0.5));
+        var entities = Entities.findEntitiesInBox(boundingBoxCorner, selectionManager.worldDimensions);
+        
+        if (!keepIfTouching) {
+            var isValid;
+            if (selectionManager.localPosition === null) {
+                isValid = function(position) {
+                    return insideBox(selectionManager.worldPosition, selectionManager.worldDimensions, position);
+                }
+            } else {
+                isValid = function(position) {
+                    var localPosition = Vec3.multiplyQbyV(Quat.inverse(selectionManager.localRotation),
+                                                          Vec3.subtract(position,
+                                                                        selectionManager.localPosition));
+                    return insideBox({ x: 0, y: 0, z: 0 }, selectionManager.localDimensions, localPosition);
+                }
+            }
+            for (var i = 0; i < entities.length; ++i) {
+                var properties = Entities.getEntityProperties(entities[i]);
+                if (!isValid(properties.position)) {
+                    entities.splice(i, 1);
+                    --i;
+                }
+            } 
+        }
+        selectionManager.setSelections(entities);
+    }
+}
 
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
@@ -888,6 +933,10 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Entity List...") {
         entityListTool.toggleVisible();
+    } else if (menuItem == "Select All Entities In Box") {
+        selectAllEtitiesInCurrentSelectionBox(false);
+    } else if (menuItem == "Select All Entities Touching Box") {
+        selectAllEtitiesInCurrentSelectionBox(true);
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     }

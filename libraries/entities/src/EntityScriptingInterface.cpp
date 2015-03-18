@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <VariantMapToScriptValue.h>
+
 #include "EntityScriptingInterface.h"
 #include "EntityTree.h"
 #include "LightEntityItem.h"
@@ -204,8 +206,7 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
         const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
-            result.id = closestEntity->getID();
-            result.isKnownID = true;
+            result = closestEntity->getEntityItemID();
         }
     }
     return result;
@@ -227,10 +228,25 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
         QVector<const EntityItem*> entities;
         _entityTree->findEntities(center, radius, entities);
         _entityTree->unlock();
-
+        
         foreach (const EntityItem* entity, entities) {
-            EntityItemID thisEntityItemID(entity->getID(), UNKNOWN_ENTITY_TOKEN, true);
-            result << thisEntityItemID;
+            result << entity->getEntityItemID();
+        }
+    }
+    return result;
+}
+
+QVector<EntityItemID> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
+    QVector<EntityItemID> result;
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        AABox box(corner, dimensions);
+        QVector<EntityItem*> entities;
+        _entityTree->findEntities(box, entities);
+        _entityTree->unlock();
+        
+        foreach (const EntityItem* entity, entities) {
+            result << entity->getEntityItemID();
         }
     }
     return result;
