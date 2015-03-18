@@ -61,7 +61,7 @@ private:
     void setupAudioThread();
     void cleanupAudioThread();
     void loopRecording();
-    void setAudionInjectorPosition();
+    void setAudioInjectorPosition();
     bool computeCurrentFrame();
     
     AvatarData* _avatar;
